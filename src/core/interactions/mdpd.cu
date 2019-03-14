@@ -1,7 +1,6 @@
 #include "mdpd.h"
 
 #include "pairwise.impl.h"
-#include "pairwise_interactions/density.h"
 #include "pairwise_interactions/mdpd.h"
 
 #include <core/celllist.h>
@@ -10,53 +9,6 @@
 #include <core/pvs/particle_vector.h>
 
 #include <memory>
-
-
-
-InteractionMDPDDensity::InteractionMDPDDensity(const YmrState *state, std::string name, float rc) :
-    Interaction(state, name, rc)
-{
-    using PairwiseDensityType = PairwiseDensity<SimpleMDPDDensityKernel>;
-    
-    PairwiseDensityType density(rc, SimpleMDPDDensityKernel());
-    impl = std::make_unique<InteractionPair<PairwiseDensityType>> (state, name, rc, density);
-}
-
-InteractionMDPDDensity::~InteractionMDPDDensity() = default;
-
-void InteractionMDPDDensity::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
-{
-    impl->setPrerequisites(pv1, pv2, cl1, cl2);
-
-    pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    
-    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
-    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
-}
-
-std::vector<Interaction::InteractionChannel> InteractionMDPDDensity::getIntermediateOutputChannels() const
-{
-    return {{ChannelNames::densities, Interaction::alwaysActive}};
-}
-std::vector<Interaction::InteractionChannel> InteractionMDPDDensity::getFinalOutputChannels() const
-{
-    return {};
-}
-
-void InteractionMDPDDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->local(pv1, pv2, cl1, cl2, stream);
-}
-
-void InteractionMDPDDensity::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->halo(pv1, pv2, cl1, cl2, stream);
-}
-
-
-
-
 
 
 InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl) :

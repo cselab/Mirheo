@@ -11,60 +11,6 @@
 
 #include <memory>
 
-
-template <class DensityKernel>
-InteractionSDPDDensity<DensityKernel>::InteractionSDPDDensity(const YmrState *state, std::string name, float rc, DensityKernel densityKernel) :
-    Interaction(state, name, rc)
-{
-    using PairwiseDensityType = PairwiseDensity<DensityKernel>;
-    
-    PairwiseDensityType density(rc, densityKernel);
-    impl = std::make_unique<InteractionPair<PairwiseDensityType>> (state, name, rc, density);
-}
-
-template<class DensityKernel>
-InteractionSDPDDensity<DensityKernel>::~InteractionSDPDDensity() = default;
-
-template<class DensityKernel>
-void InteractionSDPDDensity<DensityKernel>::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
-{
-    impl->setPrerequisites(pv1, pv2, cl1, cl2);
-
-    pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    
-    cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
-    cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
-}
-
-template<class DensityKernel>
-std::vector<Interaction::InteractionChannel>
-InteractionSDPDDensity<DensityKernel>::getIntermediateOutputChannels() const
-{
-    return {{ChannelNames::densities, Interaction::alwaysActive}};
-}
-
-template<class DensityKernel>
-std::vector<Interaction::InteractionChannel>
-InteractionSDPDDensity<DensityKernel>::getFinalOutputChannels() const
-{
-    return {};
-}
-
-template<class DensityKernel>
-void InteractionSDPDDensity<DensityKernel>::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->local(pv1, pv2, cl1, cl2, stream);
-}
-
-template<class DensityKernel>
-void InteractionSDPDDensity<DensityKernel>::halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
-{
-    impl->halo(pv1, pv2, cl1, cl2, stream);
-}
-
-
-
 BasicInteractionSDPD::BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
                                            float viscosity, float kBT) :
     Interaction(state, name, rc),
