@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **interface change** Density interaction becomes MDPDDensity
 * **docs**: add tutorials
 * **docs**: minor fixes
 * **internal**:

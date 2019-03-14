@@ -59,33 +59,6 @@ class DPD(Interaction):
         """
         pass
 
-class Density(Interaction):
-    r"""
-        Compute MDPD density of particles, see [Warren2003]_
-    
-        .. math::
-        
-            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
-
-        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
-
-        .. math::
-            
-            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off
-    
-
-        """
-        pass
-
 class LJ(Interaction):
     r"""
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
@@ -128,7 +101,7 @@ class LJ(Interaction):
 class MDPD(Interaction):
     r"""
         Compute MDPD interaction as described in [Warren2003].
-        Must be used together with :any:`Density` interaction.
+        Must be used together with :any:`MDPDDensity` interaction.
 
         The interaction forces are the same as described in :any:`DPD` with the modified conservative term
 
@@ -162,6 +135,33 @@ class MDPD(Interaction):
                     gamma: :math:`\gamma`
                     kbt: :math:`k_B T`
                     power: :math:`p` in the weight function
+    
+
+        """
+        pass
+
+class MDPDDensity(Interaction):
+    r"""
+        Compute MDPD density of particles, see [Warren2003]_
+    
+        .. math::
+        
+            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
+
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
+
+        .. math::
+            
+            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off
     
 
         """
