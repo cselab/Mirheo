@@ -59,6 +59,47 @@ class DPD(Interaction):
         """
         pass
 
+class Density(Interaction):
+    r"""
+        Compute density of particles with a given kernel. 
+    
+        .. math::
+        
+            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
+
+        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`.
+        The implemented densities are listed below:
+
+
+        kernel "MDPD":
+            
+            see [Warren2003]_
+            
+            .. math::
+            
+                w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+        
+        kernel "WendlandC2":
+        
+            TODO
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, kernel: str) -> None
+
+  
+        Args:
+            name: name of the interaction
+            rc: interaction cut-off
+            kernel: the density kernel to be used. possible choices are:
+            
+                * MDPD
+                * WendlandC2            
+    
+
+        """
+        pass
+
 class LJ(Interaction):
     r"""
         Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
@@ -101,7 +142,7 @@ class LJ(Interaction):
 class MDPD(Interaction):
     r"""
         Compute MDPD interaction as described in [Warren2003].
-        Must be used together with :any:`MDPDDensity` interaction.
+        Must be used together with :any:`Density` interaction with kernel "MDPD".
 
         The interaction forces are the same as described in :any:`DPD` with the modified conservative term
 
@@ -135,33 +176,6 @@ class MDPD(Interaction):
                     gamma: :math:`\gamma`
                     kbt: :math:`k_B T`
                     power: :math:`p` in the weight function
-    
-
-        """
-        pass
-
-class MDPDDensity(Interaction):
-    r"""
-        Compute MDPD density of particles, see [Warren2003]_
-    
-        .. math::
-        
-            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
-
-        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`, and
-
-        .. math::
-            
-            w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}            
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off
     
 
         """
@@ -287,6 +301,56 @@ class MembraneForces(Interaction):
                  * **C0**:  spontaneous curvature
                  * **kad**: area difference energy magnitude
                  * **DA0**: spontaneous area difference
+    
+
+        """
+        pass
+
+class SDPD(Interaction):
+    r"""
+        Compute SDPD interaction as with angular momentum conservation.
+        Must be used together with :any:`Density` interaction with the same density kernel.
+
+        The available density kernels are listed in :any:`Density`.
+        The available equations of state (EOS) are:
+
+        Linear equation of state:
+
+            .. math::
+
+                p(\rho) = c^2 \rho
+ 
+            where :math:`c` is the speed of sound,
+
+        Quasi incompressible EOS:
+
+            .. math::
+
+                p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
+
+            where :math:`p_0`, :math:`\rho_r` and :math:`\gama = 7` are parameters to be fitted to the desired fluid.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, viscosity: float, kBT: float, EOS: str, density_kernel: str, **kwargs) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                viscosity: solvent viscosity
+                kBT: temperature (in :math:`k_B` units)
+                EOS: the desired equation of state 
+                density_kernel: the desired density kernel
+
+            linear EOS parameters:
+
+                * **sound_speed**: the speed of sound
+
+            quasi-incompressible EOS parameters:
+
+                * **p0**: :math:`p_0`
+                * **rho_r**: :math:`\rho_r`
     
 
         """

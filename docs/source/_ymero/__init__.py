@@ -276,9 +276,20 @@ Register Wall
         pass
 
     def restart():
-        r"""restart(arg0: str) -> None
+        r"""restart(folder: str = 'restart/') -> None
 
-Restart the simulation
+
+               Restart the simulation. This function should typically be called just before running the simulation.
+               It will read the state of all previously registered :any:`ParticleVector`s, :any:`Interaction`s, etc.
+               If the folder contains no checkpoint file required for one of those, an error occur.
+               
+               .. warning::
+                  Certain :any:`Plugin`s may not implement restarting mechanism and will not restart correctly.
+                  Please check the documentation for the plugins.
+
+               Args:
+                   folder: folder with the checkpoint files
+        
 
         """
         pass
@@ -328,7 +339,13 @@ Set Integrator
         r"""setInteraction(interaction: Interaction, pv1: ParticleVector, pv2: ParticleVector) -> None
 
 
-                Forces between two Particle Vectors (they can be the same) *name1* and *name2* will be computed according to the defined interaction.
+                Forces between two :any:`ParticleVector`s (they can be the same) will be computed according to the defined interaction.
+
+                Args:
+                    interaction: :any:`Interaction` to apply
+                    pv1: first :any:`ParticleVector`
+                    pv2: second :any:`ParticleVector`
+
         
 
         """
