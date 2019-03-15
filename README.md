@@ -12,12 +12,14 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.12.0
 
 * **fix** `ymero.restart()` will now indeed restart the simulation
 * **interface change** Renamed and moved parameter for MPI communicator in the ymero constructor
 * **interface change** Density interaction needs a density kernel
-* add first version of SDPD
+* add SDPD interactions
 * add more density kernels
 * **docs**: add tutorials
 * **docs**: minor fixes

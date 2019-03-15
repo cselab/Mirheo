@@ -334,7 +334,7 @@ class SDPD(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, viscosity: float, kBT: float, EOS: str, density_kernel: str, **kwargs) -> None
+        r"""__init__(name: str, rc: float, viscosity: float, kBT: float, EOS: str, density_kernel: str, stress: bool = False, **kwargs) -> None
 
   
             Args:
@@ -344,6 +344,7 @@ class SDPD(Interaction):
                 kBT: temperature (in :math:`k_B` units)
                 EOS: the desired equation of state 
                 density_kernel: the desired density kernel
+                stress: compute stresses if set to True (default: False); need the additional parameter **stress_period** if active.
 
             **EOS = "Linear" parameters:**
 
