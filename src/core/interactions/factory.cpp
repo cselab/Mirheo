@@ -11,6 +11,7 @@
 #include "pairwise_interactions/pressure_EOS.h"
 
 #include "sdpd.h"
+#include "sdpd_with_stress.h"
 
 #include <core/logger.h>
 
@@ -235,28 +236,47 @@ static bool isQuasiIncompressibleEOS(const std::string& desc)
 }
 
 
+template <typename PressureKernel, typename DensityKernel>
+static std::shared_ptr<BasicInteractionSDPD>
+allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
+                     PressureKernel pressure, DensityKernel density,
+                     float viscosity, float kBT,
+                     bool stress, float stressPeriod)
+{
+    if (stress)
+        return std::make_shared<InteractionSDPDWithStress<PressureKernel, DensityKernel>>
+            (state, name, rc, pressure, density, viscosity, kBT, stressPeriod);
+    else
+        return std::make_shared<InteractionSDPD<PressureKernel, DensityKernel>>
+            (state, name, rc, pressure, density, viscosity, kBT);
+}
+
+
 std::shared_ptr<BasicInteractionSDPD>
 InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
-                                       const std::string& EOS, const std::string& density,
+                                       const std::string& EOS, const std::string& density, bool stress,
                                        const std::map<std::string, float>& parameters)
 {
+    float stressPeriod = 0.f;
+
+    if (stress)
+        stressPeriod = readFloat(parameters, "stress_period");
+    
     if (!isWendlandC2Density(density))
         die("Invalid density '%s'", density.c_str());
-    
+
     WendlandC2DensityKernel densityKernel;
     
     if (isLinearEOS(EOS))
     {
         auto pressure = readLinearPressureEOS(parameters);
-        return std::make_shared<InteractionSDPD<LinearPressureEOS, WendlandC2DensityKernel>>
-            (state, name, rc, pressure, densityKernel, viscosity, kBT);
+        return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
     if (isQuasiIncompressibleEOS(EOS))
     {
         auto pressure = readQuasiIncompressiblePressureEOS(parameters);
-        return std::make_shared<InteractionSDPD<QuasiIncompressiblePressureEOS, WendlandC2DensityKernel>>
-            (state, name, rc, pressure, densityKernel, viscosity, kBT);
+        return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
     die("Invalid pressure parameter: '%s'", EOS.c_str());

@@ -22,8 +22,7 @@ createPairwiseDensity(const YmrState *state, std::string name, float rc, const s
 
 std::shared_ptr<BasicInteractionSDPD>
 createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
-                   const std::string& EOS, const std::string& density,
+                   const std::string& EOS, const std::string& density, bool stress,
                    const std::map<std::string, float>& parameters);
-
 
 } // namespace InteractionFactory

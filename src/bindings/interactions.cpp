@@ -43,7 +43,8 @@ createInteractionMembrane(const YmrState *state, std::string name,
 static std::shared_ptr<BasicInteractionSDPD>
 createInteractionPairwiseSDPD(const YmrState *state, std::string name,
                               float rc, float viscosity, float kBT,
-                              std::string EOS, std::string density, py::kwargs kwargs)
+                              std::string EOS, std::string density,
+                              bool stress, py::kwargs kwargs)
 {
     std::map<std::string, float> parameters;
 
@@ -60,7 +61,7 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
     }    
     
     return InteractionFactory::createPairwiseSDPD
-        (state, name, rc, viscosity, kBT, EOS, density, parameters);
+        (state, name, rc, viscosity, kBT, EOS, density, stress, parameters);
 }
 
 
@@ -248,7 +249,7 @@ void exportInteractions(py::module& m)
     )");
     
     pyIntSDPD.def(py::init(&createInteractionPairwiseSDPD),
-                  "state"_a, "name"_a, "rc"_a, "viscosity"_a, "kBT"_a, "EOS"_a, "density_kernel"_a, R"(  
+                  "state"_a, "name"_a, "rc"_a, "viscosity"_a, "kBT"_a, "EOS"_a, "density_kernel"_a, "stress"_a=false, R"(  
             Args:
                 name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -256,6 +257,7 @@ void exportInteractions(py::module& m)
                 kBT: temperature (in :math:`k_B` units)
                 EOS: the desired equation of state 
                 density_kernel: the desired density kernel
+                stress: compute stresses if set to True (default: False); need the additional parameter **stress_period** if active.
 
             **EOS = "Linear" parameters:**
 
