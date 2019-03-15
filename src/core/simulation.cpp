@@ -652,7 +652,7 @@ void Simulation::prepareEngines()
     auto objRedistImp           = std::make_unique<ObjectRedistributor>();
     auto objHaloImp             = std::make_unique<ObjectHaloExchanger>();
     auto objHaloIntermediateImp = std::make_unique<ObjectHaloExchanger>();
-    auto objForcesImp           = std::make_unique<ObjectForcesReverseExchanger>(objHaloImp.get());
+    auto objHaloReverseFinalImp = std::make_unique<ObjectReverseExchanger>(objHaloImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
@@ -666,7 +666,7 @@ void Simulation::prepareEngines()
         CellList *clOut = interactionManager->getLargestCellListNeededForFinal(pvPtr);
 
         auto extraInt = interactionManager->getExtraIntermediateChannels(pvPtr);
-        // auto extraOut = interactionManager->getExtraFinalChannels(pvPtr); // TODO: for reverse exchanger
+        auto extraOut = interactionManager->getExtraFinalChannels(pvPtr); // TODO: for reverse exchanger
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
@@ -700,7 +700,7 @@ void Simulation::prepareEngines()
             }
 
             objHaloImp  ->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
-            objForcesImp->attach(ov);
+            objHaloReverseFinalImp->attach(ov, extraOut);
         }
     }
     
@@ -723,7 +723,7 @@ void Simulation::prepareEngines()
     objRedistibutor     = makeEngine(std::move(objRedistImp));
     objHalo             = makeEngine(std::move(objHaloImp));
     objHaloIntermediate = makeEngine(std::move(objHaloIntermediateImp));
-    objHaloForces       = makeEngine(std::move(objForcesImp));
+    objHaloReverseFinal = makeEngine(std::move(objHaloReverseFinalImp));
 }
 
 void Simulation::execSplitters()
@@ -938,11 +938,11 @@ void Simulation::createTasks()
         });
 
         scheduler->addTask(tasks->objForcesInit, [this] (cudaStream_t stream) {
-            objHaloForces->init(stream);
+            objHaloReverseFinal->init(stream);
         });
 
         scheduler->addTask(tasks->objForcesFinalize, [this] (cudaStream_t stream) {
-            objHaloForces->finalize(stream);
+            objHaloReverseFinal->finalize(stream);
         });
 
         scheduler->addTask(tasks->objRedistInit, [this] (cudaStream_t stream) {

@@ -17,7 +17,7 @@ public:
     ObjectReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger);
     virtual ~ObjectReverseExchanger();
     
-    void attach(ObjectVector *ov, const std::vector<std::string>& channelNames);
+    void attach(ObjectVector *ov, std::vector<std::string> channelNames);
 
 protected:
     std::vector<ObjectVector*> objects;    

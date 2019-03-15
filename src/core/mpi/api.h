@@ -11,4 +11,5 @@
 
 #include "particle_redistributor.h"
 #include "object_redistributor.h"
+#include "object_reverse_exchanger.h"
 #include "object_forces_reverse_exchanger.h"

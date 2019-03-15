@@ -123,7 +123,7 @@ private:
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
     ExchangeEngineUniquePtr haloIntermediate, halo, redistributor;
-    ExchangeEngineUniquePtr objHaloIntermediate, objHalo, objRedistibutor, objHaloForces;
+    ExchangeEngineUniquePtr objHaloIntermediate, objHalo, objRedistibutor, objHaloReverseFinal;
 
     std::map<std::string, int> pvIdMap;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors;

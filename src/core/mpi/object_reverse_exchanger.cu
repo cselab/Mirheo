@@ -133,13 +133,17 @@ ObjectReverseExchanger::ObjectReverseExchanger(ObjectHaloExchanger *entangledHal
 
 ObjectReverseExchanger::~ObjectReverseExchanger() = default;
 
-void ObjectReverseExchanger::attach(ObjectVector *ov, const std::vector<std::string>& channelNames)
+void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> channelNames)
 {
     int id = objects.size();
     objects.push_back(ov);
 
-    bool needExchForces = std::find(channelNames.begin(), channelNames.end(), ChannelNames::forces) != channelNames.end();
+    auto forcesIt = std::find(channelNames.begin(), channelNames.end(), ChannelNames::forces);
+    bool needExchForces = forcesIt != channelNames.end();
     needForces.push_back(needExchForces);
+
+    if (needExchForces)
+        channelNames.erase(forcesIt); // forces are not extra data
     
     const auto& extraData = ov->local()->extraPerParticle;
 
@@ -194,8 +198,8 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     auto needExchForces = needForces[id];
     int objSize = ov->objSize;
     
-    debug2("Preparing '%s' data to sending back with %s forces",
-           ov->name.c_str(), needExchForces ? "" : "no");
+    debug2("Preparing '%s' data to sending back with %sforces",
+           ov->name.c_str(), needExchForces ? "" : "no ");
 
     ParticleExtraPacker packer(ov, ov->local(), packPredicates[id], stream);
 
@@ -224,7 +228,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
         }
         else
         {
-            OVview view(rov, rov->halo());
+            OVview view(ov, ov->halo());
             // pack particle forces only
             SAFE_KERNEL_LAUNCH(
                 ObjectReverseExchangerKernels::packObjectForces,
