@@ -223,18 +223,15 @@ std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *p
     if (clList == cellListMap.end())
         return {};
 
-    for (const auto& cl : clList->second)
-    {
-        auto it = cellChannels.find(cl);
-        
-        if (it != cellChannels.end())
-        {
-            for (const auto& entry : it->second)
-            {
-                std::string name = entry.first;
-                if (name != ChannelNames::forces)
-                    channels.insert(name);
-            }
+    for (const auto& cl : clList->second) {
+
+        auto it = cellChannels.find(cl);        
+        if (it == cellChannels.end())
+            continue;
+
+        for (const auto& entry : it->second) {
+            const std::string& name = entry.first;
+            channels.insert(name);
         }
     }
     return {channels.begin(), channels.end()};
