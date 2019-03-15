@@ -122,7 +122,7 @@ __global__ void unpackAndAddExtraData(int objSize, int offsetPerObject, int byte
     for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
         int dstId = origins[objId * objSize + pid];
-        packer.unpackAdd(srcAddr + pid * packer.packedSize_byte, dstId);
+        packer.unpackAtomicAdd(srcAddr + pid * packer.packedSize_byte, dstId);
     }
 }
 } // namespace ObjectReverseExchangerKernels
