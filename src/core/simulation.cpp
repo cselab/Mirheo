@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <cuda_profiler_api.h>
 
-#define TASK_LIST(_)                                                   \
+#define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \
     _( cellLists                           , "Build cell-lists")        \
     _( integration                         , "Integration")             \
@@ -38,8 +38,8 @@
     _( localForces                         , "Local forces")            \
     _( haloForces                          , "Halo forces")             \
     _( accumulateInteractionFinal          , "Accumulate forces")       \
-    _( objHaloFinalInit                    , "Object halo final init")        \
-    _( objHaloFinalFinalize                , "Object halo final finalize")    \
+    _( objHaloFinalInit                    , "Object halo final init")  \
+    _( objHaloFinalFinalize                , "Object halo final finalize") \
     _( objForcesInit                       , "Object forces exchange: init") \
     _( objForcesFinalize                   , "Object forces exchange: finalize") \
     _( clearObjHaloForces                  , "Clear object halo forces") \
@@ -887,22 +887,21 @@ void Simulation::createTasks()
 
 
     for (auto ov : objectVectors)
-        scheduler->addTask(tasks->clearObjHaloForces, [ov] (cudaStream_t stream) {
-            ov->halo()->forces.clear(stream);
+        scheduler->addTask(tasks->clearObjHaloForces, [this, ov] (cudaStream_t stream) {
+            interactionManager->clearFinalPV(ov, ov->halo(), stream);
         });
 
     // As there are no primary cell-lists for objects
     // we need to separately clear real obj forces and forces in the cell-lists
     for (auto ovPtr : objectVectors)
     {
-        scheduler->addTask(tasks->clearObjLocalForces, [ovPtr] (cudaStream_t stream) {
-            ovPtr->local()->forces.clear(stream);
+        scheduler->addTask(tasks->clearObjLocalForces, [this, ovPtr] (cudaStream_t stream) {
+            interactionManager->clearFinalPV(ovPtr, ovPtr->local(), stream);
         });
 
-        scheduler->addTask(tasks->clearObjLocalForces,
-                           [this, ovPtr] (cudaStream_t stream) {
-                               interactionManager->clearFinal(ovPtr, stream);
-                           });
+        scheduler->addTask(tasks->clearObjLocalForces, [this, ovPtr] (cudaStream_t stream) {
+            interactionManager->clearFinal(ovPtr, stream);
+        });
     }
 
     for (auto& bouncer : regularBouncers)

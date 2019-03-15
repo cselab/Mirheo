@@ -107,6 +107,19 @@ void InteractionManager::clearFinal(ParticleVector *pv, cudaStream_t stream)
     _clearChannels(pv, cellFinalChannels, stream);
 }
 
+void InteractionManager::clearIntermediatesPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
+{
+    _clearPVChannels(pv, lpv, cellIntermediateOutputChannels, stream);
+    _clearPVChannels(pv, lpv, cellIntermediateInputChannels, stream);
+}
+
+void InteractionManager::clearFinalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
+{
+    _clearPVChannels(pv, lpv, cellFinalChannels, stream);
+    lpv->forces.clearDevice(stream);
+}
+
+
 void InteractionManager::accumulateIntermediates(cudaStream_t stream)
 {
     _accumulateChannels(cellIntermediateOutputChannels, stream);
@@ -202,18 +215,6 @@ CellList* InteractionManager::_getLargestCellListNeeded(ParticleVector *pv, cons
     return clMax;
 }
 
-std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const
-{
-    std::set<std::string> channels;
-    for (const auto& cellMap : cellChannels)
-        for (const auto& entry : cellMap.second)
-        {
-            std::string name = entry.first;
-            channels.insert(name);
-        }
-    return {channels.begin(), channels.end()};
-}
-
 std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const
 {
     std::set<std::string> channels;
@@ -259,6 +260,55 @@ std::vector<std::string> InteractionManager::_extractActiveChannels(const Channe
             activeChannels.push_back(entry.first);
     
     return activeChannels;
+}
+
+std::vector<std::string> InteractionManager::_extractAllChannels(const std::map<CellList*, ChannelActivityList>& cellChannels) const
+{
+    std::set<std::string> channels;
+    for (const auto& cellMap : cellChannels)
+        for (const auto& entry : cellMap.second)
+        {
+            std::string name = entry.first;
+            channels.insert(name);
+        }
+    return {channels.begin(), channels.end()};
+}
+
+std::vector<std::string> InteractionManager::_extractActiveChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels) const
+{
+    auto itCMAP = cellListMap.find(pv);
+    if (itCMAP == cellListMap.end())
+        return {};
+
+    std::set<std::string> channels;
+    
+    for (const auto& cl : itCMAP->second)
+    {
+        auto it = cellChannels.find(cl);
+        if (it == cellChannels.end())
+            continue;
+        
+        for (const auto& entry : it->second)
+        {
+            std::string name = entry.first;
+            if (entry.second())
+                channels.insert(name);
+        }
+    }
+    return {channels.begin(), channels.end()};
+}
+
+void InteractionManager::_clearPVChannels(ParticleVector *pv, LocalParticleVector *lpv,
+                                          const std::map<CellList*, ChannelActivityList>& cellChannels,
+                                          cudaStream_t stream) const
+{
+    auto activeChannels = _extractActiveChannels(pv, cellChannels);
+    
+    for (const auto& channelName : activeChannels)
+    {
+        if (channelName == ChannelNames::forces) continue;
+        lpv->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
+    }
 }
 
 void InteractionManager::_clearChannels(ParticleVector *pv, const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const
