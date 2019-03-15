@@ -684,9 +684,6 @@ void Simulation::prepareEngines()
         else {
             objRedistImp->attach(ov);
 
-            if (clInt != nullptr)
-                objHaloIntermediateImp->attach(ov, clInt->rc, {});
-
             auto extraToExchange = extraInt;
             
             for (auto& entry : bouncerMap)
@@ -702,6 +699,11 @@ void Simulation::prepareEngines()
 
             objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objHaloReverseFinalImp->attach(ov, extraOut);
+
+            if (clInt != nullptr) {
+                objHaloIntermediateImp->attach(ov, clInt->rc, {}); // do not need to exchange anything else than positions and velocities
+                objHaloReverseIntermediateImp->attach(ov, extraInt);
+            }
         }
     }
     
