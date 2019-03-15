@@ -646,13 +646,14 @@ void Simulation::preparePlugins()
 
 void Simulation::prepareEngines()
 {
-    auto redistImp              = std::make_unique<ParticleRedistributor>();
-    auto haloImp                = std::make_unique<ParticleHaloExchanger>();
-    auto haloIntermediateImp    = std::make_unique<ParticleHaloExchanger>();
-    auto objRedistImp           = std::make_unique<ObjectRedistributor>();
-    auto objHaloImp             = std::make_unique<ObjectHaloExchanger>();
-    auto objHaloIntermediateImp = std::make_unique<ObjectHaloExchanger>();
-    auto objHaloReverseFinalImp = std::make_unique<ObjectReverseExchanger>(objHaloImp.get());
+    auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
+    auto partHaloFinalImp               = std::make_unique<ParticleHaloExchanger>();
+    auto partHaloIntermediateImp        = std::make_unique<ParticleHaloExchanger>();
+    auto objRedistImp                   = std::make_unique<ObjectRedistributor>();    
+    auto objHaloIntermediateImp         = std::make_unique<ObjectHaloExchanger>();
+    auto objHaloReverseIntermediateImp  = std::make_unique<ObjectReverseExchanger>(objHaloIntermediateImp.get());
+    auto objHaloFinalImp                = std::make_unique<ObjectHaloExchanger>();
+    auto objHaloReverseFinalImp         = std::make_unique<ObjectReverseExchanger>(objHaloFinalImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
     for (auto& pv : particleVectors)
@@ -672,13 +673,13 @@ void Simulation::prepareEngines()
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
         
         if (ov == nullptr) {
-            redistImp->attach(pvPtr, cl);
+            partRedistImp->attach(pvPtr, cl);
             
             if (clInt != nullptr)
-                haloIntermediateImp->attach(pvPtr, clInt, {});
+                partHaloIntermediateImp->attach(pvPtr, clInt, {});
 
             if (clOut != nullptr)
-                haloImp->attach(pvPtr, clOut, extraInt);            
+                partHaloFinalImp->attach(pvPtr, clOut, extraInt);            
         }
         else {
             objRedistImp->attach(ov);
@@ -699,7 +700,7 @@ void Simulation::prepareEngines()
                 }
             }
 
-            objHaloImp  ->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
+            objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objHaloReverseFinalImp->attach(ov, extraOut);
         }
     }
@@ -717,13 +718,14 @@ void Simulation::prepareEngines()
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
         };
     
-    redistributor       = makeEngine(std::move(redistImp));
-    halo                = makeEngine(std::move(haloImp));
-    haloIntermediate    = makeEngine(std::move(haloIntermediateImp));
-    objRedistibutor     = makeEngine(std::move(objRedistImp));
-    objHalo             = makeEngine(std::move(objHaloImp));
-    objHaloIntermediate = makeEngine(std::move(objHaloIntermediateImp));
-    objHaloReverseFinal = makeEngine(std::move(objHaloReverseFinalImp));
+    partRedistributor            = makeEngine(std::move(partRedistImp));
+    partHaloFinal                = makeEngine(std::move(partHaloFinalImp));
+    partHaloIntermediate         = makeEngine(std::move(partHaloIntermediateImp));
+    objRedistibutor              = makeEngine(std::move(objRedistImp));
+    objHaloFinal                 = makeEngine(std::move(objHaloFinalImp));
+    objHaloIntermediate          = makeEngine(std::move(objHaloIntermediateImp));
+    objHaloReverseIntermediate   = makeEngine(std::move(objHaloReverseIntermediateImp));
+    objHaloReverseFinal          = makeEngine(std::move(objHaloReverseFinalImp));
 }
 
 void Simulation::execSplitters()
@@ -814,27 +816,27 @@ void Simulation::createTasks()
     if (particleVectors.size() != objectVectors.size())
     {
         scheduler->addTask(tasks->haloIntermediateInit, [this] (cudaStream_t stream) {
-            haloIntermediate->init(stream);
+            partHaloIntermediate->init(stream);
         });
 
         scheduler->addTask(tasks->haloIntermediateFinalize, [this] (cudaStream_t stream) {
-            haloIntermediate->finalize(stream);
+            partHaloIntermediate->finalize(stream);
         });
 
         scheduler->addTask(tasks->haloInit, [this] (cudaStream_t stream) {
-            halo->init(stream);
+            partHaloFinal->init(stream);
         });
 
         scheduler->addTask(tasks->haloFinalize, [this] (cudaStream_t stream) {
-            halo->finalize(stream);
+            partHaloFinal->finalize(stream);
         });
 
         scheduler->addTask(tasks->redistributeInit, [this] (cudaStream_t stream) {
-            redistributor->init(stream);
+            partRedistributor->init(stream);
         });
 
         scheduler->addTask(tasks->redistributeFinalize, [this] (cudaStream_t stream) {
-            redistributor->finalize(stream);
+            partRedistributor->finalize(stream);
         });
     }
 
@@ -930,11 +932,11 @@ void Simulation::createTasks()
     if (objectVectors.size() > 0)
     {
         scheduler->addTask(tasks->objHaloInit, [this] (cudaStream_t stream) {
-            objHalo->init(stream);
+            objHaloFinal->init(stream);
         });
 
         scheduler->addTask(tasks->objHaloFinalize, [this] (cudaStream_t stream) {
-            objHalo->finalize(stream);
+            objHaloFinal->finalize(stream);
         });
 
         scheduler->addTask(tasks->objForcesInit, [this] (cudaStream_t stream) {
