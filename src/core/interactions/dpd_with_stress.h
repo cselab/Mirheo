@@ -13,8 +13,5 @@ public:
     void setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, 
                          float a   = Default, float gamma = Default,
                          float kbt = Default, float power = Default) override;
-
-protected:
-    float stressPeriod;
 };
 

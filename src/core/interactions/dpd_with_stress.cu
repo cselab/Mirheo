@@ -10,8 +10,7 @@
 
 InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::string name,
                                                    float rc, float a, float gamma, float kbt, float power, float stressPeriod) :
-    InteractionDPD(state, name, rc, a, gamma, kbt, power, false),
-    stressPeriod(stressPeriod)
+    InteractionDPD(state, name, rc, a, gamma, kbt, power, false)
 {
     PairwiseDPD dpd(rc, a, gamma, kbt, state->dt, power);
     impl = std::make_unique<InteractionPair_withStress<PairwiseDPD>> (state, name, rc, stressPeriod, dpd);
