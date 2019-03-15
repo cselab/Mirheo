@@ -224,7 +224,7 @@ void exportInteractions(py::module& m)
 
 
     py::handlers_class<BasicInteractionSDPD> pyIntSDPD(m, "SDPD", pyInt, R"(
-        Compute SDPD interaction as with angular momentum conservation.
+        Compute SDPD interaction with angular momentum conservation.
         Must be used together with :any:`Density` interaction with the same density kernel.
 
         The available density kernels are listed in :any:`Density`.
@@ -257,11 +257,11 @@ void exportInteractions(py::module& m)
                 EOS: the desired equation of state 
                 density_kernel: the desired density kernel
 
-            linear EOS parameters:
+            **EOS = "Linear" parameters:**
 
                 * **sound_speed**: the speed of sound
 
-            quasi-incompressible EOS parameters:
+            **EOS = "QuasiIncompressible" parameters:**
 
                 * **p0**: :math:`p_0`
                 * **rho_r**: :math:`\rho_r`
