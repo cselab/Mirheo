@@ -109,7 +109,7 @@ createDensityControlPlugin(bool computeTask, const YmrState *state, std::string 
     
     auto simPl = computeTask ?
         std::make_shared<DensityControlPlugin> (state, name, pvNames, targetDensity,
-                                                [region](float3 r) {return region({r.x, r.y, r.z});},
+                                                [region](float3 r) {return region(PyTypes::float3(r.x, r.y, r.z));},
                                                 make_float3(resolution), levelLo, levelHi, levelSpace,
                                                 Kp, Ki, Kd, tuneEvery, dumpEvery, sampleEvery) :
         nullptr;
@@ -131,7 +131,7 @@ createDensityOutletPlugin(bool computeTask, const YmrState *state, std::string n
     
     auto simPl = computeTask ?
         std::make_shared<DensityOutletPlugin> (state, name, pvNames, numberDensity,
-                                               [region](float3 r) {return region({r.x, r.y, r.z});},
+                                               [region](float3 r) {return region(PyTypes::float3(r.x, r.y, r.z));},
                                                make_float3(resolution) )
         : nullptr;
     return { simPl, nullptr };
@@ -147,7 +147,7 @@ createRateOutletPlugin(bool computeTask, const YmrState *state, std::string name
     
     auto simPl = computeTask ?
         std::make_shared<RateOutletPlugin> (state, name, pvNames, rate,
-                                            [region](float3 r) {return region({r.x, r.y, r.z});},
+                                            [region](float3 r) {return region(PyTypes::float3(r.x, r.y, r.z));},
                                             make_float3(resolution) )
         : nullptr;
     return { simPl, nullptr };

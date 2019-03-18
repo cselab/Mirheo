@@ -122,7 +122,7 @@ class LJ(Interaction):
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
-                max_force: force magnitude will be capped not exceed **max_force**
+                max_force: force magnitude will be capped to not exceed **max_force**
                 object_aware:
                     if True, the particles belonging to the same object in an object vector do not interact with each other.
                     That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
@@ -191,12 +191,12 @@ class MembraneForces(Interaction):
         The membrane interactions are composed of forces comming from:
             - bending of the membrane, potential :math:`U_b`
             - shear elasticity of the membrane, potential :math:`U_s`
-            - constrain: area conservation of the membrane (local and global), potential :math:`U_A`
-            - constrain: volume of the cell (assuming incompressible fluid), potential :math:`U_V`
+            - constraint: area conservation of the membrane (local and global), potential :math:`U_A`
+            - constraint: volume of the cell (assuming incompressible fluid), potential :math:`U_V`
             - membrane viscosity, pairwise force :math:`\mathbf{F}^v`
             - membrane fluctuations, pairwise force :math:`\mathbf{F}^R`
 
-        The form of the constrain potentials are given by (see [Fedosov2010]_ for more explanations):
+        The form of the constraint potentials are given by (see [Fedosov2010]_ for more explanations):
 
         .. math::
 
@@ -219,16 +219,17 @@ class MembraneForces(Interaction):
             U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right)^2}{A_\alpha}, \\
             M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
-        It is improve with ADE model (TODO: ref).
+        It is improved with the ADE model (TODO: ref).
 
-        Currently, the stretching and shear energiy models are:
+        Currently, the stretching and shear energy models are:
+
         WLC model:
 
         .. math::
 
             U_s = \sum_{j \in {1 ... N_s}} \left[ \frac {k_s l_m \left( 3x_j^2 - 2x_j^3 \right)}{4(1-x_j)} + \frac{k_p}{l_0} \right].
 
-        Lim model, which is an extension of the Skalak shear energy (see [Lim2008]_).
+        Lim model: an extension of the Skalak shear energy (see [Lim2008]_).
 
         .. math::
         
@@ -270,8 +271,8 @@ class MembraneForces(Interaction):
 
                  * **tot_area**:   total area of the membrane at equilibrium
                  * **tot_volume**: total volume of the membrane at equilibrium
-                 * **ka_tot**:     constrain energy for total area
-                 * **kv_tot**:     constrain energy for total volume
+                 * **ka_tot**:     constraint energy for total area
+                 * **kv_tot**:     constraint energy for total volume
                  * **kBT**:        fluctuation temperature (set to zero will switch off fluctuation forces)
                  * **gammaC**:     central component of dissipative forces
                  * **gammaT**:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
@@ -302,7 +303,7 @@ class MembraneForces(Interaction):
                  * **kb**:  local bending energy magnitude
                  * **C0**:  spontaneous curvature
                  * **kad**: area difference energy magnitude
-                 * **DA0**: spontaneous area difference
+                 * **DA0**: area difference at relaxed state divided by the offset of the leaflet midplanes
     
 
         """
