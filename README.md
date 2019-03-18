@@ -12,6 +12,14 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.12.2
+
+* densities computed from pairwise interactions are now mass density
+* internal changes: 
+  * add fetcher with mass
+  * add type trait for self interacting pairwise kernels
+
+
 ### v0.12.1
 
 * add support of SDPD/MDPD for objects
