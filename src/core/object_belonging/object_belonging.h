@@ -24,9 +24,11 @@ public:
      */
     void splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream) override;
     void checkInner(ParticleVector* pv, CellList* cl, cudaStream_t stream) override;
-    void setup(ObjectVector* ov) override { this->ov = ov; }
+    void setup(ObjectVector* ov) override;
 
-
+    std::vector<std::string> getChannelsToBeExchanged() const override;
+    ObjectVector* getObjectVector() override;
+    
 protected:
     ObjectVector* ov;
 

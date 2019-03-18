@@ -135,3 +135,18 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
     say("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
         pv->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], pv->local()->size());
 }
+
+void ObjectBelongingChecker_Common::setup(ObjectVector* ov)
+{
+    this->ov = ov;
+}
+
+std::vector<std::string> ObjectBelongingChecker_Common::getChannelsToBeExchanged() const
+{
+    return {ChannelNames::motions};
+}
+
+ObjectVector* ObjectBelongingChecker_Common::getObjectVector()
+{
+    return ov;
+}

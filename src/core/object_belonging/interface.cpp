@@ -5,3 +5,8 @@ ObjectBelongingChecker::ObjectBelongingChecker(const YmrState *state, std::strin
 {}
 
 ObjectBelongingChecker::~ObjectBelongingChecker() = default;
+
+std::vector<std::string> ObjectBelongingChecker::getChannelsToBeExchanged() const
+{
+    return {};
+}

@@ -23,13 +23,13 @@ __global__ void insideEllipsoid(REOVview reView, CellListInfo cinfo, PVview pvVi
     const int tid = threadIdx.x;
     if (objId >= reView.nObjects) return;
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes(reView.comAndExtents[objId].low  - 1.5f);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes(reView.comAndExtents[objId].high + 2.5f);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(reView.comAndExtents[objId].low  - 1.5f);
+    const int3 cidHigh = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(reView.comAndExtents[objId].high + 2.5f);
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;
 
-    for (int i=tid; i<totCells; i+=blockDim.x)
+    for (int i = tid; i < totCells; i += blockDim.x)
     {
         const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
         const int  cid = cinfo.encode(cid3);
