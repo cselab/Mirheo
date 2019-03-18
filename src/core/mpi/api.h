@@ -12,3 +12,4 @@
 #include "particle_redistributor.h"
 #include "object_redistributor.h"
 #include "object_reverse_exchanger.h"
+#include "object_halo_extra_exchanger.h"

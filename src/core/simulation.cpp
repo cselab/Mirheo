@@ -46,7 +46,8 @@
     _( objReverseIntermediateFinalize      , "Object reverse intermediate: finalize") \
     _( objReverseFinalInit                 , "Object reverse final: init") \
     _( objReverseFinalFinalize             , "Object reverse final: finalize") \
-    _( objClearIntermediate                , "Clear object intermediate") \
+    _( objClearLocalIntermediate           , "Clear local object intermediate") \
+    _( objClearHaloIntermediate            , "Clear halo object intermediate") \
     _( objClearHaloForces                  , "Clear object halo forces") \
     _( objClearLocalForces                 , "Clear object local forces") \
     _( objLocalBounce                      , "Local object bounce")     \
@@ -654,10 +655,10 @@ void Simulation::prepareEngines()
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
     auto partHaloFinalImp               = std::make_unique<ParticleHaloExchanger>();
     auto partHaloIntermediateImp        = std::make_unique<ParticleHaloExchanger>();
-    auto objRedistImp                   = std::make_unique<ObjectRedistributor>();    
-    auto objHaloIntermediateImp         = std::make_unique<ObjectHaloExchanger>();
-    auto objHaloReverseIntermediateImp  = std::make_unique<ObjectReverseExchanger>(objHaloIntermediateImp.get());
+    auto objRedistImp                   = std::make_unique<ObjectRedistributor>();        
     auto objHaloFinalImp                = std::make_unique<ObjectHaloExchanger>();
+    auto objHaloIntermediateImp         = std::make_unique<ObjectExtraExchanger>  (objHaloFinalImp.get());
+    auto objHaloReverseIntermediateImp  = std::make_unique<ObjectReverseExchanger>(objHaloFinalImp.get());
     auto objHaloReverseFinalImp         = std::make_unique<ObjectReverseExchanger>(objHaloFinalImp.get());
 
     debug("Attaching particle vectors to halo exchanger and redistributor");
@@ -672,7 +673,7 @@ void Simulation::prepareEngines()
         CellList *clOut = interactionManager->getLargestCellListNeededForFinal(pvPtr);
 
         auto extraInt = interactionManager->getExtraIntermediateChannels(pvPtr);
-        auto extraOut = interactionManager->getExtraFinalChannels(pvPtr); // TODO: for reverse exchanger
+        auto extraOut = interactionManager->getExtraFinalChannels(pvPtr);
 
         auto cl = cellListVec[0].get();
         auto ov = dynamic_cast<ObjectVector*>(pvPtr);
@@ -689,7 +690,7 @@ void Simulation::prepareEngines()
         else {
             objRedistImp->attach(ov);
 
-            auto extraToExchange = extraInt;
+            std::vector<std::string> extraToExchange;
             
             for (auto& entry : bouncerMap)
             {
@@ -706,7 +707,7 @@ void Simulation::prepareEngines()
             objHaloReverseFinalImp->attach(ov, extraOut);
 
             if (clInt != nullptr) {
-                objHaloIntermediateImp->attach(ov, clInt->rc, {}); // do not need to exchange anything else than positions and velocities
+                objHaloIntermediateImp->attach(ov, extraInt);
                 objHaloReverseIntermediateImp->attach(ov, extraInt);
             }
         }
@@ -895,11 +896,14 @@ void Simulation::createTasks()
     // we need to separately clear real obj forces and forces in the cell-lists
     for (auto ov : objectVectors)
     {
-        // scheduler->addTask(tasks->objClearIntermediate, [this, ov] (cudaStream_t stream) {
-        //     interactionManager->clearIntermediates(ov, stream);
-        //     interactionManager->clearIntermediatesPV(ov, ov->local(), stream);
-        //     interactionManager->clearIntermediatesPV(ov, ov->halo(), stream);
-        // });
+        scheduler->addTask(tasks->objClearLocalIntermediate, [this, ov] (cudaStream_t stream) {
+            interactionManager->clearIntermediates(ov, stream);
+            interactionManager->clearIntermediatesPV(ov, ov->local(), stream);
+        });
+
+        scheduler->addTask(tasks->objClearHaloIntermediate, [this, ov] (cudaStream_t stream) {
+            interactionManager->clearIntermediatesPV(ov, ov->halo(), stream);
+        });
 
         scheduler->addTask(tasks->objClearLocalForces, [this, ov] (cudaStream_t stream) {
             interactionManager->clearFinalPV(ov, ov->local(), stream);
@@ -939,6 +943,14 @@ void Simulation::createTasks()
 
     if (objectVectors.size() > 0)
     {
+        scheduler->addTask(tasks->objHaloIntermediateInit, [this] (cudaStream_t stream) {
+            objHaloIntermediate->init(stream);
+        });
+
+        scheduler->addTask(tasks->objHaloIntermediateFinalize, [this] (cudaStream_t stream) {
+            objHaloIntermediate->finalize(stream);
+        });
+
         scheduler->addTask(tasks->objHaloFinalInit, [this] (cudaStream_t stream) {
             objHaloFinal->init(stream);
         });
@@ -947,21 +959,13 @@ void Simulation::createTasks()
             objHaloFinal->finalize(stream);
         });
 
-        // scheduler->addTask(tasks->objHaloIntermediateInit, [this] (cudaStream_t stream) {
-        //     objHaloIntermediate->init(stream);
-        // });
+        scheduler->addTask(tasks->objReverseIntermediateInit, [this] (cudaStream_t stream) {
+            objHaloReverseIntermediate->init(stream);
+        });
 
-        // scheduler->addTask(tasks->objHaloIntermediateFinalize, [this] (cudaStream_t stream) {
-        //     objHaloIntermediate->finalize(stream);
-        // });
-
-        // scheduler->addTask(tasks->objReverseIntermediateInit, [this] (cudaStream_t stream) {
-        //     objHaloReverseIntermediate->init(stream);
-        // });
-
-        // scheduler->addTask(tasks->objReverseIntermediateFinalize, [this] (cudaStream_t stream) {
-        //     objHaloReverseIntermediate->finalize(stream);
-        // });
+        scheduler->addTask(tasks->objReverseIntermediateFinalize, [this] (cudaStream_t stream) {
+            objHaloReverseIntermediate->finalize(stream);
+        });
 
         scheduler->addTask(tasks->objReverseFinalInit, [this] (cudaStream_t stream) {
             objHaloReverseFinal->init(stream);
@@ -1018,7 +1022,7 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 
     scheduler->addDependency(tasks->correctObjBelonging, { tasks->cellLists }, {});
 
-    scheduler->addDependency(tasks->cellLists, {tasks->partClearFinal, tasks->partClearIntermediate}, {});
+    scheduler->addDependency(tasks->cellLists, {tasks->partClearFinal, tasks->partClearIntermediate, tasks->objClearLocalIntermediate}, {});
 
     
     scheduler->addDependency(tasks->pluginsBeforeForces, {tasks->localForces, tasks->haloForces}, {tasks->partClearFinal});
@@ -1029,17 +1033,27 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
     scheduler->addDependency(tasks->objReverseFinalInit, {}, {tasks->haloForces});
     scheduler->addDependency(tasks->objReverseFinalFinalize, {tasks->accumulateInteractionFinal}, {tasks->objReverseFinalInit});
 
-    scheduler->addDependency(tasks->localIntermediate, {}, {tasks->partClearIntermediate});
+    scheduler->addDependency(tasks->localIntermediate, {}, {tasks->partClearIntermediate, tasks->objClearLocalIntermediate});
     scheduler->addDependency(tasks->partHaloIntermediateInit, {}, {tasks->partClearIntermediate, tasks->cellLists});
     scheduler->addDependency(tasks->partHaloIntermediateFinalize, {}, {tasks->partHaloIntermediateInit});
-    scheduler->addDependency(tasks->haloIntermediate, {}, {tasks->partHaloIntermediateFinalize});
+
+    scheduler->addDependency(tasks->objClearHaloIntermediate, {}, {tasks->cellLists});
+    scheduler->addDependency(tasks->haloIntermediate, {}, {tasks->partHaloIntermediateFinalize, tasks->objClearHaloIntermediate});
+    scheduler->addDependency(tasks->objReverseIntermediateInit, {}, {tasks->haloIntermediate});    
+    scheduler->addDependency(tasks->objReverseIntermediateFinalize, {}, {tasks->objReverseIntermediateInit});
+
     scheduler->addDependency(tasks->accumulateInteractionIntermediate, {}, {tasks->localIntermediate, tasks->haloIntermediate});
-    scheduler->addDependency(tasks->gatherInteractionIntermediate, {}, {tasks->accumulateInteractionIntermediate});
+    scheduler->addDependency(tasks->gatherInteractionIntermediate, {}, {tasks->accumulateInteractionIntermediate, tasks->objReverseIntermediateFinalize});
 
     scheduler->addDependency(tasks->localForces, {}, {tasks->gatherInteractionIntermediate});
-    scheduler->addDependency(tasks->partHaloFinalInit, {}, {tasks->pluginsBeforeForces, tasks->gatherInteractionIntermediate, tasks->cellLists});
+
+    scheduler->addDependency(tasks->objHaloIntermediateInit, {}, {tasks->gatherInteractionIntermediate});
+    scheduler->addDependency(tasks->objHaloIntermediateFinalize, {}, {tasks->objHaloIntermediateInit});
+    
+    scheduler->addDependency(tasks->partHaloFinalInit, {}, {tasks->pluginsBeforeForces, tasks->gatherInteractionIntermediate});
     scheduler->addDependency(tasks->partHaloFinalFinalize, {}, {tasks->partHaloFinalInit});
-    scheduler->addDependency(tasks->haloForces, {}, {tasks->partHaloFinalFinalize});
+
+    scheduler->addDependency(tasks->haloForces, {}, {tasks->partHaloFinalFinalize, tasks->objHaloIntermediateFinalize});
     scheduler->addDependency(tasks->accumulateInteractionFinal, {tasks->integration}, {tasks->haloForces, tasks->localForces});
 
     scheduler->addDependency(tasks->pluginsBeforeIntegration, {tasks->integration}, {tasks->accumulateInteractionFinal});
@@ -1066,6 +1080,11 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
     scheduler->setHighPriority(tasks->objReverseFinalInit);
     scheduler->setHighPriority(tasks->partHaloIntermediateInit);
     scheduler->setHighPriority(tasks->partHaloIntermediateFinalize);
+    scheduler->setHighPriority(tasks->objHaloIntermediateInit);
+    scheduler->setHighPriority(tasks->objHaloIntermediateFinalize);
+    scheduler->setHighPriority(tasks->objClearHaloIntermediate);
+    scheduler->setHighPriority(tasks->objReverseFinalInit);
+    scheduler->setHighPriority(tasks->objReverseFinalFinalize);
     scheduler->setHighPriority(tasks->haloIntermediate);
     scheduler->setHighPriority(tasks->partHaloFinalInit);
     scheduler->setHighPriority(tasks->partHaloFinalFinalize);
