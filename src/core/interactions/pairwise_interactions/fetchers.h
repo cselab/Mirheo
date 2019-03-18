@@ -59,6 +59,47 @@ protected:
 };
 
 /**
+ * fetcher that reads positions only and store mass
+ */
+class ParticleFetcherWithMass : public ParticleFetcher
+{
+public:
+
+    struct ParticleWithMass
+    {
+        Particle p;
+        float m;
+    };
+
+    using ViewType     = PVview;
+    using ParticleType = ParticleWithMass;
+    
+    ParticleFetcherWithMass(float rc) :
+        ParticleFetcher(rc)
+    {}
+
+    __D__ inline ParticleType read(const ViewType& view, int id) const
+    {
+        return {ParticleFetcher::read(view, id), view.mass};
+    }
+
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
+    {
+        return {ParticleFetcher::readNoCache(view, id), view.mass};
+    }
+
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { ParticleFetcher::readCoordinates(p.p, view, id); }
+    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { p.m = view.mass; }
+
+    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
+    {
+        return ParticleFetcher::withinCutoff(src.p, dst.p);
+    }
+
+    __D__ inline float3 getPosition(const ParticleType& p) const {return ParticleFetcher::getPosition(p.p);}
+};
+
+/**
  * fetcher that reads positions and velocities
  */
 class ParticleFetcherWithVelocity : public ParticleFetcher
