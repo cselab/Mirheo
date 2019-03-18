@@ -650,6 +650,33 @@ void Simulation::preparePlugins()
 }
 
 
+std::vector<std::string> Simulation::getExtraDataToExchange(ObjectVector *ov)
+{
+    std::set<std::string> channels;
+    
+    for (auto& entry : bouncerMap)
+    {
+        auto& bouncer = entry.second;
+        if (bouncer->getObjectVector() != ov) continue;
+
+        auto extraChannels = bouncer->getChannelsToBeExchanged();
+        for (auto channel : extraChannels)
+            channels.insert(channel);
+    }
+
+    for (auto& entry : belongingCheckerMap)
+    {
+        auto& belongingChecker = entry.second;
+        if (belongingChecker->getObjectVector() != ov) continue;
+
+        auto extraChannels = belongingChecker->getChannelsToBeExchanged();
+        for (auto channel : extraChannels)
+            channels.insert(channel);
+    }
+
+    return {channels.begin(), channels.end()};
+}
+
 void Simulation::prepareEngines()
 {
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
@@ -690,26 +717,13 @@ void Simulation::prepareEngines()
         else {
             objRedistImp->attach(ov);
 
-            std::vector<std::string> extraToExchange;
+            auto extraToExchange = getExtraDataToExchange(ov);
             
-            for (auto& entry : bouncerMap)
-            {
-                auto& bouncer = entry.second;
-                if (bouncer->getObjectVector() == ov)
-                {
-                    auto extraChannels = bouncer->getChannelsToBeExchanged();
-                    std::copy(extraChannels.begin(), extraChannels.end(),
-                              std::back_inserter(extraToExchange));
-                }
-            }
-
             objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objHaloReverseFinalImp->attach(ov, extraOut);
 
-            if (clInt != nullptr) {
-                objHaloIntermediateImp->attach(ov, extraInt);
-                objHaloReverseIntermediateImp->attach(ov, extraInt);
-            }
+            objHaloIntermediateImp->attach(ov, extraInt);
+            objHaloReverseIntermediateImp->attach(ov, extraInt);
         }
     }
     

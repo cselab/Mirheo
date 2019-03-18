@@ -205,6 +205,8 @@ private:
     
     
 private:
+
+    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
     
     void prepareCellLists();
     void prepareInteractions();
