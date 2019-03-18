@@ -95,7 +95,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     helper->computeSendOffsets();
     helper->resizeSendBuf();
 
-    int nObjects = ov->local()->nObjects;
+    int nObjects = helper->sendOffsets[helper->nBuffers];
     
     SAFE_KERNEL_LAUNCH(
         ObjectHaloExtraExchangeKernels::pack,
