@@ -39,8 +39,8 @@ public:
         float rij2 = dot(dr, dr);
         if (rij2 > rc2) return make_float3(0.0f);
         
-        float di = dst.d + densityKernel(0.f, inv_rc); // add self contribution
-        float dj = src.d + densityKernel(0.f, inv_rc);
+        float di = dst.d;
+        float dj = src.d;
         
         float pi = pressure(di);
         float pj = pressure(dj);

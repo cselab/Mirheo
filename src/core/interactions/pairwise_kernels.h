@@ -1,9 +1,13 @@
-#include <cassert>
-#include <type_traits>
+#pragma once
+
+#include "pairwise_interactions/type_traits.h"
 
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>
 #include <core/pvs/views/pv.h>
+
+#include <cassert>
+#include <type_traits>
 
 enum class InteractionWith
 {
@@ -142,6 +146,10 @@ __global__ void computeSelfInteractions(
                     (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
         }
     }
+
+    if (needSelfInteraction<Interaction>::value)
+        accumulator.add(interaction(dstP, dstId, dstP, dstId));
+    
     accumulator.atomicAddToDst(accumulator.get(), view, dstId);
 }
 
