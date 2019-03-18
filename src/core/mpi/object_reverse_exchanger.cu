@@ -201,7 +201,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Preparing '%s' data to sending back with %sforces",
            ov->name.c_str(), needExchForces ? "" : "no ");
 
-    ParticleExtraPacker packer(ov, ov->local(), packPredicates[id], stream);
+    ParticleExtraPacker packer(ov, ov->halo(), packPredicates[id], stream);
 
     auto rov = dynamic_cast<RigidObjectVector*>(ov);
     
@@ -275,7 +275,7 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
             ObjectReverseExchangerKernels::addHaloForces,
             totalRecvd, nthreads, 0, stream,
             helper->recvBuf.devPtr(),                    /* source */
-            (const int*)origins.devPtr(),                /* destination ids here */
+            origins.devPtr(),                            /* destination ids here */
             (float4*)ov->local()->forces.devPtr(),       /* add to */
             ov->objSize, datumSize );
 
@@ -285,10 +285,10 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
                 SAFE_KERNEL_LAUNCH(
                     ObjectReverseExchangerKernels::addRigidForces,
                     getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-                    helper->recvBuf.devPtr(),                    /* source */
+                    helper->recvBuf.devPtr(),  /* source */
                     totalRecvd,
-                    (const int*)origins.devPtr(),                /* destination ids here */
-                    view, datumSize );                           /* add to, packed size */
+                    origins.devPtr(),          /* destination ids here */
+                    view, datumSize );         /* add to, packed size */
             }
     }
     
@@ -298,8 +298,8 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
             ObjectReverseExchangerKernels::unpackAndAddExtraData,
             totalRecvd, nthreads, 0, stream,
             objSize, forceDatumSize, datumSize,
-            (const int*)origins.devPtr(), /* destination ids here */
-            helper->recvBuf.devPtr(),     /* source */
+            origins.devPtr(),            /* destination ids here */
+            helper->recvBuf.devPtr(),    /* source */
             packer);
     }
     
