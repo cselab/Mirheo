@@ -119,28 +119,29 @@ __global__ void computeSelfInteractions(
     const int3 cell0 = cinfo.getCellIdAlongAxes(interaction.getPosition(dstP));
 
     for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
+    {
         for (int cellY = cell0.y-1; cellY <= cell0.y; cellY++)
-            {
-                if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
-                if (cellY == cell0.y && cellZ > cell0.z) continue;
-
-                const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-                int rowStart  = max(midCellId-1, 0);
-                int rowEnd    = min(midCellId+2, cinfo.totcells);
-
-                if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
-
-                const int pstart = cinfo.cellStarts[rowStart];
-                const int pend   = cinfo.cellStarts[rowEnd];
-
-                if (cellY == cell0.y && cellZ == cell0.z)
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>
-                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
-                else
-                    computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other>
-                        (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
-            }
-
+        {
+            if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
+            if (cellY == cell0.y && cellZ > cell0.z) continue;
+            
+            const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
+            int rowStart  = max(midCellId-1, 0);
+            int rowEnd    = min(midCellId+2, cinfo.totcells);
+            
+            if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
+            
+            const int pstart = cinfo.cellStarts[rowStart];
+            const int pend   = cinfo.cellStarts[rowEnd];
+            
+            if (cellY == cell0.y && cellZ == cell0.z)
+                computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>
+                    (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
+            else
+                computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other>
+                    (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
+        }
+    }
     accumulator.atomicAddToDst(accumulator.get(), view, dstId);
 }
 
