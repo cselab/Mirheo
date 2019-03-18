@@ -15,7 +15,7 @@ class ObjectHaloExchanger : public ParticleExchanger
 public:
     void attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames);
 
-    PinnedBuffer<int>& getSendSizes(int id);
+    PinnedBuffer<int>& getSendOffsets(int id);
     PinnedBuffer<int>& getRecvOffsets(int id);
     PinnedBuffer<int>& getOrigins    (int id);
 

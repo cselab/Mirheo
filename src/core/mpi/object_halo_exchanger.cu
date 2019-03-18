@@ -180,7 +180,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto origin = origins[id].get();
 
     debug2("Downloading %d halo objects of '%s'",
-           helper->sendOffsets[FragmentMapping::numFragments], ov->name.c_str());
+           helper->sendOffsets[helper->nBuffers], ov->name.c_str());
 
     OVview ovView(ov, ov->local());
     ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
@@ -220,9 +220,9 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
             helper->recvBuf.devPtr(), ovView, packer );
 }
 
-PinnedBuffer<int>& ObjectHaloExchanger::getSendSizes(int id)
+PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(int id)
 {
-    return helpers[id]->sendSizes;
+    return helpers[id]->sendOffsets;
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)

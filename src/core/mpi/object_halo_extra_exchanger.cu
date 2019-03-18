@@ -69,13 +69,12 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
 
 void ObjectExtraExchanger::prepareSizes(int id, cudaStream_t stream)
 {
-    auto ov  = objects[id];
     auto helper = helpers[id].get();
 
-    auto& sizes = entangledHaloExchanger->getSendSizes(id);
+    const auto& offsets = entangledHaloExchanger->getSendOffsets(id);
 
-    for (int i = 0; i < helper->nBuffers; i++)
-        helper->sendSizes[i] = sizes[i];
+    for (int i = 0; i < helper->nBuffers; ++i)
+        helper->sendSizes[i] = offsets[i+1] - offsets[i];
 }
 
 void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
@@ -88,14 +87,12 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     OVview view(ov, ov->local());
 
     helper->setDatumSize(packer.packedSize_byte * view.objSize);
-
-    const int nthreads = 128;
-
-    helper->resizeSendBuf();
     helper->computeSendOffsets();
     helper->resizeSendBuf();
 
     int nObjects = helper->sendOffsets[helper->nBuffers];
+
+    const int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
         ObjectHaloExtraExchangeKernels::pack,
@@ -109,7 +106,7 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto helper = helpers[id].get();
 
     int nObjects = ov->halo()->nObjects;
-
+    
     OVview view(ov, ov->halo());
     ParticleExtraPacker packer(ov, ov->halo(), packPredicates[id], stream);
 
