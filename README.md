@@ -12,9 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+### v0.12.1
 
 * add support of SDPD/MDPD for objects
+* **fix** belonging checkers for halo objects: needed rigid motions
+* **fix** reverse exchanger data taken from halo for the extra data
 
 ### v0.12.0
 
