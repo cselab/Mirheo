@@ -80,7 +80,7 @@ struct DevicePacker
      */
     inline __device__ void unpackAtomicAdd(const char *srcAddr, int dstId) const
     {
-        const float tolerance = 1e-7;
+        constexpr float tolerance = 1e-7;
         
         for (int i = 0; i < nChannels; i++)
         {
@@ -91,7 +91,7 @@ struct DevicePacker
                 
             for (int j = 0; j < size / sizeof(float); ++j) {
                 float val = src[j];
-                if (fabs(val) < tolerance)
+                if (fabs(val) > tolerance)
                     atomicAdd(&dst[j], val);
             }
             srcAddr += size;
