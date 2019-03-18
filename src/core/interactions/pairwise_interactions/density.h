@@ -10,16 +10,16 @@ class CellList;
 class LocalParticleVector;
 
 template <typename DensityKernel>
-class PairwiseDensity : public ParticleFetcher
+class PairwiseDensity : public ParticleFetcherWithMass
 {
 public:
 
     using ViewType     = PVviewWithDensities;
-    using ParticleType = Particle;
+    using ParticleType = ParticleFetcherWithMass::ParticleType;
     using HandlerType  = PairwiseDensity;
     
     PairwiseDensity(float rc, DensityKernel densityKernel) :
-        ParticleFetcher(rc),
+        ParticleFetcherWithMass(rc),
         densityKernel(densityKernel)
     {
         invrc = 1.0 / rc;
@@ -27,13 +27,13 @@ public:
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
-        float3 dr = dst.r - src.r;
+        float3 dr = dst.p.r - src.p.r;
         float rij2 = dot(dr, dr);
         if (rij2 > rc2) return 0.0f;
 
         float rij = sqrtf(rij2);
 
-        return densityKernel(rij, invrc);
+        return src.m * densityKernel(rij, invrc);
     }
 
     __D__ inline DensityAccumulator getZeroedAccumulator() const {return DensityAccumulator();}
