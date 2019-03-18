@@ -41,9 +41,9 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
         if (prop.high.y >  0.5f*domain.localSize.y - rc) dy = 1;
         if (prop.high.z >  0.5f*domain.localSize.z - rc) dz = 1;
 
-        for (int ix = min(dx, 0); ix <= max(dx, 0); ix++)
-            for (int iy = min(dy, 0); iy <= max(dy, 0); iy++)
-                for (int iz = min(dz, 0); iz <= max(dz, 0); iz++)
+        for (int ix = min(dx, 0); ix <= max(dx, 0); ++ix)
+            for (int iy = min(dy, 0); iy <= max(dy, 0); ++iy)
+                for (int iz = min(dz, 0); iz <= max(dz, 0); ++iz)
                 {
                     if (ix == 0 && iy == 0 && iz == 0) continue;
                     const int bufId = FragmentMapping::getId(ix, iy, iz);
@@ -55,7 +55,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
     // Copy objects to each halo
     // TODO: maybe other loop order?
     __shared__ int shDstObjId;
-    for (int i=0; i<nHalos; i++)
+    for (int i = 0; i < nHalos; ++i)
     {
         const int bufId = validHalos[i];
 
@@ -76,7 +76,7 @@ __global__ void getObjectHalos(const DomainInfo domain, const OVview view, const
             __syncthreads();
 
             int myOffset = dataWrap.offsets[bufId] + shDstObjId;
-            int* partIdsAddr = haloParticleIds + view.objSize * myOffset;
+            int *partIdsAddr = haloParticleIds + view.objSize * myOffset;
 
             // Save particle origins
             for (int pid = tid; pid < view.objSize; pid += blockDim.x)
@@ -218,6 +218,11 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
             ObjectHaloExchangeKernels::unpackObject,
             totalRecvd, nthreads, 0, stream,
             helper->recvBuf.devPtr(), ovView, packer );
+}
+
+PinnedBuffer<int>& ObjectHaloExchanger::getSendSizes(int id)
+{
+    return helpers[id]->sendSizes;
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
