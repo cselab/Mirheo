@@ -109,6 +109,11 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     else
         die("Incompatible type");
 
+    if (std::is_same<Stats::CountType, unsigned long long>::value)
+        mpiCountType = MPI_UNSIGNED_LONG_LONG;
+    else
+        die("Incompatible type");    
+    
     if (filename != "")
     {
         fdump = fopen(filename.c_str(), "w");
@@ -126,18 +131,18 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 {
     TimeType currentTime;
     float realTime;
-    int nparticles, currentTimeStep;
-    int maxNparticles, minNparticles;
+    int currentTimeStep;
+    Stats::CountType nparticles, maxNparticles, minNparticles;
 
     std::vector<Stats::ReductionType> momentum, energy;
     std::vector<float> maxvel;
 
     SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
 
-    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, MPI_INT, MPI_MIN, 0, comm) );
-    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, MPI_INT, MPI_MAX, 0, comm) );
+    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, mpiCountType, MPI_MIN, 0, comm) );
+    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, mpiCountType, MPI_MAX, 0, comm) );
     
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, MPI_INT,          MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, mpiCountType,     MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, mpiReductionType, MPI_SUM, 0, comm) );
     MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, mpiReductionType, MPI_SUM, 0, comm) );
 
@@ -154,15 +159,16 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 
         printf("Stats at timestep %d (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);
-        printf("\tNumber of particles (total, min/proc, max/proc): %d,  %d,  %d\n", nparticles, minNparticles, maxNparticles);
+        printf("\tNumber of particles (total, min/proc, max/proc): %llu,  %llu,  %llu\n", nparticles, minNparticles, maxNparticles);
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         printf("\tTemperature: %.4f\n\n", temperature);
 
         if (fdump != nullptr)
         {
-            fprintf(fdump, "%g %g %g %g %g %g %g\n", currentTime,
-                    temperature, momentum[0], momentum[1], momentum[2], maxvel[0], realTime);
+            fprintf(fdump, "%g %g %g %g %g %g %llu %g\n", currentTime,
+                    temperature, momentum[0], momentum[1], momentum[2],
+                    maxvel[0], nparticles, realTime);
             fflush(fdump);
         }
     }
