@@ -84,7 +84,8 @@ SimulationRadialVelocityControl::SimulationRadialVelocityControl(const YmrState 
     dumpEvery(dumpEvery), 
     force(0),
     pid(0, Kp, Ki, Kd),
-    accumulatedTotVel(0)
+    accumulatedVel(0),
+    accumulatedSamples(0)
 {}
 
 SimulationRadialVelocityControl::~SimulationRadialVelocityControl() = default;
@@ -128,29 +129,33 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
         debug2("Velocity control %s is sampling now", name.c_str());
 
         totVel.clearDevice(stream);
+        nSamples.clearDevice(stream);
+
         for (auto &pv : pvs)
             sampleOnePv(pv, stream);
-        totVel.downloadFromDevice(stream);
-        accumulatedTotVel += totVel[0];
+
+        totVel  .downloadFromDevice(stream, ContainersSynch::Asynch);
+        nSamples.downloadFromDevice(stream, ContainersSynch::Synch);
+
+        accumulatedVel     += totVel[0];
+        accumulatedSamples += nSamples[0];
     }
     
     if (state->currentStep % tuneEvery != 0 || state->currentStep == 0)
         return;
     
-    nSamples.downloadFromDevice(stream);
-    nSamples.clearDevice(stream);
     
-    long nSamples_loc, nSamples_tot = 0;
-    double totVel_tot = 0;  
-
-    nSamples_loc = nSamples[0];
+    unsigned long long nSamples_tot = 0;
+    long double totVel_tot = 0;  
     
-    MPI_Check( MPI_Allreduce(&nSamples_loc,        &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
-    MPI_Check( MPI_Allreduce(&accumulatedTotVel,   &totVel_tot,   1, MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&accumulatedSamples, &nSamples_tot, 1, MPI_UNSIGNED_LONG_LONG,   MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&accumulatedVel,     &totVel_tot,   1, MPI_LONG_DOUBLE,          MPI_SUM, comm) );
 
     currentVel = nSamples_tot ? totVel_tot / nSamples_tot : 0.f;
     force = pid.update(targetVel - currentVel);
-    accumulatedTotVel = 0;
+
+    accumulatedVel     = 0;
+    accumulatedSamples = 0;
 }
 
 void SimulationRadialVelocityControl::serializeAndSend(cudaStream_t stream)

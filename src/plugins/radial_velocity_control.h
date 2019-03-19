@@ -38,8 +38,8 @@ private:
 
     PinnedBuffer<int> nSamples{1};
     PinnedBuffer<double> totVel{1};
-    double accumulatedTotVel;
-    
+    long double        accumulatedVel;
+    unsigned long long accumulatedSamples;
 
     PidControl<float> pid;
     std::vector<char> sendBuffer;
