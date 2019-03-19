@@ -1,6 +1,6 @@
-sphinx
-breathe
+sphinx>=1.8.4
 sphinx_rtd_theme
-pygments
 sphinx_automodapi
+pygments
+breathe
 exhale
