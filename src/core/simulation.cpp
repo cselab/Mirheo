@@ -1198,35 +1198,35 @@ void Simulation::restart(std::string folder)
 //
 //    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
 
-	TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
-	restartFolder = folder;
+    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
+    restartFolder = folder;
 
-	CUDA_Check( cudaDeviceSynchronize() );
+    CUDA_Check( cudaDeviceSynchronize() );
 
-	info("Reading simulation state, from folder %s", restartFolder.c_str());
+    info("Reading simulation state, from folder %s", restartFolder.c_str());
 
-	for (auto& pv : particleVectors)
-		pv->restart(cartComm, restartFolder);
+    for (auto& pv : particleVectors)
+        pv->restart(cartComm, restartFolder);
 
-	for (auto& handler : bouncerMap)
-		handler.second->restart(cartComm, restartFolder);
+    for (auto& handler : bouncerMap)
+        handler.second->restart(cartComm, restartFolder);
 
-	for (auto& handler : integratorMap)
-		handler.second->restart(cartComm, restartFolder);
+    for (auto& handler : integratorMap)
+        handler.second->restart(cartComm, restartFolder);
 
-	for (auto& handler : interactionMap)
-		handler.second->restart(cartComm, restartFolder);
+    for (auto& handler : interactionMap)
+        handler.second->restart(cartComm, restartFolder);
 
-	for (auto& handler : wallMap)
-		handler.second->restart(cartComm, restartFolder);
+    for (auto& handler : wallMap)
+        handler.second->restart(cartComm, restartFolder);
 
-	for (auto& handler : belongingCheckerMap)
-		handler.second->restart(cartComm, restartFolder);
+    for (auto& handler : belongingCheckerMap)
+        handler.second->restart(cartComm, restartFolder);
 
-	for (auto& handler : plugins)
-		handler->restart(cartComm, restartFolder);
+    for (auto& handler : plugins)
+        handler->restart(cartComm, restartFolder);
 
-	CUDA_Check( cudaDeviceSynchronize() );
+    CUDA_Check( cudaDeviceSynchronize() );
 }
 
 void Simulation::checkpoint()

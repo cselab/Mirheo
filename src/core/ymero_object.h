@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <mpi.h>
-
 #include "ymero_state.h"
+
+#include <mpi.h>
+#include <string>
 
 /**
  * Base class for all the objects of YMeRo
@@ -13,13 +13,14 @@
 class YmrObject
 {
 public:
-    YmrObject(std::string name) : name(name) {};
-    const std::string name;
+    YmrObject(std::string name);
+    virtual ~YmrObject();
 
-    virtual void checkpoint(MPI_Comm comm, std::string path) {}  /// Save handler state
-    virtual void restart   (MPI_Comm comm, std::string path) {}  /// Restore handler state
-    
-    virtual ~YmrObject() = default;
+    virtual void checkpoint(MPI_Comm comm, std::string path);  /// Save handler state
+    virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
+
+public:
+    const std::string name;
 };
 
 /**
@@ -29,9 +30,10 @@ public:
 class YmrSimulationObject : public YmrObject
 {
 public:
-    YmrSimulationObject(const YmrState *state, std::string name) :
-        YmrObject(name), state(state)
-    {}
+    YmrSimulationObject(const YmrState *state, std::string name);
+    ~YmrSimulationObject();
 
+public:
+    
     const YmrState *state;
 };
