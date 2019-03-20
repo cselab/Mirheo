@@ -112,7 +112,7 @@ private:
     MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-              int checkpointEvery, std::string restartFolder, bool gpuAwareMPI);
+              int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();
 };
