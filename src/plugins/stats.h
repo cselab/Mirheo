@@ -10,6 +10,7 @@ class ParticleVector;
 namespace Stats
 {
 using ReductionType = double;
+using CountType = unsigned long long;
 }
 
 class SimulationStats : public SimulationPlugin
@@ -29,7 +30,7 @@ private:
     int fetchEvery;
     bool needToDump{false};
 
-    int nparticles;
+    Stats::CountType nparticles;
     PinnedBuffer<Stats::ReductionType> momentum{3}, energy{1};
     PinnedBuffer<float> maxvel{1};
     std::vector<char> sendBuffer;
@@ -42,7 +43,7 @@ private:
 class PostprocessStats : public PostprocessPlugin
 {
 private:
-    MPI_Datatype mpiReductionType;
+    MPI_Datatype mpiReductionType, mpiCountType;
     FILE *fdump = nullptr;
 
 public:

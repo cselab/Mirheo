@@ -12,13 +12,19 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.12.3
+
+* **interface changes**
+  * use checkpoint instead of restart in Ymero coordinator constructor
+  * add checkpoint_mode parameter to Ymero coordinator constructor
+* checkpoint/restart mechanism is more uniform
+
 ### v0.12.2
 
 * densities computed from pairwise interactions are now mass density
 * internal changes: 
   * add fetcher with mass
   * add type trait for self interacting pairwise kernels
-
 
 ### v0.12.1
 

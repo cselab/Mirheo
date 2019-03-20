@@ -5,6 +5,7 @@
 #include <core/domain.h>
 #include <core/logger.h>
 #include <core/mpi/exchanger_interfaces.h>
+#include <core/ymero_object.h>
 
 #include <functional>
 #include <map>
@@ -30,7 +31,7 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 struct SimulationTasks;
 
-class Simulation
+class Simulation : protected YmrObject
 {
 public:
     int3 nranks3D;
@@ -43,6 +44,7 @@ public:
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                int globalCheckpointEvery = 0, std::string checkpointFolder = "restart/",
+               CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
                bool gpuAwareMPI = false);
 
     ~Simulation();
@@ -110,6 +112,7 @@ private:
     RestartStatus restartStatus{RestartStatus::Anew};
     std::string restartFolder, checkpointFolder;
     int globalCheckpointEvery;
+    CheckpointIdAdvanceMode checkpointMode;
 
     int rank;
 
@@ -203,7 +206,6 @@ private:
     std::map<std::string, std::string> pvsIntegratorMap;
 
     
-    
 private:
 
     std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
@@ -218,5 +220,11 @@ private:
     void execSplitters();
 
     void createTasks();
+
+    using YmrObject::restart;
+    using YmrObject::checkpoint;
+
+    void restartState(std::string folder);
+    void checkpointState();
 };
 

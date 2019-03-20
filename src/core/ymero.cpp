@@ -58,7 +58,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 }
 
 void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-                 int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI)
+                 int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI)
 {
     int nranks;
     
@@ -83,7 +83,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         createCartComm(comm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, MPI_COMM_NULL, getState(),
-                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
         computeTask = 0;
         return;
     }
@@ -106,7 +106,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         createCartComm(compComm, nranks3D, &cartComm);
         state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, interComm, getState(),
-                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
     }
     else
     {
@@ -129,35 +129,38 @@ void YMeRo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
 }
 
 YMeRo::YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery,
-             std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
+             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
+             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     initializedMpi = true;
 
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
 }
 
 YMeRo::YMeRo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery, 
-             std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
+             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
+             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
     MPI_Comm comm = *((MPI_Comm*) commAdress);
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);    
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);    
 }
 
 YMeRo::YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery,
-             std::string checkpointFolder, bool gpuAwareMPI, bool noSplash) :
+             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
+             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity, checkpointEvery, checkpointFolder, gpuAwareMPI);
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
 }
 
 static void safeCommFree(MPI_Comm *comm)

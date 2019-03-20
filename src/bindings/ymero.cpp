@@ -18,6 +18,17 @@
 
 using namespace pybind11::literals;
 
+CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
+{
+    if (mode == "PingPong")
+        return CheckpointIdAdvanceMode::PingPong;
+    if (mode == "Incremental")
+        return CheckpointIdAdvanceMode::Incremental;
+
+    die("Unknown checkpoint mode '%s'\n", mode.c_str());
+    return CheckpointIdAdvanceMode::PingPong;
+}
+
 void exportYmero(py::module& m)
 {
     py::handlers_class<YmrState>(m, "YmrState", R"(
@@ -28,15 +39,22 @@ void exportYmero(py::module& m)
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (PyTypes::int3 nranks, PyTypes::float3 domain, float dt,
-                           std::string log, int debuglvl, int checkpoint,
-                           std::string restart, bool cudaMPI, bool noSplash, long comm) {
+                           std::string log, int debuglvl, int checkpointEvery,
+                           std::string checkpointFolder, std::string checkpointModeStr,
+                           bool cudaMPI, bool noSplash, long comm) {
 
-                if (comm == 0) return std::make_unique<YMeRo> (      nranks, domain, dt, log, debuglvl, checkpoint, restart, cudaMPI, noSplash);
-                else           return std::make_unique<YMeRo> (comm, nranks, domain, dt, log, debuglvl, checkpoint, restart, cudaMPI, noSplash);
+                auto checkpointMode = getCheckpointMode(checkpointModeStr);
+                if (comm == 0) return std::make_unique<YMeRo> (      nranks, domain, dt, log, debuglvl,
+                                                                     checkpointEvery, checkpointFolder, checkpointMode,
+                                                                     cudaMPI, noSplash);
+                else           return std::make_unique<YMeRo> (comm, nranks, domain, dt, log, debuglvl,
+                                                                     checkpointEvery, checkpointFolder, checkpointMode,
+                                                                     cudaMPI, noSplash);
             } ),
             py::return_value_policy::take_ownership,
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
-            "restart_folder"_a="restart/", "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
+             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
+             "no_splash"_a=false, "comm_ptr"_a=0, R"(
                 Create the YMeRo coordinator.
                 
                 .. warning::
@@ -69,7 +87,8 @@ void exportYmero(py::module& m)
                         there is no guarantee that messages from different ranks are synchronized
                     debug_level: Debug level from 1 to 8, see above.
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-                    restart_folder: folder where the checkpoint files will reside
+                    checkpoint_folder: folder where the checkpoint files will reside
+                    checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
                     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -83,7 +102,8 @@ void exportYmero(py::module& m)
                 pv: :any:`ParticleVector`
                 ic: :class:`~libymero.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
-                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. 
+                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
+                    (see :py:meth:`_ymero.ymero.__init__`). 
                     The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
                     Default value of 0 means no checkpoint.
         )")
@@ -149,7 +169,7 @@ void exportYmero(py::module& m)
                     correct_every: If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
+                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the checkpoint folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options

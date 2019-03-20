@@ -1,9 +1,11 @@
 #pragma once
 
-#include <string>
-#include <mpi.h>
-
 #include "ymero_state.h"
+
+#include <core/utils/common.h>
+
+#include <mpi.h>
+#include <string>
 
 /**
  * Base class for all the objects of YMeRo
@@ -13,13 +15,22 @@
 class YmrObject
 {
 public:
-    YmrObject(std::string name) : name(name) {};
+    YmrObject(std::string name);
+    virtual ~YmrObject();
+
+    virtual void checkpoint(MPI_Comm comm, std::string path);  /// Save handler state
+    virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
+
+    std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;
+    std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension) const;
+    void advanceCheckpointId(CheckpointIdAdvanceMode mode);
+    void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension) const;
+
+public:
     const std::string name;
 
-    virtual void checkpoint(MPI_Comm comm, std::string path) {}  /// Save handler state
-    virtual void restart   (MPI_Comm comm, std::string path) {}  /// Restore handler state
-    
-    virtual ~YmrObject() = default;
+protected:
+    int checkpointId {0};
 };
 
 /**
@@ -29,9 +40,10 @@ public:
 class YmrSimulationObject : public YmrObject
 {
 public:
-    YmrSimulationObject(const YmrState *state, std::string name) :
-        YmrObject(name), state(state)
-    {}
+    YmrSimulationObject(const YmrState *state, std::string name);
+    ~YmrSimulationObject();
 
+public:
+    
     const YmrState *state;
 };

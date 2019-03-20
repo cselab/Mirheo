@@ -14,18 +14,4 @@ void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> 
     }
 }
 
-void make_symlink(MPI_Comm comm, std::string path, std::string name, std::string fname)
-{
-    int rank;
-    MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-    if (rank == 0) {
-        std::string lnname = path + "/" + name + ".xmf";
-        
-        std::string command = "ln -f " + fname + ".xmf " + lnname;
-        if ( system(command.c_str()) != 0 )
-            error("Could not create link for checkpoint file of PV '%s'", name.c_str());
-    }    
-}
-
 } // namespace RestartHelpers

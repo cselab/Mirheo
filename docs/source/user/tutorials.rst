@@ -65,7 +65,7 @@ The above script can be run as:
 
 .. code-block:: bash
 
-    mpirun -np 2 python3 hello.py
+    mpirun -np 2 python3 rest.py
 
 
 .. note::
