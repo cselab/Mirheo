@@ -25,13 +25,15 @@ public:
     virtual void checkpoint(MPI_Comm comm, std::string path);  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
 
-    std::string createCheckpointName(std::string path, std::string identifier = "") const;
+    std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;
+    std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension) const;
     void advanceCheckpointId(CheckpointIdAdvanceMode mode);
-    
+    void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension) const;
+
 public:
     const std::string name;
 
-protected:    
+protected:
     int checkpointId {0};
 };
 
