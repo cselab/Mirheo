@@ -78,16 +78,17 @@ struct SimulationTasks
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                        int globalCheckpointEvery, std::string checkpointFolder,
-                       bool gpuAwareMPI)
-    : nranks3D(nranks3D),
-      interComm(interComm),
-      state(state),
-      globalCheckpointEvery(globalCheckpointEvery),
-      checkpointFolder(checkpointFolder),
-      gpuAwareMPI(gpuAwareMPI),
-      scheduler(std::make_unique<TaskScheduler>()),
-      tasks(std::make_unique<SimulationTasks>()),
-      interactionManager(std::make_unique<InteractionManager>())
+                       bool gpuAwareMPI) :
+    YmrObject("simulation"),
+    nranks3D(nranks3D),
+    interComm(interComm),
+    state(state),
+    globalCheckpointEvery(globalCheckpointEvery),
+    checkpointFolder(checkpointFolder),
+    gpuAwareMPI(gpuAwareMPI),
+    scheduler(std::make_unique<TaskScheduler>()),
+    tasks(std::make_unique<SimulationTasks>()),
+    interactionManager(std::make_unique<InteractionManager>())
 {
     int nranks[3], periods[3], coords[3];
 
@@ -1180,6 +1181,22 @@ void Simulation::run(int nsteps)
 }
 
 
+void Simulation::restartState(std::string folder)
+{
+    auto filename = createCheckpointName(folder, "state", "txt");
+    TextIO::read(filename, state->currentTime, state->currentStep);
+}
+
+void Simulation::checkpointState()
+{
+    auto filename = createCheckpointNameWithId(checkpointFolder, "state", "txt");
+
+    if (rank == 0)
+        TextIO::write(filename, state->currentTime, state->currentStep);
+
+    createCheckpointSymlink(cartComm, checkpointFolder, "state", "txt");
+}
+
 void Simulation::restart(std::string folder)
 {
 //    bool beginning =  particleVectors    .empty() &&
@@ -1198,9 +1215,10 @@ void Simulation::restart(std::string folder)
 //
 //    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
 
-    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
     restartFolder = folder;
 
+    this->restartState(restartFolder);
+    
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Reading simulation state, from folder %s", restartFolder.c_str());
@@ -1231,9 +1249,8 @@ void Simulation::restart(std::string folder)
 
 void Simulation::checkpoint()
 {
-    if (rank == 0)
-        TextIO::write(checkpointFolder + "_simulation.state", state->currentTime, state->currentStep);
-
+    this->checkpointState();
+    
     CUDA_Check( cudaDeviceSynchronize() );
     
     info("Writing simulation state, into folder %s", checkpointFolder.c_str());
@@ -1266,6 +1283,8 @@ void Simulation::checkpoint()
     
     for (auto& handler : plugins)
         checkpointAndAdvanceId(handler.get());
+
+    advanceCheckpointId(mode);
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

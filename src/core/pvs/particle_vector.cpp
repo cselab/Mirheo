@@ -1,11 +1,12 @@
-#include <mpi.h>
-
-#include <core/xdmf/typeMap.h>
-#include <core/utils/folders.h>
-#include <core/xdmf/xdmf.h>
-
 #include "particle_vector.h"
 #include "restart_helpers.h"
+
+#include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
+#include <core/xdmf/typeMap.h>
+#include <core/xdmf/xdmf.h>
+
+#include <mpi.h>
 
 LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
 {
