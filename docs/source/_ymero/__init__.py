@@ -9,7 +9,7 @@ class ymero:
     
     """
     def __init__():
-        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, restart_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
                 Create the YMeRo coordinator.
@@ -44,7 +44,7 @@ class ymero:
                         there is no guarantee that messages from different ranks are synchronized
                     debug_level: Debug level from 1 to 8, see above.
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-                    restart_folder: folder where the checkpoint files will reside
+                    checkpoint_folder: folder where the checkpoint files will reside
                     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -68,7 +68,7 @@ class ymero:
                     correct_every: If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the ./restart/ folder. Default value of 0 means no checkpoint.
+                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the checkpoint folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
@@ -231,7 +231,8 @@ Register Interaction
                 pv: :any:`ParticleVector`
                 ic: :class:`~InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
-                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the ./restart/ folder. 
+                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
+                    (see :py:meth:`_ymero.ymero.__init__`). 
                     The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
                     Default value of 0 means no checkpoint.
         
