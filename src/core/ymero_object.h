@@ -5,6 +5,12 @@
 #include <mpi.h>
 #include <string>
 
+enum class CheckpointIdAdvanceMode
+{
+    PingPong,
+    Incremental
+};
+
 /**
  * Base class for all the objects of YMeRo
  * Only stores name and provides interface for
@@ -19,8 +25,13 @@ public:
     virtual void checkpoint(MPI_Comm comm, std::string path);  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
 
+    void advanceCheckpointId(CheckpointIdAdvanceMode mode);
+    
 public:
     const std::string name;
+
+protected:    
+    int checkpointId {0};
 };
 
 /**
