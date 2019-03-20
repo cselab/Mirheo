@@ -77,7 +77,7 @@ struct SimulationTasks
 };
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
-                       int globalCheckpointEvery, std::string checkpointFolder,
+                       int globalCheckpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode,
                        bool gpuAwareMPI) :
     YmrObject("simulation"),
     nranks3D(nranks3D),
@@ -85,6 +85,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
     state(state),
     globalCheckpointEvery(globalCheckpointEvery),
     checkpointFolder(checkpointFolder),
+    checkpointMode(checkpointMode),
     gpuAwareMPI(gpuAwareMPI),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),
@@ -1255,12 +1256,10 @@ void Simulation::checkpoint()
     
     info("Writing simulation state, into folder %s", checkpointFolder.c_str());
 
-    CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong;
-
     auto checkpointAndAdvanceId = [&] (YmrObject *object)
     {
         object->checkpoint(cartComm, checkpointFolder);
-        object->advanceCheckpointId(mode);
+        object->advanceCheckpointId(checkpointMode);
     };
     
     for (auto& pv : particleVectors)
@@ -1284,7 +1283,7 @@ void Simulation::checkpoint()
     for (auto& handler : plugins)
         checkpointAndAdvanceId(handler.get());
 
-    advanceCheckpointId(mode);
+    advanceCheckpointId(checkpointMode);
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

@@ -2,14 +2,10 @@
 
 #include "ymero_state.h"
 
+#include <core/utils/common.h>
+
 #include <mpi.h>
 #include <string>
-
-enum class CheckpointIdAdvanceMode
-{
-    PingPong,
-    Incremental
-};
 
 /**
  * Base class for all the objects of YMeRo

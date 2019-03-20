@@ -18,6 +18,17 @@
 
 using namespace pybind11::literals;
 
+CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
+{
+    if (mode == "PingPong")
+        return CheckpointIdAdvanceMode::PingPong;
+    if (mode == "Incremental")
+        return CheckpointIdAdvanceMode::Incremental;
+
+    die("Unknown checkpoint mode '%s'\n", mode.c_str());
+    return CheckpointIdAdvanceMode::PingPong;
+}
+
 void exportYmero(py::module& m)
 {
     py::handlers_class<YmrState>(m, "YmrState", R"(
@@ -29,14 +40,21 @@ void exportYmero(py::module& m)
     )")
         .def(py::init( [] (PyTypes::int3 nranks, PyTypes::float3 domain, float dt,
                            std::string log, int debuglvl, int checkpointEvery,
-                           std::string checkpointFolder, bool cudaMPI, bool noSplash, long comm) {
+                           std::string checkpointFolder, std::string checkpointModeStr,
+                           bool cudaMPI, bool noSplash, long comm) {
 
-                if (comm == 0) return std::make_unique<YMeRo> (      nranks, domain, dt, log, debuglvl, checkpointEvery, checkpointFolder, cudaMPI, noSplash);
-                else           return std::make_unique<YMeRo> (comm, nranks, domain, dt, log, debuglvl, checkpointEvery, checkpointFolder, cudaMPI, noSplash);
+                auto checkpointMode = getCheckpointMode(checkpointModeStr);
+                if (comm == 0) return std::make_unique<YMeRo> (      nranks, domain, dt, log, debuglvl,
+                                                                     checkpointEvery, checkpointFolder, checkpointMode,
+                                                                     cudaMPI, noSplash);
+                else           return std::make_unique<YMeRo> (comm, nranks, domain, dt, log, debuglvl,
+                                                                     checkpointEvery, checkpointFolder, checkpointMode,
+                                                                     cudaMPI, noSplash);
             } ),
             py::return_value_policy::take_ownership,
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
-            "checkpoint_folder"_a="restart/", "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
+             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
+             "no_splash"_a=false, "comm_ptr"_a=0, R"(
                 Create the YMeRo coordinator.
                 
                 .. warning::
@@ -70,6 +88,7 @@ void exportYmero(py::module& m)
                     debug_level: Debug level from 1 to 8, see above.
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                     checkpoint_folder: folder where the checkpoint files will reside
+                    checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
                     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used

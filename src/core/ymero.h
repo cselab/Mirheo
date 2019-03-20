@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/logger.h>
+#include <core/utils/common.h>
 #include <core/utils/pytypes.h>
 
 #include <memory>
@@ -27,15 +28,21 @@ class YMeRo
 public:
     YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string checkpointFolder="restart/",
+          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          bool gpuAwareMPI=false, bool noSplash=false);
 
     YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string checkpointFolder="restart/",
+          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          bool gpuAwareMPI=false, bool noSplash=false);
 
     YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/", bool gpuAwareMPI=false, bool noSplash=false);
+          std::string checkpointFolder="restart/",
+          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          bool gpuAwareMPI=false, bool noSplash=false);
 
     ~YMeRo();
     
@@ -112,7 +119,7 @@ private:
     MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-              int checkpointEvery, std::string checkpointFolder, bool gpuAwareMPI);
+              int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();
 };
