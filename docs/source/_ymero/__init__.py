@@ -9,7 +9,7 @@ class ymero:
     
     """
     def __init__():
-        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
                 Create the YMeRo coordinator.
@@ -45,6 +45,7 @@ class ymero:
                     debug_level: Debug level from 1 to 8, see above.
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                     checkpoint_folder: folder where the checkpoint files will reside
+                    checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
                     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
