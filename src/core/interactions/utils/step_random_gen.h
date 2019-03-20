@@ -1,29 +1,16 @@
 #pragma once
 
-#include <core/ymero_state.h>
-
-#include <limits>
 #include <random>
 
-struct StepRandomGen
-{
-    StepRandomGen(long seed) :
-        gen(seed),
-        udistr(0.001f, 1.f)
-    {
-        lastSample = udistr(gen);
-    }
-    
-    float generate(const YmrState *state)
-    {        
-        if (state->currentStep != lastIteration)
-        {
-            lastIteration = state->currentStep;
-            lastSample = udistr(gen);
-        }
+class YmrState;
 
-        return lastSample;
-    }
+class StepRandomGen
+{
+public:
+    StepRandomGen(long seed);
+    ~StepRandomGen();
+    
+    float generate(const YmrState *state);
     
 private:
     int lastIteration {-1};
