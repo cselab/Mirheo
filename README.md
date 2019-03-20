@@ -12,6 +12,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### v0.12.2
+
+* **interface changes**
+  * use checkpoint instead of restart in Ymero coordinator constructor
+  * add checkpoint_mode parameter to Ymero coordinator constructor
+* checkpoint/restart mechanism is more uniform
+
 ### v0.12.1
 
 * add support of SDPD/MDPD for objects
