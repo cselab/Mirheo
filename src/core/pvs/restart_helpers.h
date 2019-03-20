@@ -9,7 +9,6 @@
 namespace RestartHelpers
 {
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local);
-void make_symlink(MPI_Comm comm, std::string path, std::string name, std::string fname);
 
 template<typename T>
 static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MPI_Request> &reqs, MPI_Comm comm)

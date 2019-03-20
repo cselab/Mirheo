@@ -108,9 +108,6 @@ protected:
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
     virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);    
 
-    void advanceRestartIdx();
-    int restartIdx = 0;
-
 private:
 
     template<typename T>

@@ -1237,27 +1237,35 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
     
     info("Writing simulation state, into folder %s", checkpointFolder.c_str());
-        
+
+    CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong;
+
+    auto checkpointAndAdvanceId = [&] (YmrObject *object)
+    {
+        object->checkpoint(cartComm, checkpointFolder);
+        object->advanceCheckpointId(mode);
+    };
+    
     for (auto& pv : particleVectors)
-        pv->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(pv.get());
     
     for (auto& handler : bouncerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.second.get());
     
     for (auto& handler : integratorMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.second.get());
     
     for (auto& handler : interactionMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.second.get());
     
     for (auto& handler : wallMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.second.get());
     
     for (auto& handler : belongingCheckerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.second.get());
     
     for (auto& handler : plugins)
-        handler->checkpoint(cartComm, checkpointFolder);
+        checkpointAndAdvanceId(handler.get());
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

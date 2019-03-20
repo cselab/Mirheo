@@ -119,7 +119,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    auto filename = createCheckpointNameWithId(path, "ROV", "");
     info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
@@ -148,7 +148,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    RestartHelpers::make_symlink(comm, path, name + ".obj", filename);
+    createCheckpointSymlink(comm, path, "ROV", "xmf");
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -163,7 +163,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name + ".obj.xmf";
+    auto filename = createCheckpointName(path, "ROV", "xmf");
     info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readRigidObjectData(filename, comm, this);

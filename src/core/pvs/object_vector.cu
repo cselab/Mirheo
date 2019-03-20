@@ -100,7 +100,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name + ".xmf";
+    auto filename = createCheckpointName(path, "PV", "xmf");
     info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readParticleData(filename, comm, this, objSize);
@@ -113,14 +113,14 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     RestartHelpers::exchangeData(comm, map, parts, objSize);    
     RestartHelpers::copyShiftCoordinates(state->domain, parts, local());
 
-    local()->coosvels.uploadToDevice(0);
+    local()->coosvels.uploadToDevice(defaultStream);
     
     // Do the ids
     // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
     auto ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
     for (int i = 0; i < local()->nObjects; i++)
         (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
-    ids->uploadToDevice(0);
+    ids->uploadToDevice(defaultStream);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -152,7 +152,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name + ".obj-" + getStrZeroPadded(restartIdx);
+    auto filename = createCheckpointNameWithId(path, "OV", "");
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>(ChannelNames::comExtents);
@@ -171,7 +171,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    RestartHelpers::make_symlink(comm, path, name + ".obj", filename);
+    createCheckpointSymlink(comm, path, "OV", "xmf");
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -180,7 +180,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    std::string filename = path + "/" + name + ".obj.xmf";
+    auto filename = createCheckpointName(path, "OV", "xmf");
     info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
     XDMF::readObjectData(filename, comm, this);
@@ -195,7 +195,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
     loc_ids->resize_anew(ids.size());
     std::copy(ids.begin(), ids.end(), loc_ids->begin());
 
-    loc_ids->uploadToDevice(0);
+    loc_ids->uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d object infos", loc_ids->size());
@@ -205,7 +205,6 @@ void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
 {
     _checkpointParticleData(comm, path);
     _checkpointObjectData(comm, path);
-    advanceRestartIdx();
 }
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
