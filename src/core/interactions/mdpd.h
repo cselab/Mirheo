@@ -29,8 +29,6 @@ protected:
 
     InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl);
     
-    std::unique_ptr<Interaction> impl;
-    
     // Default values
     float rd, a, b, gamma, kbt, power;
 };

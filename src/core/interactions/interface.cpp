@@ -27,4 +27,16 @@ std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels
     return {{ChannelNames::forces, alwaysActive}};
 }
 
+void Interaction::checkpoint(MPI_Comm comm, std::string path)
+{
+    if (!impl) return;
+    impl->checkpoint(comm, path);
+}
+
+void Interaction::restart(MPI_Comm comm, std::string path)
+{
+    if (!impl) return;
+    impl->restart(comm, path);
+}
+
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};

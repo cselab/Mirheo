@@ -27,6 +27,4 @@ protected:
      * default: compute area and volume of each cell
      */
     virtual void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream);
-    
-    std::unique_ptr<Interaction> impl; ///< concrete implementation of forces
 };

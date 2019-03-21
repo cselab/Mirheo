@@ -18,8 +18,6 @@ public:
         
 protected:
     BasicInteractionDensity(const YmrState *state, std::string name, float rc);
-
-    std::unique_ptr<Interaction> impl;
 };
 
 

@@ -23,8 +23,6 @@ protected:
     BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
                          float viscosity, float kBT);
 
-    std::unique_ptr<Interaction> impl;
-
     float viscosity, kBT;
 };
 

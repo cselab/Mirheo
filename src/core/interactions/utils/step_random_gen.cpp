@@ -24,9 +24,9 @@ float StepRandomGen::generate(const YmrState *state)
     
 std::ofstream& operator<<(std::ofstream& stream, const StepRandomGen& srg)
 {
-    stream << srg.lastIteration << " "
-           << srg.lastSample    << " "
-           << srg.gen;
+    stream << srg.lastIteration << std::endl
+           << srg.lastSample    << std::endl
+           << srg.gen           << std::endl;
     return stream;
 }
 

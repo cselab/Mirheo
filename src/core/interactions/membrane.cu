@@ -35,8 +35,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 } // namespace InteractionMembraneKernels
 
 InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name) :
-    Interaction(state, name, /* default cutoff rc */ 1.0),
-    impl(nullptr)
+    Interaction(state, name, /* default cutoff rc */ 1.0)
 {}
 
 InteractionMembrane::~InteractionMembrane() = default;

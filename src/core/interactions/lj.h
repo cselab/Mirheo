@@ -22,7 +22,6 @@ struct InteractionLJ : public Interaction
 protected:
     InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate);
     
-    std::unique_ptr<Interaction> impl;
     bool objectAware;
 };
 

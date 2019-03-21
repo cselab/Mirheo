@@ -15,8 +15,7 @@ BasicInteractionSDPD::BasicInteractionSDPD(const YmrState *state, std::string na
                                            float viscosity, float kBT) :
     Interaction(state, name, rc),
     viscosity(viscosity),
-    kBT(kBT),
-    impl(nullptr)
+    kBT(kBT)
 {}
 
 BasicInteractionSDPD::~BasicInteractionSDPD() = default;

@@ -11,6 +11,7 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
+#include <fstream>
 #include <map>
 
 /**
@@ -86,6 +87,30 @@ public:
     {
         intMap.insert({{pv1name, pv2name}, pair});
         intMap.insert({{pv2name, pv1name}, pair});
+    }
+
+    void checkpoint(MPI_Comm comm, std::string path) override
+    {
+        auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt");
+        {
+            std::ofstream fout(fname);
+            defaultPair.writeState(fout);
+            for (auto& entry : intMap)
+                entry.second.writeState(fout);
+        }
+        createCheckpointSymlink(comm, path, "ParirwiseInt", "txt");
+    }
+    
+    void restart(MPI_Comm comm, std::string path) override
+    {
+        auto fname = createCheckpointName(path, "ParirwiseInt", "txt");
+        std::ifstream fin(fname);
+
+        if (!fin.good()) die("could not read '%s'\n", fname.c_str());
+
+        defaultPair.readState(fin);
+        for (auto& entry : intMap)
+            entry.second.readState(fin);
     }
 
 private:

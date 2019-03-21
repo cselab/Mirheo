@@ -4,6 +4,7 @@
 
 #include <cuda_runtime.h>
 #include <functional>
+#include <memory>
 #include <mpi.h>
 #include <vector>
 
@@ -90,9 +91,16 @@ public:
      */
     virtual std::vector<InteractionChannel> getFinalOutputChannels() const;
 
+    void checkpoint(MPI_Comm comm, std::string path) override;
+    void restart   (MPI_Comm comm, std::string path) override;
+    
     static const ActivePredicate alwaysActive;
     
 public:
     /// Cut-off raduis
     float rc;
+
+protected:
+
+    std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };

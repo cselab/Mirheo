@@ -17,7 +17,7 @@ public:
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
-        interactionWithStress(state, name, rc, PairwiseStressWrapper<PairwiseInteraction>(pair))
+        interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseInteraction>(pair))
     {}
 
     ~InteractionPair_withStress() = default;
