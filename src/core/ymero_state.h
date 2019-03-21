@@ -1,10 +1,11 @@
 #pragma once
 
+#include "domain.h"
+#include "utils/common.h"
+
 #include <memory>
 #include <mpi.h>
 #include <string>
-
-#include "domain.h"
 
 using TimeType = double;
 
@@ -14,7 +15,7 @@ using TimeType = double;
 class YmrState
 {
 public:
-    YmrState(DomainInfo domain, float dt);
+    YmrState(DomainInfo domain, float dt, CheckpointIdAdvanceMode checkpointMode);
     YmrState(const YmrState&);
     YmrState& operator=(YmrState other);
 
@@ -33,5 +34,7 @@ public:
     float dt;
     TimeType currentTime;
     int currentStep;
+
+    CheckpointIdAdvanceMode checkpointMode;
 };
 

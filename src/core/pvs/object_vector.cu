@@ -205,6 +205,7 @@ void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
 {
     _checkpointParticleData(comm, path);
     _checkpointObjectData(comm, path);
+    advanceCheckpointId(state->checkpointMode);
 }
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)

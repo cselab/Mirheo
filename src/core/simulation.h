@@ -44,7 +44,6 @@ public:
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
                int globalCheckpointEvery = 0, std::string checkpointFolder = "restart/",
-               CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
                bool gpuAwareMPI = false);
 
     ~Simulation();
@@ -112,7 +111,6 @@ private:
     RestartStatus restartStatus{RestartStatus::Anew};
     std::string restartFolder, checkpointFolder;
     int globalCheckpointEvery;
-    CheckpointIdAdvanceMode checkpointMode;
 
     int rank;
 

@@ -5,11 +5,12 @@
 
 static const std::string fname = "state.ymero";
 
-YmrState::YmrState(DomainInfo domain, float dt) :
+YmrState::YmrState(DomainInfo domain, float dt, CheckpointIdAdvanceMode checkpointMode) :
     domain(domain),
     dt(dt),
     currentTime(0),
-    currentStep(0)
+    currentStep(0),
+    checkpointMode(checkpointMode)
 {}
 
 YmrState::YmrState(const YmrState&) = default;

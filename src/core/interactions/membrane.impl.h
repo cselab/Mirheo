@@ -9,6 +9,7 @@
 #include <core/pvs/views/ov.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/restart_helpers.h>
 
 #include <cmath>
 #include <functional>
@@ -115,6 +116,23 @@ public:
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) {}
+
+    void checkpoint(MPI_Comm comm, std::string path) override
+    {
+        auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt");
+        TextIO::write(fname, stepGen);
+        createCheckpointSymlink(comm, path, "MembraneInt", "txt");
+        advanceCheckpointId(state->checkpointMode);
+    }
+    
+    void restart(MPI_Comm comm, std::string path) override
+    {
+        auto fname = createCheckpointName(path, "MembraneInt", "txt");
+        auto status = TextIO::read(fname, stepGen);
+        if (!status)
+            die("Could not read '%s'", fname.c_str());
+    }
+
     
 protected:
 

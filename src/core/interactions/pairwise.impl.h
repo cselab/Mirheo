@@ -99,6 +99,7 @@ public:
                 entry.second.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt");
+        advanceCheckpointId(state->checkpointMode);
     }
     
     void restart(MPI_Comm comm, std::string path) override

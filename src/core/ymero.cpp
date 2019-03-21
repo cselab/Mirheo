@@ -81,9 +81,9 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         selectIntraNodeGPU(comm);
 
         createCartComm(comm, nranks3D, &cartComm);
-        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt, checkpointMode);
         sim = std::make_unique<Simulation> (cartComm, MPI_COMM_NULL, getState(),
-                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
         computeTask = 0;
         return;
     }
@@ -104,9 +104,9 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         selectIntraNodeGPU(compComm);
 
         createCartComm(compComm, nranks3D, &cartComm);
-        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt, checkpointMode);
         sim = std::make_unique<Simulation> (cartComm, interComm, getState(),
-                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+                                            checkpointEvery, checkpointFolder, gpuAwareMPI);
     }
     else
     {
