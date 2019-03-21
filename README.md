@@ -15,6 +15,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### unreleased
 
 * **fix** SDPD: correct use of mass density
+* checkpoint and restart interaction random state
 
 ### v0.12.3
 
