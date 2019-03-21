@@ -12,6 +12,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
+### unreleased
+
+* **fix** SDPD: correct use of mass density
+
 ### v0.12.3
 
 * **interface changes**
