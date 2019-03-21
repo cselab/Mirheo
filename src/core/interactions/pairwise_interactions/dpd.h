@@ -1,10 +1,11 @@
 #pragma once
 
 #include "fetchers.h"
+#include "interface.h"
 
 #include <core/interactions/accumulators/force.h>
 #include <core/interactions/utils/step_random_gen.h>
-#include <core/ymero_state.h>
+#include <core/utils/restart_helpers.h>
 
 #include <random>
 
@@ -69,7 +70,7 @@ protected:
     float seed;
 };
 
-class PairwiseDPD : public PairwiseDPDHandler
+class PairwiseDPD : public PairwiseKernel, public PairwiseDPDHandler
 {
 public:
 
@@ -85,10 +86,21 @@ public:
         return (const HandlerType&)(*this);
     }
 
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
     {
-        seed = stepGen.generate(state);
+        this->seed = stepGen.generate(state);
     }
+
+    void writeState(std::ofstream& fout) override
+    {
+        TextIO::writeToStream(fout, stepGen);
+    }
+
+    bool readState(std::ifstream& fin) override
+    {
+        return TextIO::readFromStream(fin, stepGen);
+    }
+    
 
 protected:
 

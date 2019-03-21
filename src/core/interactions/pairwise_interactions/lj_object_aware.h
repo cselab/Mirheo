@@ -40,7 +40,7 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state)
+    void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const YmrState *state) override
     {
         auto ov1 = dynamic_cast<ObjectVector*>(lpv1->pv);
         auto ov2 = dynamic_cast<ObjectVector*>(lpv2->pv);

@@ -1,13 +1,16 @@
 #pragma once
 
 #include "fetchers.h"
+#include "interface.h"
 #include "pressure_EOS.h"
 #include "density_kernels.h"
 
 #include <core/interactions/accumulators/force.h>
 #include <core/interactions/utils/step_random_gen.h>
+#include <core/utils/restart_helpers.h>
 #include <core/ymero_state.h>
 
+#include <fstream>
 #include <random>
 
 class CellList;
@@ -78,7 +81,7 @@ protected:
 };
 
 template <typename PressureEOS, typename DensityKernel>
-class PairwiseSDPD : public PairwiseSDPDHandler<PressureEOS, DensityKernel>
+class PairwiseSDPD : public PairwiseKernel, public PairwiseSDPDHandler<PressureEOS, DensityKernel>
 {
 public:
 
@@ -94,11 +97,22 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
     {
         this->seed = stepGen.generate(state);
     }
 
+    void writeState(std::ofstream& fout) override
+    {
+        TextIO::writeToStream(fout, stepGen);
+    }
+
+    bool readState(std::ifstream& fin) override
+    {
+        return TextIO::readFromStream(fin, stepGen);
+    }
+    
+    
 protected:
 
     StepRandomGen stepGen;    

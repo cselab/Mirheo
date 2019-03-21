@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fetchers.h"
+#include "interface.h"
 
 #include <core/interactions/accumulators/force.h>
 #include <core/ymero_state.h>
@@ -9,7 +10,7 @@ class LocalParticleVector;
 class CellList;
 
 
-class PairwiseLJ : public ParticleFetcher
+class PairwiseLJ : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
@@ -51,9 +52,6 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector* pv1, LocalParticleVector* pv2, CellList* cl1, CellList* cl2, const YmrState *state)
-    {}
-
 private:
 
     float epsilon, sigma, maxForce;

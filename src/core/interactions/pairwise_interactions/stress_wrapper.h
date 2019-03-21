@@ -58,7 +58,7 @@ public:
         basicForceWrapperHandler(basicForce.handler())
     {}
 
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
     {
         BasicPairwiseForce::setup(lpv1, lpv2, cl1, cl2, state);
         basicForceWrapperHandler = HandlerType(BasicPairwiseForce::handler());

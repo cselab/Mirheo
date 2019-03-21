@@ -2,15 +2,15 @@
 
 #include "density_kernels.h"
 #include "fetchers.h"
+#include "interface.h"
 
 #include <core/interactions/accumulators/density.h>
-#include <core/ymero_state.h>
 
 class CellList;
 class LocalParticleVector;
 
 template <typename DensityKernel>
-class PairwiseDensity : public ParticleFetcher
+class PairwiseDensity : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
@@ -44,9 +44,6 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state)
-    {}
-
 protected:
 
     float invrc;
