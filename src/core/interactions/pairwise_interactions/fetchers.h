@@ -59,47 +59,6 @@ protected:
 };
 
 /**
- * fetcher that reads positions only and store mass
- */
-class ParticleFetcherWithMass : public ParticleFetcher
-{
-public:
-
-    struct ParticleWithMass
-    {
-        Particle p;
-        float m;
-    };
-
-    using ViewType     = PVview;
-    using ParticleType = ParticleWithMass;
-    
-    ParticleFetcherWithMass(float rc) :
-        ParticleFetcher(rc)
-    {}
-
-    __D__ inline ParticleType read(const ViewType& view, int id) const
-    {
-        return {ParticleFetcher::read(view, id), view.mass};
-    }
-
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
-    {
-        return {ParticleFetcher::readNoCache(view, id), view.mass};
-    }
-
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { ParticleFetcher::readCoordinates(p.p, view, id); }
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { p.m = view.mass; }
-
-    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
-    {
-        return ParticleFetcher::withinCutoff(src.p, dst.p);
-    }
-
-    __D__ inline float3 getPosition(const ParticleType& p) const {return ParticleFetcher::getPosition(p.p);}
-};
-
-/**
  * fetcher that reads positions and velocities
  */
 class ParticleFetcherWithVelocity : public ParticleFetcher
@@ -122,7 +81,7 @@ public:
 };
 
 /**
- * fetcher that reads positions and velocities
+ * fetcher that reads positions, velocities and densities
  */
 class ParticleFetcherWithVelocityAndDensity : public ParticleFetcherWithVelocity
 {
@@ -162,6 +121,58 @@ public:
     {
         ParticleFetcherWithVelocity::readExtraData(p.p, view, id);
         p.d = view.densities[id];
+    }
+
+    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
+    {
+        return ParticleFetcherWithVelocity::withinCutoff(src.p, dst.p);
+    }
+
+    __D__ inline float3 getPosition(const ParticleType& p) const {return p.p.r;}
+};
+
+/**
+ * fetcher that reads positions, velocities and mass
+ */
+class ParticleFetcherWithVelocityDensityAndMass : public ParticleFetcherWithVelocity
+{
+public:
+
+    struct ParticleWithDensityAndMass
+    {
+        Particle p;
+        float d, m;
+    };
+
+    using ViewType     = PVviewWithDensities;
+    using ParticleType = ParticleWithDensityAndMass;
+    
+    ParticleFetcherWithVelocityDensityAndMass(float rc) :
+        ParticleFetcherWithVelocity(rc)
+    {}
+
+    __D__ inline ParticleType read(const ViewType& view, int id) const
+    {
+        return {ParticleFetcherWithVelocity::read(view, id),
+                view.densities[id], view.mass};
+    }
+
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
+    {
+        return {ParticleFetcherWithVelocity::readNoCache(view, id),
+                view.densities[id], view.mass};
+    }
+
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const
+    {
+        ParticleFetcherWithVelocity::readCoordinates(p.p, view, id);
+    }
+    
+    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const
+    {
+        ParticleFetcherWithVelocity::readExtraData(p.p, view, id);
+        p.d = view.densities[id];
+        p.m = view.mass;
     }
 
     __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const

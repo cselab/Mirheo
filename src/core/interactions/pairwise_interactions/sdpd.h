@@ -14,17 +14,17 @@ class CellList;
 class LocalParticleVector;
 
 template <typename PressureEOS, typename DensityKernel>
-class PairwiseSDPDHandler : public ParticleFetcherWithVelocityAndDensity
+class PairwiseSDPDHandler : public ParticleFetcherWithVelocityDensityAndMass
 {
 public:
 
     static constexpr float zeta = 3 + 2;
     
     using ViewType     = PVviewWithDensities;
-    using ParticleType = ParticleWithDensity;
+    using ParticleType = ParticleWithDensityAndMass;
     
     PairwiseSDPDHandler(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float kBT, float dt) :
-        ParticleFetcherWithVelocityAndDensity(rc),
+        ParticleFetcherWithVelocityDensityAndMass(rc),
         pressure(pressure),
         densityKernel(densityKernel),
         fRfact(sqrt(2 * zeta * viscosity * kBT / dt)),
@@ -42,8 +42,8 @@ public:
         float di = dst.d;
         float dj = src.d;
         
-        float pi = pressure(di);
-        float pj = pressure(dj);
+        float pi = pressure(di * dst.m);
+        float pj = pressure(dj * src.m);
 
         float inv_disq = 1.f / (di * di);
         float inv_djsq = 1.f / (dj * dj);
