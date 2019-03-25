@@ -24,14 +24,18 @@ void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
     const auto _omega = omega;
 
     auto rotate = [domain, _center, _omega] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+        constexpr float tolerance = 1e-6;
         float3 gr = domain.local2global(p.r);
         float3 gr_c = gr - _center;
         p.u = cross(_omega, gr_c);
         float IrI = length(gr_c);
-        gr_c += p.u*dt;
 
+        if (IrI < tolerance)
+            return;
+
+        gr_c += p.u*dt;
         gr_c = normalize(gr_c) * IrI;
-        p.r = domain.global2local(gr_c + _center);
+        p.r  = domain.global2local(gr_c + _center);
     };
 
     int nthreads = 128;
