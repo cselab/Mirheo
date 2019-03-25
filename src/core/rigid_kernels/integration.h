@@ -3,7 +3,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
-#include <core/rigid_kernels/quaternion.h>
+#include <core/utils/quaternion.h>
 #include <core/utils/cuda_common.h>
 
 namespace RigidIntegrationKernels

@@ -1,13 +1,12 @@
 #include "mesh_belonging.h"
 
-#include <core/utils/kernel_launch.h>
+#include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/views/ov.h>
-#include <core/celllist.h>
-
-#include <core/rigid_kernels/quaternion.h>
 #include <core/rigid_kernels/rigid_motion.h>
+#include <core/utils/kernel_launch.h>
+#include <core/utils/quaternion.h>
 
 namespace MeshBelongingKernels
 {

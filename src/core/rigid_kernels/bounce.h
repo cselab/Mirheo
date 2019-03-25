@@ -1,11 +1,11 @@
 #pragma once
 
+#include <core/bounce_solver.h>
+#include <core/celllist.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/reov.h>
 #include <core/utils/cuda_common.h>
-#include <core/celllist.h>
-#include <core/bounce_solver.h>
-#include <core/rigid_kernels/quaternion.h>
+#include <core/utils/quaternion.h>
 
 __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 {

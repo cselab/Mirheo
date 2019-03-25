@@ -1,14 +1,12 @@
 #include "ellipsoid_belonging.h"
 
-#include <core/utils/kernel_launch.h>
+#include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/views/reov.h>
-#include <core/celllist.h>
-
-#include <core/rigid_kernels/quaternion.h>
 #include <core/rigid_kernels/rigid_motion.h>
-
+#include <core/utils/kernel_launch.h>
+#include <core/utils/quaternion.h>
 
 __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 {

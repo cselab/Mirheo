@@ -1,11 +1,11 @@
-#include <fstream>
-#include <random>
+#include "membrane_ic.h"
 
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/particle_vector.h>
-#include <core/rigid_kernels/quaternion.h>
+#include <core/utils/quaternion.h>
 
-#include "membrane_ic.h"
+#include <fstream>
+#include <random>
 
 MembraneIC::MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale) :
     com_q(com_q), globalScale(globalScale)
