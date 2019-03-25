@@ -22,6 +22,22 @@ __HD__ inline R4 invQ(const R4 q)
     return {q.x, -q.y, -q.z, -q.w};
 }
 
+// https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+__HD__ inline float4 getQfrom(float3 u, float3 v)
+{
+    auto kCosTheta = dot(u, v);
+    auto k = sqrtf(dot(u,u) * dot(v,v));
+
+    if (fabs(kCosTheta + k) < 1e-6)
+    {
+        // 180 degree rotation around any orthogonal vector
+        return f3toQ( normalize(anyOrthogonal(u)) );
+    }
+    auto uv = cross(u, v);
+    float4 q {kCosTheta + k, uv.x, uv.y, uv.z};
+    return normalize(q);
+}
+
 template<class R4>
 __HD__ inline R4 multiplyQ(const R4 q1, const R4 q2)
 {
@@ -37,16 +53,19 @@ __HD__ inline R4 multiplyQ(const R4 q1, const R4 q2)
 template<class R4, class R3>
 __HD__ inline R3 rotate(const R3 x, const R4 q)
 {
-    R4 qX = { (decltype(q.x))0.0f,
-              (decltype(q.x))x.x,
-              (decltype(q.x))x.y,
-              (decltype(q.x))x.z };
+    using Qreal = decltype(R4::x);
+    using Vreal = decltype(R3::x);
+    
+    R4 qX = { (Qreal)0.0,
+              (Qreal)x.x,
+              (Qreal)x.y,
+              (Qreal)x.z };
 
     qX = multiplyQ(multiplyQ(q, qX), invQ(q));
 
-    return { (decltype(x.x))qX.y,
-             (decltype(x.x))qX.z,
-             (decltype(x.x))qX.w };
+    return { (Vreal)qX.y,
+             (Vreal)qX.z,
+             (Vreal)qX.w };
 }
 
 template<class R4, class R3>

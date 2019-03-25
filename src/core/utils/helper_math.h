@@ -1814,4 +1814,26 @@ inline __HD__ float4 smoothstep(float4 a, float4 b, float4 x)
     return (y*y*(make_float4(3.0f) - (make_float4(2.0f)*y)));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// anyOrthogonal
+// returns any orthogonal vector to the input vector
+////////////////////////////////////////////////////////////////////////////////
+
+template <class R3>
+inline __HD__ R3 anyOrthogonal(R3 v)
+{
+    auto x = abs(v.x);
+    auto y = abs(v.y);
+    auto z = abs(v.z);
+
+    constexpr R3 xAxis {1.f, 0.f, 0.f};
+    constexpr R3 yAxis {1.f, 0.f, 0.f};
+    constexpr R3 zAxis {1.f, 0.f, 0.f};
+    
+    auto other = x < y ? (x < z ? xAxis : zAxis) : (y < z ? yAxis : zAxis);
+    return cross(v, other);
+}
+
+
 #endif
+
