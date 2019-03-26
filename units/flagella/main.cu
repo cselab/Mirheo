@@ -77,6 +77,49 @@ static void transportBishopFrame(const std::vector<float3>& positions, std::vect
     }
 }
 
+static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions)
+{
+    int n = (positions.size() - 1) / 5;
+
+    float Etot = 0;
+    
+    for (int i = 1; i < n; ++i)
+    {
+        auto r0 = positions[5*(i-1)];
+        auto r1 = positions[5*(i)];
+        auto r2 = positions[5*(i+1)];
+
+        auto m10 = normalize(positions[5*(i-1) + 2] - positions[5*(i-1) + 1]);
+        auto m20 = normalize(positions[5*(i-1) + 4] - positions[5*(i-1) + 3]);
+
+        auto m11 = normalize(positions[5*i + 2] - positions[5*i + 1]);
+        auto m21 = normalize(positions[5*i + 4] - positions[5*i + 3]);
+        
+        auto e0 = r1-r0;
+        auto e1 = r2-r1;
+
+        float denom = dot(e0, e1) + sqrtf(dot(e0,e0) * dot(e1,e1));
+        auto kappab = (2.f / denom) * cross(e0, e1);
+        
+        float2 om0 {dot(kappab, m20), -dot(kappab, m10)};
+        float2 om1 {dot(kappab, m21), -dot(kappab, m11)};
+
+        om0 -= omega_eq;
+        om1 -= omega_eq;
+
+        float l = length(e0) + length(e1);
+
+        float2 Bw {dot(om0 + om1, B[0]),
+                   dot(om0 + om1, B[1])};
+
+        float E = dot(Bw, om0 + om1) / l;
+        Etot += E;
+        printf("%g\n", E);
+    }
+
+    return Etot;
+}
+
 static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& positions)
 {
     int n = (positions.size() - 1) / 5;
@@ -166,6 +209,11 @@ static void run(MPI_Comm comm)
 
     transportBishopFrame(positions, frames);
     setCrosses(frames, positions);
+
+    float2 B[2] {{1.f, 0.f}, {0.f, 1.f}};
+    float2 omega_eq {0.f, 0.f};
+
+    bendingEnergy(B, omega_eq, positions);
     
     dump(comm, 0, positions.size(), positions.data());
 }
