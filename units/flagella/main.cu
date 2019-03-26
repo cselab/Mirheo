@@ -175,7 +175,7 @@ static void dump(MPI_Comm comm, int id, int np, const float3 *positions)
 static void run(MPI_Comm comm)
 {
     // number of edges
-    int n = 1000;
+    int n = 100;
 
     float pitch = 1.0;
     float radius = 0.5;
@@ -210,7 +210,7 @@ static void run(MPI_Comm comm)
     transportBishopFrame(positions, frames);
     setCrosses(frames, positions);
 
-    float2 B[2] {{1.f, 0.f}, {0.f, 1.f}};
+    float2 B[2] {{1.f, 0.f}, {0.f, 2.f}};
     float2 omega_eq {0.f, 0.f};
 
     bendingEnergy(B, omega_eq, positions);
