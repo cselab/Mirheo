@@ -44,6 +44,56 @@ __global__ void minMaxCom(OVview ovView)
 
 } // namespace ObjectVectorKernels
 
+
+LocalObjectVector::LocalObjectVector(ParticleVector *pv, int objSize, int nObjects) :
+    LocalParticleVector(pv, objSize*nObjects), objSize(objSize), nObjects(nObjects)
+{
+    if (objSize <= 0)
+        die("Object vector should contain at least one particle per object instead of %d", objSize);
+
+    resize_anew(nObjects*objSize);
+}
+
+LocalObjectVector::~LocalObjectVector() = default;
+
+void LocalObjectVector::resize(const int np, cudaStream_t stream)
+{
+    if (np % objSize != 0)
+        die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
+
+    nObjects = np / objSize;
+    LocalParticleVector::resize(np, stream);
+
+    extraPerObject.resize(nObjects, stream);
+}
+
+void LocalObjectVector::resize_anew(const int np)
+{
+    if (np % objSize != 0)
+        die("Incorrect number of particles in object");
+
+    nObjects = np / objSize;
+    LocalParticleVector::resize_anew(np);
+
+    extraPerObject.resize_anew(nObjects);
+}
+
+PinnedBuffer<Particle>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
+{
+    return &coosvels;
+}
+
+PinnedBuffer<Particle>* LocalObjectVector::getOldMeshVertices(cudaStream_t stream)
+{
+    return extraPerParticle.getData<Particle>(ChannelNames::oldParts);
+}
+
+DeviceBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
+{
+    return &forces;
+}
+
+
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type)
 {
     bool isLocal = (type == ParticleVectorType::Local);
