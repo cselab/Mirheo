@@ -3,7 +3,7 @@
 
 #include <core/utils/cuda_common.h>
 #include <core/utils/folders.h>
-#include <core/xdmf/typeMap.h>
+#include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
 
 #include <mpi.h>

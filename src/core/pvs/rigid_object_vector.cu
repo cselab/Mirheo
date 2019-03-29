@@ -1,13 +1,12 @@
+#include "restart_helpers.h"
 #include "rigid_object_vector.h"
 #include "views/rov.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/utils/folders.h>
 #include <core/rigid_kernels/integration.h>
+#include <core/utils/folders.h>
+#include <core/utils/kernel_launch.h>
+#include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
-#include <core/xdmf/typeMap.h>
-
-#include "restart_helpers.h"
 
 RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
                                      float3 J, const int objSize,
