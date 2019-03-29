@@ -58,10 +58,7 @@ LocalObjectVector::~LocalObjectVector() = default;
 
 void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
-    if (np % objSize != 0)
-        die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
-
-    nObjects = np / objSize;
+    nObjects = getNobjects(np);
     LocalParticleVector::resize(np, stream);
 
     extraPerObject.resize(nObjects, stream);
@@ -69,10 +66,7 @@ void LocalObjectVector::resize(int np, cudaStream_t stream)
 
 void LocalObjectVector::resize_anew(int np)
 {
-    if (np % objSize != 0)
-        die("Incorrect number of particles in object");
-
-    nObjects = np / objSize;
+    nObjects = getNobjects(np);
     LocalParticleVector::resize_anew(np);
 
     extraPerObject.resize_anew(nObjects);
@@ -93,6 +87,13 @@ DeviceBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
     return &forces;
 }
 
+int LocalObjectVector::getNobjects(int np) const
+{
+    if (np % objSize != 0)
+        die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
+
+    return np / objSize;
+}
 
 
 ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, int objSize, int nObjects) :

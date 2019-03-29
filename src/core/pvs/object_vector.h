@@ -35,6 +35,8 @@ public:
 
 protected:
     int objSize { 0 };
+
+    int getNobjects(int np) const;
 };
 
 

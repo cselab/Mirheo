@@ -79,9 +79,9 @@ struct OVviewWithOldPartilces : public OVview
 
 struct OVviewWithNewOldVertices : public OVview
 {
-    float4* vertices     = nullptr;
-    float4* old_vertices = nullptr;
-    float4* vertexForces = nullptr;
+    float4 *vertices     = nullptr;
+    float4 *old_vertices = nullptr;
+    float4 *vertexForces = nullptr;
 
     int nvertices = 0;
 
@@ -96,4 +96,3 @@ struct OVviewWithNewOldVertices : public OVview
         vertexForces = reinterpret_cast<float4*>( lov->getMeshForces     (stream)->devPtr() );
     }
 };
-
