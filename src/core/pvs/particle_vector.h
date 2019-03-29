@@ -1,15 +1,16 @@
 #pragma once
 
-#include <set>
-#include <string>
-
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/domain.h>
+#include <core/pvs/extra_data/extra_data_manager.h>
 #include <core/utils/pytypes.h>
 #include <core/ymero_object.h>
 
-#include "extra_data/extra_data_manager.h"
+#include <memory>
+#include <set>
+#include <string>
+
 
 namespace XDMF {struct Channel;}
 
@@ -23,19 +24,19 @@ enum class ParticleVectorType {
 class LocalParticleVector
 {
 public:
-    ParticleVector* pv;
+    LocalParticleVector(ParticleVector *pv, int n = 0);
+    virtual ~LocalParticleVector();
+    
+    int size() { return np; }
+    virtual void resize(const int n, cudaStream_t stream);
+    virtual void resize_anew(const int n);    
+
+public:
+    ParticleVector *pv;
 
     PinnedBuffer<Particle> coosvels;
     DeviceBuffer<Force> forces;
     ExtraDataManager extraPerParticle;
-
-    LocalParticleVector(ParticleVector* pv, int n=0);
-
-    int size() { return np; }
-    virtual void resize(const int n, cudaStream_t stream);
-    virtual void resize_anew(const int n);
-    
-    virtual ~LocalParticleVector();
 
 protected:
     int np;
@@ -46,7 +47,7 @@ class ParticleVector : public YmrSimulationObject
 {
 protected:
 
-    LocalParticleVector *_local, *_halo;
+    std::unique_ptr<LocalParticleVector> _local, _halo;
     
 public:
     
@@ -59,8 +60,8 @@ public:
 
     ParticleVector(const YmrState *state, std::string name, float mass, int n=0);
 
-    LocalParticleVector* local() { return _local; }
-    LocalParticleVector* halo()  { return _halo;  }
+    LocalParticleVector* local() { return _local.get(); }
+    LocalParticleVector* halo()  { return _halo.get();  }
 
     void checkpoint(MPI_Comm comm, std::string path) override;
     void restart(MPI_Comm comm, std::string path) override;
@@ -98,7 +99,8 @@ public:
 
 protected:
     ParticleVector(const YmrState *state, std::string name, float mass,
-                   LocalParticleVector *local, LocalParticleVector *halo );
+                   std::unique_ptr<LocalParticleVector>&& local,
+                   std::unique_ptr<LocalParticleVector>&& halo );
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);
 

@@ -8,10 +8,13 @@
 
 #include <mpi.h>
 
-LocalParticleVector::LocalParticleVector(ParticleVector* pv, int n) : pv(pv)
+LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
+    pv(pv)
 {
     resize_anew(n);
 }
+
+LocalParticleVector::~LocalParticleVector() = default;
 
 void LocalParticleVector::resize(const int n, cudaStream_t stream)
 {
@@ -35,8 +38,6 @@ void LocalParticleVector::resize_anew(const int n)
     np = n;
 }
 
-LocalParticleVector::~LocalParticleVector() = default;
-
 
 //============================================================================
 // Particle Vector
@@ -44,8 +45,8 @@ LocalParticleVector::~LocalParticleVector() = default;
 
 ParticleVector::ParticleVector(const YmrState *state, std::string name, float mass, int n) :
     ParticleVector(state, name, mass,
-                   new LocalParticleVector(this, n),
-                   new LocalParticleVector(this, 0) )
+                   std::make_unique<LocalParticleVector>(this, n),
+                   std::make_unique<LocalParticleVector>(this, 0) )
 {}
 
 
@@ -199,18 +200,15 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
 }
 
 
-ParticleVector::~ParticleVector()
-{ 
-    delete _local;
-    delete _halo;
-    
-}
+ParticleVector::~ParticleVector() = default;
 
-ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass, LocalParticleVector *local, LocalParticleVector *halo) :
+ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass,
+                               std::unique_ptr<LocalParticleVector>&& local,
+                               std::unique_ptr<LocalParticleVector>&& halo) :
     YmrSimulationObject(state, name),
     mass(mass),
-    _local(local),
-    _halo(halo)
+    _local(std::move(local)),
+    _halo(std::move(halo))
 {
     // usually old positions and velocities don't need to exchanged
     requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::None);

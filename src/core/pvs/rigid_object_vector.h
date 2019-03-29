@@ -33,8 +33,8 @@ public:
     RigidObjectVector(const YmrState *state, std::string name, float partMass, PyTypes::float3 J, const int objSize,
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
-    LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(_local); }
-    LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(_halo);  }
+    LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(ParticleVector::local()); }
+    LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(ParticleVector::halo());  }
 
     virtual ~RigidObjectVector() = default;
     

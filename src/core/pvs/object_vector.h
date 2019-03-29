@@ -79,8 +79,11 @@ public:
 class ObjectVector : public ParticleVector
 {
 protected:
-    ObjectVector(const YmrState *state, std::string name, float mass, int objSize, LocalObjectVector *local, LocalObjectVector *halo) :
-        ParticleVector(state, name, mass, local, halo), objSize(objSize)
+    ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+                 std::unique_ptr<LocalParticleVector>&& local,
+                 std::unique_ptr<LocalParticleVector>&& halo) :
+        ParticleVector(state, name, mass, std::move(local), std::move(halo)),
+        objSize(objSize)
     {
         // center of mass and extents are not to be sent around
         // it's cheaper to compute them on site
@@ -96,14 +99,14 @@ public:
 
     ObjectVector(const YmrState *state, std::string name, float mass, const int objSize, const int nObjects = 0) :
         ObjectVector( state, name, mass, objSize,
-                      new LocalObjectVector(this, objSize, nObjects),
-                      new LocalObjectVector(this, objSize, 0) )
+                      std::make_unique<LocalObjectVector>(this, objSize, nObjects),
+                      std::make_unique<LocalObjectVector>(this, objSize, 0) )
     {}
 
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
 
-    LocalObjectVector* local() { return static_cast<LocalObjectVector*>(_local); }
-    LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(_halo);  }
+    LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
+    LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(ParticleVector::halo());  }
 
     void checkpoint (MPI_Comm comm, std::string path) override;
     void restart    (MPI_Comm comm, std::string path) override;

@@ -12,8 +12,8 @@ RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, fl
                                      float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
-                  new LocalRigidObjectVector(this, objSize, nObjects),
-                  new LocalRigidObjectVector(this, objSize, 0) ),
+                  std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
+                  std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
     J(J)
 {
     this->mesh = std::move(mesh);
