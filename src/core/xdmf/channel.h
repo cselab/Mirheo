@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <hdf5.h>
+#include <core/utils/type_map.h>
 
-#include <core/utils/typeMap.h>
+#include <hdf5.h>
+#include <string>
 
 namespace XDMF
 {

@@ -1,4 +1,4 @@
-#include "typeMap.h"
+#include "type_map.h"
 
 std::string dataTypeToString(DataType dataType)
 {

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <core/utils/typeMap.h>
 #include "channel.h"
+
+#include <core/utils/type_map.h>
 
 namespace XDMF
 {

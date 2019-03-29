@@ -1,14 +1,14 @@
 #pragma once
 
+#include <core/containers.h>
+#include <core/logger.h>
+#include <core/utils/make_unique.h>
+#include <core/utils/type_map.h>
+
+#include <cuda_runtime.h>
 #include <map>
 #include <string>
 #include <vector>
-#include <core/logger.h>
-#include <core/containers.h>
-#include <core/utils/make_unique.h>
-#include <core/utils/typeMap.h>
-
-#include <cuda_runtime.h>
 
 class ParticlePacker;
 class ObjectExtraPacker;
