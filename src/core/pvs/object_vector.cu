@@ -56,7 +56,7 @@ LocalObjectVector::LocalObjectVector(ParticleVector *pv, int objSize, int nObjec
 
 LocalObjectVector::~LocalObjectVector() = default;
 
-void LocalObjectVector::resize(const int np, cudaStream_t stream)
+void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
     if (np % objSize != 0)
         die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
@@ -67,7 +67,7 @@ void LocalObjectVector::resize(const int np, cudaStream_t stream)
     extraPerObject.resize(nObjects, stream);
 }
 
-void LocalObjectVector::resize_anew(const int np)
+void LocalObjectVector::resize_anew(int np)
 {
     if (np % objSize != 0)
         die("Incorrect number of particles in object");

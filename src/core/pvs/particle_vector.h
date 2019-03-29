@@ -29,8 +29,8 @@ public:
     virtual ~LocalParticleVector();
     
     int size() { return np; }
-    virtual void resize(const int n, cudaStream_t stream);
-    virtual void resize_anew(const int n);    
+    virtual void resize(int n, cudaStream_t stream);
+    virtual void resize_anew(int n);    
 
 public:
     ParticleVector *pv;
@@ -46,21 +46,11 @@ protected:
 
 class ParticleVector : public YmrSimulationObject
 {
-protected:
-
-    std::unique_ptr<LocalParticleVector> _local, _halo;
-    
 public:
     
-    float mass;
-
-    bool haloValid = false;
-    bool redistValid = false;
-
-    int cellListStamp{0};
-
     ParticleVector(const YmrState *state, std::string name, float mass, int n=0);
-
+    ~ParticleVector() override;
+    
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }
 
@@ -80,10 +70,7 @@ public:
 
     void setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates);
     void setVelocities_vector(PyTypes::VectorOfFloat3& velocities);
-    void setForces_vector(PyTypes::VectorOfFloat3& forces);
-    
-    
-    ~ParticleVector() override;
+    void setForces_vector(PyTypes::VectorOfFloat3& forces);    
     
     template<typename T>
     void requireDataPerParticle(std::string name, ExtraDataManager::PersistenceMode persistence)
@@ -120,6 +107,17 @@ private:
         lpv->extraPerParticle.setPersistenceMode(name, persistence);
         if (shiftDataSize != 0) lpv->extraPerParticle.requireShift(name, shiftDataSize);
     }
+
+public:    
+    float mass;
+
+    bool haloValid   {false};
+    bool redistValid {false};
+
+    int cellListStamp{0};
+
+protected:
+    std::unique_ptr<LocalParticleVector> _local, _halo;
 };
 
 

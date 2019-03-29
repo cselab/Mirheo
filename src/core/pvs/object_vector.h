@@ -13,8 +13,8 @@ public:
     LocalObjectVector(ParticleVector *pv, int objSize, int nObjects = 0);
     virtual ~LocalObjectVector();
 
-    void resize(const int np, cudaStream_t stream) override;
-    void resize_anew(const int np) override;
+    void resize(int np, cudaStream_t stream) override;
+    void resize_anew(int np) override;
 
     virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream);

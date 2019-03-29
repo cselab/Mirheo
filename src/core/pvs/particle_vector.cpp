@@ -16,7 +16,7 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
 
 LocalParticleVector::~LocalParticleVector() = default;
 
-void LocalParticleVector::resize(const int n, cudaStream_t stream)
+void LocalParticleVector::resize(int n, cudaStream_t stream)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     
@@ -27,7 +27,7 @@ void LocalParticleVector::resize(const int n, cudaStream_t stream)
     np = n;
 }
 
-void LocalParticleVector::resize_anew(const int n)
+void LocalParticleVector::resize_anew(int n)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     

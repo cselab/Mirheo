@@ -8,6 +8,11 @@
 #include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
 
+
+LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, int nObjects) :
+    LocalObjectVector(pv, objSize, nObjects)
+{}
+
 RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
                                      float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
@@ -39,6 +44,8 @@ RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, fl
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     RigidObjectVector( state, name, partMass, make_float3(J), objSize, mesh, nObjects )
 {}
+
+RigidObjectVector::~RigidObjectVector() = default;
 
 PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
