@@ -7,7 +7,7 @@
 struct RVview : public OVview
 {
     float4 *bishopQuaternions  { nullptr };
-    float4 *bishopFrames       { nullptr };
+    float3 *bishopFrames       { nullptr };
 
     int nvertices = 0;
 

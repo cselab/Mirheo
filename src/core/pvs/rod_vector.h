@@ -12,7 +12,7 @@ public:
     virtual ~LocalRodVector();
 
     DeviceBuffer<float4> bishopQuaternions;
-    DeviceBuffer<float4> bishopFrames;
+    DeviceBuffer<float3> bishopFrames;
 };
 
 

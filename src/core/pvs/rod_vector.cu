@@ -64,6 +64,25 @@ __global__ void computeBishopQuaternion(RVview view)
     view.bishopQuaternions[dstId] = Q;
 }
 
+__global__ void computeBishopFrames(RVview view)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int nSegments = getNSegments(view.objSize);
+    
+    int objId     = i / nSegments;
+    int segmentId = i % nSegments;
+    int objStart  = objId * nSegments;
+
+    if (objId > view.nObjects) return;
+    if (segmentId > nSegments) return;
+
+    float3 initialFrame = view.bishopFrames[objStart];
+    float4 Q            = view.bishopQuaternions[objStart + segmentId];
+
+    if (segmentId > 0) // other blocks might read the first frame
+        view.bishopFrames[objStart + segmentId] = normalize(rotate(initialFrame, Q));
+}
+
 } // namespace RodVectorKernels
 
 
@@ -120,4 +139,10 @@ void RodVector::updateBishopFrame(cudaStream_t stream)
                      view.bishopQuaternions + nSegments * i,
                      ComposeRotations(), nSegments, stream)) ;
     }
+
+    // TODO initial frame per object
+    SAFE_KERNEL_LAUNCH(
+        RodVectorKernels::computeBishopFrames,
+        getNblocks(nSegmentsTot, nthreads), nthreads, 0, stream,
+        view );
 }
