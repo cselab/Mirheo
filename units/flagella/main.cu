@@ -42,9 +42,13 @@ inline void print(float3 v)
 static void getTransformation(float3 t0, float3 t1, float4& Q)
 {
     Q = getQfrom(t0, t1);
-    auto t0t1 = cross(t0, t1);
-    ASSERT_LE(length(t0t1 - rotate(t0t1, Q)), 1e-6f);
-    ASSERT_LE(length(t1 - rotate(t0, Q)), 1e-6);
+    auto t0t1 = normalize(cross(t0, t1));
+
+    float err_t0_t1   = length(t1 - rotate(t0, Q));
+    float err_t01_t01 = length(t0t1 - rotate(t0t1, Q));
+
+    ASSERT_LE(err_t01_t01, 1e-6f);
+    ASSERT_LE(err_t0_t1, 1e-6);
 }
 
 static void transportBishopFrame(const std::vector<float3>& positions, std::vector<float3>& frames)
@@ -114,7 +118,7 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
 
         float E = dot(Bw, om0 + om1) / l;
         Etot += E;
-        printf("%g\n", E);
+        // printf("%g\n", E);
     }
 
     return Etot;
