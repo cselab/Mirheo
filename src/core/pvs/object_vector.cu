@@ -94,6 +94,29 @@ DeviceBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
 }
 
 
+
+ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, int objSize, int nObjects) :
+    ObjectVector( state, name, mass, objSize,
+                  std::make_unique<LocalObjectVector>(this, objSize, nObjects),
+                  std::make_unique<LocalObjectVector>(this, objSize, 0) )
+{}
+
+ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+                           std::unique_ptr<LocalParticleVector>&& local,
+                           std::unique_ptr<LocalParticleVector>&& halo) :
+    ParticleVector(state, name, mass, std::move(local), std::move(halo)),
+    objSize(objSize)
+{
+    // center of mass and extents are not to be sent around
+    // it's cheaper to compute them on site
+    requireDataPerObject<LocalObjectVector::COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
+
+    // object ids must always follow objects
+    requireDataPerObject<int>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
+}
+
+ObjectVector::~ObjectVector() = default;
+
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type)
 {
     bool isLocal = (type == ParticleVectorType::Local);

@@ -40,31 +40,11 @@ protected:
 
 class ObjectVector : public ParticleVector
 {
-protected:
-    ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
-                 std::unique_ptr<LocalParticleVector>&& local,
-                 std::unique_ptr<LocalParticleVector>&& halo) :
-        ParticleVector(state, name, mass, std::move(local), std::move(halo)),
-        objSize(objSize)
-    {
-        // center of mass and extents are not to be sent around
-        // it's cheaper to compute them on site
-        requireDataPerObject<LocalObjectVector::COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
-
-        // object ids must always follow objects
-        requireDataPerObject<int>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
-    }
-
 public:
-    int objSize;
-    std::shared_ptr<Mesh> mesh;
-
-    ObjectVector(const YmrState *state, std::string name, float mass, const int objSize, const int nObjects = 0) :
-        ObjectVector( state, name, mass, objSize,
-                      std::make_unique<LocalObjectVector>(this, objSize, nObjects),
-                      std::make_unique<LocalObjectVector>(this, objSize, 0) )
-    {}
-
+    
+    ObjectVector(const YmrState *state, std::string name, float mass, int objSize, int nObjects = 0);
+    virtual ~ObjectVector();
+    
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
 
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
@@ -86,9 +66,14 @@ public:
         requireDataPerObject<T>(halo(),  name, persistence, shiftDataSize);
     }
 
-    virtual ~ObjectVector() = default;
-
+public:
+    int objSize;
+    std::shared_ptr<Mesh> mesh;
+    
 protected:
+    ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+                 std::unique_ptr<LocalParticleVector>&& local,
+                 std::unique_ptr<LocalParticleVector>&& halo);
 
     void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map) override;
     std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
