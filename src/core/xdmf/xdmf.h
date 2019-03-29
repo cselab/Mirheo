@@ -1,13 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <memory>
-#include <mpi.h>
+#include "grids.h"
 
 #include <core/pvs/rigid_object_vector.h>
 
-#include "grids.h"
+#include <memory>
+#include <mpi.h>
+#include <string>
+#include <vector>
 
 namespace XDMF
 {

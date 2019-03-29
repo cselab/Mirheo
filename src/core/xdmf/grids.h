@@ -1,15 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <memory>
-#include <mpi.h>
-#include <hdf5.h>
+#include "channel.h"
 
 #include <extern/pugixml/src/pugixml.hpp>
-#include <cuda_runtime.h>
 
-#include "channel.h"
+#include <cuda_runtime.h>
+#include <hdf5.h>
+#include <memory>
+#include <mpi.h>
+#include <string>
+#include <vector>
 
 namespace XDMF
 {
