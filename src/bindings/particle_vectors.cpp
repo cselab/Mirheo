@@ -8,6 +8,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
+#include <core/pvs/rod_vector.h>
 #include <core/utils/pytypes.h>
 
 #include <pybind11/stl.h>
@@ -172,5 +173,17 @@ void exportParticleVectors(py::module& m)
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
                     mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
+        )");
+
+
+    py::handlers_class<RodVector> (m, "RodVector", pyov, R"(
+        Rod Vector is an :any:`ObjectVector` which reprents rod geometries.
+    )")
+        .def(py::init<const YmrState*, std::string, float, int>(),
+             "state"_a, "name"_a, "mass"_a, "num_segments"_a, R"(
+                Args:
+                    name: name of the created Rod Vector 
+                    mass: mass of a single particle
+                    num_segments: number of elements to discretize the rod
         )");
 }

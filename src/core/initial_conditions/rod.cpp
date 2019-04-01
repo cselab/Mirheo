@@ -39,9 +39,9 @@ std::vector<float3> createRodTemplate(int nSegments,
     
     for (int i = 0; i < nSegments; ++i)
     {
-        auto r0 = positions[5*i + 0];
-        auto r1 = positions[5*i + 1];
-        auto r2 = positions[5*i + 2];
+        auto r0 = positions[5*(i + 0)];
+        auto r1 = positions[5*(i + 1)];
+        auto r2 = positions[5*(i + 2)];
 
         auto r = 0.5f * (r0 + r1);
         auto l = length(r1-r0);

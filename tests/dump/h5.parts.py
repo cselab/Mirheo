@@ -17,9 +17,9 @@ pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(args.density)
 u.registerParticleVector(pv=pv, ic=ic)
 
-dumpEvery   = 1
+dump_every   = 1
 
-u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dumpEvery, [], 'h5/solvent_particles-'))
+u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
 
 u.run(2)
 
