@@ -11,6 +11,8 @@ public:
     LocalRodVector(ParticleVector *pv, int objSize, int nObjects = 0);
     virtual ~LocalRodVector();
 
+    int getNumSegmentsPerRod() const;
+    
     DeviceBuffer<float4> bishopQuaternions;
     DeviceBuffer<float3> bishopFrames;
 };

@@ -6,23 +6,26 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
+__HD__ inline constexpr int getNumParts(int nSegments)
+{
+    return 5 * nSegments + 1;
+}
+
+__HD__ inline constexpr int getNumSegments(int np)
+{
+    return (np - 1) / 5;
+}
+
 LocalRodVector::LocalRodVector(ParticleVector *pv, int objSize, int nObjects) :
     LocalObjectVector(pv, objSize, nObjects)
 {}
 
 LocalRodVector::~LocalRodVector() = default;
 
-
-__HD__ inline constexpr int getNParts(int nSegments)
+int LocalRodVector::getNumSegmentsPerRod() const
 {
-    return 5 * nSegments + 1;
+    return getNumSegments(np / nObjects);
 }
-
-__HD__ inline constexpr int getNSegments(int np)
-{
-    return (np - 1) / 5;
-}
-
 
 namespace RodVectorKernels
 {
@@ -37,7 +40,7 @@ __device__ float3 fetchPosition(RVview view, int i)
 __global__ void computeBishopQuaternion(RVview view)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int nSegments = getNSegments(view.objSize);
+    int nSegments = getNumSegments(view.objSize);
     
     int objId     = i / nSegments;
     int segmentId = i % nSegments;
@@ -67,7 +70,7 @@ __global__ void computeBishopQuaternion(RVview view)
 __global__ void computeBishopFrames(RVview view)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int nSegments = getNSegments(view.objSize);
+    int nSegments = getNumSegments(view.objSize);
     
     int objId     = i / nSegments;
     int segmentId = i % nSegments;
@@ -87,9 +90,9 @@ __global__ void computeBishopFrames(RVview view)
 
 
 RodVector::RodVector(const YmrState *state, std::string name, float mass, int nSegments, int nObjects) :
-    ObjectVector( state, name, mass, getNParts(nSegments),
-                  std::make_unique<LocalRodVector>(this, getNParts(nSegments), nObjects),
-                  std::make_unique<LocalRodVector>(this, getNParts(nSegments), 0) )
+    ObjectVector( state, name, mass, getNumParts(nSegments),
+                  std::make_unique<LocalRodVector>(this, getNumParts(nSegments), nObjects),
+                  std::make_unique<LocalRodVector>(this, getNumParts(nSegments), 0) )
 {}
 
 RodVector::~RodVector() = default;
@@ -110,7 +113,7 @@ void RodVector::updateBishopFrame(cudaStream_t stream)
 
     const int nthreads = 128;
 
-    int nSegments = getNSegments(view.size);
+    int nSegments = getNumSegments(view.size);
     int nSegmentsTot = nSegments * view.nObjects;
     
     SAFE_KERNEL_LAUNCH(
