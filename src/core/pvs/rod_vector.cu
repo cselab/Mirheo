@@ -18,13 +18,34 @@ __HD__ inline constexpr int getNumSegments(int np)
 
 LocalRodVector::LocalRodVector(ParticleVector *pv, int objSize, int nObjects) :
     LocalObjectVector(pv, objSize, nObjects)
-{}
+{
+    resize_anew(objSize * nObjects);
+}
 
 LocalRodVector::~LocalRodVector() = default;
 
+void LocalRodVector::resize(int np, cudaStream_t stream)
+{
+    LocalObjectVector::resize(np, stream);
+
+    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+
+    bishopQuaternions.resize(    numTotSegments, stream);
+    bishopFrames     .resize(2 * numTotSegments, stream);
+}
+
+void LocalRodVector::resize_anew(int np)
+{
+    LocalObjectVector::resize_anew(np);
+    
+    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+    bishopQuaternions.resize_anew(    numTotSegments);
+    bishopFrames     .resize_anew(2 * numTotSegments);
+}
+
 int LocalRodVector::getNumSegmentsPerRod() const
 {
-    return getNumSegments(np / nObjects);
+    return getNumSegments(objSize);
 }
 
 namespace RodVectorKernels

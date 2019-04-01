@@ -11,8 +11,11 @@ public:
     LocalRodVector(ParticleVector *pv, int objSize, int nObjects = 0);
     virtual ~LocalRodVector();
 
+    void resize(int np, cudaStream_t stream) override;
+    void resize_anew(int np) override;
+
     int getNumSegmentsPerRod() const;
-    
+
     DeviceBuffer<float4> bishopQuaternions;
     DeviceBuffer<float3> bishopFrames;
 };
