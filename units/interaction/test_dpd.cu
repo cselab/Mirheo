@@ -7,7 +7,7 @@
 #include <core/containers.h>
 #include <core/interactions/pairwise.impl.h>
 #include <core/interactions/pairwise_interactions/norandom_dpd.h>
-#include <core/initial_conditions/uniform_ic.h>
+#include <core/initial_conditions/uniform.h>
 
 #include <gtest/gtest.h>
 
