@@ -47,7 +47,9 @@ function (add_test_executable dirName)
     "${CMAKE_CURRENT_SOURCE_DIR}/${dirName}/*.cu"
     "${CMAKE_CURRENT_SOURCE_DIR}/${dirName}/*.cpp")
 
-  set(EXEC_NAME "test_${dirName}")
+  string(REGEX REPLACE "/" "_" execNameId ${dirName})
+  
+  set(EXEC_NAME "test_${execNameId}")
   
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
