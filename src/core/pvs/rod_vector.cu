@@ -30,8 +30,8 @@ void LocalRodVector::resize(int np, cudaStream_t stream)
 
     int numTotSegments = getNumSegmentsPerRod() * nObjects;
 
-    bishopQuaternions.resize(    numTotSegments, stream);
-    bishopFrames     .resize(2 * numTotSegments, stream);
+    bishopQuaternions.resize(numTotSegments, stream);
+    bishopFrames     .resize(numTotSegments, stream);
 }
 
 void LocalRodVector::resize_anew(int np)
@@ -39,8 +39,8 @@ void LocalRodVector::resize_anew(int np)
     LocalObjectVector::resize_anew(np);
     
     int numTotSegments = getNumSegmentsPerRod() * nObjects;
-    bishopQuaternions.resize_anew(    numTotSegments);
-    bishopFrames     .resize_anew(2 * numTotSegments);
+    bishopQuaternions.resize_anew(numTotSegments);
+    bishopFrames     .resize_anew(numTotSegments);
 }
 
 int LocalRodVector::getNumSegmentsPerRod() const
@@ -117,8 +117,7 @@ __global__ void computeBishopFrames(RVview view)
     float3 initialFrame = getInitialFrame(view, objId);
     float4 Q            = view.bishopQuaternions[objStart + segmentId];
 
-    if (segmentId > 0) // other blocks might read the first frame
-        view.bishopFrames[objStart + segmentId] = normalize(rotate(initialFrame, Q));
+    view.bishopFrames[objStart + segmentId] = normalize(rotate(initialFrame, Q));
 }
 
 } // namespace RodVectorKernels
@@ -138,7 +137,7 @@ struct ComposeRotations
     __device__ __forceinline__
     float4 operator()(const float4 &a, const float4 &b) const
     {
-        return multiplyQ(a, b);
+        return multiplyQ(b, a);
     }
 };
 
