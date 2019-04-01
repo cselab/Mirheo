@@ -31,7 +31,4 @@ public:
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
-
-private:
-    DeviceBuffer<char> scanWork;
 };
