@@ -6,6 +6,7 @@
 #include <core/initial_conditions/membrane.h>
 #include <core/initial_conditions/restart.h>
 #include <core/initial_conditions/rigid.h>
+#include <core/initial_conditions/rod.h>
 #include <core/initial_conditions/uniform.h>
 #include <core/initial_conditions/uniform_filtered.h>
 #include <core/initial_conditions/uniform_sphere.h>
@@ -113,6 +114,28 @@ void exportInitialConditions(py::module& m)
                     One entry (list of 3 floats) in the list corresponds to one object 
         )");
     
+
+    py::handlers_class<RodIC>(m, "Rod", pyic, R"(
+        Can only be used with Rod Vector. These IC will initialize the particles of each rod
+        according to the the given explicit center-line position aand torsion mapping and then 
+        the objects will be translated/rotated according to the provided initial conditions.
+            
+    )")
+        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>>(),
+             "com_q"_a, "center_line"_a, "torsion"_a, R"(
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                center_line:
+                    explicit mapping :math:`\mathbf{r} : [0,1] \rightarrow R^3`. 
+                    Assume :math:`|r'(s)|` is constant for all :math:`s \in [0,1]`.
+                torsion:
+                    explicit mapping :math:`\tau : [0,1] \rightarrow R`.
+        )");
 
     py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(
         The particles will be generated with the desired number density uniformly at random in all the domain.
