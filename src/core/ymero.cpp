@@ -3,7 +3,7 @@
 
 #include <core/bouncers/interface.h>
 #include <core/initial_conditions/interface.h>
-#include <core/initial_conditions/uniform_ic.h>
+#include <core/initial_conditions/uniform.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
 #include <core/logger.h>

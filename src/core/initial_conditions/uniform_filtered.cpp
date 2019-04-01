@@ -1,6 +1,6 @@
-#include <core/pvs/particle_vector.h>
+#include "uniform_filtered.h"
 
-#include "uniform_filtered_ic.h"
+#include <core/pvs/particle_vector.h>
 
 UniformFilteredIC::UniformFilteredIC(float density, PositionFilter filter) :
     density(density),

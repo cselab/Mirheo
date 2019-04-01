@@ -1,5 +1,7 @@
 #include <functional>
 #include <mpi.h>
+#include <cuda_runtime.h>
+#include <vector_types.h>
 
 using PositionFilter = std::function<bool(float3)>;
 

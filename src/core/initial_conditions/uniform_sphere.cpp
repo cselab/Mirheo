@@ -1,7 +1,7 @@
-#include <core/pvs/particle_vector.h>
-
-#include "uniform_sphere_ic.h"
+#include "uniform_sphere.h"
 #include "helpers.h"
+
+#include <core/pvs/particle_vector.h>
 
 UniformSphereIC::UniformSphereIC(float density, float3 center, float radius, bool inside) :
     density(density),

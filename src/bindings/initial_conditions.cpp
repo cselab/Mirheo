@@ -3,12 +3,12 @@
 
 #include <core/initial_conditions/from_array.h>
 #include <core/initial_conditions/interface.h>
-#include <core/initial_conditions/membrane_ic.h>
+#include <core/initial_conditions/membrane.h>
 #include <core/initial_conditions/restart.h>
-#include <core/initial_conditions/rigid_ic.h>
-#include <core/initial_conditions/uniform_ic.h>
-#include <core/initial_conditions/uniform_filtered_ic.h>
-#include <core/initial_conditions/uniform_sphere_ic.h>
+#include <core/initial_conditions/rigid.h>
+#include <core/initial_conditions/uniform.h>
+#include <core/initial_conditions/uniform_filtered.h>
+#include <core/initial_conditions/uniform_sphere.h>
 
 #include <core/utils/pytypes.h>
 

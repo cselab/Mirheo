@@ -1,4 +1,4 @@
-#include "uniform_ic.h"
+#include "uniform.h"
 #include "helpers.h"
 
 UniformIC::UniformIC(float density) :

@@ -1,13 +1,12 @@
-#include "rigid_ic.h"
+#include "rigid.h"
 
-#include <random>
-#include <fstream>
-
+#include <core/integrators/rigid_vv.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
-#include <core/integrators/rigid_vv.h>
-
 #include <core/rigid_kernels/rigid_motion.h>
+
+#include <fstream>
+#include <random>
 
 void static readXYZ(std::string fname, PyTypes::VectorOfFloat3& positions)
 {

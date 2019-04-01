@@ -1,4 +1,4 @@
-#include "membrane_ic.h"
+#include "membrane.h"
 
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/particle_vector.h>
