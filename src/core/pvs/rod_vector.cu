@@ -30,7 +30,7 @@ int LocalRodVector::getNumSegmentsPerRod() const
 namespace RodVectorKernels
 {
 
-__device__ float3 fetchPosition(RVview view, int i)
+__device__ inline float3 fetchPosition(const RVview& view, int i)
 {
     Particle p;
     p.readCoordinate(view.particles, i);
@@ -67,6 +67,20 @@ __global__ void computeBishopQuaternion(RVview view)
     view.bishopQuaternions[dstId] = Q;
 }
 
+__device__ inline float3 getInitialFrame(const RVview& view, int objId)
+{
+    int start = view.objSize * objId;
+    auto r0 = fetchPosition(view, start + 0);
+    auto pu = fetchPosition(view, start + 1);
+    auto mu = fetchPosition(view, start + 2);
+    auto r1 = fetchPosition(view, start + 5);
+
+    auto t0 = normalize(r1 - r0);
+    auto u = pu - mu;
+    u -= t0 * dot(t0, u);
+    return normalize(u);
+}
+
 __global__ void computeBishopFrames(RVview view)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -79,7 +93,7 @@ __global__ void computeBishopFrames(RVview view)
     if (objId > view.nObjects) return;
     if (segmentId > nSegments) return;
 
-    float3 initialFrame = view.bishopFrames[objStart];
+    float3 initialFrame = getInitialFrame(view, objId);
     float4 Q            = view.bishopQuaternions[objStart + segmentId];
 
     if (segmentId > 0) // other blocks might read the first frame
@@ -143,7 +157,6 @@ void RodVector::updateBishopFrame(cudaStream_t stream)
                      ComposeRotations(), nSegments, stream)) ;
     }
 
-    // TODO initial frame per object
     SAFE_KERNEL_LAUNCH(
         RodVectorKernels::computeBishopFrames,
         getNblocks(nSegmentsTot, nthreads), nthreads, 0, stream,
