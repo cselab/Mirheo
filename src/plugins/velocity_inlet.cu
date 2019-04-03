@@ -110,17 +110,17 @@ __global__ void generateParticles(float seed, float kBT, int nNewParticles, int 
     int triangleId = workQueue[i];
     float3 barCoords = getBarycentricUniformTriangle(seed, i, triangleId);
 
-    Float3_int r, u;
+    Particle p;
 
-    r.v = interpolateFrombarycentric(barCoords, triangles,  triangleId);
-    u.v = interpolateFrombarycentric(barCoords, velocities, triangleId);
+    p.r = interpolateFrombarycentric(barCoords, triangles,  triangleId);
+    p.u = interpolateFrombarycentric(barCoords, velocities, triangleId);
 
-    u.v += sqrtf(kBT * view.invMass) * gaussian3D(seed, i, triangleId);
-
-    int dstId = oldSize + i;
+    p.u += sqrtf(kBT * view.invMass) * gaussian3D(seed, i, triangleId);
+    // TODO id
     
-    view.particles[2*dstId+0] = r.toFloat4();
-    view.particles[2*dstId+1] = u.toFloat4();
+    int dstId = oldSize + i;
+
+    view.writeParticle(dstId, p);
 }
 
 } // namespace velocityInletKernels

@@ -29,7 +29,7 @@ __global__ void applyProfile(
 #pragma unroll 3
     for (int pid = pstart; pid < pend; pid++)
     {
-        Particle p(view.particles, pid);
+        Particle p(view.readParticle(pid));
 
         if (all_lt(low, p.r) && all_lt(p.r, high))
         {
@@ -37,7 +37,7 @@ __global__ void applyProfile(
             float2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
 
             p.u = targetVel + sqrtf(kbT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
-            p.write2Float4(view.particles, pid);
+            view.writeParticle(pid, p);
         }
     }
 }

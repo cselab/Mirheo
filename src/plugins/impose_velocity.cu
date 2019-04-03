@@ -14,7 +14,7 @@ __global__ void addVelocity(PVview view, DomainInfo domain, float3 low, float3 h
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    Particle p(view.particles, gid);
+    Particle p(view.readParticle(gid));
     float3 gr = domain.local2global(p.r);
 
     if (low.x <= gr.x && gr.x <= high.x &&
@@ -35,7 +35,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
 
     if (gid < view.size) {
 
-        p.read(view.particles, gid);
+        p = view.readParticle(gid);
         float3 gr = domain.local2global(p.r);
 
         if (low.x <= gr.x && gr.x <= high.x &&

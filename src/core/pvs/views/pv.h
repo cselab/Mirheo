@@ -66,6 +66,16 @@ struct PVview
                 readNoCache(particles + 2*id + 1)};
     }
 
+    __HD__ inline void writePosition(int id, const float4& r)
+    {
+        particles[2*id] = r;
+    }
+
+    __HD__ inline void writeVelocity(int id, const float4& u)
+    {
+        particles[2*id + 1] = u;
+    }
+
     __HD__ inline void writeParticle(int id, const Particle& p)
     {
         particles[2*id]   = p.r2Float4();

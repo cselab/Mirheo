@@ -24,9 +24,9 @@ __global__ void addForce(PVview view, DomainInfo domain, float3 low, float3 high
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    Particle p;
-    p.readCoordinate(view.particles, gid);
-    float3 gr = domain.local2global(p.r);
+    auto r = Float3_int(view.readPosition(gid)).v;
+    
+    float3 gr = domain.local2global(r);
 
     if (is_inside(gr, low, high))
         view.forces[gid] += make_float4(force, 0.0f);

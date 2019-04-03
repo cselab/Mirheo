@@ -28,7 +28,7 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* t
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
     {
         myf += Float3_int(view.forces[pid + objId*view.objSize]).v;
-        myv += Float3_int(view.particles[2*(pid + objId*view.objSize) + 1]).v;
+        myv += Float3_int(view.readVelocity(pid + objId*view.objSize)).v;
     }
 
     myf = warpReduce(myf, [] (float a, float b) { return a+b; });

@@ -22,9 +22,8 @@ __global__ void addForce(PVview view, DomainInfo domain, float minRadiusSquare, 
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    Particle p;
-    p.readCoordinate(view.particles, gid);
-    float3 r = domain.local2global(p.r);
+    float3 r = make_float3(view.readPosition(gid));
+    r = domain.local2global(r);
     r -= center;
     float r2 = r.x * r.x + r.y * r.y;
 
@@ -49,7 +48,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquar
 
     if (gid < view.size) {
         
-        Particle p(view.particles, gid);
+        Particle p(view.readParticle(gid));
         float3 r = domain.local2global(p.r);
         r -= center;
 

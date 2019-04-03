@@ -28,8 +28,8 @@ __global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, 
     if (pid >= view1.size) return;
 
     Particle p, pold;
-    p   .readCoordinate(view1.particles,     pid);
-    pold.readCoordinate(view1.old_particles, pid);
+    view1.readPosition   (p,    pid);
+    view1.readOldPosition(pold, pid);
 
     if (p.isMarked()) return;
 
@@ -45,20 +45,21 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
     if (pid >= view1.size) return;
 
     Particle p, pold;
-    p   .readCoordinate(view1.particles,     pid);
-    pold.readCoordinate(view1.old_particles, pid);    
+    view1.readPosition   (p,    pid);
+    view1.readOldPosition(pold, pid);
 
     if (p.isMarked()) return;
     
-    if (hasCrossedPlane(domain, p.r, pold.r, plane)) {
-        p.readVelocity(view1.particles, pid);
+    if (hasCrossedPlane(domain, p.r, pold.r, plane))
+    {        
         int dst = atomicAdd(numberCrossed, 1);
         dst += oldsize2;
 
-        p.write2Float4(view2.particles, dst);
+        view1.readVelocity(p, pid);
+        view2.writeParticle(dst, p);
 
         p.mark();
-        p.write2Float4(view1.particles, pid);
+        view1.writeParticle(pid, p);
 
         extra1.pack(pid, extra2, dst);
     }

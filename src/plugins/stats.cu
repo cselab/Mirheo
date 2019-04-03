@@ -22,7 +22,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
 
     if (tid < view.size)
     {
-        vel        = make_float3(view.particles[2*tid+1]);
+        vel        = make_float3(view.readVelocity(tid));
         myMomentum = vel * view.mass;
         myEnergy   = dot(vel, vel) * view.mass * 0.5f;
     }

@@ -58,10 +58,9 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
 
-    Particle p;
-    p.readCoordinate(view.particles, i);
+    auto r = Float3_int(view.readPosition(i)).v;
 
-    int levelId = getLevelId(field, p.r, lb);
+    int levelId = getLevelId(field, r, lb);
 
     if (levelId != INVALID_LEVEL)
         atomicAdd(&nInsides[levelId], 1);
@@ -75,16 +74,15 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
 
-    Particle p;    
-    p.readCoordinate(view.particles, i);
+    auto r = Float3_int(view.readPosition(i)).v;
 
-    int levelId = getLevelId(field, p.r, lb);
+    int levelId = getLevelId(field, r, lb);
 
     if (levelId == INVALID_LEVEL) return;
 
     float forceMagn = forces[levelId];
 
-    float3 grad = computeGradient(field, p.r, h);
+    float3 grad = computeGradient(field, r, h);
 
     if (dot(grad, grad) < zeroTolerance) return;
 

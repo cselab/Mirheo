@@ -16,13 +16,10 @@ static const std::string grad_sdf = "grad_sdf";
 
 namespace WallRepulsionPluginKernels
 {
-__global__ void forceFromSDF(PVview view, float* sdfs, float3* gradients, float C, float h, float maxForce)
+__global__ void forceFromSDF(PVview view, const float *sdfs, const float3 *gradients, float C, float h, float maxForce)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
-
-    Particle p;
-    p.readCoordinate(view.particles, pid);
 
     float sdf = sdfs[pid];
 

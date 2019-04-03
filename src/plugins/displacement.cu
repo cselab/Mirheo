@@ -11,27 +11,20 @@ namespace ParticleDisplacementPluginKernels
 __global__ void extractPositions(PVview view, float4 *positions)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-
     if (i > view.size) return;
-    
-    Particle p;
-    p.readCoordinate(view.particles, i);
-    positions[i] = p.r2Float4();
+    positions[i] = view.readPosition(i);
 }
 
 __global__ void computeDisplacementsAndSavePositions(PVview view, float4 *positions, float3 *displacements)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-
     if (i > view.size) return;
     
-    Particle p;
-    p.readCoordinate(view.particles, i);
-
+    Float3_int pos(view.readPosition(i));
     Float3_int oldPos(positions[i]);
     
-    displacements[i] = p.r - oldPos.v;
-    positions[i]     = p.r2Float4();
+    displacements[i] = pos.v - oldPos.v;
+    positions[i] = pos.toFloat4();
 }
 
 } // namespace DisplacementKernels

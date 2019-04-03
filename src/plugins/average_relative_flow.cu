@@ -23,10 +23,10 @@ __global__ void sampleRelative(
     const int pid = threadIdx.x + blockIdx.x*blockDim.x;
     if (pid >= pvView.size) return;
 
-    Particle p(pvView.particles, pid);
-    p.r -= relativePoint;
+    float3 r = make_float3(pvView.readPosition(pid));
+    r -= relativePoint;
 
-    int3 cid3 = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(p.r);
+    int3 cid3 = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(r);
     cid3 = (cid3 + cinfo.ncells) % cinfo.ncells;
     const int cid = cinfo.encode(cid3);
 

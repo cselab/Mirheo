@@ -21,9 +21,9 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 
     if (tid < view.size) {
         const Stress s = stress[tid];
-        p.readCoordinate(view.particles, tid);
+        auto r = Float3_int(view.readPosition(tid)).v;
 
-        if (region(p.r) > 0)
+        if (region(r) > 0)
             P = (s.xx + s.yy + s.zz) / 3.0;
     }
     

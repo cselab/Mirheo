@@ -1,13 +1,11 @@
 #include "temperaturize.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
-
+#include <core/utils/kernel_launch.h>
 
 __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed2, bool keepVelocity)
 {
@@ -19,11 +17,11 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
 
     float3 vel = sqrtf(kbT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
 
-    Float3_int u(view.particles[2*gid+1]);
+    Float3_int u(view.readVelocity(gid));
     if (keepVelocity) u.v += vel;
     else              u.v  = vel;
 
-    view.particles[2*gid+1] = u.toFloat4();
+    view.writeVelocity(gid, u.toFloat4());
 }
 
 TemperaturizePlugin::TemperaturizePlugin(const YmrState *state, std::string name, std::string pvName, float kbT, bool keepVelocity) :

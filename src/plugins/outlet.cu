@@ -50,7 +50,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
     if (i < view.size)
     {
         Particle p;
-        p.readCoordinate(view.particles, i);
+        view.readPosition(p, i);
         
         if (!p.isMarked() && isInsideRegion(field, p.r))
             ++countInside;
@@ -138,7 +138,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
     if (i >= view.size) return;
 
     Particle p;
-    p.readCoordinate(view.particles, i);
+    view.readPosition(p, i);
         
     if (p.isMarked() || !isInsideRegion(field, p.r)) return;
 
@@ -151,7 +151,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
     p.mark();
     // this will also write (wrong) velocity, but the particle will be killed by the cellLists
     // so we can avoid reading the velocity above
-    p.write2Float4(view.particles, i); 
+    view.writeParticle(i, p); 
 }
 
 } // namespace DensityOutletPluginKernels
@@ -196,7 +196,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
     if (i >= view.size) return;
 
     Particle p;
-    p.readCoordinate(view.particles, i);
+    view.readPosition(p, i);
         
     if (p.isMarked() || !isInsideRegion(field, p.r)) return;
 
@@ -209,7 +209,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
     p.mark();
     // this will also write (wrong) velocity, but the particle will be killed by the cellLists
     // so we can avoid reading the velocity above
-    p.write2Float4(view.particles, i); 
+    view.writeParticle(i, p); 
 }
 
 } // namespace RateOutletPluginKernels

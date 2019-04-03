@@ -21,7 +21,7 @@ __global__ void sample(
     const int pid = threadIdx.x + blockIdx.x*blockDim.x;
     if (pid >= pvView.size) return;
 
-    Particle p(pvView.particles, pid);
+    Particle p(pvView.readParticle(pid));
 
     int cid = cinfo.getCellId(p.r);
 
