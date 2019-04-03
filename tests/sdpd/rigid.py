@@ -29,7 +29,7 @@ ic_sol = ymr.InitialConditions.Uniform(density)
 density_kernel="WendlandC2"
 
 den  = ymr.Interactions.Density('density', rc, density_kernel)
-sdpd = ymr.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=0.01, EOS="Linear", density_kernel=density_kernel, sound_speed = 10.0)
+sdpd = ymr.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=0.01, EOS="Linear", density_kernel=density_kernel, sound_speed=10.0, rho_0=0.0)
 
 vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=dp_force, direction="x")
 

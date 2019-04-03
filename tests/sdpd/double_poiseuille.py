@@ -16,7 +16,7 @@ ic = ymr.InitialConditions.Uniform(density=10)
 u.registerParticleVector(pv=pv, ic=ic)
 
 den  = ymr.Interactions.Density('den', rc, kernel="WendlandC2")
-sdpd = ymr.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=1.0, EOS="Linear", sound_speed=10.0, density_kernel="WendlandC2")
+sdpd = ymr.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=1.0, EOS="Linear", sound_speed=10.0, rho_0=0.0, density_kernel="WendlandC2")
 u.registerInteraction(den)
 u.registerInteraction(sdpd)
 u.setInteraction(den, pv, pv)

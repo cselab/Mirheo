@@ -28,7 +28,8 @@ EOS=args.EOS
 
 if EOS == "Linear":
     EOS_params = {
-        "sound_speed" : 10.0
+        "sound_speed" : 10.0,
+        "rho_0"       : 0.0
     }
 elif EOS == "QuasiIncompressible":
     EOS_params = {
