@@ -344,9 +344,17 @@ __device__ inline int atomicAggInc(int *ptr)
 
 #endif
 
+#else
+
+inline float4 readNoCache(const float4* addr)
+{
+    return *addr;
+}
+
+#endif
 
 
-__device__ inline float fastPower(const float x, const float k)
+__HD__ inline float fastPower(const float x, const float k)
 {
     if (fabsf(k - 1.0f)   < 1e-6f) return x;
     if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
@@ -355,20 +363,6 @@ __device__ inline float fastPower(const float x, const float k)
 
     return powf(fabsf(x), k);
 }
-
-#else
-
-inline float4 readNoCache(const float4* addr)
-{
-    return *addr;
-}
-
-inline float fastPower(const float x, const float k)
-{
-    return powf(fabsf(x), k);
-}
-
-#endif
 
 
 
