@@ -136,6 +136,35 @@ Overloaded function.
         """
         pass
 
+class Rod(InitialConditions):
+    r"""
+        Can only be used with Rod Vector. These IC will initialize the particles of each rod
+        according to the the given explicit center-line position aand torsion mapping and then 
+        the objects will be translated/rotated according to the provided initial conditions.
+            
+    
+    """
+    def __init__():
+        r"""__init__(com_q: List[List[float[7]]], center_line: Callable[[float], Tuple[float, float, float]], torsion: Callable[[float], float]) -> None
+
+
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.               
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                center_line:
+                    explicit mapping :math:`\mathbf{r} : [0,1] \rightarrow R^3`. 
+                    Assume :math:`|r'(s)|` is constant for all :math:`s \in [0,1]`.
+                torsion:
+                    explicit mapping :math:`\tau : [0,1] \rightarrow R`.
+        
+
+        """
+        pass
+
 class Uniform(InitialConditions):
     r"""
         The particles will be generated with the desired number density uniformly at random in all the domain.

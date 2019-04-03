@@ -500,6 +500,101 @@ class RigidObjectVector(ObjectVector):
         """
         pass
 
+class RodVector(ObjectVector):
+    r"""
+        Rod Vector is an :any:`ObjectVector` which reprents rod geometries.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, mass: float, num_segments: int) -> None
+
+
+                Args:
+                    name: name of the created Rod Vector 
+                    mass: mass of a single particle
+                    num_segments: number of elements to discretize the rod
+        
+
+        """
+        pass
+
+    def getCoordinates():
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def getForces():
+        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def getVelocities():
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
+    def setCoordinates():
+        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+
+
+            Args:
+                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def setForces():
+        r"""setForces(forces: List[List[float[3]]]) -> None
+
+
+            Args:
+                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def setVelocities():
+        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+
+
+            Args:
+                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
 class RigidEllipsoidVector(RigidObjectVector):
     r"""
         Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
