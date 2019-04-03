@@ -1,8 +1,7 @@
 #pragma once
 
 #include "helper_math.h"
-
-#include <tuple>
+#include "cpu_gpu_defines.h"
 
 static const cudaStream_t defaultStream = 0;
 
@@ -34,13 +33,13 @@ inline int getNblocks(const int n, const int nthreads)
     return (n+nthreads-1) / nthreads;
 }
 
-__host__ __device__ inline float3 f4tof3(float4 x)
+__HD__ inline float3 f4tof3(float4 x)
 {
     return make_float3(x.x, x.y, x.z);
 }
 
 template<typename T>
-__host__ __device__ inline  T sqr(T val)
+__HD__ inline  T sqr(T val)
 {
     return val*val;
 }
@@ -354,6 +353,18 @@ __device__ inline float fastPower(const float x, const float k)
     if (fabsf(k - 0.25f)  < 1e-6f) return sqrtf(sqrtf(fabsf(x)));
     //if (fabsf(k - 0.125f) < 1e-6f) return sqrtf(sqrtf(sqrtf(fabsf(x))));
 
+    return powf(fabsf(x), k);
+}
+
+#else
+
+inline float4 readNoCache(const float4* addr)
+{
+    return *addr;
+}
+
+inline float fastPower(const float x, const float k)
+{
     return powf(fabsf(x), k);
 }
 

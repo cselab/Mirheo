@@ -3,18 +3,9 @@
 #include <core/datatypes.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 #include <core/utils/helper_math.h>
-
-#ifndef __NVCC__
-static float4 readNoCache(const float4* addr)
-{
-    return *addr;
-}
-#else
-#include <core/utils/cuda_common.h>
-#endif
-
 
 /**
  * fetcher that reads positions only
