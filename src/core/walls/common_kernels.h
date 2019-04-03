@@ -51,7 +51,7 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 
         for (int pid = pstart; pid < pend; pid++)
         {
-            Particle p(view.particles, pid);
+            Particle p(view.readParticle(pid));
             if (checker(p.r) <= -insideTolerance) continue;
 
             Particle pOld(view.old_particles, pid);
@@ -72,7 +72,7 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             p.r = candidate;
             p.u = unew;
                            
-            p.write2Float4(view.particles, pid);
+            view.writeParticle(pid, p);
         }        
     }
 

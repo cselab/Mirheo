@@ -57,7 +57,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
     for (int i = 0; i < pend-pstart; i++)
     {
         const int srcId = pstart + i;
-        Particle p(view.particles, srcId);
+        Particle p(view.readParticle(srcId));
 
         int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
 

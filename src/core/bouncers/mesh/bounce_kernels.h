@@ -379,8 +379,8 @@ static __global__ void refineCollisions(
     const int2 pid_trid = coarseTable[gid];
     int pid = pid_trid.x;
 
-    Particle p   (pvView.particles,     pid);
-    Particle pOld(pvView.old_particles, pid);
+    Particle p    (pvView.readParticle    (pid));
+    Particle pOld (pvView.readOldParticle (pid));
 
     const int trid  = pid_trid.y % mesh.ntriangles;
     const int objId = pid_trid.y / mesh.ntriangles;
@@ -536,8 +536,8 @@ static __global__ void performBouncingTriangle(
     const int2 pid_trid = collisionTable[gid];
     int pid = pid_trid.x;
 
-    Particle p   (pvView.particles,     pid);
-    Particle pOld(pvView.old_particles, pid);
+    Particle p    (pvView.readParticle    (pid));
+    Particle pOld (pvView.readOldParticle (pid));
     Particle corrP = p;
 
     float3 f0, f1, f2;
@@ -580,7 +580,7 @@ static __global__ void performBouncingTriangle(
     float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
 
 
-    corrP.write2Float4(pvView.particles, pid);
+    pvView.writeParticle(pid, corrP);
 
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.x, f0);
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.y, f1);

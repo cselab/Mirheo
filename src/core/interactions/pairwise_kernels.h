@@ -28,11 +28,6 @@ enum class InteractionMode
  * Compute interactions between one destination particle and
  * all source particles in a given cell, defined by range of ids:
  *
- * \code
- * for (id = pstart; id < pend; id++)
- * F += interaction(dstP, Particle(cinfo.particles, id));
- * \endcode
- *
  * Also update forces for the source particles in process.
  *
  * Source particles may be from the same ParticleVector or from

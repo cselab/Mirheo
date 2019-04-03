@@ -25,7 +25,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    float4 coo = readNoCache(view.particles + pid*2);
+    float4 coo = view.readPositionNoCache(pid);
     int cid = cinfo.getCellId(coo);
 
     // XXX: relying here only on redistribution

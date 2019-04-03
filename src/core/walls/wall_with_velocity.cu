@@ -31,11 +31,11 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Particle p(view.particles, pid);
+    Particle p(view.readParticle(pid));
 
     p.u = velField(p.r);
 
-    p.write2Float4(view.particles, pid);
+    view.writeParticle(pid, p);
 }
 
 //===============================================================================================

@@ -31,7 +31,7 @@ __global__ void collectFrozen(PVview view, const float *sdfs, float minVal, floa
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Particle p(view.particles, pid);
+    Particle p(view.readParticle(pid));
     p.u = make_float3(0);
 
     const float val = sdfs[pid];

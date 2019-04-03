@@ -41,14 +41,13 @@ struct ParticleReal
 template <typename View>
 __D__ inline real3 fetchPosition(View view, int i)
 {
-    Particle p;
-    p.readCoordinate(view.particles, i);
-    return make_real3(p.r);
+    Float3_int ri(view.readPosition(i));
+    return make_real3(ri.v);
 }
 
 template <typename View>
 __D__ inline ParticleReal fetchParticle(View view, int i)
 {
-    Particle p(view.particles, i);
+    Particle p(view.readParticle(i));
     return {make_real3(p.r), make_real3(p.u)};
 }

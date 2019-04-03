@@ -36,7 +36,7 @@ __global__ void collectRemaining(PVview view, float4 *remaining, int *nRemaining
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Particle p(view.particles, pid);
+    Particle p(view.readParticle(pid));
 
     const float val = checker(p.r);
 
@@ -60,9 +60,10 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *out
     if (objId >= view.nObjects) return;
 
     bool isRemaining = true;
-    for (int i=tid; i < view.objSize; i+=warpSize)
+    for (int i = tid; i < view.objSize; i += warpSize)
     {
-        Particle p(view.particles, objId * view.objSize + i);
+        Particle p(view.readParticle(objId * view.objSize + i));
+        
         if (checker(p.r) > -tolerance)
         {
             isRemaining = false;
@@ -166,7 +167,7 @@ __global__ void checkInside(PVview view, int *nInside, const InsideWallChecker c
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Float3_int coo(view.particles[2*pid]);
+    Float3_int coo(view.readPosition(pid));
 
     float v = checker(coo.v);
 
@@ -187,7 +188,7 @@ __global__ void computeSdfPerParticle(PVview view, float gradientThreshold, floa
     if (pid >= view.size) return;
 
     Particle p;
-    p.readCoordinate(view.particles, pid);
+    view.readPosition(p, pid);
 
     float sdf = checker(p.r);
     sdfs[pid] = sdf;
