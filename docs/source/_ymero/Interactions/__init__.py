@@ -321,9 +321,9 @@ class SDPD(Interaction):
 
             .. math::
 
-                p(\rho) = c^2 \rho
+                p(\rho) = c_S^2 \left(\rho - \rho_0 \right)
  
-            where :math:`c` is the speed of sound,
+            where :math:`c_S` is the speed of sound and :math:`\rho_0` is a parameter.
 
         Quasi incompressible EOS:
 
@@ -350,6 +350,7 @@ class SDPD(Interaction):
             **EOS = "Linear" parameters:**
 
                 * **sound_speed**: the speed of sound
+                * **rho_0**: background pressure in :math:`c_S` units
 
             **EOS = "QuasiIncompressible" parameters:**
 
