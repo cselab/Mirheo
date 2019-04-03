@@ -17,7 +17,7 @@ __global__ void copyInOut(
     if (gid >= view.size) return;
 
     auto tag = tags[gid];
-    const Particle p(view.particles, gid);
+    const Particle p(view.readParticle(gid));
 
     if (tag == BelongingTags::Outside)
     {

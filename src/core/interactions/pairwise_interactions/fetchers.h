@@ -31,10 +31,11 @@ public:
 
     __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
     {
-        return Particle(::readNoCache(view.particles + 2*id), make_float4(0.f, 0.f, 0.f, 0.f));
+        return Particle(view.readPositionNoCache(id),
+                        make_float4(0.f, 0.f, 0.f, 0.f));
     }
     
-    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { p.readCoordinate(view.particles, id); }
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { view.readPosition(p, id); }
     __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { /* no velocity here */ }
 
     __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
@@ -60,15 +61,9 @@ public:
         ParticleFetcher(rc)
     {}
 
-    __D__ inline ParticleType read(const ViewType& view, int id) const                     { return  Particle(view.particles, id); }
-
-    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
-    {
-        return Particle(::readNoCache(view.particles + 2*id),
-                        ::readNoCache(view.particles + 2*id + 1));
-    }
-
-    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { p.readVelocity  (view.particles, id); }
+    __D__ inline ParticleType read       (const ViewType& view, int id) const              { return view.readParticle(id);        }
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const              { return view.readParticleNoCache(id);  }
+    __D__ inline void readExtraData  (ParticleType& p, const ViewType& view, int id) const { view.readVelocity(p, id); }
 };
 
 /**

@@ -54,9 +54,8 @@ namespace RodVectorKernels
 
 __device__ inline float3 fetchPosition(const RVview& view, int i)
 {
-    Particle p;
-    p.readCoordinate(view.particles, i);
-    return p.r;
+    Float3_int ri {view.readPosition(i)};
+    return ri.v;
 }
 
 __global__ void computeBishopQuaternion(RVview view)

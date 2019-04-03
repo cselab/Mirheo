@@ -25,9 +25,9 @@ __global__ void minMaxCom(OVview ovView)
 #pragma unroll 3
     for (int i = tid; i < ovView.objSize; i += warpSize)
     {
-        const int offset = (objId * ovView.objSize + i) * 2;
+        const int offset = objId * ovView.objSize + i;
 
-        const float3 coo = make_float3(ovView.particles[offset]);
+        const float3 coo = make_float3(ovView.readPosition(offset));
 
         mymin = fminf(mymin, coo);
         mymax = fmaxf(mymax, coo);

@@ -130,7 +130,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, float4* ver
 #pragma unroll 3
         for (int pid = pstart; pid < pend; pid++)
         {
-            const Particle p(pvView.particles, pid);
+            const Particle p(pvView.readParticle(pid));
 
             auto tag = oneParticleInsideMesh(pid, p.r, objId, ovView.comAndExtents[objId].com, mesh, vertices);
 

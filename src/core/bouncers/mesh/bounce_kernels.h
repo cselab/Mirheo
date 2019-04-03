@@ -106,11 +106,11 @@ __device__ inline void findBouncesInCell(
 {
 
 #pragma unroll 2
-    for (int pid=pstart; pid<pend; pid++)
+    for (int pid = pstart; pid < pend; pid++)
     {
         Particle p, pOld;
-        p.   readCoordinate(pvView.particles, pid);
-        pOld.readCoordinate(pvView.old_particles, pid);
+        pvView.readPosition   (p,    pid);
+        pvView.readOldPosition(pOld, pid);
 
         if (segmentTriangleQuickCheck(tr, trOld, p, pOld))
             triangleTable.push_back({pid, globTrid});

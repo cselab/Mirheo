@@ -29,7 +29,7 @@ static __global__ void collectRigidForces(ROVview ovView)
         const int offset = (objId * ovView.objSize + i);
 
         const float3 frc = make_float3(ovView.forces[offset]);
-        const float3 r   = make_float3(ovView.particles[offset*2]) - com;
+        const float3 r   = make_float3(ovView.readPosition(offset)) - com;
 
         force += frc;
         torque += cross(r, frc);
@@ -126,14 +126,13 @@ static __global__ void applyRigidMotion(ROVview ovView, const float4 * __restric
 
     const auto motion = toSingleMotion(ovView.motions[objId]);
 
-    Particle p(ovView.particles, pid);
+    Particle p(ovView.readParticle(pid));
 
     // Some explicit conversions for double precision
     p.r = motion.r + rotate( f4tof3(initial[locId]), motion.q );
     p.u = motion.vel + cross(motion.omega, p.r - motion.r);
 
-    ovView.particles[2*pid]   = p.r2Float4();
-    ovView.particles[2*pid+1] = p.u2Float4();
+    ovView.writeParticle(pid, p);
 }
 
 static __global__ void clearRigidForces(ROVview ovView)

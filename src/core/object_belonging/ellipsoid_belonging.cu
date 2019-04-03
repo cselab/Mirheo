@@ -38,7 +38,7 @@ __global__ void insideEllipsoid(REOVview reView, CellListInfo cinfo, PVview pvVi
 
         for (int pid = pstart; pid < pend; pid++)
         {
-            const Particle p(pvView.particles, pid);
+            const Particle p(pvView.readParticle(pid));
             auto motion = toSingleMotion(reView.motions[objId]);
 
             float3 coo = rotate(p.r - motion.r, invQ(motion.q));

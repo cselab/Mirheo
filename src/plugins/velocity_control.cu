@@ -41,7 +41,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 
     if (gid < view.size) {
 
-        p.read(view.particles, gid);
+        p = view.readParticle(gid);
         float3 gr = domain.local2global(p.r);
 
         if (is_inside(gr, low, high))

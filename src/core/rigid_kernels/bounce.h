@@ -35,8 +35,8 @@ __device__ inline void bounceCellArray(
     // XXX: changing reading layout may improve performance here
     for (int pid = pstart; pid < pend; pid++)
     {
-        Particle p    (pvView.particles,     pid);
-        Particle old_p(pvView.old_particles, pid);
+        Particle p     (pvView.readParticle   (pid));
+        Particle old_p (pvView.readOldParticle(pid));
 
         // Go to the obj frame of reference
         float3 coo    = rotate(p.r     - motion.r,     invQ(motion.q));
@@ -82,7 +82,7 @@ __device__ inline void bounceCellArray(
 
         p.r = newCoo;
         p.u = newU;
-        p.write2Float4(pvView.particles, pid);
+        pvView.writeParticle(pid, p);
     }
 }
 
