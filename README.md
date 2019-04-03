@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **interface change** linear EOS in SDPD needs an extra parameter `rho_0`
 * **fix** SDPD: correct use of mass density
 * checkpoint and restart interaction random state
 * internal changes:
