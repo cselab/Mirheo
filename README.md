@@ -16,6 +16,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 * **fix** SDPD: correct use of mass density
 * checkpoint and restart interaction random state
+* internal changes:
+  * cleanup some implementations from interfaces
+  * adding rod vectors
 
 ### v0.12.3
 
