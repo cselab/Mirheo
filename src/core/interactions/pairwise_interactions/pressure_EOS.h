@@ -6,17 +6,17 @@ class LinearPressureEOS
 {
 public:
 
-    LinearPressureEOS(float soundSpeed) :
-        c_sq(soundSpeed * soundSpeed)
+    LinearPressureEOS(float soundSpeed, float rho0) :
+        cSq(soundSpeed * soundSpeed)
     {}
     
     __D__ inline float operator()(float rho) const
     {
-        return c_sq * rho;
+        return cSq * (rho - rho0);
     }
 
 private:
-    float c_sq;
+    float cSq, rho0;
 };
 
 

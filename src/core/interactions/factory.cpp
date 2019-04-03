@@ -214,7 +214,8 @@ InteractionFactory::createPairwiseDensity(const YmrState *state, std::string nam
 static LinearPressureEOS readLinearPressureEOS(const std::map<std::string, float>& desc)
 {
     float c = readFloat(desc, "sound_speed");
-    return LinearPressureEOS(c);
+    float r = readFloat(desc, "rho_0");
+    return LinearPressureEOS(c, r);
 }
 
 static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(const std::map<std::string, float>& desc)
