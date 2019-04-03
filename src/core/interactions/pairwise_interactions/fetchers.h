@@ -25,7 +25,7 @@ public:
     __D__ inline ParticleType read(const ViewType& view, int id) const
     {
         Particle p;
-        p.readCoordinate(view.particles, id);
+        readCoordinates(p, view, id);
         return p;
     }
 
