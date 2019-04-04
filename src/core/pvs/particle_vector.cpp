@@ -247,24 +247,14 @@ void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, st
         if (blackList.find(channelName) != blackList.end())
             continue;
 
-        switch(channelDesc->dataType) {
-
-#define SWITCH_ENTRY(ctype)                                             \
-            case DataType::TOKENIZE(ctype):                             \
-            {                                                           \
-                auto buffer   = extraData.getData<ctype>(channelName);  \
-                buffer->downloadFromDevice(0, ContainersSynch::Synch);  \
-                auto type       = XDMF::getDataForm<ctype>();           \
-                auto numbertype = XDMF::getNumberType<ctype>();         \
-                auto datatype   = typeTokenize<ctype>();                \
-                channels.push_back(XDMF::Channel(channelName, buffer->data(), type, numbertype, datatype )); \
-            }                                                           \
-            break;
-
-            TYPE_TABLE(SWITCH_ENTRY);
-
-#undef SWITCH_ENTRY
-        };
+        mpark::visit([&](auto bufferPtr) {
+                         using T = typename std::remove_reference< decltype(*bufferPtr->hostPtr()) >::type;
+                         bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
+                         auto type       = XDMF::getDataForm<T>();
+                         auto numbertype = XDMF::getNumberType<T>();
+                         auto datatype   = typeTokenize<T>();
+                         channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), type, numbertype, datatype )); \
+                     }, channelDesc->varDataPtr);
     }
 }
 
