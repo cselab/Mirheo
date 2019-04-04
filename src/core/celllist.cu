@@ -185,14 +185,6 @@ bool CellList::_checkNeedBuild() const
     return true;
 }
 
-template <typename T>
-static void requireData(const std::string& channelName, int np, ExtraDataManager& containerManager)
-{
-    if (!containerManager.checkChannelExists(channelName))
-        containerManager.createData<T>(channelName, np);
-}
-
-
 void CellList::_updateExtraDataChannels(cudaStream_t stream)
 {
     auto& pvManager        = pv->local()->extraPerParticle;
@@ -204,18 +196,13 @@ void CellList::_updateExtraDataChannels(cudaStream_t stream)
         const auto& desc = namedChannel.second;
         if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
 
-#define SWITCH_ENTRY(ctype)                                             \
-        case DataType::TOKENIZE(ctype):                                 \
-            requireData<ctype>(name, np, containerManager);             \
-            break;
+        mpark::visit([&](auto pinnedBuff) {
+                         using T = typename std::remove_reference< decltype(pinnedBuff->hostPtr()[0]) >::type;
 
-        switch(desc->dataType) {
-            TYPE_TABLE(SWITCH_ENTRY);
-        default:
-            die("%s: cannot require extra data: %s has None type.", makeName().c_str(), name.c_str());
-        }
-
-#undef SWITCH_ENTRY        
+                         if (!containerManager.checkChannelExists(name))
+                             containerManager.createData<T>(name, np);
+                         
+                     }, desc->varData);
     }
 }
 
@@ -338,50 +325,49 @@ void CellList::_accumulateForces(cudaStream_t stream)
             dstView, cellInfo(), getView<PVview>() );
 }
 
+
+// use SFINAE to discard types without operator+
+static void accumulateIfHasAddOperator(GPUcontainer *src,
+                                       GPUcontainer *dst,
+                                       int n, CellListInfo cinfo,
+                                       cudaStream_t stream)
+{
+    die("Cannot accumulate entries: operator+ not supported for this type");
+}
+
+template <typename T>
+static auto accumulateIfHasAddOperator(PinnedBuffer<T> *src,
+                                       PinnedBuffer<T> *dst,
+                                       int n, CellListInfo cinfo,
+                                       cudaStream_t stream)
+    -> decltype(T() + T())
+{
+    const int nthreads = 128;
+    
+    SAFE_KERNEL_LAUNCH(
+        CellListKernels::accumulateKernel,
+        getNblocks(n, nthreads), nthreads, 0, stream,
+        n, dst->devPtr(), cinfo, src->devPtr() );
+
+    return T();
+}
+
 void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
 {
-    int n = pv->local()->size();
-    const int nthreads = 128;
+    int n = pv->local()->size();    
 
-    // const auto& pvManager   = pv->local()->extraPerParticle;
-    // const auto& contManager = localPV->extraPerParticle;
+    const auto& pvManager   = pv->local()->extraPerParticle;
+    const auto& contManager = localPV->extraPerParticle;
 
-    // const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
-    // const auto& contDesc = contManager.getChannelDescOrDie(channelName);
-    
-    // mpark::visit([&](auto srcPinnedBuff) {
-    //                  auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varData);
+    const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
+    const auto& contDesc = contManager.getChannelDescOrDie(channelName);
 
-    //                  SAFE_KERNEL_LAUNCH(
-    //                      CellListKernels::accumulateKernel,
-    //                      getNblocks(n, nthreads), nthreads, 0, stream,
-    //                      n, dstPinnedBuff->devPtr(), cellInfo(), srcPinnedBuff->devPtr() );
+    mpark::visit([&](auto srcPinnedBuff) {
+                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varData);
 
-    //              }, contDesc.varData);
-    
-    switch(localPV->extraPerParticle.getChannelDescOrDie(channelName).dataType) {
+                     accumulateIfHasAddOperator(srcPinnedBuff, dstPinnedBuff, n, this->cellInfo(), stream);
 
-#define SWITCH_ENTRY(ctype)                                             \
-        case DataType::TOKENIZE(ctype):                                 \
-        {                                                               \
-            auto src = localPV    ->extraPerParticle.getData<ctype>(channelName); \
-            auto dst = pv->local()->extraPerParticle.getData<ctype>(channelName); \
-            int n = pv->local()->size();                                \
-            SAFE_KERNEL_LAUNCH(                                         \
-                CellListKernels::accumulateKernel<ctype>,               \
-                getNblocks(n, nthreads), nthreads, 0, stream,           \
-                n, dst->devPtr(), cellInfo(), src->devPtr() );          \
-            }                                                           \
-            break;
-
-        TYPE_TABLE_ADDITIONABLE(SWITCH_ENTRY);
-
-    default:
-        die("%s : cannot accumulate entry '%s': type not supported",
-            makeName().c_str(), channelName.c_str());
-
-#undef SWITCH_ENTRY
-    };        
+                 }, contDesc.varData);
 }
 
 void CellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
