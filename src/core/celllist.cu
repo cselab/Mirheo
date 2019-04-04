@@ -265,48 +265,24 @@ void CellList::_reorderData(cudaStream_t stream)
         view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
 }
 
-template <typename T>
-static void reorderExtraDataEntry(int np, CellListInfo cinfo, ExtraDataManager *dstExtraData,
-                                  const ExtraDataManager::ChannelDescription *channel, const std::string& channelName,
-                                  cudaStream_t stream)
-{
-    T      *outExtraData = dstExtraData->getData<T>(channelName)->devPtr();
-    const T *inExtraData = (const T*) channel->container->genericDevPtr();
-
-    const int nthreads = 128;
-
-    SAFE_KERNEL_LAUNCH(
-        CellListKernels::reorderExtraDataPerParticle<T>,
-        getNblocks(np, nthreads), nthreads, 0, stream,
-        np, inExtraData, cinfo, outExtraData );
-}
-
 void CellList::_reorderExtraDataEntry(const std::string& channelName,
                                       const ExtraDataManager::ChannelDescription *channelDesc,
                                       cudaStream_t stream)
 {
-    auto dstExtraData = &particlesDataContainer->extraPerParticle;
+    const auto& dstDesc = particlesDataContainer->extraPerParticle.getChannelDescOrDie(channelName);
     int np = pv->local()->size();
-    
-    switch (channelDesc->dataType)
-    {
 
-#define SWITCH_ENTRY(ctype)                             \
-        case DataType::TOKENIZE(ctype):                 \
-            reorderExtraDataEntry<ctype>                \
-                (np, cellInfo(), dstExtraData,          \
-                 channelDesc, channelName, stream);     \
-            break;
+    mpark::visit([&](auto srcPinnedBuff) {
+                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varData);
 
-        TYPE_TABLE(SWITCH_ENTRY);
+                     const int nthreads = 128;
 
-#undef SWITCH_ENTRY
+                     SAFE_KERNEL_LAUNCH(
+                         CellListKernels::reorderExtraDataPerParticle,
+                         getNblocks(np, nthreads), nthreads, 0, stream,
+                         np, srcPinnedBuff->devPtr(), this->cellInfo(), dstPinnedBuff->devPtr() );
 
-    default:
-        die("%s : cannot reorder data: channel '%s' has None type",
-            makeName().c_str(), channelName.c_str());
-    };
-
+                 }, channelDesc->varData);
 }
 
 void CellList::_reorderPersistentData(cudaStream_t stream)
@@ -364,7 +340,25 @@ void CellList::_accumulateForces(cudaStream_t stream)
 
 void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
 {
+    int n = pv->local()->size();
     const int nthreads = 128;
+
+    // const auto& pvManager   = pv->local()->extraPerParticle;
+    // const auto& contManager = localPV->extraPerParticle;
+
+    // const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
+    // const auto& contDesc = contManager.getChannelDescOrDie(channelName);
+    
+    // mpark::visit([&](auto srcPinnedBuff) {
+    //                  auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varData);
+
+    //                  SAFE_KERNEL_LAUNCH(
+    //                      CellListKernels::accumulateKernel,
+    //                      getNblocks(n, nthreads), nthreads, 0, stream,
+    //                      n, dstPinnedBuff->devPtr(), cellInfo(), srcPinnedBuff->devPtr() );
+
+    //              }, contDesc.varData);
+    
     switch(localPV->extraPerParticle.getChannelDescOrDie(channelName).dataType) {
 
 #define SWITCH_ENTRY(ctype)                                             \
@@ -517,19 +511,12 @@ void PrimaryCellList::_swapPersistentExtraData()
         const auto& desc = namedChannel.second;
         if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
 
-#define SWITCH_ENTRY(ctype)                                             \
-        case DataType::TOKENIZE(ctype):                                 \
-            swap<ctype>(name, pvManager, containerManager);             \
-            break;
+        const auto& descCont = containerManager.getChannelDescOrDie(name);
 
-        switch(desc->dataType) {
-            TYPE_TABLE(SWITCH_ENTRY);
-        default:
-            die("%s: cannot swap data: %s has None type.",
-                makeName().c_str(), name.c_str());
-        }
-
-#undef SWITCH_ENTRY        
+        mpark::visit([&](auto pinnedBufferPv) {
+                         auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varData);
+                         std::swap(*pinnedBufferPv, *pinnedBufferCont);
+                     }, desc->varData);
     }
 }
 
