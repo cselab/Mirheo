@@ -205,10 +205,6 @@ __device__ inline bool isInside(Triangle tr, float3 p)
 {
     const float edgeTolerance = 1e-18f;
 
-    auto length2 = [] (float3 x) {
-        return dot(x, x);
-    };
-
     auto signedArea2 = [] (float3 a, float3 b, float3 c, float3 direction) {
         auto n = cross(a-b, a-c);
         auto sign = dot(n, direction);
