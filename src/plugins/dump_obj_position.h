@@ -29,7 +29,7 @@ private:
     bool needToSend = false;
     
     HostBuffer<int> ids;
-    HostBuffer<LocalObjectVector::COMandExtent> coms;
+    HostBuffer<COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
     TimeType savedTime = 0;
 

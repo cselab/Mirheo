@@ -1,32 +1,6 @@
 #pragma once
 
-#define RIGID_MOTIONS_DOUBLE
-
-#ifdef RIGID_MOTIONS_DOUBLE
-using RigidReal  = double;
-using RigidReal3 = double3;
-using RigidReal4 = double4;
-
-#else
-
-using RigidReal  = float;
-using RigidReal3 = float3;
-using RigidReal4 = float4;
-#endif
-
-//=================================================================
-
-template<class R3, class R4>
-struct __align__(16) TemplRigidMotion
-{
-    R3 r;
-    R4 q;
-    R3 vel, omega;
-    R3 force, torque;
-};
-
-using DoubleRigidMotion = TemplRigidMotion<double3, double4>;
-using SingleRigidMotion = TemplRigidMotion<float3,  float4>;
+#include <core/datatypes.h>
 
 inline __host__ __device__ SingleRigidMotion toSingleMotion(DoubleRigidMotion dm)
 {
@@ -57,5 +31,3 @@ inline __host__ __device__ RigidReal4 make_rigidReal4(R4 a)
 {
     return {RigidReal(a.x), RigidReal(a.y), RigidReal(a.z), RigidReal(a.w)};
 }
-
-using RigidMotion = TemplRigidMotion<RigidReal3, RigidReal4>;

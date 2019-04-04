@@ -33,7 +33,7 @@ void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
     if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
 
     ids.copy(  *ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds), stream);
-    coms.copy( *ov->local()->extraPerObject.getData<LocalObjectVector::COMandExtent>(ChannelNames::comExtents), stream);
+    coms.copy( *ov->local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);
 
     if (ov->local()->extraPerObject.checkChannelExists(ChannelNames::oldMotions))
         motions.copy( *ov->local()->extraPerObject.getData<RigidMotion> (ChannelNames::oldMotions), stream);
@@ -58,7 +58,7 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 //=================================================================================
 
 void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, std::vector<int>& ids,
-        std::vector<LocalObjectVector::COMandExtent> coms, std::vector<RigidMotion> motions)
+                    std::vector<COMandExtent> coms, std::vector<RigidMotion> motions)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -163,7 +163,7 @@ void ObjPositionsDumper::deserialize(MPI_Status& stat)
     TimeType curTime;
     DomainInfo domain;
     std::vector<int> ids;
-    std::vector<LocalObjectVector::COMandExtent> coms;
+    std::vector<COMandExtent> coms;
     std::vector<RigidMotion> motions;
 
     SimpleSerializer::deserialize(data, curTime, domain, ids, coms, motions);

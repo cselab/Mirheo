@@ -110,7 +110,7 @@ ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, 
 {
     // center of mass and extents are not to be sent around
     // it's cheaper to compute them on site
-    requireDataPerObject<LocalObjectVector::COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
+    requireDataPerObject<COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
 
     // object ids must always follow objects
     requireDataPerObject<int>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
@@ -203,7 +203,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     return map;
 }
 
-static void splitCom(DomainInfo domain, const PinnedBuffer<LocalObjectVector::COMandExtent>& com_extents, std::vector<float> &positions)
+static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float> &positions)
 {
     int n = com_extents.size();
     positions.resize(3 * n);
@@ -229,7 +229,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     auto filename = createCheckpointNameWithId(path, "OV", "");
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto coms_extents = local()->extraPerObject.getData<LocalObjectVector::COMandExtent>(ChannelNames::comExtents);
+    auto coms_extents = local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents);
 
     coms_extents->downloadFromDevice(0, ContainersSynch::Synch);
     

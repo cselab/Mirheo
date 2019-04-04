@@ -28,11 +28,6 @@ public:
 
     ExtraDataManager extraPerObject;
 
-    struct __align__(16) COMandExtent
-    {
-        float3 com, low, high;
-    };
-
 protected:
     int objSize { 0 };
 
