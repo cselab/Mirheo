@@ -5,6 +5,8 @@
 #include <core/utils/make_unique.h>
 #include <core/utils/type_map.h>
 
+#include <extern/variant/include/mpark/variant.hpp>
+
 #include <cuda_runtime.h>
 #include <map>
 #include <string>
@@ -12,6 +14,21 @@
 
 class ParticlePacker;
 class ObjectExtraPacker;
+
+using VarData = mpark::variant<
+    PinnedBuffer<int>*,
+    PinnedBuffer<float>*,
+    PinnedBuffer<float2>*,
+    PinnedBuffer<float3>*,
+    PinnedBuffer<float4>*,
+    PinnedBuffer<Stress>*,
+    PinnedBuffer<double>*,
+    PinnedBuffer<double3>*,
+    PinnedBuffer<double4>*,
+    PinnedBuffer<Particle>*,
+    PinnedBuffer<RigidMotion>*,
+    PinnedBuffer<COMandExtent>*
+    >;
 
 /**
  * \class ExtraDataManager
@@ -41,6 +58,7 @@ public:
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         DataType dataType;
+        VarData varData;
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
@@ -56,22 +74,23 @@ public:
     template<typename T>
     void createData(const std::string& name, int size = 0)
     {
+        static_assert(sizeof(T) % 4 == 0, "Size of an element of the channel must be divisible by 4");
+
+        using HeldType = PinnedBuffer<T>;
+
         if (checkChannelExists(name))
         {
-            if (dynamic_cast< PinnedBuffer<T>* >(channelMap[name].container.get()) == nullptr)
+            if (!mpark::holds_alternative< HeldType* >(channelMap[name].varData))
                 die("Tried to create channel with existing name '%s' but different type", name.c_str());
 
             debug("Channel '%s' has already been created", name.c_str());
             return;
         }
 
-        if (sizeof(T) % 4 != 0)
-            die("Size of an element of the channel '%s' (%d) must be divisible by 4",
-                    name.c_str(), sizeof(T));
-
         info("Creating new channel '%s'", name.c_str());
 
-        auto ptr = std::make_unique< PinnedBuffer<T> >(size);
+        auto ptr = std::make_unique< HeldType >(size);
+        channelMap[name].varData   = ptr.get();
         channelMap[name].container = std::move(ptr);
         channelMap[name].dataType  = typeTokenize<T>();
 
@@ -129,7 +148,14 @@ public:
     template<typename T>
     PinnedBuffer<T>* getData(const std::string& name)
     {
-        return dynamic_cast< PinnedBuffer<T>* > ( getGenericData(name) );
+        using HeldType = PinnedBuffer<T>*;
+
+        auto& desc = getChannelDescOrDie(name);
+
+        if (!mpark::holds_alternative< HeldType >(desc.varData))
+            die("Channel '%s' is holding a different type than the required one", name.c_str());
+
+        return mpark::get<HeldType>(desc.varData);
     }
 
     /**

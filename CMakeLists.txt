@@ -61,8 +61,8 @@ set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
 
 # Require c++11
 #set(PYBIND11_CPP_STANDARD -std=c++14)
-set(CMAKE_CXX_STANDARD  14)
-set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CXX_STANDARD  11)
+set(CMAKE_CUDA_STANDARD 11)
 
 # Alias some dirs
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
@@ -93,6 +93,7 @@ add_library(main_compiled OBJECT ${SOURCES_MAIN})
 set_property(TARGET main_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 add_library(${YMR_MAIN} SHARED $<TARGET_OBJECTS:main_compiled>)
+
 add_library(${YMR} MODULE ${SOURCES_BINDINGS} $<TARGET_OBJECTS:main_compiled>)
 target_link_libraries(${YMR} PRIVATE pybind11::module)
 set_target_properties(${YMR} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
@@ -100,7 +101,7 @@ set_target_properties(${YMR} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
 
 target_link_libraries(${YMR} PRIVATE ${CUDA_LIBRARIES})
 target_link_libraries(${YMR_MAIN} PRIVATE ${CUDA_LIBRARIES})
-
+target_link_libraries(${YMR_MAIN} PRIVATE mpark_variant)
 
 #######################################################
 # Optional packages
