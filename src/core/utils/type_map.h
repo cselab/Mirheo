@@ -4,7 +4,7 @@
 #include <core/datatypes.h>
 
 
-#define TYPE_TABLE_ADDITIONABLE(OP)              \
+#define TYPE_TABLE(OP)                           \
     OP(float)                                    \
     OP(double)                                   \
     OP(int)                                      \
@@ -12,10 +12,7 @@
     OP(float4)                                   \
     OP(double3)                                  \
     OP(double4)                                  \
-    OP(Stress)
-
-#define TYPE_TABLE(OP)                           \
-    TYPE_TABLE_ADDITIONABLE(OP)                  \
+    OP(Stress)                                   \
     OP(Particle)
 
 #define DATATYPE_NONE None
