@@ -35,8 +35,6 @@ enum class DataType
 std::string dataTypeToString(DataType dataType);
 DataType stringToDataType(std::string str);
 
-size_t dataTypeToByteSize(DataType dataType);
-
 template<typename T> DataType inline typeTokenize() { return DataType::DATATYPE_NONE; }
 
 #define MAKE_TOKENIZE_FUNCTIONS(ctype) \
