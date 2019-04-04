@@ -15,7 +15,7 @@
 class ParticlePacker;
 class ObjectExtraPacker;
 
-using VarData = mpark::variant<
+using VarPinnedBufferPtr = mpark::variant<
     PinnedBuffer<int>*,
     PinnedBuffer<float>*,
     PinnedBuffer<float2>*,
@@ -58,7 +58,7 @@ public:
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         DataType dataType;
-        VarData varData;
+        VarPinnedBufferPtr varDataPtr;
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
@@ -80,7 +80,7 @@ public:
 
         if (checkChannelExists(name))
         {
-            if (!mpark::holds_alternative< HeldType* >(channelMap[name].varData))
+            if (!mpark::holds_alternative< HeldType* >(channelMap[name].varDataPtr))
                 die("Tried to create channel with existing name '%s' but different type", name.c_str());
 
             debug("Channel '%s' has already been created", name.c_str());
@@ -90,9 +90,9 @@ public:
         info("Creating new channel '%s'", name.c_str());
 
         auto ptr = std::make_unique< HeldType >(size);
-        channelMap[name].varData   = ptr.get();
-        channelMap[name].container = std::move(ptr);
-        channelMap[name].dataType  = typeTokenize<T>();
+        channelMap[name].varDataPtr = ptr.get();
+        channelMap[name].container  = std::move(ptr);
+        channelMap[name].dataType   = typeTokenize<T>();
 
         sortedChannels.push_back({name, &channelMap[name]});
         sortChannels();
@@ -152,10 +152,10 @@ public:
 
         auto& desc = getChannelDescOrDie(name);
 
-        if (!mpark::holds_alternative< HeldType >(desc.varData))
+        if (!mpark::holds_alternative< HeldType >(desc.varDataPtr))
             die("Channel '%s' is holding a different type than the required one", name.c_str());
 
-        return mpark::get<HeldType>(desc.varData);
+        return mpark::get<HeldType>(desc.varDataPtr);
     }
 
     /**

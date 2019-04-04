@@ -202,7 +202,7 @@ void CellList::_updateExtraDataChannels(cudaStream_t stream)
                          if (!containerManager.checkChannelExists(name))
                              containerManager.createData<T>(name, np);
                          
-                     }, desc->varData);
+                     }, desc->varDataPtr);
     }
 }
 
@@ -260,7 +260,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
     int np = pv->local()->size();
 
     mpark::visit([&](auto srcPinnedBuff) {
-                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varData);
+                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varDataPtr);
 
                      const int nthreads = 128;
 
@@ -269,7 +269,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
                          getNblocks(np, nthreads), nthreads, 0, stream,
                          np, srcPinnedBuff->devPtr(), this->cellInfo(), dstPinnedBuff->devPtr() );
 
-                 }, channelDesc->varData);
+                 }, channelDesc->varDataPtr);
 }
 
 void CellList::_reorderPersistentData(cudaStream_t stream)
@@ -363,11 +363,11 @@ void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t
     const auto& contDesc = contManager.getChannelDescOrDie(channelName);
 
     mpark::visit([&](auto srcPinnedBuff) {
-                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varData);
+                     auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varDataPtr);
 
                      accumulateIfHasAddOperator(srcPinnedBuff, dstPinnedBuff, n, this->cellInfo(), stream);
 
-                 }, contDesc.varData);
+                 }, contDesc.varDataPtr);
 }
 
 void CellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
@@ -500,9 +500,9 @@ void PrimaryCellList::_swapPersistentExtraData()
         const auto& descCont = containerManager.getChannelDescOrDie(name);
 
         mpark::visit([&](auto pinnedBufferPv) {
-                         auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varData);
+                         auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
                          std::swap(*pinnedBufferPv, *pinnedBufferCont);
-                     }, desc->varData);
+                     }, desc->varDataPtr);
     }
 }
 
