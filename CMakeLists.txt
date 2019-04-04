@@ -28,8 +28,11 @@ execute_process(COMMAND
   OUTPUT_VARIABLE GIT_SHA1
   ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-# Add the pybind11
+# Add pybind11
 add_subdirectory(src/extern/pybind11)
+
+# add mpark/variant
+add_subdirectory(src/extern/variant)
 
 # CUDA
 # Dynamic linking should allegedly improve UCX-based MPI,
@@ -57,9 +60,9 @@ set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
 
 # Require c++11
-#set(PYBIND11_CPP_STANDARD -std=c++11)
-set(CMAKE_CXX_STANDARD  11)
-set(CMAKE_CUDA_STANDARD 11)
+#set(PYBIND11_CPP_STANDARD -std=c++14)
+set(CMAKE_CXX_STANDARD  14)
+set(CMAKE_CUDA_STANDARD 14)
 
 # Alias some dirs
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
