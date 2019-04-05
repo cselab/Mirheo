@@ -143,11 +143,11 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, typeTokenize<RigidReal4>() ),
-        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
-        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
-        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() ),
-        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, typeTokenize<RigidReal3>() )
+        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, DataTypeWrapper<RigidReal4>() ),
+        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
+        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
+        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
+        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() )
     };         
 
     _extractPersistentExtraObjectData(channels, /* blacklist */ {ChannelNames::motions} );

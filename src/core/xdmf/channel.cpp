@@ -4,8 +4,13 @@
 
 namespace XDMF
 {
-Channel::Channel(std::string name, void* data, DataForm dataForm, NumberType numberType, DataType dataType) :
-    name(name), data(data), dataForm(dataForm), numberType(numberType), dataType(dataType)
+
+Channel::Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, TypeDescriptor type) :
+    name(name),
+    data(data),
+    dataForm(dataForm),
+    numberType(numberType),
+    type(type)
 {}
 
 int Channel::nComponents() const

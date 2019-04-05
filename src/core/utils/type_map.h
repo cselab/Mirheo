@@ -5,14 +5,17 @@
 #include <extern/variant/include/mpark/variant.hpp>
 
 #define TYPE_TABLE__(OP, SEP)                   \
-    OP(float)      SEP                          \
-    OP(double)     SEP                          \
-    OP(int)        SEP                          \
-    OP(float3)     SEP                          \
-    OP(float4)     SEP                          \
-    OP(double3)    SEP                          \
-    OP(double4)    SEP                          \
-    OP(Stress)     SEP                          \
+    OP(int)          SEP                        \
+    OP(float)        SEP                        \
+    OP(float2)       SEP                        \
+    OP(float3)       SEP                        \
+    OP(float4)       SEP                        \
+    OP(double)       SEP                        \
+    OP(double3)      SEP                        \
+    OP(double4)      SEP                        \
+    OP(Stress)       SEP                        \
+    OP(RigidMotion)  SEP                        \
+    OP(COMandExtent) SEP                        \
     OP(Particle)
 
 

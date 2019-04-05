@@ -22,9 +22,9 @@ struct Channel
          Float, Int, Double
         } numberType;
 
-    DataType dataType;
-        
-    Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, DataType dataType);
+    TypeDescriptor type;
+
+    Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, TypeDescriptor type);
     int nComponents() const;
     int precision() const;
 };

@@ -18,7 +18,7 @@ void writeDataSet(pugi::xml_node node, std::string h5filename, const Grid* grid,
     auto infoNode = attrNode.append_child("Information");
     infoNode.append_attribute("Name") = "Typeinfo";
     infoNode.append_attribute("Value") = dataFormToDescription(channel.dataForm).c_str();
-    infoNode.append_attribute("Datatype") = dataTypeToString(channel.dataType).c_str();
+    infoNode.append_attribute("Datatype") = typeDescriptorToString(channel.type).c_str();
             
     // Add one more dimension: number of floats per data item
     auto globalSize = grid->getGridDims()->getGlobalSize();
@@ -74,7 +74,7 @@ static Channel readDataSet(pugi::xml_node node)
     std::string typeDescription = infoNode.attribute("Datatype").value();
 
     auto dataForm = descriptionToDataForm(formDescription);
-    auto dataType =      stringToDataType(typeDescription);
+    auto dataType = stringToTypeDescriptor(typeDescription);
 
     std::string channelNumberType = dataNode.attribute("NumberType").value();
     int precision = dataNode.attribute("Precision").as_int();

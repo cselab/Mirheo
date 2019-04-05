@@ -4,12 +4,13 @@
 #include "xmf_helpers.h"
 #include "hdf5_helpers.h"
 
-#include <hdf5.h>
-
 #include <core/logger.h>
-#include <core/utils/timer.h>
-#include <core/utils/folders.h>
 #include <core/rigid_kernels/rigid_motion.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
+#include <core/utils/timer.h>
+
+#include <hdf5.h>
 
 namespace XDMF
 {
@@ -54,29 +55,18 @@ static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, co
 
 static void addPersistentExtraDataPerParticle(int n, const Channel& channel, ParticleVector *pv)
 {
-    switch (channel.dataType) {
+    mpark::visit([&](auto typeWrapper) {
+                     using Type = typename decltype(typeWrapper)::type;
 
-#define SWITCH_ENTRY(ctype)                                             \
-        case DataType::TOKENIZE(ctype):                                 \
-            {                                                           \
-                pv->requireDataPerParticle<ctype>                       \
-                    (channel.name,                                      \
-                     ExtraDataManager::PersistenceMode::Persistent);    \
-                auto buffer = pv->local()->extraPerParticle.getData<ctype>(channel.name); \
-                buffer->resize_anew(n);                                 \
-                memcpy(buffer->data(), channel.data, n * sizeof(ctype)); \
-                buffer->uploadToDevice(0);                              \
-            }                                                           \
-            break;
-
-        TYPE_TABLE(SWITCH_ENTRY);
-
-    default:
-        die("Could not create particle extra data for channel `%s` in pv `%s`",
-            channel.name.c_str(), pv->name.c_str());
-
-#undef SWITCH_ENTRY
-    };
+                     pv->requireDataPerParticle<Type>
+                         (channel.name,
+                          ExtraDataManager::PersistenceMode::Persistent);
+                     
+                     auto buffer = pv->local()->extraPerParticle.getData<Type>(channel.name);
+                     buffer->resize_anew(n);
+                     memcpy(buffer->data(), channel.data, n * sizeof(Type));
+                     buffer->uploadToDevice(defaultStream);
+                 }, channel.type);
 }
     
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
@@ -104,34 +94,23 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
     combineIntoParticles(n, pos, vel, ids, coosvels.data());
 
-    coosvels.uploadToDevice(0);
+    coosvels.uploadToDevice(defaultStream);
 }
 
 static void addPersistentExtraDataPerObject(int n, const Channel& channel, ObjectVector *ov)
 {
-    switch (channel.dataType) {
+    mpark::visit([&](auto typeWrapper) {
 
-#define SWITCH_ENTRY(ctype)                                             \
-        case DataType::TOKENIZE(ctype):                                 \
-            {                                                           \
-                ov->requireDataPerObject<ctype>                         \
-                    (channel.name,                                      \
-                     ExtraDataManager::PersistenceMode::Persistent);    \
-                auto buffer = ov->local()->extraPerObject.getData<ctype>(channel.name); \
-                buffer->resize_anew(n);                                 \
-                memcpy(buffer->data(), channel.data, n * sizeof(ctype)); \
-                buffer->uploadToDevice(0);                              \
-            }                                                           \
-            break;
-
-        TYPE_TABLE(SWITCH_ENTRY);
-
-    default:
-        die("Could not create object extra data for channel `%s` in ov `%s`",
-            channel.name.c_str(), ov->name.c_str());
-
-#undef SWITCH_ENTRY
-    };
+                     using Type = typename decltype(typeWrapper)::type;
+                     
+                     ov->requireDataPerObject<Type>
+                         (channel.name, ExtraDataManager::PersistenceMode::Persistent);
+                     
+                     auto buffer = ov->local()->extraPerObject.getData<Type>(channel.name);
+                     buffer->resize_anew(n);
+                     memcpy(buffer->data(), channel.data, n * sizeof(Type));
+                     buffer->uploadToDevice(defaultStream);
+                 }, channel.type);
 }
     
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
@@ -157,7 +136,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
         (*ids)[i] = ids_data[i];
     }
 
-    ids->uploadToDevice(0);
+    ids->uploadToDevice(defaultStream);
 }
 
 static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *quaternion,
@@ -219,8 +198,8 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     combineIntoRigidMotions(n, pos, quaternion, vel, omega, force, torque, motions->data());        
     for (int i = 0; i < n; ++i) (*ids)[i] = ids_data[i];
 
-    ids->uploadToDevice(0);
-    motions->uploadToDevice(0);
+    ids->uploadToDevice(defaultStream);
+    motions->uploadToDevice(defaultStream);
 }
     
 template <typename PV>

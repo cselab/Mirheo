@@ -30,7 +30,7 @@ void UniformCartesianDumper::handshake()
     grid = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm);
         
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str) {
-        return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float, typeTokenize<float>());
+        return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());
     };
     
     // Density is a special channel which is always present

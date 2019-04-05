@@ -250,10 +250,10 @@ void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, st
         mpark::visit([&](auto bufferPtr) {
                          using T = typename std::remove_reference< decltype(*bufferPtr->hostPtr()) >::type;
                          bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-                         auto type       = XDMF::getDataForm<T>();
+                         auto formtype   = XDMF::getDataForm<T>();
                          auto numbertype = XDMF::getNumberType<T>();
-                         auto datatype   = typeTokenize<T>();
-                         channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), type, numbertype, datatype )); \
+                         auto datatype   = DataTypeWrapper<T>();
+                         channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
                      }, channelDesc->varDataPtr);
     }
 }
@@ -282,9 +282,9 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 
     std::vector<XDMF::Channel> channels;
     channels.push_back(XDMF::Channel("velocity", velocities.data(),
-                                     XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, typeTokenize<float>() ));
+                                     XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>() ));
     channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
-                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, typeTokenize<int>() ));
+                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, DataTypeWrapper<int>() ));
 
     _extractPersistentExtraParticleData(channels);
     

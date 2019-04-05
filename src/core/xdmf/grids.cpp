@@ -139,7 +139,7 @@ std::shared_ptr<std::vector<float>> VertexGrid::getPositions() const { return po
 void VertexGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
 {
     Channel posCh(positionChannelName, (void*) positions->data(),
-                  Channel::DataForm::Vector, Channel::NumberType::Float, typeTokenize<float>());
+                  Channel::DataForm::Vector, Channel::NumberType::Float, DataTypeWrapper<float>());
         
     HDF5::writeDataSet(file_id, getGridDims(), posCh);
 }
@@ -219,7 +219,7 @@ void VertexGrid::read_from_HDF5(hid_t file_id, MPI_Comm comm)
 {
     positions->resize(dims.nlocal * 3);
     Channel posCh(positionChannelName, (void*) positions->data(),
-                  Channel::DataForm::Vector, Channel::NumberType::Float, typeTokenize<float>());
+                  Channel::DataForm::Vector, Channel::NumberType::Float, DataTypeWrapper<float>());
         
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
@@ -248,7 +248,7 @@ void TriangleMeshGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     VertexGrid::write_to_HDF5(file_id, comm);
 
     Channel triCh(triangleChannelName, (void*) triangles->data(),
-                  Channel::DataForm::Triangle, Channel::NumberType::Int, typeTokenize<int>());        
+                  Channel::DataForm::Triangle, Channel::NumberType::Int, DataTypeWrapper<int>());        
 
     HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
 }
