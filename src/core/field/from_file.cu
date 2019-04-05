@@ -273,10 +273,10 @@ void FieldFromFile::setup(const MPI_Comm& comm)
                 (resolution.y+threads.y-1) / threads.y,
                 (resolution.z+threads.z-1) / threads.z);
 
-    localData.uploadToDevice(0);
+    localData.uploadToDevice(defaultStream);
     SAFE_KERNEL_LAUNCH(
             InterpolateKernels::cubicInterpolate3D,
-            blocks, threads, 0, 0,
+            blocks, threads, 0, defaultStream,
             localData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
             fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
 

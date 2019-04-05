@@ -53,7 +53,7 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name, float ma
 std::vector<int> ParticleVector::getIndices_vector()
 {
     auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(0);
+    coosvels.downloadFromDevice(defaultStream);
     
     std::vector<int> res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
@@ -65,7 +65,7 @@ std::vector<int> ParticleVector::getIndices_vector()
 PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
 {
     auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(0);
+    coosvels.downloadFromDevice(defaultStream);
     
     PyTypes::VectorOfFloat3 res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
@@ -80,7 +80,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
 PyTypes::VectorOfFloat3 ParticleVector::getVelocities_vector()
 {
     auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(0);
+    coosvels.downloadFromDevice(defaultStream);
     
     PyTypes::VectorOfFloat3 res(coosvels.size());
     for (int i = 0; i < coosvels.size(); i++)
@@ -160,7 +160,7 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
         coosvels[i].r = state->domain.global2local( float3{ r[0], r[1], r[2] } );
     }
     
-    coosvels.uploadToDevice(0);
+    coosvels.uploadToDevice(defaultStream);
 }
 
 void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
@@ -178,7 +178,7 @@ void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
         coosvels[i].u = { u[0], u[1], u[2] };
     }
     
-    coosvels.uploadToDevice(0);
+    coosvels.uploadToDevice(defaultStream);
 }
 
 void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
@@ -271,7 +271,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     auto filename = createCheckpointNameWithId(path, "PV", "");
     info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
+    local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<float> velocities;

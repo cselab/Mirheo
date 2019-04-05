@@ -130,7 +130,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 
     auto motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
 
-    motions->downloadFromDevice(0, ContainersSynch::Synch);
+    motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<RigidReal4> quaternion;
@@ -194,8 +194,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
     std::copy(ids.begin(), ids.end(), loc_ids->begin());
     std::copy(motions.begin(), motions.end(), loc_motions->begin());
 
-    loc_ids->uploadToDevice(0);
-    loc_motions->uploadToDevice(0);
+    loc_ids->uploadToDevice(defaultStream);
+    loc_motions->uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d object infos", loc_motions->size());

@@ -231,7 +231,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
 
     auto coms_extents = local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents);
 
-    coms_extents->downloadFromDevice(0, ContainersSynch::Synch);
+    coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
     auto positions = std::make_shared<std::vector<float>>();
 

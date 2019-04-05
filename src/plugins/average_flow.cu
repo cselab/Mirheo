@@ -101,8 +101,8 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
         allChannels += ", " + channelsInfo.names[i];
     }
 
-    channelsInfo.averagePtrs.uploadToDevice(0);
-    channelsInfo.types.uploadToDevice(0);
+    channelsInfo.averagePtrs.uploadToDevice(defaultStream);
+    channelsInfo.types.uploadToDevice(defaultStream);
 
     for (const auto& pvName : pvNames)
         pvs.push_back(simulation->getPVbyNameOrDie(pvName));

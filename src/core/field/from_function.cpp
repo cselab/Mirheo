@@ -1,5 +1,7 @@
 #include "from_function.h"
 
+#include <core/utils/cuda_common.h>
+
 FieldFromFunction::FieldFromFunction(const YmrState *state, std::string name, FieldFunction func, float3 h) :
     Field(state, name, h),
     func(func)
@@ -49,7 +51,7 @@ void FieldFromFunction::setup(const MPI_Comm& comm)
         }
     }
 
-    fieldRawData.uploadToDevice(0);
+    fieldRawData.uploadToDevice(defaultStream);
     
     setupArrayTexture(fieldRawData.devPtr());
 }

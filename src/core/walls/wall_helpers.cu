@@ -181,7 +181,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
             n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
 
-    sdfs_merged.downloadFromDevice(0);
+    sdfs_merged.downloadFromDevice(defaultStream);
     
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
     XDMF::Channel sdfCh("sdf", (void*)sdfs_merged.hostPtr(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());

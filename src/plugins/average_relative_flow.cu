@@ -70,8 +70,8 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
     }
 
-    channelsInfo.averagePtrs.uploadToDevice(0);
-    channelsInfo.types.uploadToDevice(0);
+    channelsInfo.averagePtrs.uploadToDevice(defaultStream);
+    channelsInfo.types.uploadToDevice(defaultStream);
 
     // Relative stuff
     relativeOV = simulation->getOVbyNameOrDie(relativeOVname);
