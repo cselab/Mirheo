@@ -147,22 +147,6 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     
     const auto& extraData = ov->local()->extraPerParticle;
 
-    for (const auto& name : channelNames)
-    {
-        const auto& desc = extraData.getChannelDescOrDie(name);
-        switch (desc.dataType)
-        {
-        case DataType::TOKENIZE(float):
-        case DataType::TOKENIZE(float4):
-        case DataType::TOKENIZE(Stress):
-            break;
-        default:
-            die("cannot reverse send data '%s' of type '%s' from ov '%s': should be float data",
-                name.c_str(), dataTypeToString(desc.dataType).c_str(), ov->name.c_str());
-            break;
-        }
-    }
-
     packPredicates.push_back([channelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
         return std::find(channelNames.begin(), channelNames.end(), namedDesc.first) != channelNames.end();
     });

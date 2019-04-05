@@ -57,7 +57,6 @@ public:
         std::unique_ptr<GPUcontainer> container;
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
-        DataType dataType;
         VarPinnedBufferPtr varDataPtr;
     };
 
@@ -92,7 +91,6 @@ public:
         auto ptr = std::make_unique< HeldType >(size);
         channelMap[name].varDataPtr = ptr.get();
         channelMap[name].container  = std::move(ptr);
-        channelMap[name].dataType   = typeTokenize<T>();
 
         sortedChannels.push_back({name, &channelMap[name]});
         sortChannels();
