@@ -33,39 +33,5 @@ using TypeDescriptor = mpark::variant<
 #undef MAKE_WRAPPER
     >;
 
-
 std::string typeDescriptorToString(const TypeDescriptor& desc);
 TypeDescriptor stringToTypeDescriptor(const std::string& str);
-
-
-
-
-// TODO: remove from here
-
-
-#define DATATYPE_NONE None
-
-#define TOKENIZE(ctype) _##ctype##_
-
-
-enum class DataType
-{
-#define MAKE_ENUM(ctype) TOKENIZE(ctype),
-    TYPE_TABLE(MAKE_ENUM)
-#undef MAKE_ENUM
-    DATATYPE_NONE
-};
-
-
-std::string dataTypeToString(DataType dataType);
-DataType stringToDataType(std::string str);
-
-template<typename T> DataType inline typeTokenize() { return DataType::DATATYPE_NONE; }
-
-#define MAKE_TOKENIZE_FUNCTIONS(ctype) \
-    template<> inline DataType typeTokenize<ctype>() {return DataType::TOKENIZE(ctype);}
-
-TYPE_TABLE(MAKE_TOKENIZE_FUNCTIONS)
-
-#undef MAKE_TOKENIZE_FUNCTIONS
-
