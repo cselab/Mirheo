@@ -16,18 +16,9 @@ class ParticlePacker;
 class ObjectExtraPacker;
 
 using VarPinnedBufferPtr = mpark::variant<
-    PinnedBuffer<int>*,
-    PinnedBuffer<float>*,
-    PinnedBuffer<float2>*,
-    PinnedBuffer<float3>*,
-    PinnedBuffer<float4>*,
-    PinnedBuffer<Stress>*,
-    PinnedBuffer<double>*,
-    PinnedBuffer<double3>*,
-    PinnedBuffer<double4>*,
-    PinnedBuffer<Particle>*,
-    PinnedBuffer<RigidMotion>*,
-    PinnedBuffer<COMandExtent>*
+#define MAKE_WRAPPER(a) PinnedBuffer<a>*
+    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+#undef MAKE_WRAPPER
     >;
 
 /**
