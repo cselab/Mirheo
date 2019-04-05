@@ -248,7 +248,7 @@ void TriangleMeshGrid::write_to_HDF5(hid_t file_id, MPI_Comm comm) const
     VertexGrid::write_to_HDF5(file_id, comm);
 
     Channel triCh(triangleChannelName, (void*) triangles->data(),
-                  Channel::DataForm::Triangle, Channel::NumberType::Int, DataTypeWrapper<int>());        
+                  Channel::DataForm::Triangle, Channel::NumberType::Int, DataTypeWrapper<int>());
 
     HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
 }
