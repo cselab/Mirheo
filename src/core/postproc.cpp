@@ -55,12 +55,8 @@ std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vect
 void Postprocess::run()
 {
     int endMsg = 0;
-    int rank;
 
-    MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-    MPI_Request endReq;
-    MPI_Check( MPI_Irecv(&endMsg, 1, MPI_INT, rank, stoppingTag, interComm, &endReq) );
+    MPI_Request endReq = listenSimulation(stoppingTag, &endMsg);
 
     std::vector<MPI_Request> requests;
     for (auto& pl : plugins)
@@ -96,3 +92,13 @@ void Postprocess::run()
     }
 }
 
+MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
+{
+    int rank;
+    MPI_Request req;
+    
+    MPI_Check( MPI_Comm_rank(comm, &rank) );    
+    MPI_Check( MPI_Irecv(msg, 1, MPI_INT, rank, tag, interComm, &req) );
+
+    return req;
+}

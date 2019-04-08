@@ -75,6 +75,8 @@ public:
     void init();
     void run(int nsteps);
 
+    void notifyPostProcess(int tag, int msg) const;
+
     std::vector<ParticleVector*> getParticleVectors() const;
 
     ParticleVector* getPVbyName     (std::string name) const;

@@ -1144,6 +1144,7 @@ void Simulation::init()
 }
 
 
+
 void Simulation::run(int nsteps)
 {
     int begin = state->currentStep, end = state->currentStep + nsteps;
@@ -1170,16 +1171,17 @@ void Simulation::run(int nsteps)
     for (auto& pl : plugins)
         pl->finalize();
 
-    if (interComm != MPI_COMM_NULL)
-    {
-        int msg = stoppingMsg;
-        int tag = stoppingTag;
-
-        MPI_Check( MPI_Send(&msg, 1, MPI_INT, rank, tag, interComm) );
-        debug("Sending stopping message to the postprocess");
-    }
+    notifyPostProcess(stoppingTag, stoppingMsg);
 }
 
+void Simulation::notifyPostProcess(int tag, int msg) const
+{
+    if (interComm != MPI_COMM_NULL)
+    {
+        MPI_Check( MPI_Send(&msg, 1, MPI_INT, rank, tag, interComm) );
+        debug("notify postprocess with tag %d and message %d", tag, msg);
+    }
+}
 
 void Simulation::restartState(std::string folder)
 {
