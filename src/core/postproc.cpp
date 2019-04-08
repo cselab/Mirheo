@@ -54,14 +54,18 @@ std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vect
 
 void Postprocess::run()
 {
-    int endMsg = 0;
-
-    MPI_Request endReq = listenSimulation(stoppingTag, &endMsg);
+    int endMsg {0}, cpMsg {0};
 
     std::vector<MPI_Request> requests;
     for (auto& pl : plugins)
         requests.push_back(pl->waitData());
-    requests.push_back(endReq);
+
+    const int endReqIndex = requests.size();
+    requests.push_back( listenSimulation(stoppingTag, &endMsg) );
+
+    const int cpReqIndex = requests.size();
+    requests.push_back( listenSimulation(checkpointTag, &cpMsg) );
+
     std::vector<MPI_Status> statuses(requests.size());
     
     info("Postprocess is listening to messages now");
@@ -71,23 +75,31 @@ void Postprocess::run()
 
         for (auto index : readyIds)
         {
-            if (index == plugins.size())
+            if (index == endReqIndex)
             {
-                if (endMsg != stoppingMsg)
-                    die("Something went terribly wrong");
+                if (endMsg != stoppingMsg) die("Received wrong stopping message");
     
                 info("Postprocess got a stopping message and will stop now");    
                 
-                for (size_t i = 0; i < plugins.size(); i++)
-                    MPI_Check( MPI_Cancel(requests.data() + i) );
+                for (auto& req : requests)
+                    if (req != MPI_REQUEST_NULL)
+                        MPI_Check( MPI_Cancel(&req) );
                 
                 return;
             }
-        
-            debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name.c_str());
-            plugins[index]->recv();
-            plugins[index]->deserialize(statuses[index]);
-            requests[index] = plugins[index]->waitData();
+            else if (index == cpReqIndex)
+            {
+                if (cpMsg != checkpointMsg) die("Received wrong checkpoint message");
+                // checkpoint()
+                requests[index] = listenSimulation(checkpointTag, &cpMsg);
+            }
+            else
+            {
+                debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name.c_str());
+                plugins[index]->recv();
+                plugins[index]->deserialize(statuses[index]);
+                requests[index] = plugins[index]->waitData();
+            }
         }
     }
 }

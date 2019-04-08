@@ -1279,6 +1279,8 @@ void Simulation::checkpoint()
         handler->checkpoint(cartComm, checkpointFolder);
 
     advanceCheckpointId(state->checkpointMode);
+
+    notifyPostProcess(checkpointTag, checkpointMsg);
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

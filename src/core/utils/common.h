@@ -35,6 +35,10 @@ enum class CheckpointIdAdvanceMode
     Incremental
 };
 
-// tag used to stop the postprocess once simulation::run is done
+// tag used to stop the postprocess side to stop
 constexpr int stoppingTag = 424242;
 constexpr int stoppingMsg = -1;
+
+// tag used to tell the postprocess side to dump checkpoint 
+constexpr int checkpointTag = 434343;
+constexpr int checkpointMsg = -2;
