@@ -154,7 +154,9 @@ float ParticleDumperPlugin::_recvAndUnpack()
     channels[c++].data = ids.data();
     
     for (int i = 0; i < channelData.size(); i++)
-        channels[c++].data = channelData[i].data();    
+        channels[c++].data = channelData[i].data();
+
+    return t;
 }
 
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
