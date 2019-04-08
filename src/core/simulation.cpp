@@ -1172,10 +1172,10 @@ void Simulation::run(int nsteps)
 
     if (interComm != MPI_COMM_NULL)
     {
-        int dummy = -1;
-        int tag = 424242;
+        int msg = stoppingMsg;
+        int tag = stoppingTag;
 
-        MPI_Check( MPI_Send(&dummy, 1, MPI_INT, rank, tag, interComm) );
+        MPI_Check( MPI_Send(&msg, 1, MPI_INT, rank, tag, interComm) );
         debug("Sending stopping message to the postprocess");
     }
 }

@@ -34,3 +34,7 @@ enum class CheckpointIdAdvanceMode
     PingPong,
     Incremental
 };
+
+// tag used to stop the postprocess once simulation::run is done
+constexpr int stoppingTag = 424242;
+constexpr int stoppingMsg = -1;

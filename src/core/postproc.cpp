@@ -1,11 +1,14 @@
 #include "postproc.h"
 
 #include <core/logger.h>
+#include <core/utils/common.h>
 
-#include <vector>
 #include <mpi.h>
+#include <vector>
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) : comm(comm), interComm(interComm)
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) :
+    comm(comm),
+    interComm(interComm)
 {
     info("Postprocessing initialized");
 }
@@ -38,7 +41,7 @@ std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vect
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, mask.data(), mask.size(), MPI_INT, MPI_MAX, comm) );
 
     std::vector<int> ids;
-    for (int i=0; i<mask.size(); ++i)
+    for (int i = 0; i < mask.size(); ++i)
         if (mask[i] > 0)
         {
             ids.push_back(i);
@@ -51,16 +54,13 @@ std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vect
 
 void Postprocess::run()
 {
-    // Stopping condition
-    const int tag = 424242;
-
-    int dummy = 0;
+    int endMsg = 0;
     int rank;
 
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     MPI_Request endReq;
-    MPI_Check( MPI_Irecv(&dummy, 1, MPI_INT, rank, tag, interComm, &endReq) );
+    MPI_Check( MPI_Irecv(&endMsg, 1, MPI_INT, rank, stoppingTag, interComm, &endReq) );
 
     std::vector<MPI_Request> requests;
     for (auto& pl : plugins)
@@ -77,12 +77,12 @@ void Postprocess::run()
         {
             if (index == plugins.size())
             {
-                if (dummy != -1)
+                if (endMsg != stoppingMsg)
                     die("Something went terribly wrong");
     
                 info("Postprocess got a stopping message and will stop now");    
                 
-                for (int i=0; i<plugins.size(); i++)
+                for (size_t i = 0; i < plugins.size(); i++)
                     MPI_Check( MPI_Cancel(requests.data() + i) );
                 
                 return;

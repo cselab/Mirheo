@@ -1,8 +1,9 @@
 #pragma once
 
-#include <mpi.h>
 #include <plugins/interface.h>
+
 #include <memory>
+#include <mpi.h>
 
 class Postprocess
 {
