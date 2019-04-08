@@ -98,27 +98,6 @@ static JuelicherBendingParameters readJuelicherParameters(const std::map<std::st
     return p;
 }
 
-static bool isWLC(const std::string& desc)
-{
-    return desc == "wlc";
-}
-
-static bool isLim(const std::string& desc)
-{
-    return desc == "Lim";
-}
-
-static bool isKantor(const std::string& desc)
-{
-    return desc == "Kantor";
-}
-
-static bool isJuelicher(const std::string& desc)
-{
-    return desc == "Juelicher";
-}
-
-
 std::shared_ptr<InteractionMembrane>
 InteractionFactory::createInteractionMembrane(const YmrState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
@@ -130,20 +109,13 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
     
     auto commonPrms = readCommonParameters(parameters);
 
-    if (isWLC(shearDesc))
-        shearParams = readWLCParameters(parameters);
-    else if (isLim(shearDesc))
-        shearParams = readLimParameters(parameters);
-    else
-        die("No such shear parameters: '%s'", shearDesc.c_str());
+    if      (shearDesc == "wlc") shearParams = readWLCParameters(parameters);
+    else if (shearDesc == "Lim") shearParams = readLimParameters(parameters);
+    else                         die("No such shear parameters: '%s'", shearDesc.c_str());
 
-
-    if (isKantor(bendingDesc))
-        bendingParams = readKantorParameters(parameters);
-    else if (isJuelicher(bendingDesc))
-        bendingParams = readJuelicherParameters(parameters);
-    else
-        die("No such bending parameters: '%s'", bendingDesc.c_str());
+    if      (bendingDesc == "Kantor")    bendingParams = readKantorParameters(parameters);
+    else if (bendingDesc == "Juelicher") bendingParams = readJuelicherParameters(parameters);
+    else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
     return std::make_shared<InteractionMembrane>
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
