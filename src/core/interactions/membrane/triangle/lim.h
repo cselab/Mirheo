@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common.h"
 #include "../parameters.h"
 
 #include <core/utils/cpu_gpu_defines.h>
