@@ -14,12 +14,16 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **compilation changes** require `c++ 14` and `cuda 9.2`
+* **additional extern code** include `src/extern/mpark`
 * **interface change** linear EOS in SDPD needs an extra parameter `rho_0`
 * **fix** SDPD: correct use of mass density
 * checkpoint and restart interaction random state
 * internal changes:
   * cleanup some implementations from interfaces
   * adding rod vectors
+  * remove xmacros for channel types
+  * use mpark::variant for membrane interaction
 
 ### v0.12.3
 
