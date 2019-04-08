@@ -1,6 +1,11 @@
 #include "membrane.h"
 
 #include "membrane/common.h"
+#include "membrane/dihedral/kantor.h"
+#include "membrane/dihedral/juelicher.h"
+#include "membrane/triangle/lim.h"
+#include "membrane/triangle/wlc.h"
+#include "membrane.impl.h"
 
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/views/ov.h>
@@ -34,9 +39,31 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 }
 } // namespace InteractionMembraneKernels
 
-InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name) :
+InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name, CommonMembraneParameters commonParams,
+                                         VarBendingParams bendingParams, VarShearParams shearParams,
+                                         bool stressFree, float growUntil) :
     Interaction(state, name, /* default cutoff rc */ 1.0)
-{}
+{
+    mpark::visit([&](auto bePrms, auto shPrms) {                     
+                     using DihedralForce = typename decltype(bePrms)::DihedralForce;
+
+                     if (stressFree)
+                     {
+                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
+                         
+                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                             (state, name, commonParams, shPrms, bePrms, growUntil);
+                     }
+                     else                         
+                     {
+                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
+                         
+                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                             (state, name, commonParams, shPrms, bePrms, growUntil);
+                     }
+                     
+                 }, bendingParams, shearParams);
+}
 
 InteractionMembrane::~InteractionMembrane() = default;
 
@@ -50,6 +77,8 @@ void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *
         die("Internal membrane forces can only be computed with a MembraneVector");
 
     ov->requireDataPerObject<float2>(ChannelNames::areaVolumes, ExtraDataManager::PersistenceMode::None);
+
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
 void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

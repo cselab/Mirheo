@@ -82,6 +82,8 @@ public:
     
     void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
+        this->precomputeQuantities(pv1, stream);
+        
         auto ov = dynamic_cast<MembraneVector *>(pv1);
 
         if (ov->objSize != ov->mesh->getNvertices())
@@ -116,18 +118,18 @@ public:
 
     }
 
-    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) {}
+    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override {}
 
-    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        setPrerequisites<TriangleInteraction>(pv1, pv2, cl1, cl2);
-        setPrerequisites<DihedralInteraction>(pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(dihedralParams, pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(triangleParams, pv1, pv2, cl1, cl2);
     }
 
     void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
     {
-        precomputeQuantities<TriangleInteraction>(pv1, stream);
-        precomputeQuantities<DihedralInteraction>(pv1, stream);
+        precomputeQuantitiesPerEnergy(dihedralParams, pv1, stream);
+        precomputeQuantitiesPerEnergy(triangleParams, pv1, stream);
     }
     
     void checkpoint(MPI_Comm comm, std::string path) override

@@ -7,11 +7,10 @@
 #include <core/utils/kernel_launch.h>
 
 template <class EnergyParams>
-inline void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+inline void setPrerequisitesPerEnergy(const EnergyParams&, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {}
 
-template <>
-inline void setPrerequisites<JuelicherBendingParameters>(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+inline void setPrerequisitesPerEnergy(const JuelicherBendingParameters&, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
@@ -81,11 +80,10 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
 
 
 template <class EnergyParams>
-inline void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+inline void precomputeQuantitiesPerEnergy(const EnergyParams&, ParticleVector *pv1, cudaStream_t stream)
 {}
 
-template <>
-inline void precomputeQuantities<JuelicherBendingParameters>(ParticleVector *pv1, cudaStream_t stream)
+inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, ParticleVector *pv1, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 

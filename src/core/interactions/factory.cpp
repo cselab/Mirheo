@@ -1,11 +1,6 @@
 #include "factory.h"
 
-#include "membrane/parameters.h"
-
-#include "membrane_WLC_Kantor.h"
-#include "membrane_WLC_Juelicher.h"
-#include "membrane_Lim_Kantor.h"
-#include "membrane_Lim_Juelicher.h"
+#include "membrane.h"
 
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
@@ -130,50 +125,28 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
                                               const std::map<std::string, float>& parameters,
                                               bool stressFree, float growUntil)
 {
+    VarBendingParams bendingParams;
+    VarShearParams shearParams;
+    
     auto commonPrms = readCommonParameters(parameters);
-    
+
     if (isWLC(shearDesc))
-    {
-        auto shPrms = readWLCParameters(parameters);
-            
-        if (isKantor(bendingDesc))
-        {
-            auto bePrms = readKantorParameters(parameters);
-            return std::make_shared<InteractionMembraneWLCKantor>
-                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
-        }
+        shearParams = readWLCParameters(parameters);
+    else if (isLim(shearDesc))
+        shearParams = readLimParameters(parameters);
+    else
+        die("No such shear parameters: '%s'", shearDesc.c_str());
 
-        if (isJuelicher(bendingDesc))
-        {
-            auto bePrms = readJuelicherParameters(parameters);
-            return std::make_shared<InteractionMembraneWLCJuelicher>
-                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
-        }            
-    }
 
-    if (isLim(shearDesc))
-    {
-        auto shPrms = readLimParameters(parameters);
+    if (isKantor(bendingDesc))
+        bendingParams = readKantorParameters(parameters);
+    else if (isJuelicher(bendingDesc))
+        bendingParams = readJuelicherParameters(parameters);
+    else
+        die("No such bending parameters: '%s'", bendingDesc.c_str());
 
-        if (isKantor(bendingDesc))
-        {
-            auto bePrms = readKantorParameters(parameters);
-            return std::make_shared<InteractionMembraneLimKantor>
-                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
-        }
-
-        if (isJuelicher(bendingDesc))
-        {
-            auto bePrms = readJuelicherParameters(parameters);
-            return std::make_shared<InteractionMembraneLimJuelicher>
-                (state, name, commonPrms, shPrms, bePrms, stressFree, growUntil);
-        }
-    }
-    
-    die("argument combination of shearDesc = '%s' and bendingDesc = '%s' is incorrect",
-        shearDesc.c_str(), bendingDesc.c_str());
-
-    return nullptr;
+    return std::make_shared<InteractionMembrane>
+        (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
 
 
