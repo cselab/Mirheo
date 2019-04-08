@@ -12,10 +12,10 @@ YMeRo
 YMeRo requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 
 - Unix-based OS
-- NVIDIA CUDA toolkit version >= 8.0
-- gcc compiler with c++11 support compatible with CUDA installation
+- NVIDIA CUDA toolkit version >= 9.2
+- gcc compiler with c++14 support compatible with CUDA installation
 - CMake version >= 3.8
-- Python interpreter version >= 2.7
+- Python interpreter version >= 3.4
 - MPI library
 - HDF5 parallel library
 - libbfd for pretty debug information in case of an error
