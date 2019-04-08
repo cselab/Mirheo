@@ -6,12 +6,16 @@
 #include <mpi.h>
 #include <vector>
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
+    YmrObject("postprocess"),
     comm(comm),
-    interComm(interComm)
+    interComm(interComm),
+    checkpointFolder(checkpointFolder)
 {
     info("Postprocessing initialized");
 }
+
+Postprocess::~Postprocess() = default;
 
 void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin)
 {
@@ -29,7 +33,7 @@ void Postprocess::init()
     }
 }
 
-std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vector<MPI_Status>& statuses, MPI_Comm comm)
+static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, std::vector<MPI_Status>& statuses, MPI_Comm comm)
 {
     int index;
     MPI_Status stat;
@@ -114,3 +118,4 @@ MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
 
     return req;
 }
+

@@ -1,29 +1,36 @@
 #pragma once
 
+#include <core/ymero_object.h>
 #include <plugins/interface.h>
 
 #include <memory>
 #include <mpi.h>
 
-class Postprocess
+class Postprocess : YmrObject
 {
 public:
-    Postprocess(MPI_Comm& comm, MPI_Comm& interComm);
+    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/");
+    ~Postprocess();
+
     void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
     void run();
-    void init();
-    
+    void init();    
+
     // TODO complete this
-//     void restart   (std::string folder);
-//     void checkpoint(std::string folder);
+    // void restart   (std::string folder);
+    // void checkpoint();
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;
+    
+    using YmrObject::restart;
+    using YmrObject::checkpoint;
 
 private:
     MPI_Comm comm;
     MPI_Comm interComm;
     
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins;
-    std::vector<MPI_Request> requests;
+
+    std::string restartFolder, checkpointFolder;
 };
