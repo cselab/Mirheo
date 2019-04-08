@@ -6,11 +6,13 @@
 #include <mpi.h>
 #include <vector>
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder,
+                         CheckpointIdAdvanceMode checkpointMode) :
     YmrObject("postprocess"),
     comm(comm),
     interComm(interComm),
-    checkpointFolder(checkpointFolder)
+    checkpointFolder(checkpointFolder),
+    checkpointMode(checkpointMode)
 {
     info("Postprocessing initialized");
 }
@@ -94,7 +96,7 @@ void Postprocess::run()
             else if (index == cpReqIndex)
             {
                 if (cpMsg != checkpointMsg) die("Received wrong checkpoint message");
-                // checkpoint()
+                checkpoint();
                 requests[index] = listenSimulation(checkpointTag, &cpMsg);
             }
             else
@@ -119,3 +121,20 @@ MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
     return req;
 }
 
+void Postprocess::restart(std::string folder)
+{
+    restartFolder = folder;
+
+    info("Reading postprocess state, from folder %s", restartFolder.c_str());
+    
+    for (auto& pl : plugins)
+        pl->restart(comm, folder);    
+}
+
+void Postprocess::checkpoint()
+{
+    info("Writing postprocess state, into folder %s", checkpointFolder.c_str());
+    
+    for (auto& pl : plugins)
+        pl->checkpoint(comm, checkpointFolder, checkpointMode);
+}

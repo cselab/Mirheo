@@ -115,7 +115,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
         MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
-        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointFolder);
+        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointFolder, checkpointMode);
     }
 
     MPI_Check( MPI_Comm_free(&splitComm) );
@@ -508,6 +508,8 @@ void YMeRo::restart(std::string folder)
 {
     if (isComputeTask())
         sim->restart(folder);
+    else
+        post->restart(folder);
 }
 
 

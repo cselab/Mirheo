@@ -9,16 +9,16 @@
 class Postprocess : YmrObject
 {
 public:
-    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/");
+    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/",
+                CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong);
     ~Postprocess();
 
     void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
     void run();
     void init();    
 
-    // TODO complete this
-    // void restart   (std::string folder);
-    // void checkpoint();
+    void restart   (std::string folder);
+    void checkpoint();
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;
@@ -33,4 +33,5 @@ private:
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins;
 
     std::string restartFolder, checkpointFolder;
+    CheckpointIdAdvanceMode checkpointMode;
 };
