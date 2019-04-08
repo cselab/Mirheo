@@ -7,8 +7,6 @@
 #include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/lj.h>
 #include <core/interactions/lj_with_stress.h>
-#include <core/interactions/membrane_WLC_Kantor.h>
-#include <core/interactions/membrane_WLC_Juelicher.h>
 #include <core/interactions/factory.h>
 
 #include "bindings.h"

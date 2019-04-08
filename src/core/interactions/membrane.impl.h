@@ -3,6 +3,7 @@
 #include "interface.h"
 #include "membrane/forces_kernels.h"
 #include "membrane/parameters.h"
+#include "membrane/prerequisites.h"
 #include "utils/step_random_gen.h"
 
 #include <core/pvs/membrane_vector.h>
@@ -117,6 +118,18 @@ public:
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) {}
 
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+    {
+        setPrerequisites<TriangleInteraction>(pv1, pv2, cl1, cl2);
+        setPrerequisites<DihedralInteraction>(pv1, pv2, cl1, cl2);
+    }
+
+    void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+    {
+        precomputeQuantities<TriangleInteraction>(pv1, stream);
+        precomputeQuantities<DihedralInteraction>(pv1, stream);
+    }
+    
     void checkpoint(MPI_Comm comm, std::string path) override
     {
         auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt");
