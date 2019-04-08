@@ -27,10 +27,10 @@ std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels
     return {{ChannelNames::forces, alwaysActive}};
 }
 
-void Interaction::checkpoint(MPI_Comm comm, std::string path)
+void Interaction::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
 {
     if (!impl) return;
-    impl->checkpoint(comm, path);
+    impl->checkpoint(comm, path, checkpointMode);
 }
 
 void Interaction::restart(MPI_Comm comm, std::string path)

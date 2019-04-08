@@ -77,7 +77,7 @@ struct SimulationTasks
 };
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
-                       int globalCheckpointEvery, std::string checkpointFolder,
+                       int globalCheckpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode,
                        bool gpuAwareMPI) :
     YmrObject("simulation"),
     nranks3D(nranks3D),
@@ -85,6 +85,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
     state(state),
     globalCheckpointEvery(globalCheckpointEvery),
     checkpointFolder(checkpointFolder),
+    checkpointMode(checkpointMode),
     gpuAwareMPI(gpuAwareMPI),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),
@@ -783,7 +784,7 @@ void Simulation::createTasks()
                  prototype.pv->name.c_str(), prototype.checkpointEvery);
 
             scheduler->addTask( tasks->checkpoint, [prototype, this] (cudaStream_t stream) {
-                prototype.pv->checkpoint(cartComm, checkpointFolder);
+                    prototype.pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
             }, prototype.checkpointEvery );
         }
 
@@ -1258,27 +1259,27 @@ void Simulation::checkpoint()
     info("Writing simulation state, into folder %s", checkpointFolder.c_str());
     
     for (auto& pv : particleVectors)
-        pv->checkpoint(cartComm, checkpointFolder);
+        pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : bouncerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : integratorMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : interactionMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : wallMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : belongingCheckerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
     
     for (auto& handler : plugins)
-        handler->checkpoint(cartComm, checkpointFolder);
+        handler->checkpoint(cartComm, checkpointFolder, checkpointMode);
 
-    advanceCheckpointId(state->checkpointMode);
+    advanceCheckpointId(checkpointMode);
 
     notifyPostProcess(checkpointTag, checkpointMsg);
     

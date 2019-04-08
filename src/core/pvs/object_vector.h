@@ -47,7 +47,7 @@ public:
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(ParticleVector::halo());  }
 
-    void checkpoint (MPI_Comm comm, std::string path) override;
+    void checkpoint (MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override;
     void restart    (MPI_Comm comm, std::string path) override;
 
     template<typename T>

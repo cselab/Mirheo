@@ -9,7 +9,7 @@ YmrObject::YmrObject(std::string name) :
 
 YmrObject::~YmrObject() = default;
 
-void YmrObject::checkpoint(MPI_Comm comm, std::string path) {}
+void YmrObject::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) {}
 void YmrObject::restart   (MPI_Comm comm, std::string path) {}
 
 

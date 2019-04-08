@@ -89,7 +89,7 @@ public:
         intMap.insert({{pv2name, pv1name}, pair});
     }
 
-    void checkpoint(MPI_Comm comm, std::string path) override
+    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override
     {
         auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt");
         {
@@ -99,7 +99,7 @@ public:
                 entry.second.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt");
-        advanceCheckpointId(state->checkpointMode);
+        advanceCheckpointId(checkpointMode);
     }
     
     void restart(MPI_Comm comm, std::string path) override

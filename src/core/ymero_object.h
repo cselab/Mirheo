@@ -18,7 +18,7 @@ public:
     YmrObject(std::string name);
     virtual ~YmrObject();
 
-    virtual void checkpoint(MPI_Comm comm, std::string path);  /// Save handler state
+    virtual void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode);  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
 
     std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;

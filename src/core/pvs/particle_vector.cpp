@@ -346,10 +346,10 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     return map;
 }
 
-void ParticleVector::checkpoint(MPI_Comm comm, std::string path)
+void ParticleVector::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
 {
     _checkpointParticleData(comm, path);
-    advanceCheckpointId(state->checkpointMode);
+    advanceCheckpointId(checkpointMode);
 }
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)

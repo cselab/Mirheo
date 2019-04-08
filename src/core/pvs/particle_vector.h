@@ -54,7 +54,7 @@ public:
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }
 
-    void checkpoint(MPI_Comm comm, std::string path) override;
+    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override;
     void restart(MPI_Comm comm, std::string path) override;
 
     

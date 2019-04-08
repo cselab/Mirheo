@@ -91,7 +91,7 @@ public:
      */
     virtual std::vector<InteractionChannel> getFinalOutputChannels() const;
 
-    void checkpoint(MPI_Comm comm, std::string path) override;
+    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override;
     void restart   (MPI_Comm comm, std::string path) override;
     
     static const ActivePredicate alwaysActive;

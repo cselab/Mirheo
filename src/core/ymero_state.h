@@ -15,7 +15,7 @@ using TimeType = double;
 class YmrState
 {
 public:
-    YmrState(DomainInfo domain, float dt, CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong);
+    YmrState(DomainInfo domain, float dt);
     YmrState(const YmrState&);
     YmrState& operator=(YmrState other);
 
@@ -34,7 +34,5 @@ public:
     float dt;
     TimeType currentTime;
     int currentStep;
-
-    CheckpointIdAdvanceMode checkpointMode;
 };
 

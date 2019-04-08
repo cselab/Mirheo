@@ -275,11 +275,11 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
     info("Successfully read %d object infos", loc_ids->size());
 }
 
-void ObjectVector::checkpoint(MPI_Comm comm, std::string path)
+void ObjectVector::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
 {
     _checkpointParticleData(comm, path);
     _checkpointObjectData(comm, path);
-    advanceCheckpointId(state->checkpointMode);
+    advanceCheckpointId(checkpointMode);
 }
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
