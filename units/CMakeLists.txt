@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 3.8)
 
-if(POLICY CMP0060)
+if (POLICY CMP0060)
     cmake_policy(SET CMP0060 NEW)
 endif()
 
 project(YMR_UnitTests LANGUAGES C CXX CUDA)
 enable_testing()
-
-set(BUILD_GMOCK OFF)
-set(INSTALL_GTEST OFF)
 
 # googletest
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
