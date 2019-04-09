@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interface.h"
+#include "rod/forces_kernels.h"
 #include "rod/parameters.h"
 
 #include <core/pvs/rod_vector.h>

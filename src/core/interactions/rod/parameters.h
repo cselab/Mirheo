@@ -6,4 +6,7 @@ struct RodParameters
     float omega0[2];
     float b;
     float tau0;
+
+    float a;
+    float kbounds;
 };
