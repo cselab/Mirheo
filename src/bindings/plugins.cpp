@@ -32,7 +32,6 @@ void exportPlugins(py::module& m)
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
 
-    
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
@@ -170,6 +169,10 @@ void exportPlugins(py::module& m)
     py::handlers_class<ParticleChannelSaverPlugin>(m, "ParticleChannelSaver", pysim, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
+    )");
+
+    py::handlers_class<ParticleDragPlugin>(m, "ParticleDrag", pysim, R"(
+        This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
     )");
     
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
@@ -612,6 +615,16 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             update_every: displacements are computed between positions separated by this amount of timesteps
+    )");
+
+    m.def("__createParticleDrag", &PluginFactory::createParticleDragPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "drag"_a, R"(
+        Create :any:`ParticleDragPlugin`
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            drag: drag coefficient
     )");
 
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
