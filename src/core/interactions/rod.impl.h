@@ -15,9 +15,9 @@ static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParamet
     RodForcesKernels::GPU_RodBoundsParameters dp;
     dp.kbounds = p.kbounds;
     dp.lcenter = p.l0;
-    dp.lcenter = p.a0;
-    dp.lring   = sqrt(2.0) * p.a0;
-    dp.ldiag   = sqrt(p.a0*p.a0 + p.l0*p.l0);
+    dp.lcross  = p.a0;
+    dp.lring   = 0.5 * sqrt(2.0) * p.a0;
+    dp.ldiag   = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
     return dp;
 }
 

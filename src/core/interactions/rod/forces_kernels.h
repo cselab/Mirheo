@@ -48,7 +48,9 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     auto v1 = fetchPosition(view, start + 4);
     auto r1 = fetchPosition(view, start + 5);
 
-    real3 fr0{0._r}, fr1{0._r}, fu0{0._r}, fu1{0._r}, fv0{0._r}, fv1{0._r};
+    real3 fr0{0._r, 0._r, 0._r}, fr1{0._r, 0._r, 0._r};
+    real3 fu0{0._r, 0._r, 0._r}, fu1{0._r, 0._r, 0._r};
+    real3 fv0{0._r, 0._r, 0._r}, fv1{0._r, 0._r, 0._r};
 
 #define BOUND(a, b, l, k) do {                          \
         auto f = fbound(a, b, params. l, params. k);    \
