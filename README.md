@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.13.0
 
 * **compilation changes** require `c++ 14` and `cuda 9.2`
 * **additional extern code** include `src/extern/mpark`
