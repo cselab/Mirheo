@@ -14,13 +14,10 @@
 
 using namespace pybind11::literals;
 
-static std::shared_ptr<InteractionMembrane>
-createInteractionMembrane(const YmrState *state, std::string name,
-                          std::string shearDesc, std::string bendingDesc,
-                          bool stressFree, float growUntil, py::kwargs kwargs)
+static std::map<std::string, float> castToMap(const py::kwargs& kwargs, const std::string intName)
 {
     std::map<std::string, float> parameters;
-
+    
     for (const auto& item : kwargs) {
         try {
             auto key   = py::cast<std::string>(item.first);
@@ -29,14 +26,30 @@ createInteractionMembrane(const YmrState *state, std::string name,
         }
         catch (const py::cast_error& e)
         {
-            die("Could not cast one of the arguments in membrane interactions '%s'", name.c_str());
+            die("Could not cast one of the arguments in interaction '%s'", intName.c_str());
         }        
-    }    
+    }
+    return parameters;
+}
+
+static std::shared_ptr<InteractionMembrane>
+createInteractionMembrane(const YmrState *state, std::string name,
+                          std::string shearDesc, std::string bendingDesc,
+                          bool stressFree, float growUntil, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
     
     return InteractionFactory::createInteractionMembrane
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
 }
 
+static std::shared_ptr<InteractionRod>
+createInteractionRod(const YmrState *state, std::string name, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+    
+    return InteractionFactory::createInteractionRod(state, name, parameters);
+}
 
 static std::shared_ptr<BasicInteractionSDPD>
 createInteractionPairwiseSDPD(const YmrState *state, std::string name,
@@ -44,19 +57,7 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
                               std::string EOS, std::string density,
                               bool stress, py::kwargs kwargs)
 {
-    std::map<std::string, float> parameters;
-
-    for (const auto& item : kwargs) {
-        try {
-            auto key   = py::cast<std::string>(item.first);
-            auto value = py::cast<float>(item.second);
-            parameters[key] = value;
-        }
-        catch (const py::cast_error& e)
-        {
-            die("Could not cast one of the arguments in pairwise DPD interactions '%s'", name.c_str());
-        }        
-    }    
+    auto parameters = castToMap(kwargs, name);
     
     return InteractionFactory::createPairwiseSDPD
         (state, name, rc, viscosity, kBT, EOS, density, stress, parameters);
@@ -436,6 +437,23 @@ void exportInteractions(py::module& m)
                  * **C0**:  spontaneous curvature
                  * **kad**: area difference energy magnitude
                  * **DA0**: area difference at relaxed state divided by the offset of the leaflet midplanes
+    )");
+
+    py::handlers_class<InteractionRod> pyRodForces(m, "RodForces", pyInt, R"(
+        Rod interactions.
+        TODO
+    )");
+
+    pyRodForces.def(py::init(&createInteractionRod),
+                         "state"_a, "name"_a, R"( 
+             Args:
+                 name: name of the interaction
+
+             kwargs:
+
+                 * **a0**:         equilibrium length between 2 opposite cross vertices
+                 * **l0**:         equilibrium length between 2 consecutive vertices on the centerline 
+                 * **kbounds**:    bound energy
     )");
 }
 
