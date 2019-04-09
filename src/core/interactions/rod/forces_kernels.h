@@ -38,6 +38,9 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     int segmentId = i % view.nSegments;
     int start = view.objSize * rodId + segmentId * 5;
 
+    if (rodId     > view.nObjects ) return;
+    if (segmentId > view.nSegments) return;
+
     auto r0 = fetchPosition(view, start + 0);
     auto u0 = fetchPosition(view, start + 1);
     auto u1 = fetchPosition(view, start + 2);
