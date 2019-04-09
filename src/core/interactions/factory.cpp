@@ -121,6 +121,23 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
 
+static RodParameters readRodParameters(const std::map<std::string, float>& desc)
+{
+    RodParameters p;
+    p.a0 = readFloat(desc, "a0");
+    p.l0 = readFloat(desc, "l0");
+    p.kbounds = readFloat(desc, "kbounds");    
+    return p;
+}
+
+std::shared_ptr<InteractionRod>
+InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
+                                         const std::map<std::string, float>& parameters)
+{
+    auto params = readRodParameters(parameters);
+    return std::make_shared<InteractionRod>(state, name, params);
+}
+
 
 static bool isSimpleMDPDDensity(const std::string& desc)
 {

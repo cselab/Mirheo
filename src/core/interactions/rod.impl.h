@@ -10,6 +10,17 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
+static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParameters& p)
+{
+    RodForcesKernels::GPU_RodBoundsParameters dp;
+    dp.kbounds = p.kbounds;
+    dp.lcenter = p.l0;
+    dp.lcenter = p.a0;
+    dp.lring   = sqrt(2.0) * p.a0;
+    dp.ldiag   = sqrt(p.a0*p.a0 + p.l0*p.l0);
+    return dp;
+}
+
 class InteractionRodImpl : public Interaction
 {
 public:
@@ -30,14 +41,13 @@ public:
         RVview view(rv, rv->local());
 
         const int nthreads = 128;
-        const int nblocks  = getNblocks(view.size, nthreads);
-
-        // SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
-        //                    nblocks, nthreads, 0, stream,
-        //                    triangleInteraction,
-        //                    dihedralInteraction, dihedralView,
-        //                    view, meshView, devParams);
-
+        const int nblocks  = getNblocks(view.objSize * view.nSegments, nthreads);
+        
+        auto devParams = getBoundParams(parameters);
+        
+        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
+                           nblocks, nthreads, 0, stream,
+                           view, devParams);
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
