@@ -156,6 +156,11 @@ class ParticleDisplacementPlugin(SimulationPlugin):
         The result is stored inside the extra channel "displacements" as an array of float3.
     
     """
+class ParticleDrag(SimulationPlugin):
+    r"""
+        This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
+    
+    """
 class ParticleDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
@@ -688,6 +693,21 @@ def createParticleDisplacement():
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             update_every: displacements are computed between positions separated by this amount of timesteps
+    
+
+    """
+    pass
+
+def createParticleDrag():
+    r"""createParticleDrag(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, drag: float) -> Tuple[Plugins.ParticleDrag, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleDragPlugin`
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            drag: drag coefficient
     
 
     """

@@ -309,6 +309,29 @@ class MembraneForces(Interaction):
         """
         pass
 
+class RodForces(Interaction):
+    r"""
+        Rod interactions.
+        TODO
+    
+    """
+    def __init__():
+        r"""__init__(name: str, **kwargs) -> None
+
+ 
+             Args:
+                 name: name of the interaction
+
+             kwargs:
+
+                 * **a0**:         equilibrium length between 2 opposite cross vertices
+                 * **l0**:         equilibrium length between 2 consecutive vertices on the centerline 
+                 * **kbounds**:    bound energy
+    
+
+        """
+        pass
+
 class SDPD(Interaction):
     r"""
         Compute SDPD interaction with angular momentum conservation.
