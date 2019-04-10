@@ -129,7 +129,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
         return bicurFactor * (2 * cross(e1, v) + dot(e1, v) * bicur);
     };
 
-    real bendingForceFactor = -2.0_r * params.kBending / l;
+    real bendingForceFactor = 2.0_r * params.kBending / l;
 
     auto f0 = bendingForceFactor * grad0BicurApply(bicur);
     auto f2 = bendingForceFactor * grad2BicurApply(bicur);

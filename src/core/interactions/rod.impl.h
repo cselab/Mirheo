@@ -21,6 +21,13 @@ static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParamet
     return dp;
 }
 
+static RodForcesKernels::GPU_RodBiSegmentParameters getBiSegmentParams(const RodParameters& p)
+{
+    RodForcesKernels::GPU_RodBiSegmentParameters dp;
+    dp.kBending = p.kBending;
+    return dp;
+}
+
 class InteractionRodImpl : public Interaction
 {
 public:
@@ -40,14 +47,28 @@ public:
 
         RVview view(rv, rv->local());
 
-        const int nthreads = 128;
-        const int nblocks  = getNblocks(view.objSize * view.nSegments, nthreads);
+        {
+            const int nthreads = 128;
+            const int nblocks  = getNblocks(view.objSize * view.nSegments, nthreads);
         
-        auto devParams = getBoundParams(parameters);
+            auto devParams = getBoundParams(parameters);
         
-        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
-                           nblocks, nthreads, 0, stream,
-                           view, devParams);
+            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
+                               nblocks, nthreads, 0, stream,
+                               view, devParams);
+        }
+
+        {
+            const int nthreads = 128;
+            const int nblocks  = getNblocks(view.objSize * (view.nSegments-1), nthreads);
+        
+            auto devParams = getBiSegmentParams(parameters);
+        
+            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
+                               nblocks, nthreads, 0, stream,
+                               view, devParams);            
+        }
+        
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

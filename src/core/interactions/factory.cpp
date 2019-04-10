@@ -124,9 +124,11 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
 static RodParameters readRodParameters(const std::map<std::string, float>& desc)
 {
     RodParameters p;
+    p.kBending = readFloat(desc, "k_bending");
+    
     p.a0 = readFloat(desc, "a0");
     p.l0 = readFloat(desc, "l0");
-    p.kBounds = readFloat(desc, "kbounds");    
+    p.kBounds = readFloat(desc, "k_bounds");    
     return p;
 }
 

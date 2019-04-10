@@ -46,7 +46,8 @@ l0 = length(center_line(h), center_line(0)) * 1.05 # small perturbation
 prms = {
     "a0" : l0,
     "l0" : l0,
-    "kbounds" : 1000.0
+    "k_bounds"  : 1000.0,
+    "k_bending" : 0.0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
