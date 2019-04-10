@@ -52,10 +52,10 @@ std::vector<float3> createRodTemplate(int nSegments,
         float3 mu =  cost * u + sint * v;
         float3 mv = -sint * u + cost * v;
             
-        positions[5*i + 1] = r + 0.5 * l * mu;
-        positions[5*i + 2] = r - 0.5 * l * mu;
-        positions[5*i + 3] = r + 0.5 * l * mv;
-        positions[5*i + 4] = r - 0.5 * l * mv;
+        positions[5*i + 1] = r - 0.5 * l * mu;
+        positions[5*i + 2] = r + 0.5 * l * mu;
+        positions[5*i + 3] = r - 0.5 * l * mv;
+        positions[5*i + 4] = r + 0.5 * l * mv;
         
         auto t0 = normalize(r1-r0);
         auto t1 = normalize(r2-r1);
