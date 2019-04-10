@@ -14,7 +14,9 @@ namespace RodForcesKernels
 struct GPU_RodBoundsParameters
 {
     float lcenter, lcross, ldiag, lring;
-    float kbounds;
+    float kBounds;
+};
+
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -33,10 +35,10 @@ __device__ inline real3 fbound(const real3& r0, const real3& r1, const real& l0,
 
 __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters params)
 {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int rodId     = i / view.nSegments;
-    int segmentId = i % view.nSegments;
-    int start = view.objSize * rodId + segmentId * 5;
+    const int i = threadIdx.x + blockIdx.x * blockDim.x;
+    const int rodId     = i / view.nSegments;
+    const int segmentId = i % view.nSegments;
+    const int start = view.objSize * rodId + segmentId * 5;
 
     if (rodId     > view.nObjects ) return;
     if (segmentId > view.nSegments) return;
@@ -58,25 +60,25 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
         f##b -= f;                                      \
     } while(0)
 
-    BOUND(r0, u0, ldiag, kbounds);
-    BOUND(r0, u1, ldiag, kbounds);
-    BOUND(r0, v0, ldiag, kbounds);
-    BOUND(r0, v1, ldiag, kbounds);
+    BOUND(r0, u0, ldiag, kBounds);
+    BOUND(r0, u1, ldiag, kBounds);
+    BOUND(r0, v0, ldiag, kBounds);
+    BOUND(r0, v1, ldiag, kBounds);
 
-    BOUND(r1, u0, ldiag, kbounds);
-    BOUND(r1, u1, ldiag, kbounds);
-    BOUND(r1, v0, ldiag, kbounds);
-    BOUND(r1, v1, ldiag, kbounds);
+    BOUND(r1, u0, ldiag, kBounds);
+    BOUND(r1, u1, ldiag, kBounds);
+    BOUND(r1, v0, ldiag, kBounds);
+    BOUND(r1, v1, ldiag, kBounds);
 
-    BOUND(u0, v0, lring, kbounds);
-    BOUND(v0, u1, lring, kbounds);
-    BOUND(u1, v1, lring, kbounds);
-    BOUND(v1, u0, lring, kbounds);
+    BOUND(u0, v0, lring, kBounds);
+    BOUND(v0, u1, lring, kBounds);
+    BOUND(u1, v1, lring, kBounds);
+    BOUND(v1, u0, lring, kBounds);
 
-    BOUND(u0, u1, lcross, kbounds);
-    BOUND(v0, v1, lcross, kbounds);
+    BOUND(u0, u1, lcross, kBounds);
+    BOUND(v0, v1, lcross, kBounds);
 
-    BOUND(r0, r1, lcenter, kbounds);
+    BOUND(r0, r1, lcenter, kBounds);
 
 #undef BOUND
     

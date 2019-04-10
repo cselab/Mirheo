@@ -8,5 +8,5 @@ struct RodParameters
     // float tau0;
 
     float a0, l0;
-    float kbounds;
+    float kBounds;
 };

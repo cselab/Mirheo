@@ -126,7 +126,7 @@ static RodParameters readRodParameters(const std::map<std::string, float>& desc)
     RodParameters p;
     p.a0 = readFloat(desc, "a0");
     p.l0 = readFloat(desc, "l0");
-    p.kbounds = readFloat(desc, "kbounds");    
+    p.kBounds = readFloat(desc, "kbounds");    
     return p;
 }
 
