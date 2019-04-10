@@ -17,6 +17,9 @@ struct GPU_RodBoundsParameters
     float kBounds;
 };
 
+struct GPU_RodBiSegmentParameters
+{
+    float kBending, kTwist;
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -89,5 +92,53 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     atomicAdd(view.forces + start + 4, make_float3(fv1));
     atomicAdd(view.forces + start + 5, make_float3(fr1));
 }
+
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters params)
+{
+    const int i = threadIdx.x + blockIdx.x * blockDim.x;
+    const int nBiSegments = view.nSegments - 1;
+    const int rodId       = i / nBiSegments;
+    const int biSegmentId = i % nBiSegments;
+    const int start = view.objSize * rodId + biSegmentId * 5;
+
+    if (rodId       > view.nObjects ) return;
+    if (biSegmentId > nBiSegments   ) return;
+
+    auto r0 = fetchPosition(view, start + 0);
+    auto r1 = fetchPosition(view, start + 5);
+    auto r2 = fetchPosition(view, start + 10);
+
+    real3 e0 = r1 - r0;
+    real3 e1 = r2 - r1;
+
+    real le0 = length(e0);
+    real le1 = length(e1);
+    real l = 0.5_r * (le0 + le1);
+
+    real bicurFactor = 1.0_r / (le0 * le1 + dot(e0, e1));
+
+    real3 bicur = (2.0_r * bicurFactor) * cross(e0, e1);
+
+    auto grad0BicurApply = [&](const real3 v)
+    {
+        return bicurFactor * (2 * cross(e0, v) + dot(e0, v) * bicur);
+    };
+
+    auto grad2BicurApply = [&](const real3 v)
+    {
+        return bicurFactor * (2 * cross(e1, v) + dot(e1, v) * bicur);
+    };
+
+    real bendingForceFactor = -2.0_r * params.kBending / l;
+
+    auto f0 = bendingForceFactor * grad0BicurApply(bicur);
+    auto f2 = bendingForceFactor * grad2BicurApply(bicur);
+    auto f1 = -(f0 + f2);
+
+    atomicAdd(view.forces + start +  0, make_float3(f0));
+    atomicAdd(view.forces + start +  5, make_float3(f1));
+    atomicAdd(view.forces + start + 10, make_float3(f2));
+}
+
 
 } // namespace RodForcesKernels
