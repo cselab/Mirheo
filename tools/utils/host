@@ -15,8 +15,11 @@ EOF
 if test $# -ne 0; then usage; fi
 
 case `hostname` in
-    falcon*|panda*)
+    falcon*)
         echo falcon
+	;;
+    panda*)
+        echo panda
 	;;
     barry*)
 	echo barry
