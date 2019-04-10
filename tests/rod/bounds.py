@@ -47,7 +47,8 @@ prms = {
     "a0" : l0,
     "l0" : l0,
     "k_bounds"  : 1000.0,
-    "k_bending" : 0.0
+    "k_bending" : 0.0,
+    "k_twist" : 0.0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);

@@ -25,6 +25,7 @@ static RodForcesKernels::GPU_RodBiSegmentParameters getBiSegmentParams(const Rod
 {
     RodForcesKernels::GPU_RodBiSegmentParameters dp;
     dp.kBending = p.kBending;
+    dp.kTwist   = p.kTwist;
     return dp;
 }
 
