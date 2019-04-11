@@ -43,8 +43,8 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     const int segmentId = i % view.nSegments;
     const int start = view.objSize * rodId + segmentId * 5;
 
-    if (rodId     > view.nObjects ) return;
-    if (segmentId > view.nSegments) return;
+    if (rodId     >= view.nObjects ) return;
+    if (segmentId >= view.nSegments) return;
 
     auto r0 = fetchPosition(view, start + 0);
     auto u0 = fetchPosition(view, start + 1);
@@ -93,6 +93,13 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     atomicAdd(view.forces + start + 5, make_float3(fr1));
 }
 
+
+__device__ inline real3 fetchBishopFrame(const RVview& view, int objId, int segmentId)
+{
+    float3 u =  view.bishopFrames[objId * view.nSegments * segmentId];
+    return make_real3(u);
+}
+
 __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters params)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -101,19 +108,34 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     const int biSegmentId = i % nBiSegments;
     const int start = view.objSize * rodId + biSegmentId * 5;
 
-    if (rodId       > view.nObjects ) return;
-    if (biSegmentId > nBiSegments   ) return;
+    if (rodId       >= view.nObjects ) return;
+    if (biSegmentId >= nBiSegments   ) return;
 
-    auto r0 = fetchPosition(view, start + 0);
-    auto r1 = fetchPosition(view, start + 5);
-    auto r2 = fetchPosition(view, start + 10);
+    auto r0  = fetchPosition(view, start + 0);
+    auto r1  = fetchPosition(view, start + 5);
+    auto r2  = fetchPosition(view, start + 10);
 
+    auto pm0 = fetchPosition(view, start + 1);
+    auto pp0 = fetchPosition(view, start + 2);
+    auto pm1 = fetchPosition(view, start + 6);
+    auto pp1 = fetchPosition(view, start + 7);
+
+    auto u0 = fetchBishopFrame(view, rodId, biSegmentId + 0);
+    auto u1 = fetchBishopFrame(view, rodId, biSegmentId + 1);
+
+    // bending
+    
     real3 e0 = r1 - r0;
     real3 e1 = r2 - r1;
 
+    real3 t0 = normalize(e0);
+    real3 t1 = normalize(e1);
+
     real le0 = length(e0);
     real le1 = length(e1);
-    real l = 0.5_r * (le0 + le1);
+    real e0inv = 1.0_r / le0;
+    real e1inv = 1.0_r / le1;
+    real linv = 2.0_r / (le0 + le1);
 
     real bicurFactor = 1.0_r / (le0 * le1 + dot(e0, e1));
 
@@ -129,15 +151,59 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
         return bicurFactor * (2 * cross(e1, v) + dot(e1, v) * bicur);
     };
 
-    real bendingForceFactor = 2.0_r * params.kBending / l;
+    real bendingForceFactor = 2.0_r * params.kBending * linv;
 
-    auto f0 = bendingForceFactor * grad0BicurApply(bicur);
-    auto f2 = bendingForceFactor * grad2BicurApply(bicur);
-    auto f1 = -(f0 + f2);
+    auto fr0 = bendingForceFactor * grad0BicurApply(bicur);
+    auto fr2 = bendingForceFactor * grad2BicurApply(bicur);
 
-    atomicAdd(view.forces + start +  0, make_float3(f0));
-    atomicAdd(view.forces + start +  5, make_float3(f1));
-    atomicAdd(view.forces + start + 10, make_float3(f2));
+
+    // twist
+
+    auto v0 = cross(t0, u0);
+    auto v1 = cross(t1, u1);
+
+    real3 dp0 = pp0 - pm0;
+    real3 dp1 = pp1 - pm1;
+
+    real dpu0 = dot(dp0, u0);
+    real dpv0 = dot(dp0, v0);
+
+    real dpu1 = dot(dp1, u1);
+    real dpv1 = dot(dp1, v1);
+
+    real theta0 = atan2(dpv0, dpu0);
+    real theta1 = atan2(dpv1, dpu1);
+
+    //printf("%d\t%05d\t %+6g\t %+6g\t %+6g\t %+6g\n", rodId, biSegmentId, theta0, theta1, dpu0, dpv0);
+
+    real dtheta_l = (theta1 - theta0) * linv;
+
+    real Et_l = dtheta_l * dtheta_l * params.kTwist;
+
+    fr0 -= 0.5_r * Et_l * t0;
+    fr2 += 0.5_r * Et_l * t1;
+
+    real dthetaFFactor = dtheta_l * params.kTwist;
+
+    fr0 -= (dthetaFFactor * e0inv) * bicur;
+    fr2 += (dthetaFFactor * e1inv) * bicur;
+
+    auto fpm0 = (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpu0 * u0 - dpv0 * v0);    
+    auto fpm1 = (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpv1 * v1 - dpu1 * u1);
+
+    // by conservation of momentum
+    auto fr1 = -(fr0 + fr2);
+    auto fpp0 = -fpm0;
+    auto fpp1 = -fpm1;
+    
+    atomicAdd(view.forces + start +  0, make_float3(fr0));    
+    atomicAdd(view.forces + start +  5, make_float3(fr1));
+    atomicAdd(view.forces + start + 10, make_float3(fr2));
+
+    atomicAdd(view.forces + start +  1, make_float3(fpm0));
+    atomicAdd(view.forces + start +  2, make_float3(fpp0));
+    atomicAdd(view.forces + start +  6, make_float3(fpm1));
+    atomicAdd(view.forces + start +  7, make_float3(fpp1));
 }
 
 
