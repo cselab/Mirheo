@@ -135,10 +135,10 @@ static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& p
         float a = length(dr);
         auto c = 0.5f * (r0 + r1);
 
-        positions[i*5+1] = c + a * u;
-        positions[i*5+2] = c - a * u;
-        positions[i*5+3] = c + a * v;
-        positions[i*5+4] = c - a * v;
+        positions[i*5+1] = c - a * u;
+        positions[i*5+2] = c + a * u;
+        positions[i*5+3] = c - a * v;
+        positions[i*5+4] = c + a * v;
     }
 }
 
