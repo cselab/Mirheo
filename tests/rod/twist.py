@@ -2,6 +2,12 @@
 
 import numpy as np
 import ymero as ymr
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--tau0', type=float, default=0.0)
+parser.add_argument('--tau0_init', type=float, default=0.5)
+args = parser.parse_args()
 
 ranks  = (1, 1, 1)
 domain = [16, 16, 16]
@@ -19,7 +25,7 @@ def center_line(s):
     return (0, 0, (s-0.5) * L)
 
 def torsion(s):
-    return 0.5
+    return args.tau0_init
 
 def length(a, b):
     return np.sqrt(
@@ -42,7 +48,7 @@ prms = {
     "k_bounds"  : 1000.0,
     "k_bending" : 10.0,
     "k_twist"   : 10.0,
-    "tau0"      : 0.0
+    "tau0"      : args.tau0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
@@ -54,7 +60,7 @@ u.registerIntegrator(vv)
 u.setInteraction(int_rod, rv, rv)
 u.setIntegrator(vv, rv)
 
-dump_every = 500
+dump_every = 10
 u.registerPlugins(ymr.Plugins.createDumpParticles('rod_dump', rv, dump_every, [], 'h5/rod_particles-'))
 
 u.run(502)
@@ -69,4 +75,10 @@ del u
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./twist.py > /dev/null
+# cat pos.rod.txt > pos.out.txt
+
+# nTEST: rod.twist.tau0
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./twist.py --tau0 0.5 --tau0_init 0.4 > /dev/null
 # cat pos.rod.txt > pos.out.txt
