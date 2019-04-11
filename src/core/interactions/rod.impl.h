@@ -46,11 +46,13 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
+        rv->updateBishopFrame(stream);
+        
         RVview view(rv, rv->local());
 
         {
             const int nthreads = 128;
-            const int nblocks  = getNblocks(view.objSize * view.nSegments, nthreads);
+            const int nblocks  = getNblocks(view.nObjects * view.nSegments, nthreads);
         
             auto devParams = getBoundParams(parameters);
         
@@ -61,7 +63,7 @@ public:
 
         {
             const int nthreads = 128;
-            const int nblocks  = getNblocks(view.objSize * (view.nSegments-1), nthreads);
+            const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
         
             auto devParams = getBiSegmentParams(parameters);
         
