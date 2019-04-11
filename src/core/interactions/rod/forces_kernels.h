@@ -96,7 +96,7 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
 
 __device__ inline real3 fetchBishopFrame(const RVview& view, int objId, int segmentId)
 {
-    float3 u =  view.bishopFrames[objId * view.nSegments * segmentId];
+    float3 u =  view.bishopFrames[objId * view.nSegments + segmentId];
     return make_real3(u);
 }
 
@@ -174,7 +174,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real theta0 = atan2(dpv0, dpu0);
     real theta1 = atan2(dpv1, dpu1);
 
-    //printf("%d\t%05d\t %+6g\t %+6g\t %+6g\t %+6g\n", rodId, biSegmentId, theta0, theta1, dpu0, dpv0);
+    // printf("%d\t%05d\t %+6g\t %+6g\t %+6g\t %+6g\n", rodId, biSegmentId, theta0, theta1, dot(u0, t0), dot(u0, u0));
 
     real dtheta_l = (theta1 - theta0) * linv;
 

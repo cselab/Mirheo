@@ -8,14 +8,16 @@ domain = [16, 16, 16]
 
 dt = 1e-3
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt, debug_level=8, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 
+
+L = 5.0
+P = 1.0
+R = 1.0
+
 def center_line(s):
-    L = 5.0
-    P = 1.0
-    R = 1.0
     t = s * L * np.pi / P 
     return (R * np.cos(t),
             R * np.sin(t),
@@ -24,6 +26,11 @@ def center_line(s):
 # def center_line(s):
 #     L = 5.0
 #     return (0, 0, (s-0.5) * L)
+
+# def torsion(s):
+#     a = R
+#     b = P / (2.0 * np.pi)
+#     return b / (a**2 + b**2)
 
 def torsion(s):
     return 0.0
@@ -48,7 +55,7 @@ prms = {
     "l0" : l0,
     "k_bounds"  : 1000.0,
     "k_bending" : 0.0,
-    "k_twist" : 0.0
+    "k_twist"   : 0.0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
