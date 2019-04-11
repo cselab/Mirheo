@@ -100,6 +100,16 @@ __device__ inline real3 fetchBishopFrame(const RVview& view, int objId, int segm
     return make_real3(u);
 }
 
+// theta0 and theta1 might be close to pi, leading to +- pi values
+// this function compute the difference between the angles such as it is safely less that pi
+__device__ inline real safeDiffTheta(real t0, real t1)
+{
+    auto dth = t1 - t0;
+    if (dth >  M_PI) dth -= 2.0_r * M_PI;
+    if (dth < -M_PI) dth += 2.0_r * M_PI;
+    return dth;
+}
+
 __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters params)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -173,8 +183,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     real theta0 = atan2(dpv0, dpu0);
     real theta1 = atan2(dpv1, dpu1);
-
-    real dtheta_l = (theta1 - theta0) * linv;
+    
+    real dtheta_l = safeDiffTheta(theta0, theta1) * linv;
     real dtheta_l_mtau = dtheta_l - params.tau0;
     real dtheta_l_ptau = dtheta_l + params.tau0;
 
