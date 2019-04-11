@@ -2,9 +2,11 @@
 
 struct RodParameters
 {
-    float kBending;
-    float kTwist;
+    float kBending; ///< bending force magnitude
+    float kTwist;   ///< twist force magnitude
+    float tau0;
 
-    float a0, l0;
-    float kBounds;
+    float a0;       ///< equilibrium length between two opposite material frame particles
+    float l0;       ///< equilibrium length between two consecutive centerline particles
+    float kBounds;  ///< bound force magnitude
 };

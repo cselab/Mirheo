@@ -19,7 +19,7 @@ struct GPU_RodBoundsParameters
 
 struct GPU_RodBiSegmentParameters
 {
-    float kBending, kTwist;
+    float kBending, kTwist, tau0;
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -194,7 +194,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
     
-    atomicAdd(view.forces + start +  0, make_float3(fr0));    
+    atomicAdd(view.forces + start +  0, make_float3(fr0));
     atomicAdd(view.forces + start +  5, make_float3(fr1));
     atomicAdd(view.forces + start + 10, make_float3(fr2));
 
