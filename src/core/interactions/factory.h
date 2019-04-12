@@ -14,7 +14,7 @@
 
 namespace InteractionFactory
 {
-using VarParam = mpark::variant<float, PyTypes::float2>;
+using VarParam = mpark::variant<float, PyTypes::float2, PyTypes::float3>;
 
 std::shared_ptr<InteractionMembrane>
 createInteractionMembrane(const YmrState *state, std::string name,

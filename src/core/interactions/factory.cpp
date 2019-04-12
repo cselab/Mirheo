@@ -127,10 +127,11 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
 static RodParameters readRodParameters(const MapParams& desc)
 {
     RodParameters p;
-    p.kBending  = read<float>(desc, "k_bending");
+    p.kBending  = make_float3(read<PyTypes::float3>(desc, "k_bending"));
+    p.omegaEq   = make_float2(read<PyTypes::float2>(desc, "omega0"));
+
     p.kTwist    = read<float>(desc, "k_twist");
     p.tauEq     = read<float>(desc, "tau0");
-    p.omegaEq   = make_float2(read<PyTypes::float2>(desc, "omega0"));
     
     p.a0 = read<float>(desc, "a0");
     p.l0 = read<float>(desc, "l0");

@@ -24,7 +24,7 @@ static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParamet
 static RodForcesKernels::GPU_RodBiSegmentParameters getBiSegmentParams(const RodParameters& p)
 {
     RodForcesKernels::GPU_RodBiSegmentParameters dp;
-    dp.kBending = {p.kBending, p.kBending}; // TODO
+    dp.kBending = p.kBending;
     dp.omegaEq  = p.omegaEq;
     dp.kTwist   = p.kTwist;
     dp.tauEq    = p.tauEq;

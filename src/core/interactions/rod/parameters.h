@@ -2,8 +2,8 @@
 
 struct RodParameters
 {
-    float kBending; ///< bending force magnitude
-    float2 omegaEq; ///< equilibrium curvature along the material frames
+    float3 kBending; ///< bending force magnitude in that order: (Bxx, Bxy, Byy) (symmetric matrix)
+    float2 omegaEq;  ///< equilibrium curvature along the material frames
 
     float kTwist;   ///< twist force magnitude
     float tauEq;    ///< equilibrium torsion

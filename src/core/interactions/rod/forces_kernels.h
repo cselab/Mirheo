@@ -19,7 +19,8 @@ struct GPU_RodBoundsParameters
 
 struct GPU_RodBiSegmentParameters
 {
-    float2 kBending, omegaEq;
+    float3 kBending;
+    float2 omegaEq;
     float kTwist, tauEq;
 };
 
