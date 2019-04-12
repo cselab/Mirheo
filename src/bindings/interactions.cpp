@@ -21,14 +21,19 @@ castToMap(const py::kwargs& kwargs, const std::string intName)
     std::map<std::string, InteractionFactory::VarParam> parameters;
     
     for (const auto& item : kwargs) {
+        std::string key;
         try {
-            auto key        = py::cast<std::string>(item.first);
+            key = py::cast<std::string>(item.first);
+        }
+        catch (const py::cast_error& e) {
+            die("Could not cast one of the arguments in interaction '%s' to string", intName.c_str());
+        }
+        try {
             parameters[key] = py::cast<InteractionFactory::VarParam>(item.second);
         }
-        catch (const py::cast_error& e)
-        {
-            die("Could not cast one of the arguments in interaction '%s'", intName.c_str());
-        }        
+        catch (const py::cast_error& e) {
+            die("Could not cast argument '%s' in interaction '%s': wrong type", key.c_str(), intName.c_str());
+        }
     }
     return parameters;
 }
