@@ -104,3 +104,10 @@ del u
 # ymr.run --runargs "-n 2" ./forces.py \
 # --center_line "line" --ktwist 1000.0 --tau0 0.2 --tau0_eq 0.1 > /dev/null
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
+
+# nTEST: rod.forces.bending
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./forces.py \
+# --center_line "helix" --kbending 1000.0 > /dev/null
+# ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
