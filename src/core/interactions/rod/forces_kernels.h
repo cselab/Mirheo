@@ -112,6 +112,12 @@ __device__ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
+__device__ inline real2 symmetricMatMult(const real3& A, const float2& x)
+{
+    return {A.x * x.x + A.y * x.y,
+            A.y * x.x + A.z * x.y};
+}
+
 __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters params)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
