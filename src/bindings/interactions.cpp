@@ -11,18 +11,19 @@
 
 #include "bindings.h"
 #include "class_wrapper.h"
+#include "variant_cast.h"
 
 using namespace pybind11::literals;
 
-static std::map<std::string, float> castToMap(const py::kwargs& kwargs, const std::string intName)
+static std::map<std::string, InteractionFactory::VarParam>
+castToMap(const py::kwargs& kwargs, const std::string intName)
 {
-    std::map<std::string, float> parameters;
+    std::map<std::string, InteractionFactory::VarParam> parameters;
     
     for (const auto& item : kwargs) {
         try {
-            auto key   = py::cast<std::string>(item.first);
-            auto value = py::cast<float>(item.second);
-            parameters[key] = value;
+            auto key        = py::cast<std::string>(item.first);
+            parameters[key] = py::cast<InteractionFactory::VarParam>(item.second);
         }
         catch (const py::cast_error& e)
         {

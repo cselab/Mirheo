@@ -10,90 +10,93 @@
 
 #include <core/logger.h>
 
-static bool hasKey(const std::map<std::string, float>& desc, const std::string& key)
-{
-    return desc.find(key) != desc.end();
-}
+using InteractionFactory::VarParam;
+using MapParams = std::map<std::string, VarParam>;
 
-static float readFloat(const std::map<std::string, float>& desc, const std::string& key)
+
+template <typename T>
+static T read(const MapParams& desc, const std::string& key)
 {
     auto it = desc.find(key);
     
     if (it == desc.end())
         die("missing parameter '%s'", key.c_str());
+
+    if (!mpark::holds_alternative<T>(it->second))
+        die("'%s': invalid type", key.c_str());
     
-    return it->second;
+    return mpark::get<T>(it->second);
 }
 
-static CommonMembraneParameters readCommonParameters(const std::map<std::string, float>& desc)
+static CommonMembraneParameters readCommonParameters(const MapParams& desc)
 {
     CommonMembraneParameters p;
 
-    p.totArea0    = readFloat(desc, "tot_area");
-    p.totVolume0  = readFloat(desc, "tot_volume");
+    p.totArea0    = read<float>(desc, "tot_area");
+    p.totVolume0  = read<float>(desc, "tot_volume");
 
-    p.ka = readFloat(desc, "ka_tot");
-    p.kv = readFloat(desc, "kv_tot");
+    p.ka = read<float>(desc, "ka_tot");
+    p.kv = read<float>(desc, "kv_tot");
 
-    p.gammaC = readFloat(desc, "gammaC");
-    p.gammaT = readFloat(desc, "gammaT");
-    p.kBT    = readFloat(desc, "kBT");
+    p.gammaC = read<float>(desc, "gammaC");
+    p.gammaT = read<float>(desc, "gammaT");
+    p.kBT    = read<float>(desc, "kBT");
 
     p.fluctuationForces = (p.kBT > 1e-6);
     
     return p;
 }
 
-static WLCParameters readWLCParameters(const std::map<std::string, float>& desc)
+static WLCParameters readWLCParameters(const MapParams& desc)
 {
     WLCParameters p;
 
-    p.x0   = readFloat(desc, "x0");
-    p.ks   = readFloat(desc, "ks");
-    p.mpow = readFloat(desc, "mpow");
+    p.x0   = read<float>(desc, "x0");
+    p.ks   = read<float>(desc, "ks");
+    p.mpow = read<float>(desc, "mpow");
 
-    p.kd = readFloat(desc, "ka");
-    p.totArea0 = readFloat(desc, "tot_area");
+    p.kd = read<float>(desc, "ka");
+    p.totArea0 = read<float>(desc, "tot_area");
     
     return p;
 }
 
-static LimParameters readLimParameters(const std::map<std::string, float>& desc)
+static LimParameters readLimParameters(const MapParams& desc)
 {
     LimParameters p;
 
-    p.ka = readFloat(desc, "ka");
-    p.a3 = readFloat(desc, "a3");
-    p.a4 = readFloat(desc, "a4");
+    p.ka = read<float>(desc, "ka");
+    p.a3 = read<float>(desc, "a3");
+    p.a4 = read<float>(desc, "a4");
     
-    p.mu = readFloat(desc, "mu");
-    p.b1 = readFloat(desc, "b1");
-    p.b2 = readFloat(desc, "b2");
+    p.mu = read<float>(desc, "mu");
+    p.b1 = read<float>(desc, "b1");
+    p.b2 = read<float>(desc, "b2");
 
-    p.totArea0 = readFloat(desc, "tot_area");
+    p.totArea0 = read<float>(desc, "tot_area");
     
     return p;
 }
 
-static KantorBendingParameters readKantorParameters(const std::map<std::string, float>& desc)
+static KantorBendingParameters readKantorParameters(const MapParams& desc)
 {
     KantorBendingParameters p;
 
-    p.kb    = readFloat(desc, "kb");
-    p.theta = readFloat(desc, "theta");
+    p.kb    = read<float>(desc, "kb");
+    p.theta = read<float>(desc, "theta");
     
     return p;
 }
 
-static JuelicherBendingParameters readJuelicherParameters(const std::map<std::string, float>& desc)
+static JuelicherBendingParameters readJuelicherParameters(const MapParams& desc)
 {
     JuelicherBendingParameters p;
 
-    p.kb = readFloat(desc, "kb");
-    p.C0 = readFloat(desc, "C0");
+    p.kb = read<float>(desc, "kb");
+    p.C0 = read<float>(desc, "C0");
 
-    p.kad = readFloat(desc, "kad");
-    p.DA0 = readFloat(desc, "DA0");
+    p.kad = read<float>(desc, "kad");
+    p.DA0 = read<float>(desc, "DA0");
     
     return p;
 }
@@ -101,7 +104,7 @@ static JuelicherBendingParameters readJuelicherParameters(const std::map<std::st
 std::shared_ptr<InteractionMembrane>
 InteractionFactory::createInteractionMembrane(const YmrState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
-                                              const std::map<std::string, float>& parameters,
+                                              const MapParams& parameters,
                                               bool stressFree, float growUntil)
 {
     VarBendingParams bendingParams;
@@ -121,26 +124,23 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
 
-static RodParameters readRodParameters(const std::map<std::string, float>& desc)
+static RodParameters readRodParameters(const MapParams& desc)
 {
     RodParameters p;
-    p.kBending  = readFloat(desc, "k_bending");
-    p.kTwist    = readFloat(desc, "k_twist");
-    p.tauEq     = readFloat(desc, "tau0");
-
-    // TODO pass tuple
-    p.omegaEq.x = readFloat(desc, "omega0_x");
-    p.omegaEq.y = readFloat(desc, "omega0_y");
+    p.kBending  = read<float>(desc, "k_bending");
+    p.kTwist    = read<float>(desc, "k_twist");
+    p.tauEq     = read<float>(desc, "tau0");
+    p.omegaEq   = make_float2(read<PyTypes::float2>(desc, "omega0"));
     
-    p.a0 = readFloat(desc, "a0");
-    p.l0 = readFloat(desc, "l0");
-    p.kBounds = readFloat(desc, "k_bounds");    
+    p.a0 = read<float>(desc, "a0");
+    p.l0 = read<float>(desc, "l0");
+    p.kBounds = read<float>(desc, "k_bounds");    
     return p;
 }
 
 std::shared_ptr<InteractionRod>
 InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
-                                         const std::map<std::string, float>& parameters)
+                                         const MapParams& parameters)
 {
     auto params = readRodParameters(parameters);
     return std::make_shared<InteractionRod>(state, name, params);
@@ -181,17 +181,17 @@ InteractionFactory::createPairwiseDensity(const YmrState *state, std::string nam
 }
 
 
-static LinearPressureEOS readLinearPressureEOS(const std::map<std::string, float>& desc)
+static LinearPressureEOS readLinearPressureEOS(const MapParams& desc)
 {
-    float c = readFloat(desc, "sound_speed");
-    float r = readFloat(desc, "rho_0");
+    float c = read<float>(desc, "sound_speed");
+    float r = read<float>(desc, "rho_0");
     return LinearPressureEOS(c, r);
 }
 
-static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(const std::map<std::string, float>& desc)
+static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(const MapParams& desc)
 {
-    float p0   = readFloat(desc, "p0");
-    float rhor = readFloat(desc, "rho_r");
+    float p0   = read<float>(desc, "p0");
+    float rhor = read<float>(desc, "rho_r");
     
     return QuasiIncompressiblePressureEOS(p0, rhor);
 }
@@ -226,12 +226,12 @@ allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
 std::shared_ptr<BasicInteractionSDPD>
 InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
                                        const std::string& EOS, const std::string& density, bool stress,
-                                       const std::map<std::string, float>& parameters)
+                                       const MapParams& parameters)
 {
     float stressPeriod = 0.f;
 
     if (stress)
-        stressPeriod = readFloat(parameters, "stress_period");
+        stressPeriod = read<float>(parameters, "stress_period");
     
     if (!isWendlandC2Density(density))
         die("Invalid density '%s'", density.c_str());
