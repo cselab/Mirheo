@@ -48,7 +48,9 @@ prms = {
     "k_bounds"  : 1000.0,
     "k_bending" : 10.0,
     "k_twist"   : 10.0,
-    "tau0"      : args.tau0
+    "tau0"      : args.tau0,
+    "omega0_x"  : 0.0,
+    "omega0_y"  : 0.0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);

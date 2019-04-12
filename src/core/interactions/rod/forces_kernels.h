@@ -20,6 +20,7 @@ struct GPU_RodBoundsParameters
 struct GPU_RodBiSegmentParameters
 {
     float kBending, kTwist, tauEq;
+    float2 omegaEq;
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)

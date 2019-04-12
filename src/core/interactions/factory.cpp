@@ -124,9 +124,13 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
 static RodParameters readRodParameters(const std::map<std::string, float>& desc)
 {
     RodParameters p;
-    p.kBending = readFloat(desc, "k_bending");
-    p.kTwist   = readFloat(desc, "k_twist");
-    p.tauEq    = readFloat(desc, "tau0");
+    p.kBending  = readFloat(desc, "k_bending");
+    p.kTwist    = readFloat(desc, "k_twist");
+    p.tauEq     = readFloat(desc, "tau0");
+
+    // TODO pass tuple
+    p.omegaEq.x = readFloat(desc, "omega0_x");
+    p.omegaEq.y = readFloat(desc, "omega0_y");
     
     p.a0 = readFloat(desc, "a0");
     p.l0 = readFloat(desc, "l0");
