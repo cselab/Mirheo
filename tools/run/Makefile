@@ -1,12 +1,15 @@
 INST_TARGETS = run
 
-include ../config/install
+CONFIG = ../config
+
+include $(CONFIG)/install
 include ../make/common.mk
 
-%: %.in
-	sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< | \
-	sed "s/@RUN_CMD@/$(RUN_CMD)/"  > $@> $@
-	chmod +x $@
+%: %.in $(CONFIG)/install
+	@echo create $(EXE_PREFIX).$@
+	@sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< | \
+	 sed "s/@RUN_CMD@/$(RUN_CMD)/"  > $@> $@
+	@chmod +x $@
 
 test:; atest `find tests -type f`
 

@@ -1,14 +1,16 @@
 INST_TARGETS = load load.post
 
-include ../config/install
-include ../make/common.mk
-
 CONFIG = ../config
 UTILS  = ../utils
-HOST   = `$(UTILS)/host`
 
-%: %.in
-	$(UTILS)/insertFile $< "@MODULES@" $(CONFIG)/$@.$(HOST) > $@
+include $(CONFIG)/install
+include ../make/common.mk
+
+HOST := $(shell $(UTILS)/host)
+
+%: %.in $(CONFIG)/%.$(HOST) $(CONFIG)/install
+	@echo create $(EXE_PREFIX).$@
+	@$(UTILS)/insertFile $< "@MODULES@" $(CONFIG)/$@.$(HOST) > $@
 
 clean:; rm -rf $(INST_TARGETS)
 
