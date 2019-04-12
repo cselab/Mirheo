@@ -71,14 +71,14 @@ if rv is not None:
 
 del u
 
-# nTEST: rod.twist
+# nTEST: rod.rest
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./twist.py > /dev/null
+# ymr.run --runargs "-n 2" ./rest.py > /dev/null
 # cat pos.rod.txt > pos.out.txt
 
-# nTEST: rod.twist.tau0
+# nTEST: rod.rest.tau0
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./twist.py --tau0 0.5 --tau0_init 0.4 > /dev/null
+# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.4 > /dev/null
 # cat pos.rod.txt > pos.out.txt
