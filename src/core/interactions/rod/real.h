@@ -6,9 +6,11 @@
 
 #ifdef ROD_FORCES_DOUBLE
 using real  = double;
+using real2 = double2;
 using real3 = double3;
 #else
 using real  = float;
+using real2 = float2;
 using real3 = float3;
 #endif // ROD_FORCES_DOUBLE
 
