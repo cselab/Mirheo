@@ -19,7 +19,7 @@ struct GPU_RodBoundsParameters
 
 struct GPU_RodBiSegmentParameters
 {
-    float kBending, kTwist, tau0;
+    float kBending, kTwist, tauEq;
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -121,6 +121,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     if (rodId       >= view.nObjects ) return;
     if (biSegmentId >= nBiSegments   ) return;
 
+    // common quantities
+    
     auto r0  = fetchPosition(view, start + 0);
     auto r1  = fetchPosition(view, start + 5);
     auto r2  = fetchPosition(view, start + 10);
@@ -130,16 +132,14 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     auto pm1 = fetchPosition(view, start + 6);
     auto pp1 = fetchPosition(view, start + 7);
 
-    auto u0 = fetchBishopFrame(view, rodId, biSegmentId + 0);
-    auto u1 = fetchBishopFrame(view, rodId, biSegmentId + 1);
-
-    // bending
-    
     real3 e0 = r1 - r0;
     real3 e1 = r2 - r1;
 
     real3 t0 = normalize(e0);
     real3 t1 = normalize(e1);
+
+    real3 dp0 = pp0 - pm0;
+    real3 dp1 = pp1 - pm1;
 
     real le0 = length(e0);
     real le1 = length(e1);
@@ -151,6 +151,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     real3 bicur = (2.0_r * bicurFactor) * cross(e0, e1);
 
+    // bending
+    
     auto grad0BicurApply = [&](const real3 v)
     {
         return bicurFactor * (2 * cross(e0, v) + dot(e0, v) * bicur);
@@ -169,11 +171,11 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     // twist
 
+    auto u0 = fetchBishopFrame(view, rodId, biSegmentId + 0);
+    auto u1 = fetchBishopFrame(view, rodId, biSegmentId + 1);
+
     auto v0 = cross(t0, u0);
     auto v1 = cross(t1, u1);
-
-    real3 dp0 = pp0 - pm0;
-    real3 dp1 = pp1 - pm1;
 
     real dpu0 = dot(dp0, u0);
     real dpv0 = dot(dp0, v0);
@@ -185,8 +187,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real theta1 = atan2(dpv1, dpu1);
     
     real dtheta_l = safeDiffTheta(theta0, theta1) * linv;
-    real dtheta_l_mtau = dtheta_l - params.tau0;
-    real dtheta_l_ptau = dtheta_l + params.tau0;
+    real dtheta_l_mtau = dtheta_l - params.tauEq;
+    real dtheta_l_ptau = dtheta_l + params.tauEq;
 
     real ftwistLFactor = params.kTwist * dtheta_l_ptau * dtheta_l_mtau * linv;
 

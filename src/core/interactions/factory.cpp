@@ -126,7 +126,7 @@ static RodParameters readRodParameters(const std::map<std::string, float>& desc)
     RodParameters p;
     p.kBending = readFloat(desc, "k_bending");
     p.kTwist   = readFloat(desc, "k_twist");
-    p.tau0     = readFloat(desc, "tau0");
+    p.tauEq    = readFloat(desc, "tau0");
     
     p.a0 = readFloat(desc, "a0");
     p.l0 = readFloat(desc, "l0");
