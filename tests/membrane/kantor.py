@@ -2,7 +2,7 @@
 
 import numpy as np
 import ymero as ymr
-import sys, argparse
+import argparse
 
 dt = 0.001
 
