@@ -7,7 +7,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--kbounds', type=float, default=0.0)
 parser.add_argument('--ktwist', type=float, default=0.0)
-parser.add_argument('--kbending', type=float, default=0.0)
+parser.add_argument('--kbending', type=float, nargs=3, default=(0.0, 0.0, 0.0))
 parser.add_argument('--l0_factor', type=float, default=1.0)
 parser.add_argument('--tau0', type=float, default=0.0)
 parser.add_argument('--tau0_eq', type=float, default=0.0)
@@ -66,7 +66,7 @@ prms = {
     "a0" : l0,
     "l0" : l0,
     "k_bounds"  : args.kbounds,
-    "k_bending" : args.kbending,
+    "k_bending" : tuple(args.kbending),
     "k_twist"   : args.ktwist,
     "tau0"      : args.tau0,
     "omega0"    : (0.0, 0.0)
@@ -110,5 +110,5 @@ del u
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
-# --center_line "helix" --kbending 1000.0 > /dev/null
+# --center_line "helix" --kbending 1000.0 0.0 1000.0 > /dev/null
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
