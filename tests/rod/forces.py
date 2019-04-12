@@ -6,7 +6,11 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--kbounds', type=float, default=0.0)
+parser.add_argument('--ktwist', type=float, default=0.0)
+parser.add_argument('--kbending', type=float, default=0.0)
 parser.add_argument('--l0_factor', type=float, default=1.0)
+parser.add_argument('--tau0', type=float, default=0.0)
+parser.add_argument('--tau0_eq', type=float, default=0.0)
 parser.add_argument('--center_line', type=str, choices=["helix", "line"])
 args = parser.parse_args()
 
@@ -33,7 +37,7 @@ if args.center_line == "helix":
     def torsion(s):
         a = R
         b = P / (2.0 * np.pi)
-        return b / (a**2 + b**2)
+        return b / (a**2 + b**2) + args.tau0_eq
 
 elif args.center_line == "line":
     def center_line(s):
@@ -41,7 +45,7 @@ elif args.center_line == "line":
         return (0, 0, (s-0.5) * L)
 
     def torsion(s):
-        return 0.0
+        return args.tau0_eq
 
 def length(a, b):
     return np.sqrt(
@@ -61,20 +65,15 @@ l0 = length(center_line(h), center_line(0)) * args.l0_factor
 prms = {
     "a0" : l0,
     "l0" : l0,
-    "k_bounds"  : 1000.0,
-    "k_bending" : 0.0,
-    "k_twist"   : 0.0,
-    "tau0"      : 0.0
+    "k_bounds"  : args.kbounds,
+    "k_bending" : args.kbending,
+    "k_twist"   : args.ktwist,
+    "tau0"      : args.tau0
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
 u.registerInteraction(int_rod)
-
-vv = ymr.Integrators.VelocityVerlet('vv')
-u.registerIntegrator(vv)
-
 u.setInteraction(int_rod, rv, rv)
-u.setIntegrator(vv, rv)
 
 dump_every = 1
 
@@ -90,4 +89,18 @@ del u
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
 # --center_line "helix" --kbounds 1000.0 --l0_factor 1.05 > /dev/null
+# ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
+
+# nTEST: rod.forces.twist
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./forces.py \
+# --center_line "line" --ktwist 1000.0 > /dev/null
+# ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
+
+# nTEST: rod.forces.twist.tau0
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./forces.py \
+# --center_line "line" --ktwist 1000.0 --tau0 0.5 > /dev/null
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
