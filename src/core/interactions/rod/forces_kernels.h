@@ -19,8 +19,8 @@ struct GPU_RodBoundsParameters
 
 struct GPU_RodBiSegmentParameters
 {
-    float kBending, kTwist, tauEq;
-    float2 omegaEq;
+    float2 kBending, omegaEq;
+    float kTwist, tauEq;
 };
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -164,7 +164,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
         return bicurFactor * (2 * cross(e1, v) + dot(e1, v) * bicur);
     };
 
-    real bendingForceFactor = 2.0_r * params.kBending * linv;
+    real bendingForceFactor = 2.0_r * params.kBending.x * linv;
 
     auto fr0 = bendingForceFactor * grad0BicurApply(bicur);
     auto fr2 = bendingForceFactor * grad2BicurApply(bicur);
