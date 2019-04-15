@@ -1,7 +1,8 @@
+#include <core/interactions/rod.h>
 #include <core/logger.h>
+#include <core/pvs/rod_vector.h>
 #include <core/utils/helper_math.h>
 #include <core/utils/quaternion.h>
-#include <core/pvs/rod_vector.h>
 #include <plugins/utils/xyz.h>
 
 #include <vector>
@@ -9,6 +10,13 @@
 #include <gtest/gtest.h>
 
 Logger logger;
+
+using real = double;
+using real2 = double2;
+using real3 = double3;
+
+static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
+static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 
 using CenterLineFunc = std::function<float3(float)>;
 
@@ -49,6 +57,14 @@ static void getTransformation(float3 t0, float3 t1, float4& Q)
     ASSERT_LE(err_t0_t1, 1e-6);
 }
 
+static void initialFrame(float3 t0, float3& u, float3& v)
+{
+    t0 = normalize(t0);
+    u = anyOrthogonal(t0);
+    u = normalize(u);
+    v = normalize(cross(t0, u));
+}
+
 static void transportBishopFrame(const std::vector<float3>& positions, std::vector<float3>& frames)
 {
     int n = (positions.size() - 1) / 5;
@@ -65,17 +81,10 @@ static void transportBishopFrame(const std::vector<float3>& positions, std::vect
         float4 Q;
         getTransformation(t0, t1, Q);
         auto u0 = frames[2*(i-1) + 0];
-        auto v0 = frames[2*(i-1) + 1];
         auto u1 = rotate(u0, Q);
-        auto v1 = rotate(v0, Q);
+        auto v1 = cross(t1, u1);
         frames[2*i + 0] = u1;
         frames[2*i + 1] = v1;
-
-        // printf("%g %g %g %g %g %g\n",
-        //        dot(u0, t0), dot(v0, t0), dot(u0, v0),
-        //        dot(u0, cross(t0,t1)),
-        //        dot(v0, cross(t0,t1)),
-        //        dot(u0, u0));
     }
 }
 
@@ -83,7 +92,7 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
 {
     int n = (positions.size() - 1) / 5;
 
-    float Etot = 0;
+    real Etot = 0;
     
     for (int i = 1; i < n; ++i)
     {
@@ -106,21 +115,68 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
         auto e0 = r1-r0;
         auto e1 = r2-r1;
 
-        float denom = dot(e0, e1) + sqrtf(dot(e0,e0) * dot(e1,e1));
+        real denom = dot(e0, e1) + sqrtf(dot(e0,e0) * dot(e1,e1));
         auto kappab = (2.f / denom) * cross(e0, e1);
         
-        float2 om0 {dot(kappab, m20), -dot(kappab, m10)};
-        float2 om1 {dot(kappab, m21), -dot(kappab, m11)};
+        real2 om0 {dot(kappab, m20), -dot(kappab, m10)};
+        real2 om1 {dot(kappab, m21), -dot(kappab, m11)};
 
-        om0 -= omega_eq;
-        om1 -= omega_eq;
+        om0 -= make_real2(omega_eq);
+        om1 -= make_real2(omega_eq);
 
-        float l = 0.5 * (length(e0) + length(e1));
+        real l = 0.5 * (length(e0) + length(e1));
 
-        float2 Bw {dot(om0 + om1, B[0]),
-                   dot(om0 + om1, B[1])};
+        real2 Bw {dot(om0 + om1, make_real2(B[0])),
+                  dot(om0 + om1, make_real2(B[1]))};
 
-        float E = dot(Bw, om0 + om1) / l;
+        real E = dot(Bw, om0 + om1) / l;
+        Etot += E;
+    }
+
+    return Etot;
+}
+
+inline real safeDiffTheta(real t0, real t1)
+{
+    auto dth = t1 - t0;
+    if (dth >  M_PI) dth -= 2.0 * M_PI;
+    if (dth < -M_PI) dth += 2.0 * M_PI;
+    return dth;
+}
+
+static real twistEnergy(float kTwist, float tau0, const std::vector<float3>& positions, const std::vector<float3>& frames)
+{
+    int n = (positions.size() - 1) / 5;
+
+    real Etot = 0;
+    
+    for (int i = 1; i < n; ++i)
+    {
+        auto r0 = make_real3(positions[5*(i-1)]);
+        auto r1 = make_real3(positions[5*(i)]);
+        auto r2 = make_real3(positions[5*(i+1)]);
+
+        auto u0 = make_real3(frames[2*(i-1)   ]);
+        auto v0 = make_real3(frames[2*(i-1) + 1]);
+
+        auto u1 = make_real3(frames[2*i    ]);
+        auto v1 = make_real3(frames[2*i + 1]);
+        
+        auto dp0 = normalize(make_real3(positions[5*(i-1) + 2]) - make_real3(positions[5*(i-1) + 1]));
+        auto dp1 = normalize(make_real3(positions[5*i     + 2]) - make_real3(positions[5*i     + 1]));
+        
+        auto e0 = r1-r0;
+        auto e1 = r2-r1;
+        auto l = 0.5 * (length(e0) + length(e1));
+
+        auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
+        auto theta1 = atan2(dot(dp1, v1), dot(dp1, u1));
+
+        auto tau = safeDiffTheta(theta0, theta1) / l;
+        auto dtau = tau - tau0;
+        
+        auto E = kTwist * l * dtau * dtau;
+
         Etot += E;
     }
 
@@ -129,7 +185,7 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
 
 
 
-static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions, float h, std::vector<float3>& forces)
+static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions, real h, std::vector<float3>& forces)
 {
     auto perturbed = positions;
     auto E0 = bendingEnergy(B, omega_eq, positions);
@@ -141,7 +197,8 @@ static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<
             r.comp += h;                                        \
             perturbed[i] = r;                                   \
             auto E = bendingEnergy(B, omega_eq, perturbed);     \
-            forces[i].comp = (E - E0) / h;                      \
+            forces[i].comp = (E0 - E) / h;                      \
+            perturbed[i] = positions[i];                        \
         } while(0)
         
         COMPUTE_FORCE(x);
@@ -149,6 +206,37 @@ static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<
         COMPUTE_FORCE(z);
 
 #undef COMPUTE_FORCE
+    }
+}
+
+static void twistForces(real h, float kt, float tau0, const std::vector<float3>& positions, std::vector<float3>& forces)
+{
+    auto perturbed = positions;
+    int nSegments = (positions.size() - 1) / 5;
+    
+    std::vector<float3> frames(2*nSegments);
+
+    auto compEnergy = [&]() {
+                          initialFrame(positions[5]-positions[0], frames[0], frames[1]);
+                          transportBishopFrame(positions, frames);
+                          return twistEnergy(kt, tau0, perturbed, frames);
+                      };
+    
+    for (size_t i = 0; i < positions.size(); ++i)
+    {
+        auto computeForce = [&](real3 dir) {
+            auto r = positions[i];
+            perturbed[i] = r + make_float3((h/2) * dir);
+            auto Em = compEnergy();
+            perturbed[i] = r - make_float3((h/2) * dir);
+            auto Ep = compEnergy();
+            perturbed[i] = positions[i];
+            return (Em - Ep) / h;
+        };
+
+        forces[i].x = computeForce({1.0, 0.0, 0.0});
+        forces[i].y = computeForce({0.0, 1.0, 0.0});
+        forces[i].z = computeForce({0.0, 0.0, 1.0});
     }
 }
 
@@ -162,7 +250,7 @@ static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& p
         auto r0 = positions[5*i+0];
         auto r1 = positions[5*i+5];
         auto dr = 0.5f * (r1 - r0);
-        float a = length(dr);
+        real a = length(dr);
         auto c = 0.5f * (r0 + r1);
 
         positions[i*5+1] = c - a * u;
@@ -170,14 +258,6 @@ static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& p
         positions[i*5+3] = c - a * v;
         positions[i*5+4] = c + a * v;
     }
-}
-
-static void initialFrame(float3 t0, float3& u, float3& v)
-{
-    t0 = normalize(t0);
-    u = anyOrthogonal(t0);
-    u = normalize(u);
-    v = normalize(cross(t0, u));
 }
 
 template <class CenterLine>
@@ -279,6 +359,70 @@ TEST (FLAGELLA, BishopFrames_helix)
 
     auto err = testBishopFrame(centerLine);
     ASSERT_LE(err, 1e-5);
+}
+
+
+template <class CenterLine>
+static double testTwistForces(float kt, float tau0, CenterLine centerLine, float h)
+{
+    YmrState state(DomainInfo(), 0.f);
+    int nSegments {50};
+
+    RodParameters params;
+    params.kBending = {0.f, 0.f, 0.f};
+    params.omegaEq = {0.f, 0.f};
+    params.kTwist = kt;
+    params.tauEq = tau0;
+    params.a0 = params.l0 = 0.f;
+    params.kBounds = 0.f;
+    
+    std::vector<float3> refPositions, refFrames, refForces;
+    RodVector rod(&state, "rod", 1.f, nSegments, 1);
+    InteractionRod interactions(&state, "rod_interaction", params);
+    initializeRef(centerLine, nSegments, refPositions, refFrames);
+    copyToRv(refPositions, rod);
+
+
+    refForces.resize(refPositions.size());
+    twistForces(h, kt, tau0, refPositions, refForces);
+
+    rod.local()->forces.clear(defaultStream);
+    interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
+
+    HostBuffer<Force> forces;
+    forces.copy(rod.local()->forces, defaultStream);
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    double Linfty = 0;
+    for (int i = 0; i < refForces.size(); ++i)
+    {
+        float3 a = refForces[i];
+        float3 b = forces[i].f;
+        float3 diff = a - b;
+        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+
+        if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
+        print(a);
+        print(b);
+        printf("\n");
+        
+        Linfty = std::max(Linfty, err);
+    }
+    return Linfty;
+}
+
+TEST (FLAGELLA, twistForces_straight)
+{
+    float height = 5.0;
+    real h = 1e-6;
+    
+    auto centerLine = [&](float s) -> float3 {
+                          return {0.f, 0.f, s*height};
+                      };
+
+    auto err = testTwistForces(1.f, 0.1f, centerLine, h);
+    ASSERT_LE(err, 1e-3);
 }
 
 
