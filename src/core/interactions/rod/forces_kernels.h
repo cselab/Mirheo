@@ -197,7 +197,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real3 baseGradNormOmega0 = (-e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
     real3 baseGradNormOmega1 = ( e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
 
-    
+    // 1. contributions of center line:    
     real3 baseGradOmega0x = cross(dp0, bicur) - dot(bicur, t0_dp0) * t0;
     real3 baseGradOmega1x = cross(dp1, bicur) - dot(bicur, t1_dp1) * t1;
     
@@ -214,15 +214,30 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real3 grad2Omega1x = dpPerp1inv * (omega1.x * baseGradNormOmega1 + grad2BicurApply(t1_dp1) + e1inv * baseGradOmega1x);
     real3 grad2Omega1y = dpPerp1inv * (omega1.y * baseGradNormOmega1 - grad2BicurApply(dp1));
 
-    // contribution of omega
+    // 1.a contribution of omega
     auto fr0 = linv * (Bomega0.x * grad0Omega0x + Bomega0.y * grad0Omega0y  +  Bomega1.x * grad0Omega1x + Bomega1.y * grad0Omega1y);
     auto fr2 = linv * (Bomega0.x * grad2Omega0x + Bomega0.y * grad2Omega0y  +  Bomega1.x * grad2Omega1x + Bomega1.y * grad2Omega1y);
 
-    // contribution of l
-    // fr0 += (  0.5_r * linv * Eb) * t0;
-    // fr2 += (- 0.5_r * linv * Eb) * t1;
+    // 1.b contribution of l
+    fr0 += (  0.5_r * linv * Eb) * t0;
+    fr2 += (- 0.5_r * linv * Eb) * t1;
 
-    // contributions on cross particles (TODO)
+    // 2. contributions material frame:
+
+    real3 baseGradOmegaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
+    real3 baseGradOmegaMF1 = (- dpPerp1inv * dpPerp1inv) * dpPerp1;
+
+    real3 gradOmegaMF0x = dpPerp0inv * (omega0.x * baseGradOmegaMF0 + cross(bicur, t0));
+    real3 gradOmegaMF0y = dpPerp0inv * (omega0.y * baseGradOmegaMF0 - bicur);
+
+    real3 gradOmegaMF1x = dpPerp1inv * (omega1.x * baseGradOmegaMF1 + cross(bicur, t1));
+    real3 gradOmegaMF1y = dpPerp1inv * (omega1.y * baseGradOmegaMF1 - bicur);
+
+    auto fpm0 = linv * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
+    auto fpm1 = linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
+
+    // fpm0 = {0._r, 0._r, 0._r};
+    // fpm1 = {0._r, 0._r, 0._r};
     
     // twist
 
@@ -255,8 +270,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     fr0 -= (dthetaFFactor * e0inv) * bicur;
     fr2 += (dthetaFFactor * e1inv) * bicur;
 
-    auto fpm0 = (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);    
-    auto fpm1 = (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
+    fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);    
+    fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
 
     // by conservation of momentum
     auto fr1 = -(fr0 + fr2);
