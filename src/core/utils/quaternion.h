@@ -24,7 +24,8 @@ __HD__ inline R4 invQ(const R4 q)
 }
 
 // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-__HD__ inline float4 getQfrom(float3 u, float3 v)
+template <typename R4, typename R3>
+__HD__ inline R4 _getQfrom(R3 u, R3 v)
 {
     auto kCosTheta = dot(u, v);
     auto k = sqrtf(dot(u,u) * dot(v,v));
@@ -35,9 +36,13 @@ __HD__ inline float4 getQfrom(float3 u, float3 v)
         return f3toQ( normalize(anyOrthogonal(u)) );
     }
     auto uv = cross(u, v);
-    float4 q {kCosTheta + k, uv.x, uv.y, uv.z};
+    R4 q {kCosTheta + k, uv.x, uv.y, uv.z};
     return normalize(q);
 }
+
+__HD__ inline  float4 getQfrom( float3 u,  float3 v) {return _getQfrom< float4,  float3>(u,v);}
+__HD__ inline double4 getQfrom(double3 u, double3 v) {return _getQfrom<double4, double3>(u,v);}
+
 
 template<class R4>
 __HD__ inline R4 multiplyQ(const R4 q1, const R4 q2)
