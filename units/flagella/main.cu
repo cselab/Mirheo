@@ -219,8 +219,8 @@ static void twistForces(real h, float kt, float tau0, const std::vector<real3>& 
     std::vector<real3> frames(2*nSegments);
 
     auto compEnergy = [&]() {
-                          initialFrame(positions[5]-positions[0], frames[0], frames[1]);
-                          transportBishopFrame(positions, frames);
+                          initialFrame(perturbed[5]-perturbed[0], frames[0], frames[1]);
+                          transportBishopFrame(perturbed, frames);
                           return twistEnergy(kt, tau0, perturbed, frames);
                       };
     
@@ -405,9 +405,8 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, real 
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        // print(a);
-        // print(b);
-        // printf("\n");
+        // printf("%g\t%g\t%g\t%g\t%g\t%g\n",
+        //        a.x, a.y, a.z, b.x, b.y, b.z);
         
         Linfty = std::max(Linfty, err);
     }
@@ -424,27 +423,27 @@ TEST (FLAGELLA, twistForces_straight)
                       };
 
     auto err = testTwistForces(1.f, 0.1f, centerLine, h);
-    ASSERT_LE(err, 1e-3);
+    ASSERT_LE(err, 1e-5);
 }
 
-// TEST (FLAGELLA, twistForces_helix)
-// {
-//     real pitch  = 1.0;
-//     real radius = 0.5;
-//     real height = 1.0;
-//     real h = 1e-6;
+TEST (FLAGELLA, twistForces_helix)
+{
+    real pitch  = 1.0;
+    real radius = 0.5;
+    real height = 1.0;
+    real h = 1e-7;
     
-//     auto centerLine = [&](real s) -> real3 {
-//                           real z = s * height;
-//                           real theta = 2 * M_PI * z / pitch;
-//                           real x = radius * cos(theta);
-//                           real y = radius * sin(theta);
-//                           return {x, y, z};
-//                       };
+    auto centerLine = [&](real s) -> real3 {
+                          real z = s * height;
+                          real theta = 2 * M_PI * z / pitch;
+                          real x = radius * cos(theta);
+                          real y = radius * sin(theta);
+                          return {x, y, z};
+                      };
 
-//     auto err = testTwistForces(1.f, 0.1f, centerLine, h);
-//     ASSERT_LE(err, 1e-5);
-// }
+    auto err = testTwistForces(1.f, 0.1f, centerLine, h);
+    ASSERT_LE(err, 1e-3);
+}
 
 
 int main(int argc, char **argv)

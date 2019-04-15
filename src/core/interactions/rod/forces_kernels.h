@@ -268,10 +268,10 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     real dthetaFFactor = 2.0_r * dtheta_l_mtau * params.kTwist;
 
-    fr0 -= (dthetaFFactor * e0inv) * bicur;
-    fr2 += (dthetaFFactor * e1inv) * bicur;
+    fr0 += (0.5_r * dthetaFFactor * e0inv) * bicur;
+    fr2 -= (0.5_r * dthetaFFactor * e1inv) * bicur;
 
-    fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);    
+    fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
     fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
 
     // by conservation of momentum
