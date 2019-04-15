@@ -14,19 +14,20 @@ Logger logger;
 using real = double;
 using real2 = double2;
 using real3 = double3;
+using real4 = double4;
 
 static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
 static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 
-using CenterLineFunc = std::function<float3(float)>;
+using CenterLineFunc = std::function<real3(real)>;
 
-static void initialFlagellum(int n, std::vector<float3>& positions, CenterLineFunc centerLine)
+static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFunc centerLine)
 {
     positions.resize(5 * n + 1);
-    float h = 1.f / n;
+    real h = 1.0 / n;
 
     for (int i = 0; i < n; ++i) {
-        float3 r = centerLine(i*h);
+        real3 r = centerLine(i*h);
 
         positions[i * 5 + 0] = r;
         positions[i * 5 + 1] = r;
@@ -38,26 +39,27 @@ static void initialFlagellum(int n, std::vector<float3>& positions, CenterLineFu
     positions[5*n] = centerLine(1.f);
 }
 
-inline void print(float3 v)
+template <typename T3>
+inline void print(T3 v)
 {
     printf("%g %g %g\n", v.x, v.y, v.z);
 }
 
-static void getTransformation(float3 t0, float3 t1, float4& Q)
+static void getTransformation(real3 t0, real3 t1, real4& Q)
 {
     Q = getQfrom(t0, t1);
     auto t0t1 = cross(t0, t1);
     if (length(t0t1) > 1e-6)
         t0t1 = normalize(t0t1);
 
-    float err_t0_t1   = length(t1 - rotate(t0, Q));
-    float err_t01_t01 = length(t0t1 - rotate(t0t1, Q));
+    real err_t0_t1   = length(t1 - rotate(t0, Q));
+    real err_t01_t01 = length(t0t1 - rotate(t0t1, Q));
 
     ASSERT_LE(err_t01_t01, 1e-6f);
     ASSERT_LE(err_t0_t1, 1e-6);
 }
 
-static void initialFrame(float3 t0, float3& u, float3& v)
+static void initialFrame(real3 t0, real3& u, real3& v)
 {
     t0 = normalize(t0);
     u = anyOrthogonal(t0);
@@ -65,7 +67,7 @@ static void initialFrame(float3 t0, float3& u, float3& v)
     v = normalize(cross(t0, u));
 }
 
-static void transportBishopFrame(const std::vector<float3>& positions, std::vector<float3>& frames)
+static void transportBishopFrame(const std::vector<real3>& positions, std::vector<real3>& frames)
 {
     int n = (positions.size() - 1) / 5;
     
@@ -78,7 +80,7 @@ static void transportBishopFrame(const std::vector<float3>& positions, std::vect
         auto t0 = normalize(r1-r0);
         auto t1 = normalize(r2-r1);
 
-        float4 Q;
+        real4 Q;
         getTransformation(t0, t1, Q);
         auto u0 = frames[2*(i-1) + 0];
         auto u1 = rotate(u0, Q);
@@ -88,7 +90,7 @@ static void transportBishopFrame(const std::vector<float3>& positions, std::vect
     }
 }
 
-static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions)
+static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<real3>& positions)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -144,7 +146,7 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static real twistEnergy(float kTwist, float tau0, const std::vector<float3>& positions, const std::vector<float3>& frames)
+static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions, const std::vector<real3>& frames)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -152,18 +154,18 @@ static real twistEnergy(float kTwist, float tau0, const std::vector<float3>& pos
     
     for (int i = 1; i < n; ++i)
     {
-        auto r0 = make_real3(positions[5*(i-1)]);
-        auto r1 = make_real3(positions[5*(i)]);
-        auto r2 = make_real3(positions[5*(i+1)]);
+        auto r0 = positions[5*(i-1)];
+        auto r1 = positions[5*(i)];
+        auto r2 = positions[5*(i+1)];
 
-        auto u0 = make_real3(frames[2*(i-1)   ]);
-        auto v0 = make_real3(frames[2*(i-1) + 1]);
+        auto u0 = frames[2*(i-1)   ];
+        auto v0 = frames[2*(i-1) + 1];
 
-        auto u1 = make_real3(frames[2*i    ]);
-        auto v1 = make_real3(frames[2*i + 1]);
+        auto u1 = frames[2*i    ];
+        auto v1 = frames[2*i + 1];
         
-        auto dp0 = make_real3(positions[5*(i-1) + 2]) - make_real3(positions[5*(i-1) + 1]);
-        auto dp1 = make_real3(positions[5*i     + 2]) - make_real3(positions[5*i     + 1]);
+        auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
+        auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
         
         auto e0 = r1-r0;
         auto e1 = r2-r1;
@@ -185,7 +187,7 @@ static real twistEnergy(float kTwist, float tau0, const std::vector<float3>& pos
 
 
 
-static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions, real h, std::vector<float3>& forces)
+static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<real3>& positions, real h, std::vector<real3>& forces)
 {
     auto perturbed = positions;
     auto E0 = bendingEnergy(B, omega_eq, positions);
@@ -209,12 +211,12 @@ static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<
     }
 }
 
-static void twistForces(real h, float kt, float tau0, const std::vector<float3>& positions, std::vector<float3>& forces)
+static void twistForces(real h, float kt, float tau0, const std::vector<real3>& positions, std::vector<real3>& forces)
 {
     auto perturbed = positions;
     int nSegments = (positions.size() - 1) / 5;
     
-    std::vector<float3> frames(2*nSegments);
+    std::vector<real3> frames(2*nSegments);
 
     auto compEnergy = [&]() {
                           initialFrame(positions[5]-positions[0], frames[0], frames[1]);
@@ -226,9 +228,9 @@ static void twistForces(real h, float kt, float tau0, const std::vector<float3>&
     {
         auto computeForce = [&](real3 dir) {
             auto r = positions[i];
-            perturbed[i] = r + make_float3((h/2) * dir);
+            perturbed[i] = r + (h/2) * dir;
             auto Ep = compEnergy();
-            perturbed[i] = r - make_float3((h/2) * dir);
+            perturbed[i] = r - (h/2) * dir;
             auto Em = compEnergy();
             perturbed[i] = positions[i];
             return - (Ep - Em) / h;
@@ -240,7 +242,7 @@ static void twistForces(real h, float kt, float tau0, const std::vector<float3>&
     }
 }
 
-static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& positions)
+static void setCrosses(const std::vector<real3>& frames, std::vector<real3>& positions)
 {
     int n = (positions.size() - 1) / 5;
     for (int i = 0; i < n; ++i)
@@ -261,7 +263,7 @@ static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& p
 }
 
 template <class CenterLine>
-static void initializeRef(CenterLine centerLine, int nSegments, std::vector<float3>& positions, std::vector<float3>& frames)
+static void initializeRef(CenterLine centerLine, int nSegments, std::vector<real3>& positions, std::vector<real3>& frames)
 {
     initialFlagellum(nSegments, positions, centerLine);
 
@@ -273,12 +275,12 @@ static void initializeRef(CenterLine centerLine, int nSegments, std::vector<floa
     setCrosses(frames, positions);
 }
 
-static void copyToRv(const std::vector<float3>& positions, RodVector& rod)
+static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
 {
     for (int i = 0; i < positions.size(); ++i)
     {
         Particle p;
-        p.r = positions[i];
+        p.r = make_float3(positions[i]);
         p.u = make_float3(0);
         rod.local()->coosvels[i] = p;
     }
@@ -291,7 +293,7 @@ static double testBishopFrame(CenterLine centerLine)
     YmrState state(DomainInfo(), 0.f);
     int nSegments {200};
     
-    std::vector<float3> refPositions, refFrames;
+    std::vector<real3> refPositions, refFrames;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
 
     initializeRef(centerLine, nSegments, refPositions, refFrames);
@@ -306,9 +308,9 @@ static double testBishopFrame(CenterLine centerLine)
     double Linfty = 0;
     for (int i = 0; i < refFrames.size() / 2; ++i)
     {
-        float3 a = refFrames[2*i];
-        float3 b = frames[i];
-        float3 diff = a - b;
+        real3 a = refFrames[2*i];
+        real3 b = make_real3(frames[i]);
+        auto diff = a - b;
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
         Linfty = std::max(Linfty, err);
@@ -318,10 +320,10 @@ static double testBishopFrame(CenterLine centerLine)
 
 TEST (FLAGELLA, BishopFrames_straight)
 {
-    float height = 1.0;
+    real height = 1.0;
     
-    auto centerLine = [&](float s) -> float3 {
-                          return {0.f, 0.f, s*height};
+    auto centerLine = [&](real s) -> real3 {
+                          return {(real)0.0, (real)0.0, s*height};
                       };
 
     auto err = testBishopFrame(centerLine);
@@ -330,12 +332,12 @@ TEST (FLAGELLA, BishopFrames_straight)
 
 TEST (FLAGELLA, BishopFrames_circle)
 {
-    float radius = 0.5;
+    real radius = 0.5;
 
-    auto centerLine = [&](float s) -> float3 {
-                          float theta = s * 2 * M_PI;
-                          float x = radius * cos(theta);
-                          float y = radius * sin(theta);
+    auto centerLine = [&](real s) -> real3 {
+                          real theta = s * 2 * M_PI;
+                          real x = radius * cos(theta);
+                          real y = radius * sin(theta);
                           return {x, y, 0.f};
                       };
 
@@ -345,25 +347,25 @@ TEST (FLAGELLA, BishopFrames_circle)
 
 TEST (FLAGELLA, BishopFrames_helix)
 {
-    float pitch  = 1.0;
-    float radius = 0.5;
-    float height = 1.0;
+    real pitch  = 1.0;
+    real radius = 0.5;
+    real height = 1.0;
     
-    auto centerLine = [&](float s) -> float3 {
-                          float z = s * height;
-                          float theta = 2 * M_PI * z / pitch;
-                          float x = radius * cos(theta);
-                          float y = radius * sin(theta);
+    auto centerLine = [&](real s) -> real3 {
+                          real z = s * height;
+                          real theta = 2 * M_PI * z / pitch;
+                          real x = radius * cos(theta);
+                          real y = radius * sin(theta);
                           return {x, y, z};
                       };
 
     auto err = testBishopFrame(centerLine);
-    ASSERT_LE(err, 1e-5);
+    ASSERT_LE(err, 2e-5);
 }
 
 
 template <class CenterLine>
-static double testTwistForces(float kt, float tau0, CenterLine centerLine, float h)
+static double testTwistForces(float kt, float tau0, CenterLine centerLine, real h)
 {
     YmrState state(DomainInfo(), 0.f);
     int nSegments {50};
@@ -376,7 +378,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, float
     params.a0 = params.l0 = 0.f;
     params.kBounds = 0.f;
     
-    std::vector<float3> refPositions, refFrames, refForces;
+    std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     InteractionRod interactions(&state, "rod_interaction", params);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
@@ -397,9 +399,9 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, float
     double Linfty = 0;
     for (int i = 0; i < refForces.size(); ++i)
     {
-        float3 a = refForces[i];
-        float3 b = forces[i].f;
-        float3 diff = a - b;
+        real3 a = refForces[i];
+        real3 b = make_real3(forces[i].f);
+        real3 diff = a - b;
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
@@ -414,16 +416,35 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, float
 
 TEST (FLAGELLA, twistForces_straight)
 {
-    float height = 5.0;
+    real height = 5.0;
     real h = 1e-6;
     
-    auto centerLine = [&](float s) -> float3 {
+    auto centerLine = [&](real s) -> real3 {
                           return {0.f, 0.f, s*height};
                       };
 
     auto err = testTwistForces(1.f, 0.1f, centerLine, h);
     ASSERT_LE(err, 1e-3);
 }
+
+// TEST (FLAGELLA, twistForces_helix)
+// {
+//     real pitch  = 1.0;
+//     real radius = 0.5;
+//     real height = 1.0;
+//     real h = 1e-6;
+    
+//     auto centerLine = [&](real s) -> real3 {
+//                           real z = s * height;
+//                           real theta = 2 * M_PI * z / pitch;
+//                           real x = radius * cos(theta);
+//                           real y = radius * sin(theta);
+//                           return {x, y, z};
+//                       };
+
+//     auto err = testTwistForces(1.f, 0.1f, centerLine, h);
+//     ASSERT_LE(err, 1e-5);
+// }
 
 
 int main(int argc, char **argv)
