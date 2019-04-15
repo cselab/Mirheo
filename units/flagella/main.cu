@@ -162,8 +162,8 @@ static real twistEnergy(float kTwist, float tau0, const std::vector<float3>& pos
         auto u1 = make_real3(frames[2*i    ]);
         auto v1 = make_real3(frames[2*i + 1]);
         
-        auto dp0 = normalize(make_real3(positions[5*(i-1) + 2]) - make_real3(positions[5*(i-1) + 1]));
-        auto dp1 = normalize(make_real3(positions[5*i     + 2]) - make_real3(positions[5*i     + 1]));
+        auto dp0 = make_real3(positions[5*(i-1) + 2]) - make_real3(positions[5*(i-1) + 1]);
+        auto dp1 = make_real3(positions[5*i     + 2]) - make_real3(positions[5*i     + 1]);
         
         auto e0 = r1-r0;
         auto e1 = r2-r1;
@@ -227,11 +227,11 @@ static void twistForces(real h, float kt, float tau0, const std::vector<float3>&
         auto computeForce = [&](real3 dir) {
             auto r = positions[i];
             perturbed[i] = r + make_float3((h/2) * dir);
-            auto Em = compEnergy();
-            perturbed[i] = r - make_float3((h/2) * dir);
             auto Ep = compEnergy();
+            perturbed[i] = r - make_float3((h/2) * dir);
+            auto Em = compEnergy();
             perturbed[i] = positions[i];
-            return (Em - Ep) / h;
+            return - (Ep - Em) / h;
         };
 
         forces[i].x = computeForce({1.0, 0.0, 0.0});
@@ -402,10 +402,10 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, float
         float3 diff = a - b;
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
-        if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        print(a);
-        print(b);
-        printf("\n");
+        // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
+        // print(a);
+        // print(b);
+        // printf("\n");
         
         Linfty = std::max(Linfty, err);
     }
