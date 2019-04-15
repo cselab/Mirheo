@@ -91,11 +91,17 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
         auto r1 = positions[5*(i)];
         auto r2 = positions[5*(i+1)];
 
-        auto m10 = normalize(positions[5*(i-1) + 2] - positions[5*(i-1) + 1]);
-        auto m20 = normalize(positions[5*(i-1) + 4] - positions[5*(i-1) + 3]);
+        auto t0 = normalize(r1-r0);
+        auto t1 = normalize(r2-r1);
+        
+        auto dp0 = normalize(positions[5*(i-1) + 2] - positions[5*(i-1) + 1]);
+        auto dp1 = normalize(positions[5*i + 2] - positions[5*i + 1]);
 
-        auto m11 = normalize(positions[5*i + 2] - positions[5*i + 1]);
-        auto m21 = normalize(positions[5*i + 4] - positions[5*i + 3]);
+        auto m10 = normalize(dp0 - dot(dp0, t0) * t0);
+        auto m20 = cross(t0, m10);
+
+        auto m11 = normalize(dp1 - dot(dp1, t1) * t1);
+        auto m21 = cross(t1, m11);
         
         auto e0 = r1-r0;
         auto e1 = r2-r1;
@@ -109,17 +115,41 @@ static float bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector
         om0 -= omega_eq;
         om1 -= omega_eq;
 
-        float l = length(e0) + length(e1);
+        float l = 0.5 * (length(e0) + length(e1));
 
         float2 Bw {dot(om0 + om1, B[0]),
                    dot(om0 + om1, B[1])};
 
         float E = dot(Bw, om0 + om1) / l;
         Etot += E;
-        // printf("%g\n", E);
     }
 
     return Etot;
+}
+
+
+
+static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<float3>& positions, float h, std::vector<float3>& forces)
+{
+    auto perturbed = positions;
+    auto E0 = bendingEnergy(B, omega_eq, positions);
+    
+    for (size_t i = 0; i < positions.size(); ++i)
+    {
+#define COMPUTE_FORCE(comp) do {                                \
+            auto r = positions[i];                              \
+            r.comp += h;                                        \
+            perturbed[i] = r;                                   \
+            auto E = bendingEnergy(B, omega_eq, perturbed);     \
+            forces[i].comp = (E - E0) / h;                      \
+        } while(0)
+        
+        COMPUTE_FORCE(x);
+        COMPUTE_FORCE(y);
+        COMPUTE_FORCE(z);
+
+#undef COMPUTE_FORCE
+    }
 }
 
 static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& positions)
@@ -145,33 +175,34 @@ static void setCrosses(const std::vector<float3>& frames, std::vector<float3>& p
 static void initialFrame(float3 t0, float3& u, float3& v)
 {
     t0 = normalize(t0);
-    // while (true)
-    // {
-    //     u = {float(drand48()-0.5), float(drand48()-0.5), float(drand48()-0.5)};        
-    //     u -= t0 * dot(u, t0);
-    //     if (length(u) > 1e-1)
-    //         break;
-    // }
     u = anyOrthogonal(t0);
     u = normalize(u);
     v = normalize(cross(t0, u));
 }
 
-static void dump(MPI_Comm comm, int id, int np, const float3 *positions)
+template <class CenterLine>
+static void initializeRef(CenterLine centerLine, int nSegments, std::vector<float3>& positions, std::vector<float3>& frames)
 {
-    std::vector<Particle> particles(np);
-    for (int i = 0; i < np; ++i) {
-        Particle p;
-        float3 r = positions[i];
-        p.r.x = r.x;
-        p.r.y = r.y;
-        p.r.z = r.z;
-        particles[i] = p;
-    }
-    std::string tstr = std::to_string(id);
-    std::string name = "flagella_" + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
+    initialFlagellum(nSegments, positions, centerLine);
 
-    writeXYZ(comm, name, particles.data(), particles.size());
+    frames.resize(2*nSegments);
+    initialFrame(positions[5]-positions[0],
+                 frames[0], frames[1]);
+
+    transportBishopFrame(positions, frames);
+    setCrosses(frames, positions);
+}
+
+static void copyToRv(const std::vector<float3>& positions, RodVector& rod)
+{
+    for (int i = 0; i < positions.size(); ++i)
+    {
+        Particle p;
+        p.r = positions[i];
+        p.u = make_float3(0);
+        rod.local()->coosvels[i] = p;
+    }
+    rod.local()->coosvels.uploadToDevice(defaultStream);    
 }
 
 template <class CenterLine>
@@ -183,25 +214,9 @@ static double testBishopFrame(CenterLine centerLine)
     std::vector<float3> refPositions, refFrames;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
 
-    initialFlagellum(nSegments, refPositions, centerLine);
+    initializeRef(centerLine, nSegments, refPositions, refFrames);
+    copyToRv(refPositions, rod);
     
-    refFrames.resize(2*nSegments);
-    initialFrame(refPositions[5]-refPositions[0],
-                 refFrames[0], refFrames[1]);
-
-    transportBishopFrame(refPositions, refFrames);
-    setCrosses(refFrames, refPositions);
-
-
-    for (int i = 0; i < refPositions.size(); ++i)
-    {
-        Particle p;
-        p.r = refPositions[i];
-        p.u = make_float3(0);
-        rod.local()->coosvels[i] = p;
-    }
-    
-    rod.local()->coosvels.uploadToDevice(defaultStream);
     rod.updateBishopFrame(defaultStream);
 
     HostBuffer<float3> frames;
@@ -264,52 +279,6 @@ TEST (FLAGELLA, BishopFrames_helix)
 
     auto err = testBishopFrame(centerLine);
     ASSERT_LE(err, 1e-5);
-}
-
-void run(MPI_Comm comm)
-{
-    // number of edges
-    int n = 100;
-
-    float pitch  = 1.0;
-    float radius = 0.5;
-    float height = 1.0;
-    
-    std::vector<float3> positions, frames;
-
-    auto centerLine = [&](float s) -> float3 {
-                          float z = s * height;
-                          float theta = 2 * M_PI * z / pitch;
-                          float x = radius * cos(theta);
-                          float y = radius * sin(theta);
-                          return {x, y, z};
-                      };
-
-    // auto centerLine = [&](float s) -> float3 {
-    //                       float theta = s * 2 * M_PI;
-    //                       float x = radius * cos(theta);
-    //                       float y = radius * sin(theta);
-    //                       return {x, y, 0.f};
-    //                   };
-
-    // auto centerLine = [&](float s) -> float3 {
-    //                       return {0.f, 0.f, s*height};
-    //                   };
-
-    initialFlagellum(n, positions, centerLine);
-    frames.resize(2*n);
-    initialFrame(positions[5]-positions[0],
-                 frames[0], frames[1]);
-
-    transportBishopFrame(positions, frames);
-    setCrosses(frames, positions);
-
-    float2 B[2] {{1.f, 0.f}, {0.f, 2.f}};
-    float2 omega_eq {0.f, 0.f};
-
-    bendingEnergy(B, omega_eq, positions);
-    
-    dump(comm, 0, positions.size(), positions.data());
 }
 
 
