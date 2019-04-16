@@ -619,7 +619,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createParticleDrag", &PluginFactory::createParticleDragPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "drag"_a, R"(
-        Create :any:`ParticleDragPlugin`
+        Create :any:`ParticleDrag` plugin
         
         Args:
             name: name of the plugin

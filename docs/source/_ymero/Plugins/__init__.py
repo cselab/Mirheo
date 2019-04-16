@@ -702,7 +702,7 @@ def createParticleDrag():
     r"""createParticleDrag(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, drag: float) -> Tuple[Plugins.ParticleDrag, Plugins.PostprocessPlugin]
 
 
-        Create :any:`ParticleDragPlugin`
+        Create :any:`ParticleDrag` plugin
         
         Args:
             name: name of the plugin
