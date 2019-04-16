@@ -3,18 +3,19 @@
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/helper_math.h>
+#include <core/utils/vec_traits.h>
+
 
 // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
 // https://arxiv.org/pdf/0811.2889.pdf
 
-__HD__ inline float4 f3toQ(const float3 vec)
+template <typename R3>
+__HD__ inline auto f3toQ(const R3& vec)
 {
-    return {0.0f, vec.x, vec.y, vec.z};
-}
-
-__HD__ inline double4 f3toQ(const double3 vec)
-{
-    return {0.0f, vec.x, vec.y, vec.z};
+    using real  = decltype(vec.x);
+    using real4 = typename VecTraits::Vec<real, 4>::Type;
+    
+    return real4 {(real) 0.0, vec.x, vec.y, vec.z};
 }
 
 template<class R4>
@@ -24,9 +25,12 @@ __HD__ inline R4 invQ(const R4 q)
 }
 
 // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-template <typename R4, typename R3>
-__HD__ inline R4 _getQfrom(R3 u, R3 v)
+template <typename R3>
+__HD__ inline auto getQfrom(R3 u, R3 v)
 {
+    using real  = decltype(u.x);
+    using real4 = typename VecTraits::Vec<real, 4>::Type;
+
     auto kCosTheta = dot(u, v);
     auto k = sqrtf(dot(u,u) * dot(v,v));
 
@@ -36,12 +40,9 @@ __HD__ inline R4 _getQfrom(R3 u, R3 v)
         return f3toQ( normalize(anyOrthogonal(u)) );
     }
     auto uv = cross(u, v);
-    R4 q {kCosTheta + k, uv.x, uv.y, uv.z};
+    real4 q {kCosTheta + k, uv.x, uv.y, uv.z};
     return normalize(q);
 }
-
-__HD__ inline  float4 getQfrom( float3 u,  float3 v) {return _getQfrom< float4,  float3>(u,v);}
-__HD__ inline double4 getQfrom(double3 u, double3 v) {return _getQfrom<double4, double3>(u,v);}
 
 
 template<class R4>
