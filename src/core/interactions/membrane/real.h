@@ -1,16 +1,19 @@
 #pragma once
 
 #include <core/datatypes.h>
+#include <core/utils/vec_traits.h>
 
 // #define RBC_FORCES_DOUBLE
 
 #ifdef RBC_FORCES_DOUBLE
 using real  = double;
-using real3 = double3;
 #else
 using real  = float;
-using real3 = float3;
 #endif // RBC_FORCES_DOUBLE
+
+using real2 = VecTraits::Vec<real, 2>::Type;
+using real3 = VecTraits::Vec<real, 3>::Type;
+
 
 template<typename T3>
 __D__ inline real3 make_real3(T3 v)

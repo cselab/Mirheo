@@ -1,18 +1,19 @@
 #pragma once
 
 #include <core/datatypes.h>
+#include <core/utils/vec_traits.h>
 
-#define ROD_FORCES_DOUBLE
+//#define ROD_FORCES_DOUBLE
 
 #ifdef ROD_FORCES_DOUBLE
 using real  = double;
-using real2 = double2;
-using real3 = double3;
 #else
 using real  = float;
-using real2 = float2;
-using real3 = float3;
 #endif // ROD_FORCES_DOUBLE
+
+using real2 = VecTraits::Vec<real, 2>::Type;
+using real3 = VecTraits::Vec<real, 3>::Type;
+
 
 template<typename T2>
 __D__ inline real2 make_real2(T2 v)
