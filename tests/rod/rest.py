@@ -7,21 +7,24 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--tau0', type=float, default=0.0)
 parser.add_argument('--tau0_init', type=float, default=0.5)
+parser.add_argument('--omega', type=float, nargs=2, default=[0,0])
+parser.add_argument('--drag', type=float, default=0.0)
 args = parser.parse_args()
 
 ranks  = (1, 1, 1)
 domain = [16, 16, 16]
 
 dt = 1e-3
+t_end = 10
+t_dump_every = 1.0
+L = 50.0
+num_segments = 200
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=8, log_filename='log', no_splash=True)
+u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 
-L = 5.0
-
 def center_line(s):
-    L = 5.0
     return (0, 0, (s-0.5) * L)
 
 def torsion(s):
@@ -32,8 +35,6 @@ def length(a, b):
         (a[0] - b[0])**2 +
         (a[1] - b[1])**2 +
         (a[2] - b[2])**2)
-        
-num_segments = 100
 
 rv = ymr.ParticleVectors.RodVector('rod', mass=1, num_segments = num_segments)
 ic = ymr.InitialConditions.Rod(com_q, center_line, torsion)
@@ -49,7 +50,7 @@ prms = {
     "k_bending" : (10.0, 0.0, 10.0),
     "k_twist"   : 10.0,
     "tau0"      : args.tau0,
-    "omega0"    : (0.0, 0.0)
+    "omega0"    : tuple(args.omega)
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
@@ -61,10 +62,13 @@ u.registerIntegrator(vv)
 u.setInteraction(int_rod, rv, rv)
 u.setIntegrator(vv, rv)
 
-dump_every = 10
+if args.drag > 0.0:
+    u.registerPlugins(ymr.Plugins.createParticleDrag('rod_drag', rv, args.drag))
+
+dump_every = int (t_dump_every/dt)
 u.registerPlugins(ymr.Plugins.createDumpParticles('rod_dump', rv, dump_every, [], 'h5/rod_particles-'))
 
-u.run(502)
+u.run(int (t_end / dt))
 
 if rv is not None:
     pos = rv.getCoordinates()
@@ -82,4 +86,10 @@ del u
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.4 > /dev/null
+# cat pos.rod.txt > pos.out.txt
+
+# nTEST: rod.rest.helix
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --omega 0.2 0.0 --drag 0.5 > /dev/null
 # cat pos.rod.txt > pos.out.txt
