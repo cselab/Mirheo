@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.14.0
 
 * Add elastic rod interactions: bounds, bending and torsion
 * Add corresponding unit test
