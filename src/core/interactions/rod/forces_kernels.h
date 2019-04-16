@@ -198,26 +198,26 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     real Eb = 0.5_r * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
-    real3 baseGradNormOmega0 = (-e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
-    real3 baseGradNormOmega1 = ( e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
+    real3 grad0NormOmega0 = (-e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
+    real3 grad2NormOmega1 = ( e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
 
     // 1. contributions of center line:    
-    real3 baseGradOmega0x = cross(dp0, bicur) - dot(bicur, t0_dp0) * t0;
-    real3 baseGradOmega1x = cross(dp1, bicur) - dot(bicur, t1_dp1) * t1;
+    real3 baseGradOmega0x = cross(bicur, dp0) + dot(bicur, t0_dp0) * t0;
+    real3 baseGradOmega1x = cross(bicur, dp1) + dot(bicur, t1_dp1) * t1;
     
 
-    real3 grad0Omega0x = omega0.x * baseGradNormOmega0 + dpPerp0inv * (grad0BicurApply(t0_dp0) - e0inv * baseGradOmega0x);
-    real3 grad0Omega0y = omega0.y * baseGradNormOmega0 - dpPerp0inv *  grad0BicurApply(   dp0);
+    real3 grad0Omega0x = omega0.x * grad0NormOmega0 + dpPerp0inv * (grad0BicurApply(t0_dp0) - e0inv * baseGradOmega0x);
+    real3 grad2Omega0x =                              dpPerp0inv *  grad2BicurApply(t0_dp0);
 
-    real3 grad2Omega0x =   dpPerp0inv * grad2BicurApply(t0_dp0);
-    real3 grad2Omega0y = - dpPerp0inv * grad2BicurApply(   dp0);
+    real3 grad0Omega0y = omega0.y * grad0NormOmega0 - dpPerp0inv *  grad0BicurApply(   dp0);
+    real3 grad2Omega0y =                            - dpPerp0inv *  grad2BicurApply(   dp0);
 
-    real3 grad0Omega1x =   dpPerp1inv * grad0BicurApply(t1_dp1);
-    real3 grad0Omega1y = - dpPerp1inv * grad0BicurApply(   dp1);
+    real3 grad2Omega1x = omega1.x * grad2NormOmega1 + dpPerp1inv * (grad2BicurApply(t1_dp1) + e1inv * baseGradOmega1x);
+    real3 grad0Omega1x =                              dpPerp1inv *  grad0BicurApply(t1_dp1);
 
-    real3 grad2Omega1x = omega1.x * baseGradNormOmega1 + dpPerp1inv * (grad2BicurApply(t1_dp1) + e1inv * baseGradOmega1x);
-    real3 grad2Omega1y = omega1.y * baseGradNormOmega1 - dpPerp1inv *  grad2BicurApply(   dp1);
-
+    real3 grad2Omega1y = omega1.y * grad2NormOmega1 - dpPerp1inv *  grad2BicurApply(   dp1);
+    real3 grad0Omega1y =                            - dpPerp1inv *  grad0BicurApply(   dp1);
+    
     // 1.a contribution of omega
     auto fr0 = linv * (Bomega0.x * grad0Omega0x + Bomega0.y * grad0Omega0y  +  Bomega1.x * grad0Omega1x + Bomega1.y * grad0Omega1y);
     auto fr2 = linv * (Bomega0.x * grad2Omega0x + Bomega0.y * grad2Omega0y  +  Bomega1.x * grad2Omega1x + Bomega1.y * grad2Omega1y);
@@ -225,7 +225,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     // 1.b contribution of l
     fr0 += (-0.5_r * linv * Eb) * t0;
     fr2 += ( 0.5_r * linv * Eb) * t1;
-    
+
+
     // 2. contributions material frame:
 
     real3 baseGradOmegaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;

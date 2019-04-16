@@ -11,6 +11,9 @@
 
 Logger logger;
 
+#define FMT "%+6e"
+#define SEP "\t"
+
 using real = double;
 using real2 = double2;
 using real3 = double3;
@@ -37,12 +40,6 @@ static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFun
     }
 
     positions[5*n] = centerLine(1.f);
-}
-
-template <typename T3>
-inline void print(T3 v)
-{
-    printf("%g %g %g\n", v.x, v.y, v.z);
 }
 
 static void getTransformation(real3 t0, real3 t1, real4& Q)
@@ -102,36 +99,48 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         auto r1 = positions[5*(i)];
         auto r2 = positions[5*(i+1)];
 
-        auto t0 = normalize(r1-r0);
-        auto t1 = normalize(r2-r1);
-        
-        auto dp0 = normalize(positions[5*(i-1) + 2] - positions[5*(i-1) + 1]);
-        auto dp1 = normalize(positions[5*i + 2] - positions[5*i + 1]);
-
-        auto m10 = normalize(dp0 - dot(dp0, t0) * t0);
-        auto m20 = cross(t0, m10);
-
-        auto m11 = normalize(dp1 - dot(dp1, t1) * t1);
-        auto m21 = cross(t1, m11);
-        
         auto e0 = r1-r0;
         auto e1 = r2-r1;
 
-        real denom = dot(e0, e1) + sqrtf(dot(e0,e0) * dot(e1,e1));
-        auto kappab = (2.f / denom) * cross(e0, e1);
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1);
         
-        real2 om0 {dot(kappab, m20), -dot(kappab, m10)};
-        real2 om1 {dot(kappab, m21), -dot(kappab, m11)};
+        auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
+        auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
 
+        auto dp0Perp = dp0 - dot(dp0, t0) * t0;
+        auto dp1Perp = dp1 - dot(dp1, t1) * t1;
+        
+        auto m10 = normalize(dp0Perp);
+        auto m20 = cross(t0, m10);
+
+        auto m11 = normalize(dp1Perp);
+        auto m21 = cross(t1, m11);
+        
+        real denom = length(e0) * length(e1) + dot(e0, e1);
+        auto bicur = (2.f / denom) * cross(e0, e1);
+        
+        real dp0Perpinv = 1.0 / length(dp0Perp);
+        real dp1Perpinv = 1.0 / length(dp1Perp);
+
+        real2 om0 = {+dp0Perpinv * dot(bicur, cross(t0, dp0)),
+                     -dp0Perpinv * dot(bicur, dp0)};
+        real2 om1 = {+dp1Perpinv * dot(bicur, cross(t1, dp1)),
+                     -dp1Perpinv * dot(bicur, dp1)};
+                                       
+        
         om0 -= make_real2(omega_eq);
         om1 -= make_real2(omega_eq);
 
         real l = 0.5 * (length(e0) + length(e1));
 
-        real2 Bw {dot(om0 + om1, make_real2(B[0])),
-                  dot(om0 + om1, make_real2(B[1]))};
+        real2 Bom0 {dot(om0, make_real2(B[0])),
+                    dot(om0, make_real2(B[1]))};
+        
+        real2 Bom1 {dot(om1, make_real2(B[0])),
+                    dot(om1, make_real2(B[1]))};
 
-        real E = dot(Bw, om0 + om1) / (2.0 * l);
+        real E = (dot(Bom0, om0) + dot(Bom1, om1)) / (2.0 * l);
         Etot += E;
     }
 
@@ -366,10 +375,9 @@ TEST (FLAGELLA, BishopFrames_helix)
 
 
 template <class CenterLine>
-static double testTwistForces(float kt, float tau0, CenterLine centerLine, real h)
+static double testTwistForces(float kt, float tau0, CenterLine centerLine, int nSegments, real h)
 {
     YmrState state(DomainInfo(), 0.f);
-    int nSegments {50};
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
@@ -406,8 +414,13 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, real 
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        // printf("%g\t%g\t%g\t%g\t%g\t%g\n",
-        //        a.x, a.y, a.z, b.x, b.y, b.z);
+        // if ((i % 5) == 0)
+        //     printf(FMT SEP FMT SEP FMT SEP SEP
+        //            FMT SEP FMT SEP FMT SEP SEP
+        //            FMT SEP FMT "\n",
+        //            a.x, a.y, a.z,
+        //            b.x, b.y, b.z,
+        //            length(a), length(b));
         
         Linfty = std::max(Linfty, err);
     }
@@ -415,10 +428,9 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, real 
 }
 
 template <class CenterLine>
-static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, real h)
+static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, int nSegments, real h)
 {
     YmrState state(DomainInfo(), 0.f);
-    int nSegments {50};
 
     RodParameters params;
     params.kBending = B;
@@ -454,12 +466,16 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, r
         real3 b = make_real3(forces[i].f);
         real3 diff = a - b;
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
-
-        // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        if ((i % 5) == 0)
-        printf("%+6e\t%+6e\t%+6e\t%+6e\t%+6e\t%+6e\n",
-               a.x, a.y, a.z, b.x, b.y, b.z);
         
+        // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
+        // if ((i % 5) == 0)
+        //     printf(FMT SEP FMT SEP FMT SEP SEP
+        //            FMT SEP FMT SEP FMT SEP SEP
+        //            FMT SEP FMT "\n",
+        //            a.x, a.y, a.z,
+        //            b.x, b.y, b.z,
+        //            length(a), length(b));
+
         Linfty = std::max(Linfty, err);
     }
     return Linfty;
@@ -475,7 +491,7 @@ TEST (FLAGELLA, twistForces_straight)
                           return {0.f, 0.f, s*height};
                       };
 
-    auto err = testTwistForces(1.f, 0.1f, centerLine, h);
+    auto err = testTwistForces(1.f, 0.1f, centerLine, 50, h);
     ASSERT_LE(err, 1e-5);
 }
 
@@ -494,30 +510,50 @@ TEST (FLAGELLA, twistForces_helix)
                           return {x, y, z};
                       };
 
-    auto err = testTwistForces(1.f, 0.1f, centerLine, h);
+    auto err = testTwistForces(1.f, 0.1f, centerLine, 50, h);
     ASSERT_LE(err, 1e-3);
 }
 
 
-// TEST (FLAGELLA, bendingForces_straight)
-// {
-//     real height = 5.0;
-//     real h = 1e-7;
+TEST (FLAGELLA, bendingForces_straight)
+{
+    real height = 5.0;
+    real h = 1e-4;
     
-//     auto centerLine = [&](real s) -> real3 {
-//                           return {0.f, 0.f, s*height};
-//                       };
+    auto centerLine = [&](real s) -> real3 {
+                          return {0.f, 0.f, s*height};
+                      };
 
-//     auto err = testBendingForces({1.0f, 0.0f, 1.0f}, {0.01f, 0.02f}, centerLine, h);
-//     ASSERT_LE(err, 1e-5);
-// }
+    auto err = testBendingForces({1.0f, 0.0f, 0.5f}, {0.1f, 0.2f}, centerLine, 10, h);
+    ASSERT_LE(err, 5e-4);
+}
+
+TEST (FLAGELLA, bendingForces_circle)
+{
+    real radius = 4.0;
+    real h = 1e-4;
+    
+    auto centerLine = [&](real s) -> real3 {
+                          real theta = s * 2 * M_PI;
+                          real x = radius * cos(theta);
+                          real y = radius * sin(theta);
+                          return {x, y, 0.f};
+                      };
+
+
+    float3 B {1.0f, 0.0f, 1.0f};
+    float2 omega {0.f, 0.f};
+    
+    auto err = testBendingForces(B, omega, centerLine, 10, h);
+    ASSERT_LE(err, 1e-3);
+}
 
 TEST (FLAGELLA, bendingForces_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
     real height = 1.0;
-    real h = 1e-7;
+    real h = 1e-3;
     
     auto centerLine = [&](real s) -> real3 {
                           real z = s * height;
@@ -527,8 +563,11 @@ TEST (FLAGELLA, bendingForces_helix)
                           return {x, y, z};
                       };
 
-    auto err = testBendingForces({1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, centerLine, h);
-    ASSERT_LE(err, 1e-5);
+    float3 B {1.0f, 0.0f, 1.0f};
+    float2 omega {0.f, 0.f};
+    
+    auto err = testBendingForces(B, omega, centerLine, 10, h);
+    ASSERT_LE(err, 1e-3);
 }
 
 
