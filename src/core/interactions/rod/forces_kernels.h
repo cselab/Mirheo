@@ -118,12 +118,12 @@ __device__ inline real2 symmetricMatMult(const real3& A, const real2& x)
             A.y * x.x + A.z * x.y};
 }
 
-struct BiSegmentsQuants
+struct BiSegment
 {
     real3 e0, e1, t0, t1, dp0, dp1, bicur;
     real bicurFactor, e0inv, e1inv, linv;
 
-    __device__ inline BiSegmentsQuants(const RVview& view, int start)
+    __device__ inline BiSegment(const RVview& view, int start)
     {
         auto r0  = fetchPosition(view, start + 0);
         auto r1  = fetchPosition(view, start + 5);
@@ -281,7 +281,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     if (rodId       >= view.nObjects ) return;
     if (biSegmentId >= nBiSegments   ) return;
 
-    const BiSegmentsQuants bisegment(view, start);
+    const BiSegment bisegment(view, start);
 
     real3 fr0, fr2, fpm0, fpm1;
     fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
@@ -294,7 +294,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     bisegment.computeTwistForces(params, u0, u1, fr0, fr2, fpm0, fpm1);
 
     // by conservation of momentum
-    auto fr1 = -(fr0 + fr2);
+    auto fr1  = -(fr0 + fr2);
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
     
