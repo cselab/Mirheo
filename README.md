@@ -12,7 +12,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add elastic rod interactions: bounds, bending and torsion
+* Add corresponding unit test
+* Add corresponding regression tests
+* Add particle drap plugin
+* **fix** (minor) dependencies for tools installation
 
 ### v0.13.0
 
