@@ -2,6 +2,7 @@
 
 #include <core/logger.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/vec_traits.h>
 
 #include <algorithm>
 #include <cassert>
@@ -280,30 +281,30 @@ __HD__ Stress inline operator+(Stress a, const Stress& b)
 
 #ifdef RIGID_MOTIONS_DOUBLE
 using RigidReal  = double;
-using RigidReal3 = double3;
-using RigidReal4 = double4;
-
 #else
-
 using RigidReal  = float;
-using RigidReal3 = float3;
-using RigidReal4 = float4;
 #endif
+
+using RigidReal3 = VecTraits::Vec<RigidReal, 3>::Type;
+using RigidReal4 = VecTraits::Vec<RigidReal, 4>::Type;
 
 //=================================================================
 
-template<class R3, class R4>
+template <class real>
 struct __align__(16) TemplRigidMotion
 {
+    using R3 = typename VecTraits::Vec<real, 3>::Type;
+    using R4 = typename VecTraits::Vec<real, 4>::Type;
+    
     R3 r;
     R4 q;
     R3 vel, omega;
     R3 force, torque;
 };
 
-using DoubleRigidMotion = TemplRigidMotion<double3, double4>;
-using SingleRigidMotion = TemplRigidMotion<float3,  float4>;
-using RigidMotion = TemplRigidMotion<RigidReal3, RigidReal4>;
+using DoubleRigidMotion = TemplRigidMotion<double>;
+using SingleRigidMotion = TemplRigidMotion<float>;
+using RigidMotion       = TemplRigidMotion<RigidReal>;
 
 struct __align__(16) COMandExtent
 {
