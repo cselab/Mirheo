@@ -112,7 +112,7 @@ __device__ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-__device__ inline real2 symmetricMatMult(const real3& A, const float2& x)
+__device__ inline real2 symmetricMatMult(const real3& A, const real2& x)
 {
     return {A.x * x.x + A.y * x.y,
             A.y * x.x + A.z * x.y};
@@ -156,7 +156,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real l = 0.5_r * (le0 + le1);
     real linv = 1.0_r / l;
 
-    real bicurFactor = 1.0_r / (le0 * le1 + dot(e0, e1));
+    const real bicurFactor = 1.0_r / (le0 * le1 + dot(e0, e1));
 
     real3 bicur = (2.0_r * bicurFactor) * cross(e0, e1);
 
@@ -184,16 +184,19 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
     real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
     
-    real2 omega0 { dpPerp0inv  * dot(bicur, t0_dp0),
-                   -dpPerp0inv * dot(bicur,   dp0)};
+    real2 omega0 { +dpPerp0inv * dot(bicur, t0_dp0),
+                   -dpPerp0inv * dot(bicur,    dp0)};
 
-    real2 omega1 { dpPerp1inv  * dot(bicur, t1_dp1),
-                   -dpPerp1inv * dot(bicur,   dp1)};
+    real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
+                   -dpPerp1inv * dot(bicur,    dp1)};
 
-    real2 Bomega0 = symmetricMatMult(params.kBending, omega0 - params.omegaEq);
-    real2 Bomega1 = symmetricMatMult(params.kBending, omega1 - params.omegaEq);
+    real2 domega0 = omega0 - make_real2(params.omegaEq);
+    real2 domega1 = omega1 - make_real2(params.omegaEq);
 
-    real Eb = 0.5_r * linv * (dot(omega0, Bomega0) + dot(omega1, Bomega1));
+    real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
+    real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
+
+    real Eb = 0.5_r * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
     real3 baseGradNormOmega0 = (-e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
     real3 baseGradNormOmega1 = ( e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
@@ -203,42 +206,39 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     real3 baseGradOmega1x = cross(dp1, bicur) - dot(bicur, t1_dp1) * t1;
     
 
-    real3 grad0Omega0x = dpPerp0inv * (omega0.x * baseGradNormOmega0 + grad0BicurApply(t0_dp0) - e0inv * baseGradOmega0x);
-    real3 grad0Omega0y = dpPerp0inv * (omega0.y * baseGradNormOmega0 - grad0BicurApply(dp0));
+    real3 grad0Omega0x = omega0.x * baseGradNormOmega0 + dpPerp0inv * (grad0BicurApply(t0_dp0) - e0inv * baseGradOmega0x);
+    real3 grad0Omega0y = omega0.y * baseGradNormOmega0 - dpPerp0inv *  grad0BicurApply(   dp0);
 
     real3 grad2Omega0x =   dpPerp0inv * grad2BicurApply(t0_dp0);
-    real3 grad2Omega0y = - dpPerp0inv * grad2BicurApply(dp0); 
+    real3 grad2Omega0y = - dpPerp0inv * grad2BicurApply(   dp0);
 
     real3 grad0Omega1x =   dpPerp1inv * grad0BicurApply(t1_dp1);
-    real3 grad0Omega1y = - dpPerp1inv * grad0BicurApply(dp1); ;
+    real3 grad0Omega1y = - dpPerp1inv * grad0BicurApply(   dp1);
 
-    real3 grad2Omega1x = dpPerp1inv * (omega1.x * baseGradNormOmega1 + grad2BicurApply(t1_dp1) + e1inv * baseGradOmega1x);
-    real3 grad2Omega1y = dpPerp1inv * (omega1.y * baseGradNormOmega1 - grad2BicurApply(dp1));
+    real3 grad2Omega1x = omega1.x * baseGradNormOmega1 + dpPerp1inv * (grad2BicurApply(t1_dp1) + e1inv * baseGradOmega1x);
+    real3 grad2Omega1y = omega1.y * baseGradNormOmega1 - dpPerp1inv *  grad2BicurApply(   dp1);
 
     // 1.a contribution of omega
     auto fr0 = linv * (Bomega0.x * grad0Omega0x + Bomega0.y * grad0Omega0y  +  Bomega1.x * grad0Omega1x + Bomega1.y * grad0Omega1y);
     auto fr2 = linv * (Bomega0.x * grad2Omega0x + Bomega0.y * grad2Omega0y  +  Bomega1.x * grad2Omega1x + Bomega1.y * grad2Omega1y);
 
     // 1.b contribution of l
-    fr0 += (  0.5_r * linv * Eb) * t0;
-    fr2 += (- 0.5_r * linv * Eb) * t1;
-
+    fr0 += (-0.5_r * linv * Eb) * t0;
+    fr2 += ( 0.5_r * linv * Eb) * t1;
+    
     // 2. contributions material frame:
 
     real3 baseGradOmegaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
     real3 baseGradOmegaMF1 = (- dpPerp1inv * dpPerp1inv) * dpPerp1;
 
-    real3 gradOmegaMF0x = dpPerp0inv * (omega0.x * baseGradOmegaMF0 + cross(bicur, t0));
-    real3 gradOmegaMF0y = dpPerp0inv * (omega0.y * baseGradOmegaMF0 - bicur);
+    real3 gradOmegaMF0x = omega0.x * baseGradOmegaMF0 + dpPerp0inv * cross(bicur, t0);
+    real3 gradOmegaMF0y = omega0.y * baseGradOmegaMF0 - dpPerp0inv * bicur;
 
-    real3 gradOmegaMF1x = dpPerp1inv * (omega1.x * baseGradOmegaMF1 + cross(bicur, t1));
-    real3 gradOmegaMF1y = dpPerp1inv * (omega1.y * baseGradOmegaMF1 - bicur);
+    real3 gradOmegaMF1x = omega1.x * baseGradOmegaMF1 + dpPerp1inv * cross(bicur, t1);
+    real3 gradOmegaMF1y = omega1.y * baseGradOmegaMF1 - dpPerp1inv * bicur;
 
     auto fpm0 = linv * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
     auto fpm1 = linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
-
-    // fpm0 = {0._r, 0._r, 0._r};
-    // fpm1 = {0._r, 0._r, 0._r};
     
     // twist
 

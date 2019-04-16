@@ -131,7 +131,7 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         real2 Bw {dot(om0 + om1, make_real2(B[0])),
                   dot(om0 + om1, make_real2(B[1]))};
 
-        real E = dot(Bw, om0 + om1) / l;
+        real E = dot(Bw, om0 + om1) / (2.0 * l);
         Etot += E;
     }
 
@@ -185,29 +185,30 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
     return Etot;
 }
 
-
-
-static void bendingForces(const float2 B[2], float2 omega_eq, const std::vector<real3>& positions, real h, std::vector<real3>& forces)
+static void bendingForces(real h, const float2 B[2], float2 omega_eq, const std::vector<real3>& positions, std::vector<real3>& forces)
 {
     auto perturbed = positions;
     auto E0 = bendingEnergy(B, omega_eq, positions);
+
+    auto computeEnergy = [&]() {
+        return bendingEnergy(B, omega_eq, perturbed);
+    };
     
     for (size_t i = 0; i < positions.size(); ++i)
     {
-#define COMPUTE_FORCE(comp) do {                                \
-            auto r = positions[i];                              \
-            r.comp += h;                                        \
-            perturbed[i] = r;                                   \
-            auto E = bendingEnergy(B, omega_eq, perturbed);     \
-            forces[i].comp = (E0 - E) / h;                      \
-            perturbed[i] = positions[i];                        \
-        } while(0)
-        
-        COMPUTE_FORCE(x);
-        COMPUTE_FORCE(y);
-        COMPUTE_FORCE(z);
+        auto computeForce = [&](real3 dir) {
+            const auto r = positions[i];
+            perturbed[i] = r + (h/2) * dir;
+            auto Ep = computeEnergy();
+            perturbed[i] = r - (h/2) * dir;
+            auto Em = computeEnergy();
+            perturbed[i] = r;
+            return - (Ep - Em) / h;
+        };
 
-#undef COMPUTE_FORCE
+        forces[i].x = computeForce({1.0, 0.0, 0.0});
+        forces[i].y = computeForce({0.0, 1.0, 0.0});
+        forces[i].z = computeForce({0.0, 0.0, 1.0});
     }
 }
 
@@ -227,12 +228,12 @@ static void twistForces(real h, float kt, float tau0, const std::vector<real3>& 
     for (size_t i = 0; i < positions.size(); ++i)
     {
         auto computeForce = [&](real3 dir) {
-            auto r = positions[i];
+            const auto r = positions[i];
             perturbed[i] = r + (h/2) * dir;
             auto Ep = compEnergy();
             perturbed[i] = r - (h/2) * dir;
             auto Em = compEnergy();
-            perturbed[i] = positions[i];
+            perturbed[i] = r;
             return - (Ep - Em) / h;
         };
 
@@ -413,6 +414,58 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, real 
     return Linfty;
 }
 
+template <class CenterLine>
+static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, real h)
+{
+    YmrState state(DomainInfo(), 0.f);
+    int nSegments {50};
+
+    RodParameters params;
+    params.kBending = B;
+    params.omegaEq = omega;
+    params.kTwist = 0.f;
+    params.tauEq = 0.f;
+    params.a0 = params.l0 = 0.f;
+    params.kBounds = 0.f;
+    
+    std::vector<real3> refPositions, refFrames, refForces;
+    RodVector rod(&state, "rod", 1.f, nSegments, 1);
+    InteractionRod interactions(&state, "rod_interaction", params);
+    initializeRef(centerLine, nSegments, refPositions, refFrames);
+    copyToRv(refPositions, rod);
+
+
+    refForces.resize(refPositions.size());
+    const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
+    bendingForces(h, B_, omega, refPositions, refForces);
+
+    rod.local()->forces.clear(defaultStream);
+    interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
+
+    HostBuffer<Force> forces;
+    forces.copy(rod.local()->forces, defaultStream);
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    double Linfty = 0;
+    for (int i = 0; i < refForces.size(); ++i)
+    {
+        real3 a = refForces[i];
+        real3 b = make_real3(forces[i].f);
+        real3 diff = a - b;
+        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+
+        // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
+        if ((i % 5) == 0)
+        printf("%+6e\t%+6e\t%+6e\t%+6e\t%+6e\t%+6e\n",
+               a.x, a.y, a.z, b.x, b.y, b.z);
+        
+        Linfty = std::max(Linfty, err);
+    }
+    return Linfty;
+}
+
+
 TEST (FLAGELLA, twistForces_straight)
 {
     real height = 5.0;
@@ -444,6 +497,40 @@ TEST (FLAGELLA, twistForces_helix)
     auto err = testTwistForces(1.f, 0.1f, centerLine, h);
     ASSERT_LE(err, 1e-3);
 }
+
+
+// TEST (FLAGELLA, bendingForces_straight)
+// {
+//     real height = 5.0;
+//     real h = 1e-7;
+    
+//     auto centerLine = [&](real s) -> real3 {
+//                           return {0.f, 0.f, s*height};
+//                       };
+
+//     auto err = testBendingForces({1.0f, 0.0f, 1.0f}, {0.01f, 0.02f}, centerLine, h);
+//     ASSERT_LE(err, 1e-5);
+// }
+
+TEST (FLAGELLA, bendingForces_helix)
+{
+    real pitch  = 1.0;
+    real radius = 0.5;
+    real height = 1.0;
+    real h = 1e-7;
+    
+    auto centerLine = [&](real s) -> real3 {
+                          real z = s * height;
+                          real theta = 2 * M_PI * z / pitch;
+                          real x = radius * cos(theta);
+                          real y = radius * sin(theta);
+                          return {x, y, z};
+                      };
+
+    auto err = testBendingForces({1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, centerLine, h);
+    ASSERT_LE(err, 1e-5);
+}
+
 
 
 int main(int argc, char **argv)
