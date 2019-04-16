@@ -11,32 +11,51 @@
 
 #include "bindings.h"
 #include "class_wrapper.h"
+#include "variant_cast.h"
 
 using namespace pybind11::literals;
+
+static std::map<std::string, InteractionFactory::VarParam>
+castToMap(const py::kwargs& kwargs, const std::string intName)
+{
+    std::map<std::string, InteractionFactory::VarParam> parameters;
+    
+    for (const auto& item : kwargs) {
+        std::string key;
+        try {
+            key = py::cast<std::string>(item.first);
+        }
+        catch (const py::cast_error& e) {
+            die("Could not cast one of the arguments in interaction '%s' to string", intName.c_str());
+        }
+        try {
+            parameters[key] = py::cast<InteractionFactory::VarParam>(item.second);
+        }
+        catch (const py::cast_error& e) {
+            die("Could not cast argument '%s' in interaction '%s': wrong type", key.c_str(), intName.c_str());
+        }
+    }
+    return parameters;
+}
 
 static std::shared_ptr<InteractionMembrane>
 createInteractionMembrane(const YmrState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           bool stressFree, float growUntil, py::kwargs kwargs)
 {
-    std::map<std::string, float> parameters;
-
-    for (const auto& item : kwargs) {
-        try {
-            auto key   = py::cast<std::string>(item.first);
-            auto value = py::cast<float>(item.second);
-            parameters[key] = value;
-        }
-        catch (const py::cast_error& e)
-        {
-            die("Could not cast one of the arguments in membrane interactions '%s'", name.c_str());
-        }        
-    }    
+    auto parameters = castToMap(kwargs, name);
     
     return InteractionFactory::createInteractionMembrane
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
 }
 
+static std::shared_ptr<InteractionRod>
+createInteractionRod(const YmrState *state, std::string name, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+    
+    return InteractionFactory::createInteractionRod(state, name, parameters);
+}
 
 static std::shared_ptr<BasicInteractionSDPD>
 createInteractionPairwiseSDPD(const YmrState *state, std::string name,
@@ -44,19 +63,7 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
                               std::string EOS, std::string density,
                               bool stress, py::kwargs kwargs)
 {
-    std::map<std::string, float> parameters;
-
-    for (const auto& item : kwargs) {
-        try {
-            auto key   = py::cast<std::string>(item.first);
-            auto value = py::cast<float>(item.second);
-            parameters[key] = value;
-        }
-        catch (const py::cast_error& e)
-        {
-            die("Could not cast one of the arguments in pairwise DPD interactions '%s'", name.c_str());
-        }        
-    }    
+    auto parameters = castToMap(kwargs, name);
     
     return InteractionFactory::createPairwiseSDPD
         (state, name, rc, viscosity, kBT, EOS, density, stress, parameters);
@@ -436,6 +443,57 @@ void exportInteractions(py::module& m)
                  * **C0**:  spontaneous curvature
                  * **kad**: area difference energy magnitude
                  * **DA0**: area difference at relaxed state divided by the offset of the leaflet midplanes
+    )");
+
+    py::handlers_class<InteractionRod> pyRodForces(m, "RodForces", pyInt, R"(
+        Forces acting on an elastic rod.
+
+        The rod interactions are composed of forces comming from:
+            - bending energy, :math:`E_{\text{bend}}`
+            - twist energy, :math:`E_{\text{twist}}`
+            - bounds energy,  :math:`E_{\text{bound}}`
+
+        The form of the bending energy is given by (for a bi-segment):
+
+        .. math::
+
+            E_{\mathrm{bend}}=\frac{1}{2 l} \sum_{j=0}^{1}\left(\omega^{j}-\overline{\omega}\right)^{T} B\left(\omega^{j}-\overline{\omega}\right),
+
+        where
+
+        .. math::
+
+        \omega^{j}=\left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
+
+        See, e.g. [bergou2008]_ for more details.
+        The form of the twist energy is given by (for a bi-segment):
+
+        .. math::
+
+            E_{\mathrm{twist}}=k_{t} l\left(\frac{\theta^{1}-\theta^{0}}{l}-\overline{\tau}\right)^{2}.
+
+        The additional bound energy is a simple harmonic potential with a given equilibrium length.
+
+        .. [bergou2008] Bergou, M.; Wardetzky, M.; Robinson, S.; Audoly, B. & Grinspun, E. 
+                        Discrete elastic rods 
+                        ACM transactions on graphics (TOG), 2008, 27, 63
+
+    )");
+
+    pyRodForces.def(py::init(&createInteractionRod),
+                         "state"_a, "name"_a, R"( 
+             Args:
+                 name: name of the interaction
+
+             kwargs:
+
+                 * **a0** (float):           equilibrium length between 2 opposite cross vertices
+                 * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
+                 * **k_bounds** (float):     bound energy
+                 * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
+                 * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
+                 * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
+                 * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
     )");
 }
 

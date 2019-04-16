@@ -4,10 +4,10 @@
 
 class ParticleVector;
 
-class AddForcePlugin : public SimulationPlugin
+class ParticleDragPlugin : public SimulationPlugin
 {
 public:
-    AddForcePlugin(const YmrState *state, std::string name, std::string pvName, float3 force);
+    ParticleDragPlugin(const YmrState *state, std::string name, std::string pvName, float drag);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;
@@ -17,6 +17,6 @@ public:
 private:
     std::string pvName;
     ParticleVector *pv;
-    float3 force;
+    float drag;
 };
 

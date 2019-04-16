@@ -292,6 +292,10 @@ inline __HD__ float3 operator-(const float3 &a)
 {
     return make_float3(-a.x, -a.y, -a.z);
 }
+inline __HD__ double3 operator-(const double3 &a)
+{
+    return make_double3(-a.x, -a.y, -a.z);
+}
 inline __HD__ int3 operator-(const int3 &a)
 {
     return make_int3(-a.x, -a.y, -a.z);
@@ -313,7 +317,16 @@ inline __HD__ float2 operator+(float2 a, float2 b)
 {
     return make_float2(a.x + b.x, a.y + b.y);
 }
+inline __HD__ double2 operator+(double2 a, double2 b)
+{
+    return {a.x + b.x, a.y + b.y};
+}
 inline __HD__ void operator+=(float2 &a, float2 b)
+{
+    a.x += b.x;
+    a.y += b.y;
+}
+inline __HD__ void operator+=(double2 &a, double2 b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -603,7 +616,16 @@ inline __HD__ float2 operator-(float2 a, float2 b)
 {
     return make_float2(a.x - b.x, a.y - b.y);
 }
+inline __HD__ double2 operator-(double2 a, double2 b)
+{
+    return {a.x - b.x, a.y - b.y};
+}
 inline __HD__ void operator-=(float2 &a, float2 b)
+{
+    a.x -= b.x;
+    a.y -= b.y;
+}
+inline __HD__ void operator-=(double2 &a, double2 b)
 {
     a.x -= b.x;
     a.y -= b.y;
@@ -706,6 +728,12 @@ inline __HD__ double3 operator-(double3 a, double b)
 inline __HD__ double3 operator-(double3 a, double3 b)
 {
     return make_double3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+inline __HD__ void operator-=(double3 &a, double3 b)
+{
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
 }
 
 inline __HD__ int3 operator-(int3 a, int3 b)

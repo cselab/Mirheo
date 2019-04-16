@@ -23,7 +23,7 @@ std::vector<float3> createRodTemplate(int nSegments,
     std::vector<float3> positions (5*nSegments + 1);
     float h = 1.f / nSegments;
 
-    float3 u, v; // bishop frame
+    float3 u; // bishop frame
     
     for (int i = 0; i <= nSegments; ++i)
         positions[i*5] = make_float3(centerLine(i*h));
@@ -32,7 +32,6 @@ std::vector<float3> createRodTemplate(int nSegments,
         auto t0 = normalize(positions[5] - positions[0]);
         u = anyOrthogonal(t0);
         u = normalize(u);
-        v = normalize(cross(t0, u));
     }
 
     float theta = 0; // angle w.r.t. bishop frame    
@@ -48,21 +47,23 @@ std::vector<float3> createRodTemplate(int nSegments,
         float cost = cos(theta);
         float sint = sin(theta);
 
+        auto t0 = normalize(r1-r0);
+        auto t1 = normalize(r2-r1);
+
+        u = normalize(u - dot(t0, u)*t0);
+        auto v = cross(t0, u);
+
         // material frame
         float3 mu =  cost * u + sint * v;
         float3 mv = -sint * u + cost * v;
             
-        positions[5*i + 1] = r + l * mu;
-        positions[5*i + 2] = r - l * mu;
-        positions[5*i + 3] = r + l * mv;
-        positions[5*i + 4] = r - l * mv;        
+        positions[5*i + 1] = r - 0.5 * l * mu;
+        positions[5*i + 2] = r + 0.5 * l * mu;
+        positions[5*i + 3] = r - 0.5 * l * mv;
+        positions[5*i + 4] = r + 0.5 * l * mv;
         
-        auto t0 = normalize(r1-r0);
-        auto t1 = normalize(r2-r1);
-
         auto q = getQfrom(t0, t1);
         u = normalize(rotate(u, q));
-        v = normalize(rotate(v, q));
         theta += l * torsion( (i*0.5f)*h );
     }
     

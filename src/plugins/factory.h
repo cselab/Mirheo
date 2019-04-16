@@ -22,6 +22,7 @@
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
 #include "particle_channel_saver.h"
+#include "particle_drag.h"
 #include "pin_object.h"
 #include "radial_velocity_control.h"
 #include "stats.h"
@@ -334,6 +335,15 @@ createParticleDisplacementPlugin(bool computeTask, const YmrState *state, std::s
 {
     auto simPl = computeTask ?
         std::make_shared<ParticleDisplacementPlugin> (state, name, pv->name, updateEvery) :
+        nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< ParticleDragPlugin, PostprocessPlugin >
+createParticleDragPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv, float drag)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ParticleDragPlugin> (state, name, pv->name, drag) :
         nullptr;
     return { simPl, nullptr };
 }

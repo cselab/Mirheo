@@ -2,7 +2,7 @@
 
 import numpy as np
 import ymero as ymr
-import sys, argparse
+import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--stress_free', action="store_true", default=False)

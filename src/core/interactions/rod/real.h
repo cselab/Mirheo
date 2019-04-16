@@ -2,20 +2,28 @@
 
 #include <core/datatypes.h>
 
-// #define ROD_FORCES_DOUBLE
+#define ROD_FORCES_DOUBLE
 
 #ifdef ROD_FORCES_DOUBLE
 using real  = double;
+using real2 = double2;
 using real3 = double3;
 #else
 using real  = float;
+using real2 = float2;
 using real3 = float3;
 #endif // ROD_FORCES_DOUBLE
+
+template<typename T2>
+__D__ inline real2 make_real2(T2 v)
+{
+    return {(real) v.x, (real) v.y};
+}
 
 template<typename T3>
 __D__ inline real3 make_real3(T3 v)
 {
-    return {v.x, v.y, v.z};
+    return {(real) v.x, (real) v.y, (real) v.z};
 }
 
 __D__ constexpr inline real3 make_real3(float a)

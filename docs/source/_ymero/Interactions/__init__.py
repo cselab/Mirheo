@@ -309,6 +309,63 @@ class MembraneForces(Interaction):
         """
         pass
 
+class RodForces(Interaction):
+    r"""
+        Forces acting on an elastic rod.
+
+        The rod interactions are composed of forces comming from:
+            - bending energy, :math:`E_{\text{bend}}`
+            - twist energy, :math:`E_{\text{twist}}`
+            - bounds energy,  :math:`E_{\text{bound}}`
+
+        The form of the bending energy is given by (for a bi-segment):
+
+        .. math::
+
+            E_{\mathrm{bend}}=\frac{1}{2 l} \sum_{j=0}^{1}\left(\omega^{j}-\overline{\omega}\right)^{T} B\left(\omega^{j}-\overline{\omega}\right),
+
+        where
+
+        .. math::
+
+        \omega^{j}=\left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
+
+        See, e.g. [bergou2008]_ for more details.
+        The form of the twist energy is given by (for a bi-segment):
+
+        .. math::
+
+            E_{\mathrm{twist}}=k_{t} l\left(\frac{\theta^{1}-\theta^{0}}{l}-\overline{\tau}\right)^{2}.
+
+        The additional bound energy is a simple harmonic potential with a given equilibrium length.
+
+        .. [bergou2008] Bergou, M.; Wardetzky, M.; Robinson, S.; Audoly, B. & Grinspun, E. 
+                        Discrete elastic rods 
+                        ACM transactions on graphics (TOG), 2008, 27, 63
+
+    
+    """
+    def __init__():
+        r"""__init__(name: str, **kwargs) -> None
+
+ 
+             Args:
+                 name: name of the interaction
+
+             kwargs:
+
+                 * **a0** (float):           equilibrium length between 2 opposite cross vertices
+                 * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
+                 * **k_bounds** (float):     bound energy
+                 * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
+                 * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
+                 * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
+                 * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
+    
+
+        """
+        pass
+
 class SDPD(Interaction):
     r"""
         Compute SDPD interaction with angular momentum conservation.

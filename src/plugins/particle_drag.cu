@@ -1,4 +1,4 @@
-#include "add_force.h"
+#include "particle_drag.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
@@ -6,40 +6,42 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-namespace AddForceKernels
+namespace ParticleDragPluginKernels
 {
 
-__global__ void addForce(PVview view, float3 force)
+__global__ void applyDrag(PVview view, float drag)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
+    auto v = make_float3(view.readVelocity(gid));
+    auto force = - drag * v;
     view.forces[gid] += make_float4(force, 0.0f);
 }
 
-} // namespace AddForceKernels
+} // namespace ParticleDragPluginKernels
 
-AddForcePlugin::AddForcePlugin(const YmrState *state, std::string name, std::string pvName, float3 force) :
+ParticleDragPlugin::ParticleDragPlugin(const YmrState *state, std::string name, std::string pvName, float drag) :
     SimulationPlugin(state, name),
     pvName(pvName),
-    force(force)
+    drag(drag)
 {}
 
-void AddForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ParticleDragPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
     pv = simulation->getPVbyNameOrDie(pvName);
 }
 
-void AddForcePlugin::beforeForces(cudaStream_t stream)
+void ParticleDragPlugin::beforeForces(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            AddForceKernels::addForce,
+            ParticleDragPluginKernels::applyDrag,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, force );
+            view, drag );
 }
 

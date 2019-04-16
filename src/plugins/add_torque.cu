@@ -1,11 +1,13 @@
 #include "add_torque.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
 #include <core/simulation.h>
-
 #include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
+
+namespace AddTorqueKernels
+{
 
 __global__ void addTorque(ROVview view, float3 torque)
 {
@@ -15,11 +17,15 @@ __global__ void addTorque(ROVview view, float3 torque)
     view.motions[gid].torque += torque;
 }
 
+} // namespace AddTorqueKernels
+
 AddTorquePlugin::AddTorquePlugin(const YmrState *state, std::string name, std::string rovName, float3 torque) :
-    SimulationPlugin(state, name), rovName(rovName), torque(torque)
+    SimulationPlugin(state, name),
+    rovName(rovName),
+    torque(torque)
 {}
 
-void AddTorquePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AddTorquePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -38,7 +44,7 @@ void AddTorquePlugin::beforeForces(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            addTorque,
+            AddTorqueKernels::addTorque,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, torque );
 }

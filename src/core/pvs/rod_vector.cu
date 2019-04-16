@@ -61,14 +61,14 @@ __device__ inline float3 fetchPosition(const RVview& view, int i)
 __global__ void computeBishopQuaternion(RVview view)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int nSegments = getNumSegments(view.objSize);
+    int nSegments = view.nSegments;
     
     int objId     = i / nSegments;
     int segmentId = i % nSegments;
     int objStart  = objId * view.objSize;
 
-    if (objId > view.nObjects) return;
-    if (segmentId > nSegments) return;
+    if (objId >= view.nObjects) return;
+    if (segmentId >= nSegments) return;
 
     float4 Q {1.f, 0.f, 0.f, 0.f};
 
@@ -92,8 +92,8 @@ __device__ inline float3 getInitialFrame(const RVview& view, int objId)
 {
     int start = view.objSize * objId;
     auto r0 = fetchPosition(view, start + 0);
-    auto pu = fetchPosition(view, start + 1);
-    auto mu = fetchPosition(view, start + 2);
+    auto mu = fetchPosition(view, start + 1);
+    auto pu = fetchPosition(view, start + 2);
     auto r1 = fetchPosition(view, start + 5);
 
     auto t0 = normalize(r1 - r0);
@@ -120,7 +120,7 @@ __global__ void computeBishopFrames(RVview view)
     
     assert(blockDim.x == BlockSize);
     int tid = threadIdx.x;
-    int nSegments = getNumSegments(view.objSize);
+    int nSegments = view.nSegments;
     
     int objId     = blockIdx.x;
     int objStart  = objId * nSegments;
