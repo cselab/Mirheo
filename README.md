@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.14.1
 
 * Add "rod aware" LJ repulsion interactions
 * **interface change** DPD, MDPD and LJ interactions have only one constructor each
