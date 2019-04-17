@@ -17,9 +17,9 @@ public:
     using ParticleType = Particle;
     using HandlerType  = PairwiseLJRodAware;
     
-    PairwiseLJObjectAware(float rc, float epsilon, float sigma, float maxForce, int nSegmentsSep) :
+    PairwiseLJRodAware(float rc, float epsilon, float sigma, float maxForce, int minSegmentsDist) :
         PairwiseLJ(rc, epsilon, sigma, maxForce),
-        nSegmentsSep(nSegmentsSep)
+        minSegmentsDist(minSegmentsDist)
     {}
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
@@ -29,13 +29,14 @@ public:
             int dstObjId = dst.i1 / objSize;
             int srcObjId = src.i1 / objSize;
 
-            if (dstObjId != srcObjId) break;
+            if (dstObjId == srcObjId)
+            {
+                int srcSegId = (dst.i1 % objSize) / 5;
+                int dstSegId = (src.i1 % objSize) / 5;
 
-            int srcSegId = (dst.i1 % objSize) / 5;
-            int dstSegId = (src.i1 % objSize) / 5;
-
-            if (abs(srcSegId - dstSegId) <= nSegmentsSep)
-                return make_float3(0.0f);
+                if (abs(srcSegId - dstSegId) <= minSegmentsDist)
+                    return make_float3(0.0f);
+            }
         }
 
         return PairwiseLJ::operator() (dst, dstId, src, srcId);
@@ -63,6 +64,6 @@ protected:
 
     bool self;
 
-    int objSize, nSegmentsSep;
+    int objSize, minSegmentsDist;
 };
 

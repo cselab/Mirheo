@@ -69,6 +69,16 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
         (state, name, rc, viscosity, kBT, EOS, density, stress, parameters);
 }
 
+static std::shared_ptr<InteractionLJ>
+createInteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+                    std::string awareMode, bool stress, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+
+    return InteractionFactory::createPairwiseLJ
+        (state, name, rc, epsilon, sigma, maxForce, awareMode, stress, parameters);
+}
+
 
 void exportInteractions(py::module& m)
 {
@@ -287,17 +297,23 @@ void exportInteractions(py::module& m)
     )");
 
     
-    pyIntLJ.def(py::init<const YmrState*, std::string, float, float, float, float, bool>(),
-                "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "object_aware"_a, R"(
+    pyIntLJ.def(py::init(&createInteractionLJ),
+                "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0, "aware_mode"_a="None", "stress"_a=false, R"(
             Args:
                 name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
                 max_force: force magnitude will be capped to not exceed **max_force**
-                object_aware:
-                    if True, the particles belonging to the same object in an object vector do not interact with each other.
+                aware_mode:
+                    if "None", all particles interact with each other.
+                    if "Object", the particles belonging to the same object in an object vector do not interact with each other.
                     That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                    if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
+                    (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+                stress: 
+                    if **True**, will enable stress computations every **stress_period** time units (specified as kwargs parameter).
+                   
     )");
 
     pyIntLJ.def("setSpecificPair", &InteractionLJ::setSpecificPair, 
@@ -305,24 +321,24 @@ void exportInteractions(py::module& m)
             Override some of the interaction parameters for a specific pair of Particle Vectors
         )");
         
-    py::handlers_class<InteractionLJWithStress> pyIntLJWithStress (m, "LJWithStress", pyIntLJ, R"(
-        wrapper of :any:`LJ` with, in addition, stress computation
-    )");
+    // py::handlers_class<InteractionLJWithStress> pyIntLJWithStress (m, "LJWithStress", pyIntLJ, R"(
+    //     wrapper of :any:`LJ` with, in addition, stress computation
+    // )");
 
-    pyIntLJWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, bool, float>(),
-                          "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
-                          "object_aware"_a, "stressPeriod"_a, R"(
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                epsilon: :math:`\varepsilon`
-                sigma: :math:`\sigma`
-                max_force: force magnitude will be capped not exceed **max_force**
-                object_aware:
-                    if True, the particles belonging to the same object in an object vector do not interact with each other.
-                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
-                stressPeriod: compute the stresses every this period (in simulation time units)
-    )");
+    // pyIntLJWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, bool, float>(),
+    //                       "state"_a, "name"_a, "rc"_a, "epsilon"_a, "sigma"_a, "max_force"_a=1000.0,
+    //                       "object_aware"_a, "stressPeriod"_a, R"(
+    //         Args:
+    //             name: name of the interaction
+    //             rc: interaction cut-off (no forces between particles further than **rc** apart)
+    //             epsilon: :math:`\varepsilon`
+    //             sigma: :math:`\sigma`
+    //             max_force: force magnitude will be capped not exceed **max_force**
+    //             object_aware:
+    //                 if True, the particles belonging to the same object in an object vector do not interact with each other.
+    //                 That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+    //             stressPeriod: compute the stresses every this period (in simulation time units)
+    // )");
     
     py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.

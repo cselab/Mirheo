@@ -1,6 +1,7 @@
 #pragma once
 
 #include "density.h"
+#include "lj.h"
 #include "membrane.h"
 #include "rod.h"
 #include "sdpd.h"
@@ -33,5 +34,9 @@ std::shared_ptr<BasicInteractionSDPD>
 createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
                    const std::string& EOS, const std::string& density, bool stress,
                    const std::map<std::string, VarParam>& parameters);
+
+std::shared_ptr<InteractionLJ>
+createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+                 std::string awareMode, bool stress, const std::map<std::string, VarParam>& parameters);
 
 } // namespace InteractionFactory

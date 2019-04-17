@@ -1,10 +1,9 @@
 #include "factory.h"
-
+#include "lj.h"
+#include "lj_with_stress.h"
 #include "membrane.h"
-
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
-
 #include "sdpd.h"
 #include "sdpd_with_stress.h"
 
@@ -208,6 +207,11 @@ static bool isQuasiIncompressibleEOS(const std::string& desc)
 }
 
 
+static float readStressPeriod(const MapParams& desc)
+{
+    return read<float>(desc, "stress_period");
+}
+
 template <typename PressureKernel, typename DensityKernel>
 static std::shared_ptr<BasicInteractionSDPD>
 allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
@@ -223,7 +227,6 @@ allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
             (state, name, rc, pressure, density, viscosity, kBT);
 }
 
-
 std::shared_ptr<BasicInteractionSDPD>
 InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
                                        const std::string& EOS, const std::string& density, bool stress,
@@ -232,7 +235,7 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
     float stressPeriod = 0.f;
 
     if (stress)
-        stressPeriod = read<float>(parameters, "stress_period");
+        stressPeriod = readStressPeriod(parameters);
     
     if (!isWendlandC2Density(density))
         die("Invalid density '%s'", density.c_str());
@@ -253,4 +256,29 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
 
     die("Invalid pressure parameter: '%s'", EOS.c_str());
     return nullptr;
+}
+
+std::shared_ptr<InteractionLJ>
+InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+                                     std::string awareMode, bool stress, const MapParams& parameters)
+{
+    int minSegmentsDist = 0;
+
+    InteractionLJ::AwareMode aMode;
+
+    if      (awareMode == "None")   aMode = InteractionLJ::AwareMode::None;
+    else if (awareMode == "Object") aMode = InteractionLJ::AwareMode::Object;
+    else if (awareMode == "Rod")    aMode = InteractionLJ::AwareMode::Rod;
+    else die("Invalid aware mode parameter '%s' in interaction '%s'", awareMode.c_str(), name.c_str());
+
+    if (aMode == InteractionLJ::AwareMode::Rod)
+        minSegmentsDist = (int) read<float>(parameters, "min_segments_distance");
+    
+    if (stress)
+    {
+        float stressPeriod = readStressPeriod(parameters);
+        return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
+    }
+
+    return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }

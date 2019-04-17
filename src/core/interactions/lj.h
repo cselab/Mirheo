@@ -3,9 +3,12 @@
 #include "interface.h"
 #include <memory>
 
-struct InteractionLJ : public Interaction
-{        
-    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware);
+class InteractionLJ : public Interaction
+{
+public:
+    enum class AwareMode {None, Object, Rod};
+    
+    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, AwareMode awareness, int minSegmentsDist=0);
 
     ~InteractionLJ();
 
@@ -20,8 +23,10 @@ struct InteractionLJ : public Interaction
                                  float epsilon, float sigma, float maxForce);
 
 protected:
-    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, bool objectAware, bool allocate);
+    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+                  AwareMode awareness, int minSegmentsDist, bool allocate);
     
-    bool objectAware;
+    AwareMode awareness;
+    int minSegmentsDist;
 };
 
