@@ -34,16 +34,17 @@ class DPD(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float) -> None
+        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float, stress: bool = False, **kwargs) -> None
 
   
             Args:
                 name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    a: :math:`a`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    power: :math:`p` in the weight function
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     
 
         """
@@ -172,18 +173,19 @@ class MDPD(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float) -> None
+        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float, stress: bool = False, **kwargs) -> None
 
   
             Args:
                 name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    rd: density cutoff, assumed rd <= rc
-                    a: :math:`a`
-                    b: :math:`b`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    power: :math:`p` in the weight function
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd <= rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     
 
         """
@@ -419,62 +421,6 @@ class SDPD(Interaction):
 
                 * **p0**: :math:`p_0`
                 * **rho_r**: :math:`\rho_r`
-    
-
-        """
-        pass
-
-class DPDWithStress(DPD):
-    r"""
-        wrapper of :any:`DPD` with, in addition, stress computation
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                a: :math:`a`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stressPeriod: compute the stresses every this period (in simulation time units)
-    
-
-        """
-        pass
-
-    def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, power: float = inf) -> None
-
-
-            Override some of the interaction parameters for a specific pair of Particle Vectors
-         
-
-        """
-        pass
-
-class MDPDWithStress(MDPD):
-    r"""
-        wrapper of :any:`MDPD` with, in addition, stress computation
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float, stressPeriod: float) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cut-off, assumed rd < rc
-                a: :math:`a`
-                b: :math:`b`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stressPeriod: compute the stresses every this period (in simulation time units)
     
 
         """

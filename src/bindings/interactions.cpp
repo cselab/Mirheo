@@ -137,12 +137,12 @@ void exportInteractions(py::module& m)
                  "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stress"_a=false, R"(  
             Args:
                 name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    a: :math:`a`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    power: :math:`p` in the weight function
-                    stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                a: :math:`a`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     )");
 
     pyIntDPD.def("setSpecificPair", &InteractionDPD::setSpecificPair, 
@@ -218,14 +218,14 @@ void exportInteractions(py::module& m)
                   "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, "stress"_a=false, R"(  
             Args:
                 name: name of the interaction
-                    rc: interaction cut-off (no forces between particles further than **rc** apart)
-                    rd: density cutoff, assumed rd <= rc
-                    a: :math:`a`
-                    b: :math:`b`
-                    gamma: :math:`\gamma`
-                    kbt: :math:`k_B T`
-                    power: :math:`p` in the weight function
-                    stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                rd: density cutoff, assumed rd <= rc
+                a: :math:`a`
+                b: :math:`b`
+                gamma: :math:`\gamma`
+                kbt: :math:`k_B T`
+                power: :math:`p` in the weight function
+                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     )");
 
 
