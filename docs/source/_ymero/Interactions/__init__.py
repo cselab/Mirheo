@@ -114,7 +114,7 @@ class LJ(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool) -> None
+        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, aware_mode: str = 'None', stress: bool = False, **kwargs) -> None
 
 
             Args:
@@ -123,9 +123,15 @@ class LJ(Interaction):
                 epsilon: :math:`\varepsilon`
                 sigma: :math:`\sigma`
                 max_force: force magnitude will be capped to not exceed **max_force**
-                object_aware:
-                    if True, the particles belonging to the same object in an object vector do not interact with each other.
-                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                aware_mode:
+                    * if "None", all particles interact with each other.
+                    * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
+                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                    * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
+                      (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+                stress: 
+                    if **True**, will enable stress computations every **stress_period** time units (specified as kwargs parameter).
+                   
     
 
         """
@@ -446,40 +452,6 @@ class DPDWithStress(DPD):
 
             Override some of the interaction parameters for a specific pair of Particle Vectors
          
-
-        """
-        pass
-
-class LJWithStress(LJ):
-    r"""
-        wrapper of :any:`LJ` with, in addition, stress computation
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, object_aware: bool, stressPeriod: float) -> None
-
-
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                epsilon: :math:`\varepsilon`
-                sigma: :math:`\sigma`
-                max_force: force magnitude will be capped not exceed **max_force**
-                object_aware:
-                    if True, the particles belonging to the same object in an object vector do not interact with each other.
-                    That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
-                stressPeriod: compute the stresses every this period (in simulation time units)
-    
-
-        """
-        pass
-
-    def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, max_force: float) -> None
-
-
-            Override some of the interaction parameters for a specific pair of Particle Vectors
-        
 
         """
         pass
