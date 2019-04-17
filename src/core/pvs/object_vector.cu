@@ -72,6 +72,28 @@ void LocalObjectVector::resize_anew(int np)
     extraPerObject.resize_anew(nObjects);
 }
 
+void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
+{
+    LocalParticleVector::computeGlobalIds(comm, stream);
+
+    if (np == 0) return;
+    
+    int64_t rankStart = coosvels[0].getId();
+    
+    if ((rankStart % objSize) != 0)
+        die("Something went wrong when computing ids of '%s':"
+            "got rankStart = '%ld' while objectSize is '%d'",
+            pv->name.c_str(), rankStart, objSize);
+
+    auto& ids = *extraPerObject.getData<int64_t>(ChannelNames::globalIds);
+    int64_t id = (int64_t) (rankStart / objSize);
+    
+    for (auto& i : ids)
+        i = id++;
+
+    ids.uploadToDevice(stream);
+}
+
 PinnedBuffer<Particle>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
 {
     return &coosvels;
@@ -113,7 +135,7 @@ ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, 
     requireDataPerObject<COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
 
     // object ids must always follow objects
-    requireDataPerObject<int>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
+    requireDataPerObject<int64_t>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
 }
 
 ObjectVector::~ObjectVector() = default;
@@ -191,7 +213,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     
     // Do the ids
     // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
-    auto ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto ids = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
     for (int i = 0; i < local()->nObjects; i++)
         (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
     ids->uploadToDevice(defaultStream);
@@ -259,7 +281,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    auto loc_ids = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto loc_ids = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
     
     std::vector<int> ids(loc_ids->size());
     std::copy(loc_ids->begin(), loc_ids->end(), ids.begin());

@@ -9,19 +9,13 @@ namespace XDMF
 {
 struct Channel
 {
+    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other };
+    enum class NumberType { Float, Double, Int, Int64 };
+    
     std::string name;
     void *data;
-        
-    enum class DataForm
-        {
-         Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other
-        } dataForm;
-        
-    enum class NumberType
-        {
-         Float, Int, Double
-        } numberType;
-
+    DataForm dataForm;
+    NumberType numberType;
     TypeDescriptor type;
 
     Channel(std::string name, void *data, DataForm dataForm, NumberType numberType, TypeDescriptor type);

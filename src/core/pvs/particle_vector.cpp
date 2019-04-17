@@ -38,6 +38,21 @@ void LocalParticleVector::resize_anew(int n)
     np = n;
 }
 
+void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
+{
+    int64_t rankStart = 0;
+    int64_t np64 = np;
+        
+    MPI_Check( MPI_Exscan(&np64, &rankStart, 1, MPI_INT64_T, MPI_SUM, comm) );
+
+    coosvels.downloadFromDevice(stream);
+
+    int64_t id = rankStart;
+    for (auto& p : coosvels)
+        p.setId(id++);        
+    
+    coosvels.uploadToDevice(stream);
+}
 
 //============================================================================
 // Particle Vector
@@ -50,14 +65,14 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name, float ma
 {}
 
 
-std::vector<int> ParticleVector::getIndices_vector()
+std::vector<int64_t> ParticleVector::getIndices_vector()
 {
     auto& coosvels = local()->coosvels;
     coosvels.downloadFromDevice(defaultStream);
     
-    std::vector<int> res(coosvels.size());
-    for (int i = 0; i < coosvels.size(); i++)
-        res[i] = coosvels[i].i1;
+    std::vector<int64_t> res(coosvels.size());
+    for (size_t i = 0; i < coosvels.size(); i++)
+        res[i] = coosvels[i].getId();
     
     return res;
 }
@@ -215,7 +230,7 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name,  float m
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
-                    std::vector<float> &positions, std::vector<float> &velocities, std::vector<int> &ids)
+                    std::vector<float> &positions, std::vector<float> &velocities, std::vector<int64_t> &ids)
 {
     int n = local->size();
     positions.resize(3 * n);
@@ -229,7 +244,7 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
         auto p = local->coosvels[i];
         pos[i] = domain.local2global(p.r);
         vel[i] = p.u;
-        ids[i] = p.i1;
+        ids[i] = p.getId();
     }
 }
 
@@ -275,7 +290,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
 
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<float> velocities;
-    std::vector<int> ids;
+    std::vector<int64_t> ids;
     splitPV(state->domain, local(), *positions, velocities, ids);
 
     XDMF::VertexGrid grid(positions, comm);
@@ -284,7 +299,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     channels.push_back(XDMF::Channel("velocity", velocities.data(),
                                      XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>() ));
     channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
-                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int, DataTypeWrapper<int>() ));
+                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() ));
 
     _extractPersistentExtraParticleData(channels);
     

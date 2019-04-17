@@ -40,15 +40,13 @@ static long getLocalNumElements(const GridDims *gridDims)
     return n;
 }
 
-static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, const int *ids, Particle *particles)
+static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, const int64_t *ids, Particle *particles)
 {
     for (int i = 0; i < n; ++i) {
         Particle p;
         p.r = pos[i];
         p.u = vel[i];
-        p.i1 = ids[i];
-        p.i2 = 0;
-
+        p.setId(ids[i]);
         particles[i] = p;
     }    
 }
@@ -73,15 +71,15 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 {
     int n = positions.size() / 3;
     const float3 *pos, *vel = nullptr;
-    const int *ids = nullptr;
+    const int64_t *ids = nullptr;
 
     pv->local()->resize_anew(n);
     auto& coosvels = pv->local()->coosvels;
 
     for (auto& ch : channels)
     {
-        if      (ch.name == "velocity"              ) vel = (const float3*) ch.data;            
-        else if (ch.name == ChannelNames::globalIds ) ids = (const int*) ch.data;
+        if      (ch.name == "velocity"              ) vel = (const float3*)  ch.data;            
+        else if (ch.name == ChannelNames::globalIds ) ids = (const int64_t*) ch.data;
         else addPersistentExtraDataPerParticle(n, ch, pv);
     }
 
@@ -116,15 +114,15 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
 {
     int n = positions.size() / 3;
-    const int *ids_data = nullptr;
+    const int64_t *ids_data = nullptr;
 
-    auto ids = ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto ids = ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
 
     ids->resize_anew(n);
 
     for (auto& ch : channels)
     {
-        if (ch.name == ChannelNames::globalIds) ids_data = (const int*) ch.data;
+        if (ch.name == ChannelNames::globalIds) ids_data = (const int64_t*) ch.data;
         else addPersistentExtraDataPerObject(n, ch, ov);
     }
 
@@ -160,12 +158,12 @@ static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
 {
     int n = positions.size() / 3;
-    const int *ids_data = nullptr;
+    const int64_t *ids_data = nullptr;
     const float3 *pos = (const float3*) positions.data();
     const RigidReal4 *quaternion;
     const RigidReal3 *vel, *omega, *force, *torque;
 
-    auto ids     = rov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto ids     = rov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = rov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->resize_anew(n);
@@ -173,12 +171,12 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
     for (auto& ch : channels)
     {
-        if      (ch.name == ChannelNames::globalIds)  ids_data = (const int*)        ch.data;
-        else if (ch.name == "quaternion") quaternion = (const RigidReal4*) ch.data; 
-        else if (ch.name == "velocity")          vel = (const RigidReal3*) ch.data;
-        else if (ch.name == "omega")           omega = (const RigidReal3*) ch.data;
-        else if (ch.name == "force")           force = (const RigidReal3*) ch.data;
-        else if (ch.name == "torque")         torque = (const RigidReal3*) ch.data;
+        if      (ch.name == ChannelNames::globalIds)  ids_data = (const int64_t*)    ch.data;
+        else if (ch.name == "quaternion")           quaternion = (const RigidReal4*) ch.data; 
+        else if (ch.name == "velocity")                    vel = (const RigidReal3*) ch.data;
+        else if (ch.name == "omega")                     omega = (const RigidReal3*) ch.data;
+        else if (ch.name == "force")                     force = (const RigidReal3*) ch.data;
+        else if (ch.name == "torque")                   torque = (const RigidReal3*) ch.data;
         else addPersistentExtraDataPerObject(n, ch, rov);
     }
 
@@ -187,12 +185,12 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
                          if (ptr == nullptr)
                              die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
                      };
-        check(ChannelNames::globalIds,        ids_data);
-        check("quaternion", quaternion);
-        check("velocity",   vel);
-        check("omega",      omega);
-        check("force",      force);
-        check("torque",     torque);
+        check(ChannelNames::globalIds, ids_data);
+        check("quaternion",            quaternion);
+        check("velocity",              vel);
+        check("omega",                 omega);
+        check("force",                 force);
+        check("torque",                torque);
     }
 
     combineIntoRigidMotions(n, pos, quaternion, vel, omega, force, torque, motions->data());        

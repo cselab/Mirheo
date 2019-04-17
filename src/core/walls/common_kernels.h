@@ -10,7 +10,7 @@ namespace BounceKernels
 {
 
 template <typename InsideWallChecker>
-__device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, const InsideWallChecker& checker)
+__device__ inline float3 rescue(float3 candidate, float dt, float tol, int seed, const InsideWallChecker& checker)
 {
     const int maxIters = 100;
     const float factor = 5.0f * dt;
@@ -21,9 +21,9 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, int id, c
         if (v < -tol) break;
 
         float3 rndShift;
-        rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), id+i, id*id);
-        rndShift.y = Saru::mean0var1(rndShift.x,                        id+i, id*id);
-        rndShift.z = Saru::mean0var1(rndShift.y,                        id+i, id*id);
+        rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), seed+i, seed*seed);
+        rndShift.y = Saru::mean0var1(rndShift.x,                        seed+i, seed*seed);
+        rndShift.z = Saru::mean0var1(rndShift.y,                        seed+i, seed*seed);
 
         if (checker(candidate + factor * rndShift) < v)
             candidate += factor * rndShift;

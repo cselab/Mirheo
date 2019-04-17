@@ -6,6 +6,7 @@
 
 #define TYPE_TABLE__(OP, SEP)                   \
     OP(int)          SEP                        \
+    OP(int64_t)      SEP                        \
     OP(float)        SEP                        \
     OP(float2)       SEP                        \
     OP(float3)       SEP                        \

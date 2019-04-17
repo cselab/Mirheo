@@ -115,21 +115,8 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
         }
     }
 
-    // Set ids
-    // Need to do that, as not all the objects in com_q may be valid
-    int totalCount = 0; // TODO: int64!
-    MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
-
-    auto ids = rv->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
-    for (int i = 0; i < nObjs; i++)
-        (*ids)[i] = totalCount + i;
-
-    for (int i = 0; i < rv->local()->size(); i++)
-        rv->local()->coosvels[i].i1 = totalCount * objSize + i;
-
-
-    ids->uploadToDevice(stream);
     rv->local()->coosvels.uploadToDevice(stream);
+    rv->local()->computeGlobalIds(comm, stream);
     rv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(rv->local()->coosvels, stream);
 
     info("Initialized %d '%s' rods", nObjs, rv->name.c_str());
