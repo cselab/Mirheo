@@ -77,9 +77,9 @@ Channel::DataForm descriptionToDataForm(std::string str)
     return Channel::DataForm::Other;
 }
     
-decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType dt)
+decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType nt)
 {
-    switch (dt)
+    switch (nt)
     {
     case Channel::NumberType::Float  : return H5T_NATIVE_FLOAT;
     case Channel::NumberType::Double : return H5T_NATIVE_DOUBLE;

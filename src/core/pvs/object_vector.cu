@@ -211,13 +211,6 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     local()->coosvels.uploadToDevice(defaultStream);
     
-    // Do the ids
-    // That's a kinda hack, will be properly fixed in the hdf5 per object restarts
-    auto ids = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
-    for (int i = 0; i < local()->nObjects; i++)
-        (*ids)[i] = local()->coosvels[i*objSize].i1 / objSize;
-    ids->uploadToDevice(defaultStream);
-
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->coosvels.size());
