@@ -26,7 +26,7 @@ pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 icSolvent = ymr.InitialConditions.Uniform(density)
 
 dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5)
-cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.8, max_force=400.0, object_aware=False)
+cnt = ymr.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.8, max_force=400.0)
 vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],

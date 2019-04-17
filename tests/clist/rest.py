@@ -22,7 +22,7 @@ ic = ymr.InitialConditions.Uniform(density=4)
 u.registerParticleVector(pv=pv, ic=ic)
 
 if args.non_primary:
-    null_lj = ymr.Interactions.LJ('fake', rc, epsilon=0.0, sigma=rcFake, object_aware=False)
+    null_lj = ymr.Interactions.LJ('fake', rc, epsilon=0.0, sigma=rcFake)
     u.registerInteraction(null_lj)
     u.setInteraction(null_lj, pv, pv)
 
