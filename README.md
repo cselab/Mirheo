@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add "rod aware" LJ repulsion interactions
+* **interface change** LJ interactions has only one constructor
+* Safer parameters in interaction factory: treat unread parameters
 
 ### v0.14.0
 

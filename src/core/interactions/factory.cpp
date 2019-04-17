@@ -15,7 +15,6 @@ using MapParams = std::map<std::string, VarParam>;
 class ParametersWrap
 {
 public:
-    
     ParametersWrap(const MapParams& params) :
         params(params)
     {
