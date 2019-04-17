@@ -37,7 +37,9 @@ prm_rbc["a3"] = 0.0
 prm_rbc["a4"] = 0.0
 prm_rbc["b1"] = 0.0
 prm_rbc["b2"] = 0.0
-
+prm_rbc.pop("ks")
+prm_rbc.pop("mpow")
+prm_rbc.pop("x0")
 int_rbc = ymr.Interactions.MembraneForces("int_rbc", "Lim", "Kantor", **prm_rbc, stress_free=True)
 
 vv = ymr.Integrators.VelocityVerlet('vv')

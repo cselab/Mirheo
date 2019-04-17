@@ -43,7 +43,7 @@ prm_rbc = {
     "DA0" : args.DA0
 }
     
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Juelicher", **prm_rbc, stressFree=False)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Juelicher", **prm_rbc, stress_free=False)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 

@@ -34,6 +34,7 @@ prm_rbc["kb"] = 44.0
 prm_rbc["C0"] = 0.0
 prm_rbc["kad"] = 0.0
 prm_rbc["DA0"] = 0.0
+prm_rbc.pop("theta")
 int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Juelicher", **prm_rbc, stress_free=args.stressFree)
 
 vv = ymr.Integrators.VelocityVerlet('vv')
