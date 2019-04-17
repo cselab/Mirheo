@@ -23,6 +23,11 @@ public:
             readParams[p.first] = false;
     }
 
+    ~ParametersWrap()
+    {
+        check();
+    }
+
     template <typename T>
     T read(const std::string& key)
     {
@@ -38,6 +43,13 @@ public:
         return mpark::get<T>(it->second);
     }
 
+    void check() const
+    {
+        for (const auto& p : readParams)
+            if (p.second == false)
+                die("invalid parameter '%s'", p.first.c_str());
+    }
+    
 private:
     const MapParams& params;
     std::map<std::string, bool> readParams;
