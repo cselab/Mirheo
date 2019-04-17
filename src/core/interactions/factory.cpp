@@ -5,6 +5,8 @@
 #include "dpd_with_stress.h"
 #include "lj.h"
 #include "lj_with_stress.h"
+#include "mdpd.h"
+#include "mdpd_with_stress.h"
 #include "membrane.h"
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
@@ -309,6 +311,20 @@ InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, f
     return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
 }
 
+std::shared_ptr<InteractionMDPD>
+InteractionFactory::createPairwiseMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
+                                       float power, bool stress, const MapParams& parameters)
+{
+    ParametersWrap desc {parameters};
+    
+    if (stress)
+    {
+        float stressPeriod = readStressPeriod(desc);
+        return std::make_shared<InteractionMDPDWithStress>(state, name, rc, rd, a, b, gamma, kbt, power, stressPeriod);
+    }
+
+    return std::make_shared<InteractionMDPD>(state, name, rc, rd, a, b, gamma, kbt, power);
+}
 
 std::shared_ptr<InteractionLJ>
 InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
@@ -335,3 +351,4 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
 
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
+

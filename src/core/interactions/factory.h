@@ -14,6 +14,7 @@ class BasicInteractionDensity;
 class BasicInteractionSDPD;
 class InteractionLJ;
 class InteractionDPD;
+class InteractionMDPD;
 
 namespace InteractionFactory
 {
@@ -41,9 +42,12 @@ std::shared_ptr<InteractionLJ>
 createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                  std::string awareMode, bool stress, const std::map<std::string, VarParam>& parameters);
 
-
 std::shared_ptr<InteractionDPD>
 createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
                   bool stress, const std::map<std::string, VarParam>& parameters);
+
+std::shared_ptr<InteractionMDPD>
+createPairwiseMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
+                   float power, bool stress, const std::map<std::string, VarParam>& parameters);
 
 } // namespace InteractionFactory

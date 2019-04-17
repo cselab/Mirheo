@@ -92,6 +92,15 @@ createInteractionDPD(const YmrState *state, std::string name, float rc, float a,
         (state, name, rc, a, gamma, kBT, power, stress, parameters);
 }
 
+static std::shared_ptr<InteractionMDPD>
+createInteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kBT, float power,
+                      bool stress, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+
+    return InteractionFactory::createPairwiseMDPD
+        (state, name, rc, rd, a, b, gamma, kBT, power, stress, parameters);
+}
 
 
 void exportInteractions(py::module& m)
@@ -205,8 +214,8 @@ void exportInteractions(py::module& m)
            Physical Review E 68.6 (2003): 066702.`_
     )");
     
-    pyIntMDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float>(),
-                  "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
+    pyIntMDPD.def(py::init(&createInteractionMDPD),
+                  "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, "stress"_a=false, R"(  
             Args:
                 name: name of the interaction
                     rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -216,26 +225,7 @@ void exportInteractions(py::module& m)
                     gamma: :math:`\gamma`
                     kbt: :math:`k_B T`
                     power: :math:`p` in the weight function
-    )");
-
-    
-    
-    py::handlers_class<InteractionMDPDWithStress> pyIntMDPDWithStress(m, "MDPDWithStress", pyIntMDPD, R"(
-        wrapper of :any:`MDPD` with, in addition, stress computation
-    )");
-
-    pyIntMDPDWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, float, float, float, float>(),
-                            "state"_a, "name"_a, "rc"_a, "rd"_a, "a"_a, "b"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cut-off, assumed rd < rc
-                a: :math:`a`
-                b: :math:`b`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stressPeriod: compute the stresses every this period (in simulation time units)
+                    stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     )");
 
 
