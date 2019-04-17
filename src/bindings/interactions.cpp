@@ -82,6 +82,17 @@ createInteractionLJ(const YmrState *state, std::string name, float rc, float eps
         (state, name, rc, epsilon, sigma, maxForce, awareMode, stress, parameters);
 }
 
+static std::shared_ptr<InteractionDPD>
+createInteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+                     bool stress, py::kwargs kwargs)
+{
+    auto parameters = castToMap(kwargs, name);
+
+    return InteractionFactory::createPairwiseDPD
+        (state, name, rc, a, gamma, kBT, power, stress, parameters);
+}
+
+
 
 void exportInteractions(py::module& m)
 {
@@ -113,8 +124,8 @@ void exportInteractions(py::module& m)
             J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
     )");
 
-    pyIntDPD.def(py::init<const YmrState*, std::string, float, float, float, float, float>(),
-                 "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, R"(  
+    pyIntDPD.def(py::init(&createInteractionDPD),
+                 "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stress"_a=false, R"(  
             Args:
                 name: name of the interaction
                     rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -122,6 +133,7 @@ void exportInteractions(py::module& m)
                     gamma: :math:`\gamma`
                     kbt: :math:`k_B T`
                     power: :math:`p` in the weight function
+                    stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
     )");
 
     pyIntDPD.def("setSpecificPair", &InteractionDPD::setSpecificPair, 
@@ -131,23 +143,8 @@ void exportInteractions(py::module& m)
          R"(
             Override some of the interaction parameters for a specific pair of Particle Vectors
          )");
-        
-    py::handlers_class<InteractionDPDWithStress> pyIntDPDWithStress(m, "DPDWithStress", pyIntDPD, R"(
-        wrapper of :any:`DPD` with, in addition, stress computation
-    )");
 
-    pyIntDPDWithStress.def(py::init<const YmrState*, std::string, float, float, float, float, float, float>(),
-                           "state"_a, "name"_a, "rc"_a, "a"_a, "gamma"_a, "kbt"_a, "power"_a, "stressPeriod"_a, R"(  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                a: :math:`a`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stressPeriod: compute the stresses every this period (in simulation time units)
-    )");
-
+    
     py::handlers_class<BasicInteractionDensity> pyIntDensity(m, "Density", pyInt, R"(
         Compute density of particles with a given kernel. 
     
