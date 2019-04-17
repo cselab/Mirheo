@@ -112,6 +112,18 @@ struct __align__(16) Particle
      */
     __HD__ inline Particle() {};
 
+    __HD__ inline void setId(int64_t id)
+    {
+        int64_t highHalf = (id >> 32) << 32;
+        i1 = (int32_t) (id - highHalf);
+        i2 = (int32_t) (id >> 32);
+    }
+
+    __HD__ inline int64_t getId() const
+    {
+        return int64_t(i1) + (int64_t (i2) << 32);
+    }
+    
     /**
      * Construct a Particle from two float4 entries
      *

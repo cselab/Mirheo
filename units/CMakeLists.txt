@@ -57,6 +57,7 @@ endfunction()
 
 add_test_executable(celllists)
 add_test_executable(flagella)
+add_test_executable(id64)
 add_test_executable(integration)
 add_test_executable(interaction)
 add_test_executable(marching_cubes)
