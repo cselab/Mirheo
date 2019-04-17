@@ -1,9 +1,14 @@
 #include "factory.h"
+
+#include "density.h"
+#include "dpd.h"
+#include "dpd_with_stress.h"
 #include "lj.h"
 #include "lj_with_stress.h"
 #include "membrane.h"
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
+#include "rod.h"
 #include "sdpd.h"
 #include "sdpd_with_stress.h"
 
@@ -288,6 +293,22 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
     die("Invalid pressure parameter: '%s'", EOS.c_str());
     return nullptr;
 }
+
+std::shared_ptr<InteractionDPD>
+InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+                                      bool stress, const MapParams& parameters)
+{
+    ParametersWrap desc {parameters};
+    
+    if (stress)
+    {
+        float stressPeriod = readStressPeriod(desc);
+        return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
+    }
+
+    return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
+}
+
 
 std::shared_ptr<InteractionLJ>
 InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,

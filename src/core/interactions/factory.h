@@ -1,17 +1,19 @@
 #pragma once
 
-#include "density.h"
-#include "lj.h"
-#include "membrane.h"
-#include "rod.h"
-#include "sdpd.h"
-
+#include <core/ymero_state.h>
 #include <core/utils/pytypes.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 #include <map>
 #include <memory>
 #include <string>
+
+class InteractionMembrane;
+class InteractionRod;
+class BasicInteractionDensity;
+class BasicInteractionSDPD;
+class InteractionLJ;
+class InteractionDPD;
 
 namespace InteractionFactory
 {
@@ -38,5 +40,10 @@ createPairwiseSDPD(const YmrState *state, std::string name, float rc, float visc
 std::shared_ptr<InteractionLJ>
 createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                  std::string awareMode, bool stress, const std::map<std::string, VarParam>& parameters);
+
+
+std::shared_ptr<InteractionDPD>
+createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+                  bool stress, const std::map<std::string, VarParam>& parameters);
 
 } // namespace InteractionFactory
