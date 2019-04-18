@@ -16,6 +16,8 @@ public:
     void resize(int np, cudaStream_t stream) override;
     void resize_anew(int np) override;
 
+    void computeGlobalIds(MPI_Comm comm, cudaStream_t stream) override;
+    
     virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream);
     virtual DeviceBuffer<Force>* getMeshForces(cudaStream_t stream);

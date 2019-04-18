@@ -98,7 +98,7 @@ void ParticleDumperPlugin::handshake()
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
     channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<float>()));
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int, DataTypeWrapper<int>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (int i = 0; i<sizes.size(); i++)
     {
@@ -121,7 +121,7 @@ void ParticleDumperPlugin::handshake()
 }
 
 static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos,
-                             std::vector<float> &vel, std::vector<int> &ids)
+                             std::vector<float> &vel, std::vector<int64_t> &ids)
 {
     int n = particles.size();
     pos.resize(3 * n);
@@ -138,7 +138,7 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
         vel[3*i + 1] = p.u.y;
         vel[3*i + 2] = p.u.z;
 
-        ids[i] = p.i1;
+        ids[i] = p.getId();
     }
 }
 

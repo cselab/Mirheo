@@ -60,7 +60,6 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
                 for (int p = 0; p < nparts; p++) {
 
                     auto part = genParticle(h, i, j, k, domain, udistr, gen);
-                    part.i1 = mycount;
 
                     if (! filterIn(domain.local2global(part.r)))
                         continue;
@@ -92,12 +91,8 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
         part.u.z -= avgMomentum.z;
     }
 
-    int totalCount = 0; // TODO: int64!
-    MPI_Check( MPI_Exscan(&mycount, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
-    for (auto& part : pv->local()->coosvels)
-        part.i1 += totalCount;
-
     pv->local()->coosvels.uploadToDevice(stream);
+    pv->local()->computeGlobalIds(comm, stream);
     pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(pv->local()->coosvels, stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());

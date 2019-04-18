@@ -117,7 +117,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     MPI_Request req;
     MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, MPI_FLOAT, MPI_ANY_SOURCE, TAG, comm, &req) );
 
-    auto ids     = relativeOV->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto ids     = relativeOV->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = relativeOV->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);

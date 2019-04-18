@@ -32,6 +32,8 @@ public:
     virtual void resize(int n, cudaStream_t stream);
     virtual void resize_anew(int n);    
 
+    virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
+    
 public:
     ParticleVector *pv;
 
@@ -60,7 +62,7 @@ public:
     
     // Python getters / setters
     // Use default blocking stream
-    std::vector<int> getIndices_vector();
+    std::vector<int64_t> getIndices_vector();
     PyTypes::VectorOfFloat3 getCoordinates_vector();
     PyTypes::VectorOfFloat3 getVelocities_vector();
     PyTypes::VectorOfFloat3 getForces_vector();

@@ -73,21 +73,8 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
         }
     }
 
-    // Set ids
-    // Need to do that, as not all the objects in com_q may be valid
-    int totalCount=0; // TODO: int64!
-    MPI_Check( MPI_Exscan(&nObjs, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
-
-    auto ids = ov->local()->extraPerObject.getData<int>(ChannelNames::globalIds);
-    for (int i=0; i<nObjs; i++)
-        (*ids)[i] = totalCount + i;
-
-    for (int i=0; i < ov->local()->size(); i++)
-        ov->local()->coosvels[i].i1 = totalCount*ov->objSize + i;
-
-
-    ids->uploadToDevice(stream);
     ov->local()->coosvels.uploadToDevice(stream);
+    ov->local()->computeGlobalIds(comm, stream);
     ov->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(ov->local()->coosvels, stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());

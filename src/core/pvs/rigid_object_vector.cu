@@ -174,10 +174,10 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    auto loc_ids     = local()->extraPerObject.getData<int>(ChannelNames::globalIds);
+    auto loc_ids     = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto loc_motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
     
-    std::vector<int>             ids(loc_ids->size());
+    std::vector<int64_t>         ids(loc_ids->size());
     std::vector<RigidMotion> motions(loc_motions->size());
     
     std::copy(loc_ids    ->begin(), loc_ids    ->end(), ids.begin());

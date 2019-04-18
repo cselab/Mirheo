@@ -13,7 +13,7 @@ struct OVview : public PVview
     float objMass = 0, invObjMass = 0;
 
     COMandExtent *comAndExtents = nullptr;
-    int* ids = nullptr;
+    int64_t* ids = nullptr;
 
     OVview(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
         PVview(ov, lov)
@@ -28,7 +28,7 @@ struct OVview : public PVview
 
         // Required data per object
         comAndExtents = lov->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
-        ids           = lov->extraPerObject.getData<int>(ChannelNames::globalIds)->devPtr();
+        ids           = lov->extraPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();
     }
 };
 
