@@ -32,6 +32,10 @@ void exportPlugins(py::module& m)
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
 
+    py::handlers_class<AnchorParticlePlugin>(m, "AnchorParticle", pysim, R"(
+        This plugin will set a given particle at a given position and velocity.
+    )");
+
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
@@ -349,6 +353,18 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             torque: extra torque (per object)
+    )");
+
+    m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlePlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a, R"(
+        Create :any:`AnchorParticle` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            position: position (at given time) of the particle
+            velocity: velocity (at given time) of the particle
+            pid: id of the particle in the given particle vector
     )");
 
     m.def("__createDensityControl", &PluginFactory::createDensityControlPlugin, 

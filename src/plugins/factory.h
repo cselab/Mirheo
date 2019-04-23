@@ -4,6 +4,7 @@
 
 #include "add_force.h"
 #include "add_torque.h"
+#include "anchor_particle.h"
 #include "average_flow.h"
 #include "average_relative_flow.h"
 #include "channel_dumper.h"
@@ -85,16 +86,28 @@ static void extractChannelInfos(const std::vector< std::pair<std::string, std::s
 
     
 static pair_shared< AddForcePlugin, PostprocessPlugin >
-createAddForcePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, PyTypes::float3 force)
+createAddForcePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv, PyTypes::float3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->name, make_float3(force)) : nullptr;
     return { simPl, nullptr };
 }
 
 static pair_shared< AddTorquePlugin, PostprocessPlugin >
-createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector* pv, PyTypes::float3 torque)
+createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv, PyTypes::float3 torque)
 {
     auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->name, make_float3(torque)) : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< AnchorParticlePlugin, PostprocessPlugin >
+createAnchorParticlePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
+                           std::function<PyTypes::float3(float)> position, std::function<PyTypes::float3(float)> velocity, int pid)
+{
+    auto simPl = computeTask ? std::make_shared<AnchorParticlePlugin> (state, name, pv->name,
+                                                                       [position](float t) {return make_float3(position(t));},
+                                                                       [velocity](float t) {return make_float3(velocity(t));},
+                                                                       pid)
+        : nullptr;
     return { simPl, nullptr };
 }
 
