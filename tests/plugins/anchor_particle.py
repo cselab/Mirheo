@@ -31,7 +31,7 @@ vel = [[0., 0., 0.]] * 3
 ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
 u.registerParticleVector(pv=pv, ic=ic)
 
-u.registerPlugins(ymr.Plugins.createAnchorParticle("anchor", pv, position, velocity, 1))
+u.registerPlugins(ymr.Plugins.createAnchorParticle("anchor", pv, position, velocity, 1, 100, "anchor/"))
 
 # dump_every = 50
 # u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
