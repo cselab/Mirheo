@@ -13,15 +13,6 @@ com_q = [[ 1., 0., 0.,    1.0, 0.0, 0.0, 0.0],
          [-9., 0., 0.,    1.0, 0.0, 3.0, 0.0], # out of the domain
          [ 0., 7., 0.,    1.0, 0.0, 0.0, 1.0]]
 
-#com_q = [ [0.0, 0.0, 0.0,   1.0, 0.0, 0.0, 0.0]]
-
-# def center_line(s):
-#     L = 5.0
-#     return (L * (s-0.5), 0, 0)
-
-# def torsion(s):
-#     return 0.0
-
 def center_line(s):
     L = 5.0
     P = 1.0
@@ -51,7 +42,7 @@ if rv:
     
 del u
 
-# TEST: ic.rod
+# cTEST: ic.rod
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # ymr.run --runargs "-n 2" ./rod.py > /dev/null

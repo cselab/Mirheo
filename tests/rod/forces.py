@@ -89,26 +89,26 @@ del u
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
-# --center_line "helix" --kbounds 1000.0 --l0_factor 1.05 > /dev/null
+# --center_line "helix" --kbounds 1000.0 --l0_factor 1.05
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
 
 # nTEST: rod.forces.twist
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
-# --center_line "line" --ktwist 1000.0 --tau0_eq 0.1 > /dev/null
+# --center_line "line" --ktwist 1000.0 --tau0_eq 0.1
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
 
 # nTEST: rod.forces.twist.tau0
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
-# --center_line "line" --ktwist 1000.0 --tau0 0.2 --tau0_eq 0.1 > /dev/null
+# --center_line "line" --ktwist 1000.0 --tau0 0.2 --tau0_eq 0.1
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
 
 # nTEST: rod.forces.bending
 # cd rod
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./forces.py \
-# --center_line "helix" --kbending 1000.0 0.0 1000.0 > /dev/null
+# --center_line "helix" --kbending 1000.0 0.0 1000.0
 # ymr.post ../membrane/utils/post.forces.py --file h5/rod-00000.h5 --out forces.out.txt
