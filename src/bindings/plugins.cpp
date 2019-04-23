@@ -36,6 +36,10 @@ void exportPlugins(py::module& m)
         This plugin will set a given particle at a given position and velocity.
     )");
 
+    py::handlers_class<AnchorParticleStatsPlugin>(m, "AnchorParticleStats", pypost, R"(
+        Postprocessing side of :any:`AnchorParticle` responsible to dump the data.
+    )");
+
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
         perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
@@ -356,7 +360,8 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlePlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a,
+          "report_every"_a, "path"_a, R"(
         Create :any:`AnchorParticle` plugin
         
         Args:
@@ -365,6 +370,8 @@ void exportPlugins(py::module& m)
             position: position (at given time) of the particle
             velocity: velocity (at given time) of the particle
             pid: id of the particle in the given particle vector
+            report_every: report the time averaged force acting on the particle every this amount of timesteps
+            path: folder where to dump the stats
     )");
 
     m.def("__createDensityControl", &PluginFactory::createDensityControlPlugin, 
