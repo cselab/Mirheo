@@ -118,7 +118,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     {
         fdump = fopen(filename.c_str(), "w");
         if (!fdump) die("Could not open file '%s'", filename.c_str());
-        fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v))  simulation_time_per_step(ms)\n");
+        fprintf(fdump, "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
 }
 
