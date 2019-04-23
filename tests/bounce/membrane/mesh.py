@@ -55,7 +55,7 @@ prm_rbc = lina_parameters(1.0)
 int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
 
 if args.subStep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', substeps, int_rbc)
+    integrator = ymr.Integrators.SubStep('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pvRbc)
 else:

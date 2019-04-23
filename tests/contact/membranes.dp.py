@@ -52,7 +52,7 @@ u.registerInteraction(dpd)
 u.registerInteraction(cnt)
 
 if args.substep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', substeps, int_rbc)
+    integrator = ymr.Integrators.SubStep('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:

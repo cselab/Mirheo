@@ -43,7 +43,7 @@ int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc,
 u.registerInteraction(dpd)
 
 if args.substep:
-    integrator = ymr.Integrators.SubStepMembrane('substep_membrane', substeps, int_rbc)
+    integrator = ymr.Integrators.SubStep('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
