@@ -1,24 +1,25 @@
-#include "sub_step_membrane.h"
+#include "sub_step.h"
 
 #include "forcing_terms/none.h"
 #include "vv.h"
 
-#include <core/interactions/membrane.h>
+#include <core/interactions/interface.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/make_unique.h>
 
-IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
+IntegratorSubStep::IntegratorSubStep(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name),
     substeps(substeps),
-    subIntegrator(new IntegratorVV<Forcing_None>(state, name + "_sub", Forcing_None())),
+    subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
     fastForces(fastForces),
     subState(*state)
-{    
-    if ( dynamic_cast<InteractionMembrane*>(fastForces) == nullptr )
-        die("IntegratorSubStepMembrane '%s': expects an interaction of type <InteractionMembrane>.",
-            name.c_str());
+{
+    if (!fastForces->isSelfObjectInteraction())
+        die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",
+            name.c_str(), fastForces->name.c_str());
 
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
           name.c_str(), substeps, subIntegrator->name.c_str(), fastForces->name.c_str());
@@ -28,12 +29,12 @@ IntegratorSubStepMembrane::IntegratorSubStepMembrane(const YmrState *state, std:
     subIntegrator->state = &subState;
 }
 
-IntegratorSubStepMembrane::~IntegratorSubStepMembrane() = default;
+IntegratorSubStep::~IntegratorSubStep() = default;
 
-void IntegratorSubStepMembrane::stage1(ParticleVector *pv, cudaStream_t stream)
+void IntegratorSubStep::stage1(ParticleVector *pv, cudaStream_t stream)
 {}
 
-void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
     slowForces.copy(pv->local()->forces, stream);
@@ -73,13 +74,13 @@ void IntegratorSubStepMembrane::stage2(ParticleVector *pv, cudaStream_t stream)
     pv->cellListStamp++;
 }
 
-void IntegratorSubStepMembrane::setPrerequisites(ParticleVector *pv)
+void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 {
-    // luckily do not need cell lists for membrane interactions
+    // luckily do not need cell lists for self interactions
     fastForces->setPrerequisites(pv, pv, nullptr, nullptr);
 }
 
-void IntegratorSubStepMembrane::updateSubState()
+void IntegratorSubStep::updateSubState()
 {
     subState = *state;
     subState.dt = state->dt / substeps;

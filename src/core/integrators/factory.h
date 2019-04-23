@@ -6,7 +6,7 @@
 #include "forcing_terms/periodic_poiseuille.h"
 #include "oscillate.h"
 #include "rigid_vv.h"
-#include "sub_step_membrane.h"
+#include "sub_step.h"
 #include "translate.h"
 #include "vv.h"
 
@@ -68,9 +68,9 @@ createRigidVV(const YmrState *state, std::string name)
     return std::make_shared<IntegratorVVRigid> (state, name);
 }
 
-static std::shared_ptr<IntegratorSubStepMembrane>
-createSubStepMembrane(const YmrState *state, std::string name, int substeps, Interaction *fastForces)
+static std::shared_ptr<IntegratorSubStep>
+createSubStep(const YmrState *state, std::string name, int substeps, Interaction *fastForces)
 {
-    return std::make_shared<IntegratorSubStepMembrane> (state, name, substeps, fastForces);
+    return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }    
 } // namespace IntegratorFactory

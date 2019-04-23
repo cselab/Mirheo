@@ -108,24 +108,23 @@ void exportIntegrators(py::module& m)
                                if direction is \"z\", the sign changes along \"x\".
             )");
 
-    py::handlers_class<IntegratorSubStepMembrane>
-        (m, "SubStepMembrane", pyint, R"(
-            Takes advantage of separation of time scales between membrane forces (fast forces) and other forces acting on the membrane (slow forces).
-            This integrator advances the membrane with constant slow forces for 'substeps' sub time steps.
+    py::handlers_class<IntegratorSubStep>
+        (m, "SubStep", pyint, R"(
+            Takes advantage of separation of time scales between "fast" internal forces and other "slow" forces on an object vector.
+            This integrator advances the object vector with constant slow forces for 'substeps' sub time steps.
             The fast forces are updated after each sub step.
             Positions and velocity are updated using an internal velocity verlet integrator.
         )")
-        .def(py::init(&IntegratorFactory::createSubStepMembrane),
+        .def(py::init(&IntegratorFactory::createSubStep),
              "state"_a, "name"_a, "substeps"_a, "fastForces"_a, R"(
                 Args:
                     name: name of the integrator
                     substeps: number of sub steps
-                    fastForces: the fast interaction module. Only accepts :any:`MembraneForces`
+                    fastForces: the fast interaction module. Only accepts :any:`MembraneForces` or :any:`RodForces`
                 
                 .. warning::
-                    The fastForces :any:`MembraneForces` does not need to be set for the :any:`MembraneVector` explicitely.
-                    The interaction will be set when setting this integrator to the :any:`MembraneVector`.
-                
+                    The interaction will be set to the required object vector when setting this integrator to the object vector.
+                    Hence the interaction needs not to be set explicitely to the OV.
             )");
 }
 
