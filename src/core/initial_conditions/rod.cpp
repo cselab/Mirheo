@@ -14,6 +14,24 @@ RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFun
 
 RodIC::~RodIC() = default;
 
+static float3 getFirstBishop(float3 r0, float3 r1, float3 r2)
+{
+    float3 t0 = normalize(r1 - r0);
+    float3 t1 = normalize(r2 - r1);
+    float3 b = cross(t0, t1);
+    float3 u;
+    
+    if (length(b) > 1e-6)
+    {
+        u = b - dot(b, t0) * t0;
+    }
+    else
+    {
+        u = anyOrthogonal(t0);
+    }
+    return normalize(u);
+}
+
 std::vector<float3> createRodTemplate(int nSegments,
                                       const RodIC::MappingFunc3D& centerLine,
                                       const RodIC::MappingFunc1D& torsion)
@@ -28,11 +46,7 @@ std::vector<float3> createRodTemplate(int nSegments,
     for (int i = 0; i <= nSegments; ++i)
         positions[i*5] = make_float3(centerLine(i*h));
 
-    {
-        auto t0 = normalize(positions[5] - positions[0]);
-        u = anyOrthogonal(t0);
-        u = normalize(u);
-    }
+    u = getFirstBishop(positions[0], positions[5], positions[10]);
 
     float theta = 0; // angle w.r.t. bishop frame    
     
