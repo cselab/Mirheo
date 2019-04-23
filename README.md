@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### V0.14.2
 
 * **interface changes** Integrator: SubStepMembrane -> SubStep
 * SubStep integrator supports rods
