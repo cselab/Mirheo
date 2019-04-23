@@ -229,8 +229,14 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 
 
 ReportPinObjectPlugin::ReportPinObjectPlugin(std::string name, std::string path) :
-                PostprocessPlugin(name), path(path)
-{    }
+    PostprocessPlugin(name), path(path)
+{}
+
+ReportPinObjectPlugin::~ReportPinObjectPlugin()
+{
+    if (fout)
+        fclose(fout);
+}
 
 void ReportPinObjectPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
