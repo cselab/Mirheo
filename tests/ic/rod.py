@@ -42,7 +42,7 @@ if rv:
     
 del u
 
-# cTEST: ic.rod
+# TEST: ic.rod
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # ymr.run --runargs "-n 2" ./rod.py > /dev/null

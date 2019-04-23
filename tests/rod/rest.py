@@ -9,6 +9,7 @@ parser.add_argument('--tau0', type=float, default=0.0)
 parser.add_argument('--tau0_init', type=float, default=0.5)
 parser.add_argument('--omega', type=float, nargs=2, default=[0,0])
 parser.add_argument('--drag', type=float, default=0.0)
+parser.add_argument('--sub_steps', type=int, default=1)
 args = parser.parse_args()
 
 ranks  = (1, 1, 1)
@@ -19,6 +20,7 @@ t_end = 10
 t_dump_every = 1.0
 L = 50.0
 num_segments = 200
+sub_steps = args.sub_steps
 
 u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
@@ -56,11 +58,15 @@ prms = {
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
 u.registerInteraction(int_rod)
 
-vv = ymr.Integrators.VelocityVerlet('vv')
-u.registerIntegrator(vv)
-
-u.setInteraction(int_rod, rv, rv)
-u.setIntegrator(vv, rv)
+if sub_steps == 1:
+    vv = ymr.Integrators.VelocityVerlet('vv')
+    u.registerIntegrator(vv)
+    u.setInteraction(int_rod, rv, rv)
+    u.setIntegrator(vv, rv)
+else:
+    vv = ymr.Integrators.SubStep('vv', sub_steps, int_rod)
+    u.registerIntegrator(vv)
+    u.setIntegrator(vv, rv)
 
 if args.drag > 0.0:
     u.registerPlugins(ymr.Plugins.createParticleDrag('rod_drag', rv, args.drag))
@@ -82,6 +88,12 @@ del u
 # ymr.run --runargs "-n 2" ./rest.py
 # cat pos.rod.txt > pos.out.txt
 
+# nTEST: rod.rest.substep
+# cd rod
+# rm -rf h5
+# ymr.run --runargs "-n 2" ./rest.py --sub_steps 10
+# cat pos.rod.txt > pos.out.txt
+
 # nTEST: rod.rest.tau0
 # cd rod
 # rm -rf h5
@@ -93,3 +105,4 @@ del u
 # rm -rf h5
 # ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --omega 0.8 0.0 --drag 0.5
 # cat pos.rod.txt > pos.out.txt
+
