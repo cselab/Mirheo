@@ -19,6 +19,16 @@ class AddTorque(SimulationPlugin):
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     
     """
+class AnchorParticle(SimulationPlugin):
+    r"""
+        This plugin will set a given particle at a given position and velocity.
+    
+    """
+class AnchorParticleStats(PostprocessPlugin):
+    r"""
+        Postprocessing side of :any:`AnchorParticle` responsible to dump the data.
+    
+    """
 class Average3D(SimulationPlugin):
     r"""
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
@@ -366,6 +376,25 @@ def createAddTorque():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             torque: extra torque (per object)
+    
+
+    """
+    pass
+
+def createAnchorParticle():
+    r"""createAnchorParticle(state: YmrState, name: str, pv: ParticleVectors.ParticleVector, position: Callable[[float], Tuple[float, float, float]], velocity: Callable[[float], Tuple[float, float, float]], pid: int, report_every: int, path: str) -> Tuple[Plugins.AnchorParticle, Plugins.AnchorParticleStats]
+
+
+        Create :any:`AnchorParticle` plugin
+        
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            position: position (at given time) of the particle
+            velocity: velocity (at given time) of the particle
+            pid: id of the particle in the given particle vector
+            report_every: report the time averaged force acting on the particle every this amount of timesteps
+            path: folder where to dump the stats
     
 
     """
