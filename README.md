@@ -14,6 +14,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **interface changes** Integrator: SubStepMembrane -> SubStep
+* SubStep integrator supports rods
+* add anchor_particle plugin
 * internal changes:
   * ids are stored in 64 bits integers
 
