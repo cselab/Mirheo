@@ -79,17 +79,17 @@ del u
 # nTEST: rod.rest
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./rest.py > /dev/null
+# ymr.run --runargs "-n 2" ./rest.py
 # cat pos.rod.txt > pos.out.txt
 
 # nTEST: rod.rest.tau0
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.4 > /dev/null
+# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.4
 # cat pos.rod.txt > pos.out.txt
 
 # nTEST: rod.rest.helix
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --omega 0.2 0.0 --drag 0.5 > /dev/null
+# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --omega 0.8 0.0 --drag 0.5
 # cat pos.rod.txt > pos.out.txt

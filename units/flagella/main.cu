@@ -437,7 +437,7 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
     params.omegaEq = omega;
     params.kTwist = 0.f;
     params.tauEq = 0.f;
-    params.a0 = params.l0 = 0.f;
+    params.a0 = params.l0 = 1.f; // set to 1.f so that omegaEq is the one entered
     params.kBounds = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
