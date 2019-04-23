@@ -27,6 +27,11 @@ std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels
     return {{ChannelNames::forces, alwaysActive}};
 }
 
+bool Interaction::isSelfObjectInteraction() const
+{
+    return false;
+}
+
 void Interaction::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
 {
     if (!impl) return;

@@ -95,7 +95,12 @@ void InteractionMembrane::halo(ParticleVector *pv1, ParticleVector *pv2, CellLis
     debug("Not computing internal membrane forces between local and halo membranes of '%s'",
           pv1->name.c_str());
 }
-    
+
+bool InteractionMembrane::isSelfObjectInteraction() const
+{
+    return true;
+}
+
 void InteractionMembrane::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);

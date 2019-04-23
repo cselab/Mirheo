@@ -34,3 +34,8 @@ void InteractionRod::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl
 {
     debug("Not computing internal rod forces between local and halo rods of '%s'", pv1->name.c_str());
 }
+
+bool InteractionRod::isSelfObjectInteraction() const
+{
+    return true;
+}

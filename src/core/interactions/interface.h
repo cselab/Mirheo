@@ -61,6 +61,13 @@ public:
                       CellList *cl2, cudaStream_t stream) = 0;
 
 
+    /**
+     * true if the interaction is a self interaction for objects
+     * this is useful to know if we need exchange / cell-lists for 
+     * that interaction
+     */
+    virtual bool isSelfObjectInteraction() const;
+    
     /// monitor activity of a channel
     using ActivePredicate = std::function<bool()>;
 
