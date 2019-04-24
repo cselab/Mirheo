@@ -11,9 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (4, 6, 8)
 
-u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', checkpoint_every = (5 if not args.restart else 0))
-if args.restart:
-    u.restart("restart/")
+u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', checkpoint_every = (5 if not args.restart else 0), no_splash=True)
     
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 u.registerParticleVector(pv=pv, ic=ymr.InitialConditions.Uniform(density=8))
@@ -27,6 +25,8 @@ checker = ymr.BelongingCheckers.Ellipsoid('checker')
 u.registerObjectBelongingChecker(checker, ov)
 inner = u.applyObjectBelongingChecker(checker, pv, inside='inner')
 
+if args.restart:
+    u.restart("restart/")
 u.run(7)
 
 if u.isComputeTask():
@@ -42,12 +42,10 @@ if u.isComputeTask():
         np.savetxt("parts.out.txt", data - initials)
     else:
         np.savetxt("initial.txt", data)
-
-
     
 
 # nTEST: restart.object_belonging
 # cd restart
 # rm -rf restart parts.out.txt initial.txt difference.txt
-# ymr.run --runargs "-n 2" ./belonging_checker.py           > /dev/null
-# ymr.run --runargs "-n 2" ./belonging_checker.py --restart > /dev/null
+# ymr.run --runargs "-n 2" ./belonging_checker.py
+# ymr.run --runargs "-n 2" ./belonging_checker.py --restart
