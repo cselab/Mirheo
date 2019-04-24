@@ -2,6 +2,8 @@
 
 #include <core/utils/cpu_gpu_defines.h>
 
+#include <fstream>
+
 template <typename ControlType>
 class PidControl {
 public:
@@ -23,8 +25,24 @@ public:
 
         return Kp * error + Ki * sumError + Kd * derError;
     }
+
+    friend std::ofstream& operator<<(std::ofstream& stream, const PidControl<ControlType>& pid)
+    {
+        stream << pid.oldError << std::endl
+               << pid.sumError << std::endl;
+        return stream;
+    }
+    
+    friend std::ifstream& operator>>(std::ifstream& stream, PidControl<ControlType>& pid)
+    {
+        stream >> pid.oldError
+               >> pid.sumError;
+        return stream;
+    }
     
 private:
     float Kp, Ki, Kd;
     ControlType oldError, sumError;
 };
+
+
