@@ -79,15 +79,16 @@ void AnchorParticlePlugin::handshake()
 
 void AnchorParticlePlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (nsamples % reportEvery != 0) return;
+    if (state->currentStep % reportEvery != 0) return;
 
     force.downloadFromDevice(stream);
 
     waitPrevSend();
 
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, reportEvery, force[0]);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, nsamples, force[0]);
     send(sendBuffer);
 
+    nsamples = 0;
     force.clearDevice(stream);
 }
 
