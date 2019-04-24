@@ -504,6 +504,16 @@ void YMeRo::sayHello()
     printf("\n");
 }
 
+void YMeRo::setup()
+{
+    if (initialized) return;
+    
+    if (isComputeTask())  sim->init();
+    else                 post->init();
+    
+    initialized = true;
+}
+
 void YMeRo::restart(std::string folder)
 {
     if (isComputeTask())
@@ -543,25 +553,11 @@ void YMeRo::stopProfiler()
 
 void YMeRo::run(int nsteps)
 {
-    if (isComputeTask())
-    {
-        if (!initialized)
-        {
-            sim->init();
-            initialized = true;
-        }
-        sim->run(nsteps);
-    }
-    else
-    {
-        if (!initialized)
-        {
-            post->init();
-            initialized = true;
-        }
-        post->run();
-    }
+    setup();
     
+    if (isComputeTask()) sim->run(nsteps);
+    else                post->run();
+
     MPI_Check( MPI_Barrier(comm) );
 }
 
