@@ -123,4 +123,5 @@ private:
     void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();
     void setup();
+    void checkNotInitialized() const;
 };

@@ -188,36 +188,48 @@ YMeRo::~YMeRo()
 
 void YMeRo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
 
 void YMeRo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->registerIntegrator(integrator);
 }
 
 void YMeRo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->registerInteraction(interaction);
 }
 
 void YMeRo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->registerWall(wall, checkEvery);
 }
 
 void YMeRo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->registerBouncer(bouncer);
 }
 
 void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
     {
         sim->registerObjectBelongingChecker(checker);
@@ -227,6 +239,8 @@ void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongin
 
 void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
     {
         if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess) )
@@ -241,24 +255,32 @@ void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, 
 
 void YMeRo::setIntegrator(Integrator* integrator, ParticleVector* pv)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->setIntegrator(integrator->name, pv->name);
 }
 
 void YMeRo::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
 
 void YMeRo::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
 
 void YMeRo::setWallBounce(Wall* wall, ParticleVector* pv)
 {
+    checkNotInitialized();
+    
     if (isComputeTask())
         sim->setWallBounce(wall->name, pv->name);
 }
@@ -331,6 +353,8 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
                                                                std::shared_ptr<Integrator> integrator,
                                                                float density, int nsteps)
 {
+    checkNotInitialized();
+    
     if (!isComputeTask()) return nullptr;
 
     // Walls are not directly reusable in other simulations,
@@ -407,6 +431,8 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
                                                                 std::shared_ptr<Integrator>   integrator,
                                                                 float density, int nsteps)
 {
+    checkNotInitialized();
+    
     if (!isComputeTask()) return nullptr;
 
     auto insideName = "inside_" + shape->name;
@@ -464,6 +490,8 @@ std::shared_ptr<ParticleVector> YMeRo::applyObjectBelongingChecker(ObjectBelongi
                                                                       std::string outside,
                                                                       int checkpointEvery)
 {
+    checkNotInitialized();
+    
     if (!isComputeTask()) return nullptr;
     
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
@@ -520,12 +548,19 @@ void YMeRo::setup()
     initialized = true;
 }
 
+void YMeRo::checkNotInitialized() const
+{
+    if (initialized)
+        die("Coordinator is already initialized.\n"
+            "Do not call any register or set functions after 'restart' or 'run'");
+}
+
 void YMeRo::restart(std::string folder)
 {
-    if (isComputeTask())
-        sim->restart(folder);
-    else
-        post->restart(folder);
+    setup();
+
+    if (isComputeTask())  sim->restart(folder);
+    else                 post->restart(folder);
 }
 
 bool YMeRo::isComputeTask() const
