@@ -186,33 +186,36 @@ YMeRo::~YMeRo()
         MPI_Finalize();
 }
 
-
-
 void YMeRo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
     if (isComputeTask())
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
+
 void YMeRo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
     if (isComputeTask())
         sim->registerIntegrator(integrator);
 }
+
 void YMeRo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
     if (isComputeTask())
         sim->registerInteraction(interaction);
 }
+
 void YMeRo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
     if (isComputeTask())
         sim->registerWall(wall, checkEvery);
 }
+
 void YMeRo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
     if (isComputeTask())
         sim->registerBouncer(bouncer);
 }
+
 void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
     if (isComputeTask())
@@ -221,6 +224,7 @@ void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongin
         sim->setObjectBelongingChecker(checker->name, ov->name);
     }
 }
+
 void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
     if (isComputeTask())
@@ -240,16 +244,19 @@ void YMeRo::setIntegrator(Integrator* integrator, ParticleVector* pv)
     if (isComputeTask())
         sim->setIntegrator(integrator->name, pv->name);
 }
+
 void YMeRo::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
 {
     if (isComputeTask())
         sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
+
 void YMeRo::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
 {
     if (isComputeTask())
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
+
 void YMeRo::setWallBounce(Wall* wall, ParticleVector* pv)
 {
     if (isComputeTask())
@@ -450,7 +457,6 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     return freezesim.getSharedPVbyName(insideName);
 }
 
-
 std::shared_ptr<ParticleVector> YMeRo::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                       ParticleVector* pv,
                                                                       int checkEvery,
@@ -521,7 +527,6 @@ void YMeRo::restart(std::string folder)
     else
         post->restart(folder);
 }
-
 
 bool YMeRo::isComputeTask() const
 {
