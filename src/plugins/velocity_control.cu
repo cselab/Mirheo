@@ -1,3 +1,5 @@
+#include <core/utils/restart_helpers.h>
+
 #include "velocity_control.h"
 #include "utils/simple_serializer.h"
 
@@ -148,6 +150,23 @@ void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
     send(sendBuffer);
+}
+
+void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+{
+    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt");
+
+    TextIO::write(filename, pid);
+    
+    createCheckpointSymlink(comm, path, "plugin." + name, "txt");
+    advanceCheckpointId(checkpointMode);
+}
+
+void SimulationVelocityControl::restart(MPI_Comm comm, std::string path)
+{
+    auto filename = createCheckpointName(path, "plugin." + name, "txt");
+
+    TextIO::read(filename, pid);
 }
 
 

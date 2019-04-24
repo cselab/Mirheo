@@ -11,6 +11,8 @@
 #include <core/utils/kernel_launch.h>
 #include <core/utils/make_unique.h>
 
+#include <fstream>
+
 namespace DensityControlPluginKernels
 {
 
@@ -261,6 +263,30 @@ void DensityControlPlugin::applyForces(cudaStream_t stream)
             view, spaceDecompositionField->handler(),
             levelBounds, forces.devPtr());        
     }    
+}
+
+void DensityControlPlugin::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+{
+    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt");
+
+    {
+        std::ofstream fout(filename);
+        for (const auto& pid : controllers)
+            fout << pid << std::endl;
+    }
+    
+    createCheckpointSymlink(comm, path, "plugin." + name, "txt");
+    advanceCheckpointId(checkpointMode);
+}
+
+void DensityControlPlugin::restart(MPI_Comm comm, std::string path)
+{
+    auto filename = createCheckpointName(path, "plugin." + name, "txt");
+
+    std::ifstream fin(filename);
+
+    for (auto& pid : controllers)
+        fin >> pid;
 }
 
 

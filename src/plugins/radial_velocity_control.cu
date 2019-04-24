@@ -7,6 +7,7 @@
 #include <core/simulation.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/restart_helpers.h>
 
 namespace RadialVelocityControlKernels
 {
@@ -165,6 +166,23 @@ void SimulationRadialVelocityControl::serializeAndSend(cudaStream_t stream)
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
     send(sendBuffer);
+}
+
+void SimulationRadialVelocityControl::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+{
+    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt");
+
+    TextIO::write(filename, pid);
+    
+    createCheckpointSymlink(comm, path, "plugin." + name, "txt");
+    advanceCheckpointId(checkpointMode);
+}
+
+void SimulationRadialVelocityControl::restart(MPI_Comm comm, std::string path)
+{
+    auto filename = createCheckpointName(path, "plugin." + name, "txt");
+
+    TextIO::read(filename, pid);
 }
 
 

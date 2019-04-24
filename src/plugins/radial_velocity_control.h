@@ -27,6 +27,9 @@ public:
 
     bool needPostproc() override { return true; }
 
+    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override;
+    void restart(MPI_Comm comm, std::string path) override;
+
 private:
     int sampleEvery, dumpEvery, tuneEvery;
     std::vector<std::string> pvNames;
