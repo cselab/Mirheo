@@ -14,7 +14,12 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 <!-- ### unreleased -->
 
-### V0.14.2
+### v0.14.3
+
+* **fix** issues #38 and #54
+* safe check: cannot register or set objects to coordinator after setup
+
+### v0.14.2
 
 * **interface changes** Integrator: SubStepMembrane -> SubStep
 * SubStep integrator supports rods
@@ -22,7 +27,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 * internal changes:
   * ids are stored in 64 bits integers
 
-### V0.14.1
+### v0.14.1
 
 * Add "rod aware" LJ repulsion interactions
 * **interface change** DPD, MDPD and LJ interactions have only one constructor each
