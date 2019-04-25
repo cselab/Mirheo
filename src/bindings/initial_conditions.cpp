@@ -121,8 +121,8 @@ void exportInitialConditions(py::module& m)
         the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>>(),
-             "com_q"_a, "center_line"_a, "torsion"_a, R"(
+        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>, float>(),
+             "com_q"_a, "center_line"_a, "torsion"_a, "a"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -135,6 +135,8 @@ void exportInitialConditions(py::module& m)
                     Assume :math:`|r'(s)|` is constant for all :math:`s \in [0,1]`.
                 torsion:
                     explicit mapping :math:`\tau : [0,1] \rightarrow R`.
+                a:
+                    width of the rod 
         )");
 
     py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(

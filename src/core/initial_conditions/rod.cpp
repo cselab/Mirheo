@@ -6,10 +6,11 @@
 #include <fstream>
 #include <random>
 
-RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion) :
+RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion, float a) :
     com_q(com_q),
     centerLine(centerLine),
-    torsion(torsion)
+    torsion(torsion),
+    a(a)
 {}
 
 RodIC::~RodIC() = default;
@@ -32,7 +33,7 @@ static float3 getFirstBishop(float3 r0, float3 r1, float3 r2)
     return normalize(u);
 }
 
-std::vector<float3> createRodTemplate(int nSegments,
+std::vector<float3> createRodTemplate(int nSegments, float a,
                                       const RodIC::MappingFunc3D& centerLine,
                                       const RodIC::MappingFunc1D& torsion)
 {
@@ -71,10 +72,10 @@ std::vector<float3> createRodTemplate(int nSegments,
         float3 mu =  cost * u + sint * v;
         float3 mv = -sint * u + cost * v;
             
-        positions[5*i + 1] = r - 0.5 * l * mu;
-        positions[5*i + 2] = r + 0.5 * l * mu;
-        positions[5*i + 3] = r - 0.5 * l * mv;
-        positions[5*i + 4] = r + 0.5 * l * mv;
+        positions[5*i + 1] = r - 0.5 * a * mu;
+        positions[5*i + 2] = r + 0.5 * a * mu;
+        positions[5*i + 3] = r - 0.5 * a * mv;
+        positions[5*i + 4] = r + 0.5 * a * mv;
         
         auto q = getQfrom(t0, t1);
         u = normalize(rotate(u, q));
@@ -96,7 +97,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     int nObjs = 0;
     int nSegments = (objSize - 1) / 5;
 
-    auto positions = createRodTemplate(nSegments, centerLine, torsion);
+    auto positions = createRodTemplate(nSegments, a, centerLine, torsion);
 
     assert(objSize == positions.size());
     
