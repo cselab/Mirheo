@@ -55,12 +55,14 @@ def length(a, b):
         
 num_segments = 100
 
+h = 1.0 / num_segments
+l0 = length(center_line(h), center_line(0))
+
 rv = ymr.ParticleVectors.RodVector('rod', mass=1, num_segments = num_segments)
-ic = ymr.InitialConditions.Rod(com_q, center_line, torsion)
+ic = ymr.InitialConditions.Rod(com_q, center_line, torsion, l0)
 u.registerParticleVector(rv, ic)
 
-h = 1.0 / num_segments
-l0 = length(center_line(h), center_line(0)) * args.l0_factor
+l0 = l0 * args.l0_factor
 
 prms = {
     "a0" : l0,

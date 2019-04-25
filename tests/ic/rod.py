@@ -13,6 +13,8 @@ com_q = [[ 1., 0., 0.,    1.0, 0.0, 0.0, 0.0],
          [-9., 0., 0.,    1.0, 0.0, 3.0, 0.0], # out of the domain
          [ 0., 7., 0.,    1.0, 0.0, 0.0, 1.0]]
 
+a = 0.1
+
 def center_line(s):
     L = 5.0
     P = 1.0
@@ -26,7 +28,7 @@ def torsion(s):
     return 0.0
 
 rv = ymr.ParticleVectors.RodVector('rod', mass=1, num_segments = 100)
-ic = ymr.InitialConditions.Rod(com_q, center_line, torsion)
+ic = ymr.InitialConditions.Rod(com_q, center_line, torsion, a)
 u.registerParticleVector(rv, ic)
 
 dump_every = 1
