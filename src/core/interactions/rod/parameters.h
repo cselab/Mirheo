@@ -11,4 +11,5 @@ struct RodParameters
     float a0;       ///< equilibrium length between two opposite material frame particles
     float l0;       ///< equilibrium length between two consecutive centerline particles
     float kBounds;  ///< bound force magnitude
+    float kVisc;    ///< bound viscous force magnitude
 };

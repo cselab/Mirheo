@@ -168,9 +168,10 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     p.kTwist    = desc.read<float>("k_twist");
     p.tauEq     = desc.read<float>("tau0");
     
-    p.a0 = desc.read<float>("a0");
-    p.l0 = desc.read<float>("l0");
-    p.kBounds = desc.read<float>("k_bounds");    
+    p.a0        = desc.read<float>("a0");
+    p.l0        = desc.read<float>("l0");
+    p.kBounds   = desc.read<float>("k_bounds");
+    p.kVisc     = desc.read<float>("k_visc");
     return p;
 }
 

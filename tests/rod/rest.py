@@ -49,6 +49,7 @@ prms = {
     "a0" : l0,
     "l0" : l0,
     "k_bounds"  : 1000.0,
+    "k_visc"    : 0.0,
     "k_bending" : (10.0, 0.0, 10.0),
     "k_twist"   : 10.0,
     "tau0"      : args.tau0,
