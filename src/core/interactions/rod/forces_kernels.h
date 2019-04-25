@@ -37,7 +37,7 @@ __device__ inline real3 fbound(const ParticleReal& p0, const ParticleReal& p1,
     auto fMagnElastic = params.kBounds * (l - l0);
     auto fMagnViscous = params.kVisc   * dot(dr, du) * linv;
 
-    return (linv * (fMagnElastic - fMagnViscous)) * dr;
+    return (linv * (fMagnElastic + fMagnViscous)) * dr;
 }
 
 __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters params)
