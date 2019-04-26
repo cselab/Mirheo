@@ -42,12 +42,12 @@ struct PVview
 
     __HD__ inline void readPosition(Particle&p, int id) const
     {
-        return p.readCoordinate(particles, id);
+        p.readCoordinate(particles, id);
     }
 
     __HD__ inline void readVelocity(Particle&p, int id) const
     {
-        return p.readVelocity(particles, id);
+        p.readVelocity(particles, id);
     }
 
     __HD__ inline Particle readParticle(int id) const
@@ -97,7 +97,7 @@ struct PVviewWithOldParticles : public PVview
 
     __HD__ inline void readOldPosition(Particle&p, int id) const
     {
-        return p.readCoordinate(old_particles, id);
+        p.readCoordinate(old_particles, id);
     }
 
     __HD__ inline Particle readOldParticle(int id) const
