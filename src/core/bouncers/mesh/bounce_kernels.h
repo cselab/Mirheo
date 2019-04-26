@@ -108,11 +108,11 @@ void findBouncesInCell(int pstart, int pend, int globTrid,
 #pragma unroll 2
     for (int pid = pstart; pid < pend; pid++)
     {
-        Particle p, pOld;
+        Particle p;
         pvView.readPosition   (p,    pid);
-        pvView.readOldPosition(pOld, pid);
+        auto rOld = pvView.readOldPosition(pid);
 
-        if (segmentTriangleQuickCheck(tr, trOld, p.r, pOld.r))
+        if (segmentTriangleQuickCheck(tr, trOld, p.r, rOld))
             triangleTable.push_back({pid, globTrid});
     }
 }
@@ -374,8 +374,8 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     const int2 pid_trid = coarseTable[gid];
     int pid = pid_trid.x;
 
-    Particle p    (pvView.readParticle    (pid));
-    Particle pOld (pvView.readOldParticle (pid));
+    Particle p (pvView.readParticle   (pid));
+    auto rOld = pvView.readOldPosition(pid);
 
     const int trid  = pid_trid.y % mesh.ntriangles;
     const int objId = pid_trid.y / mesh.ntriangles;
@@ -387,7 +387,7 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     float3 intPoint;
     Triangle intTriangle;
     float intSign;
-    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, pOld.r, intPoint, intTriangle, intSign);
+    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, rOld, intPoint, intTriangle, intSign);
 
     if (alpha < -0.1f) return;
 
@@ -533,8 +533,8 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const int2 pid_trid = collisionTable[gid];
     int pid = pid_trid.x;
 
-    Particle p    (pvView.readParticle    (pid));
-    Particle pOld (pvView.readOldParticle (pid));
+    Particle p (pvView.readParticle   (pid));
+    auto rOld = pvView.readOldPosition(pid);
     Particle corrP = p;
 
     float3 f0, f1, f2;
@@ -549,7 +549,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     float3 intPoint;
     Triangle intTriangle;
     float intSign;
-    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, pOld.r, intPoint, intTriangle, intSign);
+    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, rOld, intPoint, intTriangle, intSign);
 
     int minTime = collisionTimes[pid];
 

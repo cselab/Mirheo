@@ -95,14 +95,11 @@ struct PVviewWithOldParticles : public PVview
             old_particles = reinterpret_cast<float4*>( lpv->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->devPtr() );
     }
 
-    __HD__ inline void readOldPosition(Particle&p, int id) const
+    __HD__ inline float3 readOldPosition(int id) const
     {
+        Particle p;
         p.readCoordinate(old_particles, id);
-    }
-
-    __HD__ inline Particle readOldParticle(int id) const
-    {
-        return {old_particles, id};
+        return p.r;
     }
 };
 

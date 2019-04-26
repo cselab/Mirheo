@@ -27,13 +27,13 @@ __global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, 
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
 
-    Particle p, pold;
+    Particle p;
     view1.readPosition   (p,    pid);
-    view1.readOldPosition(pold, pid);
+    auto rOld = view1.readOldPosition(pid);
 
     if (p.isMarked()) return;
 
-    if (hasCrossedPlane(domain, p.r, pold.r, plane))
+    if (hasCrossedPlane(domain, p.r, rOld, plane))
         atomicAdd(numberCrossed, 1);
 }
 
@@ -44,13 +44,13 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
 
-    Particle p, pold;
-    view1.readPosition   (p,    pid);
-    view1.readOldPosition(pold, pid);
+    Particle p;
+    view1.readPosition(p, pid);
+    auto rOld = view1.readOldPosition(pid);
 
     if (p.isMarked()) return;
     
-    if (hasCrossedPlane(domain, p.r, pold.r, plane))
+    if (hasCrossedPlane(domain, p.r, rOld, plane))
     {        
         int dst = atomicAdd(numberCrossed, 1);
         dst += oldsize2;
