@@ -88,7 +88,7 @@ PinnedBuffer<Particle>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t 
     return &meshOldVertices;
 }
 
-DeviceBuffer<Force>* LocalRigidObjectVector::getMeshForces(cudaStream_t stream)
+PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(cudaStream_t stream)
 {
     auto ov = dynamic_cast<ObjectVector*>(pv);
     meshForces.resize_anew(nObjects * ov->mesh->getNvertices());

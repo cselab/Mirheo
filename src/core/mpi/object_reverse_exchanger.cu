@@ -260,7 +260,7 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
             totalRecvd, nthreads, 0, stream,
             helper->recvBuf.devPtr(),                    /* source */
             origins.devPtr(),                            /* destination ids here */
-            (float4*)ov->local()->forces.devPtr(),       /* add to */
+            (float4*)ov->local()->forces().devPtr(),     /* add to */
             ov->objSize, datumSize );
 
             if (rov != nullptr)

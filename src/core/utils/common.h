@@ -2,11 +2,15 @@
 
 #include <string>
 
+/**
+ * Channel names used in several places of the program
+ * names starting with "__" are internal channel names 
+ */
 namespace ChannelNames
 {
 
 // per particle fields
-static const std::string forces      = "forces";
+static const std::string forces      = "__forces";
 static const std::string stresses    = "stresses";
 static const std::string densities   = "densities";
 static const std::string oldParts    = "old_particles";

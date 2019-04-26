@@ -104,9 +104,9 @@ PinnedBuffer<Particle>* LocalObjectVector::getOldMeshVertices(cudaStream_t strea
     return extraPerParticle.getData<Particle>(ChannelNames::oldParts);
 }
 
-DeviceBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
+PinnedBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
 {
-    return &forces;
+    return &forces();
 }
 
 int LocalObjectVector::getNobjects(int np) const

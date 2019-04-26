@@ -12,6 +12,7 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {
     resize_anew(n);
+    extraPerParticle.createData<Force>(ChannelNames::forces, n);
 }
 
 LocalParticleVector::~LocalParticleVector() = default;
@@ -21,7 +22,6 @@ void LocalParticleVector::resize(int n, cudaStream_t stream)
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     
     coosvels.        resize(n, stream);
-    forces.          resize(n, stream);
     extraPerParticle.resize(n, stream);
     
     np = n;
@@ -32,10 +32,14 @@ void LocalParticleVector::resize_anew(int n)
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     
     coosvels.        resize_anew(n);
-    forces.          resize_anew(n);
     extraPerParticle.resize_anew(n);
     
     np = n;
+}
+
+PinnedBuffer<Force>& LocalParticleVector::forces()
+{
+    return * extraPerParticle.getData<Force>(ChannelNames::forces);
 }
 
 void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
@@ -54,6 +58,7 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     coosvels.uploadToDevice(stream);
 }
 
+
 //============================================================================
 // Particle Vector
 //============================================================================
@@ -64,6 +69,19 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name, float ma
                    std::make_unique<LocalParticleVector>(this, 0) )
 {}
 
+ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass,
+                               std::unique_ptr<LocalParticleVector>&& local,
+                               std::unique_ptr<LocalParticleVector>&& halo) :
+    YmrSimulationObject(state, name),
+    mass(mass),
+    _local(std::move(local)),
+    _halo(std::move(halo))
+{
+    // old positions and velocities don't need to exchanged in general
+    requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::None);
+}
+
+ParticleVector::~ParticleVector() = default;
 
 std::vector<int64_t> ParticleVector::getIndices_vector()
 {
@@ -110,7 +128,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getVelocities_vector()
 PyTypes::VectorOfFloat3 ParticleVector::getForces_vector()
 {
     HostBuffer<Force> forces;
-    forces.copy(local()->forces, 0);
+    forces.copy(local()->forces(), defaultStream);
     
     PyTypes::VectorOfFloat3 res(forces.size());
     for (int i = 0; i < forces.size(); i++)
@@ -211,22 +229,8 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
         myforces[i].f = { f[0], f[1], f[2] };
     }
     
-    local()->forces.copy(myforces, 0);
-}
-
-
-ParticleVector::~ParticleVector() = default;
-
-ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass,
-                               std::unique_ptr<LocalParticleVector>&& local,
-                               std::unique_ptr<LocalParticleVector>&& halo) :
-    YmrSimulationObject(state, name),
-    mass(mass),
-    _local(std::move(local)),
-    _halo(std::move(halo))
-{
-    // usually old positions and velocities don't need to exchanged
-    requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::None);
+    local()->forces().copy(myforces);
+    local()->forces().uploadToDevice(defaultStream);
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,

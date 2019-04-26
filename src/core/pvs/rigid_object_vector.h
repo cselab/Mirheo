@@ -11,12 +11,12 @@ public:
 
     PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream) override;
     PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream) override;
-    DeviceBuffer<Force>* getMeshForces(cudaStream_t stream) override;
+    PinnedBuffer<Force>* getMeshForces(cudaStream_t stream) override;
 
 protected:
     PinnedBuffer<Particle> meshVertices;
     PinnedBuffer<Particle> meshOldVertices;
-    DeviceBuffer<Force>    meshForces;
+    PinnedBuffer<Force>    meshForces;
 };
 
 class RigidObjectVector : public ObjectVector

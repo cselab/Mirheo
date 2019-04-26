@@ -32,13 +32,14 @@ public:
     virtual void resize(int n, cudaStream_t stream);
     virtual void resize_anew(int n);    
 
+    PinnedBuffer<Force>& forces();
+
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
     
 public:
     ParticleVector *pv;
 
     PinnedBuffer<Particle> coosvels;
-    DeviceBuffer<Force> forces;
     ExtraDataManager extraPerParticle;
 
 protected:

@@ -402,7 +402,7 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
         debug2("%s : clearing channel '%s'", makeName().c_str(), channelName.c_str());
 
         if (channelName == ChannelNames::forces)
-            localPV->forces.clear(stream);
+            localPV->forces().clearDevice(stream);
         else
             localPV->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
     }

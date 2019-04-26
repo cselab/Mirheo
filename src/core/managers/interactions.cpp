@@ -116,7 +116,7 @@ void InteractionManager::clearIntermediatesPV(ParticleVector *pv, LocalParticleV
 void InteractionManager::clearFinalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
 {
     _clearPVChannels(pv, lpv, cellFinalChannels, stream);
-    lpv->forces.clearDevice(stream);
+    lpv->forces().clearDevice(stream);
 }
 
 

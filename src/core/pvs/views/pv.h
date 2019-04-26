@@ -24,7 +24,7 @@ struct PVview
 
         size = lpv->size();
         particles = reinterpret_cast<float4*>(lpv->coosvels.devPtr());
-        forces    = reinterpret_cast<float4*>(lpv->forces.devPtr());
+        forces    = reinterpret_cast<float4*>(lpv->forces().devPtr());
 
         mass = pv->mass;
         invMass = 1.0 / mass;

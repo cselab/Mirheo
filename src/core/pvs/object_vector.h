@@ -20,7 +20,7 @@ public:
     
     virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream);
-    virtual DeviceBuffer<Force>* getMeshForces(cudaStream_t stream);
+    virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
 
 public:

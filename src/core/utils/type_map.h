@@ -17,6 +17,7 @@
     OP(Stress)       SEP                        \
     OP(RigidMotion)  SEP                        \
     OP(COMandExtent) SEP                        \
+    OP(Force)        SEP                        \
     OP(Particle)
 
 

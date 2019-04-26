@@ -37,7 +37,7 @@ void IntegratorSubStep::stage1(ParticleVector *pv, cudaStream_t stream)
 void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
-    slowForces.copy(pv->local()->forces, stream);
+    slowForces.copyFromDevice(pv->local()->forces(), stream);
     
     // save previous positions
     previousPositions.copyFromDevice(pv->local()->coosvels, stream);
@@ -53,7 +53,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     for (int substep = 0; substep < substeps; ++ substep) {
 
         if (substep != 0)
-            pv->local()->forces.copy(slowForces, stream);        
+            pv->local()->forces().copy(slowForces, stream);        
 
         fastForces->local(pv, pv, nullptr, nullptr, stream);
         
