@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.14.4
 
 * **interface change** pass rod width to rod ic
 * add bound viscous forces to rod
