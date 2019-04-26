@@ -63,7 +63,7 @@ static void initializeParticles(ParticleVector *pv, std::vector<Particle>& hostP
 
 static void initializeForces(ParticleVector *pv, std::vector<Force>& hostForces)
 {
-    auto &forces = pv->local()->forces;
+    auto &forces = pv->local()->forces();
     hostForces.resize(forces.size());
 
     for (auto& f : hostForces) {

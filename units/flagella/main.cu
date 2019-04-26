@@ -398,12 +398,12 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
     refForces.resize(refPositions.size());
     twistForces(h, kt, tau0, refPositions, refForces);
 
-    rod.local()->forces.clear(defaultStream);
+    rod.local()->forces().clear(defaultStream);
     interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
     interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
-    forces.copy(rod.local()->forces, defaultStream);
+    forces.copy(rod.local()->forces(), defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     double Linfty = 0;
@@ -453,12 +453,12 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
     const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
     bendingForces(h, B_, omega, refPositions, refForces);
 
-    rod.local()->forces.clear(defaultStream);
+    rod.local()->forces().clear(defaultStream);
     interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
     interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
-    forces.copy(rod.local()->forces, defaultStream);
+    forces.copy(rod.local()->forces(), defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     double Linfty = 0;

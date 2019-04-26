@@ -230,7 +230,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     pv.local()->resize(c, defStream);
     pv.local()->coosvels.uploadToDevice(defStream);
-    pv.local()->forces.clear(defStream);
+    pv.local()->forces().clear(defStream);
 
     HostBuffer<Particle> particles(pv.local()->size());
     for (int i = 0; i < pv.local()->size(); i++)
@@ -260,7 +260,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
         state.currentStep = i;
         state.currentTime = i * dt;
         
-        pv.local()->forces.clear(defStream);
+        pv.local()->forces().clear(defStream);
         cells.build(defStream);
 
         haloEngine.init(defStream);

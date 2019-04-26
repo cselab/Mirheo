@@ -108,10 +108,10 @@ void execute(MPI_Comm comm, float3 length)
 
     PinnedBuffer<int> counter(1);
 
-    for (int i=0; i<1; i++)
+    for (int i = 0; i < 1; i++)
     {
-        dpds1.local()->forces.clear(0);
-        dpds2.local()->forces.clear(0);
+        dpds1.local()->forces().clear(0);
+        dpds2.local()->forces().clear(0);
 
         inter->local(&dpds1, &dpds1, cells1, cells1, 0);
         inter->local(&dpds2, &dpds2, cells2, cells2, 0);
@@ -121,8 +121,8 @@ void execute(MPI_Comm comm, float3 length)
     }
 
     HostBuffer<Force> frcs1, frcs2;
-    frcs1.copy(dpds1.local()->forces, 0);
-    frcs2.copy(dpds2.local()->forces, 0);
+    frcs1.copy(dpds1.local()->forces(), 0);
+    frcs2.copy(dpds2.local()->forces(), 0);
 
     cudaDeviceSynchronize();
 
