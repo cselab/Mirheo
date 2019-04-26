@@ -55,20 +55,17 @@ __global__ void reorderParticles(PVview view, CellListInfo cinfo, float4 *outPar
         if ( !outgoingParticle(val) )
             dstId = cinfo.cellStarts[cid] + atomicAdd(cinfo.cellSizes + cid, 1);
         else
-            dstId = -1;
+            dstId = INVALID;
     }
 
     int otherDst = warpShflUp(dstId, 1);
     if (sh == 1)
         dstId = otherDst;
 
-    if (dstId >= 0)
-    {
+    if (dstId != INVALID)
         writeNoCache(outParticles + 2*dstId+sh, val);
-        if (sh == 0) cinfo.order[pid] = dstId;
-    }
-    else if (sh == 0)
-        cinfo.order[pid] = INVALID;
+
+    if (sh == 0) cinfo.order[pid] = dstId;
 }
 
 template <typename T>
