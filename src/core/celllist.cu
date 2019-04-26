@@ -82,17 +82,6 @@ __global__ void reorderExtraDataPerParticle(int n, const T *inExtraData, CellLis
         outExtraData[dstId] = inExtraData[srcId];
 }
 
-__global__ void addForcesKernel(PVview dstView, CellListInfo cinfo, PVview srcView)
-{
-    int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= dstView.size) return;
-
-    int srcId = cinfo.order[pid];
-
-    assert(srcId != INVALID);
-    dstView.forces[pid] += srcView.forces[srcId];
-}
-
 template <typename T>
 __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src)
 {
@@ -314,18 +303,6 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-void CellList::_accumulateForces(cudaStream_t stream)
-{
-    PVview dstView(pv, pv->local());
-    int nthreads = 128;
-
-    SAFE_KERNEL_LAUNCH(
-            CellListKernels::addForcesKernel,
-            getNblocks(dstView.size, nthreads), nthreads, 0, stream,
-            dstView, cellInfo(), getView<PVview>() );
-}
-
-
 // use SFINAE to discard types without operator+
 static void accumulateIfHasAddOperator(GPUcontainer *src,
                                        GPUcontainer *dst,
@@ -375,10 +352,7 @@ void CellList::accumulateChannels(const std::vector<std::string>& channelNames, 
     for (const auto& channelName : channelNames) {
         debug2("%s : accumulating channel '%s'", makeName().c_str(), channelName.c_str());
 
-        if (channelName == ChannelNames::forces)
-            _accumulateForces(stream);
-        else
-            _accumulateExtraData(channelName, stream);
+        _accumulateExtraData(channelName, stream);
     }
 }
 
@@ -400,11 +374,7 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
 {
     for (const auto& channelName : channelNames) {
         debug2("%s : clearing channel '%s'", makeName().c_str(), channelName.c_str());
-
-        if (channelName == ChannelNames::forces)
-            localPV->forces().clearDevice(stream);
-        else
-            localPV->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
+        localPV->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
 

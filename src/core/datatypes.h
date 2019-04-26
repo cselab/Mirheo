@@ -271,6 +271,20 @@ struct __align__(16) Force
     }
 };
 
+__HD__ void inline operator+=(Force& a, const Force& b)
+{
+    a.f.x += b.f.x;
+    a.f.y += b.f.y;
+    a.f.z += b.f.z;
+}    
+
+__HD__ Force inline operator+(Force a, const Force& b)
+{
+    a += b;
+    return a;
+}
+
+
 struct Stress
 {
     float xx, xy, xz, yy, yz, zz;
