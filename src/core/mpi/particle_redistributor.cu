@@ -57,9 +57,10 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
     for (int i = 0; i < pend-pstart; i++)
     {
         const int srcId = pstart + i;
-        Particle p(view.readParticle(srcId));
+        Particle p;
+        view.readPosition(p, srcId);
 
-        int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(make_float3(p.r));
+        int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(p.r);
 
         dir = encodeCellId(dir, ncells);
 
@@ -83,7 +84,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
                 // mark the particle as exited to assist cell-list building
                 Float3_int pos = p.r2Float3_int();
                 pos.mark();
-                view.particles[2*srcId] = pos.toFloat4();
+                view.writePosition(srcId, pos.toFloat4());
             }
         }
     }
