@@ -13,40 +13,6 @@ LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, 
     LocalObjectVector(pv, objSize, nObjects)
 {}
 
-RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
-                                     float3 J, const int objSize,
-                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
-    ObjectVector( state, name, partMass, objSize,
-                  std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
-                  std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
-    J(J)
-{
-    this->mesh = std::move(mesh);
-
-    if (length(J) < 1e-5)
-        die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);
-
-    if (J.x < 0 || J.y < 0 || J.z < 0)
-        die("Inertia tensor must be positive; got [%f %f %f]", J.x, J.y, J.z);
-
-
-    // rigid motion must be exchanged and shifted
-    requireDataPerObject<RigidMotion>(ChannelNames::motions,
-                                      ExtraDataManager::PersistenceMode::Persistent,
-                                      sizeof(RigidReal));
-
-    requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
-                                      ExtraDataManager::PersistenceMode::None);
-}
-
-RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
-                                     PyTypes::float3 J, const int objSize,
-                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
-    RigidObjectVector( state, name, partMass, make_float3(J), objSize, mesh, nObjects )
-{}
-
-RigidObjectVector::~RigidObjectVector() = default;
-
 PinnedBuffer<Particle>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
@@ -92,9 +58,45 @@ PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(cudaStream_t stream)
 {
     auto ov = dynamic_cast<ObjectVector*>(pv);
     meshForces.resize_anew(nObjects * ov->mesh->getNvertices());
-
     return &meshForces;
 }
+
+
+
+
+RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
+                                     float3 J, const int objSize,
+                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
+    ObjectVector( state, name, partMass, objSize,
+                  std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
+                  std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
+    J(J)
+{
+    this->mesh = std::move(mesh);
+
+    if (length(J) < 1e-5)
+        die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);
+
+    if (J.x < 0 || J.y < 0 || J.z < 0)
+        die("Inertia tensor must be positive; got [%f %f %f]", J.x, J.y, J.z);
+
+
+    // rigid motion must be exchanged and shifted
+    requireDataPerObject<RigidMotion>(ChannelNames::motions,
+                                      ExtraDataManager::PersistenceMode::Persistent,
+                                      sizeof(RigidReal));
+
+    requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
+                                      ExtraDataManager::PersistenceMode::None);
+}
+
+RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
+                                     PyTypes::float3 J, const int objSize,
+                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
+    RigidObjectVector( state, name, partMass, make_float3(J), objSize, mesh, nObjects )
+{}
+
+RigidObjectVector::~RigidObjectVector() = default;
 
 // TODO refactor this
 

@@ -7,7 +7,7 @@
 class LocalRigidObjectVector : public LocalObjectVector
 {
 public:
-    LocalRigidObjectVector(ParticleVector* pv, int objSize, int nObjects = 0);
+    LocalRigidObjectVector(ParticleVector *pv, int objSize, int nObjects = 0);
 
     PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream) override;
     PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream) override;

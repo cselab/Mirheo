@@ -16,7 +16,7 @@ struct ROVview : public OVview
     // TODO: implement this
     //float inertia[9];
 
-    ROVview(RigidObjectVector* rov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+    ROVview(RigidObjectVector *rov = nullptr, LocalRigidObjectVector *lrov = nullptr) :
         OVview(rov, lrov)
     {
         if (rov == nullptr || lrov == nullptr) return;

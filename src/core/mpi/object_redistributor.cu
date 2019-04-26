@@ -223,10 +223,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     // Particles may have migrated, rebuild cell-lists
     if (totalRecvd > 0)
-    {
         ov->cellListStamp++;
-        ov->local()->comExtentValid = false;
-    }
 }
 
 

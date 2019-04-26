@@ -145,13 +145,6 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
     bool isLocal = (type == ParticleVectorType::Local);
     auto lov = isLocal ? local() : halo();
 
-    if (lov->comExtentValid)
-    {
-        debug("COM and extent computation for %s OV '%s' skipped",
-              isLocal ? "local" : "halo", name.c_str());
-        return;
-    }
-
     debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
 
     const int nthreads = 128;

@@ -26,8 +26,6 @@ public:
 public:
     int nObjects { 0 };
 
-    bool comExtentValid { false };
-
     ExtraDataManager extraPerObject;
 
 protected:
