@@ -1137,7 +1137,7 @@ void Simulation::init()
 
 void Simulation::run(int nsteps)
 {
-    auto begin = state->currentStep, end = state->currentStep + nsteps;
+    YmrState::TimeType begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
 

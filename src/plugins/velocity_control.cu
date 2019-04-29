@@ -186,7 +186,7 @@ PostprocessVelocityControl::~PostprocessVelocityControl()
 
 void PostprocessVelocityControl::deserialize(MPI_Status& stat)
 {
-    int currentTimeStep;
+    YmrState::StepType currentTimeStep;
     YmrState::TimeType currentTime;
     float3 vel, force;
 

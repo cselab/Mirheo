@@ -14,7 +14,7 @@ float StepRandomGen::generate(const YmrState *state)
     if (state->currentStep != lastIteration)
     {
         lastIteration = state->currentStep;
-        lastSample = udistr(gen);
+        lastSample    = udistr(gen);
     }
     
     return lastSample;

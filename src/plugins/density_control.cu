@@ -306,7 +306,7 @@ PostprocessDensityControl::~PostprocessDensityControl()
 
 void PostprocessDensityControl::deserialize(MPI_Status& stat)
 {
-    int currentTimeStep;
+    YmrState::TimeType currentTimeStep;
     YmrState::TimeType currentTime;
     std::vector<float> densities, forces;
 

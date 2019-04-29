@@ -202,7 +202,7 @@ PostprocessRadialVelocityControl::~PostprocessRadialVelocityControl()
 
 void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
 {
-    int currentTimeStep;
+    YmrState::TimeType currentTimeStep;
     YmrState::TimeType currentTime;
     float vel, force;
 
