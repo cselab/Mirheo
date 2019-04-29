@@ -1,5 +1,6 @@
 #include "stats.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
@@ -61,7 +62,7 @@ void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const 
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % fetchEvery != 0) return;
+    if (!isTimeEvery(state, fetchEvery)) return;
 
     momentum.clear(stream);
     energy  .clear(stream);

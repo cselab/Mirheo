@@ -1,4 +1,5 @@
 #include "impose_velocity.h"
+#include "utils/time_stamp.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
@@ -80,7 +81,7 @@ void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 
 void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % every == 0)
+    if (isTimeEvery(state, every))
     {
         const int nthreads = 128;
 

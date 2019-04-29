@@ -1,5 +1,6 @@
 #include "anchor_particle.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
@@ -79,7 +80,7 @@ void AnchorParticlePlugin::handshake()
 
 void AnchorParticlePlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % reportEvery != 0) return;
+    if (!isTimeEvery(state, reportEvery)) return;
 
     force.downloadFromDevice(stream);
 

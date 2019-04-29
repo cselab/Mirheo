@@ -152,7 +152,7 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
     if (isTimeEvery(state, tuneEvery && state->currentStep != 0))
         updatePids(stream);
 
-    if (state->currentStep % sampleEvery == 0)
+    if (isTimeEvery(state, sampleEvery))
         sample(stream);
 
     applyForces(stream);
@@ -160,7 +160,7 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
 
 void DensityControlPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0) return;
+    if (!isTimeEvery(state->currentStep, updateEvery)) return;
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, densities, forces);

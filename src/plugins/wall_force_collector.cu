@@ -1,5 +1,6 @@
 #include "wall_force_collector.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
@@ -57,7 +58,7 @@ void WallForceCollectorPlugin::setup(Simulation *simulation, const MPI_Comm& com
 
 void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
 {   
-    if (state->currentStep % sampleEvery == 0)
+    if (isTimeEvery(state, sampleEvery))
     {
         pvForceBuffer.clear(stream);
 
@@ -78,7 +79,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
         ++nsamples;
     }
     
-    needToDump = (state->currentStep % dumpEvery == 0 && nsamples > 0);
+    needToDump = (isTimeEvery(state, dumpEvery) && nsamples > 0);
 }
 
 void WallForceCollectorPlugin::serializeAndSend(cudaStream_t stream)

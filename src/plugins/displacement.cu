@@ -1,4 +1,5 @@
 #include "displacement.h"
+#include "utils/time_stamp.h"
 
 #include <core/simulation.h>
 #include <core/pvs/particle_vector.h>
@@ -68,8 +69,7 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
 void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % updateEvery != 0)
-        return;
+    if (!isTimeEvery(state, updateEvery)) return;
 
     auto& manager = pv->local()->extraPerParticle;
     
