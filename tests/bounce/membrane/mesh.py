@@ -70,14 +70,9 @@ u.setBouncer(bb, pvRbc, pvSolvent)
 
 
 if args.vis:
-    dumpEvery = int(0.1 / dt)
-    
-    solventDump = ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
-    u.registerPlugins(solventDump)
-
-    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dumpEvery, path="ply/")
-    u.registerPlugins(mdump)
-
+    dump_every = int(0.1 / dt)
+    u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dump_every, [], 'h5/solvent-'))
+    u.registerPlugins(mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dump_every, path="ply/"))
 
 tend = int(5.0 / dt)
     

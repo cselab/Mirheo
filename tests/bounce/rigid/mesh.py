@@ -14,7 +14,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -77,5 +77,5 @@ u.run(5000)
 # rm -rf stats rigid.out.txt
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./mesh.py --file $f > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --file $f
 # cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

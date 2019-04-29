@@ -15,7 +15,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -59,23 +59,15 @@ bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
 u.registerBouncer(bb)
 u.setBouncer(bb, pvEllipsoid, pvSolvent)
 
-
-dumpEvery=500
+dump_every = 500
 
 if args.vis:
-    solventDump = ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
-    u.registerPlugins(solventDump)
+    u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-'))
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, dumpEvery, path="ply/"))
 
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("rigStats", pvEllipsoid, dump_every, path="stats"))
 
-    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, dumpEvery, path="ply/")
-    u.registerPlugins(mdump)
-
-
-rigStats = ymr.Plugins.createDumpObjectStats("rigStats", ov=pvEllipsoid, dump_every=dumpEvery, path="stats")
-u.registerPlugins(rigStats)
-
-u.run(5000)
-    
+u.run(5000)    
 
 # nTEST: bounce.rigid.ellipsoid
 # set -eu
@@ -85,5 +77,5 @@ u.run(5000)
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f > /dev/null
+# ymr.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
