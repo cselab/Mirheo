@@ -68,7 +68,7 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
     for (auto& p : particles)
         p.r = state->domain.local2global(p.r);
 
-    auto timeStamp = getTimeStamp(state, dumpEvery);
+    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), particles.size());
     waitPrevSend();

@@ -1176,7 +1176,8 @@ void Simulation::notifyPostProcess(int tag, int msg) const
 void Simulation::restartState(std::string folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
-    TextIO::read(filename, state->currentTime, state->currentStep, checkpointId);
+    auto good = TextIO::read(filename, state->currentTime, state->currentStep, checkpointId);
+    if (!good) die("failed to read '%s'\n", filename.c_str());
 }
 
 void Simulation::checkpointState()

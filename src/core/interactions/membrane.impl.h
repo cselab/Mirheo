@@ -142,9 +142,8 @@ public:
     void restart(MPI_Comm comm, std::string path) override
     {
         auto fname = createCheckpointName(path, "MembraneInt", "txt");
-        auto status = TextIO::read(fname, stepGen);
-        if (!status)
-            die("Could not read '%s'", fname.c_str());
+        auto good = TextIO::read(fname, stepGen);
+        if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
     

@@ -165,8 +165,8 @@ void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, int 
 void SimulationVelocityControl::restart(MPI_Comm comm, std::string path)
 {
     auto filename = createCheckpointName(path, "plugin." + name, "txt");
-
-    TextIO::read(filename, pid);
+    auto good = TextIO::read(filename, pid);
+    if (!good) die("failed to read '%s'\n", filename.c_str());
 }
 
 

@@ -106,11 +106,15 @@ public:
         auto fname = createCheckpointName(path, "ParirwiseInt", "txt");
         std::ifstream fin(fname);
 
-        if (!fin.good()) die("could not read '%s'\n", fname.c_str());
+        auto check = [&](bool good) {
+            if (!good) die("failed to read '%s'\n", fname.c_str());
+        };
 
-        defaultPair.readState(fin);
+        check(fin.good());
+        
+        check( defaultPair.readState(fin) );
         for (auto& entry : intMap)
-            entry.second.readState(fin);
+            check( entry.second.readState(fin) );
     }
 
 private:

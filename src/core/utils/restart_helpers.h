@@ -43,13 +43,13 @@ void write(std::string fname, const Args&... args)
 template<typename Arg>
 bool readFromStream(std::ifstream& fin, Arg& arg)
 {
-    return (fin >> arg).fail();
+    return (fin >> arg).good();
 }
 
 template<typename Arg, typename... Args>
 bool readFromStream(std::ifstream& fin, Arg& arg, Args&... args)
 {
-    return (fin >> arg).fail() && readFromStream(fin, args...);
+    return (fin >> arg).good() && readFromStream(fin, args...);
 }
 
 template<typename... Args>
