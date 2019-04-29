@@ -130,8 +130,8 @@ PostprocessStats::~PostprocessStats()
 void PostprocessStats::deserialize(MPI_Status& stat)
 {
     YmrState::TimeType currentTime;
+    YmrState::StepType currentTimeStep;
     float realTime;
-    int currentTimeStep;
     Stats::CountType nparticles, maxNparticles, minNparticles;
 
     std::vector<Stats::ReductionType> momentum, energy;

@@ -14,7 +14,7 @@ class YmrState
 {
 public:
     using TimeType = double;
-    using StepType = int;
+    using StepType = long long;
     
     YmrState(DomainInfo domain, float dt);
     YmrState(const YmrState&);
