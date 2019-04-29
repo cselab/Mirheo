@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 16, 24)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[1, 2, 3,   1., 0, 0, 0],
          [5, 10, 15, 1,  1, 1, 1]]
@@ -59,7 +59,7 @@ u.run(2010)
 # set -eu
 # cd plugins
 # rm -rf force/
-# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0 0 --omega 0 1 0  > /dev/null
+# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0 0 --omega 0 1 0
 # cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n > plugins.out.txt
 # cat force/*.txt | LC_ALL=en_US.utf8 sort -n >> plugins.out.txt
 
@@ -67,7 +67,7 @@ u.run(2010)
 # set -eu
 # cd plugins
 # rm -rf force/
-# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0.1 0 --omega 0.1 1 0 --solvent  > /dev/null
+# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1 0.1 0 --omega 0.1 1 0 --solvent
 # cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n                                                 > plugins.out.txt
 # cat force/*.txt | LC_ALL=en_US.utf8 sort -n | awk '{ print $3/500, $4/500, $5/500, $6/5000, $7/5000, $8/5000}' >> plugins.out.txt
 
@@ -75,6 +75,6 @@ u.run(2010)
 # set -eu
 # cd plugins
 # rm -rf force/
-# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1e10 1e10 0 --omega 1 1e10 1e10 --solvent  > /dev/null
+# ymr.run --runargs "-n 2" python pin_objects.py --velocity 1e10 1e10 0 --omega 1 1e10 1e10 --solvent
 # cat stats/*.txt | awk 'NF{NF-=6};1' | LC_ALL=en_US.utf8 sort -n               > plugins.out.txt
 # cat force/*.txt | LC_ALL=en_US.utf8 sort -n | awk '{ print $5/500, $6/5000}' >> plugins.out.txt
