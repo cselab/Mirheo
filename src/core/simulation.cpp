@@ -1191,22 +1191,6 @@ void Simulation::checkpointState()
 
 void Simulation::restart(std::string folder)
 {
-//    bool beginning =  particleVectors    .empty() &&
-//                      wallMap            .empty() &&
-//                      interactionMap     .empty() &&
-//                      integratorMap      .empty() &&
-//                      bouncerMap         .empty() &&
-//                      belongingCheckerMap.empty() &&
-//                      plugins            .empty();
-//
-//    if (!beginning)
-//        die("Tried to restart partially initialized simulation! Please only call restart() before registering anything");
-//
-//    restartStatus = RestartStatus::RestartStrict;
-//    restartFolder = folder;
-//
-//    TextIO::read(folder + "_simulation.state", state->currentTime, state->currentStep);
-
     restartFolder = folder;
 
     this->restartState(restartFolder);
