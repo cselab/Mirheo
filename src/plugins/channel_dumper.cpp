@@ -67,7 +67,7 @@ static void convert(const std::vector<double> &src, std::vector<float> &dst)
 
 void UniformCartesianDumper::deserialize(MPI_Status& stat)
 {
-    TimeType t;
+    YmrState::TimeType t;
     SimpleSerializer::deserialize(data, t, recv_density, recv_containers);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",

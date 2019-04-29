@@ -1,7 +1,5 @@
 #include "step_random_gen.h"
 
-#include <core/ymero_state.h>
-
 StepRandomGen::StepRandomGen(long seed) :
     gen(seed),
     udistr(0.001f, 1.f)

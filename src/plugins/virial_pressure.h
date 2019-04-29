@@ -36,7 +36,7 @@ private:
     FieldFromFunction region;
     
     PinnedBuffer<VirialPressure::ReductionType> localVirialPressure {1};
-    TimeType savedTime = 0;
+    YmrState::TimeType savedTime = 0;
 
     std::vector<char> sendBuffer;
 

@@ -129,7 +129,7 @@ PostprocessStats::~PostprocessStats()
 
 void PostprocessStats::deserialize(MPI_Status& stat)
 {
-    TimeType currentTime;
+    YmrState::TimeType currentTime;
     float realTime;
     int currentTimeStep;
     Stats::CountType nparticles, maxNparticles, minNparticles;

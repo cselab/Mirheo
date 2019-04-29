@@ -1137,7 +1137,7 @@ void Simulation::init()
 
 void Simulation::run(int nsteps)
 {
-    int begin = state->currentStep, end = state->currentStep + nsteps;
+    auto begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
 

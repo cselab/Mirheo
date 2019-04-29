@@ -109,7 +109,7 @@ WallForceDumperPlugin::~WallForceDumperPlugin()
 
 void WallForceDumperPlugin::deserialize(MPI_Status& stat)
 {
-    TimeType currentTime;
+    YmrState::TimeType currentTime;
     int nsamples;
     double localForce[3], totalForce[3] = {0.0, 0.0, 0.0};
 

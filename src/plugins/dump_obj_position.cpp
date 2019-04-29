@@ -160,7 +160,7 @@ void ObjPositionsDumper::handshake()
 
 void ObjPositionsDumper::deserialize(MPI_Status& stat)
 {
-    TimeType curTime;
+    YmrState::TimeType curTime;
     DomainInfo domain;
     std::vector<int64_t> ids;
     std::vector<COMandExtent> coms;

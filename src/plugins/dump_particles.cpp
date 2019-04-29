@@ -144,7 +144,7 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
 
 float ParticleDumperPlugin::_recvAndUnpack()
 {
-    TimeType t;
+    YmrState::TimeType t;
     int c = 0;
     SimpleSerializer::deserialize(data, t, particles, channelData);
         

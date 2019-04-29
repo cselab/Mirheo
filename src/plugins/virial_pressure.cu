@@ -140,7 +140,7 @@ void VirialPressureDumper::handshake()
 
 void VirialPressureDumper::deserialize(MPI_Status& stat)
 {
-    TimeType curTime;
+    YmrState::TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;
 
     SimpleSerializer::deserialize(data, curTime, localPressure);

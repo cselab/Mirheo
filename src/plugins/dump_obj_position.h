@@ -31,7 +31,7 @@ private:
     HostBuffer<int64_t> ids;
     HostBuffer<COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
-    TimeType savedTime = 0;
+    YmrState::TimeType savedTime = 0;
 
     std::vector<char> sendBuffer;
 

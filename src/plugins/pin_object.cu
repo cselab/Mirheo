@@ -259,7 +259,7 @@ void ReportPinObjectPlugin::handshake()
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 {
     std::vector<float4> forces, torques;
-    TimeType currentTime;
+    YmrState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);

@@ -7,14 +7,15 @@
 #include <mpi.h>
 #include <string>
 
-using TimeType = double;
-
 /**
  * Global quantities accessible by all simulation objects in YMeRo
  */
 class YmrState
 {
 public:
+    using TimeType = double;
+    using StepType = int;
+    
     YmrState(DomainInfo domain, float dt);
     YmrState(const YmrState&);
     YmrState& operator=(YmrState other);
@@ -33,6 +34,6 @@ public:
 
     float dt;
     TimeType currentTime;
-    int currentStep;
+    StepType currentStep;
 };
 

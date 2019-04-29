@@ -1,9 +1,9 @@
 #pragma once
 
+#include <core/ymero_state.h>
+
 #include <fstream>
 #include <random>
-
-class YmrState;
 
 /** \brief A simple random generator wrapper for 
  *         per time step random number generation
@@ -24,7 +24,7 @@ public:
     friend std::ifstream& operator>>(std::ifstream& stream,       StepRandomGen& gen);
     
 private:
-    int lastIteration {-1};
+    YmrState::StepType lastIteration {-1};
     float lastSample;
     std::mt19937 gen;
     std::uniform_real_distribution<float> udistr;

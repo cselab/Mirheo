@@ -125,7 +125,7 @@ void AnchorParticleStatsPlugin::handshake()
 void AnchorParticleStatsPlugin::deserialize(MPI_Status& stat)
 {
     double3 force;
-    TimeType currentTime;
+    YmrState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, force);
