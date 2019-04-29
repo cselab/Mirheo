@@ -12,7 +12,15 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **output change** 
+  * restart time-stamps are now continuing from the previous simulation
+  * output dump files start at t=0
+* **fix** in TextIO::reader
+* internal changes:
+  * currentStep is long long -> allow longer simulations
+  * forces are stored as generic arrays -> simplifies a bit cell lists
 
 ### v0.14.4
 
