@@ -9,7 +9,7 @@ domain = (8, 8, 8)
 
 dt = 0.01
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 n = 20
 np.random.seed(42)
@@ -38,5 +38,5 @@ u.run(100)
 # TEST: plugins.displacements
 # cd plugins
 # rm -rf h5 displacements.out.txt
-# ymr.run --runargs "-n 2" ./displacements.py > /dev/null
-# ymr.post h5dump -d displacements h5/solvent_particles-00003.h5 | awk '{print $2, $3, $4}' | LC_ALL=en_US.utf8 sort > displacements.out.txt
+# ymr.run --runargs "-n 2" ./displacements.py
+# ymr.post h5dump -d displacements h5/solvent_particles-00004.h5 | awk '{print $2, $3, $4}' | LC_ALL=en_US.utf8 sort > displacements.out.txt
