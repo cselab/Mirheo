@@ -1,5 +1,6 @@
 #include "radial_velocity_control.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
@@ -124,7 +125,7 @@ void SimulationRadialVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream
 
 void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % sampleEvery == 0 && state->currentStep != 0)
+    if (isTimeEvery(state, sampleEvery))
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -141,8 +142,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedSamples += nSamples[0];
     }
     
-    if (state->currentStep % tuneEvery != 0 || state->currentStep == 0)
-        return;
+    if (!isTimeEvery(state, tuneEvery)) return;
     
     
     unsigned long long nSamples_tot = 0;
@@ -160,7 +160,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationRadialVelocityControl::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0)
+    if (!isTimeEvery(state, dumpEvery))
         return;
 
     waitPrevSend();

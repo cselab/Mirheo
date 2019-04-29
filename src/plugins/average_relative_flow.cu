@@ -2,6 +2,7 @@
 
 #include "utils/sampling_helpers.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -107,7 +108,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     const int TAG = 22;
     const int NCOMPONENTS = 2 * sizeof(float3) / sizeof(float);
     
-    if (state->currentStep % sampleEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -193,7 +194,7 @@ void AverageRelative3D::extractLocalBlock()
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     for (int i = 0; i < channelsInfo.n; i++) {
         auto& data = accumulated_average[i];

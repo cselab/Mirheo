@@ -1,5 +1,6 @@
 #include "dump_particles.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
@@ -47,7 +48,7 @@ void ParticleSenderPlugin::handshake()
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     particles.genericCopy(&pv->local()->coosvels, stream);
 
@@ -60,16 +61,18 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 
 void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
     
     for (auto& p : particles)
         p.r = state->domain.local2global(p.r);
 
+    auto timeStamp = getTimeStamp(state, dumpEvery);
+    
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), particles.size());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, particles, channelData);
+    SimpleSerializer::serialize(sendBuffer, timeStamp, state->currentTime, particles, channelData);
     send(sendBuffer);
 }
 
@@ -142,11 +145,10 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
     }
 }
 
-float ParticleDumperPlugin::_recvAndUnpack()
+void ParticleDumperPlugin::_recvAndUnpack(YmrState::TimeType &time, YmrState::StepType& timeStamp)
 {
-    YmrState::TimeType t;
     int c = 0;
-    SimpleSerializer::deserialize(data, t, particles, channelData);
+    SimpleSerializer::deserialize(data, timeStamp, time, particles, channelData);
         
     unpack_particles(particles, *positions, velocities, ids);
 
@@ -155,20 +157,20 @@ float ParticleDumperPlugin::_recvAndUnpack()
     
     for (int i = 0; i < channelData.size(); i++)
         channels[c++].data = channelData[i].data();
-
-    return t;
 }
 
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 
-    float t = _recvAndUnpack();
+    YmrState::TimeType time;
+    YmrState::StepType timeStamp;
+    _recvAndUnpack(time, timeStamp);
     
-    std::string fname = path + getStrZeroPadded(timeStamp++, zeroPadding);
+    std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
     
     XDMF::VertexGrid grid(positions, comm);
-    XDMF::write(fname, &grid, channels, t, comm);
+    XDMF::write(fname, &grid, channels, time, comm);
 }
 
 

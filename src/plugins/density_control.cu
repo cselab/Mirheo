@@ -1,5 +1,6 @@
 #include "density_control.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/field/from_function.h>
 #include <core/field/utils.h>
@@ -148,7 +149,7 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
 void DensityControlPlugin::beforeForces(cudaStream_t stream)
 {
-    if (state->currentStep % tuneEvery == 0 && state->currentStep != 0)
+    if (isTimeEvery(state, tuneEvery))
         updatePids(stream);
 
     if (state->currentStep % sampleEvery == 0)

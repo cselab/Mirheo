@@ -2,6 +2,7 @@
 
 #include "utils/sampling_helpers.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
@@ -157,7 +158,7 @@ void Average3D::accumulateSampledAndClear(cudaStream_t stream)
 
 void Average3D::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % sampleEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -201,7 +202,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
 
 void Average3D::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
     if (nSamples == 0) return;
     
     scaleSampled(stream);

@@ -1,5 +1,6 @@
 #include "dump_mesh.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -26,7 +27,7 @@ void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_C
 
 void MeshPlugin::beforeForces(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     srcVerts = ov->local()->getMeshVertices(stream);
     srcVerts->downloadFromDevice(stream);
@@ -34,7 +35,7 @@ void MeshPlugin::beforeForces(cudaStream_t stream)
 
 void MeshPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
 

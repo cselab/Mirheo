@@ -1,5 +1,6 @@
 #include "dump_obj_position.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/pvs/rigid_object_vector.h>
 #include <core/simulation.h>
@@ -30,7 +31,7 @@ void ObjPositionsPlugin::handshake()
 
 void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     ids.copy(  *ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
     coms.copy( *ov->local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);

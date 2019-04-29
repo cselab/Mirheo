@@ -57,10 +57,9 @@ public:
 
 protected:
 
-    float _recvAndUnpack();
+    void _recvAndUnpack(YmrState::TimeType &time, YmrState::StepType& timeStamp);
     
-    int timeStamp = 0;
-    const int zeroPadding = 5;
+    static constexpr int zeroPadding = 5;
     std::string path;
 
     std::vector<Particle> particles;

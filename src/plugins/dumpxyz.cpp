@@ -1,5 +1,6 @@
 #include "dumpxyz.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 #include "utils/xyz.h"
 
 #include <core/pvs/particle_vector.h>
@@ -22,14 +23,14 @@ void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     downloaded.copy(pv->local()->coosvels, stream);
 }
 
 void XYZPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
 

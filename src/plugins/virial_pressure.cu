@@ -1,5 +1,6 @@
 #include "virial_pressure.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
@@ -63,7 +64,7 @@ void VirialPressurePlugin::handshake()
 
 void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     PVview view(pv, pv->local());
     const Stress *stress = pv->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();

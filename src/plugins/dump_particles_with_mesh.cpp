@@ -83,14 +83,16 @@ void ParticleWithMeshDumperPlugin::deserialize(MPI_Status& stat)
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 
-    float t = _recvAndUnpack();
-
+    YmrState::TimeType time;
+    YmrState::StepType timeStamp;
+    _recvAndUnpack(time, timeStamp);
+    
     int totNVertices = positions->size() / 3;    
 
     _prepareConnectivity(totNVertices);
 
-    std::string fname = path + getStrZeroPadded(timeStamp++, zeroPadding);
+    std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
     
     XDMF::TriangleMeshGrid grid(positions, allTriangles, comm);
-    XDMF::write(fname, &grid, channels, t, comm);
+    XDMF::write(fname, &grid, channels, time, comm);
 }

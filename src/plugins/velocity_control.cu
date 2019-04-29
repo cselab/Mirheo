@@ -2,6 +2,7 @@
 
 #include "velocity_control.h"
 #include "utils/simple_serializer.h"
+#include "utils/time_stamp.h"
 
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
@@ -113,7 +114,7 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (state->currentStep % sampleEvery == 0 && state->currentStep != 0)
+    if (isTimeEvery(state, sampleEvery))
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -125,7 +126,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedTotVel.z += totVel[0].z;
     }
     
-    if (state->currentStep % tuneEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, tuneEvery)) return;
     
     nSamples.downloadFromDevice(stream);
     nSamples.clearDevice(stream);
@@ -145,7 +146,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
 {
-    if (state->currentStep % dumpEvery != 0 || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
