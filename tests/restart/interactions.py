@@ -18,7 +18,7 @@ if args.restart:
 else:
     restart_folder="restart/"
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder)
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
     
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=2)
@@ -36,7 +36,7 @@ u.run(7)
 # TEST: restart.interactions
 # cd restart
 # rm -rf restart restart2 state.out.txt
-# ymr.run --runargs "-n 1" ./interactions.py --ranks 1 1 1           > /dev/null
-# ymr.run --runargs "-n 1" ./interactions.py --ranks 1 1 1 --restart > /dev/null
+# ymr.run --runargs "-n 1" ./interactions.py --ranks 1 1 1
+# ymr.run --runargs "-n 1" ./interactions.py --ranks 1 1 1 --restart
 # cat restart2/dpd.ParirwiseInt.txt > state.out.txt
 
