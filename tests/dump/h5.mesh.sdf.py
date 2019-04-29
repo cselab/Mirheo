@@ -13,7 +13,7 @@ domain = (12, 8, 10)
 
 rc=1.0
 
-u = ymr.ymero(ranks, domain, dt=0, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt=0, debug_level=8, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
 mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
@@ -28,12 +28,10 @@ plates = ymr.Walls.Box("plates", box_lo, box_hi, inside=True)
 u.registerWall(plates, 0)
 
 # fake repulsion module to force sdf computation
-wallRep = ymr.Plugins.createWallRepulsion("wallRepulsion", rbc, plates, C=500, h=rc, max_force=500) 
-u.registerPlugins(wallRep)
+u.registerPlugins(ymr.Plugins.createWallRepulsion("wallRepulsion", rbc, plates, C=500, h=rc, max_force=500))
 
-dumpEvery = 1
-ovDump = ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dumpEvery, [["sdf", "scalar"]], 'h5/rbc-')
-u.registerPlugins(ovDump)
+dump_every = 1
+u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dump_every, [["sdf", "scalar"]], 'h5/rbc-'))
 
 u.run(2)
 
@@ -41,5 +39,5 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # mesh="../../data/rbc_mesh.off"
-# ymr.run --runargs "-n 2" ./h5.mesh.sdf.py --mesh $mesh > /dev/null
-# ymr.post h5dump -d sdf h5/rbc-00000.h5 | awk '{print $2}' > h5.mesh.sdf.out.txt
+# ymr.run --runargs "-n 2" ./h5.mesh.sdf.py --mesh $mesh
+# ymr.post h5dump -d sdf h5/rbc-00001.h5 | awk '{print $2}' > h5.mesh.sdf.out.txt
