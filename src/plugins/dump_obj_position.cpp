@@ -31,7 +31,7 @@ void ObjPositionsPlugin::handshake()
 
 void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
 
     ids.copy(  *ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
     coms.copy( *ov->local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);

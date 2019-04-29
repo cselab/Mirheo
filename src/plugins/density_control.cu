@@ -149,7 +149,7 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
 void DensityControlPlugin::beforeForces(cudaStream_t stream)
 {
-    if (isTimeEvery(state, tuneEvery))
+    if (isTimeEvery(state, tuneEvery && state->currentStep != 0))
         updatePids(stream);
 
     if (state->currentStep % sampleEvery == 0)

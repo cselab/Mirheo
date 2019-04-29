@@ -2,7 +2,7 @@
 
 bool isTimeEvery(const YmrState *state, int dumpEvery)
 {
-    return (state->currentStep % dumpEvery == 0) && (state->currentStep > 0);
+    return state->currentStep % dumpEvery == 0;
 }
 
 YmrState::StepType getTimeStamp(const YmrState *state, int dumpEvery)

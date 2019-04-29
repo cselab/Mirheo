@@ -125,7 +125,7 @@ void SimulationRadialVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream
 
 void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(state, sampleEvery))
+    if (isTimeEvery(state, sampleEvery) && state->currentStep != 0)
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -142,7 +142,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedSamples += nSamples[0];
     }
     
-    if (!isTimeEvery(state, tuneEvery)) return;
+    if (!isTimeEvery(state, tuneEvery) || state->currentStep == 0) return;
     
     
     unsigned long long nSamples_tot = 0;
@@ -160,7 +160,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationRadialVelocityControl::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery))
+    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0)
         return;
 
     waitPrevSend();
