@@ -57,7 +57,7 @@ public:
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }
 
-    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override;
+    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override;
     void restart(MPI_Comm comm, std::string path) override;
 
     
@@ -98,8 +98,8 @@ protected:
     void _extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
     void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
     
-    virtual void _checkpointParticleData(MPI_Comm comm, std::string path);
-    virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);    
+    virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
+    virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);
 
 private:
 

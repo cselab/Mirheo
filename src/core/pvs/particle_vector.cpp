@@ -283,11 +283,11 @@ void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Chann
     _extractPersistentExtraData(extraData, channels, blackList);
 }
 
-void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
+void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "PV", "");
+    auto filename = createCheckpointNameWithId(path, "PV", "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
@@ -309,7 +309,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "PV", "xmf");
+    createCheckpointSymlink(comm, path, "PV", "xmf", checkpointId);
     
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
@@ -365,10 +365,9 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     return map;
 }
 
-void ParticleVector::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {
-    _checkpointParticleData(comm, path);
-    advanceCheckpointId(checkpointMode);
+    _checkpointParticleData(comm, path, checkpointId);
 }
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)

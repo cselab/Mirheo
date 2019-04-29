@@ -115,7 +115,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
         MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
-        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointFolder, checkpointMode);
+        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointFolder);
     }
 
     MPI_Check( MPI_Comm_free(&splitComm) );

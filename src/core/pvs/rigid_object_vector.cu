@@ -123,11 +123,11 @@ static void splitMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& mot
     }
 }
 
-void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
+void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "ROV", "");
+    auto filename = createCheckpointNameWithId(path, "ROV", "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
@@ -156,7 +156,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "ROV", "xmf");
+    createCheckpointSymlink(comm, path, "ROV", "xmf", checkpointId);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }

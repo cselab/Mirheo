@@ -34,7 +34,7 @@ protected:
     RigidObjectVector(const YmrState *state, std::string name, float partMass, float3 J, const int objSize,
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
-    void _checkpointObjectData(MPI_Comm comm, std::string path) override;
+    void _checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId) override;
     void _restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map) override;
 
 public:

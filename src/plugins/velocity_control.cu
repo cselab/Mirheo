@@ -152,14 +152,13 @@ void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
     send(sendBuffer);
 }
 
-void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {
-    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt");
+    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt", checkpointId);
 
     TextIO::write(filename, pid);
     
-    createCheckpointSymlink(comm, path, "plugin." + name, "txt");
-    advanceCheckpointId(checkpointMode);
+    createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
 }
 
 void SimulationVelocityControl::restart(MPI_Comm comm, std::string path)

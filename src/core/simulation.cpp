@@ -779,14 +779,14 @@ void Simulation::createTasks()
                            globalCheckpointEvery);
 
     for (auto prototype : pvsCheckPointPrototype)
-        if (prototype.checkpointEvery > 0 && globalCheckpointEvery == 0) {
-            info("Will save checkpoint of particle vector '%s' every %d timesteps",
-                 prototype.pv->name.c_str(), prototype.checkpointEvery);
+        // if (prototype.checkpointEvery > 0 && globalCheckpointEvery == 0) {
+        //     info("Will save checkpoint of particle vector '%s' every %d timesteps",
+        //          prototype.pv->name.c_str(), prototype.checkpointEvery);
 
-            scheduler->addTask( tasks->checkpoint, [prototype, this] (cudaStream_t stream) {
-                    prototype.pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
-            }, prototype.checkpointEvery );
-        }
+        //     scheduler->addTask( tasks->checkpoint, [prototype, this] (cudaStream_t stream) {
+        //             prototype.pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        //     }, prototype.checkpointEvery );
+        // }
 
 
     for (auto& clVec : cellListMap)
@@ -1192,12 +1192,12 @@ void Simulation::restartState(std::string folder)
 
 void Simulation::checkpointState()
 {
-    auto filename = createCheckpointNameWithId(checkpointFolder, "state", "txt");
+    auto filename = createCheckpointNameWithId(checkpointFolder, "state", "txt", checkpointId);
 
     if (rank == 0)
         TextIO::write(filename, state->currentTime, state->currentStep);
 
-    createCheckpointSymlink(cartComm, checkpointFolder, "state", "txt");
+    createCheckpointSymlink(cartComm, checkpointFolder, "state", "txt", checkpointId);
 }
 
 void Simulation::restart(std::string folder)
@@ -1250,6 +1250,14 @@ void Simulation::restart(std::string folder)
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
+static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
+{
+    if (mode == CheckpointIdAdvanceMode::PingPong)
+        checkpointId = checkpointId xor 1;
+    else
+        ++checkpointId;
+}
+
 void Simulation::checkpoint()
 {
     this->checkpointState();
@@ -1259,29 +1267,29 @@ void Simulation::checkpoint()
     info("Writing simulation state, into folder %s", checkpointFolder.c_str());
     
     for (auto& pv : particleVectors)
-        pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        pv->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : bouncerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : integratorMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : interactionMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : wallMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : belongingCheckerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
     
     for (auto& handler : plugins)
-        handler->checkpoint(cartComm, checkpointFolder, checkpointMode);
+        handler->checkpoint(cartComm, checkpointFolder, checkpointId);
 
-    advanceCheckpointId(checkpointMode);
+    advanceCheckpointId(checkpointId, checkpointMode);
 
-    notifyPostProcess(checkpointTag, checkpointMsg);
+    notifyPostProcess(checkpointTag, checkpointId);
     
     CUDA_Check( cudaDeviceSynchronize() );
 }

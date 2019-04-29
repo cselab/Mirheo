@@ -45,4 +45,3 @@ constexpr int stoppingMsg = -1;
 
 // tag used to tell the postprocess side to dump checkpoint 
 constexpr int checkpointTag = 434343;
-constexpr int checkpointMsg = -2;

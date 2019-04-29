@@ -230,11 +230,11 @@ void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>&
     _extractPersistentExtraData(extraData, channels, blackList);
 }
 
-void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
+void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "OV", "");
+    auto filename = createCheckpointNameWithId(path, "OV", "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
     auto coms_extents = local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents);
@@ -253,7 +253,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path)
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "OV", "xmf");
+    createCheckpointSymlink(comm, path, "OV", "xmf", checkpointId);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -283,11 +283,10 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
     info("Successfully read %d object infos", loc_ids->size());
 }
 
-void ObjectVector::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode)
+void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {
-    _checkpointParticleData(comm, path);
-    _checkpointObjectData(comm, path);
-    advanceCheckpointId(checkpointMode);
+    _checkpointParticleData(comm, path, checkpointId);
+    _checkpointObjectData  (comm, path, checkpointId);
 }
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)

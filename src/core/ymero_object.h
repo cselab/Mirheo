@@ -18,19 +18,16 @@ public:
     YmrObject(std::string name);
     virtual ~YmrObject();
 
-    virtual void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode);  /// Save handler state
+    virtual void checkpoint(MPI_Comm comm, std::string path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
 
     std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;
-    std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension) const;
-    void advanceCheckpointId(CheckpointIdAdvanceMode mode);
-    void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension) const;
+    std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const;
+    // void advanceCheckpointId(CheckpointIdAdvanceMode mode);
+    void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const;
 
 public:
     const std::string name;
-
-protected:
-    int checkpointId {0};
 };
 
 /**
@@ -44,6 +41,5 @@ public:
     ~YmrSimulationObject();
 
 public:
-    
     const YmrState *state;
 };

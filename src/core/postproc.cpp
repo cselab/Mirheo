@@ -6,13 +6,11 @@
 #include <mpi.h>
 #include <vector>
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder,
-                         CheckpointIdAdvanceMode checkpointMode) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
     YmrObject("postprocess"),
     comm(comm),
     interComm(interComm),
-    checkpointFolder(checkpointFolder),
-    checkpointMode(checkpointMode)
+    checkpointFolder(checkpointFolder)
 {
     info("Postprocessing initialized");
 }
@@ -60,7 +58,7 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
 
 void Postprocess::run()
 {
-    int endMsg {0}, cpMsg {0};
+    int endMsg {0}, checkpointId {0};
 
     std::vector<MPI_Request> requests;
     for (auto& pl : plugins)
@@ -70,7 +68,7 @@ void Postprocess::run()
     requests.push_back( listenSimulation(stoppingTag, &endMsg) );
 
     const int cpReqIndex = requests.size();
-    requests.push_back( listenSimulation(checkpointTag, &cpMsg) );
+    requests.push_back( listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());
     
@@ -95,9 +93,8 @@ void Postprocess::run()
             }
             else if (index == cpReqIndex)
             {
-                if (cpMsg != checkpointMsg) die("Received wrong checkpoint message");
-                checkpoint();
-                requests[index] = listenSimulation(checkpointTag, &cpMsg);
+                checkpoint(checkpointId);
+                requests[index] = listenSimulation(checkpointTag, &checkpointId);
             }
             else
             {
@@ -131,10 +128,10 @@ void Postprocess::restart(std::string folder)
         pl->restart(comm, folder);    
 }
 
-void Postprocess::checkpoint()
+void Postprocess::checkpoint(int checkpointId)
 {
     info("Writing postprocess state, into folder %s", checkpointFolder.c_str());
     
     for (auto& pl : plugins)
-        pl->checkpoint(comm, checkpointFolder, checkpointMode);
+        pl->checkpoint(comm, checkpointFolder, checkpointId);
 }

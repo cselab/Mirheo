@@ -9,7 +9,7 @@ YmrObject::YmrObject(std::string name) :
 
 YmrObject::~YmrObject() = default;
 
-void YmrObject::checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) {}
+void YmrObject::checkpoint(MPI_Comm comm, std::string path, int checkpointId) {}
 void YmrObject::restart   (MPI_Comm comm, std::string path) {}
 
 
@@ -36,7 +36,7 @@ std::string YmrObject::createCheckpointName(std::string path, std::string identi
     return base;
 }
 
-std::string YmrObject::createCheckpointNameWithId(std::string path, std::string identifier, std::string extension) const
+std::string YmrObject::createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const
 {
     auto base = createBaseName(path, name, identifier);
     base += "-" + getStrZeroPadded(checkpointId);
@@ -44,14 +44,14 @@ std::string YmrObject::createCheckpointNameWithId(std::string path, std::string 
     return base;
 }
 
-void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension) const
+void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     if (rank == 0) {
         std::string lnname = createCheckpointName      (path, identifier, extension);
-        std::string  fname = createCheckpointNameWithId(path, identifier, extension);
+        std::string  fname = createCheckpointNameWithId(path, identifier, extension, checkpointId);
         std::string command = "ln -f " + fname + " " + lnname;
         
         if ( system(command.c_str()) != 0 )
@@ -61,13 +61,13 @@ void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::st
 }
 
 
-void YmrObject::advanceCheckpointId(CheckpointIdAdvanceMode mode)
-{
-    if (mode == CheckpointIdAdvanceMode::PingPong)
-        checkpointId = checkpointId xor 1;
-    else
-        ++checkpointId;
-}
+// void YmrObject::advanceCheckpointId(CheckpointIdAdvanceMode mode)
+// {
+//     if (mode == CheckpointIdAdvanceMode::PingPong)
+//         checkpointId = checkpointId xor 1;
+//     else
+//         ++checkpointId;
+// }
 
 YmrSimulationObject::YmrSimulationObject(const YmrState *state, std::string name) :
     YmrObject(name),

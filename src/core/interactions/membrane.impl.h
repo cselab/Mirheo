@@ -132,12 +132,11 @@ public:
         precomputeQuantitiesPerEnergy(triangleParams, pv1, stream);
     }
     
-    void checkpoint(MPI_Comm comm, std::string path, CheckpointIdAdvanceMode checkpointMode) override
+    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override
     {
-        auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt");
+        auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
         TextIO::write(fname, stepGen);
-        createCheckpointSymlink(comm, path, "MembraneInt", "txt");
-        advanceCheckpointId(checkpointMode);
+        createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
     void restart(MPI_Comm comm, std::string path) override
