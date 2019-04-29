@@ -778,17 +778,6 @@ void Simulation::createTasks()
                            [this](cudaStream_t stream) { this->checkpoint(); },
                            globalCheckpointEvery);
 
-    for (auto prototype : pvsCheckPointPrototype)
-        // if (prototype.checkpointEvery > 0 && globalCheckpointEvery == 0) {
-        //     info("Will save checkpoint of particle vector '%s' every %d timesteps",
-        //          prototype.pv->name.c_str(), prototype.checkpointEvery);
-
-        //     scheduler->addTask( tasks->checkpoint, [prototype, this] (cudaStream_t stream) {
-        //             prototype.pv->checkpoint(cartComm, checkpointFolder, checkpointMode);
-        //     }, prototype.checkpointEvery );
-        // }
-
-
     for (auto& clVec : cellListMap)
         for (auto& cl : clVec.second)
         {

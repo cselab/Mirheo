@@ -61,14 +61,6 @@ void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::st
 }
 
 
-// void YmrObject::advanceCheckpointId(CheckpointIdAdvanceMode mode)
-// {
-//     if (mode == CheckpointIdAdvanceMode::PingPong)
-//         checkpointId = checkpointId xor 1;
-//     else
-//         ++checkpointId;
-// }
-
 YmrSimulationObject::YmrSimulationObject(const YmrState *state, std::string name) :
     YmrObject(name),
     state(state)

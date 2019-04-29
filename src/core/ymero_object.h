@@ -23,7 +23,6 @@ public:
 
     std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;
     std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const;
-    // void advanceCheckpointId(CheckpointIdAdvanceMode mode);
     void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const;
 
 public:
