@@ -8,7 +8,7 @@ ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 vtarget = (1.0, 0, 0)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=2)
@@ -27,11 +27,8 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vc = ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
-u.registerPlugins(vc)
-
-stats = ymr.Plugins.createStats('stats', "stats.txt", 1000)
-u.registerPlugins(stats)
+u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
+u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
 
 u.run(5001)
 
