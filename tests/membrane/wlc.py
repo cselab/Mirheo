@@ -57,10 +57,10 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./wlc.py > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
 # nTEST: membrane.shear.wlc.stressFree.biconcave
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./wlc.py --stressFree > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt

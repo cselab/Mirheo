@@ -65,23 +65,23 @@ u.run(2)
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./lim.py --stress_free --ka 1000.0 > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
 # nTEST: membrane.shear.lim.ka.nl.stressFree
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./lim.py --stress_free --ka 1000.0 --a3 2.0 --a4 4.0 > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
 # nTEST: membrane.shear.lim.mu.stressFree
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./lim.py --stress_free --mu 1000.0 > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
 # nTEST: membrane.shear.lim.mu.nl.stressFree
 # cd membrane
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./lim.py --stress_free --mu 1000.0 --b1 2.0 --b2 4.0 > /dev/null
-# ymr.post ./utils/post.forces.py --file h5/rbc-00000.h5 --out forces.out.txt
+# ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
