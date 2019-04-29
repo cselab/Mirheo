@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.15.0
 
 * **output change** 
   * restart time-stamps are now continuing from the previous simulation
