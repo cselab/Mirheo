@@ -7,5 +7,5 @@ bool isTimeEvery(const YmrState *state, int dumpEvery)
 
 YmrState::StepType getTimeStamp(const YmrState *state, int dumpEvery)
 {
-    return state->currentStep / dumpEvery - 1;
+    return state->currentStep / dumpEvery;
 }

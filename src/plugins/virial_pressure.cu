@@ -64,7 +64,7 @@ void VirialPressurePlugin::handshake()
 
 void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     PVview view(pv, pv->local());
     const Stress *stress = pv->local()->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();

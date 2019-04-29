@@ -48,7 +48,7 @@ void ParticleSenderPlugin::handshake()
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     particles.genericCopy(&pv->local()->coosvels, stream);
 
@@ -61,7 +61,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 
 void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
     

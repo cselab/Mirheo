@@ -108,7 +108,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     const int TAG = 22;
     const int NCOMPONENTS = 2 * sizeof(float3) / sizeof(float);
     
-    if (!isTimeEvery(state, sampleEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -194,7 +194,7 @@ void AverageRelative3D::extractLocalBlock()
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     for (int i = 0; i < channelsInfo.n; i++) {
         auto& data = accumulated_average[i];

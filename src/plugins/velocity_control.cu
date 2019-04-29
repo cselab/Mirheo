@@ -114,7 +114,7 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(state, sampleEvery) && state->currentStep != 0)
+    if (isTimeEvery(state, sampleEvery))
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -126,7 +126,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedTotVel.z += totVel[0].z;
     }
     
-    if (!isTimeEvery(state, tuneEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, tuneEvery)) return;
     
     nSamples.downloadFromDevice(stream);
     nSamples.clearDevice(stream);
@@ -146,7 +146,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery) || state->currentStep == 0) return;
+    if (!isTimeEvery(state, dumpEvery)) return;
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
