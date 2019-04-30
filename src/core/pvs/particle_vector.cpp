@@ -344,7 +344,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
                                      XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() ));
 
-    _extractPersistentExtraParticleData(channels);
+    // do not dump velocities, they are already there
+    _extractPersistentExtraParticleData(channels, {ChannelNames::velocities});
     
     XDMF::write(filename, &grid, channels, comm);
 
