@@ -360,7 +360,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
 TEST (ONE_RANK, small)
 {
     double l2, linf, tol;
-    int niters = 500;
+    int niters = 50;
     float3 length{8, 8, 8};
     tol = 0.001;
     
@@ -373,7 +373,7 @@ TEST (ONE_RANK, small)
 TEST (ONE_RANK, big)
 {
     double l2, linf, tol;
-    int niters = 5;
+    int niters = 3;
     float3 length{32, 32, 32};
     tol = 0.00002;
     
