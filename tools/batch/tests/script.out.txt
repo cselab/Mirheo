@@ -1,0 +1,3 @@
+#/bin/bash -l
+
+ymr.run --runargs "- n 1" echo 5
