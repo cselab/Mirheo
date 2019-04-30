@@ -42,7 +42,7 @@ void BounceFromMesh::setup(ObjectVector *ov)
     // old motions HAVE to be there and communicated and shifted
 
     if (rov == nullptr)
-        ov->requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+        ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
     else
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
@@ -52,7 +52,7 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
     if (rov)
         return {ChannelNames::motions, ChannelNames::oldMotions};
     else
-        return {ChannelNames::oldParts};
+        return {ChannelNames::oldPositions};
 }
 
 /**
@@ -146,10 +146,10 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
     {
         // make a fake view with vertices instead of particles
         ROVview view(rov, local ? rov->local() : rov->halo());
-        view.objSize = ov->mesh->getNvertices();
-        view.size = view.nObjects * view.objSize;
-        view.particles = vertexView.vertices;
-        view.forces = vertexView.vertexForces;
+        view.objSize   = ov->mesh->getNvertices();
+        view.size      = view.nObjects * view.objSize;
+        view.positions = vertexView.vertices;
+        view.forces    = vertexView.vertexForces;
 
         SAFE_KERNEL_LAUNCH(
                 RigidIntegrationKernels::collectRigidForces,

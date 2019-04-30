@@ -18,7 +18,7 @@ private:
 
     std::vector<char> sendBuffer;
     std::vector<float3> vertices;
-    PinnedBuffer<Particle>* srcVerts;
+    PinnedBuffer<float4>* srcVerts;
 
     ObjectVector* ov;
 

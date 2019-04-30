@@ -29,12 +29,12 @@ void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
     int nthreads = 128;
 
     // New particles now become old
-    std::swap(pv->local()->coosvels, *pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts));
+    std::swap(pv->local()->positions(), *pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions));
     PVviewWithOldParticles pvView(pv, pv->local());
 
     SAFE_KERNEL_LAUNCH(
             integrationKernel,
-            getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
+            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
             pvView, state->dt, translate );
 
     // PV may have changed, invalidate all

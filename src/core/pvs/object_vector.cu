@@ -77,8 +77,9 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     LocalParticleVector::computeGlobalIds(comm, stream);
 
     if (np == 0) return;
-    
-    int64_t rankStart = coosvels[0].getId();
+
+    Particle p0( positions()[0], velocities()[0]);
+    int64_t rankStart = p0.getId();
     
     if ((rankStart % objSize) != 0)
         die("Something went wrong when computing ids of '%s':"
@@ -94,14 +95,14 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     ids.uploadToDevice(stream);
 }
 
-PinnedBuffer<Particle>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
+PinnedBuffer<float4>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
 {
-    return &coosvels;
+    return &positions();
 }
 
-PinnedBuffer<Particle>* LocalObjectVector::getOldMeshVertices(cudaStream_t stream)
+PinnedBuffer<float4>* LocalObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
-    return extraPerParticle.getData<Particle>(ChannelNames::oldParts);
+    return extraPerParticle.getData<float4>(ChannelNames::oldPositions);
 }
 
 PinnedBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
@@ -155,19 +156,19 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             ovView );
 }
 
-void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map)
+void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map)
 {
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
-    int nObjs = parts.size() / objSize;
+    int nObjs = pos.size() / objSize;
     map.resize(nObjs);
     
     for (int i = 0, k = 0; i < nObjs; ++i) {
         auto com = make_float3(0);
 
         for (int j = 0; j < objSize; ++j, ++k)
-            com += parts[k].r;
+            com += make_float3(pos[k]);
 
         com /= objSize;
 
@@ -194,19 +195,23 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
-    std::vector<Particle> parts(local()->size());
-    std::copy(local()->coosvels.begin(), local()->coosvels.end(), parts.begin());
+    std::vector<float4> pos4(local()->size()), vel4(local()->size());
     std::vector<int> map;
     
-    _getRestartExchangeMap(comm, parts, map);
-    RestartHelpers::exchangeData(comm, map, parts, objSize);    
-    RestartHelpers::copyShiftCoordinates(state->domain, parts, local());
+    std::copy(local()->positions ().begin(), local()->positions ().end(), pos4.begin());
+    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
+    
+    _getRestartExchangeMap(comm, pos4, map);
+    RestartHelpers::exchangeData(comm, map, pos4, objSize);
+    RestartHelpers::exchangeData(comm, map, vel4, objSize);
+    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
 
-    local()->coosvels.uploadToDevice(defaultStream);
+    local()->positions ().uploadToDevice(defaultStream);
+    local()->velocities().uploadToDevice(defaultStream);
     
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Successfully read %d particles", local()->coosvels.size());
+    info("Successfully read %d particles", local()->size());
 
     return map;
 }

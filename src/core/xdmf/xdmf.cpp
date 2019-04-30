@@ -40,14 +40,16 @@ static long getLocalNumElements(const GridDims *gridDims)
     return n;
 }
 
-static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, const int64_t *ids, Particle *particles)
+static void combineIntoPosVel(int n, const float3 *pos, const float3 *vel, const int64_t *ids,
+                              float4 *outPos, float4 *outVel)
 {
     for (int i = 0; i < n; ++i) {
         Particle p;
         p.r = pos[i];
         p.u = vel[i];
         p.setId(ids[i]);
-        particles[i] = p;
+        outPos[i] = p.r2Float4();
+        outVel[i] = p.u2Float4();
     }    
 }
 
@@ -74,7 +76,8 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     const int64_t *ids = nullptr;
 
     pv->local()->resize_anew(n);
-    auto& coosvels = pv->local()->coosvels;
+    auto& pos4 = pv->local()->positions();
+    auto& vel4 = pv->local()->velocities();
 
     for (auto& ch : channels)
     {
@@ -90,9 +93,10 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
     pos = (const float3*) positions.data();
 
-    combineIntoParticles(n, pos, vel, ids, coosvels.data());
+    combineIntoPosVel(n, pos, vel, ids, pos4.data(), vel4.data());
 
-    coosvels.uploadToDevice(defaultStream);
+    pos4.uploadToDevice(defaultStream);
+    vel4.uploadToDevice(defaultStream);
 }
 
 static void addPersistentExtraDataPerObject(int n, const Channel& channel, ObjectVector *ov)

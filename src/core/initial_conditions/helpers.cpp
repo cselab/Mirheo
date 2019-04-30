@@ -65,9 +65,11 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
                         continue;
 
                     pv->local()->resize(mycount+1,  stream);
-                    auto cooPtr = pv->local()->coosvels.hostPtr();
+                    auto pos = pv->local()->positions ().hostPtr();
+                    auto vel = pv->local()->velocities().hostPtr();
 
-                    cooPtr[mycount] = part;
+                    pos[mycount] = part.r2Float4();
+                    vel[mycount] = part.u2Float4();
 
                     avgMomentum.x += part.u.x;
                     avgMomentum.y += part.u.y;
@@ -83,17 +85,16 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
     avgMomentum.y /= mycount;
     avgMomentum.z /= mycount;
 
-    auto cooPtr = pv->local()->coosvels.hostPtr();
-
-    for (auto& part : pv->local()->coosvels) {
-        part.u.x -= avgMomentum.x;
-        part.u.y -= avgMomentum.y;
-        part.u.z -= avgMomentum.z;
+    for (auto& vel : pv->local()->velocities()) {
+        vel.x -= avgMomentum.x;
+        vel.y -= avgMomentum.y;
+        vel.z -= avgMomentum.z;
     }
 
-    pv->local()->coosvels.uploadToDevice(stream);
+    pv->local()->positions() .uploadToDevice(stream);
+    pv->local()->velocities().uploadToDevice(stream);
     pv->local()->computeGlobalIds(comm, stream);
-    pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(pv->local()->coosvels, stream);
+    pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

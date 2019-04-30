@@ -8,7 +8,8 @@
 
 namespace RestartHelpers
 {
-void copyShiftCoordinates(const DomainInfo &domain, const std::vector<Particle> &parts, LocalParticleVector *local);
+void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
+                          LocalParticleVector *local);
 
 template<typename T>
 static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MPI_Request> &reqs, MPI_Comm comm)

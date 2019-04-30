@@ -11,10 +11,13 @@
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {
-    resize_anew(n);
     extraPerParticle.createData<float4>(ChannelNames::positions,  n);
     extraPerParticle.createData<float4>(ChannelNames::velocities, n);
     extraPerParticle.createData<Force>(ChannelNames::forces, n);
+
+    // positions are treated specially, do not need to be persistent
+    extraPerParticle.setPersistenceMode(ChannelNames::positions, ExtraDataManager::PersistenceMode::Persistent);
+    resize_anew(n);
 }
 
 LocalParticleVector::~LocalParticleVector() = default;
@@ -23,7 +26,6 @@ void LocalParticleVector::resize(int n, cudaStream_t stream)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     
-    coosvels.        resize(n, stream);
     extraPerParticle.resize(n, stream);
     
     np = n;
@@ -33,7 +35,6 @@ void LocalParticleVector::resize_anew(int n)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
     
-    coosvels.        resize_anew(n);
     extraPerParticle.resize_anew(n);
     
     np = n;
@@ -61,13 +62,23 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
         
     MPI_Check( MPI_Exscan(&np64, &rankStart, 1, MPI_INT64_T, MPI_SUM, comm) );
 
-    coosvels.downloadFromDevice(stream);
+    auto& pos = positions();
+    auto& vel = velocities();
+    
+    pos.downloadFromDevice(stream, ContainersSynch::Asynch);
+    vel.downloadFromDevice(stream);
 
     int64_t id = rankStart;
-    for (auto& p : coosvels)
-        p.setId(id++);        
+    for (int i = 0; i < pos.size(); ++i)
+    {
+        Particle p(pos[i], vel[i]);
+        p.setId(id++);
+        pos[i] = p.r2Float4();
+        vel[i] = p.u2Float4();
+    }
     
-    coosvels.uploadToDevice(stream);
+    pos.uploadToDevice(stream);
+    vel.uploadToDevice(stream);
 }
 
 
@@ -90,32 +101,39 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name,  float m
     _halo(std::move(halo))
 {
     // old positions and velocities don't need to exchanged in general
-    requireDataPerParticle<Particle> (ChannelNames::oldParts, ExtraDataManager::PersistenceMode::None);
+    requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::None);
 }
 
 ParticleVector::~ParticleVector() = default;
 
 std::vector<int64_t> ParticleVector::getIndices_vector()
 {
-    auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(defaultStream);
+    auto& pos = local()->positions();
+    auto& vel = local()->velocities();
+    pos.downloadFromDevice(defaultStream, ContainersSynch::Asynch);
+    vel.downloadFromDevice(defaultStream);
     
-    std::vector<int64_t> res(coosvels.size());
-    for (size_t i = 0; i < coosvels.size(); i++)
-        res[i] = coosvels[i].getId();
+    std::vector<int64_t> res(pos.size());
+
+    for (size_t i = 0; i < pos.size(); i++)
+    {
+        Particle p (pos[i], vel[i]);
+        res[i] = p.getId();
+    }
     
     return res;
 }
 
 PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
 {
-    auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(defaultStream);
+    auto& pos = local()->positions();
+    pos.downloadFromDevice(defaultStream);
     
-    PyTypes::VectorOfFloat3 res(coosvels.size());
-    for (int i = 0; i < coosvels.size(); i++)
+    PyTypes::VectorOfFloat3 res(pos.size());
+    for (int i = 0; i < pos.size(); i++)
     {
-        float3 r = state->domain.local2global(coosvels[i].r);
+        float3 r = make_float3(pos[i]);
+        r = state->domain.local2global(r);
         res[i] = { r.x, r.y, r.z };
     }
     
@@ -124,13 +142,13 @@ PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
 
 PyTypes::VectorOfFloat3 ParticleVector::getVelocities_vector()
 {
-    auto& coosvels = local()->coosvels;
-    coosvels.downloadFromDevice(defaultStream);
+    auto& vel = local()->velocities();
+    vel.downloadFromDevice(defaultStream);
     
-    PyTypes::VectorOfFloat3 res(coosvels.size());
-    for (int i = 0; i < coosvels.size(); i++)
+    PyTypes::VectorOfFloat3 res(vel.size());
+    for (int i = 0; i < vel.size(); i++)
     {
-        float3 u = coosvels[i].u;
+        float3 u = make_float3(vel[i]);
         res[i] = { u.x, u.y, u.z };
     }
     
@@ -192,7 +210,7 @@ void ParticleVector::createIndicesHost()
 
 void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
 {
-    auto& coosvels = local()->coosvels;
+    auto& pos = local()->positions();
     
     if (coordinates.size() != local()->size())
         throw std::invalid_argument("Wrong number of particles passed, "
@@ -201,16 +219,19 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
     
     for (int i = 0; i < coordinates.size(); i++)
     {
-        auto& r = coordinates[i];
-        coosvels[i].r = state->domain.global2local( float3{ r[0], r[1], r[2] } );
+        auto& r_ = coordinates[i];
+        float3 r = state->domain.global2local( { r_[0], r_[1], r_[2] } );
+        pos[i].x = r.x;
+        pos[i].y = r.y;
+        pos[i].z = r.z;
     }
     
-    coosvels.uploadToDevice(defaultStream);
+    pos.uploadToDevice(defaultStream);
 }
 
 void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
 {
-    auto& coosvels = local()->coosvels;
+    auto& vel = local()->velocities();
     
     if (velocities.size() != local()->size())
         throw std::invalid_argument("Wrong number of particles passed, "
@@ -220,10 +241,12 @@ void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
     for (int i = 0; i < velocities.size(); i++)
     {
         auto& u = velocities[i];
-        coosvels[i].u = { u[0], u[1], u[2] };
+        vel[i].x = u[0];
+        vel[i].y = u[1];
+        vel[i].z = u[2];
     }
     
-    coosvels.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);
 }
 
 void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
@@ -249,15 +272,18 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
                     std::vector<float> &positions, std::vector<float> &velocities, std::vector<int64_t> &ids)
 {
     int n = local->size();
-    positions.resize(3 * n);
+    positions .resize(3 * n);
     velocities.resize(3 * n);
     ids.resize(n);
 
+    auto pos4 = local->positions();
+    auto vel4 = local->velocities();
+    
     float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
     
     for (int i = 0; i < n; i++)
     {
-        auto p = local->coosvels[i];
+        auto p = Particle(pos4[i], vel4[i]);
         pos[i] = domain.local2global(p.r);
         vel[i] = p.u;
         ids[i] = p.getId();
@@ -302,7 +328,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     auto filename = createCheckpointNameWithId(path, "PV", "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
+    local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
+    local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     auto positions = std::make_shared<std::vector<float>>();
     std::vector<float> velocities;
@@ -326,16 +353,16 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
-void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map)
+void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &pos, std::vector<int>& map)
 {
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
-    map.resize(parts.size());
+    map.resize(pos.size());
     
-    for (int i = 0; i < parts.size(); ++i) {
-        const auto& p = parts[i];
-        int3 procId3 = make_int3(floorf(p.r / state->domain.localSize));
+    for (int i = 0; i < pos.size(); ++i) {
+        const auto& r = make_float3(pos[i]);
+        int3 procId3 = make_int3(floorf(r / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
             map[i] = -1;
@@ -360,19 +387,22 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     XDMF::readParticleData(filename, comm, this);
 
-    std::vector<Particle> parts(local()->size());
-    std::copy(local()->coosvels.begin(), local()->coosvels.end(), parts.begin());
+    std::vector<float4> pos4(local()->size()), vel4(local()->size());
+    std::copy(local()->positions() .begin(), local()->positions() .end(), pos4.begin());
+    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
 
     std::vector<int> map;
     
-    _getRestartExchangeMap(comm, parts, map);
-    RestartHelpers::exchangeData(comm, map, parts, 1);    
-    RestartHelpers::copyShiftCoordinates(state->domain, parts, local());
+    _getRestartExchangeMap(comm, pos4, map);
+    RestartHelpers::exchangeData(comm, map, pos4, 1);
+    RestartHelpers::exchangeData(comm, map, vel4, 1);
+    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
 
-    local()->coosvels.uploadToDevice(defaultStream);
+    local()->positions ().uploadToDevice(defaultStream);
+    local()->velocities().uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Successfully read %d particles", local()->coosvels.size());
+    info("Successfully read %d particles", local()->size());
 
     return map;
 }

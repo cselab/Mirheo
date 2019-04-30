@@ -40,8 +40,6 @@ public:
     
 public:
     ParticleVector *pv;
-
-    PinnedBuffer<Particle> coosvels;
     ExtraDataManager extraPerParticle;
 
 protected:
@@ -95,7 +93,7 @@ protected:
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
-    virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map);
+    virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &parts, std::vector<int>& map);
 
     void _extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
     void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});

@@ -38,7 +38,7 @@ protected:
     
     int dumpEvery;
 
-    HostBuffer<Particle> particles;
+    HostBuffer<float4> positions, velocities;
     std::vector<std::string> channelNames;
     std::vector<ChannelType> channelTypes;
     std::vector<HostBuffer<float>> channelData;
@@ -62,7 +62,7 @@ protected:
     static constexpr int zeroPadding = 5;
     std::string path;
 
-    std::vector<Particle> particles;
+    std::vector<float4> pos4, vel4;
     std::vector<float> velocities;
     std::vector<int64_t> ids;
     std::shared_ptr<std::vector<float>> positions;

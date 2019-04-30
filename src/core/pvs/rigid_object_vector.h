@@ -9,14 +9,14 @@ class LocalRigidObjectVector : public LocalObjectVector
 public:
     LocalRigidObjectVector(ParticleVector *pv, int objSize, int nObjects = 0);
 
-    PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream) override;
-    PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream) override;
+    PinnedBuffer<float4>* getMeshVertices(cudaStream_t stream) override;
+    PinnedBuffer<float4>* getOldMeshVertices(cudaStream_t stream) override;
     PinnedBuffer<Force>* getMeshForces(cudaStream_t stream) override;
 
 protected:
-    PinnedBuffer<Particle> meshVertices;
-    PinnedBuffer<Particle> meshOldVertices;
-    PinnedBuffer<Force>    meshForces;
+    PinnedBuffer<float4> meshVertices;
+    PinnedBuffer<float4> meshOldVertices;
+    PinnedBuffer<Force>  meshForces;
 };
 
 class RigidObjectVector : public ObjectVector

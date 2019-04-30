@@ -26,7 +26,7 @@ private:
     
     int substeps; /* number of substeps */
     DeviceBuffer<Force> slowForces;
-    DeviceBuffer<Particle> previousPositions;
+    DeviceBuffer<float4> previousPositions;
 
     void updateSubState();
 };

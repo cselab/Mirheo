@@ -13,7 +13,7 @@ FromArrayIC::FromArrayIC(const PyTypes::VectorOfFloat3 &pos, const PyTypes::Vect
 
 void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    std::vector<Particle> localParticles;
+    std::vector<float4> positions, velocities;
     auto domain = pv->state->domain;
 
     for (int i = 0; i < pos.size(); ++i) {
@@ -30,13 +30,16 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
             Particle p(Float3_int(r, 0).toFloat4(),
                        Float3_int(u, 0).toFloat4());
 
-            localParticles.push_back(p);
+            positions .push_back(p.r2Float4());
+            velocities.push_back(p.u2Float4());
         }
     }
 
-    pv->local()->resize_anew(localParticles.size());
-    std::copy(localParticles.begin(), localParticles.end(), pv->local()->coosvels.begin());
-    pv->local()->coosvels.uploadToDevice(stream);
+    pv->local()->resize_anew(positions.size());
+    std::copy(positions .begin(), positions .end(), pv->local()->positions() .begin());
+    std::copy(velocities.begin(), velocities.end(), pv->local()->velocities().begin());
+    pv->local()->positions() .uploadToDevice(stream);
+    pv->local()->velocities().uploadToDevice(stream);
     pv->local()->computeGlobalIds(comm, stream);
 }
 

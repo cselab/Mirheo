@@ -74,13 +74,13 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
     debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
 
     // New particles now become old
-    std::swap(pv->local()->coosvels, *pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts));
+    std::swap(pv->local()->positions(), *pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions));
     PVviewWithOldParticles pvView(pv, pv->local());
 
     // Integrate from old to new
     SAFE_KERNEL_LAUNCH(
             integrationKernel,
-            getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
+            getNblocks(pvView.size, nthreads), nthreads, 0, stream,
             pvView, dt, st2 );
 
     // PV may have changed, invalidate all

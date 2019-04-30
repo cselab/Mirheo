@@ -13,9 +13,9 @@ struct ChannelsInfo
 
     ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector* pv, cudaStream_t stream)
     {
-        for (int i=0; i<info.n; i++)
+        for (int i = 0; i < info.n; i++)
         {
-            if (info.names[i] == "velocity") info.dataPtrs[i] = (float*) ((float4*)pv->local()->coosvels.devPtr() + 1);
+            if (info.names[i] == "velocity") info.dataPtrs[i] = (float*) pv->local()->velocities().devPtr();
             else info.dataPtrs[i] = (float*)pv->local()->extraPerParticle.getGenericPtr(info.names[i]);
         }
 

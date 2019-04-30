@@ -50,6 +50,12 @@ __device__ inline bool doesRayIntersectTriangle(
 }
 
 
+__device__ inline float3 fetchPosition(const float4 *vertices, int i)
+{
+    auto v = vertices[i];
+    return {v.x, v.y, v.z};
+}
+
 /**
  * One warp works on one particle
  */
@@ -67,12 +73,9 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
     {
         int3 trid = mesh.triangles[i];
 
-        float3 v0 = Particle(vertices, objId*mesh.nvertices + trid.x).r - com;
-        float3 v1 = Particle(vertices, objId*mesh.nvertices + trid.y).r - com;
-        float3 v2 = Particle(vertices, objId*mesh.nvertices + trid.z).r - com;
-
-//        if (threadIdx.x == 0 && blockIdx.x == 0)
-//            printf("%d  %f %f %f\n", trid, v0.x, v0.y, v0.z);
+        float3 v0 = fetchPosition(vertices, objId*mesh.nvertices + trid.x) - com;
+        float3 v1 = fetchPosition(vertices, objId*mesh.nvertices + trid.y) - com;
+        float3 v2 = fetchPosition(vertices, objId*mesh.nvertices + trid.z) - com;
 
         for (int c = 0; c < nRays; c++)
             if (doesRayIntersectTriangle(r, rays[c], v0, v1, v2))
@@ -102,7 +105,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
  * @param cinfo is the cell-list sync'd with the target ParticleVector data
  */
 template<int WARPS_PER_OBJ>
-__global__ void insideMesh(const OVview ovView, const MeshView mesh, float4* vertices, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
+__global__ void insideMesh(const OVview ovView, const MeshView mesh, const float4 *vertices, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int wid = gid / warpSize;

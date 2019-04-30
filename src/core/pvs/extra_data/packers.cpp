@@ -8,9 +8,12 @@ ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, Pac
 
     bool needUpload = false;
 
-    registerChannel(manager, sizeof(Particle),
-                    reinterpret_cast<char*>(lpv->coosvels.devPtr()),
+    registerChannel(manager, sizeof(float4),
+                    reinterpret_cast<char*>(lpv->positions().devPtr()),
                     sizeof(float), needUpload, stream);
+    registerChannel(manager, sizeof(float4),
+                    reinterpret_cast<char*>(lpv->velocities().devPtr()),
+                    0, needUpload, stream);
 
 
     registerChannels(predicate, manager, pv->name, needUpload, stream);

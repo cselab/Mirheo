@@ -19,7 +19,7 @@ private:
 
     ParticleVector* pv;
     
-    HostBuffer<Particle> downloaded;
+    HostBuffer<float4> positions;
 
 public:
     XYZPlugin(const YmrState *state, std::string name, std::string pvNames, int dumpEvery);
@@ -42,7 +42,7 @@ private:
     bool activated = true;
     int timeStamp = 0;
 
-    std::vector<Particle> ps;
+    std::vector<float4> pos;
 
 public:
     XYZDumper(std::string name, std::string path);

@@ -18,8 +18,8 @@ public:
 
     void computeGlobalIds(MPI_Comm comm, cudaStream_t stream) override;
     
-    virtual PinnedBuffer<Particle>* getMeshVertices(cudaStream_t stream);
-    virtual PinnedBuffer<Particle>* getOldMeshVertices(cudaStream_t stream);
+    virtual PinnedBuffer<float4>* getMeshVertices(cudaStream_t stream);
+    virtual PinnedBuffer<float4>* getOldMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
 
@@ -72,7 +72,7 @@ protected:
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
 
-    void _getRestartExchangeMap(MPI_Comm comm, const std::vector<Particle> &parts, std::vector<int>& map) override;
+    void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map) override;
     std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
 
     void _extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});

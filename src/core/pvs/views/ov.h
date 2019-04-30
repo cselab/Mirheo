@@ -66,14 +66,14 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 
 struct OVviewWithOldPartilces : public OVview
 {
-    float4* old_particles = nullptr;
+    float4* oldPositions = nullptr;
 
-    OVviewWithOldPartilces(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+    OVviewWithOldPartilces(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
         OVview(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        old_particles = reinterpret_cast<float4*>( lov->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->devPtr() );
+        oldPositions = lov->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
     }
 };
 

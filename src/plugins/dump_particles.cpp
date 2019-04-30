@@ -50,7 +50,8 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    particles.genericCopy(&pv->local()->coosvels, stream);
+    positions .genericCopy(&pv->local()->positions() , stream);
+    velocities.genericCopy(&pv->local()->velocities(), stream);
 
     for (int i = 0; i < channelNames.size(); ++i) {
         auto name = channelNames[i];
@@ -65,14 +66,17 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin %s is sending now data", name.c_str());
     
-    for (auto& p : particles)
-        p.r = state->domain.local2global(p.r);
+    for (auto& p : positions)
+    {
+        auto r = state->domain.local2global(make_float3(p));
+        p.x = r.x; p.y = r.y; p.z = r.z;
+    }
 
     YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
-    debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), particles.size());
+    debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), positions.size());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, state->currentTime, particles, channelData);
+    SimpleSerializer::serialize(sendBuffer, timeStamp, state->currentTime, positions, velocities, channelData);
     send(sendBuffer);
 }
 
@@ -123,16 +127,16 @@ void ParticleDumperPlugin::handshake()
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name.c_str(), allNames.c_str(), path.c_str());
 }
 
-static void unpack_particles(const std::vector<Particle> &particles, std::vector<float> &pos,
-                             std::vector<float> &vel, std::vector<int64_t> &ids)
+static void unpack_particles(const std::vector<float4> &pos4, const std::vector<float4> &vel4,
+                             std::vector<float> &pos, std::vector<float> &vel, std::vector<int64_t> &ids)
 {
-    int n = particles.size();
+    int n = pos4.size();
     pos.resize(3 * n);
     vel.resize(3 * n);
     ids.resize(n);
 
     for (int i = 0; i < n; ++i) {
-        auto p = particles[i];
+        auto p = Particle(pos4[i], vel4[i]);
         pos[3*i + 0] = p.r.x;
         pos[3*i + 1] = p.r.y;
         pos[3*i + 2] = p.r.z;
@@ -148,9 +152,9 @@ static void unpack_particles(const std::vector<Particle> &particles, std::vector
 void ParticleDumperPlugin::_recvAndUnpack(YmrState::TimeType &time, YmrState::StepType& timeStamp)
 {
     int c = 0;
-    SimpleSerializer::deserialize(data, timeStamp, time, particles, channelData);
+    SimpleSerializer::deserialize(data, timeStamp, time, pos4, vel4, channelData);
         
-    unpack_particles(particles, *positions, velocities, ids);
+    unpack_particles(pos4, vel4, *positions, velocities, ids);
 
     channels[c++].data = velocities.data();
     channels[c++].data = ids.data();

@@ -40,7 +40,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     slowForces.copyFromDevice(pv->local()->forces(), stream);
     
     // save previous positions
-    previousPositions.copyFromDevice(pv->local()->coosvels, stream);
+    previousPositions.copyFromDevice(pv->local()->positions(), stream);
 
     // advance with internal vv integrator
 
@@ -63,7 +63,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     }
     
     // restore previous positions into old_particles channel
-    pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(previousPositions, stream);
+    pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(previousPositions, stream);
 
     // restore state of fastForces
     fastForces->state = savedStatePtr;

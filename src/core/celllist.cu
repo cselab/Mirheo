@@ -33,39 +33,27 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
         atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
-__global__ void reorderParticles(PVview view, CellListInfo cinfo, float4 *outParticles)
+__global__ void reorderPositions(PVview view, CellListInfo cinfo, float4 *outPositions)
 {
-    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int pid = gid / 2;
-    const int sh  = gid % 2;  // sh = 0 copies coordinates, sh = 1 -- velocity
+    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    int dstId;
+    int dstId = INVALID;
 
     // this is to allow more cache for atomics
     // loads / stores here need no cache
-    float4 val = readNoCache(view.particles+gid);
+    float4 pos = view.readPositionNoCache(pid);
 
-    int cid;
-    if (sh == 0)
-    {
-        cid = cinfo.getCellId(val);
+    int cid = cinfo.getCellId(pos);
 
-        //  XXX: relying here only on redistribution
-        if ( !outgoingParticle(val) )
-            dstId = cinfo.cellStarts[cid] + atomicAdd(cinfo.cellSizes + cid, 1);
-        else
-            dstId = INVALID;
-    }
-
-    int otherDst = warpShflUp(dstId, 1);
-    if (sh == 1)
-        dstId = otherDst;
+    //  XXX: relying here only on redistribution
+    if ( !outgoingParticle(pos) )
+        dstId = cinfo.cellStarts[cid] + atomicAdd(cinfo.cellSizes + cid, 1);
 
     if (dstId != INVALID)
-        writeNoCache(outParticles + 2*dstId+sh, val);
+        writeNoCache(outPositions + dstId, pos);
 
-    if (sh == 0) cinfo.order[pid] = dstId;
+    cinfo.order[pid] = dstId;
 }
 
 template <typename T>
@@ -233,9 +221,9 @@ void CellList::_reorderData(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        CellListKernels::reorderParticles,
+        CellListKernels::reorderPositions,
         getNblocks(2*view.size, nthreads), nthreads, 0, stream,
-        view, cellInfo(), (float4*)particlesDataContainer->coosvels.devPtr() );
+        view, cellInfo(), particlesDataContainer->positions().devPtr() );
 }
 
 void CellList::_reorderExtraDataEntry(const std::string& channelName,
@@ -430,7 +418,7 @@ void PrimaryCellList::build(cudaStream_t stream)
 
     particlesDataContainer->resize(newSize, stream);
 
-    std::swap(pv->local()->coosvels, particlesDataContainer->coosvels);
+    std::swap(pv->local()->positions(), particlesDataContainer->positions());
     _swapPersistentExtraData();
     
     pv->local()->resize(newSize, stream);

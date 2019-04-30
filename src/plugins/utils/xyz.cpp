@@ -1,6 +1,6 @@
 #include "xyz.h"
 
-void writeXYZ(MPI_Comm comm, std::string fname, const Particle *particles, int np)
+void writeXYZ(MPI_Comm comm, std::string fname, const float4 *positions, int np)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -25,12 +25,12 @@ void writeXYZ(MPI_Comm comm, std::string fname, const Particle *particles, int n
     }
 
     for(int i = 0; i < np; ++i) {
-        const Particle& p = particles[i];
+        const auto& r = positions[i];
 
         ss << rank << " "
-           << std::setw(10) << p.r.x << " "
-           << std::setw(10) << p.r.y << " "
-           << std::setw(10) << p.r.z << "\n";
+           << std::setw(10) << r.x << " "
+           << std::setw(10) << r.y << " "
+           << std::setw(10) << r.z << "\n";
     }
 
     std::string content = ss.str();

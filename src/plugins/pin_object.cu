@@ -66,8 +66,8 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* t
     
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
     {
-        view.forces[pid + objId*view.objSize] -= Float3_int(objTotForce, 0).toFloat4();
-        view.particles[2*(pid + objId*view.objSize) + 1] += Float3_int(objVelocity, 0).toFloat4();
+        view.forces    [pid + objId*view.objSize] -= Float3_int(objTotForce, 0).toFloat4();
+        view.velocities[pid + objId*view.objSize] += Float3_int(objVelocity, 0).toFloat4();
     }
 }
 

@@ -59,6 +59,9 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             int oldSize = ov->local()->size();
             ov->local()->resize(oldSize + ov->mesh->getNvertices(), stream);
 
+            auto& pos = ov->local()->positions();
+            auto& vel = ov->local()->velocities();
+            
             for (int i=0; i<ov->mesh->getNvertices(); i++)
             {
                 float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
@@ -66,16 +69,18 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
                 p.r = r;
                 p.u = make_float3(0);
 
-                ov->local()->coosvels[oldSize + i] = p;
+                pos[oldSize + i] = p.r2Float4();
+                vel[oldSize + i] = p.u2Float4();
             }
 
             nObjs++;
         }
     }
 
-    ov->local()->coosvels.uploadToDevice(stream);
+    ov->local()->positions().uploadToDevice(stream);
+    ov->local()->velocities().uploadToDevice(stream);
     ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(ov->local()->coosvels, stream);
+    ov->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }
