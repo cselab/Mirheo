@@ -1,3 +1,6 @@
 #! /bin/bash
 
+if [[ -z "$YMR_POST_MODULES_EXPORTED" ]]; then
 @MODULES@
+export YMR_POST_MODULES_EXPORTED=1
+fi
