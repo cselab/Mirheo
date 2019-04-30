@@ -5,7 +5,7 @@ DRYRUN= ymr.batch "$@" <<EOF
 ymr.run --runargs "- n 1" echo $a
 EOF
 
-# sTEST: batch.dryrun.0
+# TEST: batch.dryrun.0
 # cd tests
 # ./dryrun > script.out.txt
 

@@ -19,12 +19,21 @@ if test $# -ne 0 && test "$1" = --help; then usage; fi
 
 batch_options="#/bin/bash -l"
 
+function append_option {
+    arg=$1
+    batch_options="${batch_options}
+#${BATCH_PREFIX} ${arg}"
+
+    key=`expr "$arg" : '--\(.[a-zA-Z0-9]*\)='`
+    val=`expr "$arg" : '--.[a-zA-Z0-9]*=\(.[a-zA-Z0-9]*\)'`
+}
+
 while test $# -ne 0; do
     arg=$1
     
     if [[ "$arg" =~ ^--[a-zA-Z0-9]+=[a-zA-Z0-9]+ ]]; then
-	batch_options="${batch_options}
-#${BATCH_PREFIX} ${arg}"
+	append_option $arg
+	#echo $key $val
     else
 	usage
     fi    
