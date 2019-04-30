@@ -1,0 +1,42 @@
+#! /bin/bash
+
+BATCH_CMD=@BATCH_CMD@
+EXE_PREFIX=@EXE_PREFIX@
+
+usage() {
+    cat <<EOF
+batch submission wrapper for YMeRo
+automatically loads the required modules and launch a given batch script.
+
+usage: $EXE_PREFIX.batch <batch file>
+EOF
+    exit 1
+}
+
+if test $# -ne 0 && test "$1" = -h;     then usage; fi
+if test $# -ne 0 && test "$1" = --help; then usage; fi
+
+while test $# -ne 0; do
+    if test $# -eq 1; then
+	batch_script=$1
+    else
+	echo $1
+    fi
+    shift
+done
+
+. $EXE_PREFIX.load
+
+if test ! -z "${DRYRUN+x}"; then
+    batch_cmd=cat
+else
+    batch_cmd=$BATCH_CMD
+fi
+
+file_content=`cat $batch_script`
+
+batch_cmd <<EOF
+BLAH BLAH batch shit
+
+$file_content
+EOF
