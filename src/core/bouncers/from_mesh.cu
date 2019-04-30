@@ -70,19 +70,22 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
     ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
 
     int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
-    //int totalEdges = totalTriangles * 3 / 2;
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased
     int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
     coarseTable.nCollisions.clear(stream);
     coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
-    TriangleTable devCoarseTable { maxCoarseCollisions, coarseTable.nCollisions.devPtr(), coarseTable.collisionTable.devPtr() };
+    BounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
+                                                  coarseTable.nCollisions.devPtr(),
+                                                  coarseTable.collisionTable.devPtr() };
 
     int maxFineCollisions = fineCollisionsPerTri * totalTriangles;
     fineTable.nCollisions.clear(stream);
     fineTable.collisionTable.resize_anew(maxFineCollisions);
-    TriangleTable devFineTable { maxFineCollisions, fineTable.nCollisions.devPtr(), fineTable.collisionTable.devPtr() };
+    BounceKernels::TriangleTable devFineTable { maxFineCollisions,
+                                                fineTable.nCollisions.devPtr(),
+                                                fineTable.collisionTable.devPtr() };
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
     // and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
@@ -107,7 +110,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
-            findBouncesInMesh,
+            BounceKernels::findBouncesInMesh,
             getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(), cl->cellInfo(), devCoarseTable );
 
@@ -120,7 +123,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 2, filter the candidates
     SAFE_KERNEL_LAUNCH(
-            refineCollisions,
+            BounceKernels::refineCollisions,
             getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             coarseTable.nCollisions[0], devCoarseTable.indices,
@@ -136,7 +139,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 3, resolve the collisions
     SAFE_KERNEL_LAUNCH(
-            performBouncingTriangle,
+            BounceKernels::performBouncingTriangle,
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
@@ -153,7 +156,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
         SAFE_KERNEL_LAUNCH(
                 RigidIntegrationKernels::collectRigidForces,
-                getNblocks(view.size, 128), 128, 0, stream,
+                getNblocks(view.size, nthreads), nthreads, 0, stream,
                 view );
     }
 }
