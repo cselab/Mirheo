@@ -33,6 +33,8 @@ public:
     virtual void resize_anew(int n);    
 
     PinnedBuffer<Force>& forces();
+    PinnedBuffer<float4>& positions();
+    PinnedBuffer<float4>& velocities();
 
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
     

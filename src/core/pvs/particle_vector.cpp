@@ -12,6 +12,8 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {
     resize_anew(n);
+    extraPerParticle.createData<float4>(ChannelNames::positions,  n);
+    extraPerParticle.createData<float4>(ChannelNames::velocities, n);
     extraPerParticle.createData<Force>(ChannelNames::forces, n);
 }
 
@@ -35,6 +37,16 @@ void LocalParticleVector::resize_anew(int n)
     extraPerParticle.resize_anew(n);
     
     np = n;
+}
+
+PinnedBuffer<float4>& LocalParticleVector::positions()
+{
+    return * extraPerParticle.getData<float4>(ChannelNames::positions);
+}
+
+PinnedBuffer<float4>& LocalParticleVector::velocities()
+{
+    return * extraPerParticle.getData<float4>(ChannelNames::velocities);
 }
 
 PinnedBuffer<Force>& LocalParticleVector::forces()

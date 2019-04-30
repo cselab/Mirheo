@@ -10,6 +10,8 @@ namespace ChannelNames
 {
 
 // per particle fields
+static const std::string positions   = "__positions";
+static const std::string velocities  = "__velocities";
 static const std::string forces      = "__forces";
 static const std::string stresses    = "stresses";
 static const std::string densities   = "densities";
