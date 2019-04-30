@@ -37,7 +37,7 @@ sample_every = 5
 dump_every   = 100
 bin_size     = (1., 1., 1.)
 
-field = ymr.Plugins.createDumpAverage('field', [pv2], sample_every, dump_every, bin_size, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = ymr.Plugins.createDumpAverage('field', [pv2], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-')
 u.registerPlugins(field)
 
 u.run(1010)
