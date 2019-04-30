@@ -21,11 +21,10 @@ batch_options="#/bin/bash -l"
 
 function append_option {
     arg=$1
-    batch_options="${batch_options}
-#${BATCH_PREFIX} ${arg}"
-
     key=`expr "$arg" : '--\(.[a-zA-Z0-9]*\)='`
     val=`expr "$arg" : '--.[a-zA-Z0-9]*=\(.[a-zA-Z0-9]*\)'`
+    batch_options="${batch_options}
+#${BATCH_PREFIX} ${arg}"
 }
 
 while test $# -ne 0; do
