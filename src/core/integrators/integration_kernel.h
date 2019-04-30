@@ -1,10 +1,13 @@
 #pragma once
 
-#include <core/utils/cuda_common.h>
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
+namespace IntegrationKernels
+{
 
 /**
  * \code transform(Particle& p, const float3 f, const float invm, const float dt) \endcode
@@ -16,7 +19,7 @@
  * Will read velocities from velocities and write to velocities
  */
 template<typename Transform>
-__global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt, Transform transform)
+__global__ void integrate(PVviewWithOldParticles pvView, const float dt, Transform transform)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= pvView.size) return;
@@ -31,4 +34,22 @@ __global__ void integrationKernel(PVviewWithOldParticles pvView, const float dt,
 
     writeNoCache(pvView.positions  + pid, p.r2Float4());
     writeNoCache(pvView.velocities + pid, p.u2Float4());
+}
+
+} // namespace IntegrationKernels
+
+
+template<typename Transform>
+static void integrate(ParticleVector *pv, float dt, Transform transform, cudaStream_t stream)
+{
+    int nthreads = 128;
+
+    // New particles now become old
+    std::swap(pv->local()->positions(), *pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions));
+    PVviewWithOldParticles pvView(pv, pv->local());
+
+    SAFE_KERNEL_LAUNCH(
+        IntegrationKernels::integrate,
+        getNblocks(pvView.size, nthreads), nthreads, 0, stream,
+        pvView, dt, transform );
 }

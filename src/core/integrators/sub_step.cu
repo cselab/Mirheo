@@ -67,11 +67,8 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 
     // restore state of fastForces
     fastForces->state = savedStatePtr;
-    
-    // PV may have changed, invalidate all
-    pv->haloValid = false;
-    pv->redistValid = false;
-    pv->cellListStamp++;
+
+    invalidatePV(pv);
 }
 
 void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
