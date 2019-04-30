@@ -173,39 +173,6 @@ PyTypes::VectorOfFloat3 ParticleVector::getForces_vector()
 void ParticleVector::setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cudaStream_t stream)
 {
     error("Not implemented yet");
-/*    int c = 0;
-    
-    for (int i = 0; i < coosvels.size(); i++)
-    {
-        float3 r = { coosvels[i][0], coosvels[i][1], coosvels[i][2] };
-        float3 u = { coosvels[i][3], coosvels[i][4], coosvels[i][5] };
-        
-        if (domain.inSubDomain(r))
-        {
-            c++;
-            local()->resize(c, stream);
-            
-            local()->coosvels[c-1].r = domain.global2local( r );
-            local()->coosvels[c-1].u = u;
-        }
-    }
-    
-    createIndicesHost();
-    local()->coosvels.uploadToDevice(stream); */   
-}
-
-void ParticleVector::createIndicesHost()
-{
-    error("Not implemented yet");
-//     int sz = local()->size();
-//     for (int i=0; i<sz; i++)
-//         local()->coosvels[i].i1 = i;
-//     
-//     int totalCount=0; // TODO: int64!
-//     MPI_Check( MPI_Exscan(&sz, &totalCount, 1, MPI_INT, MPI_SUM, comm) );
-//     
-//     for (int i=0; i<sz; i++)
-//         local()->coosvels[i].i1 += totalCount;
 }
 
 void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)

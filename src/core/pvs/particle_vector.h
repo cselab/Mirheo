@@ -69,7 +69,6 @@ public:
     PyTypes::VectorOfFloat3 getForces_vector();
     
     void setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cudaStream_t stream=0);
-    void createIndicesHost();
 
     void setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates);
     void setVelocities_vector(PyTypes::VectorOfFloat3& velocities);
