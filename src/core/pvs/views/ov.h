@@ -60,7 +60,7 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
         vertexAreas          = lov->dataPerParticle.getData<float>(ChannelNames::areas)->devPtr();
         vertexMeanCurvatures = lov->dataPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
 
-        lenThetaTot = lov->dataPerParticle.getData<float>(ChannelNames::lenThetaTot)->devPtr();
+        lenThetaTot = lov->dataPerObject.getData<float>(ChannelNames::lenThetaTot)->devPtr();
     }
 };
 
