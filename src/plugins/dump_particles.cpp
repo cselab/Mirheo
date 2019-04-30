@@ -55,7 +55,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 
     for (int i = 0; i < channelNames.size(); ++i) {
         auto name = channelNames[i];
-        auto srcContainer = pv->local()->extraPerParticle.getGenericData(name);
+        auto srcContainer = pv->local()->dataPerParticle.getGenericData(name);
         channelData[i].genericCopy(srcContainer, stream); 
     }
 }

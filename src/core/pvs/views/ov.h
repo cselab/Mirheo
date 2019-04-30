@@ -27,8 +27,8 @@ struct OVview : public PVview
         invObjMass = 1.0 / objMass;
 
         // Required data per object
-        comAndExtents = lov->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
-        ids           = lov->extraPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();
+        comAndExtents = lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
+        ids           = lov->dataPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();
     }
 };
 
@@ -41,7 +41,7 @@ struct OVviewWithAreaVolume : public OVview
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        area_volumes = lov->extraPerObject.getData<float2>(ChannelNames::areaVolumes)->devPtr();
+        area_volumes = lov->dataPerObject.getData<float2>(ChannelNames::areaVolumes)->devPtr();
     }
 };
 
@@ -57,10 +57,10 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        vertexAreas          = lov->extraPerParticle.getData<float>(ChannelNames::areas)->devPtr();
-        vertexMeanCurvatures = lov->extraPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
+        vertexAreas          = lov->dataPerParticle.getData<float>(ChannelNames::areas)->devPtr();
+        vertexMeanCurvatures = lov->dataPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
 
-        lenThetaTot = lov->extraPerObject.getData<float>(ChannelNames::lenThetaTot)->devPtr();
+        lenThetaTot = lov->dataPerParticle.getData<float>(ChannelNames::lenThetaTot)->devPtr();
     }
 };
 
@@ -73,7 +73,7 @@ struct OVviewWithOldPartilces : public OVview
     {
         if (ov == nullptr || lov == nullptr) return;
 
-        oldPositions = lov->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
+        oldPositions = lov->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
     }
 };
 

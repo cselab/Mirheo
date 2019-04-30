@@ -16,7 +16,7 @@ struct ChannelsInfo
         for (int i = 0; i < info.n; i++)
         {
             if (info.names[i] == "velocity") info.dataPtrs[i] = (float*) pv->local()->velocities().devPtr();
-            else info.dataPtrs[i] = (float*)pv->local()->extraPerParticle.getGenericPtr(info.names[i]);
+            else info.dataPtrs[i] = (float*)pv->local()->dataPerParticle.getGenericPtr(info.names[i]);
         }
 
         info.dataPtrs.uploadToDevice(stream);

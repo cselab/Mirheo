@@ -62,7 +62,7 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
                          (channel.name,
                           ExtraDataManager::PersistenceMode::Persistent);
                      
-                     auto buffer = pv->local()->extraPerParticle.getData<Type>(channel.name);
+                     auto buffer = pv->local()->dataPerParticle.getData<Type>(channel.name);
                      buffer->resize_anew(n);
                      memcpy(buffer->data(), channel.data, n * sizeof(Type));
                      buffer->uploadToDevice(defaultStream);
@@ -108,7 +108,7 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
                      ov->requireDataPerObject<Type>
                          (channel.name, ExtraDataManager::PersistenceMode::Persistent);
                      
-                     auto buffer = ov->local()->extraPerObject.getData<Type>(channel.name);
+                     auto buffer = ov->local()->dataPerObject.getData<Type>(channel.name);
                      buffer->resize_anew(n);
                      memcpy(buffer->data(), channel.data, n * sizeof(Type));
                      buffer->uploadToDevice(defaultStream);
@@ -120,7 +120,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     int n = positions.size() / 3;
     const int64_t *ids_data = nullptr;
 
-    auto ids = ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto ids = ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
 
     ids->resize_anew(n);
 
@@ -167,8 +167,8 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     const RigidReal4 *quaternion;
     const RigidReal3 *vel, *omega, *force, *torque;
 
-    auto ids     = rov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = rov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ids     = rov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto motions = rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->resize_anew(n);
     motions->resize_anew(n);

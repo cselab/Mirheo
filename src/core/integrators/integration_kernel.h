@@ -45,7 +45,7 @@ static void integrate(ParticleVector *pv, float dt, Transform transform, cudaStr
     int nthreads = 128;
 
     // New particles now become old
-    std::swap(pv->local()->positions(), *pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions));
+    std::swap(pv->local()->positions(), *pv->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions));
     PVviewWithOldParticles pvView(pv, pv->local());
 
     SAFE_KERNEL_LAUNCH(

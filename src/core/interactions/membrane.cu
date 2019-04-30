@@ -117,7 +117,7 @@ void InteractionMembrane::precomputeQuantities(ParticleVector *pv1, cudaStream_t
     MembraneMeshView mesh(static_cast<MembraneMesh*>(ov->mesh.get()));
 
     ov->local()
-        ->extraPerObject.getData<float2>(ChannelNames::areaVolumes)
+        ->dataPerObject.getData<float2>(ChannelNames::areaVolumes)
         ->clearDevice(stream);
     
     const int nthreads = 128;

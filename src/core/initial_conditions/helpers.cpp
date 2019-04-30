@@ -94,7 +94,7 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
     pv->local()->positions() .uploadToDevice(stream);
     pv->local()->velocities().uploadToDevice(stream);
     pv->local()->computeGlobalIds(comm, stream);
-    pv->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
+    pv->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

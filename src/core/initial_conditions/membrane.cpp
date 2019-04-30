@@ -80,7 +80,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
     ov->local()->positions().uploadToDevice(stream);
     ov->local()->velocities().uploadToDevice(stream);
     ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
+    ov->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }

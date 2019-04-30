@@ -92,7 +92,7 @@ struct PVviewWithOldParticles : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            oldPositions = lpv->extraPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
+            oldPositions = lpv->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
     }
 
     __HD__ inline float3 readOldPosition(int id) const
@@ -110,7 +110,7 @@ struct PVviewWithDensities : public PVview
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
-            densities = lpv->extraPerParticle.getData<float>(ChannelNames::densities)->devPtr();
+            densities = lpv->dataPerParticle.getData<float>(ChannelNames::densities)->devPtr();
     }
 };
 
@@ -123,7 +123,7 @@ struct PVviewWithStresses : public BasicView
         BasicView(pv, lpv)
     {
         if (lpv != nullptr)
-            stresses = lpv->extraPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
+            stresses = lpv->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
     }
 };
 

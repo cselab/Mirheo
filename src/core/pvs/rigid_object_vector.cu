@@ -47,7 +47,7 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t st
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * nObjects;
     fakeView.positions = meshOldVertices.devPtr();
-    fakeView.motions   = extraPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
+    fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
     const int nthreads = 128;
     
@@ -136,7 +136,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     auto filename = createCheckpointNameWithId(path, "ROV", "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
@@ -182,8 +182,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    auto loc_ids     = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto loc_motions = local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto loc_ids     = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto loc_motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
     
     std::vector<int64_t>         ids(loc_ids->size());
     std::vector<RigidMotion> motions(loc_motions->size());

@@ -77,7 +77,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     // Relative stuff
     relativeOV = simulation->getOVbyNameOrDie(relativeOVname);
 
-    if ( !relativeOV->local()->extraPerObject.checkChannelExists(ChannelNames::motions) )
+    if ( !relativeOV->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
         die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name.c_str());
 
     int locsize = relativeOV->local()->nObjects;
@@ -118,8 +118,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     MPI_Request req;
     MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, MPI_FLOAT, MPI_ANY_SOURCE, TAG, comm, &req) );
 
-    auto ids     = relativeOV->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = relativeOV->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ids     = relativeOV->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto motions = relativeOV->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
     motions->downloadFromDevice(stream, ContainersSynch::Synch);

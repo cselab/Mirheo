@@ -26,7 +26,7 @@ public:
 public:
     int nObjects { 0 };
 
-    ExtraDataManager extraPerObject;
+    ExtraDataManager dataPerObject;
 
 protected:
     int objSize { 0 };
@@ -84,9 +84,9 @@ private:
     template<typename T>
     void requireDataPerObject(LocalObjectVector* lov, std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
-        lov->extraPerObject.createData<T> (name, lov->nObjects);
-        lov->extraPerObject.setPersistenceMode(name, persistence);
-        if (shiftDataSize != 0) lov->extraPerObject.requireShift(name, shiftDataSize);
+        lov->dataPerObject.createData<T> (name, lov->nObjects);
+        lov->dataPerObject.setPersistenceMode(name, persistence);
+        if (shiftDataSize != 0) lov->dataPerObject.requireShift(name, shiftDataSize);
 
     }
 };

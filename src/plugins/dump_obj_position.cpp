@@ -33,11 +33,11 @@ void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    ids.copy(  *ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
-    coms.copy( *ov->local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);
+    ids.copy(  *ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
+    coms.copy( *ov->local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);
 
-    if (ov->local()->extraPerObject.checkChannelExists(ChannelNames::oldMotions))
-        motions.copy( *ov->local()->extraPerObject.getData<RigidMotion> (ChannelNames::oldMotions), stream);
+    if (ov->local()->dataPerObject.checkChannelExists(ChannelNames::oldMotions))
+        motions.copy( *ov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions), stream);
     
     savedTime = state->currentTime;
     needToSend = true;

@@ -119,7 +119,7 @@ public:
     template <typename T>
     void requireExtraDataPerParticle(const std::string& name)
     {
-        particlesDataContainer->extraPerParticle.createData<T>(name);
+        particlesDataContainer->dataPerParticle.createData<T>(name);
     }
     
     LocalParticleVector* getLocalParticleVector();

@@ -60,16 +60,14 @@ void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
     nObjects = getNobjects(np);
     LocalParticleVector::resize(np, stream);
-
-    extraPerObject.resize(nObjects, stream);
+    dataPerObject.resize(nObjects, stream);
 }
 
 void LocalObjectVector::resize_anew(int np)
 {
     nObjects = getNobjects(np);
     LocalParticleVector::resize_anew(np);
-
-    extraPerObject.resize_anew(nObjects);
+    dataPerObject.resize_anew(nObjects);
 }
 
 void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
@@ -86,7 +84,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
             "got rankStart = '%ld' while objectSize is '%d'",
             pv->name.c_str(), rankStart, objSize);
 
-    auto& ids = *extraPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto& ids = *dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     int64_t id = (int64_t) (rankStart / objSize);
     
     for (auto& i : ids)
@@ -102,7 +100,7 @@ PinnedBuffer<float4>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
 
 PinnedBuffer<float4>* LocalObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
-    return extraPerParticle.getData<float4>(ChannelNames::oldPositions);
+    return dataPerParticle.getData<float4>(ChannelNames::oldPositions);
 }
 
 PinnedBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
@@ -231,7 +229,7 @@ static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_ex
 
 void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
 {
-    auto& extraData = local()->extraPerObject;
+    auto& extraData = local()->dataPerObject;
     _extractPersistentExtraData(extraData, channels, blackList);
 }
 
@@ -242,7 +240,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     auto filename = createCheckpointNameWithId(path, "OV", "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
 
-    auto coms_extents = local()->extraPerObject.getData<COMandExtent>(ChannelNames::comExtents);
+    auto coms_extents = local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents);
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
@@ -272,7 +270,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    auto loc_ids = local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto loc_ids = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     
     std::vector<int> ids(loc_ids->size());
     std::copy(loc_ids->begin(), loc_ids->end(), ids.begin());

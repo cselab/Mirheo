@@ -90,7 +90,7 @@ inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, Par
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
           ov->local()->nObjects, ov->name.c_str());
 
-    ov->local()->extraPerObject.getData<float>(ChannelNames::lenThetaTot)->clear(stream);
+    ov->local()->dataPerObject.getData<float>(ChannelNames::lenThetaTot)->clear(stream);
 
     OVviewWithJuelicherQuants view(ov, ov->local());
 

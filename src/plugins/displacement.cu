@@ -55,7 +55,7 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
     PVview view(pv, pv->local());
     const int nthreads = 128;    
 
-    auto& manager      = pv->local()->extraPerParticle;
+    auto& manager      = pv->local()->dataPerParticle;
     auto positions     = manager.getData<float4>(savedPositionChannelName);
     auto displacements = manager.getData<float3>(displacementChannelName);
 
@@ -71,7 +71,7 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(state, updateEvery)) return;
 
-    auto& manager = pv->local()->extraPerParticle;
+    auto& manager = pv->local()->dataPerParticle;
     
     auto positions     = manager.getData<float4>(savedPositionChannelName);
     auto displacements = manager.getData<float3>( displacementChannelName);

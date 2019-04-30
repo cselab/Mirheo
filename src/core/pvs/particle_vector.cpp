@@ -11,12 +11,12 @@
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {
-    extraPerParticle.createData<float4>(ChannelNames::positions,  n);
-    extraPerParticle.createData<float4>(ChannelNames::velocities, n);
-    extraPerParticle.createData<Force>(ChannelNames::forces, n);
+    dataPerParticle.createData<float4>(ChannelNames::positions,  n);
+    dataPerParticle.createData<float4>(ChannelNames::velocities, n);
+    dataPerParticle.createData<Force>(ChannelNames::forces, n);
 
     // positions are treated specially, do not need to be persistent
-    extraPerParticle.setPersistenceMode(ChannelNames::velocities, ExtraDataManager::PersistenceMode::Persistent);
+    dataPerParticle.setPersistenceMode(ChannelNames::velocities, ExtraDataManager::PersistenceMode::Persistent);
     resize_anew(n);
 }
 
@@ -25,34 +25,30 @@ LocalParticleVector::~LocalParticleVector() = default;
 void LocalParticleVector::resize(int n, cudaStream_t stream)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
-    
-    extraPerParticle.resize(n, stream);
-    
+    dataPerParticle.resize(n, stream);
     np = n;
 }
 
 void LocalParticleVector::resize_anew(int n)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
-    
-    extraPerParticle.resize_anew(n);
-    
+    dataPerParticle.resize_anew(n);
     np = n;
 }
 
 PinnedBuffer<float4>& LocalParticleVector::positions()
 {
-    return * extraPerParticle.getData<float4>(ChannelNames::positions);
+    return * dataPerParticle.getData<float4>(ChannelNames::positions);
 }
 
 PinnedBuffer<float4>& LocalParticleVector::velocities()
 {
-    return * extraPerParticle.getData<float4>(ChannelNames::velocities);
+    return * dataPerParticle.getData<float4>(ChannelNames::velocities);
 }
 
 PinnedBuffer<Force>& LocalParticleVector::forces()
 {
-    return * extraPerParticle.getData<Force>(ChannelNames::forces);
+    return * dataPerParticle.getData<Force>(ChannelNames::forces);
 }
 
 void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
@@ -284,8 +280,7 @@ void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, st
 
 void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
 {
-    auto& extraData = local()->extraPerParticle;
-    _extractPersistentExtraData(extraData, channels, blackList);
+    _extractPersistentExtraData(local()->dataPerParticle, channels, blackList);
 }
 
 void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId)

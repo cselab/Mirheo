@@ -161,8 +161,8 @@ bool CellList::_checkNeedBuild() const
 
 void CellList::_updateExtraDataChannels(cudaStream_t stream)
 {
-    auto& pvManager        = pv->local()->extraPerParticle;
-    auto& containerManager = particlesDataContainer->extraPerParticle;
+    auto& pvManager        = pv->local()->dataPerParticle;
+    auto& containerManager = particlesDataContainer->dataPerParticle;
     int np = pv->local()->size();
 
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
@@ -230,7 +230,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
                                       const ExtraDataManager::ChannelDescription *channelDesc,
                                       cudaStream_t stream)
 {
-    const auto& dstDesc = particlesDataContainer->extraPerParticle.getChannelDescOrDie(channelName);
+    const auto& dstDesc = particlesDataContainer->dataPerParticle.getChannelDescOrDie(channelName);
     int np = pv->local()->size();
 
     debug2("%s: reordering extra data '%s'", makeName().c_str(), channelName.c_str());
@@ -250,7 +250,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
 
 void CellList::_reorderPersistentData(cudaStream_t stream)
 {
-    auto srcExtraData = &pv->local()->extraPerParticle;
+    auto srcExtraData = &pv->local()->dataPerParticle;
     
     for (const auto& namedChannel : srcExtraData->getSortedChannels()) {
         const auto& name = namedChannel.first;
@@ -320,8 +320,8 @@ void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t
 {
     int n = pv->local()->size();    
 
-    const auto& pvManager   = pv->local()->extraPerParticle;
-    const auto& contManager = localPV->extraPerParticle;
+    const auto& pvManager   = pv->local()->dataPerParticle;
+    const auto& contManager = localPV->dataPerParticle;
 
     const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
     const auto& contDesc = contManager.getChannelDescOrDie(channelName);
@@ -349,7 +349,7 @@ void CellList::gatherChannels(const std::vector<std::string>& channelNames, cuda
 
         debug("%s : gathering channel '%s'", makeName().c_str(), channelName.c_str());
         
-        auto& desc = localPV->extraPerParticle.getChannelDescOrDie(channelName);
+        auto& desc = localPV->dataPerParticle.getChannelDescOrDie(channelName);
         _reorderExtraDataEntry(channelName, &desc, stream);
 
         // invalidate particle vector halo if any entry is active
@@ -361,7 +361,7 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
 {
     for (const auto& channelName : channelNames) {
         debug2("%s : clearing channel '%s'", makeName().c_str(), channelName.c_str());
-        localPV->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
+        localPV->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
 
@@ -446,8 +446,8 @@ static void swap(const std::string& channelName, ExtraDataManager& pvManager, Ex
 
 void PrimaryCellList::_swapPersistentExtraData()
 {
-    auto& pvManager        = pv->local()->extraPerParticle;
-    auto& containerManager = particlesDataContainer->extraPerParticle;
+    auto& pvManager        = pv->local()->dataPerParticle;
+    auto& containerManager = particlesDataContainer->dataPerParticle;
     
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;

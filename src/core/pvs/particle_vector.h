@@ -40,7 +40,7 @@ public:
     
 public:
     ParticleVector *pv;
-    ExtraDataManager extraPerParticle;
+    ExtraDataManager dataPerParticle;
 
 protected:
     int np;
@@ -105,9 +105,9 @@ private:
     template<typename T>
     void requireDataPerParticle(LocalParticleVector *lpv, std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
-        lpv->extraPerParticle.createData<T> (name, lpv->size());
-        lpv->extraPerParticle.setPersistenceMode(name, persistence);
-        if (shiftDataSize != 0) lpv->extraPerParticle.requireShift(name, shiftDataSize);
+        lpv->dataPerParticle.createData<T> (name, lpv->size());
+        lpv->dataPerParticle.setPersistenceMode(name, persistence);
+        if (shiftDataSize != 0) lpv->dataPerParticle.requireShift(name, shiftDataSize);
     }
 
 public:    
