@@ -33,7 +33,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
         atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
-__global__ void reorderPositions(PVview view, CellListInfo cinfo, float4 *outPositions)
+__global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, float4 *outPositions)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
@@ -209,7 +209,7 @@ void CellList::_computeCellStarts(cudaStream_t stream)
                                   cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
 }
 
-void CellList::_reorderData(cudaStream_t stream)
+void CellList::_reorderPositionsAndCreateMap(cudaStream_t stream)
 {
     debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
 
@@ -221,7 +221,7 @@ void CellList::_reorderData(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        CellListKernels::reorderPositions,
+        CellListKernels::reorderPositionsAndCreateMap,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, cellInfo(), particlesDataContainer->positions().devPtr() );
 }
@@ -264,7 +264,7 @@ void CellList::_build(cudaStream_t stream)
 {
     _computeCellSizes(stream);
     _computeCellStarts(stream);
-    _reorderData(stream);
+    _reorderPositionsAndCreateMap(stream);
     _reorderPersistentData(stream);
     
     changedStamp = pv->cellListStamp;
