@@ -12,25 +12,26 @@
 #include <gtest/gtest.h>
 
 #include <unistd.h>
+#include <memory>
 
 Logger logger;
 
 bool verbose = false;
 
-void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
-               int* __restrict__ order, int np, CellListInfo cinfo)
+void makeCells(const Particle *input, Particle *output, int *cellsStartSize, int *cellsSize,
+               int *order, int np, CellListInfo cinfo)
 {
-    for (int i=0; i<cinfo.totcells+1; i++)
+    for (int i = 0; i < cinfo.totcells+1; i++)
         cellsSize[i] = 0;
 
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
         cellsSize[cinfo.getCellId(input[i].r)]++;
 
     cellsStartSize[0] = 0;
-    for (int i=1; i<=cinfo.totcells; i++)
+    for (int i = 1; i <= cinfo.totcells; i++)
         cellsStartSize[i] = cellsSize[i-1] + cellsStartSize[i-1];
 
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
         const int cid = cinfo.getCellId(input[i].r);
         output[cellsStartSize[cid]] = input[i];
@@ -39,7 +40,7 @@ void makeCells(const Particle* __restrict__ input, Particle* __restrict__ output
         cellsStartSize[cid]++;
     }
 
-    for (int i=0; i<cinfo.totcells; i++)
+    for (int i = 0; i < cinfo.totcells; i++)
         cellsStartSize[i] -= cellsSize[i];
 }
 
@@ -56,8 +57,8 @@ void execute(MPI_Comm comm, float3 length)
 
     UniformIC ic1(4.5);
     UniformIC ic2(3.5);
-    ic1.exec(comm, &dpds1, 0);
-    ic2.exec(comm, &dpds2, 0);
+    ic1.exec(comm, &dpds1, defaultStream);
+    ic2.exec(comm, &dpds2, defaultStream);
 
     cudaDeviceSynchronize();
 
@@ -65,31 +66,30 @@ void execute(MPI_Comm comm, float3 length)
 
     fprintf(stderr, " First part %d, second %d, total %d\n", dpds1.local()->size(), dpds2.local()->size(), np);
 
-    CellList* cells1 = new PrimaryCellList(&dpds1, rc, length);
-    CellList* cells2 = new PrimaryCellList(&dpds2, rc, length);
-    cells1->build(0);
-    cells2->build(0);
+    std::unique_ptr<CellList> cells1 = std::make_unique<PrimaryCellList>(&dpds1, rc, length);
+    std::unique_ptr<CellList> cells2 = std::make_unique<PrimaryCellList>(&dpds2, rc, length);
+    cells1->build(defaultStream);
+    cells2->build(defaultStream);
 
     cudaDeviceSynchronize();
 
-    dpds1.local()->coosvels.downloadFromDevice(0);
-    dpds2.local()->coosvels.downloadFromDevice(0);
+    dpds1.local()->coosvels.downloadFromDevice(defaultStream);
+    dpds2.local()->coosvels.downloadFromDevice(defaultStream);
 
 
     // Set non-zero velocities
-    for (int i=0; i<dpds1.local()->size(); i++)
+    for (int i = 0; i < dpds1.local()->size(); i++)
         dpds1.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
 
-    for (int i=0; i<dpds2.local()->size(); i++)
+    for (int i = 0; i < dpds2.local()->size(); i++)
         dpds2.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
 
 
-    dpds1.local()->coosvels.uploadToDevice(0);
-    dpds2.local()->coosvels.uploadToDevice(0);
-
+    dpds1.local()->coosvels.uploadToDevice(defaultStream);
+    dpds2.local()->coosvels.uploadToDevice(defaultStream);
 
     std::vector<Particle> initial(np), rearranged(np);
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
         initial[i] = ( i < dpds1.local()->size() ) ?
             dpds1.local()->coosvels[i] :
@@ -104,30 +104,30 @@ void execute(MPI_Comm comm, float3 length)
     const float adpd = 50;
 
     PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-    Interaction *inter = new InteractionPair<PairwiseNorandomDPD>(&state, "dpd", rc, dpdInt);
+    std::unique_ptr<Interaction> inter = std::make_unique<InteractionPair<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdInt);
 
     PinnedBuffer<int> counter(1);
 
     for (int i = 0; i < 1; i++)
     {
-        dpds1.local()->forces().clear(0);
-        dpds2.local()->forces().clear(0);
+        dpds1.local()->forces().clear(defaultStream);
+        dpds2.local()->forces().clear(defaultStream);
 
-        inter->local(&dpds1, &dpds1, cells1, cells1, 0);
-        inter->local(&dpds2, &dpds2, cells2, cells2, 0);
-        inter->local(&dpds2, &dpds1, cells2, cells1, 0);
+        inter->local(&dpds1, &dpds1, cells1.get(), cells1.get(), defaultStream);
+        inter->local(&dpds2, &dpds2, cells2.get(), cells2.get(), defaultStream);
+        inter->local(&dpds2, &dpds1, cells2.get(), cells1.get(), defaultStream);
 
         cudaDeviceSynchronize();
     }
 
     HostBuffer<Force> frcs1, frcs2;
-    frcs1.copy(dpds1.local()->forces(), 0);
-    frcs2.copy(dpds2.local()->forces(), 0);
+    frcs1.copy(dpds1.local()->forces(), defaultStream);
+    frcs2.copy(dpds2.local()->forces(), defaultStream);
 
     cudaDeviceSynchronize();
 
     std::vector<Force> hacc(np);
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
         hacc[i] = ( i < dpds1.local()->size() ) ?
             frcs1[i] :
             frcs2[i - dpds1.local()->size()];
@@ -140,7 +140,7 @@ void execute(MPI_Comm comm, float3 length)
 
     fprintf(stderr, "finished, reducing acc\n");
     double3 a = {};
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
         a.x += hacc[i].f.x;
         a.y += hacc[i].f.y;
@@ -228,12 +228,12 @@ void execute(MPI_Comm comm, float3 length)
     double l2 = 0, linf = -1;
 
     std::vector<Force> finalFrcs(np);
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
         finalFrcs[order[i]] = refAcc[i];
     }
 
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
         double perr = -1;
 
@@ -269,7 +269,6 @@ void execute(MPI_Comm comm, float3 length)
 
     ASSERT_LE(linf, 0.002);
     ASSERT_LE(l2,   0.002);
-
 }
 
 TEST(Interactions, smallDomain)
