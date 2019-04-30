@@ -41,7 +41,8 @@ EOF
     exit 1
 }
 
-if test $# -ne 0 && test "$1" = -h; then usage; fi
+if test $# -ne 0 && test "$1" = -h;     then usage; fi
+if test $# -ne 0 && test "$1" = --help; then usage; fi
 
 if test $# -ne 0 && test "$1" = --runargs
 then
