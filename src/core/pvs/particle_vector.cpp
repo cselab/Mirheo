@@ -16,7 +16,7 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     extraPerParticle.createData<Force>(ChannelNames::forces, n);
 
     // positions are treated specially, do not need to be persistent
-    extraPerParticle.setPersistenceMode(ChannelNames::positions, ExtraDataManager::PersistenceMode::Persistent);
+    extraPerParticle.setPersistenceMode(ChannelNames::velocities, ExtraDataManager::PersistenceMode::Persistent);
     resize_anew(n);
 }
 

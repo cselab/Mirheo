@@ -117,9 +117,9 @@ CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
 
-    cellSizes. clear(0);
-    cellStarts.clear(0);
-    CUDA_Check( cudaStreamSynchronize(0) );
+    cellSizes. clear(defaultStream);
+    cellStarts.clear(defaultStream);
+    CUDA_Check( cudaStreamSynchronize(defaultStream) );
 
     debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
@@ -133,9 +133,9 @@ CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) 
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
 
-    cellSizes. clear(0);
-    cellStarts.clear(0);
-    CUDA_Check( cudaStreamSynchronize(0) );
+    cellSizes. clear(defaultStream);
+    cellStarts.clear(defaultStream);
+    CUDA_Check( cudaStreamSynchronize(defaultStream) );
 
     debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
 }
@@ -222,7 +222,7 @@ void CellList::_reorderData(cudaStream_t stream)
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
         CellListKernels::reorderPositions,
-        getNblocks(2*view.size, nthreads), nthreads, 0, stream,
+        getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, cellInfo(), particlesDataContainer->positions().devPtr() );
 }
 
@@ -233,6 +233,8 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
     const auto& dstDesc = particlesDataContainer->extraPerParticle.getChannelDescOrDie(channelName);
     int np = pv->local()->size();
 
+    debug2("%s: reordering extra data '%s'", makeName().c_str(), channelName.c_str());
+    
     mpark::visit([&](auto srcPinnedBuff) {
                      auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varDataPtr);
 
