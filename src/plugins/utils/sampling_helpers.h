@@ -8,18 +8,11 @@
 template <typename T>
 inline bool checkType(const Average3D::ChannelType& channelType) { return false;}
 
-template <>
-inline bool checkType<float>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
-
-template <>
-inline bool checkType<float3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float3;}
-
-template <>
-inline bool checkType<float4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float4;}
-
-template <>
-inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
-
+template <> inline bool checkType<float> (const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
+template <> inline bool checkType<float3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float3;}
+template <> inline bool checkType<float4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float4;}
+template <> inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
+template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<float4> (channelType);;}
 
 static float* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
 {
