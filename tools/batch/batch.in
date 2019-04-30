@@ -21,12 +21,13 @@ batch_options="#/bin/bash -l"
 
 while test $# -ne 0; do
     arg=$1
-    if test $# -eq 1; then
-	batch_script=$arg
-    else
+    
+    if [[ "$arg" =~ ^--[a-zA-Z0-9]+=[a-zA-Z0-9]+ ]]; then
 	batch_options="${batch_options}
-# ${BATCH_PREFIX} ${arg}"
-    fi
+#${BATCH_PREFIX} ${arg}"
+    else
+	usage
+    fi    
     shift
 done
 
@@ -38,7 +39,7 @@ else
     batch_cmd=$BATCH_CMD
 fi
 
-file_content=`cat $batch_script`
+file_content=`cat`
 
 exec $batch_cmd <<EOF
 $batch_options
