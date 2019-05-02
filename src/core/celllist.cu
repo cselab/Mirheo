@@ -304,7 +304,7 @@ static auto accumulateIfHasAddOperator(PinnedBuffer<T> *src,
                                        PinnedBuffer<T> *dst,
                                        int n, CellListInfo cinfo,
                                        cudaStream_t stream)
-    -> decltype(T() + T())
+    -> decltype(std::declval<T>() + std::declval<T>())
 {
     const int nthreads = 128;
     
