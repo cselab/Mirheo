@@ -300,6 +300,7 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
     die("Cannot accumulate entries: operator+ not supported for this type");
 }
 
+// use SFINAE to choose between additionable types 
 template <typename T, std::void_t<decltype(std::declval<T>() +
                                            std::declval<T>())>>
 static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
