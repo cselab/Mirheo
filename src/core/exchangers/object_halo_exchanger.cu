@@ -137,7 +137,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
     origins.push_back(std::move(origin));
 
-    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+    packPredicates.push_back([extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
         return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
     

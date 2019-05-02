@@ -131,10 +131,10 @@ ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, 
 {
     // center of mass and extents are not to be sent around
     // it's cheaper to compute them on site
-    requireDataPerObject<COMandExtent>(ChannelNames::comExtents, ExtraDataManager::PersistenceMode::None);
+    requireDataPerObject<COMandExtent>(ChannelNames::comExtents, DataManager::PersistenceMode::None);
 
     // object ids must always follow objects
-    requireDataPerObject<int64_t>(ChannelNames::globalIds, ExtraDataManager::PersistenceMode::Persistent);
+    requireDataPerObject<int64_t>(ChannelNames::globalIds, DataManager::PersistenceMode::Persistent);
 }
 
 ObjectVector::~ObjectVector() = default;

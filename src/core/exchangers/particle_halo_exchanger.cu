@@ -41,7 +41,7 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 
     // Use shared memory to decrease number of global atomics
     // We're sending to max 7 halos (corner)
-    short validHalos[7];
+    char validHalos[7];
     int haloOffset[7] = {};
 
     int current = 0;
@@ -127,7 +127,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
 
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+    packPredicates.push_back([extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
         return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
 

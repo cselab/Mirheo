@@ -16,7 +16,7 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     dataPerParticle.createData<Force>(ChannelNames::forces, n);
 
     // positions are treated specially, do not need to be persistent
-    dataPerParticle.setPersistenceMode(ChannelNames::velocities, ExtraDataManager::PersistenceMode::Persistent);
+    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Persistent);
     resize_anew(n);
 }
 
@@ -97,7 +97,7 @@ ParticleVector::ParticleVector(const YmrState *state, std::string name,  float m
     _halo(std::move(halo))
 {
     // old positions and velocities don't need to exchanged in general
-    requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::None);
+    requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None);
 }
 
 ParticleVector::~ParticleVector() = default;
@@ -253,7 +253,7 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
     }
 }
 
-void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels,
+void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::vector<XDMF::Channel>& channels,
                                                  const std::set<std::string>& blackList)
 {
     for (auto& namedChannelDesc : extraData.getSortedChannels())
@@ -261,7 +261,7 @@ void ParticleVector::_extractPersistentExtraData(ExtraDataManager& extraData, st
         auto channelName = namedChannelDesc.first;
         auto channelDesc = namedChannelDesc.second;        
         
-        if (channelDesc->persistence != ExtraDataManager::PersistenceMode::Persistent)
+        if (channelDesc->persistence != DataManager::PersistenceMode::Persistent)
             continue;
 
         if (blackList.find(channelName) != blackList.end())

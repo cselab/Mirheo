@@ -145,7 +145,7 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     if (needExchForces)
         channelNames.erase(forcesIt); // forces are not extra data
     
-    packPredicates.push_back([channelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+    packPredicates.push_back([channelNames](const DataManager::NamedChannelDesc& namedDesc) {
         return std::find(channelNames.begin(), channelNames.end(), namedDesc.first) != channelNames.end();
     });
 

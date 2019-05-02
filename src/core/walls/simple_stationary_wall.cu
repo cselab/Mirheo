@@ -348,8 +348,8 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     }
     else
     {
-        PackPredicate packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
+        PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
+            return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
         };
         
         // Prepare temp storage for extra object data

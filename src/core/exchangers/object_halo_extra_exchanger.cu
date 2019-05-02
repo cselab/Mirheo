@@ -62,7 +62,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+    packPredicates.push_back([extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
         return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
 }

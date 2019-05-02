@@ -5,7 +5,7 @@
 #include <cassert>
 #include <functional>
 
-using PackPredicate = std::function< bool (const ExtraDataManager::NamedChannelDesc&) >;
+using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&) >;
 
 /**
  * Class that packs nChannels of arbitrary data into a chunk of contiguous memory
@@ -212,8 +212,8 @@ private:
     
 protected:
 
-    void registerChannel (ExtraDataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
+    void registerChannel (DataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
     void registerChannels(PackPredicate predicate,
-                          ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
-    void setAndUploadData(ExtraDataManager& manager, bool needUpload, cudaStream_t stream);
+                          DataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
+    void setAndUploadData(DataManager& manager, bool needUpload, cudaStream_t stream);
 };

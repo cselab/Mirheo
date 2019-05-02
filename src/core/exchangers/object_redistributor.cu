@@ -103,8 +103,8 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
+    packPredicates.push_back([](const DataManager::NamedChannelDesc& namedDesc) {
+        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
     });
 
     info("The Object vector '%s' was attached", ov->name.c_str());

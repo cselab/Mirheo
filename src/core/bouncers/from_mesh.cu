@@ -42,9 +42,9 @@ void BounceFromMesh::setup(ObjectVector *ov)
     // old motions HAVE to be there and communicated and shifted
 
     if (rov == nullptr)
-        ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+        ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Persistent, sizeof(float));
     else
-        ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, ExtraDataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+        ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const

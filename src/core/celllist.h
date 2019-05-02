@@ -148,7 +148,7 @@ protected:
     void _accumulateExtraData(const std::string& channelName, cudaStream_t stream);
     
     void _reorderExtraDataEntry(const std::string& channelName,
-                                const ExtraDataManager::ChannelDescription *channelDesc,
+                                const DataManager::ChannelDescription *channelDesc,
                                 cudaStream_t stream);
 
     virtual std::string makeName() const;
