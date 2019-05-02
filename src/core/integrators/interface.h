@@ -48,4 +48,7 @@ public:
      * Called from Simulation right after setup
      */
     virtual void setPrerequisites(ParticleVector *pv);
+
+protected:
+    void invalidatePV(ParticleVector *pv);
 };

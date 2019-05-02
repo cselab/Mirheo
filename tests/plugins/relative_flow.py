@@ -40,7 +40,7 @@ binSize     = (1., 1., 1.)
 
 u.registerPlugins(ymr.Plugins.createDumpAverageRelative(
     'field', [pv], pvEllipsoid, 0,
-    sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-'))
+    sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(5010)
 

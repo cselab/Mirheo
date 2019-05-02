@@ -1,16 +1,12 @@
 #include "vv.h"
-
-#include <core/utils/kernel_launch.h>
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-
 #include "integration_kernel.h"
 
 #include "forcing_terms/none.h"
 #include "forcing_terms/const_dp.h"
 #include "forcing_terms/periodic_poiseuille.h"
 
+#include <core/logger.h>
+#include <core/pvs/particle_vector.h>
 
 template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::IntegratorVV(const YmrState *state, std::string name, ForcingTerm forcingTerm) :
@@ -70,23 +66,8 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
         p.r += p.u*dt;
     };
 
-    int nthreads = 128;
-    debug2("Integrating (stage 2) %d %s particles, timestep is %f", pv->local()->size(), pv->name.c_str(), dt);
-
-    // New particles now become old
-    std::swap(pv->local()->coosvels, *pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts));
-    PVviewWithOldParticles pvView(pv, pv->local());
-
-    // Integrate from old to new
-    SAFE_KERNEL_LAUNCH(
-            integrationKernel,
-            getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
-            pvView, dt, st2 );
-
-    // PV may have changed, invalidate all
-    pv->haloValid = false;
-    pv->redistValid = false;
-    pv->cellListStamp++;
+    integrate(pv, dt, st2, stream);
+    invalidatePV(pv);
 }
 
 template class IntegratorVV<Forcing_None>;

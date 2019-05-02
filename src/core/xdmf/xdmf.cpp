@@ -40,14 +40,16 @@ static long getLocalNumElements(const GridDims *gridDims)
     return n;
 }
 
-static void combineIntoParticles(int n, const float3 *pos, const float3 *vel, const int64_t *ids, Particle *particles)
+static void combineIntoPosVel(int n, const float3 *pos, const float3 *vel, const int64_t *ids,
+                              float4 *outPos, float4 *outVel)
 {
     for (int i = 0; i < n; ++i) {
         Particle p;
         p.r = pos[i];
         p.u = vel[i];
         p.setId(ids[i]);
-        particles[i] = p;
+        outPos[i] = p.r2Float4();
+        outVel[i] = p.u2Float4();
     }    
 }
 
@@ -60,7 +62,7 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
                          (channel.name,
                           ExtraDataManager::PersistenceMode::Persistent);
                      
-                     auto buffer = pv->local()->extraPerParticle.getData<Type>(channel.name);
+                     auto buffer = pv->local()->dataPerParticle.getData<Type>(channel.name);
                      buffer->resize_anew(n);
                      memcpy(buffer->data(), channel.data, n * sizeof(Type));
                      buffer->uploadToDevice(defaultStream);
@@ -74,7 +76,8 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     const int64_t *ids = nullptr;
 
     pv->local()->resize_anew(n);
-    auto& coosvels = pv->local()->coosvels;
+    auto& pos4 = pv->local()->positions();
+    auto& vel4 = pv->local()->velocities();
 
     for (auto& ch : channels)
     {
@@ -90,9 +93,10 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
     pos = (const float3*) positions.data();
 
-    combineIntoParticles(n, pos, vel, ids, coosvels.data());
+    combineIntoPosVel(n, pos, vel, ids, pos4.data(), vel4.data());
 
-    coosvels.uploadToDevice(defaultStream);
+    pos4.uploadToDevice(defaultStream);
+    vel4.uploadToDevice(defaultStream);
 }
 
 static void addPersistentExtraDataPerObject(int n, const Channel& channel, ObjectVector *ov)
@@ -104,7 +108,7 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
                      ov->requireDataPerObject<Type>
                          (channel.name, ExtraDataManager::PersistenceMode::Persistent);
                      
-                     auto buffer = ov->local()->extraPerObject.getData<Type>(channel.name);
+                     auto buffer = ov->local()->dataPerObject.getData<Type>(channel.name);
                      buffer->resize_anew(n);
                      memcpy(buffer->data(), channel.data, n * sizeof(Type));
                      buffer->uploadToDevice(defaultStream);
@@ -116,7 +120,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     int n = positions.size() / 3;
     const int64_t *ids_data = nullptr;
 
-    auto ids = ov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto ids = ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
 
     ids->resize_anew(n);
 
@@ -163,8 +167,8 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     const RigidReal4 *quaternion;
     const RigidReal3 *vel, *omega, *force, *torque;
 
-    auto ids     = rov->local()->extraPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = rov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ids     = rov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto motions = rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->resize_anew(n);
     motions->resize_anew(n);

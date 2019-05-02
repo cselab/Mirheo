@@ -10,10 +10,12 @@ namespace ChannelNames
 {
 
 // per particle fields
-static const std::string forces      = "__forces";
-static const std::string stresses    = "stresses";
-static const std::string densities   = "densities";
-static const std::string oldParts    = "old_particles";
+static const std::string positions     = "__positions";
+static const std::string velocities    = "__velocities";
+static const std::string forces        = "__forces";
+static const std::string stresses      = "stresses";
+static const std::string densities     = "densities";
+static const std::string oldPositions  = "old_positions";
 
 // per object fields
 static const std::string motions     = "motions";

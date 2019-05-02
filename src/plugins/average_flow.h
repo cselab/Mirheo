@@ -14,7 +14,7 @@ class Average3D : public SimulationPlugin
 public:
     enum class ChannelType : int
     {
-        Scalar, Vector_float3, Vector_float4, Vector_2xfloat4, Tensor6
+        Scalar, Vector_float3, Vector_float4, Tensor6
     };
 
     struct HostChannelsInfo

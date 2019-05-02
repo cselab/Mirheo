@@ -26,7 +26,8 @@ __global__ void merge_sdfs(int n, const float *sdfs, float *sdfs_merged)
 }
 
 template<bool QUERY>
-__global__ void collectFrozen(PVview view, const float *sdfs, float minVal, float maxVal, float4* frozen, int* nFrozen)
+__global__ void collectFrozen(PVview view, const float *sdfs, float minVal, float maxVal,
+                              float4 *frozenPos, float4 *frozenVel, int *nFrozen)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
@@ -41,7 +42,7 @@ __global__ void collectFrozen(PVview view, const float *sdfs, float minVal, floa
         const int ind = atomicAggInc(nFrozen);
 
         if (!QUERY)
-            p.write2Float4(frozen, ind);
+            p.write2Float4(frozenPos, frozenVel, ind);
     }
 }
 
@@ -91,11 +92,11 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::collectFrozen<true>,
         nblocks, nthreads, 0, defaultStream,
-        view, sdfs, minVal, maxVal, nullptr, nFrozen.devPtr());
+        view, sdfs, minVal, maxVal, nullptr, nullptr, nFrozen.devPtr());
 
     nFrozen.downloadFromDevice(defaultStream);
 
-    PinnedBuffer<Particle> frozen(nFrozen[0]);
+    PinnedBuffer<float4> frozenPos(nFrozen[0]), frozenVel(nFrozen[0]);
     info("Freezing %d particles", nFrozen[0]);
 
     pv->local()->resize(nFrozen[0], defaultStream);
@@ -105,10 +106,11 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::collectFrozen<false>,
         nblocks, nthreads, 0, defaultStream,
-        view, sdfs, minVal, maxVal, (float4*)frozen.devPtr(), nFrozen.devPtr());
+        view, sdfs, minVal, maxVal, frozenPos.devPtr(), frozenVel.devPtr(), nFrozen.devPtr());
 
     CUDA_Check( cudaDeviceSynchronize() );
-    std::swap(frozen, pv->local()->coosvels);
+    std::swap(frozenPos, pv->local()->positions());
+    std::swap(frozenVel, pv->local()->velocities());
 }
 
 void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)

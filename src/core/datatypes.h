@@ -140,40 +140,14 @@ struct __align__(16) Particle
     }
 
     /**
-     * Equivalent to the following constructor:
-     * @code
-     * Particle(addr[2*pid], addr[2*pid+1]);
-     * @endcode
-     *
-     * @param addr must have at least \e 2*(pid+1) entries
-     * @param pid  particle id
-     */
-    __HD__ inline Particle(const float4 *addr, int pid)
-    {
-        read(addr, pid);
-    }
-
-    /**
-     * Read coordinate and velocity from the given \e addr
-     *
-     * @param addr must have at least \e 2*(pid+1) entries
-     * @param pid  particle id
-     */
-    __HD__ inline void read(const float4 *addr, int pid)
-    {
-        readCoordinate(addr, pid);
-        readVelocity  (addr, pid);
-    }
-
-    /**
      * Only read coordinates from the given \e addr
      *
-     * @param addr must have at least \e 2*pid entries
+     * @param addr must have at least \e pid entries
      * @param pid  particle id
      */
     __HD__ inline void readCoordinate(const float4 *addr, const int pid)
     {
-        const Float3_int tmp = addr[2*pid];
+        const Float3_int tmp = addr[pid];
         r  = tmp.v;
         i1 = tmp.i;
     }
@@ -181,12 +155,12 @@ struct __align__(16) Particle
     /**
      * Only read velocities from the given \e addr
      *
-     * @param addr must have at least \e 2*pid entries
+     * @param addr must have at least \e pid entries
      * @param pid  particle id
      */
     __HD__ inline void readVelocity(const float4 *addr, const int pid)
     {
-        const Float3_int tmp = addr[2*pid+1];
+        const Float3_int tmp = addr[pid];
         u  = tmp.v;
         i2 = tmp.i;
     }
@@ -227,10 +201,10 @@ struct __align__(16) Particle
      * @param dst must have at least \e 2*pid entries
      * @param pid particle id
      */
-    __HD__ inline void write2Float4(float4* dst, int pid) const
+    __HD__ inline void write2Float4(float4* pos, float4 *vel, int pid) const
     {
-        dst[2*pid]   = r2Float4();
-        dst[2*pid+1] = u2Float4();
+        pos[pid] = r2Float4();
+        vel[pid] = u2Float4();
     }
 
     __HD__ inline void mark()

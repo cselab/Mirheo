@@ -29,7 +29,7 @@
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void collectRemaining(PVview view, float4 *remaining, int *nRemaining, InsideWallChecker checker)
+__global__ void collectRemaining(PVview view, float4 *remainingPos, float4 *remainingVel, int *nRemaining, InsideWallChecker checker)
 {
     const float tolerance = 1e-6f;
 
@@ -43,7 +43,7 @@ __global__ void collectRemaining(PVview view, float4 *remaining, int *nRemaining
     if (val <= -tolerance)
     {
         const int ind = atomicAggInc(nRemaining);
-        p.write2Float4(remaining, ind);
+        p.write2Float4(remainingPos, remainingVel, ind);
     }
 }
 
@@ -333,15 +333,17 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     if (ov == nullptr)
     {
         PVview view(pv, pv->local());
-        PinnedBuffer<Particle> tmp(view.size);
+        PinnedBuffer<float4> tmpPos(view.size), tmpVel(view.size);
 
         SAFE_KERNEL_LAUNCH(
                 collectRemaining,
                 getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
-                view, (float4*)tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
+                view, tmpPos.devPtr(), tmpVel.devPtr(), nRemaining.devPtr(),
+                insideWallChecker.handler() );
 
         nRemaining.downloadFromDevice(defaultStream);
-        std::swap(pv->local()->coosvels, tmp);
+        std::swap(pv->local()->positions(),  tmpPos);
+        std::swap(pv->local()->velocities(), tmpVel);
         pv->local()->resize(nRemaining[0], defaultStream);
     }
     else

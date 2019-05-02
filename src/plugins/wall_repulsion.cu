@@ -64,8 +64,8 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     
-    auto sdfs      = pv->local()->extraPerParticle.getData<float>(ChannelNames::sdf);
-    auto gradients = pv->local()->extraPerParticle.getData<float3>(ChannelNames::grad_sdf);
+    auto sdfs      = pv->local()->dataPerParticle.getData<float>(ChannelNames::sdf);
+    auto gradients = pv->local()->dataPerParticle.getData<float3>(ChannelNames::grad_sdf);
 
     float gradientThreshold = h + 0.1f;
     

@@ -116,6 +116,9 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             int oldSize = rv->local()->size();
             rv->local()->resize(oldSize + objSize, stream);
 
+            float4 *pos = rv->local()->positions() .data();
+            float4 *vel = rv->local()->velocities().data();
+            
             for (int i = 0; i < objSize; i++)
             {
                 float3 r = rotate(positions[i], q) + com;
@@ -123,16 +126,18 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
                 p.r = r;
                 p.u = make_float3(0);
 
-                rv->local()->coosvels[oldSize + i] = p;
+                pos[oldSize + i] = p.r2Float4();
+                vel[oldSize + i] = p.u2Float4();
             }
 
             nObjs++;
         }
     }
 
-    rv->local()->coosvels.uploadToDevice(stream);
+    rv->local()->positions() .uploadToDevice(stream);
+    rv->local()->velocities().uploadToDevice(stream);
     rv->local()->computeGlobalIds(comm, stream);
-    rv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(rv->local()->coosvels, stream);
+    rv->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(rv->local()->positions(), stream);
 
     info("Initialized %d '%s' rods", nObjs, rv->name.c_str());
 }

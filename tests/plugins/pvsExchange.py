@@ -44,7 +44,7 @@ sampleEvery = 2
 dump_every  = 1000
 binSize     = (1., 1., 1.)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv1], sampleEvery, dump_every, binSize, [("velocity", "vector_from_float8")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv1], sampleEvery, dump_every, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 u.registerPlugins(ymr.Plugins.createExchangePVSFluxPlane("color_exchanger", pv1, pv2, (1., 0., 0., 0.)))
 # u.registerPlugins(ymr.Plugins.createDumpParticles('partDump1', pv1, dump_every, [], 'h5/pv1-'))
 # u.registerPlugins(ymr.Plugins.createDumpParticles('partDump2', pv2, dump_every, [], 'h5/pv2-'))

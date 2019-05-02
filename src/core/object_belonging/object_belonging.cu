@@ -7,11 +7,10 @@
 
 #include <core/celllist.h>
 
-__global__ void copyInOut(
-        PVview view,
-        const BelongingTags* tags,
-        Particle* ins, Particle* outs,
-        int* nIn, int* nOut)
+__global__ void copyInOut(PVview view, const BelongingTags *tags,
+                          float4 *insPos, float4 *insVel,
+                          float4 *outPos, float4 *outVel,
+                          int *nIn, int *nOut)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
@@ -22,13 +21,15 @@ __global__ void copyInOut(
     if (tag == BelongingTags::Outside)
     {
         int dstId = atomicAggInc(nOut);
-        if (outs) outs[dstId] = p;
+        if (outPos) outPos[dstId] = p.r2Float4();
+        if (outVel) outVel[dstId] = p.u2Float4();
     }
 
     if (tag == BelongingTags::Inside)
     {
         int dstId = atomicAggInc(nIn);
-        if (ins)  ins [dstId] = p;
+        if (insPos) insPos[dstId] = p.r2Float4();
+        if (insVel) insVel[dstId] = p.u2Float4();
     }
 }
 
@@ -38,6 +39,19 @@ ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const YmrState *sta
 
 ObjectBelongingChecker_Common::~ObjectBelongingChecker_Common() = default;
 
+
+static void copyToLpv(int start, int n, const float4 *pos, const float4 *vel, LocalParticleVector *lpv, cudaStream_t stream)
+{
+    if (n <= 0) return;
+
+    CUDA_Check( cudaMemcpyAsync(lpv->positions().devPtr() + start,
+                                pos, n * sizeof(pos[0]), 
+                                cudaMemcpyDeviceToDevice, stream) );
+
+    CUDA_Check( cudaMemcpyAsync(lpv->velocities().devPtr() + start,
+                                vel, n * sizeof(vel[0]),
+                                cudaMemcpyDeviceToDevice, stream) );
+}
 
 void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream)
 {
@@ -63,7 +77,8 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
          src->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], src->local()->size());
 
     // Need buffers because the source is the same as inside or outside
-    PinnedBuffer<Particle> bufIn(nInside[0]), bufOut(nOutside[0]);
+    PinnedBuffer<float4> bufInsPos(nInside[0] ), bufInsVel(nInside[0] );
+    PinnedBuffer<float4> bufOutPos(nOutside[0]), bufOutVel(nOutside[0]);
 
     nInside. clearDevice(stream);
     nOutside.clearDevice(stream);
@@ -74,8 +89,9 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
     SAFE_KERNEL_LAUNCH(
             copyInOut,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view,
-            tags.devPtr(), bufIn.devPtr(), bufOut.devPtr(),
+            view, tags.devPtr(),
+            bufInsPos.devPtr(), bufInsVel.devPtr(),
+            bufOutPos.devPtr(), bufOutVel.devPtr(),
             nInside.devPtr(), nOutside.devPtr() );
 
     CUDA_Check( cudaStreamSynchronize(stream) );
@@ -85,12 +101,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
         int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
         pvIn->local()->resize(oldSize + nInside[0], stream);
 
-        if (nInside[0] > 0)
-            CUDA_Check( cudaMemcpyAsync(pvIn->local()->coosvels.devPtr() + oldSize,
-                    bufIn.devPtr(),
-                    nInside[0] * sizeof(Particle),
-                    cudaMemcpyDeviceToDevice, stream) );
-
+        copyToLpv(oldSize, nInside[0], bufInsPos.devPtr(), bufInsVel.devPtr(), pvIn->local(), stream);
 
         info("New size of inner PV %s is %d", pvIn->name.c_str(), pvIn->local()->size());
         pvIn->cellListStamp++;
@@ -101,12 +112,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
         int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
         pvOut->local()->resize(oldSize + nOutside[0], stream);
 
-        if (nOutside[0] > 0)
-            CUDA_Check( cudaMemcpyAsync(pvOut->local()->coosvels.devPtr() + oldSize,
-                    bufOut.devPtr(),
-                    nOutside[0] * sizeof(Particle),
-                    cudaMemcpyDeviceToDevice, stream) );
-
+        copyToLpv(oldSize, nOutside[0], bufOutPos.devPtr(), bufOutVel.devPtr(), pvOut->local(), stream);
 
         info("New size of outer PV %s is %d", pvOut->name.c_str(), pvOut->local()->size());
         pvOut->cellListStamp++;
@@ -126,7 +132,7 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
     SAFE_KERNEL_LAUNCH(
                 copyInOut,
                 getNblocks(view.size, nthreads), nthreads, 0, stream,
-                view, tags.devPtr(), nullptr, nullptr,
+                view, tags.devPtr(), nullptr, nullptr, nullptr, nullptr,
                 nInside.devPtr(), nOutside.devPtr() );
 
     nInside. downloadFromDevice(stream, ContainersSynch::Asynch);

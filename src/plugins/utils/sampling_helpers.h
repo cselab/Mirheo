@@ -5,27 +5,53 @@
 #include <core/utils/cuda_common.h>
 #include <core/pvs/particle_vector.h>
 
+template <typename T>
+inline bool checkType(const Average3D::ChannelType& channelType) { return false;}
+
+template <> inline bool checkType<float> (const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
+template <> inline bool checkType<float3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float3;}
+template <> inline bool checkType<float4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float4;}
+template <> inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
+template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<float4> (channelType);;}
+
+static float* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
+{
+    if (name == "velocity") {
+        if (channelType != Average3D::ChannelType::Vector_float4)
+            die("incompatible type for channel '%s'", name.c_str());
+        return (float*) lpv->velocities().devPtr();
+    }
+    else
+    {
+        const auto& contDesc = lpv->dataPerParticle.getChannelDescOrDie(name);
+
+        return mpark::visit([&](auto pinnedBuff) {
+            using T = typename std::remove_reference< decltype(*pinnedBuff->hostPtr()) >::type;
+            if (!checkType<T>(channelType))
+                die("incompatible type for channel '%s'", name.c_str());
+            return (float*) pinnedBuff->devPtr();
+        }, contDesc.varDataPtr);
+    }
+}
+
 struct ChannelsInfo
 {
     int n;
     Average3D::ChannelType *types;
     float **average, **data;
 
-    ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector* pv, cudaStream_t stream)
+    ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector *pv, cudaStream_t stream)
     {
-        for (int i=0; i<info.n; i++)
-        {
-            if (info.names[i] == "velocity") info.dataPtrs[i] = (float*) ((float4*)pv->local()->coosvels.devPtr() + 1);
-            else info.dataPtrs[i] = (float*)pv->local()->extraPerParticle.getGenericPtr(info.names[i]);
-        }
+        for (int i = 0; i < info.n; i++)
+            info.dataPtrs[i] = getDataAndCheck(info.names[i], pv->local(), info.types[i]);
 
         info.dataPtrs.uploadToDevice(stream);
         CUDA_Check( cudaStreamSynchronize(stream) );
 
-        n = info.n;
-        types = info.types.devPtr();
+        n       = info.n;
+        types   = info.types.devPtr();
         average = info.averagePtrs.devPtr();
-        data = info.dataPtrs.devPtr();
+        data    = info.dataPtrs.devPtr();
     }
 };
 
@@ -45,9 +71,6 @@ __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInf
 
         if (channelsInfo.types[i] == Average3D::ChannelType::Vector_float4)
             atomicAdd(((float3*)channelsInfo.average[i]) + cid, make_float3( ((float4*)channelsInfo.data[i])[pid] ));
-
-        if (channelsInfo.types[i] == Average3D::ChannelType::Vector_2xfloat4)
-            atomicAdd(((float3*)channelsInfo.average[i]) + cid, make_float3( ((float4*)channelsInfo.data[i])[2*pid] ));
 
         if (channelsInfo.types[i] == Average3D::ChannelType::Tensor6)
         {

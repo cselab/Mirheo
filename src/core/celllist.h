@@ -119,7 +119,7 @@ public:
     template <typename T>
     void requireExtraDataPerParticle(const std::string& name)
     {
-        particlesDataContainer->extraPerParticle.createData<T>(name);
+        particlesDataContainer->dataPerParticle.createData<T>(name);
     }
     
     LocalParticleVector* getLocalParticleVector();
@@ -139,7 +139,7 @@ protected:
     void _updateExtraDataChannels(cudaStream_t stream);
     void _computeCellSizes(cudaStream_t stream);
     void _computeCellStarts(cudaStream_t stream);
-    void _reorderData(cudaStream_t stream);
+    void _reorderPositionsAndCreateMap(cudaStream_t stream);
     void _reorderPersistentData(cudaStream_t stream);
     
     void _build(cudaStream_t stream);

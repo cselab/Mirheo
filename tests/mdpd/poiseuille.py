@@ -49,7 +49,7 @@ gridSampleEvery = 2
 gridDumpEvery   = 1000
 gridBinSize     = (1., 1., 0.5)
 
-field = ymr.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float8")], 'h5/solvent-')
+field = ymr.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float4")], 'h5/solvent-')
 u.registerPlugins(field)
 
 

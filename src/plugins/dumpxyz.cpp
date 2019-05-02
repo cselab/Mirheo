@@ -25,7 +25,7 @@ void XYZPlugin::beforeForces(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    downloaded.copy(pv->local()->coosvels, stream);
+    positions.copy(pv->local()->positions(), stream);
 }
 
 void XYZPlugin::serializeAndSend(cudaStream_t stream)
@@ -34,19 +34,24 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin %s is sending now data", name.c_str());
 
-    for (auto& p : downloaded)
-        p.r = state->domain.local2global(p.r);
+    for (auto& r : positions)
+    {
+        auto r3 = make_float3(r);
+        r3 = state->domain.local2global(r3);
+        r.x = r3.x; r.y = r3.y; r.z = r3.z;
+    }
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, pv->name, downloaded);
+    SimpleSerializer::serialize(sendBuffer, pv->name, positions);
     send(sendBuffer);
 }
 
 //=================================================================================
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
-        PostprocessPlugin(name), path(path)
-{    }
+        PostprocessPlugin(name),
+        path(path)
+{}
 
 void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -58,13 +63,13 @@ void XYZDumper::deserialize(MPI_Status& stat)
 {
     std::string pvName;
 
-    SimpleSerializer::deserialize(data, pvName, ps);
+    SimpleSerializer::deserialize(data, pvName, pos);
 
     std::string tstr = std::to_string(timeStamp++);
     std::string currentFname = path + "/" + pvName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
 
     if (activated)
-        writeXYZ(comm, currentFname, ps.data(), ps.size());
+        writeXYZ(comm, currentFname, pos.data(), pos.size());
 }
 
 

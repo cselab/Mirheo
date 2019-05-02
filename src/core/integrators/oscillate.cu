@@ -1,11 +1,8 @@
 #include "oscillate.h"
 #include "integration_kernel.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-
 
 /**
  * @param vel Velocity magnitude
@@ -36,19 +33,6 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
         p.r += p.u*dt;
     };
 
-    int nthreads = 128;
-
-    // New particles now become old
-    std::swap(pv->local()->coosvels, *pv->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts));
-    PVviewWithOldParticles pvView(pv, pv->local());
-
-    SAFE_KERNEL_LAUNCH(
-            integrationKernel,
-            getNblocks(2*pvView.size, nthreads), nthreads, 0, stream,
-            pvView, state->dt, oscillate );
-
-    // PV may have changed, invalidate all
-    pv->haloValid = false;
-    pv->redistValid = false;
-    pv->cellListStamp++;
+    integrate(pv, state->dt, oscillate, stream);
+    invalidatePV(pv);
 }

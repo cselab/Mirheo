@@ -45,7 +45,7 @@ u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
 # Create and register XDMF plugin
 field = ymr.Plugins.createDumpAverage('field', [pv],
                                       sampleEvery, dumpEvery, binSize,
-                                      [("velocity", "vector_from_float8")], 'h5/solvent-')
+                                      [("velocity", "vector_from_float4")], 'h5/solvent-')
 u.registerPlugins(field)
 
 # Run 5002 time-steps

@@ -308,7 +308,7 @@ void InteractionManager::_clearPVChannels(ParticleVector *pv, LocalParticleVecto
     for (const auto& channelName : activeChannels)
     {
         if (channelName == ChannelNames::forces) continue; // already cleaned explicitely
-        lpv->extraPerParticle.getGenericData(channelName)->clearDevice(stream);
+        lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
 

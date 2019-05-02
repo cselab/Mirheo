@@ -56,7 +56,6 @@ static void extractChannelsInfos(const std::vector< std::pair<std::string, std::
         if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
         else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
         else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
-        else if (typeStr == "vector_from_float8") types.push_back(Average3D::ChannelType::Vector_2xfloat4);
         else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
         else die("Unable to get parse channel type '%s'", typeStr.c_str());
     }

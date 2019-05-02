@@ -4,13 +4,16 @@ ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, Pac
 {
     if (pv == nullptr || lpv == nullptr) return;
 
-    auto& manager = lpv->extraPerParticle;
+    auto& manager = lpv->dataPerParticle;
 
     bool needUpload = false;
 
-    registerChannel(manager, sizeof(Particle),
-                    reinterpret_cast<char*>(lpv->coosvels.devPtr()),
+    registerChannel(manager, sizeof(float4),
+                    reinterpret_cast<char*>(lpv->positions().devPtr()),
                     sizeof(float), needUpload, stream);
+    registerChannel(manager, sizeof(float4),
+                    reinterpret_cast<char*>(lpv->velocities().devPtr()),
+                    0, needUpload, stream);
 
 
     registerChannels(predicate, manager, pv->name, needUpload, stream);
@@ -21,7 +24,7 @@ ParticleExtraPacker::ParticleExtraPacker(ParticleVector *pv, LocalParticleVector
 {
     if (pv == nullptr || lpv == nullptr) return;
 
-    auto& manager = lpv->extraPerParticle;
+    auto& manager = lpv->dataPerParticle;
 
     bool needUpload = false;
     registerChannels(predicate, manager, pv->name, needUpload, stream);
@@ -33,7 +36,7 @@ ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, P
 {
     if (ov == nullptr || lov == nullptr) return;
 
-    auto& manager = lov->extraPerObject;
+    auto& manager = lov->dataPerObject;
 
     bool needUpload = false;
     registerChannels(predicate, manager, ov->name, needUpload, stream);

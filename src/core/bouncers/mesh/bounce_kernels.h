@@ -9,6 +9,9 @@
 
 #include <core/pvs/views/ov.h>
 
+namespace BounceKernels
+{
+
 struct Triangle
 {
     float3 v0, v1, v2;
@@ -32,12 +35,13 @@ using TriangleTable = CollisionTable<int2>;
 
 
 __device__ inline
-Triangle readTriangle(float4* particles, int3 trid)
+Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
 {
+    auto addr = vertices + startId;
     return {
-        f4tof3( particles[2*trid.x] ),
-        f4tof3( particles[2*trid.y] ),
-        f4tof3( particles[2*trid.z] ) };
+        f4tof3( addr[trid.x] ),
+        f4tof3( addr[trid.y] ),
+        f4tof3( addr[trid.z] ) };
 }
 
 
@@ -123,11 +127,6 @@ void findBouncesInCell(int pstart, int pend, int globTrid,
 // Small convenience functions
 // =====================================================
 
-template<typename T, typename... Args>
-__device__ inline T fmin_vec(T v, Args... args)
-{
-    return fminf(v, fmin_vec(args...));
-}
 
 template<typename T>
 __device__ inline T fmin_vec(T v)
@@ -136,15 +135,21 @@ __device__ inline T fmin_vec(T v)
 }
 
 template<typename T, typename... Args>
-__device__ inline T fmax_vec(T v, Args... args)
+__device__ inline T fmin_vec(T v, Args... args)
 {
-    return fmaxf(v, fmax_vec(args...));
+    return fminf(v, fmin_vec(args...));
 }
 
 template<typename T>
 __device__ inline T fmax_vec(T v)
 {
     return v;
+}
+
+template<typename T, typename... Args>
+__device__ inline T fmax_vec(T v, Args... args)
+{
+    return fmaxf(v, fmax_vec(args...));
 }
 
 // =====================================================
@@ -169,8 +174,8 @@ void findBouncesInMesh(OVviewWithNewOldVertices objView,
     if (objId >= objView.nObjects) return;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices     + 2 * mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices + 2 * mesh.nvertices*objId, triangle);
+    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
     const float3 lo = fmin_vec(trOld.v0, trOld.v1, trOld.v2, tr.v0, tr.v1, tr.v2);
     const float3 hi = fmax_vec(trOld.v0, trOld.v1, trOld.v2, tr.v0, tr.v1, tr.v2);
@@ -364,9 +369,9 @@ static __global__
 void refineCollisions(OVviewWithNewOldVertices objView,
                       PVviewWithOldParticles pvView,
                       MeshView mesh,
-                      int nCoarseCollisions, int2* coarseTable,
+                      int nCoarseCollisions, int2 *coarseTable,
                       TriangleTable fineTable,
-                      int* collisionTimes)
+                      int *collisionTimes)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= nCoarseCollisions) return;
@@ -381,8 +386,8 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     const int objId = pid_trid.y / mesh.ntriangles;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices     + 2 * mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices + 2 * mesh.nvertices*objId, triangle);
+    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
     float3 intPoint;
     Triangle intTriangle;
@@ -521,7 +526,7 @@ static __global__
 void performBouncingTriangle(OVviewWithNewOldVertices objView,
                              PVviewWithOldParticles pvView,
                              MeshView mesh,
-                             int nCollisions, int2* collisionTable, int* collisionTimes,
+                             int nCollisions, int2 *collisionTable, int *collisionTimes,
                              const float dt,
                              float kbT, float seed1, float seed2)
 {
@@ -543,8 +548,8 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const int objId = pid_trid.y / mesh.ntriangles;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices     + 2 * mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices + 2 * mesh.nvertices*objId, triangle);
+    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
     float3 intPoint;
     Triangle intTriangle;
@@ -583,3 +588,5 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.y, f1);
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.z, f2);
 }
+
+} // namespace BounceKernels

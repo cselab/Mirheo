@@ -98,13 +98,14 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
 
     ov->local()->resize_anew(nObjs * ov->objSize);
 
-    auto ovMotions = ov->local()->extraPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ovMotions = ov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
     ovMotions->copy(motions);
     ovMotions->uploadToDevice(stream);
 
-    ov->local()->coosvels.uploadToDevice(stream);
+    ov->local()->positions().uploadToDevice(stream);
+    ov->local()->velocities().uploadToDevice(stream);
     ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->extraPerParticle.getData<Particle>(ChannelNames::oldParts)->copy(ov->local()->coosvels, stream);
+    ov->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
     info("Read %d %s objects", nObjs, ov->name.c_str());
 

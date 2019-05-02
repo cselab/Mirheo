@@ -55,14 +55,14 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             Particle p(view.readParticle(pid));
             if (checker(p.r) <= -insideTolerance) continue;
 
-            Particle pOld(view.old_particles, pid);
-            float3 dr = p.r - pOld.r;
+            auto rOld = view.readOldPosition(pid);
+            float3 dr = p.r - rOld;
 
             const float alpha = solveLinSearch([=] (float lambda) {
-                                                   return checker(pOld.r + dr*lambda) + insideTolerance;
+                                                   return checker(rOld + dr*lambda) + insideTolerance;
                                                });
 
-            float3 candidate = (alpha >= 0.0f) ? pOld.r + alpha * dr : pOld.r;
+            float3 candidate = (alpha >= 0.0f) ? rOld + alpha * dr : rOld;
             candidate = rescue(candidate, dt, insideTolerance, p.i1, checker);
 
             float3 uWall = velField(p.r);

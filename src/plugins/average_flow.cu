@@ -76,12 +76,12 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 
     if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)
     	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
-    			"Please decrease the bin size", resolution.x, resolution.y, resolution.z);
+            "Please decrease the bin size", resolution.x, resolution.y, resolution.z);
 
     const int total = resolution.x * resolution.y * resolution.z;
 
     density.resize_anew(total);
-    density.clear(0);
+    density.clear(defaultStream);
 
     accumulated_density.resize_anew(total);
     accumulated_density.clear(0);
@@ -94,8 +94,8 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
         channelsInfo.average[i].resize_anew(components * total);
         accumulated_average [i].resize_anew(components * total);
         
-        channelsInfo.average[i].clear(0);
-        accumulated_average [i].clear(0);
+        channelsInfo.average[i].clear(defaultStream);
+        accumulated_average [i].clear(defaultStream);
         
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
 
