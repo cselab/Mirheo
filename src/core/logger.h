@@ -134,13 +134,15 @@ public:
      * @param args other relevant arguments to \e printf
      */
     template<int importance, class ... Args>
-    inline void log(const char* fname, const int lnum, const char* pattern, Args... args) const
+    inline void log(const char *fname, const int lnum, const char *pattern, Args... args) const
     {
         if (importance > runtimeDebugLvl) return;
 
         if (fout == nullptr)
         {
-            fprintf(stderr, "Logger file is not set\n");
+            fprintf(stderr, "Logger file is not set but tried to be used at %s : %d with the following message:\n", fname, lnum);
+            fprintf(stderr, pattern, args...);
+            fprintf(stderr, "\n");
             exit(1);
         }
 
@@ -348,9 +350,4 @@ private:
  * that they will be using to log stuff
  */
 extern Logger logger;
-
-
-
-
-
 
