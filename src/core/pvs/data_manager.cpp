@@ -1,4 +1,4 @@
-#include "extra_data_manager.h"
+#include "data_manager.h"
 
 void DataManager::setPersistenceMode(const std::string& name, DataManager::PersistenceMode persistence)
 {
