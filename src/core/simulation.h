@@ -4,7 +4,7 @@
 #include <core/datatypes.h>
 #include <core/domain.h>
 #include <core/logger.h>
-#include <core/mpi/exchanger_interfaces.h>
+#include <core/exchangers/exchanger_interfaces.h>
 #include <core/ymero_object.h>
 
 #include <functional>
