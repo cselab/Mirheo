@@ -7,6 +7,7 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 #include <core/utils/type_map.h>
+#include <core/utils/type_traits.h>
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
@@ -290,21 +291,21 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-// use SFINAE to discard types without operator+
-static void accumulateIfHasAddOperator(GPUcontainer *src,
-                                       GPUcontainer *dst,
+template <typename T, typename = void>
+static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
+                                       PinnedBuffer<T> *dst,
                                        int n, CellListInfo cinfo,
                                        cudaStream_t stream)
 {
     die("Cannot accumulate entries: operator+ not supported for this type");
 }
 
-template <typename T>
-static auto accumulateIfHasAddOperator(PinnedBuffer<T> *src,
+template <typename T, std::void_t<decltype(std::declval<T>() +
+                                           std::declval<T>())>>
+static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
                                        PinnedBuffer<T> *dst,
                                        int n, CellListInfo cinfo,
                                        cudaStream_t stream)
-    -> decltype(std::declval<T>() + std::declval<T>())
 {
     const int nthreads = 128;
     
@@ -312,8 +313,6 @@ static auto accumulateIfHasAddOperator(PinnedBuffer<T> *src,
         CellListKernels::accumulateKernel,
         getNblocks(n, nthreads), nthreads, 0, stream,
         n, dst->devPtr(), cinfo, src->devPtr() );
-
-    return T();
 }
 
 void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
