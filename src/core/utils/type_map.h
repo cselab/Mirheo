@@ -17,8 +17,7 @@
     OP(Stress)       SEP                        \
     OP(RigidMotion)  SEP                        \
     OP(COMandExtent) SEP                        \
-    OP(Force)        SEP                        \
-    OP(Particle)
+    OP(Force)
 
 
 #define TYPE_TABLE(OP) TYPE_TABLE__(OP, )
