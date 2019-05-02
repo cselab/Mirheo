@@ -3,7 +3,7 @@
 #include <core/celllist.h>
 
 /**
- * map threads from thread gid to cell id cid of the cell lists inside a given face
+ * map threads to cell id inside a given face
  * @param gid: global thread id
  * @param faceId: face index, from 0 to 5
  * @param cinfo: cells infos
