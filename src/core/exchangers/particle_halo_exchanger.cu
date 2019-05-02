@@ -30,10 +30,11 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int tid = threadIdx.x;
+    const int faceId = blockIdx.y;
     int cid;
     int dx, dy, dz;
 
-    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
+    bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
     int pstart = valid ? cinfo.cellStarts[cid]   : 0;
     int pend   = valid ? cinfo.cellStarts[cid+1] : 0;

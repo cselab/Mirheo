@@ -38,11 +38,12 @@ template <PackMode packMode>
 __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    const int faceId = blockIdx.y;
     int cid;
     int dx, dy, dz;
     const int3 ncells = cinfo.ncells;
 
-    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
+    bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
     if (!valid) return;
 

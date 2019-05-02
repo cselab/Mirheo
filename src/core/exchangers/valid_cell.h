@@ -2,24 +2,35 @@
 
 #include <core/celllist.h>
 
-__device__ inline bool isValidCell(int& cid, int& dx, int& dy, int& dz, int gid, int variant, CellListInfo cinfo)
+/**
+ * map threads from thread gid to cell id cid of the cell lists inside a given face
+ * @param gid: global thread id
+ * @param faceId: face index, from 0 to 5
+ * @param cinfo: cells infos
+ * @param cid: returned cell id corresponding to the thread and face
+ * @param dx: returned direction (-1, 0 or 1) along x
+ * @param dy: returned direction (-1, 0 or 1) along y
+ * @param dz: returned direction (-1, 0 or 1) along z
+ * @return true if the thread is participating, false otherwise
+ */
+__device__ inline bool distributeThreadsToFaceCell(int& cid, int& dx, int& dy, int& dz, int gid, int faceId, CellListInfo cinfo)
 {
     const int3 ncells = cinfo.ncells;
 
     bool valid = true;
 
-    if (variant <= 1)  // x
+    if (faceId <= 1)  // x
     {
         if (gid >= ncells.y * ncells.z) valid = false;
-        dx = variant * (ncells.x - 1);
+        dx = faceId * (ncells.x - 1);
         dy = gid % ncells.y;
         dz = gid / ncells.y;
     }
-    else if (variant <= 3)  // y
+    else if (faceId <= 3)  // y
     {
         if (gid >= ncells.x * ncells.z) valid = false;
         dx = gid % ncells.x;
-        dy = (variant - 2) * (ncells.y - 1);
+        dy = (faceId - 2) * (ncells.y - 1);
         dz = gid / ncells.x;
     }
     else   // z
@@ -27,7 +38,7 @@ __device__ inline bool isValidCell(int& cid, int& dx, int& dy, int& dz, int gid,
         if (gid >= ncells.x * ncells.y) valid = false;
         dx = gid % ncells.x;
         dy = gid / ncells.x;
-        dz = (variant - 4) * (ncells.z - 1);
+        dz = (faceId - 4) * (ncells.z - 1);
     }
 
     cid = cinfo.encode(dx, dy, dz);
@@ -47,9 +58,9 @@ __device__ inline bool isValidCell(int& cid, int& dx, int& dy, int& dz, int gid,
     else if (dz == ncells.z-1) dz = 1;
     else dz = 0;
 
-    // Exclude cells already covered by other variants
-    if ( (variant == 0 || variant == 1) && (dz != 0 || dy != 0) ) valid = false;
-    if ( (variant == 2 || variant == 3) && (dz != 0) ) valid = false;
+    // Exclude cells already covered by other faceIds
+    if ( (faceId == 0 || faceId == 1) && (dz != 0 || dy != 0) ) valid = false;
+    if ( (faceId == 2 || faceId == 3) && (dz != 0) ) valid = false;
 
     return valid;
 }
