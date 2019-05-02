@@ -18,7 +18,7 @@
 Logger logger;
 bool verbose = false;
 
-void test_domain(float3 length, float rc, float density)
+void test_domain(float3 length, float rc, float density, int nbuilds)
 {
     bool success = true;
     float3 domainStart = -length / 2.0f;
@@ -27,40 +27,40 @@ void test_domain(float3 length, float rc, float density)
     YmrState state(domain, dt);
 
     ParticleVector dpds(&state, "dpd", 1.0f);
-    CellList *cells = new PrimaryCellList(&dpds, rc, length);
+    std::unique_ptr<CellList> cells = std::make_unique<PrimaryCellList>(&dpds, rc, length);
 
     UniformIC ic(density);
     ic.exec(MPI_COMM_WORLD, &dpds, 0);
 
     const int np = dpds.local()->size();
-    HostBuffer<Particle> initial(np);
-    auto initPtr = initial.hostPtr();
-    for (int i=0; i<np; i++)
-        initPtr[i] = dpds.local()->coosvels[i];
+    HostBuffer<float4> initialPos(np), initialVel(np);
 
-    for (int i=0; i<50; i++)
+    std::copy(dpds.local()->positions ().begin(), dpds.local()->positions ().end(), initialPos.begin());
+    std::copy(dpds.local()->velocities().begin(), dpds.local()->velocities().end(), initialVel.begin());
+    
+    for (int i = 0; i < nbuilds; i++)
     {
-        cells->build(0);
+        cells->build(defaultStream);
         dpds.cellListStamp++;
     }
 
-    dpds.local()->coosvels.downloadFromDevice(0, ContainersSynch::Synch);
+    dpds.local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
+    dpds.local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     HostBuffer<int> hcellsStart(cells->totcells+1);
-    HostBuffer<int> hcellsSize(cells->totcells+1);
+    HostBuffer<int> hcellsSize (cells->totcells+1);
 
-    hcellsStart.copy(cells->cellStarts, 0);
-    hcellsSize. copy(cells->cellSizes, 0);
+    hcellsStart.copy(cells->cellStarts, defaultStream);
+    hcellsSize. copy(cells->cellSizes,  defaultStream);
 
     HostBuffer<int> cellscount(cells->totcells+1);
-    for (int i=0; i<cells->totcells+1; i++)
+    for (int i = 0; i < cells->totcells+1; ++i)
         cellscount[i] = 0;
 
     int total = 0;
-    for (int pid=0; pid < initial.size(); pid++)
+    for (int pid = 0; pid < initialPos.size(); ++pid)
     {
-        float3 coo{initial[pid].r.x, initial[pid].r.y, initial[pid].r.z};
-        float3 vel{initial[pid].u.x, initial[pid].u.y, initial[pid].u.z};
+        auto coo = make_float3(initialPos[pid]);
 
         int actCid = cells->getCellId(coo);
         if (actCid >= 0)
@@ -72,7 +72,8 @@ void test_domain(float3 length, float rc, float density)
 
     if (verbose)
         printf("np = %d, vs reference  %d\n", dpds.local()->size(), total);
-    for (int cid=0; cid < cells->totcells+1; cid++)
+
+    for (int cid = 0; cid < cells->totcells+1; cid++)
         if ( (hcellsSize[cid]) != cellscount[cid] )
         {
             success = false;
@@ -82,20 +83,24 @@ void test_domain(float3 length, float rc, float density)
                         cid, hcellsSize[cid], cellscount[cid], hcellsStart[cid]);
         }
 
-    for (int cid=0; cid < cells->totcells; cid++)
+    auto& positions  = dpds.local()->positions();
+    auto& velocities = dpds.local()->velocities();
+    
+    for (int cid = 0; cid < cells->totcells; cid++)
     {
         const int start = hcellsStart[cid];
         const int size = hcellsSize[cid];
-        for (int pid=start; pid < start + size; pid++)
+        for (int pid = start; pid < start + size; pid++)
         {
-            const float3 cooDev{dpds.local()->coosvels[pid].r.x, dpds.local()->coosvels[pid].r.y, dpds.local()->coosvels[pid].r.z};
-            const float3 velDev{dpds.local()->coosvels[pid].u.x, dpds.local()->coosvels[pid].u.y, dpds.local()->coosvels[pid].u.z};
+            auto pDev = Particle(positions[pid], velocities[pid]);
+            auto cooDev = pDev.r;
+            auto velDev = pDev.u;
+            const auto origId = pDev.getId();
 
-            const int origId = dpds.local()->coosvels[pid].i1;
-
-            float3 coo{initial[origId].r.x, initial[origId].r.y, initial[origId].r.z};
-            float3 vel{initial[origId].u.x, initial[origId].u.y, initial[origId].u.z};
-
+            auto p = Particle(initialPos[origId], initialVel[origId]);
+            auto coo = p.r;
+            auto vel = p.u;
+            
             const float diff = std::max({
                 fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
                 fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
@@ -107,9 +112,9 @@ void test_domain(float3 length, float rc, float density)
                 success = false;
                 
                 if (verbose)
-                    printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %d]  correct: [%e %e %e  %d]\n",
-                            cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, dpds.local()->coosvels[pid].i1,
-                            coo.x, coo.y, coo.z, initial[origId].i1);
+                    printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %ld]  correct: [%e %e %e  %ld]\n",
+                            cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, origId,
+                           coo.x, coo.y, coo.z, p.getId());
             }
         }
     }
@@ -121,27 +126,30 @@ void test_domain(float3 length, float rc, float density)
 TEST (CELLLISTS, DomainVaries)
 {
     float rc = 1.0, density = 7.5;
+    int ncalls = 1;
     
-    test_domain(make_float3(64, 64, 64), rc, density);
-    test_domain(make_float3(64, 32, 16), rc, density);
+    test_domain(make_float3(64, 64, 64), rc, density, ncalls);
+    test_domain(make_float3(64, 32, 16), rc, density, ncalls);
 }
 
 TEST (CELLLISTS, rcVaries)
 {
     float3 domain = make_float3(32, 32, 32);
     float density = 7.5;
+    int ncalls = 1;
     
-    test_domain(domain, 0.5, density);
-    test_domain(domain, 1.2, density);
+    test_domain(domain, 0.5, density, ncalls);
+    test_domain(domain, 1.2, density, ncalls);
 }
 
 TEST (CELLLISTS, DensityVaries)
 {
     float3 domain = make_float3(32, 32, 32);
     float rc = 1.0;
+    int ncalls = 1;
     
-    test_domain(domain, rc, 2.0);
-    test_domain(domain, rc, 8.0);
+    test_domain(domain, rc, 2.0, ncalls);
+    test_domain(domain, rc, 8.0, ncalls);
 }
 
 int main(int argc, char **argv)

@@ -18,14 +18,16 @@ Logger logger;
 
 bool verbose = false;
 
-void makeCells(const Particle *input, Particle *output, int *cellsStartSize, int *cellsSize,
+void makeCells(const float4 *inputPos, const float4 *inputVel,
+               float4 *outputPos, float4 *outputVel,
+               int *cellsStartSize, int *cellsSize,
                int *order, int np, CellListInfo cinfo)
 {
     for (int i = 0; i < cinfo.totcells+1; i++)
         cellsSize[i] = 0;
 
     for (int i = 0; i < np; i++)
-        cellsSize[cinfo.getCellId(input[i].r)]++;
+        cellsSize[cinfo.getCellId(make_float3(inputPos[i]))]++;
 
     cellsStartSize[0] = 0;
     for (int i = 1; i <= cinfo.totcells; i++)
@@ -33,8 +35,9 @@ void makeCells(const Particle *input, Particle *output, int *cellsStartSize, int
 
     for (int i = 0; i < np; i++)
     {
-        const int cid = cinfo.getCellId(input[i].r);
-        output[cellsStartSize[cid]] = input[i];
+        const int cid = cinfo.getCellId(make_float3(inputPos[i]));
+        outputPos[cellsStartSize[cid]] = inputPos[i];
+        outputVel[cellsStartSize[cid]] = inputVel[i];
         order[cellsStartSize[cid]] = i;
 
         cellsStartSize[cid]++;
@@ -73,27 +76,40 @@ void execute(MPI_Comm comm, float3 length)
 
     cudaDeviceSynchronize();
 
-    dpds1.local()->coosvels.downloadFromDevice(defaultStream);
-    dpds2.local()->coosvels.downloadFromDevice(defaultStream);
-
+    auto& pos1 = dpds1.local()->positions();
+    auto& pos2 = dpds2.local()->positions();
+    auto& vel1 = dpds1.local()->velocities();
+    auto& vel2 = dpds2.local()->velocities();
+    
+    pos1.downloadFromDevice(defaultStream);
+    pos2.downloadFromDevice(defaultStream);
+    vel1.downloadFromDevice(defaultStream);
+    vel2.downloadFromDevice(defaultStream);
 
     // Set non-zero velocities
-    for (int i = 0; i < dpds1.local()->size(); i++)
-        dpds1.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+    for (auto& v : vel1)
+    {
+        v.x = length.x * (drand48() - 0.5);
+        v.y = length.y * (drand48() - 0.5);
+        v.z = length.z * (drand48() - 0.5);
+    }
+    for (auto& v : vel2)
+    {
+        v.x = length.x * (drand48() - 0.5);
+        v.y = length.y * (drand48() - 0.5);
+        v.z = length.z * (drand48() - 0.5);
+    }
 
-    for (int i = 0; i < dpds2.local()->size(); i++)
-        dpds2.local()->coosvels[i].u = length*make_float3(drand48() - 0.5, drand48() - 0.5, drand48() - 0.5);
+    vel1.uploadToDevice(defaultStream);
+    vel2.uploadToDevice(defaultStream);
 
-
-    dpds1.local()->coosvels.uploadToDevice(defaultStream);
-    dpds2.local()->coosvels.uploadToDevice(defaultStream);
-
-    std::vector<Particle> initial(np), rearranged(np);
+    std::vector<float4> initialPos(np), initialVel(np), rearrangedPos(np), rearrangedVel(np);
     for (int i = 0; i < np; i++)
     {
-        initial[i] = ( i < dpds1.local()->size() ) ?
-            dpds1.local()->coosvels[i] :
-            dpds2.local()->coosvels[i - dpds1.local()->size()];
+        bool from1 = i < pos1.size();
+        
+        initialPos[i] = from1 ? pos1[i] : pos2[i-pos1.size()];
+        initialVel[i] = from1 ? vel1[i] : vel2[i-vel1.size()];
     }
 
     const float k = 1;    
@@ -150,15 +166,20 @@ void execute(MPI_Comm comm, float3 length)
 
     fprintf(stderr, "Checking (this is not necessarily a cubic domain)......\n");
 
-    makeCells(initial.data(), rearranged.data(), hcellsstart.data(), hcellssize.data(), order.data(), np, cells1->cellInfo());
+    makeCells(initialPos.data(), initialVel.data(),
+              rearrangedPos.data(), rearrangedVel.data(),
+              hcellsstart.data(), hcellssize.data(),
+              order.data(), np, cells1->cellInfo());
 
     std::vector<Force> refAcc(hacc.size());
 
     auto addForce = [&](int dstId, int srcId, Force& a)
     {
-        const float _xr = rearranged[dstId].r.x - rearranged[srcId].r.x;
-        const float _yr = rearranged[dstId].r.y - rearranged[srcId].r.y;
-        const float _zr = rearranged[dstId].r.z - rearranged[srcId].r.z;
+        Particle pdst(rearrangedPos[dstId], rearrangedVel[dstId]);
+        Particle psrc(rearrangedPos[srcId], rearrangedVel[srcId]);
+        const float _xr = pdst.r.x - psrc.r.x;
+        const float _yr = pdst.r.y - psrc.r.y;
+        const float _zr = pdst.r.z - psrc.r.z;
 
         const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
@@ -175,12 +196,12 @@ void execute(MPI_Comm comm, float3 length)
         const float zr = _zr * invrij;
 
         const float rdotv =
-        xr * (rearranged[dstId].u.x - rearranged[srcId].u.x) +
-        yr * (rearranged[dstId].u.y - rearranged[srcId].u.y) +
-        zr * (rearranged[dstId].u.z - rearranged[srcId].u.z);
+        xr * (pdst.u.x - psrc.u.x) +
+        yr * (pdst.u.y - psrc.u.y) +
+        zr * (pdst.u.z - psrc.u.z);
 
-        int sid = rearranged[srcId].i1;
-        int did = rearranged[dstId].i1;
+        int sid = psrc.i1;
+        int did = pdst.i1;
         const float myrandnr = ((min(sid, did) ^ max(sid, did)) % 13) - 6;
 
         const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
@@ -253,7 +274,8 @@ void execute(MPI_Comm comm, float3 length)
 
         if (verbose && (perr > 0.1 || std::isnan(toterr)))
         {
-            fprintf(stderr, "id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, (initial[i].i1),
+            Particle pinitial(initialPos[i], initialVel[i]);
+            fprintf(stderr, "id %d (%d),  %12f %12f %12f     ref %12f %12f %12f    diff   %12f %12f %12f\n", i, pinitial.i1,
                     hacc[i].f.x, hacc[i].f.y, hacc[i].f.z,
                     finalFrcs[i].f.x, finalFrcs[i].f.y, finalFrcs[i].f.z,
                     hacc[i].f.x-finalFrcs[i].f.x, hacc[i].f.y-finalFrcs[i].f.y, hacc[i].f.z-finalFrcs[i].f.z);

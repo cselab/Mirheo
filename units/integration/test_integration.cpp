@@ -19,46 +19,53 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, YmrS
         integrator->stage2(pv, defaultStream);
     }
 
-    pv->local()->coosvels.downloadFromDevice(defaultStream, ContainersSynch::Synch);
+    pv->local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
+    pv->local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 }
 
-static void run_cpu(std::vector<Particle>& particles, std::vector<Force>& forces, int nsteps, float dt, float mass)
+static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
+                    std::vector<Force>& forces, int nsteps, float dt, float mass)
 {
     float dt_m = dt / mass;
     
     for (int step = 0; step < nsteps; ++step) {
-        for (int i = 0; i < particles.size(); ++i) {
-            Particle& p = particles[i];
-            const Force f = forces[i];
+        for (int i = 0; i < pos.size(); ++i) {
+            float4& r = pos[i];
+            float4& v = vel[i];
+            Force   f = forces[i];
 
-            p.u.x += dt_m * f.f.x;
-            p.u.y += dt_m * f.f.y;
-            p.u.z += dt_m * f.f.z;
+            v.x += dt_m * f.f.x;
+            v.y += dt_m * f.f.y;
+            v.z += dt_m * f.f.z;
 
-            p.r.x += dt * p.u.x;
-            p.r.y += dt * p.u.y;
-            p.r.z += dt * p.u.z;
+            r.x += dt * v.x;
+            r.y += dt * v.y;
+            r.z += dt * v.z;
         }
     }
 }
 
-static void initializeParticles(ParticleVector *pv, std::vector<Particle>& hostParticles)
+static void initializeParticles(ParticleVector *pv, std::vector<float4>& hostPositions, std::vector<float4>& hostVelocities)
 {
-    auto& coosvels = pv->local()->coosvels;
+    auto& pos = pv->local()->positions();
+    auto& vel = pv->local()->velocities();
     
-    for (auto& p : coosvels) {
-        p.r.x = drand48();
-        p.r.y = drand48();
-        p.r.z = drand48();
+    for (int i = 0; i < pos.size(); ++i) {
+        pos[i].x = drand48();
+        pos[i].y = drand48();
+        pos[i].z = drand48();
 
-        p.u.x = drand48();
-        p.u.y = drand48();
-        p.u.z = drand48();
+        vel[i].x = drand48();
+        vel[i].y = drand48();
+        vel[i].z = drand48();
     }
-    coosvels.uploadToDevice(defaultStream);
+    pos.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);
 
-    hostParticles.resize(coosvels.size());
-    std::copy(coosvels.begin(), coosvels.end(), hostParticles.begin());
+    hostPositions .resize(pos.size());
+    hostVelocities.resize(vel.size());
+    std::copy(pos.begin(), pos.end(), hostPositions .begin());
+    std::copy(vel.begin(), vel.end(), hostVelocities.begin());
 }
 
 static void initializeForces(ParticleVector *pv, std::vector<Force>& hostForces)
@@ -77,7 +84,9 @@ static void initializeForces(ParticleVector *pv, std::vector<Force>& hostForces)
                                 cudaMemcpyHostToDevice, defaultStream) );
 }
 
-static void computeError(int n, const Particle *parts1, const Particle *parts2,
+static void computeError(int n,
+                         const float4 *pos1, const float4 *vel1,
+                         const float4 *pos2, const float4 *vel2,
                          double& l2, double& linf)
 {
     l2 = 0;
@@ -85,15 +94,16 @@ static void computeError(int n, const Particle *parts1, const Particle *parts2,
     double dx, dy, dz, du, dv, dw;
     
     for (int i = 0; i < n; ++i) {
-        auto p1 = parts1[i], p2 = parts2[i];
+        auto r1 = pos1[i], r2 = pos2[i];
+        auto v1 = vel1[i], v2 = vel2[i];
 
-        dx = fabs(p1.r.x - p2.r.x);
-        dy = fabs(p1.r.y - p2.r.y);
-        dz = fabs(p1.r.z - p2.r.z);
+        dx = fabs(r1.x - r2.x);
+        dy = fabs(r1.y - r2.y);
+        dz = fabs(r1.z - r2.z);
 
-        du = fabs(p1.u.x - p2.u.x);
-        dv = fabs(p1.u.y - p2.u.y);
-        dw = fabs(p1.u.z - p2.u.z);
+        du = fabs(v1.x - v2.x);
+        dv = fabs(v1.y - v2.y);
+        dw = fabs(v1.z - v2.z);
 
         l2 += dx*dx + dy*dy + dz*dz;
         l2 += du*du + dv*dv + dw*dw;
@@ -118,17 +128,20 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     auto vv = IntegratorFactory::createVV(&state, "vv");
     ParticleVector pv(&state, "pv", mass, nparticles);
 
-    std::vector<Particle> hostParticles;
+    std::vector<float4> hostPositions, hostVelocities;
     std::vector<Force> hostForces;
     
-    initializeParticles(&pv, hostParticles);
+    initializeParticles(&pv, hostPositions, hostVelocities);
     initializeForces(&pv, hostForces);
     
     run_gpu(vv.get(), &pv, nsteps, &state);
-    run_cpu(hostParticles, hostForces, nsteps, dt, mass);
+    run_cpu(hostPositions, hostVelocities, hostForces, nsteps, dt, mass);
 
-    computeError(pv.local()->size(), pv.local()->coosvels.data(),
-                 hostParticles.data(), l2, linf);
+    computeError(pv.local()->size(),
+                 pv.local()->positions ().data(),
+                 pv.local()->velocities().data(),
+                 hostPositions.data(), hostVelocities.data(),
+                 l2, linf);
     
     ASSERT_LE(l2, tolerance);
     ASSERT_LE(linf, tolerance);

@@ -7,7 +7,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/domain.h>
-#include <core/mpi/api.h>
+#include <core/exchangers/api.h>
 #include <core/logger.h>
 #include <core/integrators/factory.h>
 #include <core/interactions/dpd.h>
@@ -27,14 +27,16 @@ const float sigma = sqrt(2 * gammadpd * kBT);
 const float sigmaf = sigma / sqrt(dt);
 
 
-void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int* __restrict__ cellsStartSize, int* __restrict__ cellsSize,
+void makeCells(float4*& pos, float4*& vel,
+               float4*& posBuffer, float4*& velBuffer,
+               int *cellsStartSize, int *cellsSize,
                int np, CellListInfo cinfo)
 {
     for (int i = 0; i < cinfo.totcells+1; i++)
         cellsSize[i] = 0;
 
     for (int i = 0; i < np; i++)
-        cellsSize[cinfo.getCellId(coos[i].r)]++;
+        cellsSize[cinfo.getCellId(make_float3(pos[i]))]++;
 
     cellsStartSize[0] = 0;
     for (int i = 1; i <= cinfo.totcells; i++)
@@ -42,41 +44,45 @@ void makeCells(Particle*& __restrict__ coos, Particle*& __restrict__ buffer, int
 
     for (int i = 0; i < np; i++)
     {
-        const int cid = cinfo.getCellId(coos[i].r);
-        buffer[cellsStartSize[cid]] = coos[i];
+        const int cid = cinfo.getCellId(make_float3(pos[i]));
+        posBuffer[cellsStartSize[cid]] = pos[i];
+        velBuffer[cellsStartSize[cid]] = vel[i];
         cellsStartSize[cid]++;
     }
 
     for (int i = 0; i < cinfo.totcells; i++)
         cellsStartSize[i] -= cellsSize[i];
 
-    std::swap(coos, buffer);
+    std::swap(pos, posBuffer);
+    std::swap(vel, velBuffer);
 }
 
-void integrate(Particle* __restrict__ coos, Force* __restrict__ accs, int np, float dt,
-               CellListInfo cinfo, DomainInfo dinfo)
+void integrate(float4* pos, float4 *vel, Force* accs,
+               int np, float dt, CellListInfo cinfo, DomainInfo dinfo)
 {
     float3 dstart = dinfo.globalStart;
     float3 dlength = dinfo.localSize;
     
     for (int i = 0; i < np; i++)
-    {            
-        coos[i].u.x += accs[i].f.x * dt;
-        coos[i].u.y += accs[i].f.y * dt;
-        coos[i].u.z += accs[i].f.z * dt;
+    {
+        auto& r = pos[i];
+        auto& u = vel[i];
+        u.x += accs[i].f.x * dt;
+        u.y += accs[i].f.y * dt;
+        u.z += accs[i].f.z * dt;
 
-        coos[i].r.x += coos[i].u.x * dt;
-        coos[i].r.y += coos[i].u.y * dt;
-        coos[i].r.z += coos[i].u.z * dt;
+        r.x += u.x * dt;
+        r.y += u.y * dt;
+        r.z += u.z * dt;
         
-        if (coos[i].r.x >  dstart.x+dlength.x) coos[i].r.x -= dlength.x;
-        if (coos[i].r.x <= dstart.x)				coos[i].r.x += dlength.x;
+        if (r.x >  dstart.x+dlength.x) r.x -= dlength.x;
+        if (r.x <= dstart.x)	       r.x += dlength.x;
 
-        if (coos[i].r.y >  dstart.y+dlength.y) coos[i].r.y -= dlength.y;
-        if (coos[i].r.y <= dstart.y)				coos[i].r.y += dlength.y;
+        if (r.y >  dstart.y+dlength.y) r.y -= dlength.y;
+        if (r.y <= dstart.y)	       r.y += dlength.y;
 
-        if (coos[i].r.z >  dstart.z+dlength.z) coos[i].r.z -= dlength.z;
-        if (coos[i].r.z <= dstart.z)				coos[i].r.z += dlength.z;
+        if (r.z >  dstart.z+dlength.z) r.z -= dlength.z;
+        if (r.z <= dstart.z)	       r.z += dlength.z;
     }
 }
 
@@ -95,16 +101,20 @@ T minabs(T arg, Args... other)
 }
 
 
-void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const int* __restrict__ cellsStartSize, const int* __restrict__ cellsSize,
+void forces(const float4 *pos, const float4 *vel, Force *accs,
+            const int *cellsStartSize, const int *cellsSize,
             CellListInfo cinfo, DomainInfo dinfo)
 {
     float3 dlength = dinfo.localSize;
     
     auto addForce = [=] (int dstId, int srcId, Force& a)
     {
-        float _xr = coos[dstId].r.x - coos[srcId].r.x;
-        float _yr = coos[dstId].r.y - coos[srcId].r.y;
-        float _zr = coos[dstId].r.z - coos[srcId].r.z;
+        Particle pdst(pos[dstId], vel[dstId]);
+        Particle psrc(pos[srcId], vel[srcId]);
+        
+        float _xr = pdst.r.x - psrc.r.x;
+        float _yr = pdst.r.y - psrc.r.y;
+        float _zr = pdst.r.z - psrc.r.z;
 
         _xr = minabs(_xr, _xr - dlength.x, _xr + dlength.x);
         _yr = minabs(_yr, _yr - dlength.y, _yr + dlength.y);
@@ -125,9 +135,9 @@ void forces(const Particle* __restrict__ coos, Force* __restrict__ accs, const i
         const float zr = _zr * invrij;
 
         const float rdotv =
-        xr * (coos[dstId].u.x - coos[srcId].u.x) +
-        yr * (coos[dstId].u.y - coos[srcId].u.y) +
-        zr * (coos[dstId].u.z - coos[srcId].u.z);
+        xr * (pdst.u.x - psrc.u.x) +
+        yr * (pdst.u.y - psrc.u.y) +
+        zr * (pdst.u.z - psrc.u.z);
 
         const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
@@ -204,37 +214,43 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     const int ndens = 8;
     pv.local()->resize(ncells.x*ncells.y*ncells.z * ndens, defStream);
+    auto& pos = pv.local()->positions();
+    auto& vel = pv.local()->velocities();
 
     srand48(0);
     
-
     printf("initializing...\n");
 
     int c = 0;
-    for (int i=0; i<ncells.x; i++)
-        for (int j=0; j<ncells.y; j++)
-            for (int k=0; k<ncells.z; k++)
-                for (int p=0; p<ndens; p++)
+    for (int i = 0; i < ncells.x; i++)
+        for (int j = 0; j < ncells.y; j++)
+            for (int k = 0; k < ncells.z; k++)
+                for (int l = 0; l < ndens; l++)
                 {
-                    pv.local()->coosvels[c].r.x = i + drand48() + domainStart.x;
-                    pv.local()->coosvels[c].r.y = j + drand48() + domainStart.y;
-                    pv.local()->coosvels[c].r.z = k + drand48() + domainStart.z;
-                    pv.local()->coosvels[c].i1 = c;
+                    Particle p;
+                    
+                    p.r.x = i + drand48() + domainStart.x;
+                    p.r.y = j + drand48() + domainStart.y;
+                    p.r.z = k + drand48() + domainStart.z;                    
 
-                    pv.local()->coosvels[c].u.x = 0*(drand48() - 0.5);
-                    pv.local()->coosvels[c].u.y = 0*(drand48() - 0.5);
-                    pv.local()->coosvels[c].u.z = 0*(drand48() - 0.5);
+                    p.u.x = 0*(drand48() - 0.5);
+                    p.u.y = 0*(drand48() - 0.5);
+                    p.u.z = 0*(drand48() - 0.5);
+                    p.setId(c);
+
+                    pos[c] = p.r2Float4();
+                    vel[c] = p.u2Float4();
                     c++;
                 }
 
 
-    pv.local()->resize(c, defStream);
-    pv.local()->coosvels.uploadToDevice(defStream);
+    pos.uploadToDevice(defStream);
+    vel.uploadToDevice(defStream);
     pv.local()->forces().clear(defStream);
 
-    HostBuffer<Particle> particles(pv.local()->size());
-    for (int i = 0; i < pv.local()->size(); i++)
-        particles[i] = pv.local()->coosvels[i];
+    HostBuffer<float4> positions(pv.local()->size()), velocities(pv.local()->size());
+    std::copy(pos.begin(), pos.end(), positions .begin());
+    std::copy(vel.begin(), vel.end(), velocities.begin());
 
     auto haloExchanger = std::make_unique<ParticleHaloExchanger>();
     haloExchanger->attach(&pv, &cells, {});
@@ -289,10 +305,10 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     cells.build(defStream);
 
-    int np = particles.size();
+    int np = positions.size();
     int totcells = cells.totcells;
 
-    HostBuffer<Particle> buffer(np);
+    HostBuffer<float4> posBuffer(np), velBuffer(np);
     HostBuffer<Force> accs(np);
     HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
     
@@ -302,22 +318,32 @@ void execute(float3 length, int niters, double& l2, double& linf)
     {
         printf("%d...", i);
         fflush(stdout);
-        makeCells(particles.hostptr, buffer.hostptr, cellsStartSize.hostptr, cellsSize.hostptr, np, cells.cellInfo());
-        forces(particles.hostptr, accs.hostptr, cellsStartSize.hostptr, cellsSize.hostptr, cells.cellInfo(), domainInfo);
-        integrate(particles.hostptr, accs.hostptr, np, dt, cells.cellInfo(), domainInfo);
+
+        makeCells(positions.hostptr, velocities.hostptr,
+                  posBuffer.hostptr, velBuffer.hostptr,
+                  cellsStartSize.data(), cellsSize.data(), np, cells.cellInfo());
+
+        forces(positions.data(), velocities.data(),
+               accs.data(), cellsStartSize.data(), cellsSize.data(), cells.cellInfo(), domainInfo);
+
+        integrate(positions.data(), velocities.data(), accs.data(), np, dt, cells.cellInfo(), domainInfo);
     }
 
     printf("\nDone, checking\n");
     printf("NP:  %d,  ref  %d\n", pv.local()->size(), np);
 
 
-    pv.local()->coosvels.downloadFromDevice(defStream, ContainersSynch::Synch);
+    pos.downloadFromDevice(defStream, ContainersSynch::Asynch);
+    vel.downloadFromDevice(defStream, ContainersSynch::Synch);
 
     std::vector<int> gpuid(np), cpuid(np);
-    for (int i=0; i<np; i++)
+    for (int i = 0; i < np; i++)
     {
-        gpuid[pv.local()->coosvels[i].i1] = i;
-        cpuid[particles[i].i1] = i;
+        Particle pg(pos[i], vel[i]);
+        Particle pc(positions[i], velocities[i]);
+        
+        gpuid[pg.getId()] = i;
+        cpuid[pc.getId()] = i;
     }
 
 
@@ -326,8 +352,8 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
     for (int i = 0; i < np; i++)
     {
-        Particle cpuP = particles[cpuid[i]];
-        Particle gpuP = pv.local()->coosvels[gpuid[i]];
+        Particle cpuP(positions[cpuid[i]], velocities[cpuid[i]]);
+        Particle gpuP(pos[gpuid[i]], vel[gpuid[i]]);
 
         double perr = -1;
 

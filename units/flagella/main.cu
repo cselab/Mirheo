@@ -287,14 +287,20 @@ static void initializeRef(CenterLine centerLine, int nSegments, std::vector<real
 
 static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
 {
+    auto& pos = rod.local()->positions ();
+    auto& vel = rod.local()->velocities();
+
     for (int i = 0; i < positions.size(); ++i)
     {
         Particle p;
         p.r = make_float3(positions[i]);
         p.u = make_float3(0);
-        rod.local()->coosvels[i] = p;
+        p.setId(i);
+        pos[i] = p.r2Float4();
+        vel[i] = p.u2Float4();
     }
-    rod.local()->coosvels.uploadToDevice(defaultStream);    
+    pos.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);    
 }
 
 template <class CenterLine>
