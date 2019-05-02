@@ -7,7 +7,7 @@
 
 class ObjectVector;
 
-class ObjectRedistributor : public ParticleExchanger
+class ObjectRedistributor : public Exchanger
 {
 public:
     void attach(ObjectVector* ov);

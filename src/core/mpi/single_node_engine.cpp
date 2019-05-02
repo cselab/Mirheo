@@ -3,7 +3,7 @@
 #include <core/logger.h>
 #include <algorithm>
 
-SingleNodeEngine::SingleNodeEngine(std::unique_ptr<ParticleExchanger> exchanger) :
+SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
         exchanger(std::move(exchanger))
 {   }
 

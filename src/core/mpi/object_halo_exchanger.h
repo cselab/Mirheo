@@ -10,7 +10,7 @@
 
 class ObjectVector;
 
-class ObjectHaloExchanger : public ParticleExchanger
+class ObjectHaloExchanger : public Exchanger
 {
 public:
     void attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames);

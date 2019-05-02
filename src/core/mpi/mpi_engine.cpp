@@ -5,7 +5,7 @@
 #include <core/logger.h>
 #include <algorithm>
 
-MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger,
+MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
     nActiveNeighbours(FragmentMapping::numFragments - 1),
     gpuAwareMPI(gpuAwareMPI),

@@ -11,7 +11,7 @@
 class ObjectVector;
 class ObjectHaloExchanger;
 
-class ObjectExtraExchanger : public ParticleExchanger
+class ObjectExtraExchanger : public Exchanger
 {
 public:
     ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExchanger);

@@ -7,7 +7,7 @@
 class ParticleVector;
 class CellList;
 
-class ParticleHaloExchanger : public ParticleExchanger
+class ParticleHaloExchanger : public Exchanger
 {
 private:
     std::vector<CellList*> cellLists;

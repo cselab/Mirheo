@@ -27,14 +27,14 @@
 class MPIExchangeEngine : public ExchangeEngine
 {
 public:
-    MPIExchangeEngine(std::unique_ptr<ParticleExchanger> exchanger, MPI_Comm comm, bool gpuAwareMPI);
+    MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger, MPI_Comm comm, bool gpuAwareMPI);
     ~MPIExchangeEngine();
     
     void init(cudaStream_t stream)     override;
     void finalize(cudaStream_t stream) override;
 
 private:
-    std::unique_ptr<ParticleExchanger> exchanger;
+    std::unique_ptr<Exchanger> exchanger;
     
     int dir2rank[FragmentMapping::numFragments];
     int dir2sendTag[FragmentMapping::numFragments];

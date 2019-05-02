@@ -729,16 +729,16 @@ void Simulation::prepareEngines()
         }
     }
     
-    std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<ParticleExchanger>) > makeEngine;
+    std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<Exchanger>) > makeEngine;
     
     // If we're on one node, use a singleNode engine
     // otherwise use MPI
     if (nranks3D.x * nranks3D.y * nranks3D.z == 1)
-        makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
+        makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<SingleNodeEngine> (std::move(exch));
         };
     else
-        makeEngine = [this] (std::unique_ptr<ParticleExchanger> exch) {
+        makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm, gpuAwareMPI);
         };
     

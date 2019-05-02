@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <memory>
 #include <cuda_runtime.h>
+#include <memory>
+#include <vector>
 
 class ExchangeHelper;
 
@@ -18,11 +18,11 @@ class ExchangeHelper;
  * The virtual combineAndUploadData() takes care
  * of storing data from the ExchangeHelper to where is has to be
  */
-class ParticleExchanger
+class Exchanger
 {
 public:
 
-    virtual ~ParticleExchanger();
+    virtual ~Exchanger();
 
     /**
      * Vector of helpers, that have buffers for data exchange

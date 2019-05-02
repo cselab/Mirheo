@@ -14,14 +14,14 @@
 class SingleNodeEngine : public ExchangeEngine
 {
 public:
-    SingleNodeEngine(std::unique_ptr<ParticleExchanger> exchanger);
+    SingleNodeEngine(std::unique_ptr<Exchanger> exchanger);
     void init(cudaStream_t stream)     override;
     void finalize(cudaStream_t stream) override;
     
     ~SingleNodeEngine() = default;
 
 private:
-    std::unique_ptr<ParticleExchanger> exchanger;
+    std::unique_ptr<Exchanger> exchanger;
     
     void copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
 };
