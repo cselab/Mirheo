@@ -291,9 +291,8 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-template <typename T, typename = void>
-static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
-                                       PinnedBuffer<T> *dst,
+static void accumulateIfHasAddOperator(GPUcontainer *src,
+                                       GPUcontainer *dst,
                                        int n, CellListInfo cinfo,
                                        cudaStream_t stream)
 {
@@ -301,8 +300,8 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
 }
 
 // use SFINAE to choose between additionable types 
-template <typename T, std::void_t<decltype(std::declval<T>() +
-                                           std::declval<T>())>>
+template <typename T, typename = std::void_t<decltype(std::declval<T>() +
+                                                      std::declval<T>())>>
 static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
                                        PinnedBuffer<T> *dst,
                                        int n, CellListInfo cinfo,
