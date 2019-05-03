@@ -34,12 +34,13 @@ struct __align__(4) MapEntry
 
 inline __HD__ int dispatchThreadsPerBuffer(int nBuffers, const int *offsets, int tid)
 {
-    int lo = 0, hi = nBuffers;
-    while (hi > lo+1)
+    int low = 0, hig = nBuffers;
+    while (hig > low+1)
     {
-        int m = (lo + hi) / 2;
-        if (tid >= offsets[m]) lo = m;
-        else hi = m;
+        int mid = (low + hig) / 2;
+        bool moveUp = tid >= offsets[mid];
+        low = moveUp ? mid : low;
+        hig = moveUp ? hig : mid;
     }
-    return lo;
+    return low;
 }

@@ -26,7 +26,7 @@ TEST (MAP, Entry_backAndForth)
 
 TEST (MAP, ThreadDispatch)
 {
-    const int ntries = 1000;
+    const int ntries = 10000;
     
     for (int i = 0; i < ntries; ++i)
     {
@@ -43,6 +43,8 @@ TEST (MAP, ThreadDispatch)
         
         ASSERT_LE(offsets[buffId], tid);
         ASSERT_GT(offsets[buffId+1], tid);
+        ASSERT_LT(buffId, nBuffers);
+        ASSERT_GE(buffId, 0);
     }
 }
 
