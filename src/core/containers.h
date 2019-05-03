@@ -99,6 +99,8 @@ private:
 
 public:
 
+    using value_type = T;
+    
     DeviceBuffer(int n = 0) :
         capacity(0), _size(0), devptr(nullptr)
     {
@@ -420,6 +422,9 @@ private:
     }
 
 public:
+
+    using value_type = T;
+    
     PinnedBuffer(int n = 0) :
         capacity(0), _size(0), hostptr(nullptr), devptr(nullptr)
     {

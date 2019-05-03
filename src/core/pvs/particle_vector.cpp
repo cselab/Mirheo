@@ -268,7 +268,7 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
             continue;
 
         mpark::visit([&](auto bufferPtr) {
-                         using T = typename std::remove_reference< decltype(*bufferPtr->hostPtr()) >::type;
+                         using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
                          bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
                          auto formtype   = XDMF::getDataForm<T>();
                          auto numbertype = XDMF::getNumberType<T>();

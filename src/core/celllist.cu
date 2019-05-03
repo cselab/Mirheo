@@ -171,8 +171,8 @@ void CellList::_updateExtraDataChannels(cudaStream_t stream)
         const auto& desc = namedChannel.second;
         if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
 
-        mpark::visit([&](auto pinnedBuff) {
-                         using T = typename std::remove_reference< decltype(pinnedBuff->hostPtr()[0]) >::type;
+        mpark::visit([&](auto pinnedBuffPtr) {
+                         using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
                          if (!containerManager.checkChannelExists(name))
                              containerManager.createData<T>(name, np);
