@@ -10,17 +10,6 @@
 
 namespace ParticlePackerKernels
 {
-
-template <typename T>
-__global__ void updateOffsets(int n, const int *sizes, size_t *offsetsBytes)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i > n) return;
-    
-    size_t sz = Packer::getPackedSize<T>(sizes[i]);
-    offsetsBytes[i] += sz;
-}
-
 template <typename T>
 __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const T *srcData, char *buffer)
 {
