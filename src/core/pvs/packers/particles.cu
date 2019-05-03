@@ -10,17 +10,17 @@ namespace ParticlePackerKernels
 {
 
 template <typename T>
-__global__ void updateOffsets(int n, const int *sizes, size_t *offsets)
+__global__ void updateOffsets(int n, const int *sizes, size_t *offsetsBytes)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > n) return;
     
     size_t sz = Packer::getPackedSize<T>(sizes[i]);
-    offsets[i] += sz;
+    offsetsBytes[i] += sz;
 }
 
 template <typename T>
-__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsets, const T *srcData, char *buffer)
+__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const T *srcData, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > n) return;
@@ -29,10 +29,32 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsets, 
     int buffId = m.getBufId();
     int  srcId = m.getId();
 
-    T *dstAddrBase = (T*) (buffer + offsets[buffId]);
+    T *dstData = (T*) (buffer + offsetsBytes[buffId]);
 
-    dstAddrBase[i] = srcData[srcId]; // TODO shift
+    dstData[i] = srcData[srcId]; // TODO shift
 }
+
+template <typename T>
+__global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const char *buffer, const size_t *offsetsBytes, T *dstData)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if (i > n) return;
+
+    extern __shared__ int sharedOffsets[];
+
+    for (int i = threadIdx.x; i < nBuffers; i += blockDim.x)
+        sharedOffsets[i] = offsets[i];
+    __syncthreads();
+    
+    int buffId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, i);
+    int pid = i - sharedOffsets[buffId];
+    
+    const T *srcData = (const T*) (buffer + offsetsBytes[buffId]);
+
+    dstData[pid] = srcData[pid]; // TODO shift
+}
+
+
 
 } // namespace ParticlePackerKernels
 
