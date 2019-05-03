@@ -67,7 +67,8 @@ size_t ParticlePacker::getPackedSizeBytes(int n)
     return _getPackedSizeBytes(lpv->dataPerParticle, n);
 }
 
-void ParticlePacker::packToBuffer(DeviceBuffer<MapEntry>& map, PinnedBuffer<size_t>& offsets, PinnedBuffer<int>& sizes, char *buffer, cudaStream_t stream)
+void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
+                                  PinnedBuffer<size_t>& offsetsBytes, char *buffer, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
@@ -87,7 +88,7 @@ void ParticlePacker::packToBuffer(DeviceBuffer<MapEntry>& map, PinnedBuffer<size
                 SAFE_KERNEL_LAUNCH(
                     ParticlePackerKernels::packToBuffer,
                     getNblocks(n, nthreads), nthreads, 0, stream,
-                    n, map.devPtr(), offsets.devPtr(),
+                    n, map.devPtr(), offsetsBytes.devPtr(),
                     pinnedBuffPtr->devPtr(), buffer);
             }
             {
@@ -97,10 +98,50 @@ void ParticlePacker::packToBuffer(DeviceBuffer<MapEntry>& map, PinnedBuffer<size
                 SAFE_KERNEL_LAUNCH(
                     ParticlePackerKernels::updateOffsets<T>,
                     getNblocks(n, nthreads), nthreads, 0, stream,
-                    n, sizes.devPtr(), offsets.devPtr());
+                    n, sizes.devPtr(), offsetsBytes.devPtr());
             }
         };
         
         mpark::visit(packChannel, desc->varDataPtr);
+    }
+}
+
+void ParticlePacker::unpackFromBuffer(PinnedBuffer<size_t>& offsetsBytes,
+                                      const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
+                                      const char *buffer, cudaStream_t stream)
+{
+    auto& manager = lpv->dataPerParticle;
+
+    for (const auto& name_desc : manager.getSortedChannels())
+    {
+        if (!predicate(name_desc)) continue;
+        auto& desc = name_desc.second;
+
+        auto unpackChannel = [&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+
+            int nBuffers = sizes.size();
+            {
+                int n = offsets[nBuffers];
+                const int nthreads = 128;
+
+                SAFE_KERNEL_LAUNCH(
+                    ParticlePackerKernels::unpackFromBuffer,
+                    getNblocks(n, nthreads), nthreads, 0, stream,
+                    nBuffers, offsets.devPtr(), n, buffer,
+                    offsetsBytes.devPtr(), pinnedBuffPtr->devPtr());
+            }
+            {
+                const int nthreads = 32;
+
+                SAFE_KERNEL_LAUNCH(
+                    ParticlePackerKernels::updateOffsets<T>,
+                    getNblocks(nBuffers, nthreads), nthreads, 0, stream,
+                    nBuffers, sizes.devPtr(), offsetsBytes.devPtr());
+            }
+        };
+        
+        mpark::visit(unpackChannel, desc->varDataPtr);
     }
 }
