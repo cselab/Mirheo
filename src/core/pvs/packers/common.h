@@ -1,6 +1,7 @@
 #pragma once
 
-#include <core/pvs/data_manager.h>
+#include "interface.h"
+
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 

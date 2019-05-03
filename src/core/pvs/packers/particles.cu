@@ -1,5 +1,6 @@
 #include "particles.h"
 #include "common.h"
+#include "shifters.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_common.h>
