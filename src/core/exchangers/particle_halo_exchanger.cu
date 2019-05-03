@@ -150,7 +150,6 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
-    // LocalParticleVector *lpv = pv->local();
     
     helper->sendSizes.clear(stream);
     ParticlePacker packer(pv, lpv, packPredicates[id], stream);
@@ -161,7 +160,8 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 
         const int nthreads = 64;
-        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+        const int nfaces = 6;;
+        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         SAFE_KERNEL_LAUNCH(
                 getHalos<PackMode::Query>,
@@ -188,7 +188,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
-        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+        const int nfaces = 6;;
+        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         ParticlePacker packer(pv, lpv, packPredicates[id], stream);
 
