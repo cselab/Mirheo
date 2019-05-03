@@ -11,7 +11,7 @@
 namespace ParticlePackerKernels
 {
 template <typename T>
-__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const T *srcData, char *buffer)
+__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const int *offsets, const T *srcData, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > n) return;
@@ -21,21 +21,23 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBy
     int  srcId = m.getId();
 
     T *dstData = (T*) (buffer + offsetsBytes[buffId]);
-
-    dstData[i] = srcData[srcId]; // TODO shift
+    int dstId = i - offsets[buffId];
+    
+    dstData[dstId] = srcData[srcId]; // TODO shift
 }
 
 template <typename T>
 __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const char *buffer, const size_t *offsetsBytes, T *dstData)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i > n) return;
 
     extern __shared__ int sharedOffsets[];
 
     for (int i = threadIdx.x; i < nBuffers; i += blockDim.x)
         sharedOffsets[i] = offsets[i];
     __syncthreads();
+
+    if (i > n) return;
     
     int buffId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, i);
     int pid = i - sharedOffsets[buffId];
@@ -56,7 +58,7 @@ size_t ParticlePacker::getPackedSizeBytes(int n)
     return _getPackedSizeBytes(lpv->dataPerParticle, n);
 }
 
-void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
+void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes, const PinnedBuffer<int>& offsets,
                                   PinnedBuffer<size_t>& offsetsBytes, char *buffer, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
@@ -76,7 +78,7 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
             SAFE_KERNEL_LAUNCH(
                 ParticlePackerKernels::packToBuffer,
                 getNblocks(n, nthreads), nthreads, 0, stream,
-                n, map.devPtr(), offsetsBytes.devPtr(),
+                n, map.devPtr(), offsetsBytes.devPtr(), offsets.devPtr(),
                 pinnedBuffPtr->devPtr(), buffer);
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
