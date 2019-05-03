@@ -1,4 +1,5 @@
 #include "particles.h"
+#include "common.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_common.h>
@@ -54,8 +55,6 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
     dstData[pid] = srcData[pid]; // TODO shift
 }
 
-
-
 } // namespace ParticlePackerKernels
 
 ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
@@ -81,25 +80,16 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            {
-                int n = map.size();
-                const int nthreads = 128;
+            int n = map.size();
+            const int nthreads = 128;
 
-                SAFE_KERNEL_LAUNCH(
-                    ParticlePackerKernels::packToBuffer,
-                    getNblocks(n, nthreads), nthreads, 0, stream,
-                    n, map.devPtr(), offsetsBytes.devPtr(),
-                    pinnedBuffPtr->devPtr(), buffer);
-            }
-            {
-                int n = sizes.size();
-                const int nthreads = 32;
+            SAFE_KERNEL_LAUNCH(
+                ParticlePackerKernels::packToBuffer,
+                getNblocks(n, nthreads), nthreads, 0, stream,
+                n, map.devPtr(), offsetsBytes.devPtr(),
+                pinnedBuffPtr->devPtr(), buffer);
 
-                SAFE_KERNEL_LAUNCH(
-                    ParticlePackerKernels::updateOffsets<T>,
-                    getNblocks(n, nthreads), nthreads, 0, stream,
-                    n, sizes.devPtr(), offsetsBytes.devPtr());
-            }
+            updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(packChannel, desc->varDataPtr);
@@ -122,24 +112,17 @@ void ParticlePacker::unpackFromBuffer(PinnedBuffer<size_t>& offsetsBytes,
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
             int nBuffers = sizes.size();
-            {
-                int n = offsets[nBuffers];
-                const int nthreads = 128;
+            int n = offsets[nBuffers];
+            const int nthreads = 128;
+            const size_t sharedMem = nBuffers * sizeof(int);
 
-                SAFE_KERNEL_LAUNCH(
-                    ParticlePackerKernels::unpackFromBuffer,
-                    getNblocks(n, nthreads), nthreads, 0, stream,
-                    nBuffers, offsets.devPtr(), n, buffer,
-                    offsetsBytes.devPtr(), pinnedBuffPtr->devPtr());
-            }
-            {
-                const int nthreads = 32;
+            SAFE_KERNEL_LAUNCH(
+                ParticlePackerKernels::unpackFromBuffer,
+                getNblocks(n, nthreads), nthreads, sharedMem, stream,
+                nBuffers, offsets.devPtr(), n, buffer,
+                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr());
 
-                SAFE_KERNEL_LAUNCH(
-                    ParticlePackerKernels::updateOffsets<T>,
-                    getNblocks(nBuffers, nthreads), nthreads, 0, stream,
-                    nBuffers, sizes.devPtr(), offsetsBytes.devPtr());
-            }
+            updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(unpackChannel, desc->varDataPtr);

@@ -9,7 +9,7 @@
 namespace ObjectPackerKernels
 {
 
-// TODO
+
 
 } // namespace ObjectPackerKernels
 
@@ -28,7 +28,7 @@ ObjectPacker::ObjectPacker(ParticleVector *pv, LocalParticleVector *lpv, PackPre
 size_t ObjectPacker::getPackedSizeBytes(int nobj)
 {
     auto packedSizeParts = _getPackedSizeBytes(lov->dataPerParticle, nobj * ov->objSize);
-    auto packedSizeObjs = _getPackedSizeBytes(lov->dataPerObject, nobj);
+    auto packedSizeObjs  = _getPackedSizeBytes(lov->dataPerObject,   nobj);
 
     return packedSizeParts + packedSizeObjs;
 }
