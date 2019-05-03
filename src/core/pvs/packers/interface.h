@@ -20,7 +20,7 @@ public:
     virtual size_t getPackedSizeBytes(int n) = 0;
 
     template <typename T, typename TPadding = float4>
-    __HD__ inline size_t getPackedSize(int n)
+    __HD__ static size_t getPackedSize(int n)
     {
         size_t size = n * sizeof(T);
         size_t npads = (size + sizeof(TPadding)-1) / sizeof(TPadding);

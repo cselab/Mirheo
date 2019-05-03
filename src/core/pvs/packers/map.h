@@ -32,3 +32,14 @@ struct __align__(4) MapEntry
     }
 };
 
+inline __HD__ int dispatchThreadsPerBuffer(int nBuffers, const int *offsets, int tid)
+{
+    int lo = 0, hi = nBuffers;
+    while (hi > lo+1)
+    {
+        int m = (lo + hi) / 2;
+        if (tid >= offsets[m]) lo = m;
+        else hi = m;
+    }
+    return lo;
+}

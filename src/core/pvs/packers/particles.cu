@@ -1,8 +1,13 @@
 #include "particles.h"
 
 #include <core/pvs/particle_vector.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
 
-NAMESPACE_BEGIN(ParticlePackerKernels)
+#include <type_traits>
+
+namespace ParticlePackerKernels
+{
 
 template <typename T>
 __global__ void updateOffsets(int n, const int *sizes, size_t *offsets)
@@ -29,7 +34,7 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsets, 
     dstAddrBase[i] = srcData[srcId]; // TODO shift
 }
 
-NAMESPACE_END(ParticlePackerKernels)
+} // namespace ParticlePackerKernels
 
 ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
     Packer(pv, lpv, predicate)
@@ -40,10 +45,40 @@ size_t ParticlePacker::getPackedSizeBytes(int n)
     return _getPackedSizeBytes(lpv->dataPerParticle, n);
 }
 
-void ParticlePacker::packToBuffer(const MapEntry *map, PinnedBuffer<size_t> offsets, PinnedBuffer<int> sizes, char *buufer, cudaStream_t stream)
+void ParticlePacker::packToBuffer(DeviceBuffer<MapEntry>& map, PinnedBuffer<size_t>& offsets, PinnedBuffer<int>& sizes, char *buffer, cudaStream_t stream)
 {
-    // for (const auto& name_desc : manager.getSortedChannels())
-    // {
-    //     // TODO
-    // }
+    auto& manager = lpv->dataPerParticle;
+
+    for (const auto& name_desc : manager.getSortedChannels())
+    {
+        if (!predicate(name_desc)) continue;
+        auto& desc = name_desc.second;
+
+        auto packChannel = [&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+
+            {
+                int n = map.size();
+                const int nthreads = 128;
+
+                SAFE_KERNEL_LAUNCH(
+                    ParticlePackerKernels::packToBuffer,
+                    getNblocks(n, nthreads), nthreads, 0, stream,
+                    n, map.devPtr(), offsets.devPtr(),
+                    pinnedBuffPtr->devPtr(), buffer);
+            }
+            {
+                int n = sizes.size();
+                const int nthreads = 32;
+
+                SAFE_KERNEL_LAUNCH(
+                    ParticlePackerKernels::updateOffsets<T>,
+                    getNblocks(n, nthreads), nthreads, 0, stream,
+                    n, sizes.devPtr(), offsets.devPtr());
+            }
+        };
+        
+        mpark::visit(packChannel, desc->varDataPtr);
+    }
 }
