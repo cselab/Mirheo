@@ -92,28 +92,21 @@ __global__ void unpackObjectsFromBuffer(int nObj, int nBuffers, const int *offse
 
 } // namespace ObjectPackerKernels
 
-ObjectsPacker::ObjectsPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
-    Packer(state, pv, lpv, predicate),    
-    ov(dynamic_cast<ObjectVector*>(pv)),
-    lov(dynamic_cast<LocalObjectVector*>(lpv))
-{
-    if (ov == nullptr)
-        die("object packers must work with object vectors");
-
-    if (lov == nullptr)
-        die("object packers must work with local object vectors");
-}
+ObjectsPacker::ObjectsPacker(const YmrState *state, ObjectVector *ov, PackPredicate predicate) :
+    Packer(state, ov, predicate),
+    ov(ov)
+{}
 
 size_t ObjectsPacker::getPackedSizeBytes(int nobj) const
 {
-    auto packedSizeParts = _getPackedSizeBytes(lov->dataPerParticle, nobj * ov->objSize);
-    auto packedSizeObjs  = _getPackedSizeBytes(lov->dataPerObject,   nobj);
+    auto packedSizeParts = _getPackedSizeBytes(ov->local()->dataPerParticle, nobj * ov->objSize);
+    auto packedSizeObjs  = _getPackedSizeBytes(ov->local()->dataPerObject,   nobj);
 
     return packedSizeParts + packedSizeObjs;
 }
 
-void ObjectsPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
-                                const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
+void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
+                                 const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
 {
     auto& partManager = lov->dataPerParticle;
     auto& objManager  = lov->dataPerObject;
@@ -176,8 +169,8 @@ void ObjectsPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinned
     }
 }
 
-void ObjectsPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
-                                    const char *buffer, int oldObjSize, cudaStream_t stream)
+void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
+                                     const char *buffer, int oldObjSize, cudaStream_t stream)
 {
     auto& partManager = lov->dataPerParticle;
     auto& objManager  = lov->dataPerObject;

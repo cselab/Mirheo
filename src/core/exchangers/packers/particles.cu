@@ -51,17 +51,18 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
 
 } // namespace ParticlePackerKernels
 
-ParticlesPacker::ParticlesPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
-    Packer(state, pv, lpv, predicate)
+ParticlesPacker::ParticlesPacker(const YmrState *state, ParticleVector *pv, PackPredicate predicate) :
+    Packer(state, pv, predicate)
 {}
 
 size_t ParticlesPacker::getPackedSizeBytes(int n) const
 {
-    return _getPackedSizeBytes(lpv->dataPerParticle, n);
+    return _getPackedSizeBytes(pv->local()->dataPerParticle, n);
 }
 
-void ParticlesPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
-                                  const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
+void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv,
+                                   const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
+                                   const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
@@ -96,7 +97,8 @@ void ParticlesPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinn
     }
 }
 
-void ParticlesPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
+void ParticlesPacker::unpackFromBuffer(const LocalParticleVector *lpv,
+                                       const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
                                        const char *buffer, int oldSize, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;

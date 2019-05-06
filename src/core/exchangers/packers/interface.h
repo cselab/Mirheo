@@ -16,7 +16,7 @@ class LocalParticleVector;
 class Packer
 {
 public:
-    Packer(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
+    Packer(const YmrState *state, ParticleVector *pv, PackPredicate predicate);
     
     virtual size_t getPackedSizeBytes(int n) const = 0;
 
@@ -34,13 +34,12 @@ public:
         return getPackedSize<TPadding>(sizeof(T), n);
     }
 
-
 protected:
     size_t _getPackedSizeBytes(const DataManager& manager, int n) const;
 
 protected:
     const YmrState *state;
     PackPredicate predicate;
+    DeviceBuffer<size_t> offsetsBytes;
     ParticleVector *pv;
-    LocalParticleVector *lpv;
 };

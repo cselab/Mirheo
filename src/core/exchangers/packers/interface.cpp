@@ -2,11 +2,10 @@
 
 #include <core/pvs/particle_vector.h>
 
-Packer::Packer(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
+Packer::Packer(const YmrState *state, ParticleVector *pv, PackPredicate predicate) :
     state(state),
-    pv(pv),
-    lpv(lpv),
-    predicate(predicate)
+    predicate(predicate),
+    pv(pv)
 {}
 
 size_t Packer::_getPackedSizeBytes(const DataManager& manager, int n) const
