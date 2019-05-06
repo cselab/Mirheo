@@ -1,16 +1,31 @@
 #pragma once
 
+#include "../utils/fragments_mapping.h"
+
+#include <core/domain.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/type_map.h>
 
 struct Shifter
 {
-    Shifter(bool needShift) : needShift(needShift) {}
+    Shifter(bool needShift, DomainInfo domain) :
+        needShift(needShift),
+        domain(domain)
+    {}
 
     template <typename T>
-    __D__ inline void operator()(T& var, float3 shift) const
+    __D__ inline T operator()(T var, int bufId) const
     {
-        if (needShift) _shift(var, shift);
+        if (needShift)
+        {
+            int3 dir = FragmentMapping::getDir(bufId);
+            float3 shift { -domain.localSize.x * dir.x,
+                           -domain.localSize.y * dir.y,
+                           -domain.localSize.z * dir.z };
+        
+            _shift(var, shift);
+        }
+        return var;
     }
 
 private:
@@ -39,5 +54,6 @@ private:
         v.z += s.z;
     }
     
-    const bool needShift; 
+    const bool needShift;
+    const DomainInfo domain;
 };

@@ -1,6 +1,6 @@
 #include "particles.h"
 #include "common.h"
-#include "shifters.h"
+#include "shifter.h"
 
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_common.h>
@@ -11,7 +11,8 @@
 namespace ParticlePackerKernels
 {
 template <typename T>
-__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const int *offsets, const T *srcData, char *buffer)
+__global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBytes, const int *offsets,
+                             const T *srcData, Shifter shift, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > n) return;
@@ -22,12 +23,13 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBy
 
     T *dstData = (T*) (buffer + offsetsBytes[buffId]);
     int dstId = i - offsets[buffId];
-    
-    dstData[dstId] = srcData[srcId]; // TODO shift
+
+    dstData[dstId] = shift(srcData[srcId], buffId);
 }
 
 template <typename T>
-__global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const char *buffer, const size_t *offsetsBytes, T *dstData)
+__global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const char *buffer,
+                                 const size_t *offsetsBytes, T *dstData)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -44,13 +46,13 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
     
     const T *srcData = (const T*) (buffer + offsetsBytes[buffId]);
 
-    dstData[pid] = srcData[pid]; // TODO shift
+    dstData[pid] = srcData[pid];
 }
 
 } // namespace ParticlePackerKernels
 
-ParticlePacker::ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
-    Packer(pv, lpv, predicate)
+ParticlePacker::ParticlePacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
+    Packer(state, pv, lpv, predicate)
 {}
 
 size_t ParticlePacker::getPackedSizeBytes(int n)
@@ -72,6 +74,8 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
+        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+
         auto packChannel = [&](auto pinnedBuffPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
@@ -83,7 +87,7 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
                 ParticlePackerKernels::packToBuffer,
                 getNblocks(n, nthreads), nthreads, 0, stream,
                 n, map.devPtr(), offsetsBytes.devPtr(), offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), buffer);
+                pinnedBuffPtr->devPtr(), shift, buffer);
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };

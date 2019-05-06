@@ -5,7 +5,7 @@
 class ParticlePacker : public Packer
 {
 public:
-    ParticlePacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
+    ParticlePacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
 
     size_t getPackedSizeBytes(int n) override;
 

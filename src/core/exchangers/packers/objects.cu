@@ -1,5 +1,6 @@
 #include "objects.h"
 #include "common.h"
+#include "shifter.h"
 
 #include <core/pvs/object_vector.h>
 #include <core/utils/cuda_common.h>
@@ -11,7 +12,7 @@ namespace ObjectPackerKernels
 {
 template <typename T>
 __global__ void packParticlesToBuffer(const MapEntry *map, int objSize, const size_t *offsetsBytes,
-                                      const int *offsets, const T *srcData, char *buffer)
+                                      const int *offsets, const T *srcData, Shifter shift, char *buffer)
 {
     int objId = blockIdx.x;
     auto m = map[objId];
@@ -23,13 +24,13 @@ __global__ void packParticlesToBuffer(const MapEntry *map, int objSize, const si
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
         int dstId = (objId - bufOffset) * objSize + i;
-        dstData[dstId] = srcData[srcId + i]; // TODO shift
+        dstData[dstId] = shift(srcData[srcId + i], buffId);
     }
 }
 
 template <typename T>
 __global__ void packObjectsToBuffer(int nObj, const MapEntry *map, const size_t *offsetsBytes,
-                                    const int *offsets, const T *srcData, char *buffer)
+                                    const int *offsets, const T *srcData, Shifter shift, char *buffer)
 {
     int objId = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -42,7 +43,7 @@ __global__ void packObjectsToBuffer(int nObj, const MapEntry *map, const size_t 
     int bufOffset = offsets[buffId];
 
     int dstId = objId - bufOffset;
-    dstData[dstId] = srcData[srcId]; // TODO shift
+    dstData[dstId] = shift(srcData[srcId], buffId);
 }
 
 template <typename T>
@@ -64,7 +65,7 @@ __global__ void unpackParticlesFromBuffer(int nBuffers, const int *offsets, int 
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
         int j = objId * objSize + i;
-        dstData[j] = srcData[j]; // TODO shift
+        dstData[j] = srcData[j];
     }
 }
 
@@ -86,13 +87,13 @@ __global__ void unpackObjectsFromBuffer(int nObj, int nBuffers, const int *offse
     
     const T *srcData = (const T*) (buffer + offsetsBytes[buffId]);
 
-    dstData[objId] = srcData[objId]; // TODO shift
+    dstData[objId] = srcData[objId];
 }
 
 } // namespace ObjectPackerKernels
 
-ObjectPacker::ObjectPacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
-    Packer(pv, lpv, predicate),    
+ObjectPacker::ObjectPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
+    Packer(state, pv, lpv, predicate),    
     ov(dynamic_cast<ObjectVector*>(pv)),
     lov(dynamic_cast<LocalObjectVector*>(lpv))
 {
@@ -126,18 +127,20 @@ void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedB
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
+        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+        
         auto packChannel = [&](auto pinnedBuffPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
             const int nObj = map.size();
             const int nthreads = 128;
-
+            
             SAFE_KERNEL_LAUNCH(
                 ObjectPackerKernels::packParticlesToBuffer,
                 nObj, nthreads, 0, stream,
                 map.devPtr(), ov->objSize, offsetsBytes.devPtr(), offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), buffer);
+                pinnedBuffPtr->devPtr(), shift, buffer);
 
             updateOffsets<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
@@ -151,6 +154,8 @@ void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedB
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
+        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+        
         auto packChannel = [&](auto pinnedBuffPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
@@ -162,7 +167,7 @@ void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedB
                 ObjectPackerKernels::packObjectsToBuffer,
                 getNblocks(nObj, nthreads), nthreads, 0, stream,
                 nObj, map.devPtr(), offsetsBytes.devPtr(), offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), buffer);
+                pinnedBuffPtr->devPtr(), shift, buffer);
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };

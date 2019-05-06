@@ -2,7 +2,8 @@
 
 #include <core/pvs/particle_vector.h>
 
-Packer::Packer(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
+Packer::Packer(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate) :
+    state(state),
     pv(pv),
     lpv(lpv),
     predicate(predicate)

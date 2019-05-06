@@ -8,7 +8,7 @@ class LocalObjectVector;
 class ObjectPacker : public Packer
 {
 public:
-    ObjectPacker(ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
+    ObjectPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
 
     size_t getPackedSizeBytes(int n) override;
 
