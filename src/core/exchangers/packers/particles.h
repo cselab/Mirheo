@@ -2,10 +2,10 @@
 
 #include "interface.h"
 
-class ParticlePacker : public Packer
+class ParticlesPacker : public Packer
 {
 public:
-    ParticlePacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
+    ParticlesPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
 
     size_t getPackedSizeBytes(int n) const override;
 

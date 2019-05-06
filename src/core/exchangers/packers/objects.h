@@ -5,10 +5,10 @@
 class ObjectVector;
 class LocalObjectVector;
 
-class ObjectPacker : public Packer
+class ObjectsPacker : public Packer
 {
 public:
-    ObjectPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
+    ObjectsPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
 
     size_t getPackedSizeBytes(int n) const override;
 
