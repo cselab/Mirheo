@@ -174,5 +174,63 @@ void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedB
 void ObjectPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
                                     const char *buffer, cudaStream_t stream)
 {
-    
+    auto& partManager = lov->dataPerParticle;
+    auto& objManager  = lov->dataPerObject;
+
+    offsetsBytes.resize_anew(offsets.size());
+    offsetsBytes.clear(stream);
+
+    // unpack particle data
+    for (const auto& name_desc : partManager.getSortedChannels())
+    {
+        if (!predicate(name_desc)) continue;
+        auto& desc = name_desc.second;
+
+        auto unpackChannel = [&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+
+            int nBuffers = sizes.size();
+            int nObj     = offsets[nBuffers];
+            const int nthreads = 128;
+            const size_t sharedMem = nBuffers * sizeof(int);
+
+            SAFE_KERNEL_LAUNCH(
+                ObjectPackerKernels::unpackParticlesFromBuffer,
+                nObj, nthreads, sharedMem, stream,
+                nBuffers, offsets.devPtr(), ov->objSize,
+                buffer, offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
+
+            updateOffsets<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
+        };
+        
+        mpark::visit(unpackChannel, desc->varDataPtr);
+    }
+
+    // unpack object data
+    for (const auto& name_desc : objManager.getSortedChannels())
+    {
+        if (!predicate(name_desc)) continue;
+        auto& desc = name_desc.second;
+
+        auto unpackChannel = [&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+
+            int nBuffers = sizes.size();
+            int nObj     = offsets[nBuffers];
+            const int nthreads = 32;
+            const size_t sharedMem = nBuffers * sizeof(int);
+
+            SAFE_KERNEL_LAUNCH(
+                ObjectPackerKernels::unpackObjectsFromBuffer,
+                getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
+                nObj, nBuffers, offsets.devPtr(), buffer,
+                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
+
+            updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
+        };
+        
+        mpark::visit(unpackChannel, desc->varDataPtr);
+    }
 }

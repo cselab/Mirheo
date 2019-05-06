@@ -119,7 +119,7 @@ void ParticlePacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const Pi
                 ParticlePackerKernels::unpackFromBuffer,
                 getNblocks(n, nthreads), nthreads, sharedMem, stream,
                 nBuffers, offsets.devPtr(), n, buffer,
-                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr());
+                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
