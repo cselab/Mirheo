@@ -58,11 +58,15 @@ size_t ParticlePacker::getPackedSizeBytes(int n)
     return _getPackedSizeBytes(lpv->dataPerParticle, n);
 }
 
-void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes, const PinnedBuffer<int>& offsets,
-                                  PinnedBuffer<size_t>& offsetsBytes, char *buffer, cudaStream_t stream)
+void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
+                                  const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
+    offsetsBytes.resize_anew(offsets.size());
+    offsetsBytes.clear(stream);
+    updateOffsets<float4>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
+    
     for (const auto& name_desc : manager.getSortedChannels())
     {
         if (!predicate(name_desc)) continue;
@@ -88,11 +92,14 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
     }
 }
 
-void ParticlePacker::unpackFromBuffer(PinnedBuffer<size_t>& offsetsBytes,
-                                      const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
+void ParticlePacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
                                       const char *buffer, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
+
+    offsetsBytes.resize_anew(offsets.size());
+    offsetsBytes.clear(stream);
+    updateOffsets<float4>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
 
     for (const auto& name_desc : manager.getSortedChannels())
     {

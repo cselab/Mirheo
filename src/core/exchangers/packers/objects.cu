@@ -73,14 +73,12 @@ size_t ObjectPacker::getPackedSizeBytes(int nobj)
     return packedSizeParts + packedSizeObjs;
 }
 
-void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
-                                PinnedBuffer<size_t>& offsetsBytes, char *buffer, cudaStream_t stream)
+void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes, char *buffer, cudaStream_t stream)
 {
     
 }
 
-void ObjectPacker::unpackFromBuffer(PinnedBuffer<size_t>& offsetsBytes,
-                                    const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
+void ObjectPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
                                     const char *buffer, cudaStream_t stream)
 {
     
