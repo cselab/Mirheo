@@ -41,12 +41,12 @@ void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream
 {
     auto bulkId = helper->bulkId;
     
-    if (helper->sendSizes[bulkId] != 0)
+    if (helper->send.sizes[bulkId] != 0)
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
             "working with particle vector '%s'", helper->name.c_str());
         
-    helper->recvSizes   .copy(helper->sendSizes,   stream); // copy as we may need sizes from other classes
-    helper->recvOffsets .copy(helper->sendOffsets, stream);
-    std::swap(helper->recvBuf,     helper->sendBuf);
+    helper->recv.sizes   .copy(helper->send.sizes,   stream); // copy as we may need sizes from other classes
+    helper->recv.offsets .copy(helper->send.offsets, stream);
+    std::swap(helper->recv.buffer,      helper->send.buffer);
 }
 

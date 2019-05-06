@@ -1,49 +1,73 @@
 #include "exchange_helpers.h"
+#include "packers/interface.h"
 
-ExchangeHelper::ExchangeHelper(std::string name, int uniqueId) :
-    name(name),
-    datumSize(0),
-    uniqueId(uniqueId)
+template <typename T>
+static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
 {
-    recvSizes.  resize_anew(nBuffers);
-    recvOffsets.resize_anew(nBuffers+1);
+    int n = sz.size();
+    if (n == 0) return;
+
+    of[0] = 0;
+    for (int i = 0; i < n; i++)
+        of[i+1] = of[i] + sz[i];
+}
+
+static void computeSizesBytes(const Packer *packer, const PinnedBuffer<int>& sz, PinnedBuffer<size_t>& szBytes)
+{
+    for (int i = 0; i < sz.size(); ++i)
+        szBytes[i] = packer->getPackedSizeBytes(sz[i]);
+}
+
+ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, Packer *packer) :
+    name(name),
+    uniqueId(uniqueId),
+    packer(packer)
+{
+    recv.sizes       .resize_anew(nBuffers);
+    recv.sizesBytes  .resize_anew(nBuffers);
+    recv.offsets     .resize_anew(nBuffers+1);
+    recv.offsetsBytes.resize_anew(nBuffers+1);
     
-    sendSizes.  resize_anew(nBuffers);
-    sendOffsets.resize_anew(nBuffers+1);
+    send.sizes       .resize_anew(nBuffers);
+    send.sizesBytes  .resize_anew(nBuffers);
+    send.offsets     .resize_anew(nBuffers+1);
+    send.offsetsBytes.resize_anew(nBuffers+1);
 }
 
 ExchangeHelper::~ExchangeHelper() = default;
 
-void ExchangeHelper::setDatumSize(int size)
-{
-    datumSize = size;
-}
-
 void ExchangeHelper::computeRecvOffsets()
 {
-    computeOffsets(recvSizes, recvOffsets);
+    prefixSum(recv.sizes, recv.offsets);
+    computeSizesBytes(packer, recv.sizes, recv.sizesBytes);
+    prefixSum(recv.sizesBytes, recv.offsetsBytes);
 }
 
 void ExchangeHelper::computeSendOffsets()
 {
-    computeOffsets(sendSizes, sendOffsets);
+    prefixSum(send.sizes, send.offsets);
+    computeSizesBytes(packer, send.sizes, send.sizesBytes);
+    prefixSum(send.sizesBytes, send.offsetsBytes);
 }
 
 void ExchangeHelper::computeSendOffsets_Dev2Dev(cudaStream_t stream)
 {
-    sendSizes.downloadFromDevice(stream);
+    send.sizes.downloadFromDevice(stream);
     computeSendOffsets();
-    sendOffsets.uploadToDevice(stream);
+    send.offsets.uploadToDevice(stream);
+    send.offsetsBytes.uploadToDevice(stream);
 }
 
 void ExchangeHelper::resizeSendBuf()
 {
-    sendBuf.resize_anew(sendOffsets[nBuffers] * datumSize);
+    auto size = send.offsetsBytes[nBuffers];
+    send.buffer.resize_anew(size);
 }
 
 void ExchangeHelper::resizeRecvBuf()
 {
-    recvBuf.resize_anew(recvOffsets[nBuffers] * datumSize);
+    auto size = recv.offsetsBytes[nBuffers];
+    recv.buffer.resize_anew(size);
 }
 
 int ExchangeHelper::getUniqueId() const
@@ -53,15 +77,5 @@ int ExchangeHelper::getUniqueId() const
 
 BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()
 {
-    return {nBuffers, sendBuf.devPtr(), sendOffsets.devPtr(), sendSizes.devPtr()};
-}
-
-void ExchangeHelper::computeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>& of)
-{
-    int n = sz.size();
-    if (n == 0) return;
-    
-    of[0] = 0;
-    for (int i = 0; i < n; i++)
-        of[i+1] = of[i] + sz[i];
+    return {nBuffers, send.buffer.devPtr(), send.offsets.devPtr(), send.sizes.devPtr()};
 }

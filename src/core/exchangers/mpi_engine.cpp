@@ -86,8 +86,8 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
 	for (int i = 0; i < helpers.size(); i++)
 		if (exchanger->needExchange(i))
 			MPI_Check( MPI_Waitall(
-					helpers[i]->sendRequests.size(),
-					helpers[i]->sendRequests.data(),
+					helpers[i]->send.requests.size(),
+					helpers[i]->send.requests.data(),
 					MPI_STATUSES_IGNORE) );
 
     // Derived class unpack implementation
@@ -101,12 +101,11 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
-    auto rSizes   = helper->recvSizes.  hostPtr();
-    auto rOffsets = helper->recvOffsets.hostPtr();
+    auto rSizes   = helper->recv.sizes.hostPtr();
 
     // Receive sizes
-    helper->recvRequests.clear();
-    helper->recvSizes.clearHost();
+    helper->recv.requests.clear();
+    helper->recv.sizes.clearHost();
 
     for (int i = 0; i < nBuffers; i++)
         if (i != bulkId && dir2rank[i] >= 0)
@@ -115,7 +114,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
             const int tag = nBuffers * helper->getUniqueId() + dir2recvTag[i];
 
             MPI_Check( MPI_Irecv(rSizes + i, 1, MPI_INT, dir2rank[i], tag, haloComm, &req) );
-            helper->recvRequests.push_back(req);
+            helper->recv.requests.push_back(req);
         }
 }
 
@@ -128,7 +127,7 @@ void MPIExchangeEngine::sendSizes(ExchangeHelper* helper)
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
-    auto sSizes   = helper->sendSizes.hostPtr();
+    auto sSizes   = helper->send.sizes.hostPtr();
 
     // Do blocking send in hope that it will be immediate due to small size
     for (int i = 0; i < nBuffers; i++)
@@ -165,13 +164,16 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
-    auto rSizes   = helper->recvSizes.  hostPtr();
-    auto rOffsets = helper->recvOffsets.hostPtr();
+    const auto rSizes   = helper->recv.sizes.  hostPtr();
+    const auto rOffsets = helper->recv.offsets.hostPtr();
+
+    const auto rSizesBytes   = helper->recv.sizesBytes  .hostPtr();
+    const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
 
     mTimer tm;
     tm.start();
     // MPI_Check( MPI_Waitall(helper->recvRequests.size(), helper->recvRequests.data(), MPI_STATUSES_IGNORE) );
-    safeWaitAll(helper->recvRequests.size(), helper->recvRequests.data());
+    safeWaitAll(helper->recv.requests.size(), helper->recv.requests.data());
     debug("Waiting for sizes of '%s' took %f ms", pvName.c_str(), tm.elapsed());
 
     // Prepare offsets and resize
@@ -180,7 +182,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
     helper->resizeRecvBuf();
 
     // Now do the actual data recv
-    helper->recvRequests.clear();
+    helper->recv.requests.clear();
     helper->recvRequestIdxs.clear();
     for (int i = 0; i < nBuffers; i++)
         if (i != bulkId && dir2rank[i] >= 0)
@@ -188,19 +190,19 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
             MPI_Request req;
             const int tag = nBuffers * helper->getUniqueId() + dir2recvTag[i];
 
-            debug3("Receiving %s entities from rank %d, %d entities (buffer %d, datum size %d)",
-                   pvName.c_str(), dir2rank[i], rSizes[i], i, helper->datumSize);
+            debug3("Receiving %s entities from rank %d, %d entities (buffer %d, %ld bytes)",
+                   pvName.c_str(), dir2rank[i], rSizes[i], i, rSizesBytes[i]);
 
             if (rSizes[i] > 0)
             {
-                auto ptr = gpuAwareMPI ? helper->recvBuf.devPtr() : helper->recvBuf.hostPtr();
+                auto ptr = gpuAwareMPI ? helper->recv.buffer.devPtr() : helper->recv.buffer.hostPtr();
                 
                 MPI_Check( MPI_Irecv(
-                        ptr + rOffsets[i]*helper->datumSize,
-                        rSizes[i]*helper->datumSize,
+                        ptr + rOffsetsBytes[i],
+                        rSizesBytes[i],
                         MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
-                helper->recvRequests.push_back(req);
+                helper->recv.requests  .push_back(req);
                 helper->recvRequestIdxs.push_back(i);
             }
         }
@@ -211,13 +213,13 @@ void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
  */
-void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
+void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
 {
     std::string pvName = helper->name;
 
-    auto rSizes   = helper->recvSizes.  hostPtr();
-    auto rOffsets = helper->recvOffsets.hostPtr();
-    bool singleCopy = helper->recvOffsets[FragmentMapping::numFragments] * helper->datumSize < singleCopyThreshold;
+    const auto rSizesBytes   = helper->recv.sizesBytes.  hostPtr();
+    const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
+    bool singleCopy = helper->recv.offsetsBytes[FragmentMapping::numFragments] < singleCopyThreshold;
     
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
@@ -229,28 +231,27 @@ void MPIExchangeEngine::wait(ExchangeHelper* helper, cudaStream_t stream)
     {
         tm.start();
         // MPI_Check( MPI_Waitall(helper->recvRequests.size(), helper->recvRequests.data(), MPI_STATUSES_IGNORE) );
-        safeWaitAll(helper->recvRequests.size(), helper->recvRequests.data());
+        safeWaitAll(helper->recv.requests.size(), helper->recv.requests.data());
         waitTime = tm.elapsed();
         if (!gpuAwareMPI)
-            helper->recvBuf.uploadToDevice(stream);
+            helper->recv.buffer.uploadToDevice(stream);
     }
     else
     {
         // Wait and upload one by one
-        for (int i = 0; i < helper->recvRequests.size(); i++)
+        for (int i = 0; i < helper->recv.requests.size(); i++)
         {
             int idx;
             tm.start();
-            MPI_Check( MPI_Waitany(helper->recvRequests.size(), helper->recvRequests.data(), &idx, MPI_STATUS_IGNORE) );
+            MPI_Check( MPI_Waitany(helper->recv.requests.size(), helper->recv.requests.data(), &idx, MPI_STATUS_IGNORE) );
             waitTime += tm.elapsedAndReset();
 
             int from = helper->recvRequestIdxs[idx];
 
             CUDA_Check( cudaMemcpyAsync(
-                            helper->recvBuf.devPtr()  + rOffsets[from]*helper->datumSize,
-                            helper->recvBuf.hostPtr() + rOffsets[from]*helper->datumSize,
-                            rSizes[from] * helper->datumSize,
-                            cudaMemcpyHostToDevice, stream) );
+                            helper->recv.buffer.devPtr()  + rOffsetsBytes[from],
+                            helper->recv.buffer.hostPtr() + rOffsetsBytes[from],
+                            rSizesBytes[from], cudaMemcpyHostToDevice, stream) );
         }
     }
 
@@ -268,19 +269,21 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
-    auto sSizes   = helper->sendSizes.  hostPtr();
-    auto sOffsets = helper->sendOffsets.hostPtr();
-    bool singleCopy = helper->sendBuf.size() < singleCopyThreshold;
+
+    const auto sSizes        = helper->send.sizes.       hostPtr();
+    const auto sSizesBytes   = helper->send.sizesBytes.  hostPtr();
+    const auto sOffsetsBytes = helper->send.offsetsBytes.hostPtr();
+    bool singleCopy = helper->send.buffer.size() < singleCopyThreshold;
     
     debug("Sending '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
 
     if (!gpuAwareMPI && singleCopy)
-        helper->sendBuf.downloadFromDevice(stream);
+        helper->send.buffer.downloadFromDevice(stream);
 
     MPI_Request req;
     int totSent = 0;
-    helper->sendRequests.clear();
+    helper->send.requests.clear();
 
     for (int i = 0; i < nBuffers; i++)
         if (i != bulkId && dir2rank[i] >= 0)
@@ -293,23 +296,21 @@ void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
             // Send actual data
             if (sSizes[i] > 0)
             {
-                auto ptr = gpuAwareMPI ? helper->sendBuf.devPtr() : helper->sendBuf.hostPtr();
+                auto ptr = gpuAwareMPI ? helper->send.buffer.devPtr() : helper->send.buffer.hostPtr();
                 
                 if (!singleCopy && (!gpuAwareMPI))
                 {
                     CUDA_Check( cudaMemcpyAsync(
-                                    helper->sendBuf.hostPtr() + sOffsets[i]*helper->datumSize,
-                                    helper->sendBuf.devPtr()  + sOffsets[i]*helper->datumSize,
-                                    sSizes[i] * helper->datumSize,
-                                    cudaMemcpyDeviceToHost, stream) );
+                                    helper->send.buffer.hostPtr() + sOffsetsBytes[i],
+                                    helper->send.buffer.devPtr()  + sOffsetsBytes[i],
+                                    sSizesBytes[i], cudaMemcpyDeviceToHost, stream) );
                     CUDA_Check( cudaStreamSynchronize(stream) );
                 }
 
                 MPI_Check( MPI_Isend(
-                        ptr + sOffsets[i]*helper->datumSize,
-                        sSizes[i] * helper->datumSize,
+                        ptr + sOffsetsBytes[i], sSizesBytes[i],
                         MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
-                helper->sendRequests.push_back(req);
+                helper->send.requests.push_back(req);
             }
 
             totSent += sSizes[i];

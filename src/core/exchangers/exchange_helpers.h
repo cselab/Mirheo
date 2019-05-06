@@ -19,6 +19,7 @@ struct BufferOffsetsSizesWrap
     int *sizes;    ///< device array of size #nBuffers with i-th buffer size
 };
 
+class Packer;
 
 /**
  * Class that keeps communication data per ParticleVector.
@@ -27,17 +28,9 @@ class ExchangeHelper
 {
 public:
     
-    ExchangeHelper(std::string name, int uniqueId);
+    ExchangeHelper(std::string name, int uniqueId, Packer *packer);
 
     ~ExchangeHelper();
-
-    /**
-     * Set the #datumSize. This is made as a separate function
-     * because ParticleVectors may get additional data channels
-     * dynamically during the simulation, therefore #datumSize
-     * may need to change
-     */
-    void setDatumSize(int size);
 
     /**
      * Compute #recvOffsets from #recvSizes by explicit scan.
@@ -75,22 +68,20 @@ public:
     const int nBuffers = FragmentMapping::numFragments;   ///< equal to number of neighbours + 1, for now fixed
     const int bulkId   = FragmentMapping::bulkId;
 
-    int datumSize;                   ///< size in bytes on a single datum in a message, e.g. Particle size or size of packed object
-
     std::string name;                ///< corresponding ParticleVector name
     int uniqueId;                    ///< a unique exchange id: used for tags
 
-    PinnedBuffer<int>  recvSizes;    ///< Number of received elements per each neighbour
-    PinnedBuffer<int>  recvOffsets;  ///< Starting indices for i-th neighbour
-    PinnedBuffer<char> recvBuf;      ///< Buffer keeping all the received data
+    struct BuffersInfos
+    {
+        PinnedBuffer<int> sizes, offsets;
+        PinnedBuffer<size_t> sizesBytes, offsetsBytes;
+        PinnedBuffer<char> buffer;
+        std::vector<MPI_Request> requests;
+    };
 
-    PinnedBuffer<int>  sendSizes;    ///< Number elements to send to each neighbour
-    PinnedBuffer<int>  sendOffsets;  ///< Starting indices for i-th neighbour
-    PinnedBuffer<char> sendBuf;      ///< Buffer keeping all the data needs to be sent
-
-    std::vector<MPI_Request> recvRequests, sendRequests;
+    BuffersInfos send, recv;
     std::vector<int> recvRequestIdxs;
-
+    
 private:
-    void computeOffsets(const PinnedBuffer<int>& sz, PinnedBuffer<int>& of);
+    Packer *packer;
 };

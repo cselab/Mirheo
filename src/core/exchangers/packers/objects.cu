@@ -104,7 +104,7 @@ ObjectPacker::ObjectPacker(const YmrState *state, ParticleVector *pv, LocalParti
         die("object packers must work with local object vectors");
 }
 
-size_t ObjectPacker::getPackedSizeBytes(int nobj)
+size_t ObjectPacker::getPackedSizeBytes(int nobj) const
 {
     auto packedSizeParts = _getPackedSizeBytes(lov->dataPerParticle, nobj * ov->objSize);
     auto packedSizeObjs  = _getPackedSizeBytes(lov->dataPerObject,   nobj);

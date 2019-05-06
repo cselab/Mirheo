@@ -10,7 +10,7 @@ class ObjectPacker : public Packer
 public:
     ObjectPacker(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
 
-    size_t getPackedSizeBytes(int n) override;
+    size_t getPackedSizeBytes(int n) const override;
 
     void packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
                       const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream);

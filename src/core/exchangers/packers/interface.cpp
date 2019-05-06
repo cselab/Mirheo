@@ -9,7 +9,7 @@ Packer::Packer(const YmrState *state, ParticleVector *pv, LocalParticleVector *l
     predicate(predicate)
 {}
 
-size_t Packer::_getPackedSizeBytes(DataManager& manager, int n)
+size_t Packer::_getPackedSizeBytes(const DataManager& manager, int n) const
 {
     size_t size = 0;
     

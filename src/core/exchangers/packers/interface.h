@@ -18,7 +18,7 @@ class Packer
 public:
     Packer(const YmrState *state, ParticleVector *pv, LocalParticleVector *lpv, PackPredicate predicate);
     
-    virtual size_t getPackedSizeBytes(int n) = 0;
+    virtual size_t getPackedSizeBytes(int n) const = 0;
 
     template <typename TPadding = float4>
     __HD__ constexpr static size_t getPackedSize(size_t datumSize, int n)
@@ -36,7 +36,7 @@ public:
 
 
 protected:
-    size_t _getPackedSizeBytes(DataManager& manager, int n);
+    size_t _getPackedSizeBytes(const DataManager& manager, int n) const;
 
 protected:
     const YmrState *state;

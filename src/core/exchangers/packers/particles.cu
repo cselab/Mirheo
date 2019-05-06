@@ -55,7 +55,7 @@ ParticlePacker::ParticlePacker(const YmrState *state, ParticleVector *pv, LocalP
     Packer(state, pv, lpv, predicate)
 {}
 
-size_t ParticlePacker::getPackedSizeBytes(int n)
+size_t ParticlePacker::getPackedSizeBytes(int n) const
 {
     return _getPackedSizeBytes(lpv->dataPerParticle, n);
 }
