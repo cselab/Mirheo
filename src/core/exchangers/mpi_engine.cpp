@@ -1,5 +1,5 @@
 #include "mpi_engine.h"
-#include "fragments_mapping.h"
+#include "utils/fragments_mapping.h"
 
 #include <core/utils/timer.h>
 #include <core/logger.h>

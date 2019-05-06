@@ -1,6 +1,6 @@
 #include "object_redistributor.h"
 #include "exchange_helpers.h"
-#include "fragments_mapping.h"
+#include "utils/fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>

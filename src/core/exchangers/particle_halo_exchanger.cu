@@ -1,6 +1,7 @@
 #include "particle_halo_exchanger.h"
 #include "exchange_helpers.h"
-#include "fragments_mapping.h"
+#include "utils/fragments_mapping.h"
+#include "utils/face_dispatch.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
@@ -11,8 +12,6 @@
 
 #include <unistd.h>
 
-
-#include "valid_cell.h"
 
 enum class PackMode
 {

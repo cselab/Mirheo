@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fragments_mapping.h"
+#include "utils/fragments_mapping.h"
 
 #include <mpi.h>
 #include <core/containers.h>

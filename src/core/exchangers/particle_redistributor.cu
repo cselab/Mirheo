@@ -1,7 +1,7 @@
 #include "exchange_helpers.h"
-#include "fragments_mapping.h"
+#include "utils/fragments_mapping.h"
 #include "particle_redistributor.h"
-#include "valid_cell.h"
+#include "utils/face_dispatch.h"
 
 #include <core/celllist.h>
 #include <core/pvs/extra_data/packers.h>
