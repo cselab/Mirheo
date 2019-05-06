@@ -177,7 +177,7 @@ void ObjectPacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const PinnedB
 }
 
 void ObjectPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
-                                    const char *buffer, cudaStream_t stream)
+                                    const char *buffer, int oldObjSize, cudaStream_t stream)
 {
     auto& partManager = lov->dataPerParticle;
     auto& objManager  = lov->dataPerObject;
@@ -204,7 +204,8 @@ void ObjectPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const Pinn
                 ObjectPackerKernels::unpackParticlesFromBuffer,
                 nObj, nthreads, sharedMem, stream,
                 nBuffers, offsets.devPtr(), ov->objSize,
-                buffer, offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
+                buffer, offsetsBytes.devPtr(),
+                pinnedBuffPtr->devPtr() + oldObjSize * ov->objSize);
 
             updateOffsets<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
@@ -231,7 +232,7 @@ void ObjectPacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const Pinn
                 ObjectPackerKernels::unpackObjectsFromBuffer,
                 getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
                 nObj, nBuffers, offsets.devPtr(), buffer,
-                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
+                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr() + oldObjSize);
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };

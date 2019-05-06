@@ -97,7 +97,7 @@ void ParticlePacker::packToBuffer(const DeviceBuffer<MapEntry>& map, const Pinne
 }
 
 void ParticlePacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
-                                      const char *buffer, cudaStream_t stream)
+                                      const char *buffer, int oldSize, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
@@ -105,6 +105,9 @@ void ParticlePacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const Pi
     offsetsBytes.clear(stream);
     updateOffsets<float4>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
 
+    int nBuffers  = sizes.size();
+    int nIncoming = offsets[nBuffers];
+    
     for (const auto& name_desc : manager.getSortedChannels())
     {
         if (!predicate(name_desc)) continue;
@@ -114,16 +117,14 @@ void ParticlePacker::unpackFromBuffer(const PinnedBuffer<int>& offsets, const Pi
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int nBuffers = sizes.size();
-            int n = offsets[nBuffers];
             const int nthreads = 128;
             const size_t sharedMem = nBuffers * sizeof(int);
 
             SAFE_KERNEL_LAUNCH(
                 ParticlePackerKernels::unpackFromBuffer,
-                getNblocks(n, nthreads), nthreads, sharedMem, stream,
-                nBuffers, offsets.devPtr(), n, buffer,
-                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr()); // TODO + oldSize
+                getNblocks(nIncoming, nthreads), nthreads, sharedMem, stream,
+                nBuffers, offsets.devPtr(), nIncoming, buffer,
+                offsetsBytes.devPtr(), pinnedBuffPtr->devPtr() + oldSize);
 
             updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };

@@ -13,7 +13,7 @@ public:
                       char *buffer, cudaStream_t stream);
 
     void unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
-                          const char *buffer, cudaStream_t stream);
+                          const char *buffer, int oldSize, cudaStream_t stream);
 
 protected:
     DeviceBuffer<size_t> offsetsBytes;

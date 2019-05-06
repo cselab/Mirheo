@@ -16,7 +16,7 @@ public:
                       const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream);
     
     void unpackFromBuffer(const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
-                          const char *buffer, cudaStream_t stream);
+                          const char *buffer, int oldObjSize, cudaStream_t stream);
 
 protected:
     ObjectVector *ov;
