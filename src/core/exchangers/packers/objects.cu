@@ -92,8 +92,8 @@ __global__ void unpackObjectsFromBuffer(int nObj, int nBuffers, const int *offse
 
 } // namespace ObjectPackerKernels
 
-ObjectsPacker::ObjectsPacker(const YmrState *state, ObjectVector *ov, PackPredicate predicate) :
-    Packer(state, ov, predicate),
+ObjectsPacker::ObjectsPacker(ObjectVector *ov, PackPredicate predicate) :
+    Packer(ov, predicate),
     ov(ov)
 {}
 
@@ -120,7 +120,7 @@ void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffe
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
-        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+        Shifter shift(desc->shiftTypeSize > 0, ov->state->domain);
         
         auto packChannel = [&](auto pinnedBuffPtr)
         {
@@ -147,7 +147,7 @@ void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffe
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
-        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+        Shifter shift(desc->shiftTypeSize > 0, ov->state->domain);
         
         auto packChannel = [&](auto pinnedBuffPtr)
         {

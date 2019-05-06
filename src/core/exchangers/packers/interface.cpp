@@ -2,8 +2,7 @@
 
 #include <core/pvs/particle_vector.h>
 
-Packer::Packer(const YmrState *state, ParticleVector *pv, PackPredicate predicate) :
-    state(state),
+Packer::Packer(ParticleVector *pv, PackPredicate predicate) :
     predicate(predicate),
     pv(pv)
 {}

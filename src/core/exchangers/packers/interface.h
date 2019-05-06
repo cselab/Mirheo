@@ -3,7 +3,6 @@
 #include "map.h"
 
 #include <core/pvs/data_manager.h>
-#include <core/ymero_state.h>
 
 #include <vector_types.h>
 #include <cuda_runtime.h>
@@ -16,7 +15,7 @@ class LocalParticleVector;
 class Packer
 {
 public:
-    Packer(const YmrState *state, ParticleVector *pv, PackPredicate predicate);
+    Packer(ParticleVector *pv, PackPredicate predicate);
     
     virtual size_t getPackedSizeBytes(int n) const = 0;
 
@@ -38,7 +37,6 @@ protected:
     size_t _getPackedSizeBytes(const DataManager& manager, int n) const;
 
 protected:
-    const YmrState *state;
     PackPredicate predicate;
     DeviceBuffer<size_t> offsetsBytes;
     ParticleVector *pv;

@@ -51,8 +51,8 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
 
 } // namespace ParticlePackerKernels
 
-ParticlesPacker::ParticlesPacker(const YmrState *state, ParticleVector *pv, PackPredicate predicate) :
-    Packer(state, pv, predicate)
+ParticlesPacker::ParticlesPacker(ParticleVector *pv, PackPredicate predicate) :
+    Packer(pv, predicate)
 {}
 
 size_t ParticlesPacker::getPackedSizeBytes(int n) const
@@ -75,7 +75,7 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv,
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
 
-        Shifter shift(desc->shiftTypeSize > 0, state->domain);
+        Shifter shift(desc->shiftTypeSize > 0, pv->state->domain);
 
         auto packChannel = [&](auto pinnedBuffPtr)
         {
@@ -97,7 +97,7 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv,
     }
 }
 
-void ParticlesPacker::unpackFromBuffer(const LocalParticleVector *lpv,
+void ParticlesPacker::unpackFromBuffer(LocalParticleVector *lpv,
                                        const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,
                                        const char *buffer, int oldSize, cudaStream_t stream)
 {
