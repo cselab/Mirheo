@@ -15,8 +15,20 @@ struct BufferOffsetsSizesWrap
     int nBuffers;  ///< number of buffers
 
     char *buffer;  ///< device data pointer
-    int *offsets;  ///< device array of size #nBuffers with i-th buffer start index
-    int *sizes;    ///< device array of size #nBuffers with i-th buffer size
+    int *offsets;  ///< device array of size #nBuffers+1 with i-th buffer start index in elements number
+    int *sizes;    ///< device array of size #nBuffers with i-th buffer size in elements number
+    size_t *offsetsBytes; ///< device array of size #nBuffers+1 with i-th buffer start index in bytes
+};
+
+struct BufferInfos
+{
+    PinnedBuffer<int> sizes, offsets;
+    PinnedBuffer<size_t> sizesBytes, offsetsBytes;
+    PinnedBuffer<char> buffer;
+    std::vector<MPI_Request> requests;
+
+    void clearAllSizes(cudaStream_t stream);
+    void resizeInfos(int nBuffers);
 };
 
 class Packer;
@@ -71,15 +83,7 @@ public:
     std::string name;                ///< corresponding ParticleVector name
     int uniqueId;                    ///< a unique exchange id: used for tags
 
-    struct BuffersInfos
-    {
-        PinnedBuffer<int> sizes, offsets;
-        PinnedBuffer<size_t> sizesBytes, offsetsBytes;
-        PinnedBuffer<char> buffer;
-        std::vector<MPI_Request> requests;
-    };
-
-    BuffersInfos send, recv;
+    BufferInfos send, recv;
     std::vector<int> recvRequestIdxs;
     
 private:

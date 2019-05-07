@@ -18,20 +18,27 @@ static void computeSizesBytes(const Packer *packer, const PinnedBuffer<int>& sz,
         szBytes[i] = packer->getPackedSizeBytes(sz[i]);
 }
 
+void BufferInfos::clearAllSizes(cudaStream_t stream)
+{
+    sizes.clear(stream);
+    sizesBytes.clear(stream);
+}
+
+void BufferInfos::resizeInfos(int nBuffers)
+{
+    sizes       .resize_anew(nBuffers);
+    sizesBytes  .resize_anew(nBuffers);
+    offsets     .resize_anew(nBuffers+1);
+    offsetsBytes.resize_anew(nBuffers+1);
+}
+
 ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, Packer *packer) :
     name(name),
     uniqueId(uniqueId),
     packer(packer)
 {
-    recv.sizes       .resize_anew(nBuffers);
-    recv.sizesBytes  .resize_anew(nBuffers);
-    recv.offsets     .resize_anew(nBuffers+1);
-    recv.offsetsBytes.resize_anew(nBuffers+1);
-    
-    send.sizes       .resize_anew(nBuffers);
-    send.sizesBytes  .resize_anew(nBuffers);
-    send.offsets     .resize_anew(nBuffers+1);
-    send.offsetsBytes.resize_anew(nBuffers+1);
+    recv.resizeInfos(nBuffers);
+    send.resizeInfos(nBuffers);
 }
 
 ExchangeHelper::~ExchangeHelper() = default;
@@ -77,5 +84,7 @@ int ExchangeHelper::getUniqueId() const
 
 BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()
 {
-    return {nBuffers, send.buffer.devPtr(), send.offsets.devPtr(), send.sizes.devPtr()};
+    return {nBuffers, send.buffer.devPtr(),
+            send.offsets.devPtr(), send.sizes.devPtr(),
+            send.offsetsBytes.devPtr()};
 }
