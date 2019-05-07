@@ -1,5 +1,7 @@
 #include "object_redistributor.h"
 #include "exchange_helpers.h"
+#include "packers/map.h"
+#include "packers/objects.h"
 #include "utils/fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
@@ -17,11 +19,11 @@ enum class PackMode
 
 namespace ObjecRedistributorKernels
 {
+
 template <PackMode packMode>
-__global__ void getExitingObjects(const DomainInfo domain, OVview view, const ObjectPacker packer, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingObjectsMap(const DomainInfo domain, OVview view, MapEntry *map, BufferOffsetsSizesWrap dataWrap)
 {
-    const int objId = blockIdx.x;
-    const int tid = threadIdx.x;
+    const int objId = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (objId >= view.nObjects) return;
 
@@ -39,32 +41,16 @@ __global__ void getExitingObjects(const DomainInfo domain, OVview view, const Ob
 
     const int bufId = FragmentMapping::getId(dx, dy, dz);
 
-    __shared__ int shDstObjId;
+    int dstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-    const float3 shift{ domain.localSize.x * dx,
-                        domain.localSize.y * dy,
-                        domain.localSize.z * dz };
-
-    __syncthreads();
-    if (tid == 0)
-        shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
-
-    if (packMode == PackMode::Query) {
+    if (packMode == PackMode::Query)
+    {
         return;
     }
-    else {
-        __syncthreads();
-
-        char* dstAddr = dataWrap.buffer + packer.totalPackedSize_byte * (dataWrap.offsets[bufId] + shDstObjId);
-
-        for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-        {
-            const int srcPid = objId * view.objSize + pid;
-            packer.part.packShift(srcPid, dstAddr + pid*packer.part.packedSize_byte, -shift);
-        }
-
-        dstAddr += view.objSize * packer.part.packedSize_byte;
-        if (tid == 0) packer.obj.packShift(objId, dstAddr, -shift);
+    else
+    {
+        int dstId = dataWrap.offsets[bufId] + dstObjId;
+        map[dstId] = MapEntry(objId, bufId);
     }
 }
 
@@ -84,11 +70,15 @@ __global__ static void unpackObject(const char *from, const int startDstObjId, O
     srcAddr += view.objSize * packer.part.packedSize_byte;
     if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
 }
+
 } // namespace ObjecRedistributorKernels
 
 //===============================================================================================
 // Member functions
 //===============================================================================================
+
+ObjectRedistributor::ObjectRedistributor() = default;
+ObjectRedistributor::~ObjectRedistributor() = default;
 
 bool ObjectRedistributor::needExchange(int id)
 {
@@ -100,14 +90,16 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     int id = objects.size();
     objects.push_back(ov);
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name, id);
-    helpers.push_back(std::move(helper));
-
-    packPredicates.push_back([](const DataManager::NamedChannelDesc& namedDesc) {
+    auto packer = std::make_unique<ObjectsPacker>(ov, [](const DataManager::NamedChannelDesc& namedDesc) {
         return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
     });
 
-    info("The Object vector '%s' was attached", ov->name.c_str());
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+
+    packers.push_back(std::move(packer));
+    helpers.push_back(std::move(helper));
+
+    info("The Object vector '%s' was attached to redistributor", ov->name.c_str());
 }
 
 
@@ -121,31 +113,30 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
     
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
-    helper->setDatumSize(packer.totalPackedSize_byte);
 
     debug2("Counting exiting objects of '%s'", ov->name.c_str());
-    const int nthreads = 256;
+    const int nthreads = 32;
 
     // Prepare sizes
-    helper->sendSizes.clear(stream);
+    helper->send.sizes.clear(stream);
+    
     if (ovView.nObjects > 0)
     {
         SAFE_KERNEL_LAUNCH(
-                ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
-                ovView.nObjects, nthreads, 0, stream,
-                ov->state->domain, ovView, packer, helper->wrapSendData() );
+            ObjecRedistributorKernels::getExitingObjectsMap<PackMode::Query>,
+            getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
+            ov->state->domain, ovView, nullptr, helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
 
-    int nObjs = helper->sendSizes[bulkId];
+    int nObjs = helper->send.sizes[bulkId];
     debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
 
     // Early termination support
     if (nObjs == ovView.nObjects)
     {
-        helper->sendSizes[bulkId] = 0;
+        helper->send.sizes[bulkId] = 0;
         helper->computeSendOffsets();
         helper->resizeSendBuf();
     }
@@ -157,44 +148,43 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     auto lov = ov->local();
     auto helper = helpers[id].get();
     auto bulkId = helper->bulkId;
+    auto packer = packers[id].get();
 
     OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
-    helper->setDatumSize(packer.totalPackedSize_byte);
 
-    const int nthreads = 256;
-    int nObjs = helper->sendSizes[bulkId];
+    const int nthreads = 32;
+    int nObjsBulk = helper->send.sizes[bulkId];
 
     // Early termination - no redistribution
-    if (helper->sendOffsets[FragmentMapping::numFragments] == 0)
+    if (helper->send.offsets[helper->nBuffers] == 0)
     {
         debug2("No objects of '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
         return;
     }
 
-    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjs, ov->name.c_str());
+    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjsBulk, ov->name.c_str());
 
     // Gather data
     helper->resizeSendBuf();
-    helper->sendSizes.clearDevice(stream);
+    helper->send.sizes.clearDevice(stream);
+    helper->map.resize_anew(ovView.nObjects);
+    
     SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
-            lov->nObjects, nthreads, 0, stream,
-            ov->state->domain, ovView, packer, helper->wrapSendData() );
+        ObjecRedistributorKernels::getExitingObjectsMap<PackMode::Pack>,
+        getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
+        ov->state->domain, ovView, helper->map.devPtr(), helper->wrapSendData() );
 
+    packer->packToBuffer(lov, helper, stream);
+    
 
     // Unpack the central buffer into the object vector itself
     // Renew view and packer, as the ObjectVector may have resized
-    lov->resize_anew(nObjs*ov->objSize);
+    lov->resize_anew(nObjsBulk * ov->objSize);
     ovView = OVview(ov, ov->local());
-    packer = ObjectPacker(ov, ov->local(), packPredicates[id], stream);
 
-    SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::unpackObject,
-            nObjs, nthreads, 0, stream,
-            helper->sendBuf.devPtr() + helper->sendOffsets[bulkId] * packer.totalPackedSize_byte, 0, ovView, packer );
-                                     
-    helper->sendSizes[bulkId] = 0;
+    packer->unpackFromBuffer(lov, &helper->send, 0, stream);
+    
+    helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
     helper->resizeSendBuf();
 }
@@ -203,21 +193,16 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto ov = objects[id];
     auto helper = helpers[id].get();
+    auto packer = packers[id].get();
 
     int oldNObjs = ov->local()->nObjects;
     int objSize = ov->objSize;
 
-    int totalRecvd = helper->recvOffsets[helper->nBuffers];
+    int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
     ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
-    OVview ovView(ov, ov->local());
-    ObjectPacker packer(ov, ov->local(), packPredicates[id], stream);
 
-    const int nthreads = 64;
-    SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::unpackObject,
-            totalRecvd, nthreads, 0, stream,
-            helper->recvBuf.devPtr(), oldNObjs, ovView, packer );
+    packer->unpackFromBuffer(ov->local(), &helper->recv, oldNObjs, stream);
 
     ov->redistValid = true;
 

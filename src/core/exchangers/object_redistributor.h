@@ -6,17 +6,19 @@
 #include <core/pvs/extra_data/packers.h>
 
 class ObjectVector;
+class ObjectsPacker;
 
 class ObjectRedistributor : public Exchanger
 {
 public:
-    void attach(ObjectVector* ov);
+    ObjectRedistributor();
+    ~ObjectRedistributor();
 
-    virtual ~ObjectRedistributor() = default;
+    void attach(ObjectVector *ov);
     
 private:
     std::vector<ObjectVector*> objects;
-    std::vector<PackPredicate> packPredicates;
+    std::vector<std::unique_ptr<ObjectsPacker>> packers;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
