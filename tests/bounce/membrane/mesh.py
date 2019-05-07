@@ -23,7 +23,7 @@ if args.subStep:
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 1000
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -72,7 +72,7 @@ u.setBouncer(bb, pvRbc, pvSolvent)
 if args.vis:
     dump_every = int(0.1 / dt)
     u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dump_every, [], 'h5/solvent-'))
-    u.registerPlugins(mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dump_every, path="ply/"))
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dump_every, path="ply/"))
 
 tend = int(5.0 / dt)
     
@@ -88,7 +88,7 @@ if pvRbc is not None:
 # cd bounce/membrane
 # rm -rf pos.rbc.txt pos.rbc.out.txt 
 # cp ../../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mesh.py > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: bounce.membrane.mesh.substep
@@ -96,5 +96,5 @@ if pvRbc is not None:
 # cd bounce/membrane
 # rm -rf pos.rbc.txt pos.rbc.out.txt 
 # cp ../../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mesh.py --subStep > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --subStep
 # mv pos.rbc.txt pos.rbc.out.txt 
