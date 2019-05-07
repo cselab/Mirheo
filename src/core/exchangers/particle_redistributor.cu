@@ -153,9 +153,8 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
             ParticleRedistributorKernels::getExitingPositionsAndMap<PackMode::Query>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(), nullptr, shift, helper->wrapSendData() );
-
-        helper->computeSendOffsets_Dev2Dev(stream);
     }
+    helper->computeSendOffsets_Dev2Dev(stream);
 }
 
 void ParticleRedistributor::prepareData(int id, cudaStream_t stream)

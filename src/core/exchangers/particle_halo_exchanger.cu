@@ -157,9 +157,9 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
             ParticleHaloExchangersKernels::getHaloMap<PackMode::Query>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), nullptr, helper->wrapSendData() );
-
-        helper->computeSendOffsets_Dev2Dev(stream);
     }
+
+    helper->computeSendOffsets_Dev2Dev(stream);
 }
 
 void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
@@ -179,7 +179,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
-        const int nfaces = 6;;
+        const int nfaces = 6;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         helper->resizeSendBuf();
