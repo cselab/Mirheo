@@ -9,20 +9,21 @@
 #include <string>
 
 class ObjectVector;
+class ObjectsPacker;
 class ObjectHaloExchanger;
 
 class ObjectExtraExchanger : public Exchanger
 {
 public:
     ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExchanger);
-    virtual ~ObjectExtraExchanger();
+    ~ObjectExtraExchanger();
 
     void attach(ObjectVector *ov, const std::vector<std::string>& extraChannelNames);
 
 protected:
     std::vector<ObjectVector*> objects;
     ObjectHaloExchanger *entangledHaloExchanger;
-    std::vector<PackPredicate> packPredicates;    
+    std::vector<std::unique_ptr<ObjectsPacker>> packers;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
