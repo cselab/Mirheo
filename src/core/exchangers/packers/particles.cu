@@ -63,7 +63,7 @@ size_t ParticlesPacker::getPackedSizeBytes(int n) const
 }
 
 void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, const DeviceBuffer<MapEntry>& map,
-                                   BufferInfos *helper, const std::vector<size_t>& alreadyPacked, cudaStream_t stream)
+                                   BufferInfos *helper, const std::vector<std::string>& alreadyPacked, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
@@ -71,8 +71,17 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, const DeviceB
     
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
-    for (auto sz : alreadyPacked) // advance offsets to skip the already packed data
-        updateOffsets(nBuffers, sz, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    // advance offsets to skip the already packed data
+    for (auto name : alreadyPacked)
+    {
+        auto& desc = manager.getChannelDescOrDie(name);
+        auto advanceOffset = [&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+        };
+        mpark::visit(advanceOffset, desc.varDataPtr);
+    }
     
     for (const auto& name_desc : manager.getSortedChannels())
     {

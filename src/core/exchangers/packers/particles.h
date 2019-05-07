@@ -2,6 +2,7 @@
 
 #include "interface.h"
 
+#include <string>
 #include <vector>
 
 class ExchangeHelper;
@@ -15,7 +16,7 @@ public:
     size_t getPackedSizeBytes(int n) const override;
 
     void packToBuffer(const LocalParticleVector *lpv, const DeviceBuffer<MapEntry>& map, BufferInfos *helper,
-                      const std::vector<size_t>& alreadyPacked, cudaStream_t stream);
+                      const std::vector<std::string>& alreadyPacked, cudaStream_t stream);
 
     void unpackFromBuffer(LocalParticleVector *lpv, const BufferInfos *helper, int oldSize, cudaStream_t stream);
 };
