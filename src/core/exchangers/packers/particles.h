@@ -2,6 +2,8 @@
 
 #include "interface.h"
 
+class ExchangeHelper;
+
 class ParticlesPacker : public Packer
 {
 public:
@@ -9,9 +11,7 @@ public:
 
     size_t getPackedSizeBytes(int n) const override;
 
-    void packToBuffer(const LocalParticleVector *lpv,
-                      const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
-                      const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream);
+    void packToBuffer(const LocalParticleVector *lpv, ExchangeHelper *helper, cudaStream_t stream);
 
     void unpackFromBuffer(LocalParticleVector *lpv,
                           const PinnedBuffer<int>& offsets, const PinnedBuffer<int>& sizes,

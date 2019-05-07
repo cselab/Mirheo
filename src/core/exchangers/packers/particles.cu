@@ -2,6 +2,8 @@
 #include "common.h"
 #include "shifter.h"
 
+#include "../exchange_helpers.h"
+
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
@@ -60,15 +62,14 @@ size_t ParticlesPacker::getPackedSizeBytes(int n) const
     return _getPackedSizeBytes(pv->local()->dataPerParticle, n);
 }
 
-void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv,
-                                   const DeviceBuffer<MapEntry>& map, const PinnedBuffer<int>& sizes,
-                                   const PinnedBuffer<int>& offsets, char *buffer, cudaStream_t stream)
+void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, ExchangeHelper *helper, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
-    offsetsBytes.resize_anew(offsets.size());
-    offsetsBytes.clear(stream);
-    updateOffsets<float4>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
+    int nBuffers = helper->send.sizes.size();
+    
+    offsetsBytes.copyFromDevice(helper->send.offsetsBytes, stream);
+    updateOffsets<float4>(nBuffers, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
     
     for (const auto& name_desc : manager.getSortedChannels())
     {
@@ -81,16 +82,16 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv,
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int n = map.size();
+            int n = helper->map.size();
             const int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH(
                 ParticlePackerKernels::packToBuffer,
                 getNblocks(n, nthreads), nthreads, 0, stream,
-                n, map.devPtr(), offsetsBytes.devPtr(), offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), shift, buffer);
+                n, helper->map.devPtr(), offsetsBytes.devPtr(), helper->send.offsets.devPtr(),
+                pinnedBuffPtr->devPtr(), shift, helper->send.buffer.devPtr());
 
-            updateOffsets<T>(sizes.size(), sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsets<T>(nBuffers, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(packChannel, desc->varDataPtr);
