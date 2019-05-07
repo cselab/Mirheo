@@ -18,13 +18,13 @@ static void computeSizesBytes(const Packer *packer, const PinnedBuffer<int>& sz,
         szBytes[i] = packer->getPackedSizeBytes(sz[i]);
 }
 
-void ExchangeHelper::BufferInfos::clearAllSizes(cudaStream_t stream)
+void BufferInfos::clearAllSizes(cudaStream_t stream)
 {
     sizes.clear(stream);
     sizesBytes.clear(stream);
 }
 
-void ExchangeHelper::BufferInfos::resizeInfos(int nBuffers)
+void BufferInfos::resizeInfos(int nBuffers)
 {
     sizes       .resize_anew(nBuffers);
     sizesBytes  .resize_anew(nBuffers);

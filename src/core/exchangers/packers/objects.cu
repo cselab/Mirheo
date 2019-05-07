@@ -168,12 +168,12 @@ void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, ExchangeHelper *h
     }
 }
 
-void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const ExchangeHelper *helper, int oldObjSize, cudaStream_t stream)
+void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *helper, int oldObjSize, cudaStream_t stream)
 {
     auto& partManager = lov->dataPerParticle;
     auto& objManager  = lov->dataPerObject;
 
-    offsetsBytes.copyFromDevice(helper->recv.offsetsBytes, stream);
+    offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
     // unpack particle data
     for (const auto& name_desc : partManager.getSortedChannels())
@@ -185,19 +185,19 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const ExchangeHelpe
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int nBuffers = helper->nBuffers;
-            int nObj     = helper->recv.offsets[nBuffers];
+            int nBuffers = helper->sizes.size();
+            int nObj     = helper->offsets[nBuffers];
             const int nthreads = 128;
             const size_t sharedMem = nBuffers * sizeof(int);
 
             SAFE_KERNEL_LAUNCH(
                 ObjectPackerKernels::unpackParticlesFromBuffer,
                 nObj, nthreads, sharedMem, stream,
-                nBuffers, helper->recv.offsets.devPtr(), ov->objSize,
-                helper->recv.buffer.devPtr(), offsetsBytes.devPtr(),
+                nBuffers, helper->offsets.devPtr(), ov->objSize,
+                helper->buffer.devPtr(), offsetsBytes.devPtr(),
                 pinnedBuffPtr->devPtr() + oldObjSize * ov->objSize);
 
-            updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->recv.sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(unpackChannel, desc->varDataPtr);
@@ -213,18 +213,18 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const ExchangeHelpe
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int nBuffers = helper->nBuffers;
-            int nObj     = helper->recv.offsets[nBuffers];
+            int nBuffers = helper->sizes.size();
+            int nObj     = helper->offsets[nBuffers];
             const int nthreads = 32;
             const size_t sharedMem = nBuffers * sizeof(int);
 
             SAFE_KERNEL_LAUNCH(
                 ObjectPackerKernels::unpackObjectsFromBuffer,
                 getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
-                nObj, nBuffers, helper->recv.offsets.devPtr(), helper->recv.buffer.devPtr(),
+                nObj, nBuffers, helper->offsets.devPtr(), helper->buffer.devPtr(),
                 offsetsBytes.devPtr(), pinnedBuffPtr->devPtr() + oldObjSize);
 
-            updateOffsets<T>(nBuffers, helper->recv.sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(unpackChannel, desc->varDataPtr);
