@@ -1,7 +1,10 @@
 #include "exchange_helpers.h"
-#include "utils/fragments_mapping.h"
+#include "packers/map.h"
+#include "packers/particles.h"
+#include "packers/shifter.h"
 #include "particle_redistributor.h"
 #include "utils/face_dispatch.h"
+#include "utils/fragments_mapping.h"
 
 #include <core/celllist.h>
 #include <core/pvs/extra_data/packers.h>
@@ -35,7 +38,7 @@ inline __device__ bool hasToLeave(int3 dir) {
 }
 
 template <PackMode packMode>
-__global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEntry *map, Shifter shift, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int faceId = blockIdx.y;
@@ -48,7 +51,6 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
     if (!valid) return;
 
     // The following is called for every outer cell and exactly once for each
-    //
     // Now for each cell we check its every particle if it needs to move
 
     int pstart = cinfo.cellStarts[cid];
@@ -69,18 +71,22 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
         
         if (hasToLeave(dir)) {
             const int bufId = FragmentMapping::getId(dir);
-            const float3 shift{ cinfo.localDomainSize.x * dir.x,
-                                cinfo.localDomainSize.y * dir.y,
-                                cinfo.localDomainSize.z * dir.z };
 
-            int myid = atomicAdd(dataWrap.sizes + bufId, 1);
+            int myId = atomicAdd(dataWrap.sizes + bufId, 1);
 
-            if (packMode == PackMode::Query) {
+            if (packMode == PackMode::Query)
+            {
                 continue;
             }
-            else {
-                auto bufferAddr = dataWrap.buffer + dataWrap.offsets[bufId]*packer.packedSize_byte;
-                packer.packShift(srcId, bufferAddr + myid*packer.packedSize_byte, -shift);
+            else
+            {
+                MapEntry me(srcId, bufId);
+
+                int offset = dataWrap.offsets[bufId];
+                map[offset + myId] = me;
+
+                auto dstPos = (float4*) (dataWrap.buffer + dataWrap.offsetsBytes[bufId]);
+                dstPos[myId] = shift(p.r2Float4(), bufId);
 
                 // mark the particle as exited to assist cell-list building
                 Float3_int pos = p.r2Float3_int();
@@ -90,19 +96,14 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePac
         }
     }
 }
-
-__global__ static void unpackParticles(ParticlePacker packer, int startDstId, char* buffer, int np)
-{
-    const int pid = blockIdx.x*blockDim.x + threadIdx.x;
-    if (pid >= np) return;
-
-    packer.unpack(buffer + pid*packer.packedSize_byte, pid+startDstId);
-}
 } // namespace ParticleRedistributorKernels
 
 //===============================================================================================
 // Member functions
 //===============================================================================================
+
+ParticleRedistributor::ParticleRedistributor() = default;
+ParticleRedistributor::~ParticleRedistributor() = default;
 
 bool ParticleRedistributor::needExchange(int id)
 {
@@ -116,16 +117,16 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     cellLists.push_back(cl);
 
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
-        die("Redistributor (for %s) should be used with the primary cell-lists only!", pv->name.c_str());
+        die("Redistributor (for %s) must be used with a primary cell-list", pv->name.c_str());
 
-    auto helper = std::make_unique<ExchangeHelper>(pv->name, id);
-    helper->setDatumSize(sizeof(Particle));
-    
-    helpers.push_back(std::move(helper));
-
-    packPredicates.push_back([](const DataManager::NamedChannelDesc& namedDesc) {
+    auto packer = std::make_unique<ParticlesPacker>(pv, [](const DataManager::NamedChannelDesc& namedDesc) {
         return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
     });
+    
+    auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());
+
+    packers.push_back(std::move(packer));
+    helpers.push_back(std::move(helper));
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
@@ -138,21 +139,19 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
 
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
-    helper->sendSizes.clear(stream);
-
-    auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
-    helper->setDatumSize(packer.packedSize_byte);
+    helper->send.sizes.clear(stream);
 
     if (pv->local()->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+        Shifter shift(false, pv->state->domain);
 
         SAFE_KERNEL_LAUNCH(
-                ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
-                nblocks, nthreads, 0, stream,
-                cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
+            ParticleRedistributorKernels::getExitingPositionsAndMap<PackMode::Query>,
+            nblocks, nthreads, 0, stream,
+            cl->cellInfo(), cl->getView<PVview>(), nullptr, shift, helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -163,25 +162,31 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
     auto pv = particles[id];
     auto cl = cellLists[id];
     auto helper = helpers[id].get();
+    auto packer = packers[id].get();
 
     debug2("Downloading %d leaving particles of '%s'",
-           helper->sendOffsets[FragmentMapping::numFragments], pv->name.c_str());
+           helper->send.offsets[helper->nBuffers], pv->name.c_str());
 
     if (pv->local()->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
-
-        auto packer = ParticlePacker(pv, pv->local(), packPredicates[id], stream);
-
+        Shifter shift(true, pv->state->domain);
+        
         helper->resizeSendBuf();
+        int totalOutgoing = helper->send.offsets[helper->nBuffers];
+        helper->map.resize_anew(totalOutgoing);
+        
         // Sizes will still remain on host, no need to download again
-        helper->sendSizes.clearDevice(stream);
+        helper->send.sizes.clearDevice(stream);
+        
         SAFE_KERNEL_LAUNCH(
-                ParticleRedistributorKernels::getExitingParticles<PackMode::Pack>,
-                nblocks, nthreads, 0, stream,
-                cl->cellInfo(), cl->getView<PVview>(), packer, helper->wrapSendData() );
+            ParticleRedistributorKernels::getExitingPositionsAndMap<PackMode::Pack>,
+            nblocks, nthreads, 0, stream,
+            cl->cellInfo(), cl->getView<PVview>(), helper->map.devPtr(), shift, helper->wrapSendData() );
+
+        packer->packToBuffer(pv->local(), helper, stream);
     }
 }
 
@@ -189,19 +194,14 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto helper = helpers[id].get();
+    auto packer = packers[id].get();
 
     int oldsize = pv->local()->size();
-    int totalRecvd = helper->recvOffsets[helper->nBuffers];
+    int totalRecvd = helper->recv.offsets[helper->nBuffers];
     pv->local()->resize(oldsize + totalRecvd,  stream);
 
     if (totalRecvd > 0)
-    {
-        int nthreads = 64;
-        SAFE_KERNEL_LAUNCH(
-                ParticleRedistributorKernels::unpackParticles,
-                getNblocks(totalRecvd, nthreads), nthreads, 0, stream,
-                ParticlePacker(pv, pv->local(), packPredicates[id], stream), oldsize, helper->recvBuf.devPtr(), totalRecvd );
-    }
+        packer->unpackFromBuffer(pv->local(), helper, oldsize, stream);
 
     pv->redistValid = true;
 
