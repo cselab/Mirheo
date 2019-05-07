@@ -1,30 +1,31 @@
 #pragma once
 
-#include <memory>
+#include "exchanger_interfaces.h"
 
 #include <core/containers.h>
 #include <core/pvs/extra_data/packers.h>
 
-#include "exchanger_interfaces.h"
-
+#include <memory>
 
 class ObjectVector;
+class ObjectsPacker;
 
 class ObjectHaloExchanger : public Exchanger
 {
 public:
+    ObjectHaloExchanger();
+    ~ObjectHaloExchanger();
+
     void attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames);
 
     PinnedBuffer<int>& getSendOffsets(int id);
     PinnedBuffer<int>& getRecvOffsets(int id);
     PinnedBuffer<int>& getOrigins    (int id);
 
-    virtual ~ObjectHaloExchanger();
-
 protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
-    std::vector<PackPredicate> packPredicates;
+    std::vector<std::unique_ptr<ObjectsPacker>> packers;
 
     std::vector<std::unique_ptr<PinnedBuffer<int>>> origins;
 
