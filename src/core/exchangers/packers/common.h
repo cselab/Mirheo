@@ -19,14 +19,6 @@ __global__ static void updateOffsets(int n, const int *sizes, size_t *offsetsByt
     offsetsBytes[i] += sz;
 }
 
-__global__ static void updateOffsets(size_t sz, int n, const int *sizes, size_t *offsetsBytes)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i > n) return;
-    
-    offsetsBytes[i] += Packer::getPackedSize(sz, sizes[i]);
-}
-
 template <typename T>
 __global__ static void updateOffsetsObjects(int n, int objSize, const int *sizes, size_t *offsetsBytes)
 {
@@ -49,16 +41,6 @@ static void updateOffsets(int n, const int *sizes, size_t *offsetsBytes, cudaStr
         CommonPackerKernels::updateOffsets<T>,
         getNblocks(n, nthreads), nthreads, 0, stream,
         n, sizes, offsetsBytes);
-}
-
-static void updateOffsets(size_t sz, int n, const int *sizes, size_t *offsetsBytes, cudaStream_t stream)
-{
-    constexpr int nthreads = 32;
-
-    SAFE_KERNEL_LAUNCH(
-        CommonPackerKernels::updateOffsets,
-        getNblocks(n, nthreads), nthreads, 0, stream,
-        sz, n, sizes, offsetsBytes);
 }
 
 template <typename T>
