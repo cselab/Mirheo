@@ -62,14 +62,16 @@ size_t ParticlesPacker::getPackedSizeBytes(int n) const
     return _getPackedSizeBytes(pv->local()->dataPerParticle, n);
 }
 
-void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, ExchangeHelper *helper, cudaStream_t stream)
+void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, ExchangeHelper *helper, const std::vector<size_t>& alreadyPacked, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
     int nBuffers = helper->send.sizes.size();
     
     offsetsBytes.copyFromDevice(helper->send.offsetsBytes, stream);
-    updateOffsets<float4>(nBuffers, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream); // positions
+
+    for (auto sz : alreadyPacked) // advance offsets to skip the already packed data
+        updateOffsets(nBuffers, sz, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream);
     
     for (const auto& name_desc : manager.getSortedChannels())
     {

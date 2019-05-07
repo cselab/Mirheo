@@ -19,8 +19,16 @@ __global__ static void updateOffsets(int n, const int *sizes, size_t *offsetsByt
     offsetsBytes[i] += sz;
 }
 
+__global__ static void updateOffsets(size_t sz, int n, const int *sizes, size_t *offsetsBytes)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if (i > n) return;
+    
+    offsetsBytes[i] += Packer::getPackedSize(sz, sizes[i]);
+}
+
 template <typename T>
-__global__ static void updateOffsets(int n, int objSize, const int *sizes, size_t *offsetsBytes)
+__global__ static void updateOffsetsObjects(int n, int objSize, const int *sizes, size_t *offsetsBytes)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > n) return;
@@ -43,13 +51,23 @@ static void updateOffsets(int n, const int *sizes, size_t *offsetsBytes, cudaStr
         n, sizes, offsetsBytes);
 }
 
-template <typename T>
-static void updateOffsets(int n, int objSize, const int *sizes, size_t *offsetsBytes, cudaStream_t stream)
+static void updateOffsets(size_t sz, int n, const int *sizes, size_t *offsetsBytes, cudaStream_t stream)
 {
     constexpr int nthreads = 32;
 
     SAFE_KERNEL_LAUNCH(
-        CommonPackerKernels::updateOffsets<T>,
+        CommonPackerKernels::updateOffsets,
         getNblocks(n, nthreads), nthreads, 0, stream,
-        n, sizes, offsetsBytes);
+        sz, n, sizes, offsetsBytes);
+}
+
+template <typename T>
+static void updateOffsetsObjects(int n, int objSize, const int *sizes, size_t *offsetsBytes, cudaStream_t stream)
+{
+    constexpr int nthreads = 32;
+
+    SAFE_KERNEL_LAUNCH(
+        CommonPackerKernels::updateOffsetsObjects<T>,
+        getNblocks(n, nthreads), nthreads, 0, stream,
+        n, objSize, sizes, offsetsBytes);
 }

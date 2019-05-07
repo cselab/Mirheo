@@ -135,7 +135,7 @@ void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffe
                 map.devPtr(), ov->objSize, offsetsBytes.devPtr(), offsets.devPtr(),
                 pinnedBuffPtr->devPtr(), shift, buffer);
 
-            updateOffsets<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsetsObjects<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(packChannel, desc->varDataPtr);
@@ -200,7 +200,7 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const PinnedBuffer<
                 buffer, offsetsBytes.devPtr(),
                 pinnedBuffPtr->devPtr() + oldObjSize * ov->objSize);
 
-            updateOffsets<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsetsObjects<T>(sizes.size(), ov->objSize, sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(unpackChannel, desc->varDataPtr);
