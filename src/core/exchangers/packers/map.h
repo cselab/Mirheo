@@ -15,6 +15,11 @@ struct __align__(4) MapEntry
     
     uint32_t i;
 
+    __HD__ MapEntry() {}
+    __HD__ MapEntry(uint32_t id, uint32_t bufId) :
+        i((maskId & id) | (bufId << bufShift))
+    {}
+    
     __HD__ inline uint32_t getId()    const {return i & maskId;}
     __HD__ inline uint32_t getBufId() const {return i >> bufShift;}
     
