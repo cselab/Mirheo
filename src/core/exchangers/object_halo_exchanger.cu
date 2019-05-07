@@ -115,9 +115,6 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
 
     packers.push_back(std::move(packer));
     helpers.push_back(std::move(helper));
-
-    auto origin = std::make_unique<PinnedBuffer<int>>(ov->local()->size());    
-    origins.push_back(std::move(origin));
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
@@ -176,7 +173,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
             getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
             ov->state->domain, ovView, helper->map.devPtr(), rc, helper->wrapSendData());
 
-        packer->packToBuffer(ov->local(), helper, stream);
+        packer->packToBuffer(ov->local(), helper->map, &helper->send, stream);
     }
 }
 
@@ -203,11 +200,7 @@ PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
     return helpers[id]->recv.offsets;
 }
 
-PinnedBuffer<int>& ObjectHaloExchanger::getOrigins(int id)
+DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(int id)
 {
-    return *origins[id];
+    return helpers[id]->map;
 }
-
-
-
-
