@@ -54,23 +54,6 @@ __global__ void getExitingObjectsMap(const DomainInfo domain, OVview view, MapEn
     }
 }
 
-__global__ static void unpackObject(const char *from, const int startDstObjId, OVview view, ObjectPacker packer)
-{
-    const int objId = blockIdx.x;
-    const int tid = threadIdx.x;
-
-    const char* srcAddr = from + packer.totalPackedSize_byte * objId;
-
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-    {
-        const int dstId = (startDstObjId+objId)*view.objSize + pid;
-        packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
-    }
-
-    srcAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.unpack(srcAddr, startDstObjId+objId);
-}
-
 } // namespace ObjecRedistributorKernels
 
 //===============================================================================================

@@ -19,6 +19,7 @@ enum class PackMode
 
 namespace ObjectHaloExchangeKernels
 {
+
 template <PackMode packMode>
 __global__ void getObjectHaloMap(const DomainInfo domain, const OVview view, MapEntry *map,
                                  const float rc, BufferOffsetsSizesWrap dataWrap)
@@ -71,22 +72,6 @@ __global__ void getObjectHaloMap(const DomainInfo domain, const OVview view, Map
     }
 }
 
-__global__ static void unpackObject(const char *from, OVview view, ObjectPacker packer)
-{
-    const int objId = blockIdx.x;
-    const int tid = threadIdx.x;
-
-    const char* srcAddr = from + packer.totalPackedSize_byte * objId;
-
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-    {
-        const int dstId = objId * view.objSize + pid;
-        packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
-    }
-
-    srcAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.unpack(srcAddr, objId);
-}
 } // namespace ObjectHaloExchangeKernels
 
 //===============================================================================================
