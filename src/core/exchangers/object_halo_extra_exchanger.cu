@@ -53,7 +53,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     helper->computeSendOffsets();
     helper->resizeSendBuf();
 
-    packer->packToBuffer(ov->local(), /*TODOmap*/ helper, stream);
+    packer->packToBuffer(ov->local(), map, &helper->send, stream);
 }
 
 void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)

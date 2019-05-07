@@ -174,7 +174,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
         getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
         ov->state->domain, ovView, helper->map.devPtr(), helper->wrapSendData() );
 
-    packer->packToBuffer(lov, helper, stream);
+    packer->packToBuffer(lov, helper->map, &helper->send, stream);
     
 
     // Unpack the central buffer into the object vector itself
