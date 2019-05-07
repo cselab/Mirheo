@@ -10,6 +10,7 @@
 
 class ObjectVector;
 class ObjectHaloExchanger;
+class ObjectsPacker;
 
 class ObjectReverseExchanger : public Exchanger
 {
@@ -22,14 +23,10 @@ public:
 protected:
     std::vector<ObjectVector*> objects;    
     ObjectHaloExchanger *entangledHaloExchanger;
-    std::vector<PackPredicate> packPredicates;
-    std::vector<bool> needForces;
-    
+    std::vector<std::unique_ptr<ObjectsPacker>> packers;        
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
-
-    int getForceDatumSize(int id) const;
 };
