@@ -20,13 +20,13 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBy
     if (i > n) return;
 
     auto m = map[i];
-    int buffId = m.getBufId();
+    int bufId = m.getBufId();
     int  srcId = m.getId();
 
-    T *dstData = (T*) (buffer + offsetsBytes[buffId]);
-    int dstId = i - offsets[buffId];
+    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
+    int dstId = i - offsets[bufId];
 
-    dstData[dstId] = shift(srcData[srcId], buffId);
+    dstData[dstId] = shift(srcData[srcId], bufId);
 }
 
 template <typename T>
@@ -43,12 +43,12 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
 
     if (i > n) return;
     
-    int buffId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, i);
-    int pid = i - sharedOffsets[buffId];
+    int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, i);
+    int pid = i - sharedOffsets[bufId];
     
-    const T *srcData = (const T*) (buffer + offsetsBytes[buffId]);
+    auto srcData = reinterpret_cast<const T*> (buffer + offsetsBytes[bufId]);
 
-    dstData[pid] = srcData[pid];
+    dstData[i] = srcData[pid];
 }
 
 } // namespace ParticlePackerKernels
@@ -87,6 +87,9 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, const DeviceB
     {
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
+
+        bool isAlreadPacked = std::find(alreadyPacked.begin(), alreadyPacked.end(), name_desc.first) != alreadyPacked.end();
+        if (isAlreadPacked) continue;
 
         Shifter shift(desc->shiftTypeSize > 0, pv->state->domain);
 

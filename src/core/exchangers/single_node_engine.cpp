@@ -5,7 +5,7 @@
 
 SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
         exchanger(std::move(exchanger))
-{   }
+{}
 
 void SingleNodeEngine::init(cudaStream_t stream)
 {
@@ -45,8 +45,10 @@ void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
             "working with particle vector '%s'", helper->name.c_str());
         
-    helper->recv.sizes   .copy(helper->send.sizes,   stream); // copy as we may need sizes from other classes
-    helper->recv.offsets .copy(helper->send.offsets, stream);
+    helper->recv.sizes   .copy(helper->send.sizes,            stream); // copy as we may need sizes from other classes
+    helper->recv.offsets .copy(helper->send.offsets,          stream);
+    helper->recv.sizesBytes.copy(helper->send.sizesBytes,     stream);
+    helper->recv.offsetsBytes.copy(helper->send.offsetsBytes, stream);
     std::swap(helper->recv.buffer,      helper->send.buffer);
 }
 

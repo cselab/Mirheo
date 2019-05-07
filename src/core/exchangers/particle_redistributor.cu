@@ -120,7 +120,8 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
         die("Redistributor (for %s) must be used with a primary cell-list", pv->name.c_str());
 
     auto packer = std::make_unique<ParticlesPacker>(pv, [](const DataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
+        return (namedDesc.second->persistence == DataManager::PersistenceMode::Persistent) ||
+            (namedDesc.first == ChannelNames::positions);
     });
     
     auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());

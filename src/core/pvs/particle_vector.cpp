@@ -17,6 +17,7 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
 
     // positions are treated specially, do not need to be persistent
     dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Persistent);
+    dataPerParticle.requireShift(ChannelNames::positions, sizeof(float));
     resize_anew(n);
 }
 

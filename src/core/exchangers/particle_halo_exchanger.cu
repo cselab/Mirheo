@@ -71,10 +71,12 @@ __global__ void getHaloMap(const CellListInfo cinfo, MapEntry *map, BufferOffset
     if (tid < FragmentMapping::numFragments && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
-    if (packMode == PackMode::Query) {
+    if (packMode == PackMode::Query)
+    {
         return;
     }
-    else {
+    else
+    {
         __syncthreads();
 
 #pragma unroll 2
@@ -112,16 +114,20 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     particles.push_back(pv);
     cellLists.push_back(cl);
 
-    auto packer = std::make_unique<ParticlesPacker> (pv, [extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
-        return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
+    auto channels = extraChannelNames;
+    channels.push_back(ChannelNames::positions);
+    channels.push_back(ChannelNames::velocities);
+
+    auto packer = std::make_unique<ParticlesPacker> (pv, [channels](const DataManager::NamedChannelDesc& namedDesc) {
+        return std::find(channels.begin(), channels.end(), namedDesc.first) != channels.end();
     });
     auto helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
 
     helpers.push_back(std::move(helper));
     packers.push_back(std::move(packer));
 
-    std::string msg_channels = extraChannelNames.empty() ? "no extra channels." : "with extra channels: ";
-    for (const auto& ch : extraChannelNames) msg_channels += "'" + ch + "' ";
+    std::string msg_channels = channels.empty() ? "no channels." : "with channels: ";
+    for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
     
     info("Particle halo exchanger takes pv '%s' with celllist of rc = %g, %s",
          pv->name.c_str(), cl->rc, msg_channels.c_str());
