@@ -186,7 +186,8 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(), helper->map.devPtr(), shift, helper->wrapSendData() );
 
-        packer->packToBuffer(pv->local(), helper, stream);
+        const std::vector<size_t> alreadyPacked = {sizeof(float4)}; // positions
+        packer->packToBuffer(pv->local(), helper, alreadyPacked, stream);
     }
 }
 

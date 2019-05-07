@@ -185,7 +185,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), helper->map.devPtr(), helper->wrapSendData() );
 
-        packer->packToBuffer(lpv, helper, stream);
+        packer->packToBuffer(lpv, helper, {}, stream);
     }
 }
 
