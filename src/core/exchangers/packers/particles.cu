@@ -17,7 +17,7 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBy
                              const T *srcData, Shifter shift, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    if (i > n) return;
+    if (i >= n) return;
 
     auto m = map[i];
     int bufId = m.getBufId();
@@ -41,7 +41,7 @@ __global__ void unpackFromBuffer(int nBuffers, const int *offsets, int n, const 
         sharedOffsets[i] = offsets[i];
     __syncthreads();
 
-    if (i > n) return;
+    if (i >= n) return;
     
     int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, i);
     int pid = i - sharedOffsets[bufId];
@@ -126,6 +126,8 @@ void ParticlesPacker::unpackFromBuffer(LocalParticleVector *lpv, const BufferInf
     {
         if (!predicate(name_desc)) continue;
         auto& desc = name_desc.second;
+
+        debug2("unpacking particle channel '%s' of pv '%s'", name_desc.first.c_str(), pv->name.c_str());
 
         auto unpackChannel = [&](auto pinnedBuffPtr)
         {
