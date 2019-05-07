@@ -19,7 +19,6 @@ public:
 private:
     std::vector<ParticleVector*> particles;
     std::vector<CellList*> cellLists;
-    std::vector<PackPredicate> packPredicates;
     std::vector<std::unique_ptr<ParticlesPacker>> packers;
 
     void prepareSizes(int id, cudaStream_t stream) override;
