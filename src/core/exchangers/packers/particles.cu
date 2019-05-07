@@ -62,16 +62,17 @@ size_t ParticlesPacker::getPackedSizeBytes(int n) const
     return _getPackedSizeBytes(pv->local()->dataPerParticle, n);
 }
 
-void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, ExchangeHelper *helper, const std::vector<size_t>& alreadyPacked, cudaStream_t stream)
+void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, const DeviceBuffer<MapEntry>& map,
+                                   BufferInfos *helper, const std::vector<size_t>& alreadyPacked, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
-    int nBuffers = helper->send.sizes.size();
+    int nBuffers = helper->sizes.size();
     
-    offsetsBytes.copyFromDevice(helper->send.offsetsBytes, stream);
+    offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
     for (auto sz : alreadyPacked) // advance offsets to skip the already packed data
-        updateOffsets(nBuffers, sz, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream);
+        updateOffsets(nBuffers, sz, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
     
     for (const auto& name_desc : manager.getSortedChannels())
     {
@@ -84,30 +85,30 @@ void ParticlesPacker::packToBuffer(const LocalParticleVector *lpv, ExchangeHelpe
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int n = helper->map.size();
+            int n = map.size();
             const int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH(
                 ParticlePackerKernels::packToBuffer,
                 getNblocks(n, nthreads), nthreads, 0, stream,
-                n, helper->map.devPtr(), offsetsBytes.devPtr(), helper->send.offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), shift, helper->send.buffer.devPtr());
+                n, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
+                pinnedBuffPtr->devPtr(), shift, helper->buffer.devPtr());
 
-            updateOffsets<T>(nBuffers, helper->send.sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(packChannel, desc->varDataPtr);
     }
 }
 
-void ParticlesPacker::unpackFromBuffer(LocalParticleVector *lpv, const ExchangeHelper *helper, int oldSize, cudaStream_t stream)
+void ParticlesPacker::unpackFromBuffer(LocalParticleVector *lpv, const BufferInfos *helper, int oldSize, cudaStream_t stream)
 {
     auto& manager = lpv->dataPerParticle;
 
-    offsetsBytes.copyFromDevice(helper->recv.offsetsBytes, stream);
+    offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
-    int nBuffers  = helper->recv.sizes.size();
-    int nIncoming = helper->recv.offsets[nBuffers];
+    int nBuffers  = helper->sizes.size();
+    int nIncoming = helper->offsets[nBuffers];
     
     for (const auto& name_desc : manager.getSortedChannels())
     {
@@ -124,10 +125,10 @@ void ParticlesPacker::unpackFromBuffer(LocalParticleVector *lpv, const ExchangeH
             SAFE_KERNEL_LAUNCH(
                 ParticlePackerKernels::unpackFromBuffer,
                 getNblocks(nIncoming, nthreads), nthreads, sharedMem, stream,
-                nBuffers, helper->recv.offsets.devPtr(), nIncoming, helper->recv.buffer.devPtr(),
+                nBuffers, helper->offsets.devPtr(), nIncoming, helper->buffer.devPtr(),
                 offsetsBytes.devPtr(), pinnedBuffPtr->devPtr() + oldSize);
 
-            updateOffsets<T>(nBuffers, helper->recv.sizes.devPtr(), offsetsBytes.devPtr(), stream);
+            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
         };
         
         mpark::visit(unpackChannel, desc->varDataPtr);

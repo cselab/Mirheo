@@ -187,7 +187,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
             cl->cellInfo(), cl->getView<PVview>(), helper->map.devPtr(), shift, helper->wrapSendData() );
 
         const std::vector<size_t> alreadyPacked = {sizeof(float4)}; // positions
-        packer->packToBuffer(pv->local(), helper, alreadyPacked, stream);
+        packer->packToBuffer(pv->local(), helper->map, &helper->send, alreadyPacked, stream);
     }
 }
 
@@ -202,7 +202,7 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     pv->local()->resize(oldsize + totalRecvd,  stream);
 
     if (totalRecvd > 0)
-        packer->unpackFromBuffer(pv->local(), helper, oldsize, stream);
+        packer->unpackFromBuffer(pv->local(), &helper->recv, oldsize, stream);
 
     pv->redistValid = true;
 

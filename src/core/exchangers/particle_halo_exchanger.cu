@@ -185,7 +185,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), helper->map.devPtr(), helper->wrapSendData() );
 
-        packer->packToBuffer(lpv, helper, {}, stream);
+        packer->packToBuffer(lpv, helper->map, &helper->send, {}, stream);
     }
 }
 
@@ -201,7 +201,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     debug2("received %d particles from halo exchange", totalRecvd);
 
     if (totalRecvd > 0)
-        packer->unpackFromBuffer(pv->halo(), helper, 0, stream);
+        packer->unpackFromBuffer(pv->halo(), &helper->recv, 0, stream);
     
     pv->haloValid = true;
 }

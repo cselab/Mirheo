@@ -190,7 +190,7 @@ size_t ObjectsPacker::getPackedSizeBytes(int nobj) const
     return packedSizeParts + packedSizeObjs;
 }
 
-void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, DeviceBuffer<MapEntry>& map, BufferInfos *helper, cudaStream_t stream)
+void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffer<MapEntry>& map, BufferInfos *helper, cudaStream_t stream)
 {
     auto& partManager = lov->dataPerParticle;
     auto& objManager  = lov->dataPerObject;
