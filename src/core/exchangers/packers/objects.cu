@@ -204,76 +204,59 @@ size_t ObjectsPacker::getPackedSizeBytes(int nobj) const
 
 void ObjectsPacker::packToBuffer(const LocalObjectVector *lov, const DeviceBuffer<MapEntry>& map, BufferInfos *helper, cudaStream_t stream)
 {
-    auto& partManager = lov->dataPerParticle;
-    auto& objManager  = lov->dataPerObject;
-
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
     int nBuffers = helper->sizes.size();
     
-    // pack particle data
-    for (const auto& name_desc : partManager.getSortedChannels())
+    auto packParts = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
-
-        bool needShift = desc->shiftTypeSize > 0;
-        Shifter shift(needShift, ov->state->domain);
-        
-        auto packChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-
-            const int nObj = map.size();
-            const int nthreads = 128;
-
-            debug2("Packing %d object particles '%s' of '%s' %s shift",
-                   nObj * ov->objSize, name_desc.first.c_str(),
-                   ov->name.c_str(), needShift ? "with" : "with no");
-            
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::packParticlesToBuffer,
-                nObj, nthreads, 0, stream,
-                map.devPtr(), ov->objSize, offsetsBytes.devPtr(), helper->offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), shift, helper->buffer.devPtr());
-
-            updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
-        
-        mpark::visit(packChannel, desc->varDataPtr);
-    }
-
-    // pack object data
-    for (const auto& name_desc : objManager.getSortedChannels())
-    {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        auto& desc = nameDesc.second;
 
         bool needShift = desc->shiftTypeSize > 0;
         Shifter shift(needShift, ov->state->domain);
 
-        auto packChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        const int nObj = map.size();
+        const int nthreads = 128;
 
-            const int nObj = map.size();
-            const int nthreads = 32;
-
-            debug2("Packing %d object quantities '%s' of '%s' %s shift",
-                   nObj, name_desc.first.c_str(), ov->name.c_str(),
-                   needShift ? "with" : "with no");
-
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::packObjectsToBuffer,
-                getNblocks(nObj, nthreads), nthreads, 0, stream,
-                nObj, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
-                pinnedBuffPtr->devPtr(), shift, helper->buffer.devPtr());
-
-            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
+        debug2("Packing %d object particles '%s' of '%s' %s shift",
+               nObj * ov->objSize, nameDesc.first.c_str(),
+               ov->name.c_str(), needShift ? "with" : "with no");
         
-        mpark::visit(packChannel, desc->varDataPtr);
-    }
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::packParticlesToBuffer,
+            nObj, nthreads, 0, stream,
+            map.devPtr(), ov->objSize, offsetsBytes.devPtr(), helper->offsets.devPtr(),
+            pinnedBuffPtr->devPtr(), shift, helper->buffer.devPtr());
+
+        updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
+
+    auto packObjs = [&](auto pinnedBuffPtr, const auto& nameDesc)
+    {
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        auto& desc = nameDesc.second;
+
+        bool needShift = desc->shiftTypeSize > 0;
+        Shifter shift(needShift, ov->state->domain);
+
+        const int nObj = map.size();
+        const int nthreads = 32;
+
+        debug2("Packing %d object quantities '%s' of '%s' %s shift",
+               nObj, nameDesc.first.c_str(), ov->name.c_str(),
+               needShift ? "with" : "with no");
+
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::packObjectsToBuffer,
+            getNblocks(nObj, nthreads), nthreads, 0, stream,
+            nObj, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
+            pinnedBuffPtr->devPtr(), shift, helper->buffer.devPtr());
+
+        updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
+
+    _applyToChannels(lov, packParts, packObjs);
 }
 
 void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *helper, int oldObjSize, cudaStream_t stream)
@@ -295,9 +278,6 @@ void ObjectsPacker::unpackBulkFromBuffer(LocalObjectVector *lov, int bulkId, con
 
 void ObjectsPacker::_unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *helper, int oldObjSize, int bufStart, int bufEnd, cudaStream_t stream)
 {
-    auto& partManager = lov->dataPerParticle;
-    auto& objManager  = lov->dataPerObject;
-
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
     int nBuffers = bufEnd - bufStart;
@@ -307,200 +287,175 @@ void ObjectsPacker::_unpackFromBuffer(LocalObjectVector *lov, const BufferInfos 
     auto offsetsPtr      = helper->offsets.devPtr() + bufStart;
     auto offsetsBytesPtr = offsetsBytes   .devPtr() + bufStart;
 
-    // unpack particle data
-    for (const auto& name_desc : partManager.getSortedChannels())
+    auto unpackParts = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-        auto unpackChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-
-            debug2("Unpacking object particles '%s' of '%s'", name_desc.first.c_str(), ov->name.c_str());
-            
-            const int nthreads = 128;
-            const size_t sharedMem = nBuffers * sizeof(int);
-
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::unpackParticlesFromBuffer,
-                nObj, nthreads, sharedMem, stream,
-                nBuffers, offsetsPtr, ov->objSize,
-                helper->buffer.devPtr(), offsetsBytesPtr,
-                pinnedBuffPtr->devPtr() + oldObjSize * ov->objSize);
-
-            updateOffsetsObjects<T>(nBuffers, ov->objSize, sizesPtr, offsetsBytesPtr, stream);
-        };
+        debug2("Unpacking object particles '%s' of '%s'", nameDesc.first.c_str(), ov->name.c_str());
         
-        mpark::visit(unpackChannel, desc->varDataPtr);
-    }
+        const int nthreads = 128;
+        const size_t sharedMem = nBuffers * sizeof(int);
 
-    // unpack object data
-    for (const auto& name_desc : objManager.getSortedChannels())
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::unpackParticlesFromBuffer,
+            nObj, nthreads, sharedMem, stream,
+            nBuffers, offsetsPtr, ov->objSize,
+            helper->buffer.devPtr(), offsetsBytesPtr,
+            pinnedBuffPtr->devPtr() + oldObjSize * ov->objSize);
+
+        updateOffsetsObjects<T>(nBuffers, ov->objSize, sizesPtr, offsetsBytesPtr, stream);
+    };
+        
+    auto unpackObjs = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-        auto unpackChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-
-            debug2("Unpacking object quantities '%s' of '%s'", name_desc.first.c_str(), ov->name.c_str());
-            
-            const int nthreads = 32;
-            const size_t sharedMem = nBuffers * sizeof(int);
-
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::unpackObjectsFromBuffer,
-                getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
-                nObj, nBuffers, offsetsPtr, helper->buffer.devPtr(),
-                offsetsBytesPtr, pinnedBuffPtr->devPtr() + oldObjSize);
-
-            updateOffsets<T>(nBuffers, sizesPtr, offsetsBytesPtr, stream);
-        };
+        debug2("Unpacking object quantities '%s' of '%s'", nameDesc.first.c_str(), ov->name.c_str());
         
-        mpark::visit(unpackChannel, desc->varDataPtr);
-    }
+        const int nthreads = 32;
+        const size_t sharedMem = nBuffers * sizeof(int);
+
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::unpackObjectsFromBuffer,
+            getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
+            nObj, nBuffers, offsetsPtr, helper->buffer.devPtr(),
+            offsetsBytesPtr, pinnedBuffPtr->devPtr() + oldObjSize);
+
+        updateOffsets<T>(nBuffers, sizesPtr, offsetsBytesPtr, stream);
+    };
+
+    _applyToChannels(lov, unpackParts, unpackObjs);
 }
 
 void ObjectsPacker::reversePackToBuffer(const LocalObjectVector *lov, BufferInfos *helper, cudaStream_t stream)
 {
-    auto& partManager = lov->dataPerParticle;
-    auto& objManager  = lov->dataPerObject;
-
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
-    // reverse pack particle data
-    for (const auto& name_desc : partManager.getSortedChannels())
+    auto reversePackParts = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-        auto reversePackChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        int nBuffers = helper->sizes.size();
+        int nObj     = helper->offsets[nBuffers];
+        const int nthreads = 128;
+        const size_t sharedMem = nBuffers * sizeof(int);
 
-            int nBuffers = helper->sizes.size();
-            int nObj     = helper->offsets[nBuffers];
-            const int nthreads = 128;
-            const size_t sharedMem = nBuffers * sizeof(int);
-
-            debug2("Reverse packing %d object particles '%s' of '%s'",
-                   nObj * ov->objSize, name_desc.first.c_str(), ov->name.c_str());
-            
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reversePackParticlesToBuffer,
-                nObj, nthreads, sharedMem, stream,
-                nBuffers, helper->offsets.devPtr(), ov->objSize,
-                pinnedBuffPtr->devPtr(), offsetsBytes.devPtr(),
-                helper->buffer.devPtr());
-
-            updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
+        debug2("Reverse packing %d object particles '%s' of '%s'",
+               nObj * ov->objSize, nameDesc.first.c_str(), ov->name.c_str());
         
-        mpark::visit(reversePackChannel, desc->varDataPtr);
-    }
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::reversePackParticlesToBuffer,
+            nObj, nthreads, sharedMem, stream,
+            nBuffers, helper->offsets.devPtr(), ov->objSize,
+            pinnedBuffPtr->devPtr(), offsetsBytes.devPtr(),
+            helper->buffer.devPtr());
 
-    // reverse pack object data
-    for (const auto& name_desc : objManager.getSortedChannels())
+        updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
+
+    auto reversePackObjs = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-        auto reversePackChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        int nBuffers = helper->sizes.size();
+        int nObj     = helper->offsets[nBuffers];
+        const int nthreads = 32;
+        const size_t sharedMem = nBuffers * sizeof(int);
 
-            int nBuffers = helper->sizes.size();
-            int nObj     = helper->offsets[nBuffers];
-            const int nthreads = 32;
-            const size_t sharedMem = nBuffers * sizeof(int);
+        debug2("Reverse packing %d object quantities '%s' of '%s'",
+               nObj, nameDesc.first.c_str(), ov->name.c_str());
 
-            debug2("Reverse packing %d object quantities '%s' of '%s'",
-                   nObj, name_desc.first.c_str(), ov->name.c_str());
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::reversePackObjectsToBuffer,
+            getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
+            nObj, nBuffers, pinnedBuffPtr->devPtr(), helper->offsets.devPtr(),
+            offsetsBytes.devPtr(), helper->buffer.devPtr());
 
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reversePackObjectsToBuffer,
-                getNblocks(nObj, nthreads), nthreads, sharedMem, stream,
-                nObj, nBuffers, pinnedBuffPtr->devPtr(), helper->offsets.devPtr(),
-                offsetsBytes.devPtr(), helper->buffer.devPtr());
+        updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
 
-            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
-        
-        mpark::visit(reversePackChannel, desc->varDataPtr);
-    }
-
+    _applyToChannels(lov, reversePackParts, reversePackObjs);
 }
 
 void ObjectsPacker::reverseUnpackFromBufferAndAdd(LocalObjectVector *lov, const DeviceBuffer<MapEntry>& map,
                                                   const BufferInfos *helper, cudaStream_t stream)
 {
-    auto& partManager = lov->dataPerParticle;
-    auto& objManager  = lov->dataPerObject;
-
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
     int nBuffers = helper->sizes.size();
     AtomicAdder adder(1e-6f);
-    
-    // pack particle data
-    for (const auto& name_desc : partManager.getSortedChannels())
+        
+    auto reverseUnpackAndAddParts = [&](auto pinnedBuffPtr, const auto& nameDesc)
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
+        auto& desc = nameDesc.second;
         Shifter shift(desc->shiftTypeSize > 0, ov->state->domain);
         
-        auto reverseUnpackAndAddChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+        const int nObj = map.size();
+        const int nthreads = 128;
 
-            const int nObj = map.size();
-            const int nthreads = 128;
-
-            debug2("Reverse unpacking %d object particles '%s' of '%s'",
-                   nObj * ov->objSize, name_desc.first.c_str(), ov->name.c_str());
-            
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reverseUnpackAndAddParticlesFromBuffer,
-                nObj, nthreads, 0, stream,
-                map.devPtr(), ov->objSize, offsetsBytes.devPtr(), helper->offsets.devPtr(),
-                helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
-
-            updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
+        debug2("Reverse unpacking %d object particles '%s' of '%s'",
+               nObj * ov->objSize, nameDesc.first.c_str(), ov->name.c_str());
         
-        mpark::visit(reverseUnpackAndAddChannel, desc->varDataPtr);
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::reverseUnpackAndAddParticlesFromBuffer,
+            nObj, nthreads, 0, stream,
+            map.devPtr(), ov->objSize, offsetsBytes.devPtr(), helper->offsets.devPtr(),
+            helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
+
+        updateOffsetsObjects<T>(nBuffers, ov->objSize, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
+        
+    auto reverseUnpackAndAddObjs = [&](auto pinnedBuffPtr, const auto& nameDesc)
+    {
+        using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+
+        auto& desc = nameDesc.second;
+        Shifter shift(desc->shiftTypeSize > 0, ov->state->domain);
+
+        const int nObj = map.size();
+        const int nthreads = 32;
+
+        debug2("Reverse unpacking %d object entities '%s' of '%s'",
+               nObj, nameDesc.first.c_str(), ov->name.c_str());
+
+        SAFE_KERNEL_LAUNCH(
+            ObjectPackerKernels::reverseUnpackAndAddObjectsFromBuffer,
+            getNblocks(nObj, nthreads), nthreads, 0, stream,
+            nObj, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
+            helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
+
+        updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
+    };
+
+    _applyToChannels(lov, reverseUnpackAndAddParts, reverseUnpackAndAddObjs);
+}
+
+template <typename Pvisitor, typename Ovisitor>
+void ObjectsPacker::_applyToChannels(const LocalObjectVector *lov, Pvisitor &&pvisitor, Ovisitor &&ovisitor)
+{
+    auto& partManager = lov->dataPerParticle;
+    auto& objManager  = lov->dataPerObject;
+
+    // visit particle data
+    for (const auto& nameDesc : partManager.getSortedChannels())
+    {
+        if (!predicate(nameDesc)) continue;
+        auto& desc = nameDesc.second;
+
+        auto visitor = [&](auto pinnedBuffPtr) {return pvisitor(pinnedBuffPtr, nameDesc);};
+        mpark::visit(visitor, desc->varDataPtr);
     }
 
-    // pack object data
-    for (const auto& name_desc : objManager.getSortedChannels())
+    // visit object data
+    for (const auto& nameDesc : objManager.getSortedChannels())
     {
-        if (!predicate(name_desc)) continue;
-        auto& desc = name_desc.second;
+        if (!predicate(nameDesc)) continue;
+        auto& desc = nameDesc.second;
 
-        Shifter shift(desc->shiftTypeSize > 0, ov->state->domain);
-        
-        auto reverseUnpackAndAddChannel = [&](auto pinnedBuffPtr)
-        {
-            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-
-            const int nObj = map.size();
-            const int nthreads = 32;
-
-            debug2("Reverse unpacking %d object entities '%s' of '%s'",
-                   nObj, name_desc.first.c_str(), ov->name.c_str());
-
-            SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reverseUnpackAndAddObjectsFromBuffer,
-                getNblocks(nObj, nthreads), nthreads, 0, stream,
-                nObj, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
-                helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
-
-            updateOffsets<T>(nBuffers, helper->sizes.devPtr(), offsetsBytes.devPtr(), stream);
-        };
-        
-        mpark::visit(reverseUnpackAndAddChannel, desc->varDataPtr);
-    }    
+        auto visitor = [&](auto pinnedBuffPtr) {return ovisitor(pinnedBuffPtr, nameDesc);};
+        mpark::visit(visitor, desc->varDataPtr);
+    }
 }
+

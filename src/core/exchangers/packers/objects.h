@@ -25,6 +25,9 @@ public:
 protected:
 
     void _unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *helper, int oldObjSize, int bufStart, int bufEnd, cudaStream_t stream);
-    
+
+    template <typename Pvisitor, typename Ovisitor>
+    void _applyToChannels(const LocalObjectVector *lov, Pvisitor &&pvisitor, Ovisitor &&ovisitor);
+
     ObjectVector *ov;
 };
