@@ -83,19 +83,18 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
         if (exchanger->needExchange(i)) wait(helpers[i].get(), stream);
 
     // Wait for completion of the previous sends
-	for (int i = 0; i < helpers.size(); i++)
-		if (exchanger->needExchange(i))
-			MPI_Check( MPI_Waitall(
-					helpers[i]->send.requests.size(),
-					helpers[i]->send.requests.data(),
-					MPI_STATUSES_IGNORE) );
+    for (int i = 0; i < helpers.size(); i++)
+        if (exchanger->needExchange(i))
+            MPI_Check( MPI_Waitall(helpers[i]->send.requests.size(),
+                                   helpers[i]->send.requests.data(),
+                                   MPI_STATUSES_IGNORE) );
 
     // Derived class unpack implementation
     for (int i = 0; i < helpers.size(); i++)
         if (exchanger->needExchange(i)) exchanger->combineAndUploadData(i, stream);
 }
 
-void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
+void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)
 {
     std::string pvName = helper->name;
 
@@ -121,7 +120,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper* helper)
 /**
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  */
-void MPIExchangeEngine::sendSizes(ExchangeHelper* helper)
+void MPIExchangeEngine::sendSizes(ExchangeHelper *helper)
 {
     std::string pvName = helper->name;
 
@@ -158,7 +157,7 @@ static void safeWaitAll(int count, MPI_Request array_of_requests[])
     }
 }
 
-void MPIExchangeEngine::postRecv(ExchangeHelper* helper)
+void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
 {
     std::string pvName = helper->name;
 
@@ -223,6 +222,11 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
     
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
+
+    helper->recv.sizes        .uploadToDevice(stream);
+    helper->recv.sizesBytes   .uploadToDevice(stream);
+    helper->recv.offsets      .uploadToDevice(stream);
+    helper->recv.offsetsBytes .uploadToDevice(stream);
     
     double waitTime = 0;
     mTimer tm;
@@ -263,7 +267,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  * helper->sendBuf data is ON DEVICE
  */
-void MPIExchangeEngine::send(ExchangeHelper* helper, cudaStream_t stream)
+void MPIExchangeEngine::send(ExchangeHelper *helper, cudaStream_t stream)
 {
     std::string pvName = helper->name;
 
