@@ -17,16 +17,20 @@ __global__ void packParticlesToBuffer(const MapEntry *map, int objSize, const si
                                       const int *offsets, const T *srcData, Shifter shift, char *buffer)
 {
     int objId = blockIdx.x;
+
     auto m = map[objId];
-    int bufId = m.getBufId();
-    int  srcId = m.getId();
-    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
-    int bufOffset = offsets[bufId];
+    int dstBufId = m.getBufId();
+    int srcObjId = m.getId();
+
+    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[dstBufId]);
+    int dstObjId = objId - offsets[dstBufId];
 
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
-        int dstId = (objId - bufOffset) * objSize + i;
-        dstData[dstId] = shift(srcData[srcId + i], bufId);
+        int dstId = dstObjId * objSize + i;
+        int srcId = srcObjId * objSize + i;
+
+        dstData[dstId] = shift(srcData[srcId], dstBufId);
     }
 }
 
@@ -39,13 +43,13 @@ __global__ void packObjectsToBuffer(int nObj, const MapEntry *map, const size_t 
     if (objId >= nObj) return;
     
     auto m = map[objId];
-    int bufId = m.getBufId();
-    int  srcId = m.getId();
-    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
-    int bufOffset = offsets[bufId];
+    int dstBufId = m.getBufId();
+    int srcObjId = m.getId();
 
-    int dstId = objId - bufOffset;
-    dstData[dstId] = shift(srcData[srcId], bufId);
+    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[dstBufId]);
+    int dstObjId = objId - offsets[dstBufId];
+
+    dstData[dstObjId] = shift(srcData[srcObjId], dstBufId);
 }
 
 template <typename T>
@@ -59,15 +63,17 @@ __global__ void unpackParticlesFromBuffer(int nBuffers, const int *offsets, int 
         sharedOffsets[i] = offsets[i];
     __syncthreads();
 
-    int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
-    objId -= sharedOffsets[bufId];
+    int srcBufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
+    int srcObjId = objId - sharedOffsets[srcBufId];
     
-    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[bufId]);
+    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[srcBufId]);
 
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
-        int j = objId * objSize + i;
-        dstData[j] = srcData[j];
+        int srcId = srcObjId * objSize + i;
+        int dstId =    objId * objSize + i;
+
+        dstData[dstId] = srcData[srcId];
     }
 }
 
@@ -84,12 +90,12 @@ __global__ void unpackObjectsFromBuffer(int nObj, int nBuffers, const int *offse
 
     if (objId >= nObj) return;
     
-    int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
-    objId -= sharedOffsets[bufId];
+    int srcBufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
+    int srcObjId = objId - sharedOffsets[srcBufId];
     
-    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[bufId]);
+    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[srcBufId]);
 
-    dstData[objId] = srcData[objId];
+    dstData[objId] = srcData[srcObjId];
 }
 
 
@@ -105,15 +111,17 @@ __global__ void reversePackParticlesToBuffer(int nBuffers, const int *offsets, i
         sharedOffsets[i] = offsets[i];
     __syncthreads();
 
-    int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
-    objId -= sharedOffsets[bufId];
+    int dstBufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
+    int dstObjId = objId - sharedOffsets[dstBufId];
     
-    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
+    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[dstBufId]);
 
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
-        int j = objId * objSize + i;
-        dstData[j] = srcData[j];
+        int srcId =    objId * objSize + i;
+        int dstId = dstObjId * objSize + i;
+
+        dstData[dstId] = srcData[srcId];
     }
 }
 
@@ -130,49 +138,53 @@ __global__ void reversePackObjectsToBuffer(int nObj, int nBuffers, const T *srcD
 
     if (objId >= nObj) return;
     
-    int bufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
-    objId -= sharedOffsets[bufId];
+    int dstBufId = dispatchThreadsPerBuffer(nBuffers, sharedOffsets, objId);
+    int dstObjId = objId - sharedOffsets[dstBufId];
     
-    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
+    auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[dstBufId]);
 
-    dstData[objId] = srcData[objId];
+    dstData[dstObjId] = srcData[objId];
 }
 
 
 template <typename T>
-__global__ void reverseUnpackAndAddParticlesToBuffer(const MapEntry *map, int objSize, const size_t *offsetsBytes,
-                                                     const int *offsets, const char *buffer, AtomicAdder add, T *dstData)
+__global__ void reverseUnpackAndAddParticlesFromBuffer(const MapEntry *map, int objSize, const size_t *offsetsBytes,
+                                                       const int *offsets, const char *buffer, AtomicAdder atomicAddNonZero, T *dstData)
 {
     int objId = blockIdx.x;
+
     auto m = map[objId];
-    int bufId = m.getBufId();
-    int  dstId = m.getId();
-    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[bufId]);
-    int bufOffset = offsets[bufId];
+    int srcBufId = m.getBufId();
+    int dstObjId = m.getId();
+    
+    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[srcBufId]);
+    int srcObjId = objId - offsets[srcBufId];
 
     for (int i = threadIdx.x; i < objSize; i += blockDim.x)
     {
-        int srcId = (objId - bufOffset) * objSize + i;
-        add(dstData + dstId + i, srcData[srcId]);
+        int srcId = srcObjId * objSize + i;
+        int dstId = dstObjId * objSize + i;
+
+        atomicAddNonZero(&dstData[dstId], srcData[srcId]);
     }
 }
 
 template <typename T>
-__global__ void reverseUnpackAndAddObjectsToBuffer(int nObj, const MapEntry *map, const size_t *offsetsBytes,
-                                                   const int *offsets, const char *buffer, AtomicAdder add, T *dstData)
+__global__ void reverseUnpackAndAddObjectsFromBuffer(int nObj, const MapEntry *map, const size_t *offsetsBytes,
+                                                     const int *offsets, const char *buffer, AtomicAdder atomicAddNonZero, T *dstData)
 {
     int objId = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (objId >= nObj) return;
     
     auto m = map[objId];
-    int bufId = m.getBufId();
-    int  dstId = m.getId();
-    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[bufId]);
-    int bufOffset = offsets[bufId];
+    int srcBufId = m.getBufId();
+    int dstObjId = m.getId();
 
-    int srcId = objId - bufOffset;
-    add(dstData + dstId, srcData[srcId]);
+    auto srcData = reinterpret_cast<const T*>(buffer + offsetsBytes[srcBufId]);
+    int srcObjId = objId - offsets[srcBufId];
+
+    atomicAddNonZero(&dstData[dstObjId], srcData[srcObjId]);
 }
 
 } // namespace ObjectPackerKernels
@@ -408,7 +420,7 @@ void ObjectsPacker::reverseUnpackFromBufferAndAdd(LocalObjectVector *lov, const 
             const int nthreads = 128;
             
             SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reverseUnpackAndAddParticlesToBuffer,
+                ObjectPackerKernels::reverseUnpackAndAddParticlesFromBuffer,
                 nObj, nthreads, 0, stream,
                 map.devPtr(), ov->objSize, offsetsBytes.devPtr(), helper->offsets.devPtr(),
                 helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
@@ -435,7 +447,7 @@ void ObjectsPacker::reverseUnpackFromBufferAndAdd(LocalObjectVector *lov, const 
             const int nthreads = 32;
 
             SAFE_KERNEL_LAUNCH(
-                ObjectPackerKernels::reverseUnpackAndAddObjectsToBuffer,
+                ObjectPackerKernels::reverseUnpackAndAddObjectsFromBuffer,
                 getNblocks(nObj, nthreads), nthreads, 0, stream,
                 nObj, map.devPtr(), offsetsBytes.devPtr(), helper->offsets.devPtr(),
                 helper->buffer.devPtr(), adder, pinnedBuffPtr->devPtr());
