@@ -273,6 +273,9 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *
 
     offsetsBytes.copyFromDevice(helper->offsetsBytes, stream);
 
+    int nBuffers = helper->sizes.size();
+    int nObj     = helper->offsets[nBuffers];
+
     // unpack particle data
     for (const auto& name_desc : partManager.getSortedChannels())
     {
@@ -283,8 +286,6 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int nBuffers = helper->sizes.size();
-            int nObj     = helper->offsets[nBuffers];
             const int nthreads = 128;
             const size_t sharedMem = nBuffers * sizeof(int);
 
@@ -311,8 +312,6 @@ void ObjectsPacker::unpackFromBuffer(LocalObjectVector *lov, const BufferInfos *
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
-            int nBuffers = helper->sizes.size();
-            int nObj     = helper->offsets[nBuffers];
             const int nthreads = 32;
             const size_t sharedMem = nBuffers * sizeof(int);
 
