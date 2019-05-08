@@ -165,7 +165,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Renew view and packer, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
 
-    packer->unpackFromBuffer(lov, &helper->send, 0, stream);
+    packer->unpackBulkFromBuffer(lov, helper->bulkId, &helper->send, stream);
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
