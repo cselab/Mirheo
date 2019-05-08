@@ -51,6 +51,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Preparing '%s' data to reverse send data");
 
     helper->computeSendOffsets();
+    helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
 
     packer->reversePackToBuffer(ov->halo(), &helper->send, stream);

@@ -30,6 +30,7 @@ struct BufferInfos
 
     void clearAllSizes(cudaStream_t stream);
     void resizeInfos(int nBuffers);
+    void uploadInfosToDevice(cudaStream_t stream);
 };
 
 

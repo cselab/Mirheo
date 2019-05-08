@@ -26,11 +26,20 @@ void BufferInfos::clearAllSizes(cudaStream_t stream)
 
 void BufferInfos::resizeInfos(int nBuffers)
 {
-    sizes       .resize_anew(nBuffers);
-    sizesBytes  .resize_anew(nBuffers);
-    offsets     .resize_anew(nBuffers+1);
-    offsetsBytes.resize_anew(nBuffers+1);
+    sizes        .resize_anew(nBuffers);
+    sizesBytes   .resize_anew(nBuffers);
+    offsets      .resize_anew(nBuffers+1);
+    offsetsBytes .resize_anew(nBuffers+1);
 }
+
+void BufferInfos::uploadInfosToDevice(cudaStream_t stream)
+{
+    sizes        .uploadToDevice(stream);
+    sizesBytes   .uploadToDevice(stream);
+    offsets      .uploadToDevice(stream);
+    offsetsBytes .uploadToDevice(stream);
+}
+
 
 ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, Packer *packer) :
     name(name),

@@ -51,6 +51,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     auto& map   = entangledHaloExchanger->getMap(id);
 
     helper->computeSendOffsets();
+    helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
 
     packer->packToBuffer(ov->local(), map, &helper->send, stream);

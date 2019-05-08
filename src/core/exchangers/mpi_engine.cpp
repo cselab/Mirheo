@@ -223,10 +223,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI ? "on" : "off");
 
-    helper->recv.sizes        .uploadToDevice(stream);
-    helper->recv.sizesBytes   .uploadToDevice(stream);
-    helper->recv.offsets      .uploadToDevice(stream);
-    helper->recv.offsetsBytes .uploadToDevice(stream);
+    helper->recv.uploadInfosToDevice(stream);
     
     double waitTime = 0;
     mTimer tm;

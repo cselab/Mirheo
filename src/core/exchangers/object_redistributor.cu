@@ -121,6 +121,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     {
         helper->send.sizes[bulkId] = 0;
         helper->computeSendOffsets();
+        helper->send.uploadInfosToDevice(stream);
         helper->resizeSendBuf();
     }
 }
@@ -163,13 +164,13 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Unpack the central buffer into the object vector itself
     // Renew view and packer, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
-    ovView = OVview(ov, ov->local());
 
     packer->unpackFromBuffer(lov, &helper->send, 0, stream);
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
-    helper->resizeSendBuf();
+    helper->send.uploadInfosToDevice(stream);
+    helper->resizeSendBuf(); // relying here on the fact that bulkId is the last one
 }
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
@@ -183,7 +184,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
-    ov->local()->resize(ov->local()->size() + totalRecvd * objSize, stream);
+    ov->local()->resize((oldNObjs + totalRecvd) * objSize, stream);
 
     packer->unpackFromBuffer(ov->local(), &helper->recv, oldNObjs, stream);
 

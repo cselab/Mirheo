@@ -21,7 +21,7 @@ __global__ void packToBuffer(int n, const MapEntry *map, const size_t *offsetsBy
 
     auto m = map[i];
     int bufId = m.getBufId();
-    int  srcId = m.getId();
+    int srcId = m.getId();
 
     auto dstData = reinterpret_cast<T*>(buffer + offsetsBytes[bufId]);
     int dstId = i - offsets[bufId];
