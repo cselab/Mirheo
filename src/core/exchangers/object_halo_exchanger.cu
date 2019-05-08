@@ -66,7 +66,7 @@ __global__ void getObjectHaloMap(const DomainInfo domain, const OVview view, Map
         }
         else
         {
-            int myOffset = dataWrap.offsets[bufId] + dstObjId;
+            int myOffset  = dataWrap.offsets[bufId] + dstObjId;
             map[myOffset] = MapEntry(objId, bufId);
         }
     }
@@ -92,8 +92,12 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     objects.push_back(ov);
     rcs.push_back(rc);
 
-    auto packer = std::make_unique<ObjectsPacker>(ov, [extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
-        return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
+    auto channels = extraChannelNames;
+    channels.push_back(ChannelNames::positions);
+    channels.push_back(ChannelNames::velocities);
+    
+    auto packer = std::make_unique<ObjectsPacker>(ov, [channels](const DataManager::NamedChannelDesc& namedDesc) {
+        return std::find(channels.begin(), channels.end(), namedDesc.first) != channels.end();
     });
     
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
@@ -138,16 +142,12 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto packer = packers[id].get();
 
     int nhalo = helper->send.offsets[helper->nBuffers];
-    debug2("Downloading %d halo objects of '%s'", nhalo, ov->name.c_str());
-
     OVview ovView(ov, ov->local());
 
     if (ovView.nObjects > 0)
     {
-        // 1 int per particle: #objects x objSize x int
-        // origin->resize_anew(nhalo * ovView.objSize);
-
         const int nthreads = 32;
+        debug2("Downloading %d halo objects of '%s'", nhalo, ov->name.c_str());
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);

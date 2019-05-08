@@ -74,7 +74,8 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     objects.push_back(ov);
 
     auto packer = std::make_unique<ObjectsPacker>(ov, [](const DataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
+        return (namedDesc.second->persistence == DataManager::PersistenceMode::Persistent) ||
+            (namedDesc.first == ChannelNames::positions);
     });
 
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
