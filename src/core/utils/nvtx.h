@@ -1,12 +1,13 @@
 #pragma once
 
 #ifdef USE_NVTX
-#include "nvToolsExt.h"
+#include <string>
+#include <nvToolsExt.h>
 
 class NvtxTracer
 {
 public:
-    NvtxTracer(const char *name);
+    NvtxTracer(const std::string& name);
     ~NvtxTracer();
 private:
     nvtxRangeId_t id;
