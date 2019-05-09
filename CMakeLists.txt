@@ -8,6 +8,7 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+option(USE_NVTX "enable NVTX profiling" OFF)
 
 project(YMeRo LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -138,6 +139,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
+
+if (USE_NVTX)
+  add_definitions(-DUSE_NVTX)
+  target_link_libraries(${YMR} PRIVATE "-lnvToolsExt")
+  target_link_libraries(${YMR_MAIN} PRIVATE "-lnvToolsExt")
+endif()
 
 # Silence deprecation warnings for CUDA >= 9
 if (CUDA_VERSION_MAJOR GREATER_EQUAL 9)

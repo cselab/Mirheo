@@ -8,6 +8,7 @@
 #include <core/task_scheduler.h>
 #include <core/logger.h>
 #include <core/utils/make_unique.h>
+#include <core/utils/nvtx.h>
 
 TaskScheduler::TaskScheduler()
 {
@@ -336,9 +337,14 @@ void TaskScheduler::run()
         debug("Executing group %s on stream %lld with priority %d", tasks[node->id].label.c_str(), (int64_t)stream, node->priority);
         workMap.push_back({stream, node});
 
-        for (auto& func_every : tasks[node->id].funcs)
-            if (nExecutions % func_every.second == 0)
-                func_every.first(stream);
+        {
+            auto& task = tasks[node->id];
+            NvtxCreateRange(range, task.label.c_str());
+            
+            for (auto& func_every : task.funcs)
+                if (nExecutions % func_every.second == 0)
+                    func_every.first(stream);
+        }
     }
 
     nExecutions++;
