@@ -86,7 +86,8 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
     const int nthreads = 128;
 
-    auto dtInv = 1.0f / state->dt;
+    auto dt     = state->dt;
+    auto dtInv  = 1.0f / max(1e-6f, dt);
     auto domain = state->domain;
     
     for (size_t i = 0; i < pvs.size(); ++i)
@@ -120,7 +121,6 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         
         die("Bad particle in '%s' with id %ld, position %g %g %g, velocity %g %g %g : %s",
             pv->name.c_str(), p.getId(), p.r.x, p.r.y, p.r.z, p.u.x, p.u.y, p.u.z, infoStr);
-            
     }
 }
 
