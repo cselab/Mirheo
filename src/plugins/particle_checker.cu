@@ -34,8 +34,14 @@ __global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, Part
 
     if (!checkFinite(pos) || !checkFinite(vel))
     {
-        *status = {ParticleCheckerPlugin::Status::Nan, pid};
-        return; // TODO: atomics?
+        auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+
+        if (tag == ParticleCheckerPlugin::GOOD)
+        {
+            status->id   = pid;
+            status->info = ParticleCheckerPlugin::Info::Nan;
+        }
+        return;
     }
 
     float3 boundsPos = 1.5f  * domain.localSize; // particle should not be further that in a neighbouring domain
@@ -43,7 +49,13 @@ __global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, Part
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
-        *status = {ParticleCheckerPlugin::Status::Out, pid};
+        auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+
+        if (tag == ParticleCheckerPlugin::GOOD)
+        {
+            status->id   = pid;
+            status->info = ParticleCheckerPlugin::Info::Out;
+        }
         return;
     }
 }
@@ -64,7 +76,7 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
     statuses.resize_anew(pvs.size());
 
     for (auto& s : statuses)
-        s = {Status::Ok, 0};
+        s = {GOOD, 0, Info::Ok};
     statuses.uploadToDevice(defaultStream);
 }
 
@@ -93,7 +105,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     for (size_t i = 0; i < pvs.size(); ++i)
     {
         const auto& s = statuses[i];
-        if (s.status == Status::Ok) continue;
+        if (s.tag == GOOD) continue;
 
         // from now we know we will fail; download particles and print error
         auto pv = pvs[i];
@@ -104,9 +116,11 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         auto p = Particle(lpv->positions ()[s.id],
                           lpv->velocities()[s.id]);
 
-        die("Bad particle with id %ld, position %g %g %g, velocity %g %g %g : %s",
-            p.getId(), p.r.x, p.r.y, p.r.z, p.u.x, p.u.y, p.u.z,
-            s.status == Status::Nan ? "non finite number" : "out of bounds");
+        const char *infoStr = s.info == Info::Nan ? "non finite number" : "out of bounds";
+        
+        die("Bad particle in '%s' with id %ld, position %g %g %g, velocity %g %g %g : %s",
+            pv->name.c_str(), p.getId(), p.r.x, p.r.y, p.r.z, p.u.x, p.u.y, p.u.z, infoStr);
+            
     }
 }
 

@@ -179,6 +179,11 @@ void exportPlugins(py::module& m)
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
     )");
 
+    py::handlers_class<ParticleCheckerPlugin>(m, "ParticleChecker", pysim, R"(
+        This plugin will check the positions and velocities of all particles in the simulation every given time steps.
+        To be used for debugging purpose.
+    )");
+
     py::handlers_class<ParticleDragPlugin>(m, "ParticleDrag", pysim, R"(
         This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
     )");
@@ -623,6 +628,15 @@ void exportPlugins(py::module& m)
             pv: :any:`ParticleVector` that we'll work with
             channelName: the name of the source channel
             savedName: name of the extra channel
+    )");
+
+    m.def("__createParticleChecker", &PluginFactory::createParticleCheckerPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "check_every"_a, R"(
+        Create :any:`ParticleChecker` plugin
+        
+        Args:
+            name: name of the plugin
+            check_every: check every this amount of time steps
     )");
 
     m.def("__createParticleDisplacement", &PluginFactory::createParticleDisplacementPlugin, 

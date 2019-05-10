@@ -20,12 +20,13 @@ public:
 
     bool needPostproc() override { return false; }
 
-    enum class Status {Ok, Out, Nan};
+    enum class Info {Ok, Out, Nan};
+    enum {GOOD, BAD};
     
-    struct __align__(8) ParticleStatus
+    struct __align__(16) ParticleStatus
     {
-        Status status;
-        int id;
+        int tag, id;
+        Info info;
     };
 
 private:
