@@ -80,8 +80,12 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
     __syncthreads();
 
     if (i >= objs.nObjects) return;
-    
-    int rodLocs[7]; // at most 7 images in case of halo
+
+    // HACK; TODO: better approach?
+    // there can be several times the same rod because of halo exchanges on a single node (up to 7)
+    // we store all indices and then compute forces
+    // forces are skipped internally if the distance is more than half subdomain size
+    int rodLocs[7];
     int nFound = 0;
 
     for (int j = 0; j < rods.nObjects; ++j)
