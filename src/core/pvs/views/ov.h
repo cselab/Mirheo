@@ -13,9 +13,9 @@ struct OVview : public PVview
     float objMass = 0, invObjMass = 0;
 
     COMandExtent *comAndExtents = nullptr;
-    int64_t* ids = nullptr;
+    int64_t *ids = nullptr;
 
-    OVview(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+    OVview(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
         PVview(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
@@ -34,9 +34,9 @@ struct OVview : public PVview
 
 struct OVviewWithAreaVolume : public OVview
 {
-    float2* area_volumes = nullptr;
+    float2 *area_volumes = nullptr;
 
-    OVviewWithAreaVolume(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+    OVviewWithAreaVolume(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
         OVview(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
@@ -52,7 +52,7 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 
     float *lenThetaTot = nullptr;
 
-    OVviewWithJuelicherQuants(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr) :
+    OVviewWithJuelicherQuants(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
         OVviewWithAreaVolume(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
@@ -66,7 +66,7 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 
 struct OVviewWithOldPartilces : public OVview
 {
-    float4* oldPositions = nullptr;
+    float4 *oldPositions = nullptr;
 
     OVviewWithOldPartilces(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
         OVview(ov, lov)
@@ -85,7 +85,7 @@ struct OVviewWithNewOldVertices : public OVview
 
     int nvertices = 0;
 
-    OVviewWithNewOldVertices(ObjectVector* ov = nullptr, LocalObjectVector* lov = nullptr, cudaStream_t stream = 0) :
+    OVviewWithNewOldVertices(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr, cudaStream_t stream = 0) :
         OVview(ov, lov)
     {
         if (ov == nullptr || lov == nullptr) return;
