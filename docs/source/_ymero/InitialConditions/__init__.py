@@ -145,7 +145,7 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[List[float[7]]], center_line: Callable[[float], Tuple[float, float, float]], torsion: Callable[[float], float]) -> None
+        r"""__init__(com_q: List[List[float[7]]], center_line: Callable[[float], Tuple[float, float, float]], torsion: Callable[[float], float], a: float) -> None
 
 
             Args:
@@ -160,6 +160,8 @@ class Rod(InitialConditions):
                     Assume :math:`|r'(s)|` is constant for all :math:`s \in [0,1]`.
                 torsion:
                     explicit mapping :math:`\tau : [0,1] \rightarrow R`.
+                a:
+                    width of the rod 
         
 
         """

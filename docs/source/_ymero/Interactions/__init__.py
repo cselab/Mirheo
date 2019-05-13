@@ -364,7 +364,8 @@ class RodForces(Interaction):
 
                  * **a0** (float):           equilibrium length between 2 opposite cross vertices
                  * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
-                 * **k_bounds** (float):     bound energy
+                 * **k_bounds** (float):     elastic bound force magnitude
+                 * **k_visc** (float):       viscous bound force magnitude
                  * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
                  * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
