@@ -1,6 +1,6 @@
 #include "device_packer.h"
 
-void DevicePacker::registerChannel(ExtraDataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream)
+void DevicePacker::registerChannel(DataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream)
 {
     if (manager.channelPtrs.size() <= nChannels)
     {
@@ -22,7 +22,7 @@ void DevicePacker::registerChannel(ExtraDataManager& manager, int sz, char *ptr,
     ++nChannels;
 }
 
-void DevicePacker::registerChannels(PackPredicate predicate, ExtraDataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream)
+void DevicePacker::registerChannels(PackPredicate predicate, DataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream)
 {
     for (const auto& name_desc : manager.getSortedChannels())
     {
@@ -47,7 +47,7 @@ void DevicePacker::registerChannels(PackPredicate predicate, ExtraDataManager& m
     }
 }
 
-void DevicePacker::setAndUploadData(ExtraDataManager& manager, bool needUpload, cudaStream_t stream)
+void DevicePacker::setAndUploadData(DataManager& manager, bool needUpload, cudaStream_t stream)
 {
     packedSize_byte = ( (packedSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
 

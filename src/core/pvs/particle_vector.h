@@ -3,7 +3,7 @@
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/domain.h>
-#include <core/pvs/extra_data/extra_data_manager.h>
+#include <core/pvs/data_manager.h>
 #include <core/utils/make_unique.h>
 #include <core/utils/pytypes.h>
 #include <core/ymero_object.h>
@@ -40,7 +40,7 @@ public:
     
 public:
     ParticleVector *pv;
-    ExtraDataManager dataPerParticle;
+    DataManager dataPerParticle;
 
 protected:
     int np;
@@ -75,13 +75,13 @@ public:
     void setForces_vector(PyTypes::VectorOfFloat3& forces);    
     
     template<typename T>
-    void requireDataPerParticle(std::string name, ExtraDataManager::PersistenceMode persistence)
+    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence)
     {
         requireDataPerParticle<T>(name, persistence, 0);
     }
     
     template<typename T>
-    void requireDataPerParticle(std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         requireDataPerParticle<T>(local(), name, persistence, shiftDataSize);
         requireDataPerParticle<T>(halo(),  name, persistence, shiftDataSize);
@@ -94,7 +94,7 @@ protected:
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &parts, std::vector<int>& map);
 
-    void _extractPersistentExtraData(ExtraDataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
+    void _extractPersistentExtraData(DataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
     void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
@@ -103,7 +103,7 @@ protected:
 private:
 
     template<typename T>
-    void requireDataPerParticle(LocalParticleVector *lpv, std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerParticle(LocalParticleVector *lpv, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         lpv->dataPerParticle.createData<T> (name, lpv->size());
         lpv->dataPerParticle.setPersistenceMode(name, persistence);

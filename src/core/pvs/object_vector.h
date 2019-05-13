@@ -26,7 +26,7 @@ public:
 public:
     int nObjects { 0 };
 
-    ExtraDataManager dataPerObject;
+    DataManager dataPerObject;
 
 protected:
     int objSize { 0 };
@@ -51,13 +51,13 @@ public:
     void restart    (MPI_Comm comm, std::string path) override;
 
     template<typename T>
-    void requireDataPerObject(std::string name, ExtraDataManager::PersistenceMode persistence)
+    void requireDataPerObject(std::string name, DataManager::PersistenceMode persistence)
     {
         requireDataPerObject<T>(name, persistence, 0);
     }
 
     template<typename T>
-    void requireDataPerObject(std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerObject(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         requireDataPerObject<T>(local(), name, persistence, shiftDataSize);
         requireDataPerObject<T>(halo(),  name, persistence, shiftDataSize);
@@ -82,7 +82,7 @@ protected:
     
 private:
     template<typename T>
-    void requireDataPerObject(LocalObjectVector* lov, std::string name, ExtraDataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerObject(LocalObjectVector* lov, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
     {
         lov->dataPerObject.createData<T> (name, lov->nObjects);
         lov->dataPerObject.setPersistenceMode(name, persistence);

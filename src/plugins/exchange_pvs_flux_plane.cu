@@ -84,8 +84,8 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
     pv1 = simulation->getPVbyNameOrDie(pv1Name);
     pv2 = simulation->getPVbyNameOrDie(pv2Name);
 
-    pv1->requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
-    pv2->requireDataPerParticle<float4> (ChannelNames::oldPositions, ExtraDataManager::PersistenceMode::Persistent, sizeof(float));
+    pv1->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Persistent, sizeof(float));
+    pv2->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Persistent, sizeof(float));
 }
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
@@ -112,8 +112,8 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 
     view2 = PVview(pv2, pv2->local());
 
-    auto packPredicate = [](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
+    auto packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
+        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
     };
     
     ParticleExtraPacker extra1(pv1, pv1->local(), packPredicate, stream);

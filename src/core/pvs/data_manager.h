@@ -22,7 +22,7 @@ using VarPinnedBufferPtr = mpark::variant<
     >;
 
 /**
- * \class ExtraDataManager
+ * \class DataManager
  *
  * @brief Class that holds and manages \c PinnedBuffers (just buffers later, or channels) of arbitrary data
  *
@@ -30,7 +30,7 @@ using VarPinnedBufferPtr = mpark::variant<
  * Holds data itself, knows whether the data should migrate with the particles in MPI functions
  * and whether the data should be changed by coordinate shift when crossing to another MPI rank
  */
-class ExtraDataManager
+class DataManager
 {
 public:
 

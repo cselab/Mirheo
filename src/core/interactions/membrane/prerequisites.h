@@ -14,10 +14,10 @@ inline void setPrerequisitesPerEnergy(const JuelicherBendingParameters&, Particl
 {
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
-    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, DataManager::PersistenceMode::None);
 
-    ov->requireDataPerParticle<float>(ChannelNames::areas, ExtraDataManager::PersistenceMode::None);
-    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, ExtraDataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::areas, DataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, DataManager::PersistenceMode::None);
 }
 
 

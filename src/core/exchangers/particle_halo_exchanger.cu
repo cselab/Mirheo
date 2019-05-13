@@ -30,17 +30,18 @@ __global__ void getHalos(const CellListInfo cinfo, const ParticlePacker packer, 
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int tid = threadIdx.x;
+    const int faceId = blockIdx.y;
     int cid;
     int dx, dy, dz;
 
-    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
+    bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
     int pstart = valid ? cinfo.cellStarts[cid]   : 0;
     int pend   = valid ? cinfo.cellStarts[cid+1] : 0;
 
     // Use shared memory to decrease number of global atomics
     // We're sending to max 7 halos (corner)
-    short validHalos[7];
+    char validHalos[7];
     int haloOffset[7] = {};
 
     int current = 0;
@@ -126,7 +127,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
 
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([extraChannelNames](const ExtraDataManager::NamedChannelDesc& namedDesc) {
+    packPredicates.push_back([extraChannelNames](const DataManager::NamedChannelDesc& namedDesc) {
         return std::find(extraChannelNames.begin(), extraChannelNames.end(), namedDesc.first) != extraChannelNames.end();
     });
 
@@ -149,7 +150,6 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
-    // LocalParticleVector *lpv = pv->local();
     
     helper->sendSizes.clear(stream);
     ParticlePacker packer(pv, lpv, packPredicates[id], stream);
@@ -160,7 +160,8 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
 
         const int nthreads = 64;
-        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+        const int nfaces = 6;;
+        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         SAFE_KERNEL_LAUNCH(
                 getHalos<PackMode::Query>,
@@ -187,7 +188,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
-        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
+        const int nfaces = 6;;
+        const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         ParticlePacker packer(pv, lpv, packPredicates[id], stream);
 

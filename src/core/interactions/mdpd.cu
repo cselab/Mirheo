@@ -31,8 +31,8 @@ void InteractionMDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2,
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 
-    pv1->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
-    pv2->requireDataPerParticle<float>(ChannelNames::densities, ExtraDataManager::PersistenceMode::None);
+    pv1->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
+    pv2->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
     
     cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);

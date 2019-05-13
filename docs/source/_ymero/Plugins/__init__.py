@@ -160,6 +160,12 @@ class ParticleChannelSaver(SimulationPlugin):
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
     
     """
+class ParticleChecker(SimulationPlugin):
+    r"""
+        This plugin will check the positions and velocities of all particles in the simulation every given time steps.
+        To be used for debugging purpose.
+    
+    """
 class ParticleDisplacementPlugin(SimulationPlugin):
     r"""
         This plugin computes and save the displacement of the particles within a given particle vector.
@@ -702,6 +708,20 @@ def createParticleChannelSaver():
             pv: :any:`ParticleVector` that we'll work with
             channelName: the name of the source channel
             savedName: name of the extra channel
+    
+
+    """
+    pass
+
+def createParticleChecker():
+    r"""createParticleChecker(state: YmrState, name: str, check_every: int) -> Tuple[Plugins.ParticleChecker, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleChecker` plugin
+        
+        Args:
+            name: name of the plugin
+            check_every: check every this amount of time steps
     
 
     """

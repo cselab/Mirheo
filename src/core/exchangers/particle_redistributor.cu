@@ -38,11 +38,12 @@ template <PackMode packMode>
 __global__ void getExitingParticles(CellListInfo cinfo, PVview view, ParticlePacker packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
+    const int faceId = blockIdx.y;
     int cid;
     int dx, dy, dz;
     const int3 ncells = cinfo.ncells;
 
-    bool valid = isValidCell(cid, dx, dy, dz, gid, blockIdx.y, cinfo);
+    bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
     if (!valid) return;
 
@@ -122,8 +123,8 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     
     helpers.push_back(std::move(helper));
 
-    packPredicates.push_back([](const ExtraDataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == ExtraDataManager::PersistenceMode::Persistent;
+    packPredicates.push_back([](const DataManager::NamedChannelDesc& namedDesc) {
+        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
     });
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());

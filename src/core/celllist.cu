@@ -169,10 +169,10 @@ void CellList::_updateExtraDataChannels(cudaStream_t stream)
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
 
-        mpark::visit([&](auto pinnedBuff) {
-                         using T = typename std::remove_reference< decltype(pinnedBuff->hostPtr()[0]) >::type;
+        mpark::visit([&](auto pinnedBuffPtr) {
+                         using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
                          if (!containerManager.checkChannelExists(name))
                              containerManager.createData<T>(name, np);
@@ -228,7 +228,7 @@ void CellList::_reorderPositionsAndCreateMap(cudaStream_t stream)
 }
 
 void CellList::_reorderExtraDataEntry(const std::string& channelName,
-                                      const ExtraDataManager::ChannelDescription *channelDesc,
+                                      const DataManager::ChannelDescription *channelDesc,
                                       cudaStream_t stream)
 {
     const auto& dstDesc = particlesDataContainer->dataPerParticle.getChannelDescOrDie(channelName);
@@ -256,7 +256,7 @@ void CellList::_reorderPersistentData(cudaStream_t stream)
     for (const auto& namedChannel : srcExtraData->getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
         _reorderExtraDataEntry(name, desc, stream);
     }
 }
@@ -437,7 +437,7 @@ void PrimaryCellList::gatherChannels(const std::vector<std::string>& channelName
 
 
 template <typename T>
-static void swap(const std::string& channelName, ExtraDataManager& pvManager, ExtraDataManager& containerManager)
+static void swap(const std::string& channelName, DataManager& pvManager, DataManager& containerManager)
 {
     std::swap(*pvManager       .getData<T>(channelName),
               *containerManager.getData<T>(channelName));
@@ -451,7 +451,7 @@ void PrimaryCellList::_swapPersistentExtraData()
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != ExtraDataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
 
         const auto& descCont = containerManager.getChannelDescOrDie(name);
 
