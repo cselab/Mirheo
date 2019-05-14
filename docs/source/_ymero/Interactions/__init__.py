@@ -317,6 +317,26 @@ class MembraneForces(Interaction):
         """
         pass
 
+class ObjRodBinding(Interaction):
+    r"""
+        Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, torque: float, rel_anchor: Tuple[float, float, float], k_bound: float) -> None
+
+
+            Args:
+                name: name of the interaction
+                torque: torque magnitude to apply to the rod
+                rel_anchor: position of the anchor relative to the rigid object
+                k_bound: anchor harmonic potential magnitude
+
+    
+
+        """
+        pass
+
 class RodForces(Interaction):
     r"""
         Forces acting on an elastic rod.
