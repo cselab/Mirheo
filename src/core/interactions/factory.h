@@ -15,6 +15,7 @@ class BasicInteractionSDPD;
 class InteractionLJ;
 class InteractionDPD;
 class InteractionMDPD;
+class ObjectRodBindingInteraction;
 
 namespace InteractionFactory
 {
@@ -49,5 +50,9 @@ createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, fl
 std::shared_ptr<InteractionMDPD>
 createPairwiseMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
                    float power, bool stress, const std::map<std::string, VarParam>& parameters);
+
+std::shared_ptr<ObjectRodBindingInteraction>
+createInteractionObjRodBinding(const YmrState *state, std::string name,
+                               float torque, PyTypes::float3 relAnchor, float kBound);
 
 } // namespace InteractionFactory

@@ -8,6 +8,7 @@
 #include "mdpd.h"
 #include "mdpd_with_stress.h"
 #include "membrane.h"
+#include "obj_rod_binding.h"
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
 #include "rod.h"
@@ -353,3 +354,9 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
 
+std::shared_ptr<ObjectRodBindingInteraction>
+InteractionFactory::createInteractionObjRodBinding(const YmrState *state, std::string name,
+                                                   float torque, PyTypes::float3 relAnchor, float kBound)
+{
+    return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, make_float3(relAnchor), kBound);
+}
