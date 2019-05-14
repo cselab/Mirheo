@@ -25,6 +25,14 @@ __device__ inline float3 fetchPosition(View view, int i)
     return make_float3(ri.v);
 }
 
+__device__ inline float3 safeNormalize(float3 u)
+{
+    constexpr float tol = 1e-6f;
+    auto nrm2 = dot(u,u);
+    if (nrm2 < tol) return make_float3(0.f);
+    return rsqrtf(nrm2) * u;
+}
+
 __device__ void applyBindingForce(const DomainInfo& domain,
                                   int i, const ROVview& objs,
                                   int j, const OVview& rods,
@@ -46,8 +54,8 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     if (fabs(dr.x) > 0.5f * domain.localSize.x) return;
     if (fabs(dr.y) > 0.5f * domain.localSize.y) return;
     if (fabs(dr.z) > 0.5f * domain.localSize.z) return;
-    
-    const auto fanchor = params.kb * normalize(dr);
+
+    const auto fanchor = -params.kb * safeNormalize(dr);
     const auto e0 = normalize(r1 - r0);
     auto dp = u1 - u0;
     dp = normalize(dp - e0 * dot(e0, dp));
@@ -61,7 +69,7 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     atomicAdd(&rods.forces[start + 2], -fu0);
 
     atomicAdd(&objs.motions[i].force , make_rigidReal3(fanchor));
-    atomicAdd(&objs.motions[i].torque, make_rigidReal3(Tanchor));
+    atomicAdd(&objs.motions[i].torque, make_rigidReal3(Tanchor + T));
 }
 
 __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rods, BindingParams params)
@@ -74,8 +82,8 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 
     extern __shared__ int idRods[];
 
-    if (i < rods.nObjects)
-        idRods[threadIdx.x] = rods.ids[i];
+    for (int j = threadIdx.x; j < rods.nObjects; j += blockDim.x)
+        idRods[j] = rods.ids[j];
 
     __syncthreads();
 
@@ -148,12 +156,13 @@ void ObjectRodBindingInteraction::_local(RigidObjectVector *rov, RodVector *rv, 
 
     const int nthreads = 64;
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
-
+    const size_t shMem = rods.nObjects * sizeof(int);
+    
     ObjRodBindingKernels::BindingParams params {relAnchor, torque, kBound};
     
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,
-        nblocks, nthreads, 0, stream,
+        nblocks, nthreads, shMem, stream,
         state->domain, objs, rods, params);
 }
 
@@ -164,11 +173,12 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
 
     const int nthreads = 64;
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
-
+    const size_t shMem = rods.nObjects * sizeof(int);
+    
     ObjRodBindingKernels::BindingParams params {relAnchor, torque, kBound};
     
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,
-        nblocks, nthreads, 0, stream,
+        nblocks, nthreads, shMem, stream,
         state->domain, objs, rods, params);
 }
