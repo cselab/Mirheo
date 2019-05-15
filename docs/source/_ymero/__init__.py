@@ -101,7 +101,9 @@ class ymero:
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
                 
                 Args:
-                    h: cell-size of the resulting grid                    
+                    walls: list of walls to dump; the output sdf will be the union of all walls inside
+                    h: cell-size of the resulting grid
+                    filename: base filename output, will create to files filename.xmf and filename.h5 
         
 
         """
