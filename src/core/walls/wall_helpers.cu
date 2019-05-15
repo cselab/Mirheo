@@ -175,7 +175,7 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH
     
     for (auto& wall : walls)
     {
-        wall->sdfOnGrid(gridH, &sdfs, 0);
+        wall->sdfOnGrid(gridH, &sdfs, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
             WallHelpersKernels::merge_sdfs,
