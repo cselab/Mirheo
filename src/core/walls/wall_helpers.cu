@@ -113,7 +113,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     std::swap(frozenVel, pv->local()->velocities());
 }
 
-void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -125,7 +125,7 @@ void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal
 }
 
 
-void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -155,7 +155,7 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
 }
 
 
-void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
+void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     CellListInfo gridInfo(gridH, domain.localSize);
@@ -191,7 +191,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
 }
 
 
-double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
+double WallHelpers::volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
 {
     long n = nSamplesPerRank;
     DeviceBuffer<float3> positions(n);
