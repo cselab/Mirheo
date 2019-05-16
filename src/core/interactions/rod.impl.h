@@ -10,9 +10,9 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParameters& p)
+static auto getBoundParams(const RodParameters& p)
 {
-    RodForcesKernels::GPU_RodBoundsParameters dp;
+    GPU_RodBoundsParameters dp;
     dp.kBounds = p.kBounds;
     dp.kVisc   = p.kVisc;
     dp.lcenter = p.l0;
@@ -22,9 +22,9 @@ static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParamet
     return dp;
 }
 
-static RodForcesKernels::GPU_RodBiSegmentParameters getBiSegmentParams(const RodParameters& p)
+static auto getBiSegmentParams(const RodParameters& p)
 {
-    RodForcesKernels::GPU_RodBiSegmentParameters dp;
+    GPU_RodBiSegmentParameters dp;
     dp.kBending = p.kBending;
     dp.omegaEq  = p.omegaEq * p.l0; // omega is an integrated quantity
     dp.kTwist   = p.kTwist;
