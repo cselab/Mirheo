@@ -5,6 +5,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 #include <core/walls/simple_stationary_wall.h>
 #include <core/xdmf/xdmf.h>
@@ -184,6 +185,10 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH
     }
 
     sdfs_merged.downloadFromDevice(defaultStream);
+
+    auto path = parentPath(filename);
+    if (path != filename)
+        createFoldersCollective(cartComm, path);
     
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
     XDMF::Channel sdfCh("sdf", (void*)sdfs_merged.hostPtr(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());
