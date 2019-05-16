@@ -13,6 +13,7 @@ struct GPU_RodBiSegmentParameters
     float kTwist;
     float2 omegaEq[Nstates];
     float tauEq[Nstates];
+    float groundE[Nstates];
 };
 
 // theta0 and theta1 might be close to pi, leading to +- pi values
@@ -230,6 +231,6 @@ struct BiSegment
 
         real Et = params.kTwist / linv * dtau * dtau;
 
-        return Eb + Et;
+        return Eb + Et + params.groundE[state];
     }
 };
