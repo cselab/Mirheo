@@ -183,8 +183,8 @@ static RodParameters readRodParameters(ParametersWrap& desc)
         auto tauEqs   = desc.read<std::vector<float>>( "tau0");
         auto groundE  = desc.read<std::vector<float>>( "E0");
 
-        if (omegaEqs.size() != tauEqs.size())
-            die("Rod parameters: expected same number of omega0 and tau0");
+        if (omegaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
+            die("Rod parameters: expected same number of omega0, tau0 and E0");
 
         for (const auto& om : omegaEqs)
             p.omegaEq.push_back(make_float2(om));
