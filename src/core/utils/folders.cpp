@@ -1,7 +1,8 @@
-#include <sstream>
-
 #include "folders.h"
+
 #include <core/logger.h>
+
+#include <sstream>
 
 std::string getStrZeroPadded(int i, int zeroPadding)
 {
