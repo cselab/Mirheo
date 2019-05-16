@@ -53,12 +53,13 @@ bool createFoldersCollective(const MPI_Comm& comm, std::string path)
 {
     bool res;
     int rank;
+    constexpr int root = 0;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
-    if (rank == 0)
+    if (rank == root)
         res = createFolders(path);
 
-    MPI_Bcast(&res, 1, MPI_C_BOOL, 0, comm);
+    MPI_Check( MPI_Bcast(&res, 1, MPI_C_BOOL, root, comm) );
 
     return res;
 }
