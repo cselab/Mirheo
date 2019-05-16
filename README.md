@@ -13,6 +13,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 ## Changelog
 
 <!-- ### unreleased -->
+* add interaction rod-rigid
+* **fix** create folder when dumping sdf
 
 ### v0.16.0
 
