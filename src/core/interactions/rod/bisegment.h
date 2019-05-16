@@ -6,11 +6,13 @@
 #include <core/utils/cuda_common.h>
 #include <core/pvs/views/rv.h>
 
+template<int Nstates>
 struct GPU_RodBiSegmentParameters
 {
     float3 kBending;
-    float2 omegaEq;
-    float kTwist, tauEq;
+    float kTwist;
+    float2 omegaEq[Nstates];
+    float tauEq[Nstates];
 };
 
 // theta0 and theta1 might be close to pi, leading to +- pi values
@@ -29,11 +31,12 @@ __device__ inline real2 symmetricMatMult(const real3& A, const real2& x)
             A.y * x.x + A.z * x.y};
 }
 
-
+template <int Nstates>
 struct BiSegment
 {
     real3 e0, e1, t0, t1, dp0, dp1, bicur;
     real bicurFactor, e0inv, e1inv, linv;
+    int state;
 
     __device__ inline BiSegment(const RVview& view, int start)
     {
@@ -74,7 +77,7 @@ struct BiSegment
         return bicurFactor * (2.0_r * cross(e1, v) + dot(e1, v) * bicur);
     }
 
-    __device__ inline void computeBendingForces(const GPU_RodBiSegmentParameters& params,
+    __device__ inline void computeBendingForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
                                                 real3& fr0, real3& fr2, real3& fpm0, real3& fpm1) const
     {
         real dpt0 = dot(dp0, t0);
@@ -95,8 +98,8 @@ struct BiSegment
         real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
                        -dpPerp1inv * dot(bicur,    dp1)};
 
-        real2 domega0 = omega0 - make_real2(params.omegaEq);
-        real2 domega1 = omega1 - make_real2(params.omegaEq);
+        real2 domega0 = omega0 - make_real2(params.omegaEq[state]);
+        real2 domega1 = omega1 - make_real2(params.omegaEq[state]);
 
         real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
         real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
@@ -147,7 +150,7 @@ struct BiSegment
         fpm1 += linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
     }
 
-    __device__ inline void computeTwistForces(const GPU_RodBiSegmentParameters& params,
+    __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
                                               const real3& u0, const real3& u1,
                                               real3& fr0, real3& fr2, real3& fpm0, real3& fpm1) const
     {
@@ -164,9 +167,9 @@ struct BiSegment
         real theta1 = atan2(dpv1, dpu1);
     
         real tau = safeDiffTheta(theta0, theta1) * linv;
-        real dtau = tau - params.tauEq;
+        real dtau = tau - params.tauEq[state];
 
-        real ftwistLFactor = params.kTwist * dtau * (tau + params.tauEq);
+        real ftwistLFactor = params.kTwist * dtau * (tau + params.tauEq[state]);
 
         fr0 -= 0.5_r * ftwistLFactor * t0;
         fr2 += 0.5_r * ftwistLFactor * t1;
@@ -180,8 +183,8 @@ struct BiSegment
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
-    __device__ inline real computeEnergy(const GPU_RodBiSegmentParameters& params,
-                                         const real3& u0, const real3& u1)
+    __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
+                                         const real3& u0, const real3& u1) const
     {
         real dpt0 = dot(dp0, t0);
         real dpt1 = dot(dp1, t1);
@@ -201,8 +204,8 @@ struct BiSegment
         real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
                        -dpPerp1inv * dot(bicur,    dp1)};
 
-        real2 domega0 = omega0 - make_real2(params.omegaEq);
-        real2 domega1 = omega1 - make_real2(params.omegaEq);
+        real2 domega0 = omega0 - make_real2(params.omegaEq[state]);
+        real2 domega1 = omega1 - make_real2(params.omegaEq[state]);
 
         real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
         real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
@@ -223,7 +226,7 @@ struct BiSegment
         real theta1 = atan2(dpv1, dpu1);
     
         real tau = safeDiffTheta(theta0, theta1) * linv;
-        real dtau = tau - params.tauEq;
+        real dtau = tau - params.tauEq[state];
 
         real Et = params.kTwist / linv * dtau * dtau;
 

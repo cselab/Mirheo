@@ -5,7 +5,7 @@
 InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters) :
     Interaction(state, name, /*rc*/ 1.f)
 {
-    impl = std::make_unique<InteractionRodImpl>(state, name, parameters);
+    impl = std::make_unique<InteractionRodImpl<1>>(state, name, parameters);
 }
 
 InteractionRod::~InteractionRod() = default;

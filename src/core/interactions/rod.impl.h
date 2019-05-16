@@ -22,16 +22,18 @@ static auto getBoundParams(const RodParameters& p)
     return dp;
 }
 
+template <int Nstates>
 static auto getBiSegmentParams(const RodParameters& p)
 {
-    GPU_RodBiSegmentParameters dp;
+    GPU_RodBiSegmentParameters<Nstates> dp;
     dp.kBending = p.kBending;
-    dp.omegaEq  = p.omegaEq * p.l0; // omega is an integrated quantity
+    dp.omegaEq[0]  = p.omegaEq * p.l0; // omega is an integrated quantity
     dp.kTwist   = p.kTwist;
-    dp.tauEq    = p.tauEq;
+    dp.tauEq[0]    = p.tauEq;
     return dp;
 }
 
+template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
@@ -68,7 +70,7 @@ public:
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
         
-            auto devParams = getBiSegmentParams(parameters);
+            auto devParams = getBiSegmentParams<Nstates>(parameters);
         
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
                                nblocks, nthreads, 0, stream,

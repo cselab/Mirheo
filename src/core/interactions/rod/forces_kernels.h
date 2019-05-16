@@ -97,42 +97,61 @@ __device__ inline real3 fetchBishopFrame(const RVview& view, int objId, int segm
     return make_real3(u);
 }
 
-__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters params)
+template <int Nstates>
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params)
 {
+    constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
     const int nBiSegments = view.nSegments - 1;
     const int rodId       = i / nBiSegments;
     const int biSegmentId = i % nBiSegments;
-    const int start = view.objSize * rodId + biSegmentId * 5;
+    const int start = view.objSize * rodId + biSegmentId * stride;
 
     if (rodId       >= view.nObjects ) return;
     if (biSegmentId >= nBiSegments   ) return;
 
-    const BiSegment bisegment(view, start);
+    const BiSegment<Nstates> bisegment(view, start);
 
-    real3 fr0, fr2, fpm0, fpm1;
-    fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
-    
-    bisegment.computeBendingForces(params, fr0, fr2, fpm0, fpm1);
-    
     auto u0 = fetchBishopFrame(view, rodId, biSegmentId + 0);
     auto u1 = fetchBishopFrame(view, rodId, biSegmentId + 1);
 
-    bisegment.computeTwistForces(params, u0, u1, fr0, fr2, fpm0, fpm1);
+    real3 fr0, fr2, fpm0, fpm1;
+    int state = 0;
+
+    if (Nstates > 1)
+    {
+        real E = bisegment.computeEnergy(state, params, u0, u1);
+        
+        #pragma unroll
+        for (int s = 1; s < Nstates; ++s)
+        {
+            real Es = bisegment.computeEnergy(state, params, u0, u1);
+            if (Es < E)
+            {
+                E = Es;
+                state = s;
+            }
+        }
+    }
+    
+    fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
+    
+    bisegment.computeBendingForces(state, params, fr0, fr2, fpm0, fpm1);
+    bisegment.computeTwistForces(state, params, u0, u1, fr0, fr2, fpm0, fpm1);
 
     // by conservation of momentum
     auto fr1  = -(fr0 + fr2);
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
     
-    atomicAdd(view.forces + start +  0, make_float3(fr0));
-    atomicAdd(view.forces + start +  5, make_float3(fr1));
-    atomicAdd(view.forces + start + 10, make_float3(fr2));
+    atomicAdd(view.forces + start + 0 * stride, make_float3(fr0));
+    atomicAdd(view.forces + start + 1 * stride, make_float3(fr1));
+    atomicAdd(view.forces + start + 2 * stride, make_float3(fr2));
 
-    atomicAdd(view.forces + start +  1, make_float3(fpm0));
-    atomicAdd(view.forces + start +  2, make_float3(fpp0));
-    atomicAdd(view.forces + start +  6, make_float3(fpm1));
-    atomicAdd(view.forces + start +  7, make_float3(fpp1));
+    atomicAdd(view.forces + start +          1, make_float3(fpm0));
+    atomicAdd(view.forces + start +          2, make_float3(fpp0));
+    atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
+    atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
 }
 
 
