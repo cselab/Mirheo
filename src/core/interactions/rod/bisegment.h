@@ -163,21 +163,70 @@ struct BiSegment
         real theta0 = atan2(dpv0, dpu0);
         real theta1 = atan2(dpv1, dpu1);
     
-        real dtheta_l = safeDiffTheta(theta0, theta1) * linv;
-        real dtheta_l_mtau = dtheta_l - params.tauEq;
-        real dtheta_l_ptau = dtheta_l + params.tauEq;
+        real tau = safeDiffTheta(theta0, theta1) * linv;
+        real dtau = tau - params.tauEq;
 
-        real ftwistLFactor = params.kTwist * dtheta_l_ptau * dtheta_l_mtau;
+        real ftwistLFactor = params.kTwist * dtau * (tau + params.tauEq);
 
         fr0 -= 0.5_r * ftwistLFactor * t0;
         fr2 += 0.5_r * ftwistLFactor * t1;
 
-        real dthetaFFactor = 2.0_r * dtheta_l_mtau * params.kTwist;
+        real dthetaFFactor = 2.0_r * dtau * params.kTwist;
 
         fr0 += (0.5_r * dthetaFFactor * e0inv) * bicur;
         fr2 -= (0.5_r * dthetaFFactor * e1inv) * bicur;
 
         fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
+    }
+
+    __device__ inline real computeEnergy(const GPU_RodBiSegmentParameters& params,
+                                         const real3& u0, const real3& u1)
+    {
+        real dpt0 = dot(dp0, t0);
+        real dpt1 = dot(dp1, t1);
+
+        real3 t0_dp0 = cross(t0, dp0);
+        real3 t1_dp1 = cross(t1, dp1);
+    
+        real3 dpPerp0 = dp0 - dpt0 * t0;
+        real3 dpPerp1 = dp1 - dpt1 * t1;
+
+        real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
+        real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
+    
+        real2 omega0 { +dpPerp0inv * dot(bicur, t0_dp0),
+                       -dpPerp0inv * dot(bicur,    dp0)};
+
+        real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
+                       -dpPerp1inv * dot(bicur,    dp1)};
+
+        real2 domega0 = omega0 - make_real2(params.omegaEq);
+        real2 domega1 = omega1 - make_real2(params.omegaEq);
+
+        real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
+        real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
+
+        real Eb = 0.5_r * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+
+
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+
+        real dpu0 = dot(dp0, u0);
+        real dpv0 = dot(dp0, v0);
+
+        real dpu1 = dot(dp1, u1);
+        real dpv1 = dot(dp1, v1);
+
+        real theta0 = atan2(dpv0, dpu0);
+        real theta1 = atan2(dpv1, dpu1);
+    
+        real tau = safeDiffTheta(theta0, theta1) * linv;
+        real dtau = tau - params.tauEq;
+
+        real Et = params.kTwist / linv * dtau * dtau;
+
+        return Eb + Et;
     }
 };
