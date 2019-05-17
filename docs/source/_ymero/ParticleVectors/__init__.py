@@ -417,7 +417,7 @@ class RigidObjectVector(ObjectVector):
                     mass: mass of a single particle
                     inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    mesh: :any:`MembraneMesh` object         
+                    mesh: :any:`Mesh` object used for bounce back and dump
         
 
         """
@@ -510,7 +510,7 @@ class RodVector(ObjectVector):
 
 
                 Args:
-                    name: name of the created Rod Vector 
+                    name: name of the created Rod Vector
                     mass: mass of a single particle
                     num_segments: number of elements to discretize the rod
         
@@ -609,7 +609,7 @@ Overloaded function.
 
 
                 Args:
-                    name: name of the created PV 
+                    name: name of the created PV
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
@@ -619,11 +619,11 @@ Overloaded function.
 
 
                 Args:
-                    name: name of the created PV 
+                    name: name of the created PV
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
-                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
+                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
         
 
         """

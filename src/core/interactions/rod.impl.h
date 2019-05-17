@@ -10,9 +10,9 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
 
-static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParameters& p)
+static auto getBoundParams(const RodParameters& p)
 {
-    RodForcesKernels::GPU_RodBoundsParameters dp;
+    GPU_RodBoundsParameters dp;
     dp.kBounds = p.kBounds;
     dp.kVisc   = p.kVisc;
     dp.lcenter = p.l0;
@@ -22,16 +22,23 @@ static RodForcesKernels::GPU_RodBoundsParameters getBoundParams(const RodParamet
     return dp;
 }
 
-static RodForcesKernels::GPU_RodBiSegmentParameters getBiSegmentParams(const RodParameters& p)
+template <int Nstates>
+static auto getBiSegmentParams(const RodParameters& p)
 {
-    RodForcesKernels::GPU_RodBiSegmentParameters dp;
+    GPU_RodBiSegmentParameters<Nstates> dp;
     dp.kBending = p.kBending;
-    dp.omegaEq  = p.omegaEq * p.l0; // omega is an integrated quantity
     dp.kTwist   = p.kTwist;
-    dp.tauEq    = p.tauEq;
+
+    for (size_t i = 0; i < p.omegaEq.size(); ++i)
+    {
+        dp.omegaEq[i]  = p.omegaEq[i] * p.l0; // omega is an integrated quantity
+        dp.tauEq[i]    = p.tauEq[i];
+        dp.groundE[i]  = p.groundE[i];
+    }
     return dp;
 }
 
+template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
@@ -68,7 +75,7 @@ public:
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
         
-            auto devParams = getBiSegmentParams(parameters);
+            auto devParams = getBiSegmentParams<Nstates>(parameters);
         
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
                                nblocks, nthreads, 0, stream,

@@ -317,6 +317,26 @@ class MembraneForces(Interaction):
         """
         pass
 
+class ObjRodBinding(Interaction):
+    r"""
+        Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, torque: float, rel_anchor: Tuple[float, float, float], k_bound: float) -> None
+
+
+            Args:
+                name: name of the interaction
+                torque: torque magnitude to apply to the rod
+                rel_anchor: position of the anchor relative to the rigid object
+                k_bound: anchor harmonic potential magnitude
+
+    
+
+        """
+        pass
+
 class RodForces(Interaction):
     r"""
         Forces acting on an elastic rod.
@@ -364,7 +384,8 @@ class RodForces(Interaction):
 
                  * **a0** (float):           equilibrium length between 2 opposite cross vertices
                  * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
-                 * **k_bounds** (float):     bound energy
+                 * **k_bounds** (float):     elastic bound force magnitude
+                 * **k_visc** (float):       viscous bound force magnitude
                  * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
                  * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`

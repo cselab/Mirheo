@@ -1,16 +1,17 @@
 #include <core/pvs/particle_vector.h>
 
-#include <core/interactions/interface.h>
 #include <core/interactions/density.h>
 #include <core/interactions/dpd.h>
 #include <core/interactions/dpd_with_stress.h>
+#include <core/interactions/factory.h>
+#include <core/interactions/interface.h>
+#include <core/interactions/lj.h>
 #include <core/interactions/mdpd.h>
 #include <core/interactions/mdpd_with_stress.h>
-#include <core/interactions/lj.h>
-#include <core/interactions/sdpd.h>
 #include <core/interactions/membrane.h>
+#include <core/interactions/obj_rod_binding.h>
 #include <core/interactions/rod.h>
-#include <core/interactions/factory.h>
+#include <core/interactions/sdpd.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
@@ -433,6 +434,22 @@ void exportInteractions(py::module& m)
                  * **DA0**: area difference at relaxed state divided by the offset of the leaflet midplanes
     )");
 
+
+    py::handlers_class<ObjectRodBindingInteraction> pyObjRodBinding(m, "ObjRodBinding", pyInt, R"(
+        Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.
+    )");
+
+    pyObjRodBinding.def(py::init(&InteractionFactory::createInteractionObjRodBinding),
+                        "state"_a, "name"_a, "torque"_a, "rel_anchor"_a, "k_bound"_a, R"(
+            Args:
+                name: name of the interaction
+                torque: torque magnitude to apply to the rod
+                rel_anchor: position of the anchor relative to the rigid object
+                k_bound: anchor harmonic potential magnitude
+
+    )");
+
+
     py::handlers_class<InteractionRod> pyRodForces(m, "RodForces", pyInt, R"(
         Forces acting on an elastic rod.
 
@@ -483,6 +500,11 @@ void exportInteractions(py::module& m)
                  * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
+                 * **E0** (float):           (optional) energy ground state
+
+             The interaction can support multiple polymorphic states if **omega0**, **tau0** and **E0** are lists of equal size.
+             In this case, the **E0** parameter is required.
+             Only lists of 1, 2 and 11 states are supported.
     )");
 }
 

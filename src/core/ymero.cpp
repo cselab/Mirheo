@@ -322,7 +322,7 @@ void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::fl
     auto path = parentPath(filename);
     if (path != filename)
         createFoldersCollective(sim->cartComm, path);
-    ::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
+    WallHelpers::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
 }
 
 double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
@@ -344,7 +344,7 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
         sim->getWallByNameOrDie(wall->name);
     }
 
-    return volumeInsideWalls(sdfWalls, state->domain, sim->cartComm, nSamplesPerRank);
+    return WallHelpers::volumeInsideWalls(sdfWalls, state->domain, sim->cartComm, nSamplesPerRank);
 }
 
 std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
@@ -410,7 +410,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
 
     info("wall thickness is set to %g", wallThickness);
     
-    freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, wallLevelSet + wallThickness);
+    WallHelpers::freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, wallLevelSet + wallThickness);
     info("\n");
 
     sim->registerParticleVector(pv, nullptr);

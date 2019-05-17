@@ -387,9 +387,10 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
-    params.omegaEq = {0.f, 0.f};
+    params.omegaEq = {{0.f, 0.f}};
     params.kTwist = kt;
-    params.tauEq = tau0;
+    params.tauEq = {tau0};
+    params.groundE = {0.f};
     params.a0 = params.l0 = 0.f;
     params.kBounds = 0.f;
     params.kVisc = 0.f;
@@ -441,9 +442,10 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
 
     RodParameters params;
     params.kBending = B;
-    params.omegaEq = omega;
+    params.omegaEq = {omega};
     params.kTwist = 0.f;
-    params.tauEq = 0.f;
+    params.tauEq = {0.f};
+    params.groundE = {0.f};
     params.a0 = params.l0 = 1.f; // set to 1.f so that omegaEq is the one entered
     params.kBounds = 0.f;
     params.kVisc = 0.f;

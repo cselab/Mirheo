@@ -8,6 +8,7 @@
 #include "mdpd.h"
 #include "mdpd_with_stress.h"
 #include "membrane.h"
+#include "obj_rod_binding.h"
 #include "pairwise_interactions/density_kernels.h"
 #include "pairwise_interactions/pressure_EOS.h"
 #include "rod.h"
@@ -34,6 +35,20 @@ public:
         check();
     }
 
+    template <typename T>
+    bool exists(const std::string& key)
+    {
+        auto it = params.find(key);
+
+        if (it == params.end())
+            return false;
+
+        if (!mpark::holds_alternative<T>(it->second))
+            return false;
+
+        return true;
+    }
+    
     template <typename T>
     T read(const std::string& key)
     {
@@ -161,12 +176,38 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
 static RodParameters readRodParameters(ParametersWrap& desc)
 {
     RodParameters p;
+
+    if (desc.exists<std::vector<float>>( "tau0" ))
+    {
+        auto omegaEqs = desc.read<std::vector<PyTypes::float2>>( "omega0");
+        auto tauEqs   = desc.read<std::vector<float>>( "tau0");
+        auto groundE  = desc.read<std::vector<float>>( "E0");
+
+        if (omegaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
+            die("Rod parameters: expected same number of omega0, tau0 and E0");
+
+        for (const auto& om : omegaEqs)
+            p.omegaEq.push_back(make_float2(om));
+        
+        for (const auto& tau : tauEqs)
+            p.tauEq.push_back(tau);
+
+        for (const auto& E : groundE)
+            p.groundE.push_back(E);
+    }
+    else
+    {
+        p.omegaEq.push_back(make_float2(desc.read<PyTypes::float2>("omega0")));
+        p.tauEq  .push_back(desc.read<float>("tau0"));
+
+        if (desc.exists<float>("E0"))
+            p.groundE.push_back(desc.read<float>("E0"));
+        else
+            p.groundE.push_back(0.f);
+    }
     
     p.kBending  = make_float3(desc.read<PyTypes::float3>("k_bending"));
-    p.omegaEq   = make_float2(desc.read<PyTypes::float2>( "omega0"));
-
     p.kTwist    = desc.read<float>("k_twist");
-    p.tauEq     = desc.read<float>("tau0");
     
     p.a0        = desc.read<float>("a0");
     p.l0        = desc.read<float>("l0");
@@ -353,3 +394,9 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
 
+std::shared_ptr<ObjectRodBindingInteraction>
+InteractionFactory::createInteractionObjRodBinding(const YmrState *state, std::string name,
+                                                   float torque, PyTypes::float3 relAnchor, float kBound)
+{
+    return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, make_float3(relAnchor), kBound);
+}

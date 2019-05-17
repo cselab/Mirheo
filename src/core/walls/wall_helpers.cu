@@ -5,6 +5,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 #include <core/walls/simple_stationary_wall.h>
 #include <core/xdmf/xdmf.h>
@@ -113,7 +114,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     std::swap(frozenVel, pv->local()->velocities());
 }
 
-void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -125,7 +126,7 @@ void freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal
 }
 
 
-void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -155,7 +156,7 @@ void freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *p
 }
 
 
-void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
+void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     CellListInfo gridInfo(gridH, domain.localSize);
@@ -175,7 +176,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
     
     for (auto& wall : walls)
     {
-        wall->sdfOnGrid(gridH, &sdfs, 0);
+        wall->sdfOnGrid(gridH, &sdfs, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
             WallHelpersKernels::merge_sdfs,
@@ -184,6 +185,10 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
     }
 
     sdfs_merged.downloadFromDevice(defaultStream);
+
+    auto path = parentPath(filename);
+    if (path != filename)
+        createFoldersCollective(cartComm, path);
     
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
     XDMF::Channel sdfCh("sdf", (void*)sdfs_merged.hostPtr(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());
@@ -191,7 +196,7 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo 
 }
 
 
-double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
+double WallHelpers::volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
 {
     long n = nSamplesPerRank;
     DeviceBuffer<float3> positions(n);

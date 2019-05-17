@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 class InteractionMembrane;
 class InteractionRod;
@@ -15,10 +16,15 @@ class BasicInteractionSDPD;
 class InteractionLJ;
 class InteractionDPD;
 class InteractionMDPD;
+class ObjectRodBindingInteraction;
 
 namespace InteractionFactory
 {
-using VarParam = mpark::variant<float, PyTypes::float2, PyTypes::float3>;
+using VarParam = mpark::variant<float,
+                                PyTypes::float2,
+                                PyTypes::float3,
+                                std::vector<float>,
+                                std::vector<PyTypes::float2>>;
 
 std::shared_ptr<InteractionMembrane>
 createInteractionMembrane(const YmrState *state, std::string name,
@@ -49,5 +55,9 @@ createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, fl
 std::shared_ptr<InteractionMDPD>
 createPairwiseMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
                    float power, bool stress, const std::map<std::string, VarParam>& parameters);
+
+std::shared_ptr<ObjectRodBindingInteraction>
+createInteractionObjRodBinding(const YmrState *state, std::string name,
+                               float torque, PyTypes::float3 relAnchor, float kBound);
 
 } // namespace InteractionFactory

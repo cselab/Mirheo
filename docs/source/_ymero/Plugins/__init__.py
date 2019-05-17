@@ -160,6 +160,12 @@ class ParticleChannelSaver(SimulationPlugin):
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
     
     """
+class ParticleChecker(SimulationPlugin):
+    r"""
+        This plugin will check the positions and velocities of all particles in the simulation every given time steps.
+        To be used for debugging purpose.
+    
+    """
 class ParticleDisplacementPlugin(SimulationPlugin):
     r"""
         This plugin computes and save the displacement of the particles within a given particle vector.
@@ -460,21 +466,16 @@ def createDumpAverage():
             channels: list of pairs name - type.
                 Name is the channel (per particle) name. Always available channels are:
                     
-                * 'velocity' with type "float8"             
-                * 'force' with type "float4"
+                * 'velocity' with type "float4"
                 
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Type can also define a simple transformation from the channel internal structure                 
                 to the datatype supported in HDF5 (i.e. scalar, vector, tensor)                                  
                 Available types are:                                                                             
                                                                                                                 
-                * 'scalar': 1 float per particle                                                                   
-                * 'vector': 3 floats per particle                                                                  
-                * 'vector_from_float4': 4 floats per particle. 3 first floats will form the resulting vector       
-                * 'vector_from_float8' 8 floats per particle. 5th, 6th, 7th floats will form the resulting vector. 
-                    This type is primarity made to be used with velocity since it is stored together with          
-                    the coordinates as 8 consecutive float numbers: (x,y,z) coordinate, followed by 1 padding value
-                    and then (x,y,z) velocity, followed by 1 more padding value                                    
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'vector_from_float4': 4 floats per particle. 3 first floats will form the resulting vector
                 * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     
@@ -707,6 +708,20 @@ def createParticleChannelSaver():
             pv: :any:`ParticleVector` that we'll work with
             channelName: the name of the source channel
             savedName: name of the extra channel
+    
+
+    """
+    pass
+
+def createParticleChecker():
+    r"""createParticleChecker(state: YmrState, name: str, check_every: int) -> Tuple[Plugins.ParticleChecker, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticleChecker` plugin
+        
+        Args:
+            name: name of the plugin
+            check_every: check every this amount of time steps
     
 
     """

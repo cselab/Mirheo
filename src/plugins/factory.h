@@ -23,6 +23,7 @@
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
 #include "particle_channel_saver.h"
+#include "particle_checker.h"
 #include "particle_drag.h"
 #include "pin_object.h"
 #include "radial_velocity_control.h"
@@ -347,6 +348,13 @@ createParticleChannelSaverPlugin(bool computeTask, const YmrState *state, std::s
                                  std::string channelName, std::string savedName)
 {
     auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->name, channelName, savedName) : nullptr;
+    return { simPl, nullptr };
+}
+
+static pair_shared< ParticleCheckerPlugin, PostprocessPlugin >
+createParticleCheckerPlugin(bool computeTask, const YmrState *state, std::string name, int checkEvery)
+{
+    auto simPl = computeTask ? std::make_shared<ParticleCheckerPlugin> (state, name, checkEvery) : nullptr;
     return { simPl, nullptr };
 }
 

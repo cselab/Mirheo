@@ -8,13 +8,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--axes', dest='axes', type=float, nargs=3)
 parser.add_argument('--coords', dest='coords', type=str)
 
-parser.add_argument('--constForce', action='store_true')
-parser.add_argument('--constTorque', action='store_true')
-parser.add_argument('--withMesh', action='store_true')
-parser.set_defaults(constForce=False)
-parser.set_defaults(constTorque=False)
-parser.set_defaults(withMesh=False)
-
+parser.add_argument('--constForce',  action='store_true', default=False)
+parser.add_argument('--constTorque', action='store_true', default=False)
+parser.add_argument('--withMesh',    action='store_true', default=False)
 args = parser.parse_args()
 
 dt   = 0.001
@@ -23,7 +19,7 @@ axes = tuple(args.axes)
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
@@ -49,16 +45,13 @@ ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_eve
 u.registerPlugins(ovStats)
 
 if args.constForce:
-    addForce = ymr.Plugins.createAddForce("addForce", pvEllipsoid, force=(1., 0., 0.))
-    u.registerPlugins(addForce)
+    u.registerPlugins(ymr.Plugins.createAddForce("addForce", pvEllipsoid, force=(1., 0., 0.)))
 
 if args.constTorque:
-    addTorque = ymr.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0))
-    u.registerPlugins(addTorque)
+    u.registerPlugins(ymr.Plugins.createAddTorque("addTorque", pvEllipsoid, torque=(0., 0., 1.0)))
 
 if args.withMesh:
-    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/")
-    u.registerPlugins(mdump)
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/"))
 
 u.run(10000)
 

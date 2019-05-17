@@ -12,8 +12,13 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+* add interaction rod-rigid
+* **fix** create folder when dumping sdf
 
+### v0.16.0
+
+* add `particleChecker` plugin
 * **interface changes**: average flow plugin does not support float8 entries anymore due to internal changes; use float4 instead
 * **internal changes**
   * particles are now separated into 2 arrays: positions and velocities; this will simplify packing/unpacking kernels

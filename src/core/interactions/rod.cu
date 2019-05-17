@@ -5,7 +5,19 @@
 InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters) :
     Interaction(state, name, /*rc*/ 1.f)
 {
-    impl = std::make_unique<InteractionRodImpl>(state, name, parameters);
+    int nstates = parameters.omegaEq.size();
+    
+#define CHECK_IMPLEMENT(Nstates) do {                                   \
+        if (nstates == Nstates) {                                       \
+            impl = std::make_unique<InteractionRodImpl<Nstates>>(state, name, parameters); \
+            return;                                                     \
+        } } while(0)
+
+    CHECK_IMPLEMENT(1); // normal rod
+    CHECK_IMPLEMENT(2); // 2 polymorphic states
+    CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
+    
+    die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
 }
 
 InteractionRod::~InteractionRod() = default;

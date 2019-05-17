@@ -150,7 +150,7 @@ void exportParticleVectors(py::module& m)
                     mass: mass of a single particle
                     inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    mesh: :any:`MembraneMesh` object         
+                    mesh: :any:`Mesh` object used for bounce back and dump
         )");
         
     py::handlers_class<RigidEllipsoidObjectVector> (m, "RigidEllipsoidVector", pyrov, R"(
@@ -160,7 +160,7 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const YmrState*, std::string, float, int, PyTypes::float3>(),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
                 Args:
-                    name: name of the created PV 
+                    name: name of the created PV
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
@@ -168,11 +168,11 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const YmrState*, std::string, float, int, PyTypes::float3, std::shared_ptr<Mesh>>(),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
                 Args:
-                    name: name of the created PV 
+                    name: name of the created PV
                     mass: mass of a single particle
                     object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
                     semi_axes: ellipsoid principal semi-axes
-                    mesh: mesh representing the shape of the ellipsoid. This is used for dump only.
+                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
         )");
 
 
@@ -182,7 +182,7 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const YmrState*, std::string, float, int>(),
              "state"_a, "name"_a, "mass"_a, "num_segments"_a, R"(
                 Args:
-                    name: name of the created Rod Vector 
+                    name: name of the created Rod Vector
                     mass: mass of a single particle
                     num_segments: number of elements to discretize the rod
         )");
