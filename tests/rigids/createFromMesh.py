@@ -25,7 +25,7 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
     vv = ymr.Integrators.VelocityVerlet('vv')
@@ -84,5 +84,5 @@ if __name__ == '__main__':
 # cd rigids
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
-# ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile > /dev/null
+# ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt 
