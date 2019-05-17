@@ -29,7 +29,7 @@ We do not add anything more before running the simulation (last line).
 
 .. note::
     We also specified the number of ranks in **each** direction.
-    Together with the domain size, this tells |ymr| how the simulation domain will be splitted accross MPI ranks.
+    Together with the domain size, this tells |ymr| how the simulation domain will be split across MPI ranks.
     The number of simulation tasks must correspond to this variable.
 
 The above script can be run as:
@@ -83,7 +83,7 @@ Additionally, the particle positions and velocities are dumped in the ``h5`` fol
     :width: 50%
 
     Snapshot of the particles dumped by executing the :ref:`rest-py` script.
-    Visualisation made in `visit <https://wci.llnl.gov/simulation/computer-codes/visit>`_.
+    Visualization made in `visit <https://wci.llnl.gov/simulation/computer-codes/visit>`_.
 
 
 Adding Walls
@@ -185,4 +185,44 @@ Note that in this example, we also show that it is easy to add many different in
 Creating Rigid Objects
 **********************
 
-TODO
+Rigid objects are modeled as frozen particles moving together in a rigid motion, together with bounce back of particles, similarly to the walls.
+In |ymr|, we need to create a :any:`RigidObjectVector`, in which each rigid object has the **same** frozen particles template.
+Generating these frozen particles can be done in a separate simulation using a :any:`BelongingChecker`.
+This is shown in the following script for the simple mesh `sphere_mesh.off` which can be found in the `data/` folder:
+
+.. literalinclude:: ../../../tests/doc_scripts/generate_frozen_rigid.py
+   :name: generate-frozen-rigid-py
+   :caption: `generate_frozen_rigid.py`
+
+.. note::
+   here we make use of `trimesh <https://github.com/mikedh/trimesh>`_ as we need some properties of the mesh.
+   This would also allow to load many other formats not supported by |ymr|, such as ply.
+
+.. note::
+   The saved coordinates must be in the frame of reference of the rigid object, hence the shift at the end of the script.
+
+
+We can now run a simulation using our newly created rigid object.
+Let us build a suspension of spheres in a DPD solvent:
+
+.. literalinclude:: ../../../tests/doc_scripts/rigid_suspension.py
+   :name: rigid-suspension-py
+   :caption: `rigid_suspension.py`
+
+.. note::
+   We again used a :any:`BelongingChecker` in order to remove the solvent inside the rigid objects.
+
+.. figure:: ../images/docs/rigid.gif
+    :figclass: align-center
+    :width: 50%
+
+    Snapshots of the output files from :ref:`rigid-suspension-py`.
+
+
+
+Going further
+*************
+
+A set of maintained tests can be used as examples in the `tests/` folder.
+These tests use many features of |ymr| and can serve as a baseline for building more complex simulations.
+See also the :ref:`user-testing` section of this documentation. 
