@@ -334,7 +334,7 @@ static double testBishopFrame(CenterLine centerLine)
     return Linfty;
 }
 
-TEST (FLAGELLA, BishopFrames_straight)
+TEST (ROD, BishopFrames_straight)
 {
     real height = 1.0;
     
@@ -346,7 +346,7 @@ TEST (FLAGELLA, BishopFrames_straight)
     ASSERT_LE(err, 1e-5);
 }
 
-TEST (FLAGELLA, BishopFrames_circle)
+TEST (ROD, BishopFrames_circle)
 {
     real radius = 0.5;
 
@@ -361,7 +361,7 @@ TEST (FLAGELLA, BishopFrames_circle)
     ASSERT_LE(err, 3e-5);
 }
 
-TEST (FLAGELLA, BishopFrames_helix)
+TEST (ROD, BishopFrames_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
@@ -492,7 +492,7 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
 }
 
 
-TEST (FLAGELLA, twistForces_straight)
+TEST (ROD, twistForces_straight)
 {
     real height = 5.0;
     real h = 1e-6;
@@ -505,7 +505,7 @@ TEST (FLAGELLA, twistForces_straight)
     ASSERT_LE(err, 1e-5);
 }
 
-TEST (FLAGELLA, twistForces_helix)
+TEST (ROD, twistForces_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
@@ -525,7 +525,7 @@ TEST (FLAGELLA, twistForces_helix)
 }
 
 
-TEST (FLAGELLA, bendingForces_straight)
+TEST (ROD, bendingForces_straight)
 {
     real height = 5.0;
     real h = 1e-4;
@@ -538,7 +538,7 @@ TEST (FLAGELLA, bendingForces_straight)
     ASSERT_LE(err, 5e-4);
 }
 
-TEST (FLAGELLA, bendingForces_circle)
+TEST (ROD, bendingForces_circle)
 {
     real radius = 4.0;
     real h = 1e-4;
@@ -558,7 +558,7 @@ TEST (FLAGELLA, bendingForces_circle)
     ASSERT_LE(err, 1e-3);
 }
 
-TEST (FLAGELLA, bendingForces_helix)
+TEST (ROD, bendingForces_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
