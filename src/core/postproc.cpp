@@ -93,6 +93,7 @@ void Postprocess::run()
             }
             else if (index == cpReqIndex)
             {
+                debug2("Postprocess got a request for checkpoint, executing now");
                 checkpoint(checkpointId);
                 requests[index] = listenSimulation(checkpointTag, &checkpointId);
             }
