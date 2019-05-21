@@ -28,6 +28,7 @@ constexpr float a = 0.05f;
 constexpr float dt = 0.f;
 
 enum class EnergyMode {Density, Absolute};
+enum class CheckMode {Detail, Total};
 
 inline real2 symmetricMatMult(const real3& A, const real2& x)
 {
@@ -63,7 +64,8 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
 
         real le0 = length(e0);
         real le1 = length(e1);
-        real linv = 2.0 / (le0 + le1);
+        real l = 0.5 * (le0 + le1);
+        real linv = 1.0 / l;
         auto bicurFactor = 1.0 / (le0 * le1 + dot(e0, e1));
         auto bicur = (2.0 * bicurFactor) * cross(e0, e1);
 
@@ -92,7 +94,8 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
         real2 Bomega1 = symmetricMatMult(kBending, domega1);
 
         // TODO why 0.25 not 0.5
-        real Eb = 0.25 / linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+        // integrated energy
+        real Eb = 0.25 * l * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
         if (Emode == EnergyMode::Density)
             Eb *= linv;
@@ -142,7 +145,8 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, const flo
 
         real le0 = length(e0);
         real le1 = length(e1);
-        auto linv = 2.0 / (le0 + le1);
+        auto l    = 0.5 * (le0 + le1);
+        auto linv = 1.0 / l;
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
@@ -156,10 +160,11 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, const flo
         real theta0 = atan2(dpv0, dpu0);
         real theta1 = atan2(dpv1, dpu1);
     
-        real tau = safeDiffTheta(theta0, theta1) * linv;
+        real tau  = safeDiffTheta(theta0, theta1) * linv;
         real dTau = tau - tauEq;
 
-        real Et = 0.5 / linv * dTau * dTau * kTwist;
+        // integrated twist energy
+        real Et = 0.5 * l * dTau * dTau * kTwist;
 
         if (Emode == EnergyMode::Density)
             Et *= linv;
@@ -169,8 +174,9 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, const flo
     return energies;
 }
 
+template <CheckMode checkMode>
 static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
-                               real3 kBending, real2 omegaEq, EnergyFunc ref)
+                               real3 kBending, real2 omegaEq, EnergyFunc ref, real EtotRef)
 {
     RodIC::MappingFunc3D ymrCenterLine = [&](float s)
     {
@@ -198,28 +204,42 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
-    
-    auto energies = computeBendingEnergies<EnergyMode::Density>
-        (pos.data(), nSegments, kBending, omegaEq);
 
-    real h = 1.0 / nSegments;
     real err = 0;
-    
-    for (int i = 0; i < nSegments - 1; ++i)
+    if (checkMode == CheckMode::Detail)
     {
-        real s = (i+1) * h;
-        auto eRef = ref(s);
-        auto eSim = energies[i];
-        auto de = eSim - eRef;
-        // printf("%g %g\n", eRef, eSim);
-        err += de * de;
+        auto energies = computeBendingEnergies<EnergyMode::Density>
+            (pos.data(), nSegments, kBending, omegaEq);
+
+        real h = 1.0 / nSegments;
+    
+        for (int i = 0; i < nSegments - 1; ++i)
+        {
+            real s = (i+1) * h;
+            auto eRef = ref(s);
+            auto eSim = energies[i];
+            auto de = eSim - eRef;
+            // printf("%g %g\n", eRef, eSim);
+            err += de * de;
+        }
+        err = sqrt(err / nSegments);
+    }
+    else
+    {
+        auto energies = computeBendingEnergies<EnergyMode::Absolute>
+            (pos.data(), nSegments, kBending, omegaEq);
+
+        auto EtotSim = std::accumulate(energies.begin(), energies.end(), 0.0);
+        // printf("%g %g\n", EtotRef, EtotSim);
+        err = fabs(EtotSim - EtotRef);
     }
 
-    return sqrt(err / nSegments);
+    return err;
 }
 
+template <CheckMode checkMode>
 static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
-                             real kTwist, real tauEq, EnergyFunc ref)
+                             real kTwist, real tauEq, EnergyFunc ref, real EtotRef)
 {
     RodIC::MappingFunc3D ymrCenterLine = [&](float s)
     {
@@ -252,29 +272,39 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     bishopFrames.copy(rv.local()->bishopFrames, defaultStream);
     CUDA_Check( cudaStreamSynchronize(defaultStream) );
     auto& pos = rv.local()->positions();
-    
-    auto energies = computeTwistEnergies<EnergyMode::Density>
-        (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
 
-    real h = 1.0 / nSegments;
+
     real err = 0;
-    
-    for (int i = 0; i < nSegments - 1; ++i)
+    if (checkMode == CheckMode::Detail)
     {
-        real s = (i+1) * h;
-        auto eRef = ref(s);
-        auto eSim = energies[i];
-        auto de = eSim - eRef;
-        // printf("%g %g\n", eRef, eSim);
-        err += de * de;
+        auto energies = computeTwistEnergies<EnergyMode::Density>
+            (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+
+        real h = 1.0 / nSegments;
+        real err = 0;
+    
+        for (int i = 0; i < nSegments - 1; ++i)
+        {
+            real s = (i+1) * h;
+            auto eRef = ref(s);
+            auto eSim = energies[i];
+            auto de = eSim - eRef;
+            // printf("%g %g\n", eRef, eSim);
+            err += de * de;
+        }
+
+        err = sqrt(err / nSegments);
+    }
+    else
+    {
+        auto energies = computeTwistEnergies<EnergyMode::Absolute>
+            (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+
+        auto EtotSim = std::accumulate(energies.begin(), energies.end(), 0.0);
+        err = fabs(EtotRef - EtotSim);
     }
 
-    // energies = computeTwistEnergies<EnergyMode::Absolute>
-    //     (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
-
-    // printf("%g\n", std::accumulate(energies.begin(), energies.end(), 0.0));
-    
-    return sqrt(err / nSegments);
+    return err;
 }
 
 
@@ -298,12 +328,15 @@ TEST (ROD, energies_bending)
         return 0.5 * dot(Bo, omegaEq);
     };
 
-    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+    real2 Bo = symmetricMatMult(kBending, omegaEq);
+    real EtotRef = 0.5 * dot(Bo, omegaEq) * L;
+    
+    std::vector<int> nsegs = {8, 16, 32, 64, 128, 256, 512};
     
     for (auto n : nsegs)
     {
-        auto err = checkBendingEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
-                                      kBending, omegaEq, analyticEnergy);
+        auto err = checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
+                                                         kBending, omegaEq, analyticEnergy, EtotRef);
 
         // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
@@ -331,12 +364,15 @@ TEST (ROD, energies_twist)
         return 0.5 * kTwist * dTau * dTau;
     };
 
+    real dTau = tau0 - tauEq;
+    real EtotRef = L * 0.5 * kTwist * dTau * dTau;
+    
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
 
     for (auto n : nsegs)
     {
-        auto err = checkTwistEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
-                                    kTwist, tauEq, analyticEnergy);
+        auto err = checkTwistEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
+                                                       kTwist, tauEq, analyticEnergy, EtotRef);
 
         // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
