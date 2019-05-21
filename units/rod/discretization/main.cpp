@@ -101,7 +101,30 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
 }
 
 
-TEST (ROD, curvature)
+TEST (ROD, curvature_straight)
+{
+    real L = 5.0;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        return {(s-0.5) * L, 0., 0.};
+    };
+
+    auto analyticCurv = [&](real s) -> real
+    {
+        return 0.;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkCurvature(MPI_COMM_WORLD, centerLine, n, analyticCurv);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, curvature_circle)
 {
     real radius = 1.2;
     
@@ -115,6 +138,41 @@ TEST (ROD, curvature)
     auto analyticCurv = [&](real s) -> real
     {
         return 1 / radius;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+    std::vector<real> errors;
+    for (auto n : nsegs)
+        errors.push_back( checkCurvature(MPI_COMM_WORLD, centerLine, n, analyticCurv) );
+
+    // check convergence rate
+    const real rateTh = 2;
+
+    for (int i = 0; i < nsegs.size() - 1; ++i)
+    {
+        real e0 = errors[i], e1 = errors[i+1];
+        int  n0 =  nsegs[i], n1 =  nsegs[i+1];
+
+        real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
+
+        ASSERT_LE(fabs(rate-rateTh), 1e-1);
+    }
+}
+
+TEST (ROD, curvature_helix)
+{
+    real a = 1.2;
+    real b = 2.32;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real t = 2 * M_PI * s;
+        return {a * cos(t), a * sin(t), b * t};
+    };
+
+    auto analyticCurv = [&](real s) -> real
+    {
+        return fabs(a) / (a*a + b*b);
     };
 
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
