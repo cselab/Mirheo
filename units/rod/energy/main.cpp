@@ -93,8 +93,8 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
         real2 Bomega0 = symmetricMatMult(kBending, domega0);
         real2 Bomega1 = symmetricMatMult(kBending, domega1);
 
-        // TODO why 0.25 not 0.5
         // integrated energy
+        // 0.25: in Bergou & al, l = e1 + e2; here l = (e1 + e2) / 2
         real Eb = 0.25 * l * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
         if (Emode == EnergyMode::Density)
@@ -164,6 +164,7 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, const flo
         real dTau = tau - tauEq;
 
         // integrated twist energy
+        // 0.5: in Bergou & al, l = e1 + e2; here l = (e1 + e2) / 2
         real Et = 0.5 * l * dTau * dTau * kTwist;
 
         if (Emode == EnergyMode::Density)
