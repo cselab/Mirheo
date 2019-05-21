@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <functional>
+#include <numeric>
 #include <gtest/gtest.h>
 
 Logger logger;
@@ -26,12 +27,15 @@ using TorsionFunc    = std::function<real(real)>;
 constexpr float a = 0.05f;
 constexpr float dt = 0.f;
 
+enum class EnergyMode {Density, Absolute};
+
 inline real2 symmetricMatMult(const real3& A, const real2& x)
 {
     return {A.x * x.x + A.y * x.y,
             A.y * x.x + A.z * x.y};
 }
 
+template <EnergyMode Emode>
 static std::vector<real> computeBendingEnergies(const float4 *positions, int nSegments, real3 kBending, real2 omegaEq)
 {
     std::vector<real> energies;
@@ -87,9 +91,13 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
         real2 Bomega0 = symmetricMatMult(kBending, domega0);
         real2 Bomega1 = symmetricMatMult(kBending, domega1);
 
-        real Eb = 0.25 * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+        // TODO why 0.25 not 0.5
+        real Eb = 0.25 / linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+
+        if (Emode == EnergyMode::Density)
+            Eb *= linv;
         
-        energies.push_back(Eb / linv);
+        energies.push_back(Eb);
     }
     return energies;
 }
@@ -102,57 +110,64 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-// static std::vector<real> computeTwistEnergies(const float4 *positions, const float3 *bishopFrames, int nSegments)
-// {
-//     std::vector<real> torsions;
-//     torsions.reserve(nSegments-1);
+template <EnergyMode Emode>
+static std::vector<real> computeTwistEnergies(const float4 *positions, const float3 *bishopFrames, int nSegments,
+                                              real kTwist, real tauEq)
+{
+    std::vector<real> energies;
+    energies.reserve(nSegments-1);
 
-//     for (int i = 0; i < nSegments - 1; ++i)
-//     {
-//         auto r0  = make_real3(positions[5*(i+0)]);
-//         auto r1  = make_real3(positions[5*(i+1)]);
-//         auto r2  = make_real3(positions[5*(i+2)]);
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        auto r0  = make_real3(positions[5*(i+0)]);
+        auto r1  = make_real3(positions[5*(i+1)]);
+        auto r2  = make_real3(positions[5*(i+2)]);
 
-//         auto pm0 = make_real3(positions[5*i + 1]);
-//         auto pp0 = make_real3(positions[5*i + 2]);
-//         auto pm1 = make_real3(positions[5*i + 6]);
-//         auto pp1 = make_real3(positions[5*i + 7]);
+        auto pm0 = make_real3(positions[5*i + 1]);
+        auto pp0 = make_real3(positions[5*i + 2]);
+        auto pm1 = make_real3(positions[5*i + 6]);
+        auto pp1 = make_real3(positions[5*i + 7]);
 
-//         const auto u0 = make_real3(bishopFrames[i+0]);
-//         const auto u1 = make_real3(bishopFrames[i+1]);
+        const auto u0 = make_real3(bishopFrames[i+0]);
+        const auto u1 = make_real3(bishopFrames[i+1]);
 
-//         auto e0 = r1 - r0;
-//         auto e1 = r2 - r1;
+        auto e0 = r1 - r0;
+        auto e1 = r2 - r1;
 
-//         auto t0 = normalize(e0);
-//         auto t1 = normalize(e1);
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1);
 
-//         auto dp0 = pp0 - pm0;
-//         auto dp1 = pp1 - pm1;
+        auto dp0 = pp0 - pm0;
+        auto dp1 = pp1 - pm1;
 
-//         real le0 = length(e0);
-//         real le1 = length(e1);
-//         auto linv = 2.0 / (le0 + le1);
+        real le0 = length(e0);
+        real le1 = length(e1);
+        auto linv = 2.0 / (le0 + le1);
 
-//         auto v0 = cross(t0, u0);
-//         auto v1 = cross(t1, u1);
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
 
-//         real dpu0 = dot(dp0, u0);
-//         real dpv0 = dot(dp0, v0);
+        real dpu0 = dot(dp0, u0);
+        real dpv0 = dot(dp0, v0);
 
-//         real dpu1 = dot(dp1, u1);
-//         real dpv1 = dot(dp1, v1);
+        real dpu1 = dot(dp1, u1);
+        real dpv1 = dot(dp1, v1);
 
-//         real theta0 = atan2(dpv0, dpu0);
-//         real theta1 = atan2(dpv1, dpu1);
+        real theta0 = atan2(dpv0, dpu0);
+        real theta1 = atan2(dpv1, dpu1);
     
-//         real tau = safeDiffTheta(theta0, theta1) * linv;
-        
-//         torsions.push_back(tau);
-//     }
-//     return torsions;
-// }
+        real tau = safeDiffTheta(theta0, theta1) * linv;
+        real dTau = tau - tauEq;
 
+        real Et = 0.5 / linv * dTau * dTau * kTwist;
+
+        if (Emode == EnergyMode::Density)
+            Et *= linv;
+
+        energies.push_back(Et);
+    }
+    return energies;
+}
 
 static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                real3 kBending, real2 omegaEq, EnergyFunc ref)
@@ -184,7 +199,8 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
 
     auto& pos = rv.local()->positions();
     
-    auto energies = computeBendingEnergies(pos.data(), nSegments, kBending, omegaEq);
+    auto energies = computeBendingEnergies<EnergyMode::Density>
+        (pos.data(), nSegments, kBending, omegaEq);
 
     real h = 1.0 / nSegments;
     real err = 0;
@@ -199,6 +215,65 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
         err += de * de;
     }
 
+    return sqrt(err / nSegments);
+}
+
+static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
+                             real kTwist, real tauEq, EnergyFunc ref)
+{
+    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    {
+        auto r = centerLine(s);
+        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+    };
+    
+    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    {
+        return (float) torsion(s);;
+    };
+
+    DomainInfo domain;
+    float L = 32.f;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    float mass = 1.f;
+    YmrState state(domain, dt);
+    RodVector rv(&state, "rod", mass, nSegments);
+    
+    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
+             ymrCenterLine, ymrTorsion, a);
+    
+    ic.exec(comm, &rv, defaultStream);
+
+    rv.updateBishopFrame(defaultStream);
+
+    HostBuffer<float3> bishopFrames;
+    bishopFrames.copy(rv.local()->bishopFrames, defaultStream);
+    CUDA_Check( cudaStreamSynchronize(defaultStream) );
+    auto& pos = rv.local()->positions();
+    
+    auto energies = computeTwistEnergies<EnergyMode::Density>
+        (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+
+    real h = 1.0 / nSegments;
+    real err = 0;
+    
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        real s = (i+1) * h;
+        auto eRef = ref(s);
+        auto eSim = energies[i];
+        auto de = eSim - eRef;
+        // printf("%g %g\n", eRef, eSim);
+        err += de * de;
+    }
+
+    // energies = computeTwistEnergies<EnergyMode::Absolute>
+    //     (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+
+    // printf("%g\n", std::accumulate(energies.begin(), energies.end(), 0.0));
+    
     return sqrt(err / nSegments);
 }
 
@@ -230,7 +305,40 @@ TEST (ROD, energies_bending)
         auto err = checkBendingEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
                                       kBending, omegaEq, analyticEnergy);
 
-        //printf("%d %g\n", n, err);
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, energies_twist)
+{
+    real L = 5.0;
+
+    real tau0  {0.1};
+    real kTwist {1.0};
+    real tauEq  {0.3};
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        return {(s-0.5) * L, 0., 0.};
+    };
+
+    auto torsion = [&](real s) -> real {return tau0;};
+    
+    auto analyticEnergy = [&](real s) -> real
+    {
+        real dTau = tau0 - tauEq;
+        return 0.5 * kTwist * dTau * dTau;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkTwistEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
+                                    kTwist, tauEq, analyticEnergy);
+
+        // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
     }
 }
