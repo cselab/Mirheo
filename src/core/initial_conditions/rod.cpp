@@ -55,7 +55,6 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
     {
         auto r0 = positions[5*(i + 0)];
         auto r1 = positions[5*(i + 1)];
-        auto r2 = positions[5*(i + 2)];
 
         auto r = 0.5f * (r0 + r1);
         auto l = length(r1-r0);
@@ -63,7 +62,6 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
         float sint = sin(theta);
 
         auto t0 = normalize(r1-r0);
-        auto t1 = normalize(r2-r1);
 
         u = normalize(u - dot(t0, u)*t0);
         auto v = cross(t0, u);
@@ -76,10 +74,16 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
         positions[5*i + 2] = r + 0.5 * a * mu;
         positions[5*i + 3] = r - 0.5 * a * mv;
         positions[5*i + 4] = r + 0.5 * a * mv;
-        
-        auto q = getQfrom(t0, t1);
-        u = normalize(rotate(u, q));
-        theta += l * torsion( (i*0.5f)*h );
+
+        if (i < nSegments - 1)
+        {
+            auto r2 = positions[5*(i + 2)];
+            auto t1 = normalize(r2-r1);
+
+            auto q = getQfrom(t0, t1);
+            u = normalize(rotate(u, q));
+            theta += l * torsion( (i*0.5f)*h );
+        }
     }
     
     return positions;
