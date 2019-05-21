@@ -17,9 +17,11 @@ using real4 = double4;
 
 static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
 static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+static real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 
 using CenterLineFunc = std::function<real3(real)>;
 using CurvatureFunc  = std::function<real(real)>;
+using TorsionFunc    = std::function<real(real)>;
 
 constexpr float a = 0.05f;
 constexpr float dt = 0.f;
@@ -31,9 +33,9 @@ static std::vector<real> computeCurvatures(const float4 *positions, int nSegment
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        auto r0  = make_float3(positions[5*(i+0)]);
-        auto r1  = make_float3(positions[5*(i+1)]);
-        auto r2  = make_float3(positions[5*(i+2)]);
+        auto r0  = make_real3(positions[5*(i+0)]);
+        auto r1  = make_real3(positions[5*(i+1)]);
+        auto r2  = make_real3(positions[5*(i+2)]);
 
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
@@ -50,6 +52,65 @@ static std::vector<real> computeCurvatures(const float4 *positions, int nSegment
         curvatures.push_back(length(bicur) / l);
     }
     return curvatures;
+}
+
+inline real safeDiffTheta(real t0, real t1)
+{
+    auto dth = t1 - t0;
+    if (dth >  M_PI) dth -= 2.0 * M_PI;
+    if (dth < -M_PI) dth += 2.0 * M_PI;
+    return dth;
+}
+
+static std::vector<real> computeTorsions(const float4 *positions, const float3 *bishopFrames, int nSegments)
+{
+    std::vector<real> torsions;
+    torsions.reserve(nSegments-1);
+
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        auto r0  = make_real3(positions[5*(i+0)]);
+        auto r1  = make_real3(positions[5*(i+1)]);
+        auto r2  = make_real3(positions[5*(i+2)]);
+
+        auto pm0 = make_real3(positions[5*i + 1]);
+        auto pp0 = make_real3(positions[5*i + 2]);
+        auto pm1 = make_real3(positions[5*i + 6]);
+        auto pp1 = make_real3(positions[5*i + 7]);
+
+        const auto u0 = make_real3(bishopFrames[i+0]);
+        const auto u1 = make_real3(bishopFrames[i+1]);
+
+        auto e0 = r1 - r0;
+        auto e1 = r2 - r1;
+
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1);
+
+        auto dp0 = pp0 - pm0;
+        auto dp1 = pp1 - pm1;
+
+        real le0 = length(e0);
+        real le1 = length(e1);
+        auto linv = 2.0 / (le0 + le1);
+
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+
+        real dpu0 = dot(dp0, u0);
+        real dpv0 = dot(dp0, v0);
+
+        real dpu1 = dot(dp1, u1);
+        real dpv1 = dot(dp1, v1);
+
+        real theta0 = atan2(dpv0, dpu0);
+        real theta1 = atan2(dpv1, dpu1);
+    
+        real tau = safeDiffTheta(theta0, theta1) * linv;
+        
+        torsions.push_back(tau);
+    }
+    return torsions;
 }
 
 
@@ -95,6 +156,59 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
         auto dcurv = curvSim - curvRef;
         // printf("%g %g\n", curvRef, curvSim);
         err += dcurv * dcurv;
+    }
+
+    return sqrt(err / nSegments);
+}
+
+static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
+{
+    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    {
+        auto r = centerLine(s);
+        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+    };
+    
+    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    {
+        return (float) torsion(s);
+    };
+
+    DomainInfo domain;
+    float L = 32.f;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    float mass = 1.f;
+    YmrState state(domain, dt);
+    RodVector rv(&state, "rod", mass, nSegments);
+    
+    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
+             ymrCenterLine, ymrTorsion, a);
+    
+    ic.exec(comm, &rv, defaultStream);
+
+    rv.updateBishopFrame(defaultStream);
+
+    HostBuffer<float3> bishopFrames;
+    bishopFrames.copy(rv.local()->bishopFrames, defaultStream);
+    CUDA_Check( cudaStreamSynchronize(defaultStream) );
+
+    auto& pos = rv.local()->positions();
+    
+    auto torsions = computeTorsions(pos.data(), bishopFrames.data(), nSegments);
+
+    real h = 1.0 / nSegments;
+    real err = 0;
+    
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        real s = (i+1) * h;
+        auto tauRef = torsion(s);
+        auto tauSim = torsions[i];
+        auto dtau = tauSim - tauRef;
+        // printf("%g %g\n", tauRef, tauSim);
+        err += dtau * dtau;
     }
 
     return sqrt(err / nSegments);
@@ -195,6 +309,79 @@ TEST (ROD, curvature_helix)
 }
 
 
+TEST (ROD, torsion_straight_const)
+{
+    real L = 5.0;
+    real tau = 0.5;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        return {(s-0.5) * L, 0., 0.};
+    };
+
+    auto torsion = [&](real s)
+    {
+        return tau;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkTorsion(MPI_COMM_WORLD, centerLine, torsion, n);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, torsion_straight_vary)
+{
+    real L = 5.0;
+    real tauA = 1.5;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        return {(s-0.5) * L, 0., 0.};
+    };
+
+    auto torsion = [&](real s)
+    {
+        return s * tauA;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkTorsion(MPI_COMM_WORLD, centerLine, torsion, n);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, torsion_circle_vary)
+{
+    real radius = 1.2;
+    real tauA = 1.5;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real coss = cos(2*M_PI*s);
+        real sins = sin(2*M_PI*s);
+        return {radius * coss, radius * sins, 0.};
+    };
+    
+    auto torsion = [&](real s)
+    {
+        return s * tauA;
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkTorsion(MPI_COMM_WORLD, centerLine, torsion, n);
+        ASSERT_LE(err, 5e-5);
+    }
+}
 
 int main(int argc, char **argv)
 {
