@@ -49,7 +49,7 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
 
     u = getFirstBishop(positions[0], positions[5], positions[10]);
 
-    float theta = 0; // angle w.r.t. bishop frame    
+    double theta = 0; // angle w.r.t. bishop frame
     
     for (int i = 0; i < nSegments; ++i)
     {
@@ -57,7 +57,6 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
         auto r1 = positions[5*(i + 1)];
 
         auto r = 0.5f * (r0 + r1);
-        auto l = length(r1-r0);
         float cost = cos(theta);
         float sint = sin(theta);
 
@@ -82,7 +81,10 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
 
             auto q = getQfrom(t0, t1);
             u = normalize(rotate(u, q));
-            theta += l * torsion( (i*0.5f)*h );
+
+            auto l = 0.5 * (length(r1-r0) + length(r2-r1));
+            // use trapezoidal rule to integrate the angle
+            theta += l * 0.5 * (torsion((i+0.5f)*h) + torsion((i+1.5f)*h));
         }
     }
     
