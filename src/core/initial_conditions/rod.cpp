@@ -6,34 +6,50 @@
 #include <fstream>
 #include <random>
 
-RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion, float a) :
+RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
+             float a, PyTypes::float3 initialMaterialFrame) :
     com_q(com_q),
     centerLine(centerLine),
     torsion(torsion),
-    a(a)
+    a(a),
+    initialMaterialFrame(make_float3(initialMaterialFrame))
 {}
 
 RodIC::~RodIC() = default;
 
-static float3 getFirstBishop(float3 r0, float3 r1, float3 r2)
+static bool isDefaultFrame(float3 v)
+{
+    constexpr float defVal = RodIC::Default;
+    return v.x == defVal && v.y == defVal && v.z == defVal;
+}
+
+static float3 getFirstBishop(float3 r0, float3 r1, float3 r2, float3 initialMaterialFrame)
 {
     float3 t0 = normalize(r1 - r0);
-    float3 t1 = normalize(r2 - r1);
-    float3 b = cross(t0, t1);
     float3 u;
     
-    if (length(b) > 1e-6)
+    if (isDefaultFrame(initialMaterialFrame))
     {
-        u = b - dot(b, t0) * t0;
+        float3 t1 = normalize(r2 - r1);
+        float3 b = cross(t0, t1);
+        
+        if (length(b) > 1e-6)
+        {
+            u = b - dot(b, t0) * t0;
+        }
+        else
+        {
+            u = anyOrthogonal(t0);
+        }
     }
     else
     {
-        u = anyOrthogonal(t0);
+        u = initialMaterialFrame - dot(initialMaterialFrame, t0);
     }
     return normalize(u);
 }
 
-std::vector<float3> createRodTemplate(int nSegments, float a,
+std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMaterialFrame,
                                       const RodIC::MappingFunc3D& centerLine,
                                       const RodIC::MappingFunc1D& torsion)
 {
@@ -47,7 +63,7 @@ std::vector<float3> createRodTemplate(int nSegments, float a,
     for (int i = 0; i <= nSegments; ++i)
         positions[i*5] = make_float3(centerLine(i*h));
 
-    u = getFirstBishop(positions[0], positions[5], positions[10]);
+    u = getFirstBishop(positions[0], positions[5], positions[10], initialMaterialFrame);
 
     double theta = 0; // angle w.r.t. bishop frame
     
@@ -103,7 +119,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     int nObjs = 0;
     int nSegments = (objSize - 1) / 5;
 
-    auto positions = createRodTemplate(nSegments, a, centerLine, torsion);
+    auto positions = createRodTemplate(nSegments, a, initialMaterialFrame, centerLine, torsion);
 
     assert(objSize == positions.size());
     
