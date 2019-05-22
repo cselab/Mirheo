@@ -390,6 +390,11 @@ class RodForces(Interaction):
                  * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
+                 * **E0** (float):           (optional) energy ground state
+
+             The interaction can support multiple polymorphic states if **omega0**, **tau0** and **E0** are lists of equal size.
+             In this case, the **E0** parameter is required.
+             Only lists of 1, 2 and 11 states are supported.
     
 
         """
