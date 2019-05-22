@@ -378,9 +378,32 @@ TEST (ROD, BishopFrames_helix)
                       };
 
     auto err = testBishopFrame(centerLine);
-    ASSERT_LE(err, 2e-5);
+    ASSERT_LE(err, 3e-5);
 }
 
+static void checkMomentum(const PinnedBuffer<float4>& pos, const HostBuffer<Force>& forces)
+{
+    double3 totForce  {0., 0., 0.};
+    double3 totTorque {0., 0., 0.};
+
+    for (int i = 0; i < forces.size(); ++i)
+    {
+        auto r4 = pos[i];
+        auto f4 = forces[i].f;
+        double3 r {(double) r4.x, (double) r4.y, (double) r4.z};
+        double3 f {(double) f4.x, (double) f4.y, (double) f4.z};
+
+        totForce  += f;
+        totTorque += cross(r, f);
+    }
+
+    // printf(FMT SEP FMT SEP FMT SEP SEP
+    //        FMT SEP FMT SEP FMT "\n",
+    //        EXPAND(totForce), EXPAND(totTorque));
+
+    ASSERT_LE(length(totForce),  5e-6);
+    ASSERT_LE(length(totTorque), 5e-6);
+}
 
 template <class CenterLine>
 static double testTwistForces(float kt, float tau0, CenterLine centerLine, int nSegments, real h)
@@ -434,6 +457,9 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
         
         Linfty = std::max(Linfty, err);
     }
+
+    checkMomentum(rod.local()->positions(), forces);
+    
     return Linfty;
 }
 
@@ -490,6 +516,9 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
 
         Linfty = std::max(Linfty, err);
     }
+
+    checkMomentum(rod.local()->positions(), forces);
+    
     return Linfty;
 }
 
@@ -544,7 +573,7 @@ TEST (ROD, bendingForces_straight)
 TEST (ROD, bendingForces_circle)
 {
     real radius = 4.0;
-    real h = 1e-4;
+    real h = 5e-5;
     
     auto centerLine = [&](real s) -> real3 {
                           real theta = s * 2 * M_PI;
@@ -561,6 +590,7 @@ TEST (ROD, bendingForces_circle)
     for (auto n : nsegs)
     {
         auto err = testBendingForces(B, omega, centerLine, n, h);
+        // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-3);
     }
 }
