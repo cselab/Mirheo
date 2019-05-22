@@ -87,8 +87,8 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
         real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
                        -dpPerp1inv * dot(bicur,    dp1)};
 
-        real2 domega0 = omega0 - omegaEq;
-        real2 domega1 = omega1 - omegaEq;
+        real2 domega0 = omega0 * linv - omegaEq;
+        real2 domega1 = omega1 * linv - omegaEq;
 
         real2 Bomega0 = symmetricMatMult(kBending, domega0);
         real2 Bomega1 = symmetricMatMult(kBending, domega1);
@@ -339,8 +339,57 @@ TEST (ROD, energies_bending)
         auto err = checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
                                                          kBending, omegaEq, analyticEnergy, EtotRef);
 
-        // printf("%d %g\n", n, err);
+        printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, energies_bending_circle)
+{
+    real R = 1.5;
+    
+
+    real3 kBending {1.0, 0.0, 1.0};
+    real2 omegaEq {0., 0.};
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real t = 2 * M_PI * s;
+        return {R * cos(t), R * sin(t), 0.0};
+    };
+
+    auto torsion = [](real s) -> real {return 0.0;};
+    
+    auto analyticEnergy = [&](real s) -> real
+    {
+        real2 dOm = real2{1/R, 0.0} - omegaEq;
+        real2 Bo = symmetricMatMult(kBending, dOm);
+        return 0.5 * dot(Bo, dOm);
+    };
+
+    real2 dOm = real2{1/R, 0.0} - omegaEq;
+    real2 Bo = symmetricMatMult(kBending, dOm);
+    real EtotRef = 0.5 * dot(Bo, dOm) * 2 * M_PI * R;
+    
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+    std::vector<real> errors;
+    
+    for (auto n : nsegs)
+        errors.push_back(checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
+                                                               kBending, omegaEq, analyticEnergy, EtotRef));
+
+    // check convergence rate
+    const real rateTh = 2;
+
+    for (int i = 0; i < nsegs.size() - 1; ++i)
+    {
+        real e0 = errors[i], e1 = errors[i+1];
+        int  n0 =  nsegs[i], n1 =  nsegs[i+1];
+
+        real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
+
+        // printf("%g\n", rate);
+        ASSERT_LE(fabs(rate-rateTh), 1e-1);
     }
 }
 
