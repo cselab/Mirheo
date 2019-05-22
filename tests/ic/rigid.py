@@ -26,9 +26,6 @@ pv = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=l
 ic = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
 u.registerParticleVector(pv=pv, ic=ic)
 
-# xyz = ymr.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/")
-# u.registerPlugins(xyz)
-
 u.run(2)
 
 if pv:

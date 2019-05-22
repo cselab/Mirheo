@@ -57,8 +57,7 @@ if args.bounceBack:
     u.registerBouncer(bb)
     u.setBouncer(bb, pvEllipsoid, pvSolvent)
 
-# pvDump = ymr.Plugins.createDumpParticles('partDump', pvEllipsoid, 500, [], 'h5/ell_particles-')
-# u.registerPlugins(pvDump)
+# u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvEllipsoid, 500, [], 'h5/ell_particles-'))
 
 u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
 

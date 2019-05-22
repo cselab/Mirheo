@@ -52,15 +52,13 @@ Ki = 1.0 * factor
 Kd = 8.0 * factor
 vtarget = (0.1, 0, 0)
 
-vc = ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd)
-u.registerPlugins(vc)
+u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 
 sampleEvery = 2
 dumpEvery   = 1000
 binSize     = (1., 1., 1.0)
 
-field = ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-')
-u.registerPlugins(field)
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(7002)
 

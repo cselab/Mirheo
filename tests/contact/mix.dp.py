@@ -98,18 +98,12 @@ if args.bounceBack:
 
 
 debug = 0
+
 if debug:
     dump_every=(int)(0.15/dt)
-
-    dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/")
-    u.registerPlugins(dump_mesh)
-
-    ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats")
-    u.registerPlugins(ovStats)
-
-    xyz = ymr.Plugins.createDumpXYZ('xyz', pv_ell, dump_every, "xyz/")
-    u.registerPlugins(xyz)
-
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/"))
+    u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats"))
+    u.registerPlugins(ymr.Plugins.createDumpXYZ('xyz', pv_ell, dump_every, "xyz/"))
 
 nsteps = (int) (tend/dt)
 u.run(nsteps)

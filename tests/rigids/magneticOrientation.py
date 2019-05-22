@@ -41,8 +41,7 @@ u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
 u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)
 
-ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
-u.registerPlugins(ovStats)
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
 
 M = (0.1, 0., 0.)
 
@@ -52,12 +51,10 @@ def magneticField(t):
     return (magn * np.cos(arg), magn * np.sin(arg), 0.)
 
 
-magneticPlugin = ymr.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=M, magneticFunction=magneticField)
-u.registerPlugins(magneticPlugin)
+u.registerPlugins(ymr.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=M, magneticFunction=magneticField))
 
 if args.withMesh:
-    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/")
-    u.registerPlugins(mdump)
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/"))
 
 u.run(10000)
 

@@ -58,15 +58,10 @@ u.setBouncer(bb, pvRigid, pvSolvent)
 dumpEvery=500
 
 if args.vis:
-    solventDump = ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-')
-    u.registerPlugins(solventDump)
+    u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-'))
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvRigid, dumpEvery, path="ply/"))
 
-    mdump = ymr.Plugins.createDumpMesh("mesh_dump", pvRigid, dumpEvery, path="ply/")
-    u.registerPlugins(mdump)
-
-
-rigStats = ymr.Plugins.createDumpObjectStats("rigStats", ov=pvRigid, dump_every=dumpEvery, path="stats")
-u.registerPlugins(rigStats)
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("rigStats", ov=pvRigid, dump_every=dumpEvery, path="stats"))
 
 u.run(5000)
     

@@ -41,8 +41,7 @@ u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
 u.registerIntegrator(vvEllipsoid)
 u.setIntegrator(vvEllipsoid, pvEllipsoid)
 
-ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
-u.registerPlugins(ovStats)
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
 
 if args.constForce:
     u.registerPlugins(ymr.Plugins.createAddForce("addForce", pvEllipsoid, force=(1., 0., 0.)))

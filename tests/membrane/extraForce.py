@@ -40,11 +40,8 @@ force_magn = 500.0
 forces[id_min][0] = - force_magn
 forces[id_max][0] = + force_magn
 
-extraForces = ymr.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist())
-u.registerPlugins(extraForces)
-
-dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/")
-u.registerPlugins(dump_mesh)
+u.registerPlugins(ymr.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist()))
+u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/"))
 
 u.run(5000)
 

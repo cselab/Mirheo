@@ -62,11 +62,9 @@ if args.bounceBack:
     u.registerBouncer(bb)
     u.setBouncer(bb, pvEllipsoid, pvSolvent)
 
-xyz = ymr.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/")
-u.registerPlugins(xyz)
+u.registerPlugins(ymr.Plugins.createDumpXYZ('xyz', pvEllipsoid, 500, "xyz/"))
 
-ovStats = ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats")
-u.registerPlugins(ovStats)
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
 
 u.run(10000)
 

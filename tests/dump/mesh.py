@@ -28,8 +28,7 @@ rbc  = ymr.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
 icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv=rbc, ic=icrbc)
 
-mdump = ymr.Plugins.createDumpMesh("mesh_dump", rbc, 1, path)
-u.registerPlugins(mdump)
+u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", rbc, 1, path))
 
 u.run(3)
 

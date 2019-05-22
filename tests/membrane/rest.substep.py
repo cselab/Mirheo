@@ -37,8 +37,7 @@ u.setIntegrator(integrator, pv_rbc)
 # Note that the interaction is NOT registered inside `u`
 
 
-dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/")
-u.registerPlugins(dump_mesh)
+u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
 
 u.run(5000)
 

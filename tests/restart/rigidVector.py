@@ -45,8 +45,7 @@ else:
 u.registerParticleVector(pv, ic)
 
 if args.restart:
-    stats = ymr.Plugins.createDumpObjectStats("objStats", ov=pv, dump_every=5, path="stats")
-    u.registerPlugins(stats)
+    u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pv, dump_every=5, path="stats"))
 
 u.run(7)
     
