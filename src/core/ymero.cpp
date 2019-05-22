@@ -323,9 +323,6 @@ void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::fl
         sim->getWallByNameOrDie(wall->name);
     }
     
-    auto path = parentPath(filename);
-    if (path != filename)
-        createFoldersCollective(sim->cartComm, path);
     WallHelpers::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
 }
 
