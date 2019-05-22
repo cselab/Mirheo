@@ -13,6 +13,7 @@ Logger logger;
 
 #define FMT "%+6e"
 #define SEP "\t"
+#define EXPAND(v) v.x, v.y, v.z
 
 using real = double;
 using real2 = double2;
@@ -123,16 +124,17 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         real dp0Perpinv = 1.0 / length(dp0Perp);
         real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        real2 om0 = {+dp0Perpinv * dot(bicur, cross(t0, dp0)),
-                     -dp0Perpinv * dot(bicur, dp0)};
-        real2 om1 = {+dp1Perpinv * dot(bicur, cross(t1, dp1)),
-                     -dp1Perpinv * dot(bicur, dp1)};
-                                       
+        real l = 0.5 * (length(e0) + length(e1));
+        real linv = 1.0 / l;
+        
+        real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
+                     - linv * dp0Perpinv * dot(bicur, dp0)};
+        real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
+                     - linv * dp1Perpinv * dot(bicur, dp1)};
+        
         
         om0 -= make_real2(omega_eq);
         om1 -= make_real2(omega_eq);
-
-        real l = 0.5 * (length(e0) + length(e1));
 
         real2 Bom0 {dot(om0, make_real2(B[0])),
                     dot(om0, make_real2(B[1]))};
@@ -140,7 +142,7 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         real2 Bom1 {dot(om1, make_real2(B[0])),
                     dot(om1, make_real2(B[1]))};
 
-        real E = (dot(Bom0, om0) + dot(Bom1, om1)) / (2.0 * l);
+        real E = 0.25 * l * (dot(Bom0, om0) + dot(Bom1, om1));
         Etot += E;
     }
 
@@ -186,7 +188,7 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
         auto tau = safeDiffTheta(theta0, theta1) / l;
         auto dtau = tau - tau0;
         
-        auto E = kTwist * l * dtau * dtau;
+        auto E = 0.5 * kTwist * l * dtau * dtau;
 
         Etot += E;
     }
@@ -442,13 +444,14 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
 
     RodParameters params;
     params.kBending = B;
-    params.omegaEq = {omega};
-    params.kTwist = 0.f;
-    params.tauEq = {0.f};
-    params.groundE = {0.f};
-    params.a0 = params.l0 = 1.f; // set to 1.f so that omegaEq is the one entered
-    params.kBounds = 0.f;
-    params.kVisc = 0.f;
+    params.omegaEq  = {omega};
+    params.kTwist   = 0.f;
+    params.tauEq    = {0.f};
+    params.groundE  = {0.f};
+    params.a0       = 0.f;
+    params.l0       = 0.f;
+    params.kBounds  = 0.f;
+    params.kVisc    = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
@@ -482,8 +485,7 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
         //     printf(FMT SEP FMT SEP FMT SEP SEP
         //            FMT SEP FMT SEP FMT SEP SEP
         //            FMT SEP FMT "\n",
-        //            a.x, a.y, a.z,
-        //            b.x, b.y, b.z,
+        //            EXPAND(a), EXPAND(b),
         //            length(a), length(b));
 
         Linfty = std::max(Linfty, err);
@@ -534,7 +536,8 @@ TEST (ROD, bendingForces_straight)
                           return {0.f, 0.f, s*height};
                       };
 
-    auto err = testBendingForces({1.0f, 0.0f, 0.5f}, {0.1f, 0.2f}, centerLine, 10, h);
+    int nSegs = 20;
+    auto err = testBendingForces({1.0f, 0.0f, 0.5f}, {0.1f, 0.2f}, centerLine, nSegs, h);
     ASSERT_LE(err, 5e-4);
 }
 
@@ -553,9 +556,13 @@ TEST (ROD, bendingForces_circle)
 
     float3 B {1.0f, 0.0f, 1.0f};
     float2 omega {0.f, 0.f};
-    
-    auto err = testBendingForces(B, omega, centerLine, 10, h);
-    ASSERT_LE(err, 1e-3);
+
+    std::vector<int> nsegs = {8, 16, 32};
+    for (auto n : nsegs)
+    {
+        auto err = testBendingForces(B, omega, centerLine, n, h);
+        ASSERT_LE(err, 1e-3);
+    }
 }
 
 TEST (ROD, bendingForces_helix)
@@ -575,9 +582,13 @@ TEST (ROD, bendingForces_helix)
 
     float3 B {1.0f, 0.0f, 1.0f};
     float2 omega {0.f, 0.f};
-    
-    auto err = testBendingForces(B, omega, centerLine, 10, h);
-    ASSERT_LE(err, 1e-3);
+
+    std::vector<int> nsegs = {4, 8, 16};
+    for (auto n : nsegs)
+    {
+        auto err = testBendingForces(B, omega, centerLine, n, h);
+        ASSERT_LE(err, 1e-3);
+    }
 }
 
 

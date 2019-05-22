@@ -36,7 +36,7 @@ template <int Nstates>
 struct BiSegment
 {
     real3 e0, e1, t0, t1, dp0, dp1, bicur;
-    real bicurFactor, e0inv, e1inv, linv;
+    real bicurFactor, e0inv, e1inv, linv, l;
     int state;
 
     __device__ inline BiSegment(const RVview& view, int start)
@@ -61,11 +61,12 @@ struct BiSegment
 
         real le0 = length(e0);
         real le1 = length(e1);
-        e0inv = 1.0_r / le0;
-        e1inv = 1.0_r / le1;
-        linv = 2.0_r / (le0 + le1);
+        e0inv       = 1.0_r / le0;
+        e1inv       = 1.0_r / le1;
+        l           = 0.5_r * (le0 + le1);
+        linv        = 1.0_r / l;
         bicurFactor = 1.0_r / (le0 * le1 + dot(e0, e1));
-        bicur = (2.0_r * bicurFactor) * cross(e0, e1);
+        bicur       = (2.0_r * bicurFactor) * cross(e0, e1);
     }
 
     __device__ inline real3 applyGrad0Bicur(const real3& v) const
@@ -93,11 +94,11 @@ struct BiSegment
         real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
         real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
     
-        real2 omega0 { +dpPerp0inv * dot(bicur, t0_dp0),
-                       -dpPerp0inv * dot(bicur,    dp0)};
+        real2 omega0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
+                       -dpPerp0inv * linv * dot(bicur,    dp0)};
 
-        real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
-                       -dpPerp1inv * dot(bicur,    dp1)};
+        real2 omega1 { +dpPerp1inv * linv * dot(bicur, t1_dp1),
+                       -dpPerp1inv * linv * dot(bicur,    dp1)};
 
         real2 domega0 = omega0 - make_real2(params.omegaEq[state]);
         real2 domega1 = omega1 - make_real2(params.omegaEq[state]);
@@ -105,35 +106,37 @@ struct BiSegment
         real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
         real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
 
-        real Eb = 0.5_r * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+        real Eb_linv = 0.25_r * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
-        real3 grad0NormOmega0 = (-e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
-        real3 grad2NormOmega1 = ( e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
+        real3 grad0NormOmega0 = - 0.5_r * linv * t0 - (e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
+        real3 grad2NormOmega0 =   0.5_r * linv * t1;
+
+        real3 grad0NormOmega1 = - 0.5_r * linv * t0;
+        real3 grad2NormOmega1 =   0.5_r * linv * t1 + (e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
 
         // 1. contributions of center line:    
         real3 baseGradOmega0x = cross(bicur, dp0) + dot(bicur, t0_dp0) * t0;
         real3 baseGradOmega1x = cross(bicur, dp1) + dot(bicur, t1_dp1) * t1;
     
 
-        real3 grad0Omega0x = omega0.x * grad0NormOmega0 + dpPerp0inv * (applyGrad0Bicur(t0_dp0) - e0inv * baseGradOmega0x);
-        real3 grad2Omega0x =                              dpPerp0inv *  applyGrad2Bicur(t0_dp0);
+        real3 grad0Omega0x = omega0.x * grad0NormOmega0 + dpPerp0inv * linv * (applyGrad0Bicur(t0_dp0) - e0inv * baseGradOmega0x);
+        real3 grad2Omega0x = omega0.x * grad2NormOmega0 + dpPerp0inv * linv *  applyGrad2Bicur(t0_dp0);
+        real3 grad0Omega0y = omega0.y * grad0NormOmega0 - dpPerp0inv * linv *  applyGrad0Bicur(   dp0);
+        real3 grad2Omega0y = omega0.y * grad2NormOmega0 - dpPerp0inv * linv *  applyGrad2Bicur(   dp0);
 
-        real3 grad0Omega0y = omega0.y * grad0NormOmega0 - dpPerp0inv *  applyGrad0Bicur(   dp0);
-        real3 grad2Omega0y =                            - dpPerp0inv *  applyGrad2Bicur(   dp0);
+        real3 grad0Omega1x = omega1.x * grad0NormOmega1 + dpPerp1inv * linv *  applyGrad0Bicur(t1_dp1);
+        real3 grad2Omega1x = omega1.x * grad2NormOmega1 + dpPerp1inv * linv * (applyGrad2Bicur(t1_dp1) + e1inv * baseGradOmega1x);
 
-        real3 grad2Omega1x = omega1.x * grad2NormOmega1 + dpPerp1inv * (applyGrad2Bicur(t1_dp1) + e1inv * baseGradOmega1x);
-        real3 grad0Omega1x =                              dpPerp1inv *  applyGrad0Bicur(t1_dp1);
-
-        real3 grad2Omega1y = omega1.y * grad2NormOmega1 - dpPerp1inv *  applyGrad2Bicur(   dp1);
-        real3 grad0Omega1y =                            - dpPerp1inv *  applyGrad0Bicur(   dp1);
+        real3 grad0Omega1y = omega1.y * grad0NormOmega1 - dpPerp1inv * linv *  applyGrad0Bicur(   dp1);
+        real3 grad2Omega1y = omega1.y * grad2NormOmega1 - dpPerp1inv * linv *  applyGrad2Bicur(   dp1);
     
         // 1.a contribution of omega
-        fr0 += linv * (Bomega0.x * grad0Omega0x + Bomega0.y * grad0Omega0y  +  Bomega1.x * grad0Omega1x + Bomega1.y * grad0Omega1y);
-        fr2 += linv * (Bomega0.x * grad2Omega0x + Bomega0.y * grad2Omega0y  +  Bomega1.x * grad2Omega1x + Bomega1.y * grad2Omega1y);
+        fr0 += 0.5_r * l * (Bomega0.x * grad0Omega0x + Bomega0.y * grad0Omega0y  +  Bomega1.x * grad0Omega1x + Bomega1.y * grad0Omega1y);
+        fr2 += 0.5_r * l * (Bomega0.x * grad2Omega0x + Bomega0.y * grad2Omega0y  +  Bomega1.x * grad2Omega1x + Bomega1.y * grad2Omega1y);
 
         // 1.b contribution of l
-        fr0 += (-0.5_r * linv * Eb) * t0;
-        fr2 += ( 0.5_r * linv * Eb) * t1;
+        fr0 += ( 0.5_r * Eb_linv) * t0;
+        fr2 += (-0.5_r * Eb_linv) * t1;
 
 
         // 2. contributions material frame:
@@ -141,14 +144,14 @@ struct BiSegment
         real3 baseGradOmegaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
         real3 baseGradOmegaMF1 = (- dpPerp1inv * dpPerp1inv) * dpPerp1;
 
-        real3 gradOmegaMF0x = omega0.x * baseGradOmegaMF0 + dpPerp0inv * cross(bicur, t0);
-        real3 gradOmegaMF0y = omega0.y * baseGradOmegaMF0 - dpPerp0inv * bicur;
+        real3 gradOmegaMF0x = omega0.x * baseGradOmegaMF0 + linv * dpPerp0inv * cross(bicur, t0);
+        real3 gradOmegaMF0y = omega0.y * baseGradOmegaMF0 - linv * dpPerp0inv * bicur;
 
-        real3 gradOmegaMF1x = omega1.x * baseGradOmegaMF1 + dpPerp1inv * cross(bicur, t1);
-        real3 gradOmegaMF1y = omega1.y * baseGradOmegaMF1 - dpPerp1inv * bicur;
+        real3 gradOmegaMF1x = omega1.x * baseGradOmegaMF1 + linv * dpPerp1inv * cross(bicur, t1);
+        real3 gradOmegaMF1y = omega1.y * baseGradOmegaMF1 - linv * dpPerp1inv * bicur;
 
-        fpm0 += linv * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
-        fpm1 += linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
+        fpm0 += 0.5_r * linv * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
+        fpm1 += 0.5_r * linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
     }
 
     __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
@@ -170,12 +173,12 @@ struct BiSegment
         real tau = safeDiffTheta(theta0, theta1) * linv;
         real dtau = tau - params.tauEq[state];
 
-        real ftwistLFactor = params.kTwist * dtau * (tau + params.tauEq[state]);
+        real ftwistLFactor = 0.5_r * params.kTwist * dtau * (tau + params.tauEq[state]);
 
         fr0 -= 0.5_r * ftwistLFactor * t0;
         fr2 += 0.5_r * ftwistLFactor * t1;
 
-        real dthetaFFactor = 2.0_r * dtau * params.kTwist;
+        real dthetaFFactor = dtau * params.kTwist;
 
         fr0 += (0.5_r * dthetaFFactor * e0inv) * bicur;
         fr2 -= (0.5_r * dthetaFFactor * e1inv) * bicur;

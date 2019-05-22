@@ -31,7 +31,7 @@ static auto getBiSegmentParams(const RodParameters& p)
 
     for (size_t i = 0; i < p.omegaEq.size(); ++i)
     {
-        dp.omegaEq[i]  = p.omegaEq[i] * p.l0; // omega is an integrated quantity
+        dp.omegaEq[i]  = p.omegaEq[i];
         dp.tauEq[i]    = p.tauEq[i];
         dp.groundE[i]  = p.groundE[i];
     }
