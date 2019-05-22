@@ -339,7 +339,7 @@ TEST (ROD, energies_bending)
         auto err = checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
                                                          kBending, omegaEq, analyticEnergy, EtotRef);
 
-        printf("%d %g\n", n, err);
+        // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
     }
 }
@@ -348,7 +348,6 @@ TEST (ROD, energies_bending_circle)
 {
     real R = 1.5;
     
-
     real3 kBending {1.0, 0.0, 1.0};
     real2 omegaEq {0., 0.};
     
