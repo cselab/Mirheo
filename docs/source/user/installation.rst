@@ -7,7 +7,7 @@ Installation
 ############
 
 YMeRo
-********
+*****
 
 YMeRo requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 
@@ -92,6 +92,15 @@ With all the prerequisites installed, you can take the following steps to run YM
         
       import ymero
    
+
+Compile Options
+***************
+
+Additional compile options are provided through ``cmake``:
+
+* ``MEMBRANE_DOUBLE:BOOL=OFF``: Computes membrane forces (see :any:`MembraneForces`) in double prcision if set to ``ON``; default: single precision
+* ``ROD_DOUBLE:BOOL=OFF``:  Computes rod forces (see :any:`RodForces`) in double prcision if set to ``ON``; default: single precision
+* ``USE_NVTX:BOOL=OFF``: Add NVIDIA Tools Extension (NVTX) trace support for more profiling informations if set to ``ON``; default: no NVTX
 
 
 Tools

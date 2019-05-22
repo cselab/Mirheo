@@ -8,7 +8,10 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+# compile options for YMeRo library
 option(USE_NVTX "enable NVTX profiling" OFF)
+option(MEMBRANE_DOUBLE "compute membrane forces in double precision" OFF)
+option(ROD_DOUBLE      "compute rod forces in double precision" OFF)
 
 project(YMeRo LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -144,6 +147,14 @@ if (USE_NVTX)
   add_definitions(-DUSE_NVTX)
   target_link_libraries(${YMR} PRIVATE "-lnvToolsExt")
   target_link_libraries(${YMR_MAIN} PRIVATE "-lnvToolsExt")
+endif()
+
+if (MEMBRANE_DOUBLE)
+  add_definitions(-DMEMBRANE_FORCES_DOUBLE)
+endif()
+
+if (ROD_DOUBLE)
+  add_definitions(-DROD_FORCES_DOUBLE)
 endif()
 
 # Silence deprecation warnings for CUDA >= 9
