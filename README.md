@@ -13,8 +13,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 ## Changelog
 
 <!-- ### unreleased -->
+
+### v0.16.1
+
 * add interaction rod-rigid
-* **fix** create folder when dumping sdf
+* **fix** free communicator in plugins
 
 ### v0.16.0
 

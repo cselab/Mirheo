@@ -21,7 +21,8 @@ EOF
 
 set -eu
 
-if test $# -ne 0 && test "$1" = -h; then usage; fi
+if test $# -ne 0 && test "$1" = -h;     then usage; fi
+if test $# -ne 0 && test "$1" = --help; then usage; fi
 
 VERSION=$1; shift
 
