@@ -79,9 +79,8 @@ public:
         
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
                                nblocks, nthreads, 0, stream,
-                               view, devParams);            
+                               view, devParams);
         }
-        
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)

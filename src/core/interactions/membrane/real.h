@@ -3,13 +3,11 @@
 #include <core/datatypes.h>
 #include <core/utils/vec_traits.h>
 
-// #define RBC_FORCES_DOUBLE
-
-#ifdef RBC_FORCES_DOUBLE
+#ifdef MEMBRANE_FORCES_DOUBLE
 using real  = double;
 #else
 using real  = float;
-#endif // RBC_FORCES_DOUBLE
+#endif // MEMBRANE_FORCES_DOUBLE
 
 using real2 = VecTraits::Vec<real, 2>::Type;
 using real3 = VecTraits::Vec<real, 3>::Type;

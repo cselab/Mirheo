@@ -3,8 +3,6 @@
 #include <core/datatypes.h>
 #include <core/utils/vec_traits.h>
 
-//#define ROD_FORCES_DOUBLE
-
 #ifdef ROD_FORCES_DOUBLE
 using real  = double;
 #else
