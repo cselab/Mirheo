@@ -15,7 +15,7 @@ class RodIC : public InitialConditions
 {
 public:
     constexpr static float Default = std::numeric_limits<float>::infinity();
-    static constexpr PyTypes::float3 DefaultFrame = {Default, Default, Default};
+    static constexpr PyTypes::float3 DefaultFrame {Default, Default, Default};
     
     using MappingFunc3D = std::function<PyTypes::float3(float)>;
     using MappingFunc1D = std::function<float(float)>;
