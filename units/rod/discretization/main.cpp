@@ -48,8 +48,9 @@ static std::vector<real> computeCurvatures(const float4 *positions, int nSegment
         real l = 0.5 * (le0 + le1);
         auto bicurFactor = 1.0 / (le0 * le1 + dot(e0, e1));
         auto bicur = (2.0 * bicurFactor) * cross(e0, e1);
+        auto kappa = (1/l) * bicur;
         
-        curvatures.push_back(length(bicur) / l);
+        curvatures.push_back(length(kappa));
     }
     return curvatures;
 }

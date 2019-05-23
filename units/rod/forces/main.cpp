@@ -412,7 +412,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
-    params.omegaEq = {{0.f, 0.f}};
+    params.kappaEq = {{0.f, 0.f}};
     params.kTwist = kt;
     params.tauEq = {tau0};
     params.groundE = {0.f};
@@ -464,13 +464,13 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 }
 
 template <class CenterLine>
-static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, int nSegments, real h)
+static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, int nSegments, real h)
 {
     YmrState state(DomainInfo(), 0.f);
 
     RodParameters params;
     params.kBending = B;
-    params.omegaEq  = {omega};
+    params.kappaEq  = {kappa};
     params.kTwist   = 0.f;
     params.tauEq    = {0.f};
     params.groundE  = {0.f};
@@ -488,7 +488,7 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
 
     refForces.resize(refPositions.size());
     const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
-    bendingForces(h, B_, omega, refPositions, refForces);
+    bendingForces(h, B_, kappa, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
     interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
@@ -584,12 +584,12 @@ TEST (ROD, bendingForces_circle)
 
 
     float3 B {1.0f, 0.0f, 1.0f};
-    float2 omega {0.f, 0.f};
+    float2 kappa {0.f, 0.f};
 
     std::vector<int> nsegs = {8, 16, 32};
     for (auto n : nsegs)
     {
-        auto err = testBendingForces(B, omega, centerLine, n, h);
+        auto err = testBendingForces(B, kappa, centerLine, n, h);
         // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-3);
     }
@@ -611,12 +611,12 @@ TEST (ROD, bendingForces_helix)
                       };
 
     float3 B {1.0f, 0.0f, 1.0f};
-    float2 omega {0.f, 0.f};
+    float2 kappa {0.f, 0.f};
 
     std::vector<int> nsegs = {4, 8, 16};
     for (auto n : nsegs)
     {
-        auto err = testBendingForces(B, omega, centerLine, n, h);
+        auto err = testBendingForces(B, kappa, centerLine, n, h);
         ASSERT_LE(err, 1e-3);
     }
 }
