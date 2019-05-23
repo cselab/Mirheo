@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* extend rod IC
 
 ### v0.16.1
 
