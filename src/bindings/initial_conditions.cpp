@@ -121,8 +121,8 @@ void exportInitialConditions(py::module& m)
         the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>, float>(),
-             "com_q"_a, "center_line"_a, "torsion"_a, "a"_a, R"(
+        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>, float, PyTypes::float3>(),
+             "com_q"_a, "center_line"_a, "torsion"_a, "a"_a, "initial_frame"_a=RodIC::DefaultFrame, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -137,6 +137,9 @@ void exportInitialConditions(py::module& m)
                     explicit mapping :math:`\tau : [0,1] \rightarrow R`.
                 a:
                     width of the rod 
+                initial_frame:
+                    Orientation of the initial frame (optional)
+                    By default, will come up with any orthogonal frame to the rod at origin
         )");
 
     py::handlers_class<UniformIC>(m, "Uniform", pyic, R"(

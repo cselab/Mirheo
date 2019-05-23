@@ -24,6 +24,7 @@ public:
     static const TaskID invalidTaskId = (TaskID) -1;
 
     TaskScheduler();
+    ~TaskScheduler();
 
     TaskID createTask     (const std::string& label);
     TaskID getTaskId      (const std::string& label);
