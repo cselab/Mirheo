@@ -179,14 +179,14 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 
     if (desc.exists<std::vector<float>>( "tau0" ))
     {
-        auto omegaEqs = desc.read<std::vector<PyTypes::float2>>( "omega0");
+        auto kappaEqs = desc.read<std::vector<PyTypes::float2>>( "kappa0");
         auto tauEqs   = desc.read<std::vector<float>>( "tau0");
         auto groundE  = desc.read<std::vector<float>>( "E0");
 
-        if (omegaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
-            die("Rod parameters: expected same number of omega0, tau0 and E0");
+        if (kappaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
+            die("Rod parameters: expected same number of kappa0, tau0 and E0");
 
-        for (const auto& om : omegaEqs)
+        for (const auto& om : kappaEqs)
             p.kappaEq.push_back(make_float2(om));
         
         for (const auto& tau : tauEqs)
@@ -197,7 +197,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     }
     else
     {
-        p.kappaEq.push_back(make_float2(desc.read<PyTypes::float2>("omega0")));
+        p.kappaEq.push_back(make_float2(desc.read<PyTypes::float2>("kappa0")));
         p.tauEq  .push_back(desc.read<float>("tau0"));
 
         if (desc.exists<float>("E0"))
