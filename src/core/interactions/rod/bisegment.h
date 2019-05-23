@@ -138,7 +138,6 @@ struct BiSegment
         fr0 += ( 0.5_r * Eb_linv) * t0;
         fr2 += (-0.5_r * Eb_linv) * t1;
 
-
         // 2. contributions material frame:
 
         real3 baseGradOmegaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
@@ -150,8 +149,8 @@ struct BiSegment
         real3 gradOmegaMF1x = omega1.x * baseGradOmegaMF1 + linv * dpPerp1inv * cross(bicur, t1);
         real3 gradOmegaMF1y = omega1.y * baseGradOmegaMF1 - linv * dpPerp1inv * bicur;
 
-        fpm0 += 0.5_r * linv * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
-        fpm1 += 0.5_r * linv * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
+        fpm0 += 0.5_r * l * (Bomega0.x * gradOmegaMF0x + Bomega0.y * gradOmegaMF0y);
+        fpm1 += 0.5_r * l * (Bomega1.x * gradOmegaMF1x + Bomega1.y * gradOmegaMF1y);
     }
 
     __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
