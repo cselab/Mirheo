@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **interace chanes** change omega to kappa in rod forces
 * **fix** cleanup streams
 * extend rod IC
 
