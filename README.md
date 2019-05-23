@@ -14,6 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
+* **fix** cleanup streams
 * extend rod IC
 
 ### v0.16.1
