@@ -45,6 +45,9 @@ static float3 getFirstBishop(float3 r0, float3 r1, float3 r2, float3 initialMate
     else
     {
         u = initialMaterialFrame - dot(initialMaterialFrame, t0);
+
+        if (length(u) < 1e-4)
+            die("provided initial frame must not be aligned with the centerline");
     }
     return normalize(u);
 }
