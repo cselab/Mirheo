@@ -201,11 +201,11 @@ struct BiSegment
         real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
         real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
     
-        real2 omega0 { +dpPerp0inv * dot(bicur, t0_dp0),
-                       -dpPerp0inv * dot(bicur,    dp0)};
+        real2 omega0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
+                       -dpPerp0inv * linv * dot(bicur,    dp0)};
 
-        real2 omega1 { +dpPerp1inv * dot(bicur, t1_dp1),
-                       -dpPerp1inv * dot(bicur,    dp1)};
+        real2 omega1 { +dpPerp1inv * linv * dot(bicur, t1_dp1),
+                       -dpPerp1inv * linv * dot(bicur,    dp1)};
 
         real2 domega0 = omega0 - make_real2(params.omegaEq[state]);
         real2 domega1 = omega1 - make_real2(params.omegaEq[state]);
@@ -213,7 +213,7 @@ struct BiSegment
         real2 Bomega0 = symmetricMatMult(make_real3(params.kBending), domega0);
         real2 Bomega1 = symmetricMatMult(make_real3(params.kBending), domega1);
 
-        real Eb = 0.5_r * linv * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
+        real Eb = 0.25_r * l * (dot(domega0, Bomega0) + dot(domega1, Bomega1));
 
 
         auto v0 = cross(t0, u0);
@@ -231,7 +231,7 @@ struct BiSegment
         real tau = safeDiffTheta(theta0, theta1) * linv;
         real dtau = tau - params.tauEq[state];
 
-        real Et = params.kTwist / linv * dtau * dtau;
+        real Et = 0.5_r * l * params.kTwist * dtau * dtau;
 
         return Eb + Et + params.groundE[state];
     }
