@@ -29,9 +29,9 @@ static auto getBiSegmentParams(const RodParameters& p)
     dp.kBending = p.kBending;
     dp.kTwist   = p.kTwist;
 
-    for (size_t i = 0; i < p.omegaEq.size(); ++i)
+    for (size_t i = 0; i < p.kappaEq.size(); ++i)
     {
-        dp.omegaEq[i]  = p.omegaEq[i];
+        dp.kappaEq[i]  = p.kappaEq[i];
         dp.tauEq[i]    = p.tauEq[i];
         dp.groundE[i]  = p.groundE[i];
     }

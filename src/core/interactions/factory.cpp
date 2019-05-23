@@ -187,7 +187,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
             die("Rod parameters: expected same number of omega0, tau0 and E0");
 
         for (const auto& om : omegaEqs)
-            p.omegaEq.push_back(make_float2(om));
+            p.kappaEq.push_back(make_float2(om));
         
         for (const auto& tau : tauEqs)
             p.tauEq.push_back(tau);
@@ -197,7 +197,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     }
     else
     {
-        p.omegaEq.push_back(make_float2(desc.read<PyTypes::float2>("omega0")));
+        p.kappaEq.push_back(make_float2(desc.read<PyTypes::float2>("omega0")));
         p.tauEq  .push_back(desc.read<float>("tau0"));
 
         if (desc.exists<float>("E0"))

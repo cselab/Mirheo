@@ -5,7 +5,7 @@
 InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters) :
     Interaction(state, name, /*rc*/ 1.f)
 {
-    int nstates = parameters.omegaEq.size();
+    int nstates = parameters.kappaEq.size();
     
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
         if (nstates == Nstates) {                                       \
