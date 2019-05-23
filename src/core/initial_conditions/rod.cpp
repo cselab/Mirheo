@@ -4,7 +4,11 @@
 #include <core/utils/quaternion.h>
 
 #include <fstream>
+#include <limits>
 #include <random>
+
+const float RodIC::Default = std::numeric_limits<float>::infinity();
+const PyTypes::float3 RodIC::DefaultFrame = PyTypes::float3{Default, Default, Default};
 
 RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
              float a, PyTypes::float3 initialMaterialFrame) :
@@ -19,7 +23,7 @@ RodIC::~RodIC() = default;
 
 static bool isDefaultFrame(float3 v)
 {
-    constexpr float defVal = RodIC::Default;
+    const float defVal = RodIC::Default;
     return v.x == defVal && v.y == defVal && v.z == defVal;
 }
 

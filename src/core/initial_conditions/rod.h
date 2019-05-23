@@ -5,7 +5,6 @@
 #include <core/utils/pytypes.h>
 
 #include <functional>
-#include <limits>
 #include <string>
 
 /**
@@ -14,8 +13,8 @@
 class RodIC : public InitialConditions
 {
 public:
-    constexpr static float Default = std::numeric_limits<float>::infinity();
-    static constexpr PyTypes::float3 DefaultFrame {Default, Default, Default};
+    static const float Default;
+    static const PyTypes::float3 DefaultFrame;
     
     using MappingFunc3D = std::function<PyTypes::float3(float)>;
     using MappingFunc1D = std::function<float(float)>;
