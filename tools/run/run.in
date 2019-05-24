@@ -54,6 +54,10 @@ then
     fi
 fi
 
+if test ! -z "${YMR_RUN+x}"; then
+    RUNARGS="$RUNARGS $YMR_RUN"
+fi
+
 exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }
 
 exe_cuda_memcheck () { exe_cmn "${EXE_CUDA_MEMCHECK}" "${MEM}"        "$@"; }
