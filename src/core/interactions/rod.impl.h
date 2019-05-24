@@ -56,8 +56,6 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        rv->updateBishopFrame(stream);
-        
         RVview view(rv, rv->local());
 
         {

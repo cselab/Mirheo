@@ -15,9 +15,6 @@ public:
     void resize_anew(int np) override;
 
     int getNumSegmentsPerRod() const;
-
-    DeviceBuffer<float4> bishopQuaternions;
-    DeviceBuffer<float3> bishopFrames;
 };
 
 
@@ -26,8 +23,6 @@ class RodVector: public ObjectVector
 public:
     RodVector(const YmrState *state, std::string name, float mass, int nSegments, int nObjects = 0);
     ~RodVector();
-
-    void updateBishopFrame(cudaStream_t stream);
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
