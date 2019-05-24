@@ -78,18 +78,9 @@ execcmd () {
     fi
 }
 
-if   test ! -z "${MEM+x}"
-then
-    execcmd `exe_cuda_memcheck "$@"`
-elif test ! -z "${VAL+x}"
-then
-    execcmd `exe_valgrind      "$@"`
-elif test ! -z "${PROF+x}"
-then
-    execcmd `exe_nvprof        "$@"`
-elif test ! -z "${GDB+x}"
-then
-    execcmd `exe_cuda_gdb      "$@"`
-else
-    execcmd  `exe_direct       "$@"`
+if   test ! -z "${MEM+x}" ; then execcmd `exe_cuda_memcheck "$@"`
+elif test ! -z "${VAL+x}" ; then execcmd `exe_valgrind      "$@"`
+elif test ! -z "${PROF+x}"; then execcmd `exe_nvprof        "$@"`
+elif test ! -z "${GDB+x}" ; then execcmd `exe_cuda_gdb      "$@"`
+else                             execcmd `exe_direct        "$@"`
 fi
