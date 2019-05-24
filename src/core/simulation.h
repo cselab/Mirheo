@@ -115,7 +115,7 @@ private:
     std::string restartFolder, checkpointFolder;
     CheckpointIdAdvanceMode checkpointMode;
     int globalCheckpointEvery;
-    int checkpointId;
+    int checkpointId {0};
 
     int rank;
 
