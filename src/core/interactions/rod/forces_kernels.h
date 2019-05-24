@@ -12,25 +12,23 @@
 struct GPU_RodBoundsParameters
 {
     float lcenter, lcross, ldiag, lring;
-    float kBounds, kVisc;
+    float ksCenter, ksFrame;
 };
 
 namespace RodForcesKernels
 {
 
-// force exerted from p1 to p0
-__device__ inline real3 fbound(const ParticleReal& p0, const ParticleReal& p1,
-                               const GPU_RodBoundsParameters& params, float l0)
+// elastic force exerted from p1 to p0
+__device__ inline real3 fbound(const real3& r0, const real3& r1, const float ks, float l0)
 {
-    auto dr = p1.r - p0.r;
-    auto du = p1.u - p0.u;
+    auto dr = r1 - r0;
     auto l = length(dr);
+    auto xi = (l - l0);
     auto linv = 1.0_r / l;
 
-    auto fMagnElastic = params.kBounds * (l - l0);
-    auto fMagnViscous = params.kVisc   * dot(dr, du) * linv;
-
-    return (linv * (fMagnElastic + fMagnViscous)) * dr;
+    auto fmagn = ks * xi * (0.5_r * xi + l);
+    
+    return (linv * fmagn) * dr;
 }
 
 __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters params)
@@ -43,42 +41,42 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     if (rodId     >= view.nObjects ) return;
     if (segmentId >= view.nSegments) return;
 
-    auto r0 = fetchParticle(view, start + 0);
-    auto u0 = fetchParticle(view, start + 1);
-    auto u1 = fetchParticle(view, start + 2);
-    auto v0 = fetchParticle(view, start + 3);
-    auto v1 = fetchParticle(view, start + 4);
-    auto r1 = fetchParticle(view, start + 5);
+    auto r0 = fetchPosition(view, start + 0);
+    auto u0 = fetchPosition(view, start + 1);
+    auto u1 = fetchPosition(view, start + 2);
+    auto v0 = fetchPosition(view, start + 3);
+    auto v1 = fetchPosition(view, start + 4);
+    auto r1 = fetchPosition(view, start + 5);
 
     real3 fr0{0._r, 0._r, 0._r}, fr1{0._r, 0._r, 0._r};
     real3 fu0{0._r, 0._r, 0._r}, fu1{0._r, 0._r, 0._r};
     real3 fv0{0._r, 0._r, 0._r}, fv1{0._r, 0._r, 0._r};
 
-#define BOUND(a, b, l) do {                          \
-        auto f = fbound(a, b, params, params. l);       \
+#define BOUND(a, b, k, l) do {                          \
+        auto f = fbound(a, b, params. k, params. l);    \
         f##a += f;                                      \
         f##b -= f;                                      \
     } while(0)
 
-    BOUND(r0, u0, ldiag);
-    BOUND(r0, u1, ldiag);
-    BOUND(r0, v0, ldiag);
-    BOUND(r0, v1, ldiag);
+    BOUND(r0, u0, ksFrame, ldiag);
+    BOUND(r0, u1, ksFrame, ldiag);
+    BOUND(r0, v0, ksFrame, ldiag);
+    BOUND(r0, v1, ksFrame, ldiag);
 
-    BOUND(r1, u0, ldiag);
-    BOUND(r1, u1, ldiag);
-    BOUND(r1, v0, ldiag);
-    BOUND(r1, v1, ldiag);
+    BOUND(r1, u0, ksFrame, ldiag);
+    BOUND(r1, u1, ksFrame, ldiag);
+    BOUND(r1, v0, ksFrame, ldiag);
+    BOUND(r1, v1, ksFrame, ldiag);
 
-    BOUND(u0, v0, lring);
-    BOUND(v0, u1, lring);
-    BOUND(u1, v1, lring);
-    BOUND(v1, u0, lring);
+    BOUND(u0, v0, ksFrame, lring);
+    BOUND(v0, u1, ksFrame, lring);
+    BOUND(u1, v1, ksFrame, lring);
+    BOUND(v1, u0, ksFrame, lring);
 
-    BOUND(u0, u1, lcross);
-    BOUND(v0, v1, lcross);
+    BOUND(u0, u1, ksFrame, lcross);
+    BOUND(v0, v1, ksFrame, lcross);
 
-    BOUND(r0, r1, lcenter);
+    BOUND(r0, r1, ksCenter, lcenter);
 
 #undef BOUND
     
