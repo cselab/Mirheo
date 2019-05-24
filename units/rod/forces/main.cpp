@@ -157,7 +157,7 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions, const std::vector<real3>& frames)
+static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -169,17 +169,22 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
         auto r1 = positions[5*(i)];
         auto r2 = positions[5*(i+1)];
 
-        auto u0 = frames[2*(i-1)   ];
-        auto v0 = frames[2*(i-1) + 1];
-
-        auto u1 = frames[2*i    ];
-        auto v1 = frames[2*i + 1];
-        
         auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
         auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
         
         auto e0 = r1-r0;
         auto e1 = r2-r1;
+
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1); 
+        
+        auto  Q = getQfrom(t0, t1);
+        auto u0 = normalize(anyOrthogonal(t0));
+        auto u1 = normalize(rotate(u0, Q));
+
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+        
         auto l = 0.5 * (length(e0) + length(e1));
 
         auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
@@ -228,12 +233,8 @@ static void twistForces(real h, float kt, float tau0, const std::vector<real3>& 
     auto perturbed = positions;
     int nSegments = (positions.size() - 1) / 5;
     
-    std::vector<real3> frames(2*nSegments);
-
     auto compEnergy = [&]() {
-                          initialFrame(perturbed[5]-perturbed[0], frames[0], frames[1]);
-                          transportBishopFrame(perturbed, frames);
-                          return twistEnergy(kt, tau0, perturbed, frames);
+                          return twistEnergy(kt, tau0, perturbed);
                       };
     
     for (size_t i = 0; i < positions.size(); ++i)
@@ -465,7 +466,7 @@ TEST (ROD, twistForces_helix)
     real pitch  = 1.0;
     real radius = 0.5;
     real height = 1.0;
-    real h = 1e-7;
+    real h = 1e-4;
     
     auto centerLine = [&](real s) -> real3 {
                           real z = s * height;
