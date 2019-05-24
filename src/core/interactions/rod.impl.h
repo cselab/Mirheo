@@ -13,12 +13,12 @@
 static auto getBoundParams(const RodParameters& p)
 {
     GPU_RodBoundsParameters dp;
-    dp.kBounds = p.kBounds;
-    dp.kVisc   = p.kVisc;
-    dp.lcenter = p.l0;
-    dp.lcross  = p.a0;
-    dp.lring   = 0.5 * sqrt(2.0) * p.a0;
-    dp.ldiag   = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
+    dp.ksCenter = p.ksCenter;
+    dp.ksFrame  = p.ksFrame;
+    dp.lcenter  = p.l0;
+    dp.lcross   = p.a0;
+    dp.lring    = 0.5 * sqrt(2.0) * p.a0;
+    dp.ldiag    = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
     return dp;
 }
 
@@ -56,8 +56,6 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        rv->updateBishopFrame(stream);
-        
         RVview view(rv, rv->local());
 
         {

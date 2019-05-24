@@ -67,12 +67,12 @@ l0 = l0 * args.l0_factor
 prms = {
     "a0" : l0,
     "l0" : l0,
-    "k_bounds"  : args.kbounds,
-    "k_visc"    : 0.0,
-    "k_bending" : tuple(args.kbending),
-    "k_twist"   : args.ktwist,
-    "tau0"      : args.tau0,
-    "kappa0"    : (0.0, 0.0)
+    "k_s_center" : args.kbounds,
+    "k_s_frame"  : args.kbounds,
+    "k_bending"  : tuple(args.kbending),
+    "k_twist"    : args.ktwist,
+    "tau0"       : args.tau0,
+    "kappa0"     : (0.0, 0.0)
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);

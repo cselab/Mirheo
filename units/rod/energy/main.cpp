@@ -3,6 +3,7 @@
 #include <core/utils/cuda_common.h>
 #include <core/initial_conditions/rod.h>
 #include <core/pvs/rod_vector.h>
+#include <core/utils/quaternion.h>
 
 #include <vector>
 #include <functional>
@@ -114,8 +115,7 @@ inline real safeDiffTheta(real t0, real t1)
 }
 
 template <EnergyMode Emode>
-static std::vector<real> computeTwistEnergies(const float4 *positions, const float3 *bishopFrames, int nSegments,
-                                              real kTwist, real tauEq)
+static std::vector<real> computeTwistEnergies(const float4 *positions, int nSegments, real kTwist, real tauEq)
 {
     std::vector<real> energies;
     energies.reserve(nSegments-1);
@@ -131,14 +131,15 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, const flo
         auto pm1 = make_real3(positions[5*i + 6]);
         auto pp1 = make_real3(positions[5*i + 7]);
 
-        const auto u0 = make_real3(bishopFrames[i+0]);
-        const auto u1 = make_real3(bishopFrames[i+1]);
-
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
 
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
+
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
 
         auto dp0 = pp0 - pm0;
         auto dp1 = pp1 - pm1;
@@ -267,10 +268,6 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     
     ic.exec(comm, &rv, defaultStream);
 
-    rv.updateBishopFrame(defaultStream);
-
-    HostBuffer<float3> bishopFrames;
-    bishopFrames.copy(rv.local()->bishopFrames, defaultStream);
     CUDA_Check( cudaStreamSynchronize(defaultStream) );
     auto& pos = rv.local()->positions();
 
@@ -279,7 +276,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     if (checkMode == CheckMode::Detail)
     {
         auto energies = computeTwistEnergies<EnergyMode::Density>
-            (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+            (pos.data(), nSegments, kTwist, tauEq);
 
         real h = 1.0 / nSegments;
         real err = 0;
@@ -299,7 +296,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     else
     {
         auto energies = computeTwistEnergies<EnergyMode::Absolute>
-            (pos.data(), bishopFrames.data(), nSegments, kTwist, tauEq);
+            (pos.data(), nSegments, kTwist, tauEq);
 
         auto EtotSim = std::accumulate(energies.begin(), energies.end(), 0.0);
         err = fabs(EtotRef - EtotSim);

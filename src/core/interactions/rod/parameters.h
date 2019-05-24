@@ -10,8 +10,8 @@ struct RodParameters
 
     std::vector<float> groundE; ///< ground energy of each state
     
-    float a0;       ///< equilibrium length between two opposite material frame particles
-    float l0;       ///< equilibrium length between two consecutive centerline particles
-    float kBounds;  ///< bound force magnitude
-    float kVisc;    ///< bound viscous force magnitude
+    float a0;        ///< equilibrium length between two opposite material frame particles
+    float l0;        ///< equilibrium length between two consecutive centerline particles
+    float ksCenter;  ///< spring force magnitude for centerline
+    float ksFrame;   ///< spring force magnitude for material frame
 };

@@ -3,6 +3,7 @@
 #include <core/utils/cuda_common.h>
 #include <core/initial_conditions/rod.h>
 #include <core/pvs/rod_vector.h>
+#include <core/utils/quaternion.h>
 
 #include <vector>
 #include <functional>
@@ -63,7 +64,7 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static std::vector<real> computeTorsions(const float4 *positions, const float3 *bishopFrames, int nSegments)
+static std::vector<real> computeTorsions(const float4 *positions, int nSegments)
 {
     std::vector<real> torsions;
     torsions.reserve(nSegments-1);
@@ -79,14 +80,15 @@ static std::vector<real> computeTorsions(const float4 *positions, const float3 *
         auto pm1 = make_real3(positions[5*i + 6]);
         auto pp1 = make_real3(positions[5*i + 7]);
 
-        const auto u0 = make_real3(bishopFrames[i+0]);
-        const auto u1 = make_real3(bishopFrames[i+1]);
-
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
 
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
+        
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
 
         auto dp0 = pp0 - pm0;
         auto dp1 = pp1 - pm1;
@@ -189,15 +191,9 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     
     ic.exec(comm, &rv, defaultStream);
 
-    rv.updateBishopFrame(defaultStream);
-
-    HostBuffer<float3> bishopFrames;
-    bishopFrames.copy(rv.local()->bishopFrames, defaultStream);
-    CUDA_Check( cudaStreamSynchronize(defaultStream) );
-
     auto& pos = rv.local()->positions();
     
-    auto torsions = computeTorsions(pos.data(), bishopFrames.data(), nSegments);
+    auto torsions = computeTorsions(pos.data(), nSegments);
 
     real h = 1.0 / nSegments;
     real err = 0;
