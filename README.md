@@ -14,7 +14,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
-* **interace chanes** change omega to kappa in rod forces
+* **interace chanes** rod forces:
+  * change `omega0` to `kappa0`
+  * remove `k_visc`
+  * split `k_bounds` into `k_s_center` and `k_s_frame`
 * **fix** cleanup streams
 * extend rod IC
 
