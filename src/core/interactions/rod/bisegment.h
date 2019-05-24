@@ -4,6 +4,7 @@
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/quaternion.h>
 #include <core/pvs/views/rv.h>
 
 template<int Nstates>
@@ -154,9 +155,12 @@ struct BiSegment
     }
 
     __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
-                                              const real3& u0, const real3& u1,
                                               real3& fr0, real3& fr2, real3& fpm0, real3& fpm1) const
     {
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
+        
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
 
@@ -186,9 +190,12 @@ struct BiSegment
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
-    __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
-                                         const real3& u0, const real3& u1) const
+    __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
     {
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
+
         real dpt0 = dot(dp0, t0);
         real dpt1 = dot(dp1, t1);
 

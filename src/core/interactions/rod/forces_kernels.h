@@ -90,13 +90,6 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     atomicAdd(view.forces + start + 5, make_float3(fr1));
 }
 
-
-__device__ inline real3 fetchBishopFrame(const RVview& view, int objId, int segmentId)
-{
-    float3 u =  view.bishopFrames[objId * view.nSegments + segmentId];
-    return make_real3(u);
-}
-
 template <int Nstates>
 __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params)
 {
@@ -112,20 +105,17 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     const BiSegment<Nstates> bisegment(view, start);
 
-    auto u0 = fetchBishopFrame(view, rodId, biSegmentId + 0);
-    auto u1 = fetchBishopFrame(view, rodId, biSegmentId + 1);
-
     real3 fr0, fr2, fpm0, fpm1;
     int state = 0;
 
     if (Nstates > 1)
     {
-        real E = bisegment.computeEnergy(state, params, u0, u1);
+        real E = bisegment.computeEnergy(state, params);
         
         #pragma unroll
         for (int s = 1; s < Nstates; ++s)
         {
-            real Es = bisegment.computeEnergy(state, params, u0, u1);
+            real Es = bisegment.computeEnergy(state, params);
             if (Es < E)
             {
                 E = Es;
@@ -137,7 +127,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
     
     bisegment.computeBendingForces(state, params, fr0, fr2, fpm0, fpm1);
-    bisegment.computeTwistForces(state, params, u0, u1, fr0, fr2, fpm0, fpm1);
+    bisegment.computeTwistForces  (state, params, fr0, fr2, fpm0, fpm1);
 
     // by conservation of momentum
     auto fr1  = -(fr0 + fr2);
