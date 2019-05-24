@@ -83,12 +83,12 @@ u.setIntegrator(vv_ell, pv_ell)
 prms = {
     "a0" : a0,
     "l0" : l0,
-    "k_bounds"  : 100.0,
-    "k_visc"    : 0.0,
-    "k_bending" : (10.0, 0.0, 10.0),
-    "k_twist"   : 10.0,
-    "tau0"      : 0,
-    "kappa0"    : (0., 0.)
+    "k_s_center" : 100.0,
+    "k_s_frame"  : 100.0,
+    "k_bending"  : (10.0, 0.0, 10.0),
+    "k_twist"    : 10.0,
+    "tau0"       : 0,
+    "kappa0"     : (0., 0.)
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
