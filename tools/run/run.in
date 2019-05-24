@@ -17,6 +17,10 @@ automatically loads the required modules.
 
 usage: $EXE_PREFIX.run [--runargs RUNARGS] <executable> [ARGS]
 
+--runargs option allows to pass arguments to ${RUN_CMD}
+These options can be alternatively passed by setting the 
+environment variable YMR_RUNARGS
+
 additional executables are used if one of the following
 environment variable is set (its value must contain the 
 options to the concerned program):
@@ -54,8 +58,8 @@ then
     fi
 fi
 
-if test ! -z "${YMR_RUN+x}"; then
-    RUNARGS="$RUNARGS $YMR_RUN"
+if test ! -z "${YMR_RUNARGS+x}"; then
+    RUNARGS="$RUNARGS $YMR_RUNARGS"
 fi
 
 exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }

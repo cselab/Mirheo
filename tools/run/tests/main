@@ -5,5 +5,5 @@ ymr.run --runargs "-n 1" echo 1 > echo.out.txt
 ymr.run --runargs "-n 2" echo 1 > echo.out.txt
 
 # TEST: run.echo.ENV
-YMR_RUN="-n 2" ymr.run echo 1 > echo.out.txt
+YMR_RUNARGS="-n 2" ymr.run echo 1 > echo.out.txt
 
