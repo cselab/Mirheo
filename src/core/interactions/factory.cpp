@@ -44,7 +44,7 @@ public:
         return true;
     }
 
-    void check() const
+    void checkAllRead() const
     {
         for (const auto& p : readParams)
             if (p.second == false)
@@ -194,7 +194,7 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
     else if (bendingDesc == "Juelicher") bendingParams = readJuelicherParameters(desc);
     else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionMembrane>
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
@@ -248,7 +248,7 @@ InteractionFactory::createInteractionRod(const YmrState *state, std::string name
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionRod>(state, name, params);
 }
 
@@ -352,18 +352,18 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
     if (isLinearEOS(EOS))
     {
         auto pressure = readLinearPressureEOS(desc);
-        desc.check();
+        desc.checkAllRead();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
     if (isQuasiIncompressibleEOS(EOS))
     {
         auto pressure = readQuasiIncompressiblePressureEOS(desc);
-        desc.check();
+        desc.checkAllRead();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     die("Invalid pressure parameter: '%s'", EOS.c_str());
     return nullptr;
 }
@@ -377,11 +377,11 @@ InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, f
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
-        desc.check();
+        desc.checkAllRead();
         return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
 }
 
@@ -420,11 +420,11 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
-        desc.check();
+        desc.checkAllRead();
         return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
 
