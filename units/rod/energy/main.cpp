@@ -280,7 +280,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.a0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    InteractionRod gpuInt(&state, "rod_forces", params, false, true);
+    InteractionRod gpuInt(&state, "twist_forces", params, false, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
 
     auto& pos = rv.local()->positions();
@@ -339,9 +339,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     
     ic.exec(comm, &rv, defaultStream);
 
-    CUDA_Check( cudaStreamSynchronize(defaultStream) );
     auto& pos = rv.local()->positions();
-
 
     real err = 0;
     if (checkMode == CheckMode::Detail)
@@ -375,6 +373,73 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
 
     return err;
 }
+
+static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
+                                real kTwist, real tauEq)
+{
+    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    {
+        auto r = centerLine(s);
+        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+    };
+    
+    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    {
+        return (float) torsion(s);;
+    };
+
+    DomainInfo domain;
+    float L = 32.f;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    float mass = 1.f;
+    YmrState state(domain, dt);
+    RodVector rv(&state, "rod", mass, nSegments);
+    
+    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
+             ymrCenterLine, ymrTorsion, a);
+    
+    ic.exec(comm, &rv, defaultStream);
+
+    RodParameters params;
+    params.kBending = make_float3(0.f);
+    params.kappaEq  = {make_float2(0.f)};
+    params.kTwist   = (float) kTwist;
+    params.tauEq    = {(float) tauEq};
+    params.groundE  = {0.f};
+    params.l0       = 0.f;
+    params.a0       = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
+    InteractionRod gpuInt(&state, "twist_forces", params, false, true);
+    gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+
+    auto& pos = rv.local()->positions();
+
+    rv.local()->forces().clear(defaultStream);
+    gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
+
+    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    gpuEnergies.downloadFromDevice(defaultStream);
+
+    auto cpuEnergies = computeTwistEnergies<EnergyMode::Absolute>
+        (pos.data(), nSegments, kTwist, tauEq);
+
+    real err = 0;
+
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        real gpuE = gpuEnergies[5 * i + 5];
+        real cpuE = cpuEnergies[i];
+        // printf("%g %g\n", cpuE, gpuE);
+        auto dE = fabs(cpuE - gpuE);
+        err = std::max(err, dE);
+    }
+    
+    return err;
+}
+
 
 
 TEST (ROD, cpu_energies_bending)
@@ -517,6 +582,34 @@ TEST (ROD, cpu_energies_twist)
     {
         auto err = checkTwistEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
                                                        kTwist, tauEq, analyticEnergy, EtotRef);
+
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, gpu_energies_twist)
+{
+    real L = 5.0;
+
+    real tau0  {0.1};
+    real kTwist {1.0};
+    real tauEq  {0.3};
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        return {(s-0.5) * L, 0., 0.};
+    };
+
+    auto torsion = [&](real s) -> real {return tau0;};
+    
+    
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+
+    for (auto n : nsegs)
+    {
+        auto err = checkGPUTwistEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
+                                       kTwist, tauEq);
 
         // printf("%d %g\n", n, err);
         ASSERT_LE(err, 1e-6);
