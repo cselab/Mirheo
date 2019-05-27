@@ -42,9 +42,11 @@ template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters) :
+    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool dumpStates, bool dumpEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
-        parameters(parameters)
+        parameters(parameters),
+        dumpStates(dumpStates),
+        dumpEnergies(dumpEnergies)
     {}
 
     ~InteractionRodImpl() = default;
@@ -77,7 +79,7 @@ public:
         
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
                                nblocks, nthreads, 0, stream,
-                               view, devParams);
+                               view, devParams, dumpStates, dumpEnergies);
         }
     }
 
@@ -87,4 +89,6 @@ public:
 protected:
 
     RodParameters parameters;
+
+    bool dumpStates, dumpEnergies;
 };

@@ -89,7 +89,7 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
 }
 
 template <int Nstates>
-__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params)
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params, bool dumpStates, bool dumpEnergies)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;

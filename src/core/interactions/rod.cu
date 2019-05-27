@@ -2,14 +2,16 @@
 #include "rod.impl.h"
 
 
-InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters) :
+InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters,
+                               bool dumpStates, bool dumpEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {
     int nstates = parameters.kappaEq.size();
     
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
         if (nstates == Nstates) {                                       \
-            impl = std::make_unique<InteractionRodImpl<Nstates>>(state, name, parameters); \
+            impl = std::make_unique<InteractionRodImpl<Nstates>>        \
+                (state, name, parameters, dumpStates, dumpEnergies);    \
             return;                                                     \
         } } while(0)
 
