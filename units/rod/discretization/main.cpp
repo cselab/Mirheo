@@ -380,6 +380,32 @@ TEST (ROD, torsion_circle_vary)
     }
 }
 
+TEST (ROD, torsion_helix)
+{
+    real a = 1.2;
+    real b = 2.32;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real t = 2 * M_PI * s;
+        return {a * cos(t), a * sin(t), b * t};
+    };
+
+    auto torsion = [&](real s)
+    {
+        return b / (a*a + b*b);
+    };
+
+    std::vector<int> nsegs = {8, 16, 32, 64};
+    for (auto n : nsegs)
+    {
+        auto err = checkTorsion(MPI_COMM_WORLD, centerLine, torsion, n);
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-5);
+    }
+}
+
+
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
