@@ -11,7 +11,7 @@
 
 Logger logger;
 
-using real = double;
+using real  = double;
 using real2 = double2;
 using real3 = double3;
 using real4 = double4;

@@ -374,7 +374,7 @@ class RodForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, **kwargs) -> None
+        r"""__init__(name: str, dump_states: bool = False, dump_energies: bool = False, **kwargs) -> None
 
  
              Args:
