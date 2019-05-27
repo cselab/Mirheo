@@ -1,8 +1,9 @@
-#include <core/logger.h>
-#include <core/utils/helper_math.h>
-#include <core/utils/cuda_common.h>
 #include <core/initial_conditions/rod.h>
+#include <core/interactions/rod.h>
+#include <core/logger.h>
 #include <core/pvs/rod_vector.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/helper_math.h>
 #include <core/utils/quaternion.h>
 
 #include <vector>
@@ -12,7 +13,7 @@
 
 Logger logger;
 
-using real = double;
+using real  = double;
 using real2 = double2;
 using real3 = double3;
 using real4 = double4;
@@ -20,6 +21,8 @@ using real4 = double4;
 static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
 static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 static real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+
+static float2 make_float2(real2 v) {return {(float) v.x, (float) v.y}; }
 
 using CenterLineFunc = std::function<real3(real)>;
 using EnergyFunc     = std::function<real(real)>;
@@ -239,6 +242,74 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     return err;
 }
 
+static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
+                                  real3 kBending, real2 kappaEq)
+{
+    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    {
+        auto r = centerLine(s);
+        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+    };
+    
+    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    {
+        return (float) torsion(s);;
+    };
+
+    DomainInfo domain;
+    float L = 32.f;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    float mass = 1.f;
+    YmrState state(domain, dt);
+    RodVector rv(&state, "rod", mass, nSegments);
+    
+    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
+             ymrCenterLine, ymrTorsion, a);
+
+    ic.exec(comm, &rv, defaultStream);
+
+    RodParameters params;
+    params.kBending = make_float3(kBending);
+    params.kappaEq  = {make_float2(kappaEq)};
+    params.kTwist   = 0.f;
+    params.tauEq    = {0.f};
+    params.groundE  = {0.f};
+    params.l0       = 0.f;
+    params.a0       = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
+    InteractionRod gpuInt(&state, "rod_forces", params, false, true);
+    gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+
+    auto& pos = rv.local()->positions();
+
+    rv.local()->forces().clear(defaultStream);
+    gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
+
+    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    gpuEnergies.downloadFromDevice(defaultStream);
+
+    auto  cpuEnergies = computeBendingEnergies<EnergyMode::Absolute>
+        (pos.data(), nSegments, kBending, kappaEq);
+
+    real err = 0;
+
+    for (int i = 0; i < nSegments - 1; ++i)
+    {
+        real gpuE = gpuEnergies[5 * i + 5];
+        real cpuE = cpuEnergies[i];
+        // printf("%g %g\n", cpuE, gpuE);
+        auto dE = fabs(cpuE - gpuE);
+        err = std::max(err, dE);
+    }
+    
+    return err;
+}
+
+
+
 template <CheckMode checkMode>
 static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                              real kTwist, real tauEq, EnergyFunc ref, real EtotRef)
@@ -306,7 +377,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
 }
 
 
-TEST (ROD, energies_bending)
+TEST (ROD, cpu_energies_bending)
 {
     real L = 5.0;
 
@@ -341,7 +412,7 @@ TEST (ROD, energies_bending)
     }
 }
 
-TEST (ROD, energies_bending_circle)
+TEST (ROD, cpu_energies_bending_circle)
 {
     real R = 1.5;
     
@@ -389,7 +460,34 @@ TEST (ROD, energies_bending_circle)
     }
 }
 
-TEST (ROD, energies_twist)
+TEST (ROD, gpu_energies_bending_circle)
+{
+    real R = 1.5;
+    
+    real3 kBending {1.0, 0.0, 1.0};
+    real2 kappaEq {0., 0.};
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real t = 2 * M_PI * s;
+        return {R * cos(t), R * sin(t), 0.0};
+    };
+
+    auto torsion = [](real s) -> real {return 0.0;};
+        
+    std::vector<int> nsegs = {8, 16, 32, 64, 128};
+    // std::vector<int> nsegs = {32};
+    
+    for (auto n : nsegs)
+    {
+        auto err = checkGPUBendingEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
+                                         kBending, kappaEq);
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-6);
+    }
+}
+
+TEST (ROD, cpu_energies_twist)
 {
     real L = 5.0;
 

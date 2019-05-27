@@ -3,7 +3,6 @@
 #include <core/pvs/rod_vector.h>
 #include <core/utils/helper_math.h>
 #include <core/utils/quaternion.h>
-#include <plugins/utils/xyz.h>
 
 #include <vector>
 #include <functional>
@@ -15,7 +14,7 @@ Logger logger;
 #define SEP "\t"
 #define EXPAND(v) v.x, v.y, v.z
 
-using real = double;
+using real  = double;
 using real2 = double2;
 using real3 = double3;
 using real4 = double4;
