@@ -16,6 +16,8 @@ static const std::string forces        = "__forces";
 static const std::string stresses      = "stresses";
 static const std::string densities     = "densities";
 static const std::string oldPositions  = "old_positions";
+static const std::string polyStates    = "states";
+static const std::string energies      = "energies";
 
 // per object fields
 static const std::string motions     = "motions";

@@ -16,7 +16,13 @@ struct RVview : public OVview
         if (rv == nullptr || lrv == nullptr) return;
         nSegments          = lrv->getNumSegmentsPerRod();
 
+        auto& data = lrv->dataPerParticle;
         
+        if (data.checkChannelExists(ChannelNames::polyStates))
+            states = data.getData<int>(ChannelNames::polyStates)->devPtr();
+
+        if (data.checkChannelExists(ChannelNames::energies))
+            energies = data.getData<float>(ChannelNames::energies)->devPtr();
     }
 };
 

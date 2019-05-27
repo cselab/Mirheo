@@ -486,7 +486,7 @@ void exportInteractions(py::module& m)
     )");
 
     pyRodForces.def(py::init(&createInteractionRod),
-                    "state"_a, "name"_a, "dump_state"_a=false, "dump_energies"_a=false, R"( 
+                    "state"_a, "name"_a, "dump_states"_a=false, "dump_energies"_a=false, R"( 
              Args:
                  name: name of the interaction
 

@@ -50,6 +50,12 @@ public:
     {}
 
     ~InteractionRodImpl() = default;
+
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
+    {
+        if (dumpEnergies) pv1->requireDataPerParticle<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (dumpStates)   pv1->requireDataPerParticle<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+    }
     
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
@@ -59,6 +65,10 @@ public:
               rv->local()->nObjects, rv->name.c_str());
 
         RVview view(rv, rv->local());
+
+        if (dumpEnergies) rv->local()->dataPerParticle.getData<float>(ChannelNames::energies)->clear(defaultStream);
+        if (dumpStates)   rv->local()->dataPerParticle.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
+
 
         {
             const int nthreads = 128;

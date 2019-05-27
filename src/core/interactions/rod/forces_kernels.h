@@ -105,10 +105,11 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     real3 fr0, fr2, fpm0, fpm1;
     int state = 0;
+    real E = 0;
 
     if (Nstates > 1)
     {
-        real E = bisegment.computeEnergy(state, params);
+        E = bisegment.computeEnergy(state, params);
         
         #pragma unroll
         for (int s = 1; s < Nstates; ++s)
@@ -121,6 +122,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
             }
         }
     }
+    else if (dumpEnergies)
+        E = bisegment.computeEnergy(state, params);
     
     fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
     
@@ -140,6 +143,19 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     atomicAdd(view.forces + start +          2, make_float3(fpp0));
     atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
     atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
+
+    if (dumpStates)
+    {
+        #pragma unroll
+        for (int j = 0; j < 5; ++j)
+            view.states[start + stride + j] = state;
+    }
+    if (dumpEnergies)
+    {
+        #pragma unroll
+        for (int j = 0; j < 5; ++j)
+            view.energies[start + stride + j] = E;
+    }
 }
 
 
