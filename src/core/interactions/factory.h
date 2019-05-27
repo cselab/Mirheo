@@ -20,11 +20,7 @@ class ObjectRodBindingInteraction;
 
 namespace InteractionFactory
 {
-using VarParam = mpark::variant<float,
-                                PyTypes::float2,
-                                PyTypes::float3,
-                                std::vector<float>,
-                                std::vector<PyTypes::float2>>;
+using VarParam = mpark::variant<float, std::vector<float>, std::vector<PyTypes::float2>>;
 
 std::shared_ptr<InteractionMembrane>
 createInteractionMembrane(const YmrState *state, std::string name,

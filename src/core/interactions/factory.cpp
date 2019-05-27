@@ -30,11 +30,6 @@ public:
             readParams[p.first] = false;
     }
 
-    ~ParametersWrap()
-    {
-        check();
-    }
-
     template <typename T>
     bool exists(const std::string& key)
     {
@@ -48,9 +43,30 @@ public:
 
         return true;
     }
-    
+
+    void check() const
+    {
+        for (const auto& p : readParams)
+            if (p.second == false)
+                die("invalid parameter '%s'", p.first.c_str());
+    }
+
     template <typename T>
     T read(const std::string& key)
+    {
+        return read(key, Identity<T>());
+    }
+
+private:
+
+    // have to do template specialization trick because explicit
+    // specializations have to be at namespace scope inc C++
+    
+    template<typename T>
+    struct Identity { using Type = T; };
+    
+    template <typename T>
+    T read(const std::string& key, Identity<T>)
     {
         auto it = params.find(key);
     
@@ -64,13 +80,22 @@ public:
         return mpark::get<T>(it->second);
     }
 
-    void check() const
+    float2 read(const std::string& key, Identity<float2>)
     {
-        for (const auto& p : readParams)
-            if (p.second == false)
-                die("invalid parameter '%s'", p.first.c_str());
+        auto v = read<std::vector<float>>(key);
+        if (v.size() != 2)
+            die("%s must have 2 components", key.c_str());
+        return {v[0], v[1]};
     }
-    
+
+    float3 read(const std::string& key, Identity<float3>)
+    {
+        auto v = read<std::vector<float>>(key);
+        if (v.size() != 3)
+            die("%s must have 3 components", key.c_str());
+        return {v[0], v[1], v[2]};
+    }
+
 private:
     const MapParams& params;
     std::map<std::string, bool> readParams;
@@ -169,6 +194,7 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
     else if (bendingDesc == "Juelicher") bendingParams = readJuelicherParameters(desc);
     else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
+    desc.check();
     return std::make_shared<InteractionMembrane>
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
@@ -177,7 +203,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 {
     RodParameters p;
 
-    if (desc.exists<std::vector<float>>( "tau0" ))
+    if (desc.exists<std::vector<PyTypes::float2>>( "kappa0" ))
     {
         auto kappaEqs = desc.read<std::vector<PyTypes::float2>>( "kappa0");
         auto tauEqs   = desc.read<std::vector<float>>( "tau0");
@@ -197,7 +223,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     }
     else
     {
-        p.kappaEq.push_back(make_float2(desc.read<PyTypes::float2>("kappa0")));
+        p.kappaEq.push_back(desc.read<float2>("kappa0"));
         p.tauEq  .push_back(desc.read<float>("tau0"));
 
         if (desc.exists<float>("E0"))
@@ -206,7 +232,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
             p.groundE.push_back(0.f);
     }
     
-    p.kBending  = make_float3(desc.read<PyTypes::float3>("k_bending"));
+    p.kBending  = desc.read<float3>("k_bending");
     p.kTwist    = desc.read<float>("k_twist");
     
     p.a0        = desc.read<float>("a0");
@@ -222,6 +248,7 @@ InteractionFactory::createInteractionRod(const YmrState *state, std::string name
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
+    desc.check();
     return std::make_shared<InteractionRod>(state, name, params);
 }
 
@@ -325,15 +352,18 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
     if (isLinearEOS(EOS))
     {
         auto pressure = readLinearPressureEOS(desc);
+        desc.check();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
     if (isQuasiIncompressibleEOS(EOS))
     {
         auto pressure = readQuasiIncompressiblePressureEOS(desc);
+        desc.check();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
+    desc.check();
     die("Invalid pressure parameter: '%s'", EOS.c_str());
     return nullptr;
 }
@@ -347,9 +377,11 @@ InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, f
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
+        desc.check();
         return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
     }
 
+    desc.check();
     return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
 }
 
@@ -388,9 +420,11 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
+        desc.check();
         return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
     }
 
+    desc.check();
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
 
