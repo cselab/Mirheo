@@ -3,7 +3,7 @@
 
 
 InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters,
-                               bool dumpStates, bool dumpEnergies) :
+                               bool saveStates, bool saveEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {
     int nstates = parameters.kappaEq.size();
@@ -11,7 +11,7 @@ InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParam
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
         if (nstates == Nstates) {                                       \
             impl = std::make_unique<InteractionRodImpl<Nstates>>        \
-                (state, name, parameters, dumpStates, dumpEnergies);    \
+                (state, name, parameters, saveStates, saveEnergies);    \
             return;                                                     \
         } } while(0)
 

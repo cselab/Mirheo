@@ -42,19 +42,19 @@ template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool dumpStates, bool dumpEnergies) :
+    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool saveStates, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
         parameters(parameters),
-        dumpStates(dumpStates),
-        dumpEnergies(dumpEnergies)
+        saveStates(saveStates),
+        saveEnergies(saveEnergies)
     {}
 
     ~InteractionRodImpl() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        if (dumpEnergies) pv1->requireDataPerParticle<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
-        if (dumpStates)   pv1->requireDataPerParticle<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+        if (saveEnergies) pv1->requireDataPerParticle<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (saveStates)   pv1->requireDataPerParticle<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
     }
     
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
@@ -66,8 +66,8 @@ public:
 
         RVview view(rv, rv->local());
 
-        if (dumpEnergies) rv->local()->dataPerParticle.getData<float>(ChannelNames::energies)->clear(defaultStream);
-        if (dumpStates)   rv->local()->dataPerParticle.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
+        if (saveEnergies) rv->local()->dataPerParticle.getData<float>(ChannelNames::energies)->clear(defaultStream);
+        if (saveStates)   rv->local()->dataPerParticle.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
 
 
         {
@@ -89,7 +89,7 @@ public:
         
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
                                nblocks, nthreads, 0, stream,
-                               view, devParams, dumpStates, dumpEnergies);
+                               view, devParams, saveStates, saveEnergies);
         }
     }
 
@@ -100,5 +100,5 @@ protected:
 
     RodParameters parameters;
 
-    bool dumpStates, dumpEnergies;
+    bool saveStates, saveEnergies;
 };
