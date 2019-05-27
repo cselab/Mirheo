@@ -337,13 +337,14 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
-    params.kappaEq = {{0.f, 0.f}};
-    params.kTwist = kt;
-    params.tauEq = {tau0};
-    params.groundE = {0.f};
-    params.a0 = params.l0 = 0.f;
-    params.kBounds = 0.f;
-    params.kVisc = 0.f;
+    params.kappaEq  = {{0.f, 0.f}};
+    params.kTwist   = kt;
+    params.tauEq    = {tau0};
+    params.groundE  = {0.f};
+    params.a0       = 0.f;
+    params.l0       = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
@@ -401,8 +402,8 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
     params.groundE  = {0.f};
     params.a0       = 0.f;
     params.l0       = 0.f;
-    params.kBounds  = 0.f;
-    params.kVisc    = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
