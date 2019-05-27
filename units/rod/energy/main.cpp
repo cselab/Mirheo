@@ -620,7 +620,7 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "flagella.log", 9);
+    logger.init(MPI_COMM_WORLD, "rod_energy.log", 9);
     
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();
