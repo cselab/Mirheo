@@ -348,7 +348,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    InteractionRod interactions(&state, "rod_interaction", params);
+    InteractionRod interactions(&state, "rod_interaction", params, false, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
@@ -407,7 +407,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    InteractionRod interactions(&state, "rod_interaction", params);
+    InteractionRod interactions(&state, "rod_interaction", params, false, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
