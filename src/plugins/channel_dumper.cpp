@@ -83,10 +83,10 @@ void UniformCartesianDumper::deserialize(MPI_Status& stat)
         channels[i+1].data = containers[i].data();
     }
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string fname = path + std::string(zeroPadding - tstr.length(), '0') + tstr;
-        
+    std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
     XDMF::write(fname, grid.get(), channels, t, cartComm);
+
+    timeStamp++;
 }
 
 XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const
