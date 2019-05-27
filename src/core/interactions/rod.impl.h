@@ -87,7 +87,7 @@ public:
         
             auto devParams = getBiSegmentParams<Nstates>(parameters);
         
-            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
+            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
                                nblocks, nthreads, 0, stream,
                                view, devParams, saveStates, saveEnergies);
         }

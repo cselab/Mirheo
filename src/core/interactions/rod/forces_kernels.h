@@ -113,7 +113,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     #pragma unroll
     for (int s = 1; s < Nstates; ++s)
     {
-        real Es = bisegment.computeEnergy(state, params);
+        real Es = bisegment.computeEnergy(s, params);
         if (Es < E)
         {
             E = Es;

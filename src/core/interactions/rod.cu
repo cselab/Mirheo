@@ -12,6 +12,7 @@ InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParam
         if (nstates == Nstates) {                                       \
             impl = std::make_unique<InteractionRodImpl<Nstates>>        \
                 (state, name, parameters, saveStates, saveEnergies);    \
+            debug("Create interaction rod with %d states", Nstates);    \
             return;                                                     \
         } } while(0)
 
