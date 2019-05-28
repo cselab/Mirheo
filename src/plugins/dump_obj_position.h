@@ -43,12 +43,11 @@ class ObjPositionsDumper : public PostprocessPlugin
 {
 public:
     ObjPositionsDumper(std::string name, std::string path);
+    ~ObjPositionsDumper();
 
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
-
-    ~ObjPositionsDumper() {};
 
 private:
     std::string path;
