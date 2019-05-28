@@ -11,6 +11,7 @@ class UniformCartesianDumper : public PostprocessPlugin
 {
 public:
     UniformCartesianDumper(std::string name, std::string path);
+    ~UniformCartesianDumper();
 
     void deserialize(MPI_Status& stat) override;
     void handshake() override;
@@ -33,5 +34,5 @@ protected:
     int timeStamp = 0;
     const int zeroPadding = 5;
 
-    MPI_Comm cartComm;
+    MPI_Comm cartComm {MPI_COMM_NULL};
 };

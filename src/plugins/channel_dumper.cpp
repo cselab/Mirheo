@@ -8,8 +8,15 @@
 #include <string>
 
 UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string path) :
-        PostprocessPlugin(name), path(path)
-{   }
+        PostprocessPlugin(name),
+        path(path)
+{}
+
+UniformCartesianDumper::~UniformCartesianDumper()
+{
+    if (cartComm != MPI_COMM_NULL)
+        MPI_Check( MPI_Comm_free(&cartComm) );
+}
 
 void UniformCartesianDumper::handshake()
 {
