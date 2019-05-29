@@ -229,7 +229,15 @@ void exportPlugins(py::module& m)
     )");
 
     py::handlers_class<PinRodExtremityPlugin>(m, "PinRodExtremity", pysim, R"(
-        This plugin compensate the torque acting on a given segment of all the rods in a :any:`RodVector`.
+        This plugin adds a force on a given segment of all the rods in a :any:`RodVector`.
+        The force has the form deriving from the potential
+
+        .. math::
+            
+            E = k \left( 1 - \cos \theta \right),
+
+        where :math:`\theta` is the angle between the material frame and a given direction (projected on the concerned segment).
+        Note that the force is applied only on the material frame and not on the center line.
     )");
 
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost, R"(

@@ -211,6 +211,19 @@ class PinObject(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
+class PinRodExtremity(SimulationPlugin):
+    r"""
+        This plugin adds a force on a given segment of all the rods in a :any:`RodVector`.
+        The force has the form deriving from the potential
+
+        .. math::
+            
+            E = k \left( 1 - \cos \theta \right),
+
+        where :math:`\theta` is the angle between the material frame and a given direction (projected on the concerned segment).
+        Note that the force is applied only on the material frame and not on the center line.
+    
+    """
 class PostprocessDensityControl(PostprocessPlugin):
     r"""
         Dumps info from :any:`DensityControlPlugin`.
@@ -772,6 +785,23 @@ def createPinObject():
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
+    
+
+    """
+    pass
+
+def createPinRodExtremity():
+    r"""createPinRodExtremity(state: YmrState, name: str, rv: ParticleVectors.RodVector, segment_id: int, f_magn: float, target_direction: Tuple[float, float, float]) -> Tuple[Plugins.PinRodExtremity, Plugins.PostprocessPlugin]
+
+
+        Create :any:`PinRodExtremity` plugin
+        
+        Args:
+            name: name of the plugin
+            rv: :any:`RodVector` that we'll work with
+            segment_id: the segment to which the plugin is active
+            f_magn: force magnitude
+            target_direction: the direction in which the material frame tends to align
     
 
     """
