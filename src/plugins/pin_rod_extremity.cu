@@ -21,7 +21,7 @@ __device__ inline float3 fetchForce(const RVview& view, int i)
     return f.v;
 }
 
-__global__ void removeTorque(RVview view, int segmentId)
+__global__ void alignMaterialFrame(RVview view, int segmentId, float k, float3 target)
 {
     int rodId = threadIdx.x + blockIdx.x * blockDim.x;
     if (rodId >= view.nObjects) return;
@@ -31,47 +31,32 @@ __global__ void removeTorque(RVview view, int segmentId)
     auto r0 = fetchPosition(view, start + 0);
     auto u0 = fetchPosition(view, start + 1);
     auto u1 = fetchPosition(view, start + 2);
-    auto v0 = fetchPosition(view, start + 3);
-    auto v1 = fetchPosition(view, start + 4);
     auto r1 = fetchPosition(view, start + 5);
 
     auto t  = normalize(r1 - r0);
 
-    auto fu0 = fetchForce(view, start + 1);
-    auto fu1 = fetchForce(view, start + 2);
-    auto fv0 = fetchForce(view, start + 3);
-    auto fv1 = fetchForce(view, start + 4);
-
-    float3 T =
-        cross(u0 - r0, fu0) +
-        cross(u1 - r0, fu1) +
-        cross(v0 - r0, fv0) +
-        cross(v1 - r0, fv1);
-
-    float3 Tanchor = - dot(T, t) * t;
-
     float3 du = u1 - u0;
-    float3 dv = v1 - v0;
-
-    float3 u = normalize(du - t * dot(du, t));
-    float3 v = normalize(dv - t * dot(dv, t));
+    du = du - t * dot(du, t);
     
-    float3 fu0Anchor = 0.25f * cross(Tanchor, u);
-    float3 fv0Anchor = 0.25f * cross(Tanchor, v);
+    float3 a = normalize(target - t * dot(target, t));
 
-    atomicAdd(&view.forces[start+1],  fu0Anchor);
-    atomicAdd(&view.forces[start+2], -fu0Anchor);
+    float inv_du = rsqrt(dot(du, du));
 
-    atomicAdd(&view.forces[start+3],  fv0Anchor);
-    atomicAdd(&view.forces[start+4], -fv0Anchor);
+    float3 fu0 = k * inv_du * (a - (inv_du * inv_du * dot(du, a)) * du);
+    
+    atomicAdd(&view.forces[start+1],  fu0);
+    atomicAdd(&view.forces[start+2], -fu0);
 }
 
 } // namespace PinRodExtremityKernels
 
-PinRodExtremityPlugin::PinRodExtremityPlugin(const YmrState *state, std::string name, std::string rvName, int segmentId) :
+PinRodExtremityPlugin::PinRodExtremityPlugin(const YmrState *state, std::string name, std::string rvName,
+                                             int segmentId, float fmagn, float3 targetDirection) :
     SimulationPlugin(state, name),
     rvName(rvName),
-    segmentId(segmentId)
+    segmentId(segmentId),
+    fmagn(fmagn),
+    targetDirection(targetDirection)
 {}
 
 void PinRodExtremityPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -97,8 +82,8 @@ void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
     const int nthreads = 32;
     const int nblocks = getNblocks(view.nObjects, nthreads);
     
-    SAFE_KERNEL_LAUNCH(PinRodExtremityKernels::removeTorque,
+    SAFE_KERNEL_LAUNCH(PinRodExtremityKernels::alignMaterialFrame,
                        nblocks, nthreads, 0, stream,
-                       view, segmentId );
+                       view, segmentId, fmagn, targetDirection );
 }
 
