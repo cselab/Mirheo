@@ -87,7 +87,10 @@ void Postprocess::run()
                 
                 for (auto& req : requests)
                     if (req != MPI_REQUEST_NULL)
+                    {
                         MPI_Check( MPI_Cancel(&req) );
+                        MPI_Check( MPI_Request_free(&req) );
+                    }
                 
                 return;
             }
