@@ -99,17 +99,26 @@ createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name,
     return { simPl, nullptr };
 }
 
+static auto convertArray(const std::vector<PyTypes::float3>& v)
+{
+    std::vector<float3> a;
+    a.reserve(v.size());
+    for (auto r : v)
+        a.push_back(make_float3(r));
+    return a;
+}
+
 static pair_shared< AnchorParticlesPlugin, AnchorParticlesStatsPlugin >
 createAnchorParticlesPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
-                            std::function<PyTypes::float3(float)> position,
-                            std::function<PyTypes::float3(float)> velocity,
-                            int pid, int reportEvery, const std::string& path)
+                            std::function<std::vector<PyTypes::float3>(float)> positions,
+                            std::function<std::vector<PyTypes::float3>(float)> velocities,
+                            std::vector<int> pids, int reportEvery, const std::string& path)
 {
     auto simPl = computeTask ?
         std::make_shared<AnchorParticlesPlugin> (state, name, pv->name,
-                                                [position](float t) {return make_float3(position(t));},
-                                                [velocity](float t) {return make_float3(velocity(t));},
-                                                pid, reportEvery)
+                                                [positions] (float t) {return convertArray(positions (t));},
+                                                [velocities](float t) {return convertArray(velocities(t));},
+                                                pids, reportEvery)
         : nullptr;
 
     auto postPl = computeTask ?

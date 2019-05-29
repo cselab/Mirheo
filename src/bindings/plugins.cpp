@@ -364,18 +364,18 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
-    m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlesPlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a,
+    m.def("__createAnchorParticles", &PluginFactory::createAnchorParticlesPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "positions"_a, "velocities"_a, "pids"_a,
           "report_every"_a, "path"_a, R"(
         Create :any:`AnchorParticles` plugin
         
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
-            position: position (at given time) of the particle
-            velocity: velocity (at given time) of the particle
-            pid: id of the particle in the given particle vector
-            report_every: report the time averaged force acting on the particle every this amount of timesteps
+            positions: positions (at given time) of the particles
+            velocities: velocities (at given time) of the particles
+            pids: global ids of the particles in the given particle vector
+            report_every: report the time averaged force acting on the particles every this amount of timesteps
             path: folder where to dump the stats
     )");
 

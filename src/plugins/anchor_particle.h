@@ -6,16 +6,18 @@
 #include <core/utils/pytypes.h>
 
 #include <functional>
+#include <vector>
 
 class ParticleVector;
 
-using FuncTime3D = std::function<float3(float)>;
+using FuncTime3D = std::function<std::vector<float3>(float)>;
 
 class AnchorParticlesPlugin : public SimulationPlugin
 {
 public:
     AnchorParticlesPlugin(const YmrState *state, std::string name, std::string pvName,
-                          FuncTime3D position, FuncTime3D velocity, int pid, int reportEvery);
+                          FuncTime3D positions, FuncTime3D velocities,
+                          std::vector<int> pids, int reportEvery);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
@@ -28,11 +30,13 @@ private:
     std::string pvName;
     ParticleVector *pv;
 
-    FuncTime3D position;
-    FuncTime3D velocity;
-    int pid;
+    FuncTime3D positions;
+    FuncTime3D velocities;
 
-    PinnedBuffer<double3> force {1};
+    PinnedBuffer<double3> forces;
+    PinnedBuffer<float3> posBuffer, velBuffer;
+    PinnedBuffer<int> pids;
+
     int nsamples {0};
     int reportEvery;
     std::vector<char> sendBuffer;
@@ -56,5 +60,4 @@ private:
     std::string path;
 
     FILE *fout {nullptr};
-    float3 force;
 };
