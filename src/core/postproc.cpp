@@ -56,6 +56,15 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
     return ids;
 }
 
+static void safeCancelAndFreeRequest(MPI_Request& req)
+{
+    if (req != MPI_REQUEST_NULL)
+    {
+        MPI_Check( MPI_Cancel(&req) );
+        MPI_Check( MPI_Request_free(&req) );
+    }
+}
+
 void Postprocess::run()
 {
     int endMsg {0}, checkpointId {0};
@@ -86,11 +95,7 @@ void Postprocess::run()
                 info("Postprocess got a stopping message and will stop now");    
                 
                 for (auto& req : requests)
-                    if (req != MPI_REQUEST_NULL)
-                    {
-                        MPI_Check( MPI_Cancel(&req) );
-                        MPI_Check( MPI_Request_free(&req) );
-                    }
+                    safeCancelAndFreeRequest(req);
                 
                 return;
             }
