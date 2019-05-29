@@ -228,6 +228,10 @@ void exportPlugins(py::module& m)
         Unrestricted
     )");
 
+    py::handlers_class<PinRodExtremityPlugin>(m, "PinRodExtremity", pysim, R"(
+        This plugin compensate the torque acting on a given segment of all the rods in a :any:`RodVector`.
+    )");
+
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost, R"(
         Postprocess side plugin of :any:`PinObject`.
         Responsible for performing the I/O.
@@ -672,6 +676,18 @@ void exportPlugins(py::module& m)
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
+    )");
+
+    m.def("__createPinRodExtremity", &PluginFactory::createPinRodExtremityPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "rv"_a, "segment_id"_a, "f_magn"_a, "target_direction"_a, R"(
+        Create :any:`PinRodExtremity` plugin
+        
+        Args:
+            name: name of the plugin
+            rv: :any:`RodVector` that we'll work with
+            segment_id: the segment to which the plugin is active
+            f_magn: force magnitude
+            target_direction: the direction in which the material frame tends to align
     )");
 
     m.def("__createRadialVelocityControl", &PluginFactory::createRadialVelocityControlPlugin,
