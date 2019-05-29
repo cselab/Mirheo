@@ -17,6 +17,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 * **minor fix** stats plugin works for 0 particles
 * **fix** MPI cleanup
 * **interface changes** anchor particle plugin accepts multiple anchors
+* add pin rod extremity plugin
 
 ### v0.16.2
 
