@@ -374,11 +374,13 @@ class RodForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, dump_states: bool = False, dump_energies: bool = False, **kwargs) -> None
+        r"""__init__(name: str, save_states: bool = False, save_energies: bool = False, **kwargs) -> None
 
  
              Args:
                  name: name of the interaction
+                 save_states: if `True`, save the state of each bisegment
+                 save_energies: if `True`, save the energies of each bisegment
 
              kwargs:
 
