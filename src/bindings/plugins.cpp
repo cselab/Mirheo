@@ -32,12 +32,12 @@ void exportPlugins(py::module& m)
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
 
-    py::handlers_class<AnchorParticlePlugin>(m, "AnchorParticle", pysim, R"(
+    py::handlers_class<AnchorParticlesPlugin>(m, "AnchorParticles", pysim, R"(
         This plugin will set a given particle at a given position and velocity.
     )");
 
-    py::handlers_class<AnchorParticleStatsPlugin>(m, "AnchorParticleStats", pypost, R"(
-        Postprocessing side of :any:`AnchorParticle` responsible to dump the data.
+    py::handlers_class<AnchorParticlesStatsPlugin>(m, "AnchorParticlesStats", pypost, R"(
+        Postprocessing side of :any:`AnchorParticles` responsible to dump the data.
     )");
 
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
@@ -364,10 +364,10 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
-    m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlePlugin, 
+    m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlesPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a,
           "report_every"_a, "path"_a, R"(
-        Create :any:`AnchorParticle` plugin
+        Create :any:`AnchorParticles` plugin
         
         Args:
             name: name of the plugin

@@ -9,7 +9,7 @@
 #include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 
-namespace AnchorParticleKernels
+namespace AnchorParticlesKernels
 {
 
 __global__ void anchorParticle(PVview view, int pid, float3 pos, float3 vel, double3 *force)
@@ -27,8 +27,8 @@ __global__ void anchorParticle(PVview view, int pid, float3 pos, float3 vel, dou
 
 } // namespace AnchorParticleKernels
 
-AnchorParticlePlugin::AnchorParticlePlugin(const YmrState *state, std::string name, std::string pvName,
-                                           FuncTime3D position, FuncTime3D velocity, int pid, int reportEvery) :
+AnchorParticlesPlugin::AnchorParticlesPlugin(const YmrState *state, std::string name, std::string pvName,
+                                             FuncTime3D position, FuncTime3D velocity, int pid, int reportEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
     position(position),
@@ -40,7 +40,7 @@ AnchorParticlePlugin::AnchorParticlePlugin(const YmrState *state, std::string na
         die("invalid particle id %d\n", pid);
 }
 
-void AnchorParticlePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AnchorParticlesPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -48,7 +48,7 @@ void AnchorParticlePlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
     force.clear(defaultStream);
 }
 
-void AnchorParticlePlugin::afterIntegration(cudaStream_t stream)
+void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     const int nthreads = 32;
@@ -65,20 +65,20 @@ void AnchorParticlePlugin::afterIntegration(cudaStream_t stream)
     pos = domain.global2local(pos);
 
     SAFE_KERNEL_LAUNCH(
-            AnchorParticleKernels::anchorParticle,
+            AnchorParticlesKernels::anchorParticle,
             nblocks, nthreads, 0, stream,
             view, pid, pos, vel, force.devPtr() );
 
     ++ nsamples;
 }
 
-void AnchorParticlePlugin::handshake()
+void AnchorParticlesPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer, pvName);
     send(sendBuffer);
 }
 
-void AnchorParticlePlugin::serializeAndSend(cudaStream_t stream)
+void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (!isTimeEvery(state, reportEvery)) return;
 
@@ -94,23 +94,23 @@ void AnchorParticlePlugin::serializeAndSend(cudaStream_t stream)
 }
 
 
-AnchorParticleStatsPlugin::AnchorParticleStatsPlugin(std::string name, std::string path) :
+AnchorParticlesStatsPlugin::AnchorParticlesStatsPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(path)
 {}
 
-AnchorParticleStatsPlugin::~AnchorParticleStatsPlugin()
+AnchorParticlesStatsPlugin::~AnchorParticlesStatsPlugin()
 {
     if (fout) fclose(fout);
 }
 
-void AnchorParticleStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+void AnchorParticlesStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
     activated = createFoldersCollective(comm, path);
 }
 
-void AnchorParticleStatsPlugin::handshake()
+void AnchorParticlesStatsPlugin::handshake()
 {
     auto req = waitData();
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
@@ -123,7 +123,7 @@ void AnchorParticleStatsPlugin::handshake()
         fout = fopen( (path + "/" + pvName + ".txt").c_str(), "w" );
 }
 
-void AnchorParticleStatsPlugin::deserialize(MPI_Status& stat)
+void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
 {
     double3 force;
     YmrState::TimeType currentTime;

@@ -99,14 +99,14 @@ createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name,
     return { simPl, nullptr };
 }
 
-static pair_shared< AnchorParticlePlugin, AnchorParticleStatsPlugin >
-createAnchorParticlePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
-                           std::function<PyTypes::float3(float)> position,
-                           std::function<PyTypes::float3(float)> velocity,
-                           int pid, int reportEvery, const std::string& path)
+static pair_shared< AnchorParticlesPlugin, AnchorParticlesStatsPlugin >
+createAnchorParticlesPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
+                            std::function<PyTypes::float3(float)> position,
+                            std::function<PyTypes::float3(float)> velocity,
+                            int pid, int reportEvery, const std::string& path)
 {
     auto simPl = computeTask ?
-        std::make_shared<AnchorParticlePlugin> (state, name, pv->name,
+        std::make_shared<AnchorParticlesPlugin> (state, name, pv->name,
                                                 [position](float t) {return make_float3(position(t));},
                                                 [velocity](float t) {return make_float3(velocity(t));},
                                                 pid, reportEvery)
@@ -114,7 +114,7 @@ createAnchorParticlePlugin(bool computeTask, const YmrState *state, std::string 
 
     auto postPl = computeTask ?
         nullptr :
-        std::make_shared<AnchorParticleStatsPlugin> (name, path);
+        std::make_shared<AnchorParticlesStatsPlugin> (name, path);
     
     return { simPl, postPl };
 }
