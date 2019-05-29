@@ -73,10 +73,10 @@ void Postprocess::run()
     for (auto& pl : plugins)
         requests.push_back(pl->waitData());
 
-    const int endReqIndex = requests.size();
+    const int stoppingReqIndex = requests.size();
     requests.push_back( listenSimulation(stoppingTag, &endMsg) );
 
-    const int cpReqIndex = requests.size();
+    const int checkpointReqIndex = requests.size();
     requests.push_back( listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());
@@ -88,7 +88,7 @@ void Postprocess::run()
 
         for (auto index : readyIds)
         {
-            if (index == endReqIndex)
+            if (index == stoppingReqIndex)
             {
                 if (endMsg != stoppingMsg) die("Received wrong stopping message");
     
@@ -99,7 +99,7 @@ void Postprocess::run()
                 
                 return;
             }
-            else if (index == cpReqIndex)
+            else if (index == checkpointReqIndex)
             {
                 debug2("Postprocess got a request for checkpoint, executing now");
                 checkpoint(checkpointId);
