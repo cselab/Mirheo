@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **minor fix** stats plugin works for 0 particles
+* **fix** MPI cleanup
+* **interface changes** anchor particle plugin accepts multiple anchors
 
 ### v0.16.2
 
