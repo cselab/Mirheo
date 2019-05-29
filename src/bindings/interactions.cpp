@@ -468,7 +468,7 @@ void exportInteractions(py::module& m)
 
         .. math::
 
-        \kappa^{j}=\frac {1} {l} \left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
+            \kappa^{j}=\frac {1} {l} \left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
 
         See, e.g. [bergou2008]_ for more details.
         The form of the twist energy is given by (for a bi-segment):
