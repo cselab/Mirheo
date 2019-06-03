@@ -21,8 +21,7 @@ icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv=rbc, ic=icrbc)
 
 dumpEvery = 1
-ovDump = ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dumpEvery, [], 'h5/rbc-')
-u.registerPlugins(ovDump)
+u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dumpEvery, [], 'h5/rbc-'))
 
 u.run(2)
 

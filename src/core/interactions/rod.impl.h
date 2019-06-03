@@ -13,12 +13,12 @@
 static auto getBoundParams(const RodParameters& p)
 {
     GPU_RodBoundsParameters dp;
-    dp.kBounds = p.kBounds;
-    dp.kVisc   = p.kVisc;
-    dp.lcenter = p.l0;
-    dp.lcross  = p.a0;
-    dp.lring   = 0.5 * sqrt(2.0) * p.a0;
-    dp.ldiag   = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
+    dp.ksCenter = p.ksCenter;
+    dp.ksFrame  = p.ksFrame;
+    dp.lcenter  = p.l0;
+    dp.lcross   = p.a0;
+    dp.lring    = 0.5 * sqrt(2.0) * p.a0;
+    dp.ldiag    = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
     return dp;
 }
 
@@ -29,9 +29,9 @@ static auto getBiSegmentParams(const RodParameters& p)
     dp.kBending = p.kBending;
     dp.kTwist   = p.kTwist;
 
-    for (size_t i = 0; i < p.omegaEq.size(); ++i)
+    for (size_t i = 0; i < p.kappaEq.size(); ++i)
     {
-        dp.omegaEq[i]  = p.omegaEq[i] * p.l0; // omega is an integrated quantity
+        dp.kappaEq[i]  = p.kappaEq[i];
         dp.tauEq[i]    = p.tauEq[i];
         dp.groundE[i]  = p.groundE[i];
     }
@@ -42,12 +42,20 @@ template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters) :
+    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool saveStates, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
-        parameters(parameters)
+        parameters(parameters),
+        saveStates(saveStates),
+        saveEnergies(saveEnergies)
     {}
 
     ~InteractionRodImpl() = default;
+
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
+    {
+        if (saveEnergies) pv1->requireDataPerParticle<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (saveStates)   pv1->requireDataPerParticle<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+    }
     
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
@@ -56,9 +64,11 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        rv->updateBishopFrame(stream);
-        
         RVview view(rv, rv->local());
+
+        if (saveEnergies) rv->local()->dataPerParticle.getData<float>(ChannelNames::energies)->clear(defaultStream);
+        if (saveStates)   rv->local()->dataPerParticle.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
+
 
         {
             const int nthreads = 128;
@@ -77,11 +87,10 @@ public:
         
             auto devParams = getBiSegmentParams<Nstates>(parameters);
         
-            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces,
+            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
                                nblocks, nthreads, 0, stream,
-                               view, devParams);            
+                               view, devParams, saveStates, saveEnergies);
         }
-        
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
@@ -90,4 +99,6 @@ public:
 protected:
 
     RodParameters parameters;
+
+    bool saveStates, saveEnergies;
 };

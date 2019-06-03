@@ -7,13 +7,16 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
+rc = 1.0
+density = 8
+
 u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = ymr.InitialConditions.Uniform(density=2)
-u.registerParticleVector(pv=pv, ic=ic)
+ic = ymr.InitialConditions.Uniform(density)
+u.registerParticleVector(pv, ic)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = ymr.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 

@@ -134,6 +134,12 @@ ObjPositionsDumper::ObjPositionsDumper(std::string name, std::string path) :
     path(path)
 {}
 
+ObjPositionsDumper::~ObjPositionsDumper()
+{
+    if (activated)
+        MPI_Check( MPI_File_close(&fout) );
+}
+
 void ObjPositionsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);

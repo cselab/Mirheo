@@ -56,6 +56,15 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
     return ids;
 }
 
+static void safeCancelAndFreeRequest(MPI_Request& req)
+{
+    if (req != MPI_REQUEST_NULL)
+    {
+        MPI_Check( MPI_Cancel(&req) );
+        MPI_Check( MPI_Request_free(&req) );
+    }
+}
+
 void Postprocess::run()
 {
     int endMsg {0}, checkpointId {0};
@@ -64,10 +73,10 @@ void Postprocess::run()
     for (auto& pl : plugins)
         requests.push_back(pl->waitData());
 
-    const int endReqIndex = requests.size();
+    const int stoppingReqIndex = requests.size();
     requests.push_back( listenSimulation(stoppingTag, &endMsg) );
 
-    const int cpReqIndex = requests.size();
+    const int checkpointReqIndex = requests.size();
     requests.push_back( listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());
@@ -79,20 +88,20 @@ void Postprocess::run()
 
         for (auto index : readyIds)
         {
-            if (index == endReqIndex)
+            if (index == stoppingReqIndex)
             {
                 if (endMsg != stoppingMsg) die("Received wrong stopping message");
     
                 info("Postprocess got a stopping message and will stop now");    
                 
                 for (auto& req : requests)
-                    if (req != MPI_REQUEST_NULL)
-                        MPI_Check( MPI_Cancel(&req) );
+                    safeCancelAndFreeRequest(req);
                 
                 return;
             }
-            else if (index == cpReqIndex)
+            else if (index == checkpointReqIndex)
             {
+                debug2("Postprocess got a request for checkpoint, executing now");
                 checkpoint(checkpointId);
                 requests[index] = listenSimulation(checkpointTag, &checkpointId);
             }

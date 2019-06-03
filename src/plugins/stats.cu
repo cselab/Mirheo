@@ -153,10 +153,11 @@ void PostprocessStats::deserialize(MPI_Status& stat)
 
     if (rank == 0)
     {
-        momentum[0] /= (double)nparticles;
-        momentum[1] /= (double)nparticles;
-        momentum[2] /= (double)nparticles;
-        const Stats::ReductionType temperature = energy[0] / ( (3/2.0)*nparticles );
+        double invNparticles = nparticles > 0 ? 1.0 / nparticles : 0.0;
+        momentum[0] *= invNparticles;
+        momentum[1] *= invNparticles;
+        momentum[2] *= invNparticles;
+        const Stats::ReductionType temperature = energy[0] * invNparticles * (2.0/3.0);
 
         printf("Stats at timestep %d (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);

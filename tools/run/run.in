@@ -17,6 +17,10 @@ automatically loads the required modules.
 
 usage: $EXE_PREFIX.run [--runargs RUNARGS] <executable> [ARGS]
 
+--runargs option allows to pass arguments to ${RUN_CMD}
+These options can be alternatively passed by setting the 
+environment variable YMR_RUNARGS
+
 additional executables are used if one of the following
 environment variable is set (its value must contain the 
 options to the concerned program):
@@ -54,6 +58,10 @@ then
     fi
 fi
 
+if test ! -z "${YMR_RUNARGS+x}"; then
+    RUNARGS="$RUNARGS $YMR_RUNARGS"
+fi
+
 exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }
 
 exe_cuda_memcheck () { exe_cmn "${EXE_CUDA_MEMCHECK}" "${MEM}"        "$@"; }
@@ -74,18 +82,9 @@ execcmd () {
     fi
 }
 
-if   test ! -z "${MEM+x}"
-then
-    execcmd `exe_cuda_memcheck "$@"`
-elif test ! -z "${VAL+x}"
-then
-    execcmd `exe_valgrind      "$@"`
-elif test ! -z "${PROF+x}"
-then
-    execcmd `exe_nvprof        "$@"`
-elif test ! -z "${GDB+x}"
-then
-    execcmd `exe_cuda_gdb      "$@"`
-else
-    execcmd  `exe_direct       "$@"`
+if   test ! -z "${MEM+x}" ; then execcmd `exe_cuda_memcheck "$@"`
+elif test ! -z "${VAL+x}" ; then execcmd `exe_valgrind      "$@"`
+elif test ! -z "${PROF+x}"; then execcmd `exe_nvprof        "$@"`
+elif test ! -z "${GDB+x}" ; then execcmd `exe_cuda_gdb      "$@"`
+else                             execcmd `exe_direct        "$@"`
 fi

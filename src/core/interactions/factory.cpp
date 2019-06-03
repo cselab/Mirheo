@@ -44,7 +44,7 @@ public:
         return true;
     }
 
-    void check() const
+    void checkAllRead() const
     {
         for (const auto& p : readParams)
             if (p.second == false)
@@ -194,7 +194,7 @@ InteractionFactory::createInteractionMembrane(const YmrState *state, std::string
     else if (bendingDesc == "Juelicher") bendingParams = readJuelicherParameters(desc);
     else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionMembrane>
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
@@ -203,17 +203,17 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 {
     RodParameters p;
 
-    if (desc.exists<std::vector<PyTypes::float2>>( "omega0" ))
+    if (desc.exists<std::vector<PyTypes::float2>>( "kappa0" ))
     {
-        auto omegaEqs = desc.read<std::vector<PyTypes::float2>>( "omega0");
+        auto kappaEqs = desc.read<std::vector<PyTypes::float2>>( "kappa0");
         auto tauEqs   = desc.read<std::vector<float>>( "tau0");
         auto groundE  = desc.read<std::vector<float>>( "E0");
 
-        if (omegaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
-            die("Rod parameters: expected same number of omega0, tau0 and E0");
+        if (kappaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
+            die("Rod parameters: expected same number of kappa0, tau0 and E0");
 
-        for (const auto& om : omegaEqs)
-            p.omegaEq.push_back(make_float2(om));
+        for (const auto& om : kappaEqs)
+            p.kappaEq.push_back(make_float2(om));
         
         for (const auto& tau : tauEqs)
             p.tauEq.push_back(tau);
@@ -223,7 +223,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     }
     else
     {
-        p.omegaEq.push_back(desc.read<float2>("omega0"));
+        p.kappaEq.push_back(desc.read<float2>("kappa0"));
         p.tauEq  .push_back(desc.read<float>("tau0"));
 
         if (desc.exists<float>("E0"))
@@ -237,19 +237,19 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     
     p.a0        = desc.read<float>("a0");
     p.l0        = desc.read<float>("l0");
-    p.kBounds   = desc.read<float>("k_bounds");
-    p.kVisc     = desc.read<float>("k_visc");
+    p.ksCenter  = desc.read<float>("k_s_center");
+    p.ksFrame   = desc.read<float>("k_s_frame");
     return p;
 }
 
 std::shared_ptr<InteractionRod>
 InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
-                                         const MapParams& parameters)
+                                         bool saveStates, bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
-    desc.check();
-    return std::make_shared<InteractionRod>(state, name, params);
+    desc.checkAllRead();
+    return std::make_shared<InteractionRod>(state, name, params, saveStates, saveEnergies);
 }
 
 
@@ -352,18 +352,18 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
     if (isLinearEOS(EOS))
     {
         auto pressure = readLinearPressureEOS(desc);
-        desc.check();
+        desc.checkAllRead();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
     if (isQuasiIncompressibleEOS(EOS))
     {
         auto pressure = readQuasiIncompressiblePressureEOS(desc);
-        desc.check();
+        desc.checkAllRead();
         return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     die("Invalid pressure parameter: '%s'", EOS.c_str());
     return nullptr;
 }
@@ -377,11 +377,11 @@ InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, f
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
-        desc.check();
+        desc.checkAllRead();
         return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
 }
 
@@ -420,11 +420,11 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
     if (stress)
     {
         float stressPeriod = readStressPeriod(desc);
-        desc.check();
+        desc.checkAllRead();
         return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
     }
 
-    desc.check();
+    desc.checkAllRead();
     return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
 }
 

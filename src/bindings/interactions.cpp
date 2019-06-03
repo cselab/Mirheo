@@ -54,11 +54,11 @@ createInteractionMembrane(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name, py::kwargs kwargs)
+createInteractionRod(const YmrState *state, std::string name, bool dumpStates, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionRod(state, name, parameters);
+    return InteractionFactory::createInteractionRod(state, name, dumpStates, dumpEnergies, parameters);
 }
 
 static std::shared_ptr<BasicInteractionSDPD>
@@ -462,20 +462,20 @@ void exportInteractions(py::module& m)
 
         .. math::
 
-            E_{\mathrm{bend}}=\frac{1}{2 l} \sum_{j=0}^{1}\left(\omega^{j}-\overline{\omega}\right)^{T} B\left(\omega^{j}-\overline{\omega}\right),
+            E_{\mathrm{bend}}=\frac{l}{4} \sum_{j=0}^{1}\left(\kappa^{j}-\overline{\kappa}\right)^{T} B\left(\kappa^{j}-\overline{\kappa}\right),
 
         where
 
         .. math::
 
-        \omega^{j}=\left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
+            \kappa^{j}=\frac {1} {l} \left((\kappa \mathbf{b}) \cdot \mathbf{m}_{2}^{j},-(\kappa \mathbf{b}) \cdot \mathbf{m}_{1}^{j}\right).
 
         See, e.g. [bergou2008]_ for more details.
         The form of the twist energy is given by (for a bi-segment):
 
         .. math::
 
-            E_{\mathrm{twist}}=k_{t} l\left(\frac{\theta^{1}-\theta^{0}}{l}-\overline{\tau}\right)^{2}.
+            E_{\mathrm{twist}}=\frac{k_{t} l}{2}\left(\frac{\theta^{1}-\theta^{0}}{l}-\overline{\tau}\right)^{2}.
 
         The additional bound energy is a simple harmonic potential with a given equilibrium length.
 
@@ -486,23 +486,25 @@ void exportInteractions(py::module& m)
     )");
 
     pyRodForces.def(py::init(&createInteractionRod),
-                         "state"_a, "name"_a, R"( 
+                    "state"_a, "name"_a, "save_states"_a=false, "save_energies"_a=false, R"( 
              Args:
                  name: name of the interaction
+                 save_states: if `True`, save the state of each bisegment
+                 save_energies: if `True`, save the energies of each bisegment
 
              kwargs:
 
                  * **a0** (float):           equilibrium length between 2 opposite cross vertices
                  * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
-                 * **k_bounds** (float):     elastic bound force magnitude
-                 * **k_visc** (float):       viscous bound force magnitude
+                 * **k_s_center** (float):   elastic force magnitude for centerline
+                 * **k_s_frame** (float):    elastic force magnitude for material frame particles
                  * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
-                 * **omega0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\omega}`
+                 * **kappa0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\kappa}`
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
                  * **E0** (float):           (optional) energy ground state
 
-             The interaction can support multiple polymorphic states if **omega0**, **tau0** and **E0** are lists of equal size.
+             The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.
              Only lists of 1, 2 and 11 states are supported.
     )");

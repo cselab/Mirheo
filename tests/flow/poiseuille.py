@@ -40,9 +40,7 @@ gridSampleEvery = 2
 gridDumpEvery   = 1000
 gridBinSize     = (1., 1., 0.5)
 
-field = ymr.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float4")], 'h5/solvent-')
-u.registerPlugins(field)
-
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 factor = 0.08
 Kp = 2.0 * factor
@@ -53,8 +51,7 @@ vcSampleEvery = 5
 vcTuneEvery = 5
 vcDumpEvery = 500
 
-vc = ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcTuneEvery, vcDumpEvery, vtarget, Kp, Ki, Kd)
-u.registerPlugins(vc)
+u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcTuneEvery, vcDumpEvery, vtarget, Kp, Ki, Kd))
 
 u.run(20002)
 

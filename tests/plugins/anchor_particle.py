@@ -15,23 +15,24 @@ center = (domain[0]/2, domain[1]/2, domain[2]/2)
 R = 2.0
 Om = 1.0
 
-def position(t):
-    return (center[0] + R * np.cos(Om * t),
+def positions(t):
+    return [(center[0] + R * np.cos(Om * t),
             center[1] + R * np.sin(Om * t),
-            0.)
+            0.)]
 
-def velocity(t):
-    return (- R * Om * np.sin(Om * t),
+def velocities(t):
+    return [(- R * Om * np.sin(Om * t),
             + R * Om * np.cos(Om * t),
-            0.)
+            0.)]
 
-pos = [list(position(0)), [0., 0., 0.], [1., 1., 1.]]
+pos = [list(positions(0)[0]), [0., 0., 0.], [1., 1., 1.]]
 vel = [[0., 0., 0.]] * 3
+pids = [1]
 
 ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
 u.registerParticleVector(pv=pv, ic=ic)
 
-u.registerPlugins(ymr.Plugins.createAnchorParticle("anchor", pv, position, velocity, 1, 100, "anchor/"))
+u.registerPlugins(ymr.Plugins.createAnchorParticles("anchor", pv, positions, velocities, pids, 100, "anchor/"))
 
 # dump_every = 50
 # u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))

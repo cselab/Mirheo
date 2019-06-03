@@ -32,12 +32,12 @@ void exportPlugins(py::module& m)
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
     )");
 
-    py::handlers_class<AnchorParticlePlugin>(m, "AnchorParticle", pysim, R"(
+    py::handlers_class<AnchorParticlesPlugin>(m, "AnchorParticles", pysim, R"(
         This plugin will set a given particle at a given position and velocity.
     )");
 
-    py::handlers_class<AnchorParticleStatsPlugin>(m, "AnchorParticleStats", pypost, R"(
-        Postprocessing side of :any:`AnchorParticle` responsible to dump the data.
+    py::handlers_class<AnchorParticlesStatsPlugin>(m, "AnchorParticlesStats", pypost, R"(
+        Postprocessing side of :any:`AnchorParticles` responsible to dump the data.
     )");
 
     py::handlers_class<Average3D>(m, "Average3D", pysim, R"(
@@ -228,6 +228,18 @@ void exportPlugins(py::module& m)
         Unrestricted
     )");
 
+    py::handlers_class<PinRodExtremityPlugin>(m, "PinRodExtremity", pysim, R"(
+        This plugin adds a force on a given segment of all the rods in a :any:`RodVector`.
+        The force has the form deriving from the potential
+
+        .. math::
+            
+            E = k \left( 1 - \cos \theta \right),
+
+        where :math:`\theta` is the angle between the material frame and a given direction (projected on the concerned segment).
+        Note that the force is applied only on the material frame and not on the center line.
+    )");
+
     py::handlers_class<ReportPinObjectPlugin>(m, "ReportPinObject", pypost, R"(
         Postprocess side plugin of :any:`PinObject`.
         Responsible for performing the I/O.
@@ -364,18 +376,18 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
-    m.def("__createAnchorParticle", &PluginFactory::createAnchorParticlePlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "position"_a, "velocity"_a, "pid"_a,
+    m.def("__createAnchorParticles", &PluginFactory::createAnchorParticlesPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "positions"_a, "velocities"_a, "pids"_a,
           "report_every"_a, "path"_a, R"(
-        Create :any:`AnchorParticle` plugin
+        Create :any:`AnchorParticles` plugin
         
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
-            position: position (at given time) of the particle
-            velocity: velocity (at given time) of the particle
-            pid: id of the particle in the given particle vector
-            report_every: report the time averaged force acting on the particle every this amount of timesteps
+            positions: positions (at given time) of the particles
+            velocities: velocities (at given time) of the particles
+            pids: global ids of the particles in the given particle vector
+            report_every: report the time averaged force acting on the particles every this amount of timesteps
             path: folder where to dump the stats
     )");
 
@@ -672,6 +684,18 @@ void exportPlugins(py::module& m)
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 floats, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
+    )");
+
+    m.def("__createPinRodExtremity", &PluginFactory::createPinRodExtremityPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "rv"_a, "segment_id"_a, "f_magn"_a, "target_direction"_a, R"(
+        Create :any:`PinRodExtremity` plugin
+        
+        Args:
+            name: name of the plugin
+            rv: :any:`RodVector` that we'll work with
+            segment_id: the segment to which the plugin is active
+            f_magn: force magnitude
+            target_direction: the direction in which the material frame tends to align
     )");
 
     m.def("__createRadialVelocityControl", &PluginFactory::createRadialVelocityControlPlugin,

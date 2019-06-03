@@ -75,7 +75,6 @@ public:
      */
     void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
     {
-        this->comm = comm;
         MPI_Comm_rank(comm, &rank);
         std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
 
@@ -99,7 +98,6 @@ public:
      */
     void init(MPI_Comm comm, FILE* fout, int debugLvl = 3)
     {
-        this->comm = comm;
         MPI_Comm_rank(comm, &rank);
         this->fout = fout;
 
@@ -268,8 +266,6 @@ private:
 
     mutable std::chrono::system_clock::time_point lastFlushed;
     const std::chrono::seconds flushPeriod{2};
-
-    MPI_Comm comm;
 
     FILE* fout = nullptr;
     int rank;

@@ -9,108 +9,142 @@
 #include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 
-namespace AnchorParticleKernels
+namespace AnchorParticlesKernels
 {
 
-__global__ void anchorParticle(PVview view, int pid, float3 pos, float3 vel, double3 *force)
+__global__ void anchorParticles(PVview view, int n, const int *pids, const float3 *poss, const float3 *vels, double3 *forces)
 {
-    if (threadIdx.x > 0) return;
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if (i >= n) return;
 
-    Particle p = view.readParticle(pid);
-    p.r = pos;
-    p.u = vel;
+    int pid = pids[i];
+    
+    auto p = view.readParticle(pid);
+    p.r = poss[i];
+    p.u = vels[i];
     view.writeParticle(pid, p);
 
     auto f = view.forces[pid];
-    *force += make_double3(f.x, f.y, f.z);
+    forces[i] += make_double3(f.x, f.y, f.z);
 }
 
 } // namespace AnchorParticleKernels
 
-AnchorParticlePlugin::AnchorParticlePlugin(const YmrState *state, std::string name, std::string pvName,
-                                           FuncTime3D position, FuncTime3D velocity, int pid, int reportEvery) :
+AnchorParticlesPlugin::AnchorParticlesPlugin(const YmrState *state, std::string name, std::string pvName,
+                                             FuncTime3D positions, FuncTime3D velocities,
+                                             std::vector<int> pids, int reportEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
-    position(position),
-    velocity(velocity),
-    pid(pid),
+    positions(positions),
+    velocities(velocities),
     reportEvery(reportEvery)
 {
-    if (pid < 0)
-        die("invalid particle id %d\n", pid);
+    auto n = pids.size();
+    
+    this->pids.resize_anew(n);
+    
+    for (int i = 0; i < n; ++i)
+    {
+        int pid = pids[i];
+        if (pid < 0)
+            die("invalid particle id %d\n", pid);
+        this->pids[i] = pid;
+    }
+    
+    if (positions(0).size() != n)
+        die("pids and positions must have the same size");
+
+    if (velocities(0).size() != n)
+        die("pids and velocities must have the same size");
+
+    forces   .resize_anew(n);
+    posBuffer.resize_anew(n);
+    velBuffer.resize_anew(n);
+
+    this->pids.uploadToDevice(defaultStream);
 }
 
-void AnchorParticlePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void AnchorParticlesPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
     pv = simulation->getPVbyNameOrDie(pvName);
-    force.clear(defaultStream);
+
+    forces.clear(defaultStream);
 }
 
-void AnchorParticlePlugin::afterIntegration(cudaStream_t stream)
+void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
+
+    int n = pids.size();
     const int nthreads = 32;
-    const int nblocks = 1;
+    const int nblocks = getNblocks(pids.size(), nthreads);
 
     if (view.size == 0) return;
-    if (pid >= view.size) return;
 
     float t = (float) state->currentTime;
     const auto& domain = state->domain;
 
-    float3 pos = position(t);
-    float3 vel = velocity(t);
-    pos = domain.global2local(pos);
+    auto poss = positions(t);
+    auto vels = velocities(t);
 
+    for (int i = 0; i < n; ++i)
+    {
+        posBuffer[i] = domain.global2local(poss[i]);
+        velBuffer[i] = vels[i];
+    }
+
+    posBuffer.uploadToDevice(stream);
+    velBuffer.uploadToDevice(stream);
+    
     SAFE_KERNEL_LAUNCH(
-            AnchorParticleKernels::anchorParticle,
+            AnchorParticlesKernels::anchorParticles,
             nblocks, nthreads, 0, stream,
-            view, pid, pos, vel, force.devPtr() );
+            view, n, pids.devPtr(), posBuffer.devPtr(), velBuffer.devPtr(), forces.devPtr() );
 
     ++ nsamples;
 }
 
-void AnchorParticlePlugin::handshake()
+void AnchorParticlesPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer, pvName);
     send(sendBuffer);
 }
 
-void AnchorParticlePlugin::serializeAndSend(cudaStream_t stream)
+void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (!isTimeEvery(state, reportEvery)) return;
 
-    force.downloadFromDevice(stream);
+    forces.downloadFromDevice(stream);
 
     waitPrevSend();
 
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, nsamples, force[0]);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, nsamples, forces);
     send(sendBuffer);
 
     nsamples = 0;
-    force.clearDevice(stream);
+    forces.clearDevice(stream);
 }
 
 
-AnchorParticleStatsPlugin::AnchorParticleStatsPlugin(std::string name, std::string path) :
+AnchorParticlesStatsPlugin::AnchorParticlesStatsPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(path)
 {}
 
-AnchorParticleStatsPlugin::~AnchorParticleStatsPlugin()
+AnchorParticlesStatsPlugin::~AnchorParticlesStatsPlugin()
 {
     if (fout) fclose(fout);
 }
 
-void AnchorParticleStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+void AnchorParticlesStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
     activated = createFoldersCollective(comm, path);
 }
 
-void AnchorParticleStatsPlugin::handshake()
+void AnchorParticlesStatsPlugin::handshake()
 {
     auto req = waitData();
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
@@ -123,20 +157,25 @@ void AnchorParticleStatsPlugin::handshake()
         fout = fopen( (path + "/" + pvName + ".txt").c_str(), "w" );
 }
 
-void AnchorParticleStatsPlugin::deserialize(MPI_Status& stat)
+void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
 {
-    double3 force;
+    std::vector<double3> forces;
     YmrState::TimeType currentTime;
     int nsamples;
 
-    SimpleSerializer::deserialize(data, currentTime, nsamples, force);
+    SimpleSerializer::deserialize(data, currentTime, nsamples, forces);
 
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : &force),  &force,  3,  MPI_DOUBLE, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  3 * forces.size(),  MPI_DOUBLE, MPI_SUM, 0, comm) );
 
     if (activated && rank == 0)
     {
-        force /= nsamples;
-        fprintf(fout, "%f %f %f %f\n", currentTime, force.x, force.y, force.z);
+        fprintf(fout, "%f", currentTime);
+        for (auto& f : forces)
+        {
+            f /= nsamples;
+            fprintf(fout, " %f %f %f", f.x, f.y, f.z);
+        }
+        fprintf(fout, "\n");
         fflush(fout);
     }
 }

@@ -56,16 +56,11 @@ else:
 u.setInteraction(dpd, pv_flu, pv_flu)
 u.setInteraction(dpd, pv_flu, pv_rbc)
 
-
-
 vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_flu)
 
-
-# dump_mesh = ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/")
-# u.registerPlugins(dump_mesh)
-
+# u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/"))
 
 nsteps = (int) (tend/dt)
 u.run(nsteps)

@@ -26,6 +26,7 @@
 #include "particle_checker.h"
 #include "particle_drag.h"
 #include "pin_object.h"
+#include "pin_rod_extremity.h"
 #include "radial_velocity_control.h"
 #include "stats.h"
 #include "temperaturize.h"
@@ -36,6 +37,7 @@
 #include "wall_repulsion.h"
 
 #include <core/pvs/object_vector.h>
+#include <core/pvs/rod_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/pytypes.h>
 #include <core/walls/interface.h>
@@ -99,22 +101,31 @@ createAddTorquePlugin(bool computeTask, const YmrState *state, std::string name,
     return { simPl, nullptr };
 }
 
-static pair_shared< AnchorParticlePlugin, AnchorParticleStatsPlugin >
-createAnchorParticlePlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
-                           std::function<PyTypes::float3(float)> position,
-                           std::function<PyTypes::float3(float)> velocity,
-                           int pid, int reportEvery, const std::string& path)
+static auto convertArray(const std::vector<PyTypes::float3>& v)
+{
+    std::vector<float3> a;
+    a.reserve(v.size());
+    for (auto r : v)
+        a.push_back(make_float3(r));
+    return a;
+}
+
+static pair_shared< AnchorParticlesPlugin, AnchorParticlesStatsPlugin >
+createAnchorParticlesPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv,
+                            std::function<std::vector<PyTypes::float3>(float)> positions,
+                            std::function<std::vector<PyTypes::float3>(float)> velocities,
+                            std::vector<int> pids, int reportEvery, const std::string& path)
 {
     auto simPl = computeTask ?
-        std::make_shared<AnchorParticlePlugin> (state, name, pv->name,
-                                                [position](float t) {return make_float3(position(t));},
-                                                [velocity](float t) {return make_float3(velocity(t));},
-                                                pid, reportEvery)
+        std::make_shared<AnchorParticlesPlugin> (state, name, pv->name,
+                                                [positions] (float t) {return convertArray(positions (t));},
+                                                [velocities](float t) {return convertArray(velocities(t));},
+                                                pids, reportEvery)
         : nullptr;
 
     auto postPl = computeTask ?
         nullptr :
-        std::make_shared<AnchorParticleStatsPlugin> (name, path);
+        std::make_shared<AnchorParticlesStatsPlugin> (name, path);
     
     return { simPl, postPl };
 }
@@ -388,6 +399,17 @@ createPinObjPlugin(bool computeTask, const YmrState *state, std::string name, Ob
     auto postPl = computeTask ? nullptr : std::make_shared<ReportPinObjectPlugin> (name, path);
 
     return { simPl, postPl };
+}
+
+static pair_shared< PinRodExtremityPlugin, PostprocessPlugin >
+createPinRodExtremityPlugin(bool computeTask, const YmrState *state, std::string name, RodVector *rv, int segmentId,
+                            float fmagn, PyTypes::float3 targetDirection)
+{
+    auto simPl  = computeTask ?
+        std::make_shared<PinRodExtremityPlugin> (state, name, rv->name, segmentId, fmagn, make_float3(targetDirection)) : 
+        nullptr;
+
+    return { simPl, nullptr };
 }
 
 static pair_shared< SimulationVelocityControl, PostprocessVelocityControl >

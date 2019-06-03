@@ -1,7 +1,17 @@
 #include "interface.h"
 
-Plugin::Plugin() = default;
-Plugin::~Plugin() = default;
+#include <core/logger.h>
+
+Plugin::Plugin() :
+    comm(MPI_COMM_NULL),
+    interComm(MPI_COMM_NULL)
+{}
+
+Plugin::~Plugin()
+{
+    if (comm != MPI_COMM_NULL)
+        MPI_Check(MPI_Comm_free(&comm));
+}
     
 void Plugin::handshake() {}
 void Plugin::talk() {}  

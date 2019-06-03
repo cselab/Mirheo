@@ -95,10 +95,14 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
     computeTask = rank % 2;
     MPI_Check( MPI_Comm_split(comm, computeTask, rank, &splitComm) );
 
+    const int localLeader  = 0;
+    const int remoteLeader = isComputeTask() ? 1 : 0;
+    const int tag = 42;
+
     if (isComputeTask())
     {
         MPI_Check( MPI_Comm_dup(splitComm, &compComm) );
-        MPI_Check( MPI_Intercomm_create(compComm, 0, comm, 1, 0, &interComm) );
+        MPI_Check( MPI_Intercomm_create(compComm, localLeader, comm, remoteLeader, tag, &interComm) );
 
         MPI_Check( MPI_Comm_rank(compComm, &rank) );
         selectIntraNodeGPU(compComm);
@@ -111,7 +115,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
     else
     {
         MPI_Check( MPI_Comm_dup(splitComm, &ioComm) );
-        MPI_Check( MPI_Intercomm_create(ioComm,   0, comm, 0, 0, &interComm) );
+        MPI_Check( MPI_Intercomm_create(ioComm,   localLeader, comm, remoteLeader, tag, &interComm) );
 
         MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
@@ -319,9 +323,6 @@ void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::fl
         sim->getWallByNameOrDie(wall->name);
     }
     
-    auto path = parentPath(filename);
-    if (path != filename)
-        createFoldersCollective(sim->cartComm, path);
     WallHelpers::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
 }
 

@@ -11,8 +11,7 @@ pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=2)
 u.registerParticleVector(pv=pv, ic=ic)
 
-xyz = ymr.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/")
-u.registerPlugins(xyz)
+u.registerPlugins(ymr.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/"))
 
 u.run(2)
 

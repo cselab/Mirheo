@@ -17,9 +17,6 @@ vel = [[a*v[0], a*v[1], a*v[2]] for a in [0.1, 0.5, 0.8, 1.5]]
 ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
 u.registerParticleVector(pv=pv, ic=ic)
 
-# xyz = ymr.Plugins.createDumpXYZ('xyz', pv, 1, "xyz/")
-# u.registerPlugins(xyz)
-
 u.run(2)
 
 if pv:

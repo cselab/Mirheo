@@ -12,9 +12,30 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **minor fix** stats plugin works for 0 particles
+* **fix** MPI cleanup
+* **interface changes** anchor particle plugin accepts multiple anchors
+* add pin rod extremity plugin
+
+### v0.16.2
+
+* **fix** cleanup streams
+* **fix** more robust filename creation
+* **fix** more robust parameter passing to rod forces factory
+* **interace chanes** rod forces:
+  * change `omega0` to `kappa0`
+  * remove `k_visc`
+  * split `k_bounds` into `k_s_center` and `k_s_frame`
+  * can optionally save energies and polymorphic states
+* extend rod IC
+* implement polymorphic states
+
+### v0.16.1
+
 * add interaction rod-rigid
-* **fix** create folder when dumping sdf
+* **fix** free communicator in plugins
 
 ### v0.16.0
 

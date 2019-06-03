@@ -23,8 +23,7 @@ def run(niter, statsFname, comm_address):
     u.registerIntegrator(vv)
     u.setIntegrator(vv, pv)
     
-    stats = ymr.Plugins.createStats('stats', statsFname, 1000)
-    u.registerPlugins(stats)
+    u.registerPlugins(ymr.Plugins.createStats('stats', statsFname, 1000))
     
     u.run(niter)
 

@@ -3,7 +3,6 @@
 #include <core/pvs/rod_vector.h>
 #include <core/utils/helper_math.h>
 #include <core/utils/quaternion.h>
-#include <plugins/utils/xyz.h>
 
 #include <vector>
 #include <functional>
@@ -13,8 +12,9 @@ Logger logger;
 
 #define FMT "%+6e"
 #define SEP "\t"
+#define EXPAND(v) v.x, v.y, v.z
 
-using real = double;
+using real  = double;
 using real2 = double2;
 using real3 = double3;
 using real4 = double4;
@@ -123,16 +123,17 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         real dp0Perpinv = 1.0 / length(dp0Perp);
         real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        real2 om0 = {+dp0Perpinv * dot(bicur, cross(t0, dp0)),
-                     -dp0Perpinv * dot(bicur, dp0)};
-        real2 om1 = {+dp1Perpinv * dot(bicur, cross(t1, dp1)),
-                     -dp1Perpinv * dot(bicur, dp1)};
-                                       
+        real l = 0.5 * (length(e0) + length(e1));
+        real linv = 1.0 / l;
+        
+        real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
+                     - linv * dp0Perpinv * dot(bicur, dp0)};
+        real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
+                     - linv * dp1Perpinv * dot(bicur, dp1)};
+        
         
         om0 -= make_real2(omega_eq);
         om1 -= make_real2(omega_eq);
-
-        real l = 0.5 * (length(e0) + length(e1));
 
         real2 Bom0 {dot(om0, make_real2(B[0])),
                     dot(om0, make_real2(B[1]))};
@@ -140,7 +141,7 @@ static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<
         real2 Bom1 {dot(om1, make_real2(B[0])),
                     dot(om1, make_real2(B[1]))};
 
-        real E = (dot(Bom0, om0) + dot(Bom1, om1)) / (2.0 * l);
+        real E = 0.25 * l * (dot(Bom0, om0) + dot(Bom1, om1));
         Etot += E;
     }
 
@@ -155,7 +156,7 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions, const std::vector<real3>& frames)
+static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -167,17 +168,22 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
         auto r1 = positions[5*(i)];
         auto r2 = positions[5*(i+1)];
 
-        auto u0 = frames[2*(i-1)   ];
-        auto v0 = frames[2*(i-1) + 1];
-
-        auto u1 = frames[2*i    ];
-        auto v1 = frames[2*i + 1];
-        
         auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
         auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
         
         auto e0 = r1-r0;
         auto e1 = r2-r1;
+
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1); 
+        
+        auto  Q = getQfrom(t0, t1);
+        auto u0 = normalize(anyOrthogonal(t0));
+        auto u1 = normalize(rotate(u0, Q));
+
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+        
         auto l = 0.5 * (length(e0) + length(e1));
 
         auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
@@ -186,7 +192,7 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
         auto tau = safeDiffTheta(theta0, theta1) / l;
         auto dtau = tau - tau0;
         
-        auto E = kTwist * l * dtau * dtau;
+        auto E = 0.5 * kTwist * l * dtau * dtau;
 
         Etot += E;
     }
@@ -226,12 +232,8 @@ static void twistForces(real h, float kt, float tau0, const std::vector<real3>& 
     auto perturbed = positions;
     int nSegments = (positions.size() - 1) / 5;
     
-    std::vector<real3> frames(2*nSegments);
-
     auto compEnergy = [&]() {
-                          initialFrame(perturbed[5]-perturbed[0], frames[0], frames[1]);
-                          transportBishopFrame(perturbed, frames);
-                          return twistEnergy(kt, tau0, perturbed, frames);
+                          return twistEnergy(kt, tau0, perturbed);
                       };
     
     for (size_t i = 0; i < positions.size(); ++i)
@@ -303,82 +305,29 @@ static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
     vel.uploadToDevice(defaultStream);    
 }
 
-template <class CenterLine>
-static double testBishopFrame(CenterLine centerLine)
+static void checkMomentum(const PinnedBuffer<float4>& pos, const HostBuffer<Force>& forces)
 {
-    YmrState state(DomainInfo(), 0.f);
-    int nSegments {200};
-    
-    std::vector<real3> refPositions, refFrames;
-    RodVector rod(&state, "rod", 1.f, nSegments, 1);
+    double3 totForce  {0., 0., 0.};
+    double3 totTorque {0., 0., 0.};
 
-    initializeRef(centerLine, nSegments, refPositions, refFrames);
-    copyToRv(refPositions, rod);
-    
-    rod.updateBishopFrame(defaultStream);
-
-    HostBuffer<float3> frames;
-    frames.copy(rod.local()->bishopFrames, defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    double Linfty = 0;
-    for (int i = 0; i < refFrames.size() / 2; ++i)
+    for (int i = 0; i < forces.size(); ++i)
     {
-        real3 a = refFrames[2*i];
-        real3 b = make_real3(frames[i]);
-        auto diff = a - b;
-        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+        auto r4 = pos[i];
+        auto f4 = forces[i].f;
+        double3 r {(double) r4.x, (double) r4.y, (double) r4.z};
+        double3 f {(double) f4.x, (double) f4.y, (double) f4.z};
 
-        Linfty = std::max(Linfty, err);
+        totForce  += f;
+        totTorque += cross(r, f);
     }
-    return Linfty;
+
+    // printf(FMT SEP FMT SEP FMT SEP SEP
+    //        FMT SEP FMT SEP FMT "\n",
+    //        EXPAND(totForce), EXPAND(totTorque));
+
+    ASSERT_LE(length(totForce),  5e-6);
+    ASSERT_LE(length(totTorque), 5e-6);
 }
-
-TEST (FLAGELLA, BishopFrames_straight)
-{
-    real height = 1.0;
-    
-    auto centerLine = [&](real s) -> real3 {
-                          return {(real)0.0, (real)0.0, s*height};
-                      };
-
-    auto err = testBishopFrame(centerLine);
-    ASSERT_LE(err, 1e-5);
-}
-
-TEST (FLAGELLA, BishopFrames_circle)
-{
-    real radius = 0.5;
-
-    auto centerLine = [&](real s) -> real3 {
-                          real theta = s * 2 * M_PI;
-                          real x = radius * cos(theta);
-                          real y = radius * sin(theta);
-                          return {x, y, 0.f};
-                      };
-
-    auto err = testBishopFrame(centerLine);
-    ASSERT_LE(err, 3e-5);
-}
-
-TEST (FLAGELLA, BishopFrames_helix)
-{
-    real pitch  = 1.0;
-    real radius = 0.5;
-    real height = 1.0;
-    
-    auto centerLine = [&](real s) -> real3 {
-                          real z = s * height;
-                          real theta = 2 * M_PI * z / pitch;
-                          real x = radius * cos(theta);
-                          real y = radius * sin(theta);
-                          return {x, y, z};
-                      };
-
-    auto err = testBishopFrame(centerLine);
-    ASSERT_LE(err, 2e-5);
-}
-
 
 template <class CenterLine>
 static double testTwistForces(float kt, float tau0, CenterLine centerLine, int nSegments, real h)
@@ -387,17 +336,18 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
-    params.omegaEq = {{0.f, 0.f}};
-    params.kTwist = kt;
-    params.tauEq = {tau0};
-    params.groundE = {0.f};
-    params.a0 = params.l0 = 0.f;
-    params.kBounds = 0.f;
-    params.kVisc = 0.f;
+    params.kappaEq  = {{0.f, 0.f}};
+    params.kTwist   = kt;
+    params.tauEq    = {tau0};
+    params.groundE  = {0.f};
+    params.a0       = 0.f;
+    params.l0       = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    InteractionRod interactions(&state, "rod_interaction", params);
+    InteractionRod interactions(&state, "rod_interaction", params, false, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
@@ -432,34 +382,38 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
         
         Linfty = std::max(Linfty, err);
     }
+
+    checkMomentum(rod.local()->positions(), forces);
+    
     return Linfty;
 }
 
 template <class CenterLine>
-static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, int nSegments, real h)
+static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, int nSegments, real h)
 {
     YmrState state(DomainInfo(), 0.f);
 
     RodParameters params;
     params.kBending = B;
-    params.omegaEq = {omega};
-    params.kTwist = 0.f;
-    params.tauEq = {0.f};
-    params.groundE = {0.f};
-    params.a0 = params.l0 = 1.f; // set to 1.f so that omegaEq is the one entered
-    params.kBounds = 0.f;
-    params.kVisc = 0.f;
+    params.kappaEq  = {kappa};
+    params.kTwist   = 0.f;
+    params.tauEq    = {0.f};
+    params.groundE  = {0.f};
+    params.a0       = 0.f;
+    params.l0       = 0.f;
+    params.ksCenter = 0.f;
+    params.ksFrame  = 0.f;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    InteractionRod interactions(&state, "rod_interaction", params);
+    InteractionRod interactions(&state, "rod_interaction", params, false, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
 
     refForces.resize(refPositions.size());
     const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
-    bendingForces(h, B_, omega, refPositions, refForces);
+    bendingForces(h, B_, kappa, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
     interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
@@ -482,17 +436,19 @@ static double testBendingForces(float3 B, float2 omega, CenterLine centerLine, i
         //     printf(FMT SEP FMT SEP FMT SEP SEP
         //            FMT SEP FMT SEP FMT SEP SEP
         //            FMT SEP FMT "\n",
-        //            a.x, a.y, a.z,
-        //            b.x, b.y, b.z,
+        //            EXPAND(a), EXPAND(b),
         //            length(a), length(b));
 
         Linfty = std::max(Linfty, err);
     }
+
+    checkMomentum(rod.local()->positions(), forces);
+    
     return Linfty;
 }
 
 
-TEST (FLAGELLA, twistForces_straight)
+TEST (ROD, twistForces_straight)
 {
     real height = 5.0;
     real h = 1e-6;
@@ -505,12 +461,12 @@ TEST (FLAGELLA, twistForces_straight)
     ASSERT_LE(err, 1e-5);
 }
 
-TEST (FLAGELLA, twistForces_helix)
+TEST (ROD, twistForces_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
     real height = 1.0;
-    real h = 1e-7;
+    real h = 1e-4;
     
     auto centerLine = [&](real s) -> real3 {
                           real z = s * height;
@@ -525,7 +481,7 @@ TEST (FLAGELLA, twistForces_helix)
 }
 
 
-TEST (FLAGELLA, bendingForces_straight)
+TEST (ROD, bendingForces_straight)
 {
     real height = 5.0;
     real h = 1e-4;
@@ -534,14 +490,15 @@ TEST (FLAGELLA, bendingForces_straight)
                           return {0.f, 0.f, s*height};
                       };
 
-    auto err = testBendingForces({1.0f, 0.0f, 0.5f}, {0.1f, 0.2f}, centerLine, 10, h);
+    int nSegs = 20;
+    auto err = testBendingForces({1.0f, 0.0f, 0.5f}, {0.1f, 0.2f}, centerLine, nSegs, h);
     ASSERT_LE(err, 5e-4);
 }
 
-TEST (FLAGELLA, bendingForces_circle)
+TEST (ROD, bendingForces_circle)
 {
     real radius = 4.0;
-    real h = 1e-4;
+    real h = 5e-5;
     
     auto centerLine = [&](real s) -> real3 {
                           real theta = s * 2 * M_PI;
@@ -552,13 +509,18 @@ TEST (FLAGELLA, bendingForces_circle)
 
 
     float3 B {1.0f, 0.0f, 1.0f};
-    float2 omega {0.f, 0.f};
-    
-    auto err = testBendingForces(B, omega, centerLine, 10, h);
-    ASSERT_LE(err, 1e-3);
+    float2 kappa {0.f, 0.f};
+
+    std::vector<int> nsegs = {8, 16, 32};
+    for (auto n : nsegs)
+    {
+        auto err = testBendingForces(B, kappa, centerLine, n, h);
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-3);
+    }
 }
 
-TEST (FLAGELLA, bendingForces_helix)
+TEST (ROD, bendingForces_helix)
 {
     real pitch  = 1.0;
     real radius = 0.5;
@@ -574,10 +536,14 @@ TEST (FLAGELLA, bendingForces_helix)
                       };
 
     float3 B {1.0f, 0.0f, 1.0f};
-    float2 omega {0.f, 0.f};
-    
-    auto err = testBendingForces(B, omega, centerLine, 10, h);
-    ASSERT_LE(err, 1e-3);
+    float2 kappa {0.f, 0.f};
+
+    std::vector<int> nsegs = {4, 8, 16};
+    for (auto n : nsegs)
+    {
+        auto err = testBendingForces(B, kappa, centerLine, n, h);
+        ASSERT_LE(err, 1e-3);
+    }
 }
 
 
@@ -586,7 +552,7 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "flagella.log", 9);
+    logger.init(MPI_COMM_WORLD, "rod_forces.log", 9);
     
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();

@@ -3,8 +3,6 @@
 #include <core/datatypes.h>
 #include <core/utils/vec_traits.h>
 
-//#define ROD_FORCES_DOUBLE
-
 #ifdef ROD_FORCES_DOUBLE
 using real  = double;
 #else
@@ -13,6 +11,7 @@ using real  = float;
 
 using real2 = VecTraits::Vec<real, 2>::Type;
 using real3 = VecTraits::Vec<real, 3>::Type;
+using real4 = VecTraits::Vec<real, 4>::Type;
 
 
 template<typename T2>

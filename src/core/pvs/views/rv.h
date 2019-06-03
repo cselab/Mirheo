@@ -6,19 +6,23 @@
 
 struct RVview : public OVview
 {
-    float4 *bishopQuaternions  { nullptr };
-    float3 *bishopFrames       { nullptr };
+    int   nSegments { 0 };
+    int   *states   { nullptr };
+    float *energies { nullptr };
 
-    int nSegments { 0 };
-
-    RVview(RodVector *rv = nullptr, LocalRodVector* lrv = nullptr, cudaStream_t stream = 0) :
+    RVview(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr, cudaStream_t stream = 0) :
         OVview(rv, lrv)
     {
         if (rv == nullptr || lrv == nullptr) return;
-
-        bishopQuaternions  = lrv->bishopQuaternions.devPtr();
-        bishopFrames       = lrv->bishopFrames.devPtr();
         nSegments          = lrv->getNumSegmentsPerRod();
+
+        auto& data = lrv->dataPerParticle;
+        
+        if (data.checkChannelExists(ChannelNames::polyStates))
+            states = data.getData<int>(ChannelNames::polyStates)->devPtr();
+
+        if (data.checkChannelExists(ChannelNames::energies))
+            energies = data.getData<float>(ChannelNames::energies)->devPtr();
     }
 };
 

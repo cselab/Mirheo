@@ -182,6 +182,8 @@ static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fu
 
     fullSdfData.resize(readPerProc_byte * nranks / sizeof(float));  // May be bigger than fullSdfSize, to make gather easier
     MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, comm) );
+
+    MPI_Check( MPI_File_close(&fh) );
 }
 
 static void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,

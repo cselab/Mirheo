@@ -7,7 +7,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--tau0', type=float, default=0.0)
 parser.add_argument('--tau0_init', type=float, default=0.5)
-parser.add_argument('--omega', type=float, nargs=2, default=[0,0])
+parser.add_argument('--kappa', type=float, nargs=2, default=[0,0])
 parser.add_argument('--drag', type=float, default=0.0)
 parser.add_argument('--sub_steps', type=int, default=1)
 args = parser.parse_args()
@@ -48,12 +48,12 @@ u.registerParticleVector(rv, ic)
 prms = {
     "a0" : l0,
     "l0" : l0,
-    "k_bounds"  : 1000.0,
-    "k_visc"    : 0.0,
+    "k_s_center": 1000.0,
+    "k_s_frame" : 1000.0,
     "k_bending" : (10.0, 0.0, 10.0),
     "k_twist"   : 10.0,
     "tau0"      : args.tau0,
-    "omega0"    : tuple(args.omega)
+    "kappa0"    : tuple(args.kappa)
 }
 
 int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
@@ -104,6 +104,6 @@ del u
 # nTEST: rod.rest.helix
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --omega 0.8 0.0 --drag 0.5
+# ymr.run --runargs "-n 2" ./rest.py --tau0 0.5 --tau0_init 0.0 --kappa 0.8 0.0 --drag 0.5
 # cat pos.rod.txt > pos.out.txt
 

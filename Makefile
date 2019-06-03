@@ -4,7 +4,7 @@ CMAKE_FLAGS ?= ""
 build:
 	mkdir -p build/
 	(cd build/;	cmake ${CMAKE_FLAGS} ../)
-	make -C build/ -j
+	make -C build/ -j 12
 	cd ..
 
 install: build
