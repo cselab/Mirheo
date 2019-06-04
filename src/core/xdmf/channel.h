@@ -9,7 +9,7 @@ namespace XDMF
 {
 struct Channel
 {
-    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Other };
+    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, Other };
     enum class NumberType { Float, Double, Int, Int64 };
     
     std::string name;

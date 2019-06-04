@@ -33,6 +33,7 @@ std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
     case Channel::DataForm::Tensor9:    return "Tensor";
     case Channel::DataForm::Quaternion: return "Matrix";
     case Channel::DataForm::Triangle:   return "Matrix";
+    case Channel::DataForm::Vector4:    return "Matrix";
     case Channel::DataForm::Other:      return "Scalar";
     }
 }
@@ -47,6 +48,7 @@ int dataFormToNcomponents(Channel::DataForm dataForm)
     case Channel::DataForm::Tensor9:    return 9;
     case Channel::DataForm::Quaternion: return 4;
     case Channel::DataForm::Triangle:   return 3;
+    case Channel::DataForm::Vector4:    return 4;
     case Channel::DataForm::Other:      return 1;
     }
 }
@@ -61,6 +63,7 @@ std::string dataFormToDescription(Channel::DataForm dataForm)
     case Channel::DataForm::Tensor9:    return "Tensor";
     case Channel::DataForm::Quaternion: return "Quaternion";
     case Channel::DataForm::Triangle:   return "Triangle";
+    case Channel::DataForm::Vector4:    return "Vector4";
     case Channel::DataForm::Other:      return "Other";
     }
 }
@@ -73,6 +76,7 @@ Channel::DataForm descriptionToDataForm(std::string str)
     if (str == "Tensor")      return Channel::DataForm::Tensor9;
     if (str == "Quaternion")  return Channel::DataForm::Quaternion;
     if (str == "Trianle")     return Channel::DataForm::Triangle;
+    if (str == "Vector4")     return Channel::DataForm::Vector4;
     warn("Unrecognised format '%s'", str.c_str());
     return Channel::DataForm::Other;
 }

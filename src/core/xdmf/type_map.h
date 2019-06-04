@@ -16,7 +16,8 @@ template <typename T> Channel::DataForm inline getDataForm()
 
 #define IMPLEMENT_DATAFORM(type)                                        \
     template <> Channel::DataForm inline getDataForm<type>      () {return Channel::DataForm::Scalar;} \
-    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::DataForm::Vector;}
+    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::DataForm::Vector;} \
+    template <> Channel::DataForm inline getDataForm<type ## 4> () {return Channel::DataForm::Vector4;}
 
 IMPLEMENT_DATAFORM(int)
 IMPLEMENT_DATAFORM(float)
