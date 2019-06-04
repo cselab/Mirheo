@@ -24,13 +24,13 @@ restart_files=`ls $folder`
 function extract_last_num()
 (
     path=$1; shift
-    echo $path | sed 's/.*[^0-9]\([0-9]\+\)\.[^0-9]*$/\1/'
+    echo $path | sed 's/.*-\([0-9]\+\)\.[^0-9]*$/\1/'
 )
 
 function remove_last_num()
 (
     path=$1; shift
-    echo $path | sed 's/\(.*[^0-9]\)[0-9]\+\.\([^0-9]*\)$/\1\2/'
+    echo $path | sed 's/\(.*\)-[0-9]\+\.\([^0-9]*\)$/\1.\2/'
 )
 
 id_found=0
