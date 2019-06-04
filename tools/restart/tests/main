@@ -4,6 +4,9 @@
 ymr.restart.id tests/example 1
 cat tests/example/file.txt > restart.out.txt
 
+# TEST: restart.id.notfound
+ymr.restart.id tests/example 99 > restart.out.txt
+
 # TEST: restart.id.multiple
 ymr.restart.id tests/example2 1
 cat tests/example2/file0.txt >  restart.out.txt

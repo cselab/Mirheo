@@ -33,6 +33,8 @@ function remove_last_num()
     echo $path | sed 's/\(.*[^0-9]\)[0-9]\+\.\([^0-9]*\)$/\1\2/'
 )
 
+id_found=0
+
 for src_name in $restart_files; do
     id=`extract_last_num $src_name`
     target_name=`remove_last_num $src_name`
@@ -43,5 +45,11 @@ for src_name in $restart_files; do
         cmd="ln -f $folder/$src_name $folder/$target_name"
 	rm -f $target_name
         $cmd
+	id_found=1
     fi
 done
+
+
+if test $id_found -eq 0; then
+    echo The provided id was not found
+fi
