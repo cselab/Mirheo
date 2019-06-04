@@ -10,6 +10,6 @@ include ../make/common.mk
 	@sed "s/@EXE_PREFIX@/$(EXE_PREFIX)/" $< > $@
 	@chmod +x $@
 
-test:; atest `find tests -type f`
+test:; @atest `find tests -type f`
 
 .PHONY: test
