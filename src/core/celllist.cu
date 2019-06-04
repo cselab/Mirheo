@@ -31,7 +31,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     // XXX: relying here only on redistribution
     if ( outgoingParticle(coo) ) return;
 
-    int cid = cinfo.getCellId(coo);
+    int cid = cinfo.getCellId<CellListsProjection::Clamp>(coo);
     atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
@@ -46,7 +46,7 @@ __global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, fl
     // loads / stores here need no cache
     float4 pos = view.readPositionNoCache(pid);
 
-    int cid = cinfo.getCellId(pos);
+    int cid = cinfo.getCellId<CellListsProjection::Clamp>(pos);
 
     //  XXX: relying here only on redistribution
     if ( !outgoingParticle(pos) )
@@ -405,7 +405,7 @@ PrimaryCellList::~PrimaryCellList() = default;
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
-	// Reqired here to avoid ptr swap if building didn't actually happen
+    // Reqired here to avoid ptr swap if building didn't actually happen
     if (!_checkNeedBuild()) return;
 
     CellList::build(stream);
