@@ -9,6 +9,7 @@
 namespace RestartHelpers
 {
 constexpr int InvalidProc = -1;
+constexpr int tag = 4243;
 
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
                           LocalParticleVector *local);
@@ -18,7 +19,7 @@ static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MP
 {
     for (int i = 0; i < sendBufs.size(); i++) {
         debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
-        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T), MPI_BYTE, i, 0, comm, reqs.data()+i) );
+        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T), MPI_BYTE, i, tag, comm, &reqs[i]) );
     }
 }
 
@@ -28,16 +29,21 @@ static void recvData(int size, std::vector<T> &all, MPI_Comm comm)
     all.resize(0);
     for (int i = 0; i < size; i++) {
         MPI_Status status;
-        int msize;
+        int sizeBytes, size;
         std::vector<T> recvBuf;
         
-        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, 0, comm, &status) );
-        MPI_Check( MPI_Get_count(&status, MPI_BYTE, &msize) );
+        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, tag, comm, &status) );
+        MPI_Check( MPI_Get_count(&status, MPI_BYTE, &sizeBytes) );
 
-        recvBuf.resize(msize / sizeof(T));
+        size = sizeBytes / sizeof(T);
 
-        debug3("Receiving %d elements from %d", msize, status.MPI_SOURCE);
-        MPI_Check( MPI_Recv(recvBuf.data(), msize, MPI_BYTE, status.MPI_SOURCE, 0, comm, MPI_STATUS_IGNORE) );
+        if (size * sizeof(T) != sizeBytes)
+            die("unexpected received size");
+        
+        recvBuf.resize(size);
+
+        debug3("Receiving %d elements from %d", size, status.MPI_SOURCE);
+        MPI_Check( MPI_Recv(recvBuf.data(), sizeBytes, MPI_BYTE, status.MPI_SOURCE, tag, comm, MPI_STATUS_IGNORE) );
 
         all.insert(all.end(), recvBuf.begin(), recvBuf.end());
     }
@@ -49,7 +55,7 @@ static void splitData(const std::vector<int>& map, int chunkSize, const std::vec
     for (int i = 0; i < map.size(); ++i) {
         int procId = map[i];
 
-        if (procId == InvalidProc) continue;            
+        if (procId == InvalidProc) continue;
 
         buffs[procId].insert(buffs[procId].end(),
                              data.begin() +  i      * chunkSize,
