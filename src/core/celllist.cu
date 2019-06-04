@@ -119,22 +119,18 @@ CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
     pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
-    localPV = particlesDataContainer.get();
-    
-    cellSizes. resize_anew(totcells + 1);
-    cellStarts.resize_anew(totcells + 1);
-
-    cellSizes. clear(defaultStream);
-    cellStarts.clear(defaultStream);
-    CUDA_Check( cudaStreamSynchronize(defaultStream) );
-
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    _initialize();
 }
 
 CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
     CellListInfo(localDomainSize / make_float3(resolution), localDomainSize),
     pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
+{
+    _initialize();
+}
+
+void CellList::_initialize()
 {
     localPV = particlesDataContainer.get();
     
@@ -145,7 +141,7 @@ CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) 
     cellStarts.clear(defaultStream);
     CUDA_Check( cudaStreamSynchronize(defaultStream) );
 
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, rc);
 }
 
 CellList::~CellList() = default;
