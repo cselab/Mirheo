@@ -13,9 +13,9 @@ namespace ObjectVectorKernels
 
 __global__ void minMaxCom(OVview ovView)
 {
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-    const int objId = gid >> 5;
-    const int tid = gid & 0x1f;
+    const int gid    = threadIdx.x + blockDim.x * blockIdx.x;
+    const int objId  = gid / warpSize;
+    const int laneId = gid % warpSize;
     if (objId >= ovView.nObjects) return;
 
     float3 mymin = make_float3( 1e+10f);
@@ -23,7 +23,7 @@ __global__ void minMaxCom(OVview ovView)
     float3 mycom = make_float3(0);
 
 #pragma unroll 3
-    for (int i = tid; i < ovView.objSize; i += warpSize)
+    for (int i = laneId; i < ovView.objSize; i += warpSize)
     {
         const int offset = objId * ovView.objSize + i;
 
@@ -38,7 +38,7 @@ __global__ void minMaxCom(OVview ovView)
     mymin = warpReduce( mymin, [] (float a, float b) { return fmin(a, b); } );
     mymax = warpReduce( mymax, [] (float a, float b) { return fmax(a, b); } );
 
-    if (tid == 0)
+    if (laneId == 0)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
@@ -146,12 +146,16 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
 
     debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
 
+    OVview view(this, lov);
+    
+    constexpr int warpSize = 32;
     const int nthreads = 128;
-    OVview ovView(this, lov);
+    const int nblocks = getNblocks(view.nObjects * warpSize, nthreads);
+    
     SAFE_KERNEL_LAUNCH(
             ObjectVectorKernels::minMaxCom,
-            (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
-            ovView );
+            nblocks, nthreads, 0, stream,
+            view );
 }
 
 void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map)

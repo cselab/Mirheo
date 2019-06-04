@@ -28,7 +28,7 @@ if args.restart:
 else:
     ic = ymr.InitialConditions.Uniform(density=2)
 
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 u.run(7)
 
