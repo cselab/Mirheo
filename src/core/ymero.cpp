@@ -75,6 +75,8 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
 
     if (rank == 0) sayHello();    
 
+    checkpointFolder = makePath(checkpointFolder);
+    
     if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
         

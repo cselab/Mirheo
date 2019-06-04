@@ -26,6 +26,16 @@ std::vector<std::string> splitByDelim(std::string str, char delim)
     return splitted;
 }
 
+std::string makePath(std::string path)
+{
+    int n = path.size();
+    
+    if ( n > 0 && path[n-1] != '/')
+        path += '/';
+
+    return path;
+}
+
 std::string parentPath(std::string path)
 {
     return path.substr(0, path.find_last_of("/"));
