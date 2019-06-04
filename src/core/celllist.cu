@@ -27,11 +27,12 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     if (pid >= view.size) return;
 
     float4 coo = view.readPositionNoCache(pid);
-    int cid = cinfo.getCellId(coo);
 
     // XXX: relying here only on redistribution
-    if ( !outgoingParticle(coo) )
-        atomicAdd(cinfo.cellSizes + cid, 1);
+    if ( outgoingParticle(coo) ) return;
+
+    int cid = cinfo.getCellId(coo);
+    atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
 __global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, float4 *outPositions)
@@ -87,7 +88,9 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
 //=================================================================================
 
 CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
-        rc(rc), h(make_float3(rc)), localDomainSize(localDomainSize)
+    rc(rc),
+    h(make_float3(rc)),
+    localDomainSize(localDomainSize)
 {
     ncells = make_int3( floorf(localDomainSize / rc + 1e-6) );
     float3 h = make_float3(localDomainSize) / make_float3(ncells);
@@ -98,7 +101,9 @@ CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
 }
 
 CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
-        h(h), invh(1.0f/h), localDomainSize(localDomainSize)
+    h(h),
+    invh(1.0f/h),
+    localDomainSize(localDomainSize)
 {
     rc = std::min( {h.x, h.y, h.z} );
     ncells = make_int3( ceilf(localDomainSize / h - 1e-6f) );
@@ -110,8 +115,8 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 //=================================================================================
 
 CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
-        CellListInfo(rc, localDomainSize), pv(pv),
-        particlesDataContainer(new LocalParticleVector(nullptr))
+    CellListInfo(rc, localDomainSize), pv(pv),
+    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
     localPV = particlesDataContainer.get();
     
@@ -126,8 +131,8 @@ CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
 }
 
 CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
-        CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
-        particlesDataContainer(new LocalParticleVector(nullptr))
+    CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
+    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
     localPV = particlesDataContainer.get();
     
