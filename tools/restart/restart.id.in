@@ -24,19 +24,21 @@ restart_files=`ls $folder`
 function extract_last_num()
 (
     path=$1; shift
-    echo $path | sed 's/.*[^0-9]\.\([0-9]\+\)\.[^0-9]*$/\1/'
+    echo $path | sed 's/.*[^0-9]\([0-9]\+\)\.[^0-9]*$/\1/'
 )
 
 function remove_last_num()
 (
     path=$1; shift
-    echo $path | sed 's/\(.*[^0-9]\)\.[0-9]\+\.\([^0-9]*\)$/\1\.\2/'
+    echo $path | sed 's/\(.*[^0-9]\)[0-9]\+\.\([^0-9]*\)$/\1\2/'
 )
 
 for src_name in $restart_files; do
     id=`extract_last_num $src_name`
     target_name=`remove_last_num $src_name`
 
+    #echo $src_name $id $target_name
+    
     if ! test $id = $src_name && test $id -eq $restart_id; then
         cmd="ln -f $folder/$src_name $folder/$target_name"
 	rm -f $target_name

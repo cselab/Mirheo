@@ -4,7 +4,7 @@
 ymr.restart.id tests/example 1
 cat tests/example/file.txt > restart.out.txt
 
-# scTEST: restart.id.multiple
+# TEST: restart.id.multiple
 ymr.restart.id tests/example2 1
 cat tests/example2/file0.txt >  restart.out.txt
 cat tests/example2/file1.txt >> restart.out.txt
