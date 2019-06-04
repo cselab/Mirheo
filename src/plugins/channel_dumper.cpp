@@ -8,8 +8,8 @@
 #include <string>
 
 UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string path) :
-        PostprocessPlugin(name),
-        path(path)
+    PostprocessPlugin(name),
+    path(path)
 {}
 
 UniformCartesianDumper::~UniformCartesianDumper()

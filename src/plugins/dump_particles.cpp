@@ -84,7 +84,9 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
 
 
 ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
-    PostprocessPlugin(name), path(path), positions(new std::vector<float>())
+    PostprocessPlugin(name),
+    path(path),
+    positions(std::make_shared<std::vector<float>>())
 {}
 
 void ParticleDumperPlugin::handshake()

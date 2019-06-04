@@ -229,7 +229,8 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 
 
 ReportPinObjectPlugin::ReportPinObjectPlugin(std::string name, std::string path) :
-    PostprocessPlugin(name), path(path)
+    PostprocessPlugin(name),
+    path(makePath(path))
 {}
 
 ReportPinObjectPlugin::~ReportPinObjectPlugin()
@@ -253,7 +254,7 @@ void ReportPinObjectPlugin::handshake()
     std::string ovName;
     SimpleSerializer::deserialize(data, ovName);
     if (activated && rank == 0)
-        fout = fopen( (path + "/" + ovName + ".txt").c_str(), "w" );
+        fout = fopen( (path + ovName + ".txt").c_str(), "w" );
 }
 
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)

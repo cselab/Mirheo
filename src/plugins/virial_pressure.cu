@@ -99,7 +99,7 @@ void VirialPressurePlugin::serializeAndSend(cudaStream_t stream)
 
 VirialPressureDumper::VirialPressureDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(path)
+    path(makePath(path))
 {
     if (std::is_same<VirialPressure::ReductionType, float>::value)
         mpiReductionType = MPI_FLOAT;
@@ -132,7 +132,7 @@ void VirialPressureDumper::handshake()
 
     if (activated)
     {
-        auto fname = path + "/" + pvName + ".txt";
+        auto fname = path + pvName + ".txt";
         fdump = fopen(fname.c_str(), "w");
         if (!fdump) die("Could not open file '%s'", fname.c_str());
         fprintf(fdump, "# time Pressure\n");

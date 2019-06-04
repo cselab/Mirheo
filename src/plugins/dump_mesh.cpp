@@ -138,8 +138,9 @@ static void writePLY(
 
 
 MeshDumper::MeshDumper(std::string name, std::string path) :
-                PostprocessPlugin(name), path(path)
-{    }
+    PostprocessPlugin(name),
+    path(makePath(path))
+{}
 
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -154,8 +155,7 @@ void MeshDumper::deserialize(MPI_Status& stat)
 
     SimpleSerializer::deserialize(data, ovName, nvertices, ntriangles, connectivity, vertices);
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string currentFname = path + "/" + ovName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".ply";
+    std::string currentFname = path + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
 
     if (activated)
     {
@@ -166,6 +166,8 @@ void MeshDumper::deserialize(MPI_Status& stat)
                 nObjects,
                 connectivity, vertices);
     }
+
+    ++timeStamp;
 }
 
 

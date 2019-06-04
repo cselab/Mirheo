@@ -49,8 +49,8 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
 //=================================================================================
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
-        PostprocessPlugin(name),
-        path(path)
+    PostprocessPlugin(name),
+    path(makePath(path))
 {}
 
 void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -65,11 +65,12 @@ void XYZDumper::deserialize(MPI_Status& stat)
 
     SimpleSerializer::deserialize(data, pvName, pos);
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string currentFname = path + "/" + pvName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".xyz";
+    std::string currentFname = path + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
 
     if (activated)
         writeXYZ(comm, currentFname, pos.data(), pos.size());
+
+    ++timeStamp;
 }
 
 

@@ -35,7 +35,8 @@ void ParticleWithMeshSenderPlugin::handshake()
 
 
 ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(std::string name, std::string path) :
-    ParticleDumperPlugin(name, path), allTriangles(new std::vector<int>())
+    ParticleDumperPlugin(name, path),
+    allTriangles(std::make_shared<std::vector<int>>())
 {}
 
 void ParticleWithMeshDumperPlugin::handshake()

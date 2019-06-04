@@ -131,7 +131,7 @@ void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curT
 
 ObjPositionsDumper::ObjPositionsDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(path)
+    path(makePath(path))
 {}
 
 ObjPositionsDumper::~ObjPositionsDumper()
@@ -157,7 +157,7 @@ void ObjPositionsDumper::handshake()
 
     if (activated)
     {
-        auto fname = path + "/" + ovName + ".txt";
+        auto fname = path + ovName + ".txt";
         MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout) );
         MPI_Check( MPI_File_close(&fout) );
         MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout) );
