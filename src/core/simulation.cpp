@@ -1177,7 +1177,7 @@ void Simulation::restartState(std::string folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
     auto good = TextIO::read(filename, state->currentTime, state->currentStep, checkpointId);
-    if (!good) die("failed to read '%s'\n", filename.c_str());
+    if (!good) die("failed to read '%s'\n", filename.c_str());    
 }
 
 void Simulation::checkpointState()
@@ -1190,12 +1190,20 @@ void Simulation::checkpointState()
     createCheckpointSymlink(cartComm, checkpointFolder, "state", "txt", checkpointId);
 }
 
+static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
+{
+    if (mode == CheckpointIdAdvanceMode::PingPong)
+        checkpointId = checkpointId xor 1;
+    else
+        ++checkpointId;
+}
+
 void Simulation::restart(std::string folder)
 {
     restartFolder = folder;
 
     this->restartState(restartFolder);
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Reading simulation state, from folder %s", restartFolder.c_str());
@@ -1222,14 +1230,9 @@ void Simulation::restart(std::string folder)
         handler->restart(cartComm, restartFolder);
 
     CUDA_Check( cudaDeviceSynchronize() );
-}
 
-static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
-{
-    if (mode == CheckpointIdAdvanceMode::PingPong)
-        checkpointId = checkpointId xor 1;
-    else
-        ++checkpointId;
+    // advance checkpoint Id so that next checkpoint does not override this one
+    advanceCheckpointId(checkpointId, checkpointMode);
 }
 
 void Simulation::checkpoint()

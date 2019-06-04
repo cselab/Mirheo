@@ -560,6 +560,8 @@ void YMeRo::checkNotInitialized() const
 
 void YMeRo::restart(std::string folder)
 {
+    folder = makePath(folder);
+
     setup();
 
     if (isComputeTask())  sim->restart(folder);
