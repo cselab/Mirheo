@@ -104,8 +104,9 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 
     numberCrossedParticles.downloadFromDevice(stream, ContainersSynch::Synch);
 
+    const int numPartsExchange = numberCrossedParticles[0];
     const int old_size2 = view2.size;
-    const int new_size2 = old_size2 + numberCrossedParticles[0];
+    const int new_size2 = old_size2 + numPartsExchange;
 
     pv2->local()->resize(new_size2, stream);
     numberCrossedParticles.clear(stream);
@@ -124,5 +125,10 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
             domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr(), extra1, extra2 );
 
+    if (numPartsExchange > 0)
+    {
+        pv1->cellListStamp++;
+        pv2->cellListStamp++;
+    }
 }
 

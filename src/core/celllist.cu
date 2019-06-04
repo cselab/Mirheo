@@ -115,7 +115,8 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 //=================================================================================
 
 CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
-    CellListInfo(rc, localDomainSize), pv(pv),
+    CellListInfo(rc, localDomainSize),
+    pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
     localPV = particlesDataContainer.get();
@@ -131,7 +132,8 @@ CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
 }
 
 CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
-    CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
+    CellListInfo(localDomainSize / make_float3(resolution), localDomainSize),
+    pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
     localPV = particlesDataContainer.get();
