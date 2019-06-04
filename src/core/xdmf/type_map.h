@@ -46,7 +46,6 @@ Channel::NumberType inline getNumberType()
 template <> Channel::NumberType inline getNumberType<TemplRigidMotion<double>> () {return getNumberType<double>();}
 template <> Channel::NumberType inline getNumberType<TemplRigidMotion<float>>  () {return getNumberType<float>();}
 template <> Channel::NumberType inline getNumberType<COMandExtent>             () {return getNumberType<decltype(COMandExtent::com)>();}
-template <> Channel::NumberType inline getNumberType<Particle>                 () {return getNumberType<decltype(Particle::r)>();}
 template <> Channel::NumberType inline getNumberType<Force>                    () {return getNumberType<decltype(Force::f)>();}
 
 } // namespace XDMF
