@@ -173,7 +173,7 @@ void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float
         int3 procId3 = make_int3(floorf(com / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
-            map[i] = -1;
+            map[i] = RestartHelpers::InvalidProc;
             continue;
         }
         

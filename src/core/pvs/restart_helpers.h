@@ -8,6 +8,8 @@
 
 namespace RestartHelpers
 {
+constexpr int InvalidProc = -1;
+
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
                           LocalParticleVector *local);
 
@@ -47,7 +49,7 @@ static void splitData(const std::vector<int>& map, int chunkSize, const std::vec
     for (int i = 0; i < map.size(); ++i) {
         int procId = map[i];
 
-        if (procId == -1) continue;            
+        if (procId == InvalidProc) continue;            
 
         buffs[procId].insert(buffs[procId].end(),
                              data.begin() +  i      * chunkSize,
