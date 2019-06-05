@@ -197,20 +197,47 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
-    std::vector<float4> pos4(local()->size()), vel4(local()->size());
+    auto& pos = local()->positions();
+    auto& vel = local()->velocities();
+
+    std::vector<float4> pos4(pos.begin(), pos.end());
+    std::vector<float4> vel4(vel.begin(), vel.end());
+
     std::vector<int> map;
-    
-    std::copy(local()->positions ().begin(), local()->positions ().end(), pos4.begin());
-    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
-    
     _getRestartExchangeMap(comm, pos4, map);
+
     RestartHelpers::exchangeData(comm, map, pos4, objSize);
     RestartHelpers::exchangeData(comm, map, vel4, objSize);
-    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
+    auto newSize = pos4.size();
 
-    local()->positions ().uploadToDevice(defaultStream);
-    local()->velocities().uploadToDevice(defaultStream);
+    for (auto& ch : local()->dataPerParticle.getSortedChannels())
+    {
+        auto& name = ch.first;
+        auto& desc = ch.second;
+
+        if (name == ChannelNames::positions                        ||
+            name == ChannelNames::velocities                       ||
+            desc->persistence == DataManager::PersistenceMode::None)
+            continue;
+        
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
+            RestartHelpers::exchangeData(comm, map, data, 1);
+            std::copy(data.begin(), data.end(), bufferPtr->begin()); // TODO shift
+            bufferPtr->uploadToDevice(defaultStream);
+        }, desc->varDataPtr);
+    }
+
     
+    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
+    
+    // resize the lpv only now because we use the pinned buffers before with old size
+    local()->resize(newSize, defaultStream);
+    
+    pos.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->size());

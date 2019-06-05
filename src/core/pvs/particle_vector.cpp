@@ -320,6 +320,7 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
     map.resize(pos.size());
+    int numberInvalid = 0;
     
     for (int i = 0; i < pos.size(); ++i) {
         const auto& r = make_float3(pos[i]);
@@ -327,6 +328,7 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
             map[i] = RestartHelpers::InvalidProc;
+            ++ numberInvalid;
             continue;
         }
         
@@ -337,6 +339,9 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
         int rank;
         MPI_Comm_rank(comm, &rank);
     }
+
+    if (numberInvalid)
+        warn("Restart: skipped %d invalid particle positions", numberInvalid);
 }
 
 std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
@@ -348,19 +353,46 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     XDMF::readParticleData(filename, comm, this);
 
-    std::vector<float4> pos4(local()->size()), vel4(local()->size());
-    std::copy(local()->positions() .begin(), local()->positions() .end(), pos4.begin());
-    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
+    auto& pos = local()->positions();
+    auto& vel = local()->velocities();
+
+    std::vector<float4> pos4(pos.begin(), pos.end());
+    std::vector<float4> vel4(vel.begin(), vel.end());
 
     std::vector<int> map;
-    
     _getRestartExchangeMap(comm, pos4, map);
+    
     RestartHelpers::exchangeData(comm, map, pos4, 1);
     RestartHelpers::exchangeData(comm, map, vel4, 1);
+    auto newSize = pos4.size();
+    
+    for (auto& ch : local()->dataPerParticle.getSortedChannels())
+    {
+        auto& name = ch.first;
+        auto& desc = ch.second;
+
+        if (name == ChannelNames::positions                        ||
+            name == ChannelNames::velocities                       ||
+            desc->persistence == DataManager::PersistenceMode::None)
+            continue;
+        
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
+            RestartHelpers::exchangeData(comm, map, data, 1);
+            std::copy(data.begin(), data.end(), bufferPtr->begin()); // TODO shift
+            bufferPtr->uploadToDevice(defaultStream);
+        }, desc->varDataPtr);
+    }
+
     RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
 
-    local()->positions ().uploadToDevice(defaultStream);
-    local()->velocities().uploadToDevice(defaultStream);
+    // resize the lpv only now because we use the pinned buffers before with old size
+    local()->resize(newSize, defaultStream);
+    
+    pos.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->size());
