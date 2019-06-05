@@ -110,7 +110,7 @@ public:
     VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
         
 protected:
-    const std::string positionChannelName = "position";
+    static const std::string positionChannelName;
     VertexGridDims dims;
 
     std::shared_ptr<std::vector<float>> positions;
@@ -128,7 +128,7 @@ public:
     TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
         
 protected:
-    const std::string triangleChannelName = "triangle";
+    static const std::string triangleChannelName;
     VertexGridDims dimsTriangles;
     std::shared_ptr<std::vector<int>> triangles;
 

@@ -218,7 +218,7 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunk_size)
     dims.nlocal = nchunks_local * chunk_size;
     dims.offset = chunks_offset * chunk_size;
 }
-    
+
 void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
 {
     positions->resize(dims.nlocal * 3);
@@ -241,6 +241,8 @@ void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename
     topoNode.append_attribute("TopologyType") = "Polyvertex";
     topoNode.append_attribute("NumberOfElements") = std::to_string(dims.nglobal).c_str();    
 }
+
+const std::string VertexGrid::positionChannelName = "position";
 
 //
 // Triangle Mesh Grid
@@ -282,5 +284,7 @@ void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5fi
     triangleNode.text() = (h5filename + ":/" + triangleChannelName).c_str();
 
 }
+
+const std::string TriangleMeshGrid::triangleChannelName = "triangle";
 
 } // namespace XDMF
