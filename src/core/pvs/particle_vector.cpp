@@ -353,6 +353,11 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     XDMF::readParticleData(filename, comm, this);
 
+    return _redistributeParticleData(comm);
+}
+
+std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int chunkSize)
+{
     auto& pos = local()->positions();
     auto& vel = local()->velocities();
 
@@ -362,8 +367,8 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     std::vector<int> map;
     _getRestartExchangeMap(comm, pos4, map);
     
-    RestartHelpers::exchangeData(comm, map, pos4, 1);
-    RestartHelpers::exchangeData(comm, map, vel4, 1);
+    RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
+    RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
     auto newSize = pos4.size();
     
     for (auto& ch : local()->dataPerParticle.getSortedChannels())
@@ -380,7 +385,7 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
         {
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
-            RestartHelpers::exchangeData(comm, map, data, 1);
+            RestartHelpers::exchangeData(comm, map, data, chunkSize);
             std::copy(data.begin(), data.end(), bufferPtr->begin()); // TODO shift
             bufferPtr->uploadToDevice(defaultStream);
         }, desc->varDataPtr);
@@ -399,6 +404,7 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     return map;
 }
+
 
 void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {

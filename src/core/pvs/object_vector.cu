@@ -197,52 +197,7 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
-    auto& pos = local()->positions();
-    auto& vel = local()->velocities();
-
-    std::vector<float4> pos4(pos.begin(), pos.end());
-    std::vector<float4> vel4(vel.begin(), vel.end());
-
-    std::vector<int> map;
-    _getRestartExchangeMap(comm, pos4, map);
-
-    RestartHelpers::exchangeData(comm, map, pos4, objSize);
-    RestartHelpers::exchangeData(comm, map, vel4, objSize);
-    auto newSize = pos4.size();
-
-    for (auto& ch : local()->dataPerParticle.getSortedChannels())
-    {
-        auto& name = ch.first;
-        auto& desc = ch.second;
-
-        if (name == ChannelNames::positions                        ||
-            name == ChannelNames::velocities                       ||
-            desc->persistence == DataManager::PersistenceMode::None)
-            continue;
-        
-        mpark::visit([&](auto bufferPtr)
-        {
-            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
-            RestartHelpers::exchangeData(comm, map, data, 1);
-            std::copy(data.begin(), data.end(), bufferPtr->begin()); // TODO shift
-            bufferPtr->uploadToDevice(defaultStream);
-        }, desc->varDataPtr);
-    }
-
-    
-    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
-    
-    // resize the lpv only now because we use the pinned buffers before with old size
-    local()->resize(newSize, defaultStream);
-    
-    pos.uploadToDevice(defaultStream);
-    vel.uploadToDevice(defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d particles", local()->size());
-
-    return map;
+    return _redistributeParticleData(comm, objSize);
 }
 
 static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float3>& pos)
