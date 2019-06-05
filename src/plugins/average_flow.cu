@@ -207,9 +207,11 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     
     scaleSampled(stream);
 
+    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
+    
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, accumulated_density, accumulated_average);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, timeStamp, accumulated_density, accumulated_average);
     send(sendBuffer);
 }
 

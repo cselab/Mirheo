@@ -31,7 +31,6 @@ protected:
     std::vector<std::vector<float>> containers;
     
     std::string path;
-    int timeStamp = 0;
     const int zeroPadding = 5;
 
     MPI_Comm cartComm {MPI_COMM_NULL};

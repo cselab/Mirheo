@@ -75,7 +75,8 @@ static void convert(const std::vector<double> &src, std::vector<float> &dst)
 void UniformCartesianDumper::deserialize(MPI_Status& stat)
 {
     YmrState::TimeType t;
-    SimpleSerializer::deserialize(data, t, recv_density, recv_containers);
+    YmrState::StepType timeStamp;
+    SimpleSerializer::deserialize(data, t, timeStamp, recv_density, recv_containers);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
            name.c_str(), t, timeStamp);
@@ -92,8 +93,6 @@ void UniformCartesianDumper::deserialize(MPI_Status& stat)
 
     std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
     XDMF::write(fname, grid.get(), channels, t, cartComm);
-
-    timeStamp++;
 }
 
 XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const

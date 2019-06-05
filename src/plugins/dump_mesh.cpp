@@ -47,8 +47,10 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
 
     auto& mesh = ov->mesh;
 
+    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, ov->name,
+    SimpleSerializer::serialize(sendBuffer, timeStamp, ov->name,
                                 mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
                                 vertices);
 
@@ -142,6 +144,8 @@ MeshDumper::MeshDumper(std::string name, std::string path) :
     path(makePath(path))
 {}
 
+MeshDumper::~MeshDumper() = default;
+
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
@@ -153,7 +157,8 @@ void MeshDumper::deserialize(MPI_Status& stat)
     std::string ovName;
     int nvertices, ntriangles;
 
-    SimpleSerializer::deserialize(data, ovName, nvertices, ntriangles, connectivity, vertices);
+    YmrState::StepType timeStamp;
+    SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity, vertices);
 
     std::string currentFname = path + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
 
@@ -166,8 +171,6 @@ void MeshDumper::deserialize(MPI_Status& stat)
                 nObjects,
                 connectivity, vertices);
     }
-
-    ++timeStamp;
 }
 
 
