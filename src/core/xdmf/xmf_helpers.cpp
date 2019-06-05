@@ -53,7 +53,7 @@ void write(std::string filename, std::string h5filename, MPI_Comm comm, const Gr
         root.append_attribute("Version") = "3.0";
         auto domain = root.append_child("Domain");
 
-        auto gridNode = grid->write_to_XMF(domain, h5filename);
+        auto gridNode = grid->writeToXMF(domain, h5filename);
                 
         if (time > -1e-6) gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
         writeData(gridNode, h5filename, grid, channels);
@@ -106,7 +106,7 @@ void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *gr
 
     auto gridNode = doc.child("Xdmf").child("Domain").child("Grid");
 
-    grid->read_from_XMF(gridNode, h5filename);
+    grid->readFromXMF(gridNode, h5filename);
 
     readData(gridNode, channels);
 

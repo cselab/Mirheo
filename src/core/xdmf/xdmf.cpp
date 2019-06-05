@@ -220,7 +220,7 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunk_size
     mTimer timer;
     timer.start();
     XMF::read(filename, comm, h5filename, &grid, channels);
-    grid.split_read_access(comm, chunk_size);
+    grid.splitReadAccess(comm, chunk_size);
 
     h5filename = parentPath(filename) + h5filename;
 

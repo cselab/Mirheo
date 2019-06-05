@@ -30,15 +30,15 @@ public:
 class Grid
 {
 public:
-    virtual const GridDims* getGridDims()                                             const = 0; 
-    virtual std::string getCentering()                                                const = 0;
+    virtual const GridDims* getGridDims()                                           const = 0; 
+    virtual std::string getCentering()                                              const = 0;
                                                                                        
-    virtual void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const = 0;
-    virtual pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const = 0;
+    virtual void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const = 0;
+    virtual pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const = 0;
 
-    virtual void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         = 0;
-    virtual void split_read_access(MPI_Comm comm, int chunk_size=1)                         = 0;
-    virtual void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               = 0;        
+    virtual void readFromXMF(const pugi::xml_node &node, std::string &h5filename)         = 0;
+    virtual void splitReadAccess(MPI_Comm comm, int chunk_size=1)                         = 0;
+    virtual void readFromHDF5(hid_t file_id, MPI_Comm comm)                               = 0;        
         
     virtual ~Grid() = default;
 };
@@ -60,15 +60,15 @@ protected:
     };
             
 public:
-    const UniformGridDims* getGridDims()                                      const override;        
-    std::string getCentering()                                                const override;
+    const UniformGridDims* getGridDims()                                    const override;        
+    std::string getCentering()                                              const override;
                                                                                
-    void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
-    pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;
+    void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const override;
+    pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const override;
         
-    void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         override;
-    void split_read_access(MPI_Comm comm, int chunk_size = 1)                       override;        
-    void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               override;
+    void readFromXMF(const pugi::xml_node &node, std::string &h5filename)         override;
+    void splitReadAccess(MPI_Comm comm, int chunk_size = 1)                       override;        
+    void readFromHDF5(hid_t file_id, MPI_Comm comm)                               override;
         
     UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm);
         
@@ -96,16 +96,16 @@ protected:
     };
 
 public:
-    const VertexGridDims* getGridDims()                                       const override;        
-    std::string getCentering()                                                const override;
-    std::shared_ptr<std::vector<float>> getPositions()                        const;
+    const VertexGridDims* getGridDims()                                     const override;        
+    std::string getCentering()                                              const override;
+    std::shared_ptr<std::vector<float>> getPositions()                      const;
                                                                                
-    void write_to_HDF5(hid_t file_id, MPI_Comm comm)                          const override;
-    pugi::xml_node write_to_XMF(pugi::xml_node node, std::string h5filename)  const override;   
+    void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const override;
+    pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const override;
         
-    void read_from_XMF(const pugi::xml_node &node, std::string &h5filename)         override;
-    void split_read_access(MPI_Comm comm, int chunk_size = 1)                       override;
-    void read_from_HDF5(hid_t file_id, MPI_Comm comm)                               override;
+    void readFromXMF(const pugi::xml_node &node, std::string &h5filename)         override;
+    void splitReadAccess(MPI_Comm comm, int chunk_size = 1)                       override;
+    void readFromHDF5(hid_t file_id, MPI_Comm comm)                               override;
         
     VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
         
@@ -123,7 +123,7 @@ class TriangleMeshGrid : public VertexGrid
 public:
     std::shared_ptr<std::vector<int>> getTriangles() const;
         
-    void write_to_HDF5(hid_t file_id, MPI_Comm comm) const override;
+    void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;
                 
     TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
         
