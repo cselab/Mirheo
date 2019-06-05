@@ -244,14 +244,13 @@ const std::string VertexGrid::positionChannelName = "position";
 // Triangle Mesh Grid
 //
     
-TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
+TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions,
+                                   std::shared_ptr<std::vector<int3>> triangles,
+                                   MPI_Comm comm) :
     VertexGrid(positions, comm),
     triangles(triangles),
     dimsTriangles(triangles->size(), comm)
-{
-    if (triangles->size() % 3 != 0)
-        die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
-}
+{}
 
 void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
 {

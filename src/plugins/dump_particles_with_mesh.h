@@ -24,7 +24,7 @@ public:
     void deserialize(MPI_Status& stat) override;
 
 protected:
-    std::shared_ptr<std::vector<int>> allTriangles;
+    std::shared_ptr<std::vector<int3>> allTriangles;
 
     void _prepareConnectivity(int totNVertices);
     

@@ -122,14 +122,14 @@ protected:
 class TriangleMeshGrid : public VertexGrid
 {
 public:
-    TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
+    TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions, std::shared_ptr<std::vector<int3>> triangles, MPI_Comm comm);
     
     void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;    
         
 protected:
     static const std::string triangleChannelName;
     VertexGridDims dimsTriangles;
-    std::shared_ptr<std::vector<int>> triangles;
+    std::shared_ptr<std::vector<int3>> triangles;
 
     void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const override;
 };
