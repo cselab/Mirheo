@@ -102,7 +102,7 @@ void UniformGrid::readFromXMF(const pugi::xml_node &node, std::string &h5filenam
     die("not implemented");
 }
 
-void UniformGrid::splitReadAccess(MPI_Comm comm, int chunk_size)
+void UniformGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
 {
     // TODO
     die("not implemented");
@@ -200,27 +200,27 @@ void VertexGrid::readFromXMF(const pugi::xml_node &node, std::string &h5filename
     h5filename = positionDataSet.substr(0, endH5);
 }
 
-void VertexGrid::splitReadAccess(MPI_Comm comm, int chunk_size)
+void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
 {
     int size, rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     MPI_Check( MPI_Comm_size(comm, &size) );
 
-    int64_t nchunks_global = dims.nglobal / chunk_size;
-    if (nchunks_global * chunk_size != dims.nglobal)
+    int64_t nchunksGlobal = dims.nglobal / chunkSize;
+    if (nchunksGlobal * chunkSize != dims.nglobal)
         die("incompatible chunk size");
 
-    int64_t nchunks_local  = (nchunks_global + size - 1) / size;
-    int64_t chunks_offset = nchunks_local * rank;
+    int64_t nchunksLocal = (nchunksGlobal + size - 1) / size;
+    int64_t chunksOffset = nchunksLocal * rank;
 
     // Don't read past the file size
-    chunks_offset = std::min(chunks_offset, nchunks_global);
+    chunksOffset = std::min(chunksOffset, nchunksGlobal);
 
-    if (chunks_offset + nchunks_local > nchunks_global)
-        nchunks_local = std::max(nchunks_global - chunks_offset, 0l);
+    if (chunksOffset + nchunksLocal > nchunksGlobal)
+        nchunksLocal = std::max(nchunksGlobal - chunksOffset, 0l);
 
-    dims.nlocal = nchunks_local * chunk_size;
-    dims.offset = chunks_offset * chunk_size;
+    dims.nlocal = nchunksLocal * chunkSize;
+    dims.offset = chunksOffset * chunkSize;
 }
 
 void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
