@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v0.16.3
 
 * **minor fix** stats plugin works for 0 particles
 * **fix** MPI cleanup
