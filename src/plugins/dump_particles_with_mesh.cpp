@@ -88,7 +88,7 @@ void ParticleWithMeshDumperPlugin::deserialize(MPI_Status& stat)
     YmrState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
-    int totNVertices = positions->size() / 3;    
+    int totNVertices = positions->size();    
 
     _prepareConnectivity(totNVertices);
 

@@ -70,10 +70,10 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
     }, channel.type);
 }
     
-static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
+static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float3> &positions, ParticleVector *pv)
 {
-    int n = positions.size() / 3;
-    const float3 *pos, *vel = nullptr;
+    int n = positions.size();
+    const float3 *vel = nullptr;
     const int64_t *ids = nullptr;
 
     pv->local()->resize_anew(n);
@@ -92,9 +92,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     if (n > 0 && ids == nullptr)
         die("Channel 'ids' is required to read XDMF into a particle vector");
 
-    pos = reinterpret_cast<const float3*>(positions.data());
-
-    combineIntoPosVel(n, pos, vel, ids, pos4.data(), vel4.data());
+    combineIntoPosVel(n, positions.data(), vel, ids, pos4.data(), vel4.data());
 
     pos4.uploadToDevice(defaultStream);
     vel4.uploadToDevice(defaultStream);
@@ -116,9 +114,9 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
     }, channel.type);
 }
     
-static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
+static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float3>& positions, ObjectVector *ov)
 {
-    int n = positions.size() / 3;
+    int n = positions.size();
     const int64_t *ids_data = nullptr;
 
     auto ids = ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
@@ -223,7 +221,7 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunkSize)
 
     std::string h5filename;
         
-    auto positions = std::make_shared<std::vector<float>>();
+    auto positions = std::make_shared<std::vector<float3>>();
     std::vector<std::vector<char>> channelData;
     std::vector<Channel> channels;
         

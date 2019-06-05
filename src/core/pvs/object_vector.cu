@@ -218,13 +218,11 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     return map;
 }
 
-static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float> &positions)
+static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float3>& pos)
 {
     int n = com_extents.size();
-    positions.resize(3 * n);
+    pos.resize(n);
 
-    float3 *pos = (float3*) positions.data();
-    
     for (int i = 0; i < n; ++i) {
         auto r = com_extents[i].com;
         pos[i] = domain.local2global(r);
@@ -248,7 +246,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float>>();
+    auto positions = std::make_shared<std::vector<float3>>();
 
     splitCom(state->domain, *coms_extents, *positions);
 

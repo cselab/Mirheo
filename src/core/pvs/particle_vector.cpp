@@ -232,17 +232,15 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
-                    std::vector<float> &positions, std::vector<float> &velocities, std::vector<int64_t> &ids)
+                    std::vector<float3> &pos, std::vector<float3> &vel, std::vector<int64_t> &ids)
 {
     int n = local->size();
-    positions .resize(3 * n);
-    velocities.resize(3 * n);
+    pos.resize(n);
+    vel.resize(n);
     ids.resize(n);
 
     auto pos4 = local->positions();
     auto vel4 = local->velocities();
-    
-    float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
     
     for (int i = 0; i < n; i++)
     {
@@ -293,8 +291,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
     local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
-    auto positions = std::make_shared<std::vector<float>>();
-    std::vector<float> velocities;
+    auto positions = std::make_shared<std::vector<float3>>();
+    std::vector<float3> velocities;
     std::vector<int64_t> ids;
     splitPV(state->domain, local(), *positions, velocities, ids);
 

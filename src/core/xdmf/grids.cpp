@@ -132,13 +132,10 @@ VertexGrid::VertexGridDims::VertexGridDims(long nlocal, MPI_Comm comm) :
     MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );    
 }
 
-VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
+VertexGrid::VertexGrid(std::shared_ptr<std::vector<float3>> positions, MPI_Comm comm) :
     positions(positions),
-    dims(positions->size() / 3, comm)
-{
-    if (positions->size() % 3 != 0)
-        die("expected size is multiple of 3; given %d\n", positions->size());
-}
+    dims(positions->size(), comm)
+{}
 
 std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
 std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
@@ -228,7 +225,7 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunk_size)
 
 void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
 {
-    positions->resize(dims.nlocal * 3);
+    positions->resize(dims.nlocal);
     Channel posCh(positionChannelName, (void*) positions->data(),
                   Channel::DataForm::Vector, Channel::NumberType::Float, DataTypeWrapper<float>());
         
@@ -247,10 +244,10 @@ const std::string VertexGrid::positionChannelName = "position";
 // Triangle Mesh Grid
 //
     
-TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
+TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
     VertexGrid(positions, comm),
     triangles(triangles),
-    dimsTriangles(triangles->size() / 3, comm)
+    dimsTriangles(triangles->size(), comm)
 {
     if (triangles->size() % 3 != 0)
         die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());

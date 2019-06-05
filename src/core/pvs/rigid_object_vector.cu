@@ -107,20 +107,18 @@ RigidObjectVector::~RigidObjectVector() = default;
 // TODO refactor this
 
 static void splitMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions,
-                         std::vector<float> &pos, std::vector<RigidReal4> &quaternion,
+                         std::vector<float3> &pos, std::vector<RigidReal4> &quaternion,
                          std::vector<RigidReal3> &vel, std::vector<RigidReal3> &omega,
                          std::vector<RigidReal3> &force, std::vector<RigidReal3> &torque)
 {
     int n = motions.size();
-    pos  .resize(3*n); quaternion.resize(n);
-    vel  .resize(n);        omega.resize(n);
-    force.resize(n);       torque.resize(n);
+    pos  .resize(n); quaternion.resize(n);
+    vel  .resize(n);      omega.resize(n);
+    force.resize(n);     torque.resize(n);
 
-    float3 *pos3 = (float3*) pos.data();
-    
     for (int i = 0; i < n; ++i) {
         auto m = motions[i];
-        pos3[i] = domain.local2global(make_float3(m.r));
+        pos[i] = domain.local2global(make_float3(m.r));
         quaternion[i] = m.q;
         vel[i] = m.vel;
         omega[i] = m.omega;
@@ -140,7 +138,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float>>();
+    auto positions = std::make_shared<std::vector<float3>>();
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
     
