@@ -96,9 +96,11 @@ protected:
     };
 
 public:
+    
+    VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
+    
     const VertexGridDims* getGridDims()                                     const override;        
     std::string getCentering()                                              const override;
-    std::shared_ptr<std::vector<float>> getPositions()                      const;
                                                                                
     void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const override;
     pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const override;
@@ -107,9 +109,8 @@ public:
     void splitReadAccess(MPI_Comm comm, int chunkSize = 1)                        override;
     void readFromHDF5(hid_t file_id, MPI_Comm comm)                               override;
         
-    VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm);
-        
 protected:
+    
     static const std::string positionChannelName;
     VertexGridDims dims;
 
@@ -121,11 +122,9 @@ protected:
 class TriangleMeshGrid : public VertexGrid
 {
 public:
-    std::shared_ptr<std::vector<int>> getTriangles() const;
-        
-    void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;
-                
     TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm);
+    
+    void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;    
         
 protected:
     static const std::string triangleChannelName;

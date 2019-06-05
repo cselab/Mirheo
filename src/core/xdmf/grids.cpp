@@ -131,14 +131,21 @@ VertexGrid::VertexGridDims::VertexGridDims(long nlocal, MPI_Comm comm) :
     MPI_Check( MPI_Exscan   (&nlocal, &offset,  1, MPI_LONG_LONG_INT, MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );    
 }
-    
+
+VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
+    positions(positions),
+    dims(positions->size() / 3, comm)
+{
+    if (positions->size() % 3 != 0)
+        die("expected size is multiple of 3; given %d\n", positions->size());
+}
+
 std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
 std::vector<hsize_t> VertexGrid::VertexGridDims::getGlobalSize() const {return {nglobal};}
 std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {offset, 0};}
 
 const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const    { return &dims; }    
 std::string VertexGrid::getCentering() const                         { return "Node"; }    
-std::shared_ptr<std::vector<float>> VertexGrid::getPositions() const { return positions; }
 
 void VertexGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
 {
@@ -227,14 +234,6 @@ void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
         
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
-        
-VertexGrid::VertexGrid(std::shared_ptr<std::vector<float>> positions, MPI_Comm comm) :
-    positions(positions),
-    dims(positions->size() / 3, comm)
-{
-    if (positions->size() % 3 != 0)
-        die("expected size is multiple of 3; given %d\n", positions->size());
-}
 
 void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
 {
@@ -248,7 +247,14 @@ const std::string VertexGrid::positionChannelName = "position";
 // Triangle Mesh Grid
 //
     
-std::shared_ptr<std::vector<int>> TriangleMeshGrid::getTriangles() const { return triangles; }
+TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
+    VertexGrid(positions, comm),
+    triangles(triangles),
+    dimsTriangles(triangles->size() / 3, comm)
+{
+    if (triangles->size() % 3 != 0)
+        die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
+}
 
 void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
 {
@@ -260,15 +266,6 @@ void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
     HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
 }
                 
-TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float>> positions, std::shared_ptr<std::vector<int>> triangles, MPI_Comm comm) :
-    VertexGrid(positions, comm),
-    triangles(triangles),
-    dimsTriangles(triangles->size() / 3, comm)
-{
-    if (triangles->size() % 3 != 0)
-        die("connectivity: expected size is multiple of 3; given %d\n", triangles->size());
-}
-
 void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
 {
     topoNode.append_attribute("TopologyType") = "Triangle";
