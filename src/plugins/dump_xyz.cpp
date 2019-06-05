@@ -1,4 +1,4 @@
-#include "dumpxyz.h"
+#include "dump_xyz.h"
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"
 #include "utils/xyz.h"
