@@ -55,18 +55,19 @@ static void combineIntoPosVel(int n, const float3 *pos, const float3 *vel, const
 
 static void addPersistentExtraDataPerParticle(int n, const Channel& channel, ParticleVector *pv)
 {
-    mpark::visit([&](auto typeWrapper) {
-                     using Type = typename decltype(typeWrapper)::type;
+    mpark::visit([&](auto typeWrapper)
+    {
+        using Type = typename decltype(typeWrapper)::type;
 
-                     pv->requireDataPerParticle<Type>
-                         (channel.name,
-                          DataManager::PersistenceMode::Persistent);
-                     
-                     auto buffer = pv->local()->dataPerParticle.getData<Type>(channel.name);
-                     buffer->resize_anew(n);
-                     memcpy(buffer->data(), channel.data, n * sizeof(Type));
-                     buffer->uploadToDevice(defaultStream);
-                 }, channel.type);
+        pv->requireDataPerParticle<Type>
+            (channel.name,
+             DataManager::PersistenceMode::Persistent);
+
+        auto buffer = pv->local()->dataPerParticle.getData<Type>(channel.name);
+        buffer->resize_anew(n);
+        memcpy(buffer->data(), channel.data, n * sizeof(Type));
+        buffer->uploadToDevice(defaultStream);
+    }, channel.type);
 }
     
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ParticleVector *pv)
@@ -91,7 +92,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     if (n > 0 && ids == nullptr)
         die("Channel 'ids' is required to read XDMF into a particle vector");
 
-    pos = (const float3*) positions.data();
+    pos = reinterpret_cast<const float3*>(positions.data());
 
     combineIntoPosVel(n, pos, vel, ids, pos4.data(), vel4.data());
 
@@ -101,18 +102,18 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
 static void addPersistentExtraDataPerObject(int n, const Channel& channel, ObjectVector *ov)
 {
-    mpark::visit([&](auto typeWrapper) {
-
-                     using Type = typename decltype(typeWrapper)::type;
+    mpark::visit([&](auto typeWrapper)
+    {
+        using Type = typename decltype(typeWrapper)::type;
                      
-                     ov->requireDataPerObject<Type>
-                         (channel.name, DataManager::PersistenceMode::Persistent);
+        ov->requireDataPerObject<Type>
+            (channel.name, DataManager::PersistenceMode::Persistent);
                      
-                     auto buffer = ov->local()->dataPerObject.getData<Type>(channel.name);
-                     buffer->resize_anew(n);
-                     memcpy(buffer->data(), channel.data, n * sizeof(Type));
-                     buffer->uploadToDevice(defaultStream);
-                 }, channel.type);
+        auto buffer = ov->local()->dataPerObject.getData<Type>(channel.name);
+        buffer->resize_anew(n);
+        memcpy(buffer->data(), channel.data, n * sizeof(Type));
+        buffer->uploadToDevice(defaultStream);
+    }, channel.type);
 }
     
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, ObjectVector *ov)
@@ -238,7 +239,6 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunkSize)
     info("Reading took %f ms", timer.elapsed());
 
     gatherFromChannels(channels, *positions, pv);
-
 }
 
 void readParticleData(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunkSize)
