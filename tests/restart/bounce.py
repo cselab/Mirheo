@@ -2,7 +2,6 @@
 
 import sys
 import numpy as np
-
 import ymero as ymr
 
 import sys, argparse
@@ -12,15 +11,17 @@ from common.membrane_params import lina_parameters
 parser = argparse.ArgumentParser()
 parser.add_argument('--vis',     action='store_true', default=False)
 parser.add_argument('--restart', action='store_true', default=False)
+parser.add_argument("--ranks", type=int, nargs=3, default = [1,1,1])
 args = parser.parse_args()
 
 dt = 0.001
 t_end = 2.5 + dt # time for one restart batch
 
-ranks  = (1, 1, 1)
+ranks  = args.ranks
 domain = (8, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every = int(0.5/dt), no_splash=True)
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log',
+              checkpoint_every = int(0.5/dt), no_splash=True)
 
 nparts = 1000
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -70,10 +71,10 @@ if args.restart:
 niters = int (t_end / dt)    
 u.run(niters)
 
-if args.restart and pvRbc is not None:
-    rbc_pos = pvRbc.getCoordinates()
-    np.savetxt("pos.rbc.txt", rbc_pos)
-
+if args.restart and u.isComputeTask():
+    pos = pvRbc.getCoordinates()
+    if len(pos) > 0:
+        np.savetxt("pos.rbc.txt", pos)
 
 # nTEST: restart.bounce
 # set -eu
@@ -82,4 +83,13 @@ if args.restart and pvRbc is not None:
 # cp ../../data/rbc_mesh.off .
 # ymr.run --runargs "-n 2" ./bounce.py --vis
 # ymr.run --runargs "-n 2" ./bounce.py --vis --restart
+# mv pos.rbc.txt pos.rbc.out.txt
+
+# nTEST: restart.bounce.mpi
+# set -eu
+# cd restart
+# rm -rf pos.rbc.txt pos.rbc.out.txt restart 
+# cp ../../data/rbc_mesh.off .
+# ymr.run --runargs "-n 4" ./bounce.py --ranks 2 1 1 --vis
+# ymr.run --runargs "-n 4" ./bounce.py --ranks 2 1 1 --vis --restart
 # mv pos.rbc.txt pos.rbc.out.txt
