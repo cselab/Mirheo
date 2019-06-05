@@ -245,6 +245,33 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
+void ObjectVector::_redistributeObjectData(MPI_Comm comm, const std::vector<int>& map)
+{
+    for (auto& ch : local()->dataPerObject.getSortedChannels())
+    {
+        auto& desc = ch.second;
+
+        if (desc->persistence == DataManager::PersistenceMode::None)
+            continue;
+        
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
+            RestartHelpers::exchangeData(comm, map, data, 1);
+            bufferPtr->resize_anew(data.size());
+
+            if (desc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            std::copy(data.begin(), data.end(), bufferPtr->begin());
+            bufferPtr->uploadToDevice(defaultStream);
+        }, desc->varDataPtr);
+    }
+
+    CUDA_Check( cudaDeviceSynchronize() );
+}
+
 void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -254,20 +281,9 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    auto loc_ids = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    _redistributeObjectData(comm, map);
     
-    std::vector<int> ids(loc_ids->size());
-    std::copy(loc_ids->begin(), loc_ids->end(), ids.begin());
-    
-    RestartHelpers::exchangeData(comm, map, ids, 1);
-
-    loc_ids->resize_anew(ids.size());
-    std::copy(ids.begin(), ids.end(), loc_ids->begin());
-
-    loc_ids->uploadToDevice(defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d object infos", loc_ids->size());
+    info("Successfully read object infos of '%s'", name.c_str());
 }
 
 void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)

@@ -165,12 +165,6 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-static void shiftCoordinates(const DomainInfo& domain, std::vector<RigidMotion>& motions)
-{
-    for (auto& m : motions)
-        m.r = make_rigidReal3( domain.global2local(make_float3(m.r)) );
-}
-
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -180,29 +174,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    auto loc_ids     = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto loc_motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-    
-    std::vector<int64_t>         ids(loc_ids->size());
-    std::vector<RigidMotion> motions(loc_motions->size());
-    
-    std::copy(loc_ids    ->begin(), loc_ids    ->end(), ids.begin());
-    std::copy(loc_motions->begin(), loc_motions->end(), motions.begin());
-    
-    RestartHelpers::exchangeData(comm, map, ids, 1);
-    RestartHelpers::exchangeData(comm, map, motions, 1);
+    _redistributeObjectData(comm, map);
 
-    shiftCoordinates(state->domain, motions);
-    
-    loc_ids->resize_anew(ids.size());
-    loc_motions->resize_anew(motions.size());
-
-    std::copy(ids.begin(), ids.end(), loc_ids->begin());
-    std::copy(motions.begin(), motions.end(), loc_motions->begin());
-
-    loc_ids->uploadToDevice(defaultStream);
-    loc_motions->uploadToDevice(defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d object infos", loc_motions->size());
+    info("Successfully read object infos of '%s'", name.c_str());
 }

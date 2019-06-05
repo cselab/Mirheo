@@ -3,8 +3,10 @@
 #include <mpi.h>
 #include <vector>
 
-#include "core/domain.h"
-#include "particle_vector.h"
+#include <core/domain.h>
+#include <core/pvs/particle_vector.h>
+#include <core/utils/type_shift.h>
+
 
 namespace RestartHelpers
 {
@@ -77,6 +79,22 @@ static void exchangeData(MPI_Comm comm, const std::vector<int>& map, std::vector
     recvData(size, data, comm);
 
     MPI_Check( MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE) );
+}
+
+
+
+template<typename Container>
+static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
+{
+    auto shift = domain.local2global({0.f, 0.f, 0.f});
+    for (auto& d : data) TypeShift::shift(d, shift);    
+}
+
+template<typename Container>
+static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
+{
+    auto shift = domain.global2local({0.f, 0.f, 0.f});
+    for (auto& d : data) TypeShift::shift(d, shift);    
 }
 
 } // namespace RestartHelpers

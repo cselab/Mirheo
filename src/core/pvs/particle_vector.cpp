@@ -269,6 +269,10 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
         {
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
+
+            if (channelDesc->needShift())
+                RestartHelpers::shiftElementsLocal2Global(*bufferPtr, state->domain);
+            
             auto formtype   = XDMF::getDataForm<T>();
             auto numbertype = XDMF::getNumberType<T>();
             auto datatype   = DataTypeWrapper<T>();
@@ -370,7 +374,7 @@ std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int ch
     RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
     RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
     auto newSize = pos4.size();
-    
+
     for (auto& ch : local()->dataPerParticle.getSortedChannels())
     {
         auto& name = ch.first;
@@ -380,13 +384,19 @@ std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int ch
             name == ChannelNames::velocities                       ||
             desc->persistence == DataManager::PersistenceMode::None)
             continue;
-        
+
         mpark::visit([&](auto bufferPtr)
         {
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
             RestartHelpers::exchangeData(comm, map, data, chunkSize);
-            std::copy(data.begin(), data.end(), bufferPtr->begin()); // TODO shift
+
+            if (desc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            bufferPtr->resize_anew(data.size());
+            std::copy(data.begin(), data.end(), bufferPtr->begin());
+            
             bufferPtr->uploadToDevice(defaultStream);
         }, desc->varDataPtr);
     }
