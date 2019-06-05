@@ -265,14 +265,15 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
         if (blackList.find(channelName) != blackList.end())
             continue;
 
-        mpark::visit([&](auto bufferPtr) {
-                         using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-                         bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-                         auto formtype   = XDMF::getDataForm<T>();
-                         auto numbertype = XDMF::getNumberType<T>();
-                         auto datatype   = DataTypeWrapper<T>();
-                         channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
-                     }, channelDesc->varDataPtr);
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
+            auto formtype   = XDMF::getDataForm<T>();
+            auto numbertype = XDMF::getNumberType<T>();
+            auto datatype   = DataTypeWrapper<T>();
+            channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
+        }, channelDesc->varDataPtr);
     }
 }
 
@@ -298,11 +299,10 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
 
     XDMF::VertexGrid grid(positions, comm);
 
-    std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel("velocity", velocities.data(),
-                                     XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>() ));
-    channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
-                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() ));
+    std::vector<XDMF::Channel> channels = {
+         { "velocity",       velocities.data(), XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>  () },
+         { ChannelNames::globalIds, ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() }
+    };
 
     // do not dump velocities, they are already there
     _extractPersistentExtraParticleData(channels, {ChannelNames::velocities});
