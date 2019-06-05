@@ -142,20 +142,27 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
     ids->uploadToDevice(defaultStream);
 }
 
-static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *quaternion,
-                                    const RigidReal3 *vel, const RigidReal3 *omega,
-                                    const RigidReal3 *force, const RigidReal3 *torque,
-                                    RigidMotion *motions)
+struct RigidMotionsSoA
 {
-    for (int i = 0; i < n; ++i) {
+    const float3 *pos            {nullptr};
+    const RigidReal4 *quaternion {nullptr};
+    const RigidReal3 *vel        {nullptr};
+    const RigidReal3 *omega      {nullptr};
+    const RigidReal3 *force      {nullptr};
+    const RigidReal3 *torque     {nullptr};    
+};
+
+static void combineIntoRigidMotions(int n, const RigidMotionsSoA& soa, RigidMotion *motions)
+{
+    for (int i = 0; i < n; ++i)
+    {
         RigidMotion m;
-        m.r      = make_rigidReal3(pos[i]);
-        m.q      = quaternion[i];
-        m.vel    = vel[i];
-        m.omega  = omega[i];
-        m.force  = force[i];
-        m.torque = torque[i];
-            
+        m.r      = make_rigidReal3(soa.pos[i]);
+        m.q      = soa.quaternion[i];
+        m.vel    = soa.vel       [i];
+        m.omega  = soa.omega     [i];
+        m.force  = soa.force     [i];
+        m.torque = soa.torque    [i];
         motions[i] = m;
     }
 }
@@ -163,10 +170,10 @@ static void combineIntoRigidMotions(int n, const float3 *pos, const RigidReal4 *
 static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
 {
     int n = positions.size() / 3;
-    const int64_t *ids_data = nullptr;
-    const float3 *pos = (const float3*) positions.data();
-    const RigidReal4 *quaternion;
-    const RigidReal3 *vel, *omega, *force, *torque;
+    const int64_t *ids_data {nullptr};
+    RigidMotionsSoA soa;
+
+    soa.pos = reinterpret_cast<const float3*>(positions.data());
 
     auto ids     = rov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
@@ -176,32 +183,36 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 
     for (auto& ch : channels)
     {
-        if      (ch.name == ChannelNames::globalIds)  ids_data = (const int64_t*)    ch.data;
-        else if (ch.name == "quaternion")           quaternion = (const RigidReal4*) ch.data; 
-        else if (ch.name == "velocity")                    vel = (const RigidReal3*) ch.data;
-        else if (ch.name == "omega")                     omega = (const RigidReal3*) ch.data;
-        else if (ch.name == "force")                     force = (const RigidReal3*) ch.data;
-        else if (ch.name == "torque")                   torque = (const RigidReal3*) ch.data;
+        if      (ch.name == ChannelNames::globalIds)  ids_data       = reinterpret_cast<const int64_t*>    (ch.data);
+        else if (ch.name == "quaternion")             soa.quaternion = reinterpret_cast<const RigidReal4*> (ch.data); 
+        else if (ch.name == "velocity")               soa.vel        = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == "omega")                  soa.omega      = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == "force")                  soa.force      = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == "torque")                 soa.torque     = reinterpret_cast<const RigidReal3*> (ch.data);
         else addPersistentExtraDataPerObject(n, ch, rov);
     }
 
-    if (n > 0) {
-        auto check = [&](std::string name, const void *ptr) {
-                         if (ptr == nullptr)
-                             die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
-                     };
+    if (n > 0)
+    {
+        auto check = [&](std::string name, const void *ptr)
+        {
+            if (ptr == nullptr)
+                die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
+        };
         check(ChannelNames::globalIds, ids_data);
-        check("quaternion",            quaternion);
-        check("velocity",              vel);
-        check("omega",                 omega);
-        check("force",                 force);
-        check("torque",                torque);
+        check("quaternion",            soa.quaternion);
+        check("velocity",              soa.vel);
+        check("omega",                 soa.omega);
+        check("force",                 soa.force);
+        check("torque",                soa.torque);
     }
 
-    combineIntoRigidMotions(n, pos, quaternion, vel, omega, force, torque, motions->data());        
-    for (int i = 0; i < n; ++i) (*ids)[i] = ids_data[i];
+    combineIntoRigidMotions(n, soa, motions->data());        
 
-    ids->uploadToDevice(defaultStream);
+    for (int i = 0; i < n; ++i)
+        (*ids)[i] = ids_data[i];
+
+    ids    ->uploadToDevice(defaultStream);
     motions->uploadToDevice(defaultStream);
 }
     
