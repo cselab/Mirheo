@@ -205,7 +205,7 @@ static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float
 }
     
 template <typename PV>
-static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunk_size) 
+static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunkSize) 
 {
     info("Reading XDMF data from %s", filename.c_str());
 
@@ -220,7 +220,7 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunk_size
     mTimer timer;
     timer.start();
     XMF::read(filename, comm, h5filename, &grid, channels);
-    grid.splitReadAccess(comm, chunk_size);
+    grid.splitReadAccess(comm, chunkSize);
 
     h5filename = parentPath(filename) + h5filename;
 
@@ -241,9 +241,9 @@ static void readData(std::string filename, MPI_Comm comm, PV *pv, int chunk_size
 
 }
 
-void readParticleData(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunk_size)
+void readParticleData(std::string filename, MPI_Comm comm, ParticleVector *pv, int chunkSize)
 {
-    readData(filename, comm, pv, chunk_size);
+    readData(filename, comm, pv, chunkSize);
 }
 
     
