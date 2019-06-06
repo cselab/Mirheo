@@ -259,7 +259,7 @@ void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, 
     }
 }
 
-void YMeRo::setIntegrator(Integrator* integrator, ParticleVector* pv)
+void YMeRo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 {
     checkNotInitialized();
     
@@ -267,7 +267,7 @@ void YMeRo::setIntegrator(Integrator* integrator, ParticleVector* pv)
         sim->setIntegrator(integrator->name, pv->name);
 }
 
-void YMeRo::setInteraction(Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2)
+void YMeRo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
 {
     checkNotInitialized();
     
@@ -275,7 +275,7 @@ void YMeRo::setInteraction(Interaction* interaction, ParticleVector* pv1, Partic
         sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
 
-void YMeRo::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
+void YMeRo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
 {
     checkNotInitialized();
     
@@ -283,12 +283,12 @@ void YMeRo::setBouncer(Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv)
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
 
-void YMeRo::setWallBounce(Wall* wall, ParticleVector* pv)
+void YMeRo::setWallBounce(Wall *wall, ParticleVector *pv, float maximumPartTravel)
 {
     checkNotInitialized();
     
     if (isComputeTask())
-        sim->setWallBounce(wall->name, pv->name);
+        sim->setWallBounce(wall->name, pv->name, maximumPartTravel);
 }
 
 YmrState* YMeRo::getState()

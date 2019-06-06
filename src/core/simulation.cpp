@@ -393,7 +393,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
     bouncerPrototypes.push_back({bouncer, pv});
 }
 
-void Simulation::setWallBounce(std::string wallName, std::string pvName)
+void Simulation::setWallBounce(std::string wallName, std::string pvName, float maximumPartTravel)
 {
     auto pv = getPVbyNameOrDie(pvName);
 
@@ -402,7 +402,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName)
     auto wall = wallMap[wallName].get();
 
     wall->setPrerequisites(pv);
-    wallPrototypes.push_back( {wall, pv} );
+    wallPrototypes.push_back( {wall, pv, maximumPartTravel} );
 }
 
 void Simulation::setObjectBelongingChecker(std::string checkerName, std::string objName)
@@ -618,14 +618,14 @@ void Simulation::prepareWalls()
     {
         auto wall = prototype.wall;
         auto pv   = prototype.pv;
-
+        
         auto& clVec = cellListMap[pv];
 
         if (clVec.empty()) continue;
 
         CellList *cl = clVec[0].get();
 
-        wall->attach(pv, cl);
+        wall->attach(pv, cl, prototype.maximumPartTravel);
     }
 
     for (auto& wall : wallMap)

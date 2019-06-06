@@ -67,10 +67,10 @@ public:
     
     void registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov);
  
-    void setIntegrator  (Integrator* integrator,  ParticleVector* pv);
-    void setInteraction (Interaction* interaction, ParticleVector* pv1, ParticleVector* pv2);
-    void setBouncer     (Bouncer* bouncer, ObjectVector* ov, ParticleVector* pv);
-    void setWallBounce  (Wall* wall, ParticleVector* pv);
+    void setIntegrator  (Integrator *integrator,  ParticleVector *pv);
+    void setInteraction (Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2);
+    void setBouncer     (Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv);
+    void setWallBounce  (Wall *wall, ParticleVector *pv, float maximumPartTravel = 0.25f);
 
     YmrState* getState();
     const YmrState* getState() const;

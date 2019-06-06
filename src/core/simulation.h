@@ -64,7 +64,7 @@ public:
     void setIntegrator             (std::string integratorName,  std::string pvName);
     void setInteraction            (std::string interactionName, std::string pv1Name, std::string pv2Name);
     void setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
-    void setWallBounce             (std::string wallName,        std::string pvName);
+    void setWallBounce             (std::string wallName,        std::string pvName, float maximumPartTravel);
     void setObjectBelongingChecker (std::string checkerName,     std::string objName);
 
 
@@ -162,6 +162,7 @@ private:
     {
         Wall *wall;
         ParticleVector *pv;
+        float maximumPartTravel;
     };
 
     struct CheckWallPrototype

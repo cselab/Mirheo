@@ -20,7 +20,7 @@ public:
     void attachFrozen(ParticleVector *pv) override;
 
     void removeInner(ParticleVector *pv) override;
-    void attach(ParticleVector *pv, CellList *cl) override;
+    void attach(ParticleVector *pv, CellList *cl, float maximumPartTravel) override;
     void bounce(cudaStream_t stream) override;
     void check(cudaStream_t stream) override;
 
@@ -28,7 +28,7 @@ public:
                         GPUcontainer *sdfs, GPUcontainer *gradients,
                         float gradientThreshold, cudaStream_t stream) override;
     void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) override;
-    void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) override;
+    void sdfOnGrid(float3 gridH, GPUcontainer *sdfs, cudaStream_t stream) override;
 
 
     InsideWallChecker& getChecker() { return insideWallChecker; }

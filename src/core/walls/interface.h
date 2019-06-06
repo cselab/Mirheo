@@ -16,14 +16,13 @@ class Wall : public YmrSimulationObject
 {
 public:
     Wall(const YmrState *state, std::string name);
-    
     virtual ~Wall();
 
     virtual void setup(MPI_Comm& comm) = 0;
-    virtual void attachFrozen(ParticleVector* pv) = 0;
+    virtual void attachFrozen(ParticleVector *pv) = 0;
 
-    virtual void removeInner(ParticleVector* pv) = 0;
-    virtual void attach(ParticleVector* pv, CellList* cl) = 0;
+    virtual void removeInner(ParticleVector *pv) = 0;
+    virtual void attach(ParticleVector *pv, CellList *cl, float maximumPartTravel) = 0;
     virtual void bounce(cudaStream_t stream) = 0;
 
     /**
@@ -31,7 +30,7 @@ public:
      * Default: ask nothing
      * Called from Simulation right after setup
      */
-    virtual void setPrerequisites(ParticleVector* pv) {}
+    virtual void setPrerequisites(ParticleVector *pv);
 
     virtual void check(cudaStream_t stream) = 0;
 };
@@ -41,13 +40,12 @@ class SDF_basedWall : public Wall
 {
 public:
     using Wall::Wall;
-
-    virtual void sdfPerParticle(LocalParticleVector* lpv,
-            GPUcontainer* sdfs, GPUcontainer* gradients,
+    ~SDF_basedWall();
+    
+    virtual void sdfPerParticle(LocalParticleVector *lpv,
+            GPUcontainer *sdfs, GPUcontainer *gradients,
             float gradientThreshold, cudaStream_t stream) = 0;
-    virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) = 0;
+    virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer *sdfs, cudaStream_t stream) = 0;
     virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual PinnedBuffer<double3>* getCurrentBounceForce() = 0;
-
-    ~SDF_basedWall();
 };

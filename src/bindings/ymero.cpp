@@ -134,7 +134,17 @@ void exportYmero(py::module& m)
 
         )")
         .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
-        .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
+        .def("setWall",        &YMeRo::setWallBounce,
+             "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25f, R"(
+                Assign :any:`Wall` bouncer to a given :any:`ParticleVector`
+
+                Args:
+                    wall: :any:`Wall` surface which will bounce the particles
+                    pv: :any: `ParticleVector` to be bounced
+                    maximum_part_travel: maximum distance that one particle travels in one time step
+                                         this should be as small as possible for performance reasons 
+                                         but large enough for correctness
+         )")
 
         .def("getState",       &YMeRo::getYmrState,    "Return ymero state")
         

@@ -262,11 +262,8 @@ void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl)
+void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl, float maximumPartTravel)
 {
-    // maximum travel performed by one particle per time step
-    const float maximumTravel = 0.25f;
-        
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
@@ -291,7 +288,8 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Query>,
             nblocks, nthreads, 0, defaultStream,
-            maximumTravel, cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            nullptr, insideWallChecker.handler() );
 
     nBoundaryCells.downloadFromDevice(defaultStream);
 
@@ -302,7 +300,8 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Collect>,
             nblocks, nthreads, 0, defaultStream,
-            maximumTravel, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            bc.devPtr(), insideWallChecker.handler() );
 
     boundaryCells.push_back(std::move(bc));
     CUDA_Check( cudaDeviceSynchronize() );
