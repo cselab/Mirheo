@@ -111,10 +111,8 @@ __global__ static void unpackRemainingObjects(const char *from, OVview view, Obj
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, InsideWallChecker checker)
+__device__ inline bool isCellOnBoundary(const float maximumTravel, float3 cornerCoo, float3 len, InsideWallChecker checker)
 {
-    // About maximum distance a particle can cover in one step
-    const float tol = 0.25f;
     int pos = 0, neg = 0;
 
     for (int i = 0; i < 2; ++i)
@@ -125,8 +123,8 @@ __device__ inline bool isCellOnBoundary(float3 cornerCoo, float3 len, InsideWall
                 const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
                 const float s = checker(cornerCoo + shift);
 
-                if (s >  tol) pos++;
-                if (s < -tol) neg++;
+                if (s >  maximumTravel) pos++;
+                if (s < -maximumTravel) neg++;
             }
 
     return (pos != 8 && neg != 8);
@@ -138,7 +136,7 @@ enum class QueryMode {
 };
 
 template<QueryMode queryMode, typename InsideWallChecker>
-__global__ void getBoundaryCells(CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
+__global__ void getBoundaryCells(float maximumTravel, CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
 {
     const int cid = blockIdx.x * blockDim.x + threadIdx.x;
     if (cid >= cinfo.totcells) return;
@@ -147,7 +145,7 @@ __global__ void getBoundaryCells(CellListInfo cinfo, int *nBoundaryCells, int *b
     cinfo.decode(cid, ind.x, ind.y, ind.z);
     float3 cornerCoo = -0.5f*cinfo.localDomainSize + make_float3(ind)*cinfo.h;
 
-    if (isCellOnBoundary(cornerCoo, cinfo.h, checker))
+    if (isCellOnBoundary(maximumTravel, cornerCoo, cinfo.h, checker))
     {
         int id = atomicAggInc(nBoundaryCells);
         if (queryMode == QueryMode::Collect)
@@ -266,6 +264,9 @@ void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl)
 {
+    // maximum travel performed by one particle per time step
+    const float maximumTravel = 0.25f;
+        
     if (pv == frozen)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
@@ -290,7 +291,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Query>,
             nblocks, nthreads, 0, defaultStream,
-            cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
+            maximumTravel, cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
 
     nBoundaryCells.downloadFromDevice(defaultStream);
 
@@ -301,7 +302,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Collect>,
             nblocks, nthreads, 0, defaultStream,
-            cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
+            maximumTravel, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
 
     boundaryCells.push_back(std::move(bc));
     CUDA_Check( cudaDeviceSynchronize() );
