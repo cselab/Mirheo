@@ -44,6 +44,8 @@ private:
 
     struct Task
     {
+        Task(const std::string& label, TaskID id, int priority);
+        
         std::string label;
         TaskID id;
         int priority;
@@ -55,6 +57,7 @@ private:
     struct Node;
     struct Node
     {
+        Node(TaskID id, int priority);
         TaskID id;
 
         std::list<Node*> to, from, from_backup;

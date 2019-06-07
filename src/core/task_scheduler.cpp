@@ -39,7 +39,7 @@ TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
     id = tasks.size();
     label2taskId[label] = id;
 
-    Task task {label, id};
+    Task task(label, id, cudaPriorityLow);
     tasks.push_back(task);
 
     return id;
@@ -128,11 +128,7 @@ void TaskScheduler::createNodes()
 
     for (auto& t : tasks)
     {
-        auto node = std::make_unique<Node>();
-
-        node->id = t.id;
-        node->priority = t.priority;
-
+        auto node = std::make_unique<Node>(t.id, t.priority);
         nodes.push_back(std::move(node));
     }
 
@@ -272,7 +268,7 @@ void TaskScheduler::run()
     // Kahn's algorithm
     // https://en.wikipedia.org/wiki/Topological_sorting
 
-    auto compareNodes = [] (Node* a, Node* b) {
+    auto compareNodes = [] (Node *a, Node *b) {
         // lower number means higher priority
         return a->priority < b->priority;
     };
@@ -422,3 +418,14 @@ void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
     auto filename = fname + ".graphml";    
     doc.save_file(filename.c_str());
 }
+
+TaskScheduler::Task::Task(const std::string& label, TaskID id, int priority) :
+    label(label),
+    id(id),
+    priority(priority)
+{}
+
+TaskScheduler::Node::Node(TaskID id, int priority) :
+    id(id),
+    priority(priority)
+{}
