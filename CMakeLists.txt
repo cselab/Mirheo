@@ -147,14 +147,17 @@ if (USE_NVTX)
   add_definitions(-DUSE_NVTX)
   target_link_libraries(${YMR} PRIVATE "-lnvToolsExt")
   target_link_libraries(${YMR_MAIN} PRIVATE "-lnvToolsExt")
+  message("compiling with USE_NVTX ON")
 endif()
 
 if (MEMBRANE_DOUBLE)
   add_definitions(-DMEMBRANE_FORCES_DOUBLE)
+  message("compiling with MEMBRANE_DOUBLE ON")
 endif()
 
 if (ROD_DOUBLE)
   add_definitions(-DROD_FORCES_DOUBLE)
+  message("compiling with ROD_DOUBLE ON")
 endif()
 
 # Silence deprecation warnings for CUDA >= 9
