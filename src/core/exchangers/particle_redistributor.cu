@@ -21,9 +21,9 @@ enum class PackMode
 namespace ParticleRedistributorKernels
 {
 inline __device__ int encodeCellId1d(int cid, int ncells) {
-    if (cid < 0)            return -1;
-    else if (cid >= ncells) return 1;
-    else                    return 0;
+    if      (cid <  0     ) return -1;
+    else if (cid >= ncells) return  1;
+    else                    return  0;
 }
 
 inline __device__ int3 encodeCellId(int3 cid, int3 ncells) {
@@ -44,7 +44,6 @@ __global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEn
     const int faceId = blockIdx.y;
     int cid;
     int dx, dy, dz;
-    const int3 ncells = cinfo.ncells;
 
     bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
@@ -65,7 +64,7 @@ __global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEn
 
         int3 dir = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(p.r);
 
-        dir = encodeCellId(dir, ncells);
+        dir = encodeCellId(dir, cinfo.ncells);
 
         if (p.isMarked()) continue;
         

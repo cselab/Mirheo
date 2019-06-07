@@ -14,10 +14,9 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 dt = 0.01
 
-if args.restart:
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=0, no_splash=True)
-else:
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, no_splash=True)
+u = ymr.ymero(ranks, domain, dt, debug_level=3,
+              log_filename='log', no_splash=True,
+              checkpoint_every = (0 if args.restart else 5))
 
     
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)

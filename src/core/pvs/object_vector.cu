@@ -13,9 +13,9 @@ namespace ObjectVectorKernels
 
 __global__ void minMaxCom(OVview ovView)
 {
-    const int gid = threadIdx.x + blockDim.x * blockIdx.x;
-    const int objId = gid >> 5;
-    const int tid = gid & 0x1f;
+    const int gid    = threadIdx.x + blockDim.x * blockIdx.x;
+    const int objId  = gid / warpSize;
+    const int laneId = gid % warpSize;
     if (objId >= ovView.nObjects) return;
 
     float3 mymin = make_float3( 1e+10f);
@@ -23,7 +23,7 @@ __global__ void minMaxCom(OVview ovView)
     float3 mycom = make_float3(0);
 
 #pragma unroll 3
-    for (int i = tid; i < ovView.objSize; i += warpSize)
+    for (int i = laneId; i < ovView.objSize; i += warpSize)
     {
         const int offset = objId * ovView.objSize + i;
 
@@ -38,7 +38,7 @@ __global__ void minMaxCom(OVview ovView)
     mymin = warpReduce( mymin, [] (float a, float b) { return fmin(a, b); } );
     mymax = warpReduce( mymax, [] (float a, float b) { return fmax(a, b); } );
 
-    if (tid == 0)
+    if (laneId == 0)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
@@ -146,12 +146,16 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
 
     debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
 
+    OVview view(this, lov);
+    
+    constexpr int warpSize = 32;
     const int nthreads = 128;
-    OVview ovView(this, lov);
+    const int nblocks = getNblocks(view.nObjects * warpSize, nthreads);
+    
     SAFE_KERNEL_LAUNCH(
             ObjectVectorKernels::minMaxCom,
-            (ovView.nObjects*32 + nthreads-1)/nthreads, nthreads, 0, stream,
-            ovView );
+            nblocks, nthreads, 0, stream,
+            view );
 }
 
 void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map)
@@ -173,7 +177,7 @@ void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float
         int3 procId3 = make_int3(floorf(com / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
-            map[i] = -1;
+            map[i] = RestartHelpers::InvalidProc;
             continue;
         }
         
@@ -193,34 +197,14 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
 
     XDMF::readParticleData(filename, comm, this, objSize);
 
-    std::vector<float4> pos4(local()->size()), vel4(local()->size());
-    std::vector<int> map;
-    
-    std::copy(local()->positions ().begin(), local()->positions ().end(), pos4.begin());
-    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
-    
-    _getRestartExchangeMap(comm, pos4, map);
-    RestartHelpers::exchangeData(comm, map, pos4, objSize);
-    RestartHelpers::exchangeData(comm, map, vel4, objSize);
-    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
-
-    local()->positions ().uploadToDevice(defaultStream);
-    local()->velocities().uploadToDevice(defaultStream);
-    
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d particles", local()->size());
-
-    return map;
+    return _redistributeParticleData(comm, objSize);
 }
 
-static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float> &positions)
+static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float3>& pos)
 {
     int n = com_extents.size();
-    positions.resize(3 * n);
+    pos.resize(n);
 
-    float3 *pos = (float3*) positions.data();
-    
     for (int i = 0; i < n; ++i) {
         auto r = com_extents[i].com;
         pos[i] = domain.local2global(r);
@@ -244,7 +228,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float>>();
+    auto positions = std::make_shared<std::vector<float3>>();
 
     splitCom(state->domain, *coms_extents, *positions);
 
@@ -261,6 +245,33 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
+void ObjectVector::_redistributeObjectData(MPI_Comm comm, const std::vector<int>& map)
+{
+    for (auto& ch : local()->dataPerObject.getSortedChannels())
+    {
+        auto& desc = ch.second;
+
+        if (desc->persistence == DataManager::PersistenceMode::None)
+            continue;
+        
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
+            RestartHelpers::exchangeData(comm, map, data, 1);
+            bufferPtr->resize_anew(data.size());
+
+            if (desc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            std::copy(data.begin(), data.end(), bufferPtr->begin());
+            bufferPtr->uploadToDevice(defaultStream);
+        }, desc->varDataPtr);
+    }
+
+    CUDA_Check( cudaDeviceSynchronize() );
+}
+
 void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -270,20 +281,9 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    auto loc_ids = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    _redistributeObjectData(comm, map);
     
-    std::vector<int> ids(loc_ids->size());
-    std::copy(loc_ids->begin(), loc_ids->end(), ids.begin());
-    
-    RestartHelpers::exchangeData(comm, map, ids, 1);
-
-    loc_ids->resize_anew(ids.size());
-    std::copy(ids.begin(), ids.end(), loc_ids->begin());
-
-    loc_ids->uploadToDevice(defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d object infos", loc_ids->size());
+    info("Successfully read object infos of '%s'", name.c_str());
 }
 
 void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)

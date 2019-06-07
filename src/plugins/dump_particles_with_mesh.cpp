@@ -35,7 +35,8 @@ void ParticleWithMeshSenderPlugin::handshake()
 
 
 ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(std::string name, std::string path) :
-    ParticleDumperPlugin(name, path), allTriangles(new std::vector<int>())
+    ParticleDumperPlugin(name, path),
+    allTriangles(std::make_shared<std::vector<int3>>())
 {}
 
 void ParticleWithMeshDumperPlugin::handshake()
@@ -62,7 +63,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
     
     MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_LONG, MPI_SUM, comm) );
 
-    allTriangles->resize(nobjects * 3 * ntriangles);
+    allTriangles->resize(nobjects * ntriangles);
 
     auto *connectivity = allTriangles->data();
     
@@ -72,9 +73,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
             int id = i * ntriangles + j;
             int3 t = triangles[j];
             
-            connectivity[3 * id + 0] = start + t.x;
-            connectivity[3 * id + 1] = start + t.y;
-            connectivity[3 * id + 2] = start + t.z;
+            connectivity[id] = start + t;
         }
     }
 }
@@ -87,7 +86,7 @@ void ParticleWithMeshDumperPlugin::deserialize(MPI_Status& stat)
     YmrState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
-    int totNVertices = positions->size() / 3;    
+    int totNVertices = positions->size();    
 
     _prepareConnectivity(totNVertices);
 

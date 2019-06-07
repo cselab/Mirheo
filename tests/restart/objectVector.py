@@ -17,11 +17,9 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 dt = 0
 
-if args.restart:
-    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=8, log_filename='log', checkpoint_every=0)
-else:
-    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=8, log_filename='log', checkpoint_every=5)
-
+u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm),
+              debug_level=3, log_filename='log', no_splash=True,
+              checkpoint_every = (0 if args.restart else 5))
     
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)
     
@@ -65,14 +63,14 @@ if args.restart and pv:
 # TEST: restart.objectVector
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1           > /dev/null
-# ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1 --restart > /dev/null
+# ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1
+# ymr.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
 # TEST: restart.objectVector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2           > /dev/null
-# ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2 --restart > /dev/null
+# ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2
+# ymr.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 

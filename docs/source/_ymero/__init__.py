@@ -120,7 +120,7 @@ Return ymero state
     def isComputeTask():
         r"""isComputeTask(self: ymero) -> bool
 
-Returns whether current rank will do compute or postrprocess
+Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task
 
         """
         pass
@@ -128,7 +128,7 @@ Returns whether current rank will do compute or postrprocess
     def isMasterTask():
         r"""isMasterTask(self: ymero) -> bool
 
-Returns whether current task is the very first one
+Returns ``True`` if the current rank is the root
 
         """
         pass
@@ -187,25 +187,40 @@ Returns whether current task is the very first one
         pass
 
     def registerBouncer():
-        r"""registerBouncer(arg0: Bouncer) -> None
+        r"""registerBouncer(bouncer: Bouncer) -> None
 
-Register Object Bouncer
+
+               Register Object Bouncer
+
+               Args:
+                   bouncer: the :any:`Bouncer` to register
+        
 
         """
         pass
 
     def registerIntegrator():
-        r"""registerIntegrator(arg0: Integrator) -> None
+        r"""registerIntegrator(integrator: Integrator) -> None
 
-Register Integrator
+
+                Register an :any:`Integrator` to the coordinator
+
+                Args:
+                    integrator: the :any:`Integrator` to register
+         
 
         """
         pass
 
     def registerInteraction():
-        r"""registerInteraction(arg0: Interaction) -> None
+        r"""registerInteraction(interaction: Interaction) -> None
 
-Register Interaction
+
+                Register an :any:`Interaction` to the coordinator
+
+                Args:
+                    interaction: the :any:`Interaction` to register
+        
 
         """
         pass
@@ -254,7 +269,13 @@ Register Plugins
     def registerWall():
         r"""registerWall(wall: Wall, check_every: int = 0) -> None
 
-Register Wall
+
+               Register a :any:`Wall`.
+
+               Args:
+                   wall: the :any:`Wall` to register
+                   check_every: if positive, check every this many time steps if particles penetrate the walls 
+        
 
         """
         pass
@@ -279,9 +300,14 @@ Register Wall
         pass
 
     def run():
-        r"""run(arg0: int) -> None
+        r"""run(niters: int) -> None
 
-Run the simulation
+
+             Advance the system for a given amount of time steps.
+
+             Args:
+                 niters: number of time steps to advance
+        
 
         """
         pass
@@ -304,17 +330,30 @@ Run the simulation
         pass
 
     def setBouncer():
-        r"""setBouncer(arg0: Bouncer, arg1: ObjectVector, arg2: ParticleVector) -> None
+        r"""setBouncer(bouncer: Bouncer, ov: ObjectVector, pv: ParticleVector) -> None
 
-Set Bouncer
+
+                Assign a :any:`Bouncer` between an :any:`ObjectVector` and a :any:`ParticleVector`.
+
+                Args:
+                    bouncer: :any:`Bouncer` compatible with the object vector
+                    ov: the :any:`ObjectVector` to be bounced on
+                    pv: the :any:`ParticleVector` to be bounced
+        
 
         """
         pass
 
     def setIntegrator():
-        r"""setIntegrator(arg0: Integrator, arg1: ParticleVector) -> None
+        r"""setIntegrator(integrator: Integrator, pv: ParticleVector) -> None
 
-Set Integrator
+
+               Set a specific :any:`Integrator` to a given :any:`ParticleVector`
+
+               Args:
+                   integrator: the :any:`Integrator` to assign
+                   pv: the concerned :any:`ParticleVector`
+        
 
         """
         pass
@@ -336,9 +375,17 @@ Set Integrator
         pass
 
     def setWall():
-        r"""setWall(arg0: Wall, arg1: ParticleVector) -> None
+        r"""setWall(wall: Wall, pv: ParticleVector, maximum_part_travel: float = 0.25) -> None
 
-Set Wall
+
+                Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
+
+                Args:
+                    wall: the :any:`Wall` surface which will bounce the particles
+                    pv: the :any:`ParticleVector` to be bounced
+                    maximum_part_travel: maximum distance that one particle travels in one time step.
+                        this should be as small as possible for performance reasons but large enough for correctness
+         
 
         """
         pass

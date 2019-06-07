@@ -15,7 +15,7 @@
 #include "dump_obj_position.h"
 #include "dump_particles.h"
 #include "dump_particles_with_mesh.h"
-#include "dumpxyz.h"
+#include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
 #include "force_saver.h"
 #include "impose_profile.h"

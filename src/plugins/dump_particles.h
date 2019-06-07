@@ -63,9 +63,9 @@ protected:
     std::string path;
 
     std::vector<float4> pos4, vel4;
-    std::vector<float> velocities;
+    std::vector<float3> velocities;
     std::vector<int64_t> ids;
-    std::shared_ptr<std::vector<float>> positions;
+    std::shared_ptr<std::vector<float3>> positions;
 
     std::vector<XDMF::Channel> channels;
     std::vector<std::vector<float>> channelData;

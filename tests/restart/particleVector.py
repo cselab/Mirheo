@@ -17,10 +17,9 @@ dt = 0
 
 comm = MPI.COMM_WORLD
 
-if args.restart:
-    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=3, log_filename='log', checkpoint_every=0, no_splash=True)
-else:
-    u = ymr.ymero(ranks, domain, dt, comm_ptr=MPI._addressof(comm), debug_level=3, log_filename='log', checkpoint_every=5, no_splash=True)
+u = ymr.ymero(ranks, domain, dt, comm_ptr = MPI._addressof(comm),
+              debug_level=3, log_filename='log', no_splash=True,
+              checkpoint_every = (0 if args.restart else 5))
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 
@@ -29,7 +28,7 @@ if args.restart:
 else:
     ic = ymr.InitialConditions.Uniform(density=2)
 
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 u.run(7)
 

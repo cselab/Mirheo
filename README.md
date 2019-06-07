@@ -12,10 +12,16 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
 
-* **minor fix** stats plugin works for 0 particles
+### v0.16.3
+
 * **fix** MPI cleanup
+* **fix** restart in pvs now supports extra data
+* **fix** checkpoint in pvs also shifts the extra data
+* **fix** dump plugins for xyz, ply and grid h5 timestamp based on simulation time (hence continues after restart)
+* **fix** float4 data is correctly dumped in checkpoint
+* **minor fix** stats plugin works for 0 particles
 * **interface changes** anchor particle plugin accepts multiple anchors
 * add pin rod extremity plugin
 

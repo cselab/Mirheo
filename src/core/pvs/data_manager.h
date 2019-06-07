@@ -49,6 +49,8 @@ public:
         PersistenceMode persistence = PersistenceMode::None;
         int shiftTypeSize = 0;
         VarPinnedBufferPtr varDataPtr;
+
+        inline bool needShift() const {return shiftTypeSize > 0;}
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;

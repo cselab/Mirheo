@@ -130,7 +130,7 @@ void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 
 AnchorParticlesStatsPlugin::AnchorParticlesStatsPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(path)
+    path(makePath(path))
 {}
 
 AnchorParticlesStatsPlugin::~AnchorParticlesStatsPlugin()
@@ -154,7 +154,7 @@ void AnchorParticlesStatsPlugin::handshake()
     SimpleSerializer::deserialize(data, pvName);
 
     if (activated && rank == 0)
-        fout = fopen( (path + "/" + pvName + ".txt").c_str(), "w" );
+        fout = fopen( (path + pvName + ".txt").c_str(), "w" );
 }
 
 void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)

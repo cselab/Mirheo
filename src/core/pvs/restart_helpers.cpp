@@ -1,15 +1,18 @@
 #include "restart_helpers.h"
 
+#include <core/utils/cuda_common.h>
+
 namespace RestartHelpers
 {
 
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
                           LocalParticleVector *local)
 {
-    local->resize(pos.size(), 0);
+    auto& positions  = local->positions();
+    auto& velocities = local->velocities();
 
-    float4 *positions  = local->positions() .data();
-    float4 *velocities = local->velocities().data();
+    positions .resize(pos.size(), defaultStream);
+    velocities.resize(vel.size(), defaultStream);
     
     for (int i = 0; i < pos.size(); i++) {
         auto p = Particle(pos[i], vel[i]);

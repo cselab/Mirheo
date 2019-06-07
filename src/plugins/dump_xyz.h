@@ -40,7 +40,6 @@ private:
     int3 nranks3D;
 
     bool activated = true;
-    int timeStamp = 0;
 
     std::vector<float4> pos;
 

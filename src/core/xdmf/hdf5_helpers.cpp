@@ -171,7 +171,7 @@ void write(std::string filename, MPI_Comm comm, const Grid *grid, const std::vec
         return;
     }
             
-    grid->write_to_HDF5(file_id, comm);
+    grid->writeToHDF5(file_id, comm);
     writeData(file_id, grid->getGridDims(), channels);
             
     close(file_id);
@@ -188,7 +188,7 @@ void read(std::string filename, MPI_Comm comm, Grid *grid, std::vector<Channel>&
 
     setbuf(stdout, NULL);
             
-    grid->read_from_HDF5(file_id, comm);
+    grid->readFromHDF5(file_id, comm);
 
     readData(file_id, grid->getGridDims(), channels);
             

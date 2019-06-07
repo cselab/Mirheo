@@ -111,22 +111,20 @@ __global__ static void unpackRemainingObjects(const char *from, OVview view, Obj
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__device__ inline bool isCellOnBoundary(PVview view, float3 cornerCoo, float3 len, InsideWallChecker checker)
+__device__ inline bool isCellOnBoundary(const float maximumTravel, float3 cornerCoo, float3 len, InsideWallChecker checker)
 {
-    // About maximum distance a particle can cover in one step
-    const float tol = 0.25f;
     int pos = 0, neg = 0;
 
-    for (int i=0; i<2; i++)
-        for (int j=0; j<2; j++)
-            for (int k=0; k<2; k++)
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 2; ++j)
+            for (int k = 0; k < 2; ++k)
             {
                 // Value in the cell corner
                 const float3 shift = make_float3(i ? len.x : 0.0f, j ? len.y : 0.0f, k ? len.z : 0.0f);
                 const float s = checker(cornerCoo + shift);
 
-                if (s >  tol) pos++;
-                if (s < -tol) neg++;
+                if (s >  maximumTravel) pos++;
+                if (s < -maximumTravel) neg++;
             }
 
     return (pos != 8 && neg != 8);
@@ -138,7 +136,7 @@ enum class QueryMode {
 };
 
 template<QueryMode queryMode, typename InsideWallChecker>
-__global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
+__global__ void getBoundaryCells(float maximumTravel, CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
 {
     const int cid = blockIdx.x * blockDim.x + threadIdx.x;
     if (cid >= cinfo.totcells) return;
@@ -147,7 +145,7 @@ __global__ void getBoundaryCells(PVview view, CellListInfo cinfo, int *nBoundary
     cinfo.decode(cid, ind.x, ind.y, ind.z);
     float3 cornerCoo = -0.5f*cinfo.localDomainSize + make_float3(ind)*cinfo.h;
 
-    if (isCellOnBoundary(view, cornerCoo, cinfo.h, checker))
+    if (isCellOnBoundary(maximumTravel, cornerCoo, cinfo.h, checker))
     {
         int id = atomicAggInc(nBoundaryCells);
         if (queryMode == QueryMode::Collect)
@@ -264,7 +262,7 @@ void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl)
+void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl, float maximumPartTravel)
 {
     if (pv == frozen)
     {
@@ -282,26 +280,28 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     cellLists.push_back(cl);
 
     const int nthreads = 128;
+    const int nblocks = getNblocks(cl->totcells, nthreads);
     
-    PVview view(pv, pv->local());
     PinnedBuffer<int> nBoundaryCells(1);
     nBoundaryCells.clear(defaultStream);
 
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Query>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, defaultStream,
-            view, cl->cellInfo(), nBoundaryCells.devPtr(), nullptr, insideWallChecker.handler() );
+            nblocks, nthreads, 0, defaultStream,
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            nullptr, insideWallChecker.handler() );
 
     nBoundaryCells.downloadFromDevice(defaultStream);
 
     debug("Found %d boundary cells", nBoundaryCells[0]);
     DeviceBuffer<int> bc(nBoundaryCells[0]);
 
-    nBoundaryCells.clear(0);
+    nBoundaryCells.clear(defaultStream);
     SAFE_KERNEL_LAUNCH(
             getBoundaryCells<QueryMode::Collect>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, defaultStream,
-            view, cl->cellInfo(), nBoundaryCells.devPtr(), bc.devPtr(), insideWallChecker.handler() );
+            nblocks, nthreads, 0, defaultStream,
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            bc.devPtr(), insideWallChecker.handler() );
 
     boundaryCells.push_back(std::move(bc));
     CUDA_Check( cudaDeviceSynchronize() );

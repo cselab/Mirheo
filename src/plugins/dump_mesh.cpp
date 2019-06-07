@@ -47,8 +47,10 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
 
     auto& mesh = ov->mesh;
 
+    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, ov->name,
+    SimpleSerializer::serialize(sendBuffer, timeStamp, ov->name,
                                 mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
                                 vertices);
 
@@ -138,8 +140,11 @@ static void writePLY(
 
 
 MeshDumper::MeshDumper(std::string name, std::string path) :
-                PostprocessPlugin(name), path(path)
-{    }
+    PostprocessPlugin(name),
+    path(makePath(path))
+{}
+
+MeshDumper::~MeshDumper() = default;
 
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -152,10 +157,10 @@ void MeshDumper::deserialize(MPI_Status& stat)
     std::string ovName;
     int nvertices, ntriangles;
 
-    SimpleSerializer::deserialize(data, ovName, nvertices, ntriangles, connectivity, vertices);
+    YmrState::StepType timeStamp;
+    SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity, vertices);
 
-    std::string tstr = std::to_string(timeStamp++);
-    std::string currentFname = path + "/" + ovName + "_" + std::string(5 - tstr.length(), '0') + tstr + ".ply";
+    std::string currentFname = path + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
 
     if (activated)
     {

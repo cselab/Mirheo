@@ -233,17 +233,15 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
 }
 
 static void splitPV(DomainInfo domain, LocalParticleVector *local,
-                    std::vector<float> &positions, std::vector<float> &velocities, std::vector<int64_t> &ids)
+                    std::vector<float3> &pos, std::vector<float3> &vel, std::vector<int64_t> &ids)
 {
     int n = local->size();
-    positions .resize(3 * n);
-    velocities.resize(3 * n);
+    pos.resize(n);
+    vel.resize(n);
     ids.resize(n);
 
     auto pos4 = local->positions();
     auto vel4 = local->velocities();
-    
-    float3 *pos = (float3*) positions.data(), *vel = (float3*) velocities.data();
     
     for (int i = 0; i < n; i++)
     {
@@ -268,14 +266,19 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
         if (blackList.find(channelName) != blackList.end())
             continue;
 
-        mpark::visit([&](auto bufferPtr) {
-                         using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-                         bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-                         auto formtype   = XDMF::getDataForm<T>();
-                         auto numbertype = XDMF::getNumberType<T>();
-                         auto datatype   = DataTypeWrapper<T>();
-                         channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
-                     }, channelDesc->varDataPtr);
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
+
+            if (channelDesc->needShift())
+                RestartHelpers::shiftElementsLocal2Global(*bufferPtr, state->domain);
+            
+            auto formtype   = XDMF::getDataForm<T>();
+            auto numbertype = XDMF::getNumberType<T>();
+            auto datatype   = DataTypeWrapper<T>();
+            channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
+        }, channelDesc->varDataPtr);
     }
 }
 
@@ -294,18 +297,17 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
     local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
-    auto positions = std::make_shared<std::vector<float>>();
-    std::vector<float> velocities;
+    auto positions = std::make_shared<std::vector<float3>>();
+    std::vector<float3> velocities;
     std::vector<int64_t> ids;
     splitPV(state->domain, local(), *positions, velocities, ids);
 
     XDMF::VertexGrid grid(positions, comm);
 
-    std::vector<XDMF::Channel> channels;
-    channels.push_back(XDMF::Channel("velocity", velocities.data(),
-                                     XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>() ));
-    channels.push_back(XDMF::Channel(ChannelNames::globalIds, ids.data(),
-                                     XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() ));
+    std::vector<XDMF::Channel> channels = {
+         { "velocity",       velocities.data(), XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>  () },
+         { ChannelNames::globalIds, ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() }
+    };
 
     // do not dump velocities, they are already there
     _extractPersistentExtraParticleData(channels, {ChannelNames::velocities});
@@ -323,13 +325,15 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
     map.resize(pos.size());
+    int numberInvalid = 0;
     
     for (int i = 0; i < pos.size(); ++i) {
         const auto& r = make_float3(pos[i]);
         int3 procId3 = make_int3(floorf(r / state->domain.localSize));
 
         if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
-            map[i] = -1;
+            map[i] = RestartHelpers::InvalidProc;
+            ++ numberInvalid;
             continue;
         }
         
@@ -340,6 +344,9 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
         int rank;
         MPI_Comm_rank(comm, &rank);
     }
+
+    if (numberInvalid)
+        warn("Restart: skipped %d invalid particle positions", numberInvalid);
 }
 
 std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
@@ -351,25 +358,64 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
 
     XDMF::readParticleData(filename, comm, this);
 
-    std::vector<float4> pos4(local()->size()), vel4(local()->size());
-    std::copy(local()->positions() .begin(), local()->positions() .end(), pos4.begin());
-    std::copy(local()->velocities().begin(), local()->velocities().end(), vel4.begin());
+    return _redistributeParticleData(comm);
+}
+
+std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int chunkSize)
+{
+    auto& pos = local()->positions();
+    auto& vel = local()->velocities();
+
+    std::vector<float4> pos4(pos.begin(), pos.end());
+    std::vector<float4> vel4(vel.begin(), vel.end());
 
     std::vector<int> map;
-    
     _getRestartExchangeMap(comm, pos4, map);
-    RestartHelpers::exchangeData(comm, map, pos4, 1);
-    RestartHelpers::exchangeData(comm, map, vel4, 1);
+    
+    RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
+    RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
+    auto newSize = pos4.size();
+
+    for (auto& ch : local()->dataPerParticle.getSortedChannels())
+    {
+        auto& name = ch.first;
+        auto& desc = ch.second;
+
+        if (name == ChannelNames::positions                        ||
+            name == ChannelNames::velocities                       ||
+            desc->persistence == DataManager::PersistenceMode::None)
+            continue;
+
+        mpark::visit([&](auto bufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
+            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
+            RestartHelpers::exchangeData(comm, map, data, chunkSize);
+
+            if (desc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            bufferPtr->resize_anew(data.size());
+            std::copy(data.begin(), data.end(), bufferPtr->begin());
+            
+            bufferPtr->uploadToDevice(defaultStream);
+        }, desc->varDataPtr);
+    }
+
     RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
 
-    local()->positions ().uploadToDevice(defaultStream);
-    local()->velocities().uploadToDevice(defaultStream);
+    // resize the lpv only now because we use the pinned buffers before with old size
+    local()->resize(newSize, defaultStream);
+    
+    pos.uploadToDevice(defaultStream);
+    vel.uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->size());
 
     return map;
 }
+
 
 void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {

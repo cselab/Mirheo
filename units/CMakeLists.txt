@@ -41,6 +41,7 @@ set(CMAKE_CXX_STANDARD  14)
 set(CMAKE_CUDA_STANDARD 14)
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../src/ )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../src/extern/cuda_variant/ )
 
 function (add_test_executable dirName)
   # Find sources
@@ -74,6 +75,7 @@ add_test_executable(rod/forces)
 add_test_executable(scheduler)
 add_test_executable(serializer)
 add_test_executable(triangle_invariants)
+add_test_executable(variant)
 add_test_executable(warpScan)
 
 

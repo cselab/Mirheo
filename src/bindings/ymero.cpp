@@ -107,8 +107,20 @@ void exportYmero(py::module& m)
                     The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
                     Default value of 0 means no checkpoint.
         )")
-        .def("registerIntegrator",             &YMeRo::registerIntegrator,             "Register Integrator")
-        .def("registerInteraction",            &YMeRo::registerInteraction,            "Register Interaction")
+        .def("registerIntegrator", &YMeRo::registerIntegrator,
+             "integrator"_a, R"(
+                Register an :any:`Integrator` to the coordinator
+
+                Args:
+                    integrator: the :any:`Integrator` to register
+         )")
+        .def("registerInteraction", &YMeRo::registerInteraction,
+             "interaction"_a, R"(
+                Register an :any:`Interaction` to the coordinator
+
+                Args:
+                    interaction: the :any:`Interaction` to register
+        )")
         .def("registerObjectBelongingChecker", &YMeRo::registerObjectBelongingChecker,
              "checker"_a, "ov"_a, R"(
                 Register Object Belonging Checker
@@ -118,11 +130,31 @@ void exportYmero(py::module& m)
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
         
-        .def("registerBouncer",  &YMeRo::registerBouncer, "Register Object Bouncer")
-        .def("registerWall",     &YMeRo::registerWall, "wall"_a, "check_every"_a=0, "Register Wall")
+        .def("registerBouncer",  &YMeRo::registerBouncer,
+             "bouncer"_a, R"(
+               Register Object Bouncer
+
+               Args:
+                   bouncer: the :any:`Bouncer` to register
+        )")
+        .def("registerWall",     &YMeRo::registerWall,
+             "wall"_a, "check_every"_a=0, R"(
+               Register a :any:`Wall`.
+
+               Args:
+                   wall: the :any:`Wall` to register
+                   check_every: if positive, check every this many time steps if particles penetrate the walls 
+        )")
         .def("registerPlugins",  &YMeRo::registerPlugins, "Register Plugins")
 
-        .def("setIntegrator",  &YMeRo::setIntegrator,  "Set Integrator")
+        .def("setIntegrator",  &YMeRo::setIntegrator,
+             "integrator"_a, "pv"_a, R"(
+               Set a specific :any:`Integrator` to a given :any:`ParticleVector`
+
+               Args:
+                   integrator: the :any:`Integrator` to assign
+                   pv: the concerned :any:`ParticleVector`
+        )")
         .def("setInteraction", &YMeRo::setInteraction,
              "interaction"_a, "pv1"_a, "pv2"_a, R"(
                 Forces between two instances of :any:`ParticleVector` (they can be the same) will be computed according to the defined interaction.
@@ -133,9 +165,25 @@ void exportYmero(py::module& m)
                     pv2: second :any:`ParticleVector`
 
         )")
-        .def("setBouncer",     &YMeRo::setBouncer,     "Set Bouncer")
-        .def("setWall",        &YMeRo::setWallBounce,  "Set Wall")
+        .def("setBouncer", &YMeRo::setBouncer,
+             "bouncer"_a, "ov"_a, "pv"_a, R"(
+                Assign a :any:`Bouncer` between an :any:`ObjectVector` and a :any:`ParticleVector`.
 
+                Args:
+                    bouncer: :any:`Bouncer` compatible with the object vector
+                    ov: the :any:`ObjectVector` to be bounced on
+                    pv: the :any:`ParticleVector` to be bounced
+        )")
+        .def("setWall",        &YMeRo::setWallBounce,
+             "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25f, R"(
+                Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
+
+                Args:
+                    wall: the :any:`Wall` surface which will bounce the particles
+                    pv: the :any:`ParticleVector` to be bounced
+                    maximum_part_travel: maximum distance that one particle travels in one time step.
+                        this should be as small as possible for performance reasons but large enough for correctness
+         )")
         .def("getState",       &YMeRo::getYmrState,    "Return ymero state")
         
         .def("dumpWalls2XDMF",    &YMeRo::dumpWalls2XDMF,
@@ -235,8 +283,8 @@ void exportYmero(py::module& m)
                    folder: folder with the checkpoint files
         )")
 
-        .def("isComputeTask", &YMeRo::isComputeTask, "Returns whether current rank will do compute or postrprocess")
-        .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns whether current task is the very first one")
+        .def("isComputeTask", &YMeRo::isComputeTask, "Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task")
+        .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns ``True`` if the current rank is the root")
         .def("start_profiler", &YMeRo::startProfiler, "Tells nvprof to start recording timeline")
         .def("stop_profiler",  &YMeRo::stopProfiler,  "Tells nvprof to stop recording timeline")
         .def("save_dependency_graph_graphml",  &YMeRo::saveDependencyGraph_GraphML,
@@ -250,5 +298,11 @@ void exportYmero(py::module& m)
              .. warning::
                  if current is set to True, this must be called **after** :py:meth:`_ymero.ymero.run`.
          )")
-        .def("run", &YMeRo::run, "Run the simulation");
+        .def("run", &YMeRo::run,
+             "niters"_a, R"(
+             Advance the system for a given amount of time steps.
+
+             Args:
+                 niters: number of time steps to advance
+        )");
 }

@@ -40,16 +40,14 @@ private:
     std::string path;
 
     bool activated = true;
-    int timeStamp = 0;
 
     std::vector<int3> connectivity;
     std::vector<float3> vertices;
 
 public:
     MeshDumper(std::string name, std::string path);
-
+    ~MeshDumper();
+    
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
-
-    ~MeshDumper() {};
 };

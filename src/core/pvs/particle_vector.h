@@ -93,7 +93,8 @@ protected:
                    std::unique_ptr<LocalParticleVector>&& halo );
 
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &parts, std::vector<int>& map);
-
+    std::vector<int> _redistributeParticleData(MPI_Comm comm, int chunkSize = 1);
+    
     void _extractPersistentExtraData(DataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
     void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
     

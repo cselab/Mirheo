@@ -16,7 +16,8 @@ template <typename T> Channel::DataForm inline getDataForm()
 
 #define IMPLEMENT_DATAFORM(type)                                        \
     template <> Channel::DataForm inline getDataForm<type>      () {return Channel::DataForm::Scalar;} \
-    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::DataForm::Vector;}
+    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::DataForm::Vector;} \
+    template <> Channel::DataForm inline getDataForm<type ## 4> () {return Channel::DataForm::Vector4;}
 
 IMPLEMENT_DATAFORM(int)
 IMPLEMENT_DATAFORM(float)
@@ -46,7 +47,6 @@ Channel::NumberType inline getNumberType()
 template <> Channel::NumberType inline getNumberType<TemplRigidMotion<double>> () {return getNumberType<double>();}
 template <> Channel::NumberType inline getNumberType<TemplRigidMotion<float>>  () {return getNumberType<float>();}
 template <> Channel::NumberType inline getNumberType<COMandExtent>             () {return getNumberType<decltype(COMandExtent::com)>();}
-template <> Channel::NumberType inline getNumberType<Particle>                 () {return getNumberType<decltype(Particle::r)>();}
 template <> Channel::NumberType inline getNumberType<Force>                    () {return getNumberType<decltype(Force::f)>();}
 
 } // namespace XDMF

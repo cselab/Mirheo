@@ -27,11 +27,12 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     if (pid >= view.size) return;
 
     float4 coo = view.readPositionNoCache(pid);
-    int cid = cinfo.getCellId(coo);
 
     // XXX: relying here only on redistribution
-    if ( !outgoingParticle(coo) )
-        atomicAdd(cinfo.cellSizes + cid, 1);
+    if ( outgoingParticle(coo) ) return;
+
+    int cid = cinfo.getCellId<CellListsProjection::Clamp>(coo);
+    atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
 __global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, float4 *outPositions)
@@ -45,7 +46,7 @@ __global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, fl
     // loads / stores here need no cache
     float4 pos = view.readPositionNoCache(pid);
 
-    int cid = cinfo.getCellId(pos);
+    int cid = cinfo.getCellId<CellListsProjection::Clamp>(pos);
 
     //  XXX: relying here only on redistribution
     if ( !outgoingParticle(pos) )
@@ -87,7 +88,9 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
 //=================================================================================
 
 CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
-        rc(rc), h(make_float3(rc)), localDomainSize(localDomainSize)
+    rc(rc),
+    h(make_float3(rc)),
+    localDomainSize(localDomainSize)
 {
     ncells = make_int3( floorf(localDomainSize / rc + 1e-6) );
     float3 h = make_float3(localDomainSize) / make_float3(ncells);
@@ -98,7 +101,9 @@ CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
 }
 
 CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
-        h(h), invh(1.0f/h), localDomainSize(localDomainSize)
+    h(h),
+    invh(1.0f/h),
+    localDomainSize(localDomainSize)
 {
     rc = std::min( {h.x, h.y, h.z} );
     ncells = make_int3( ceilf(localDomainSize / h - 1e-6f) );
@@ -110,24 +115,22 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 //=================================================================================
 
 CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
-        CellListInfo(rc, localDomainSize), pv(pv),
-        particlesDataContainer(new LocalParticleVector(nullptr))
+    CellListInfo(rc, localDomainSize),
+    pv(pv),
+    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
-    localPV = particlesDataContainer.get();
-    
-    cellSizes. resize_anew(totcells + 1);
-    cellStarts.resize_anew(totcells + 1);
-
-    cellSizes. clear(defaultStream);
-    cellStarts.clear(defaultStream);
-    CUDA_Check( cudaStreamSynchronize(defaultStream) );
-
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    _initialize();
 }
 
 CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
-        CellListInfo(localDomainSize / make_float3(resolution), localDomainSize), pv(pv),
-        particlesDataContainer(new LocalParticleVector(nullptr))
+    CellListInfo(localDomainSize / make_float3(resolution), localDomainSize),
+    pv(pv),
+    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
+{
+    _initialize();
+}
+
+void CellList::_initialize()
 {
     localPV = particlesDataContainer.get();
     
@@ -138,7 +141,7 @@ CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) 
     cellStarts.clear(defaultStream);
     CUDA_Check( cudaStreamSynchronize(defaultStream) );
 
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, this->rc);
+    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, rc);
 }
 
 CellList::~CellList() = default;
@@ -398,7 +401,7 @@ PrimaryCellList::~PrimaryCellList() = default;
 
 void PrimaryCellList::build(cudaStream_t stream)
 {
-	// Reqired here to avoid ptr swap if building didn't actually happen
+    // Reqired here to avoid ptr swap if building didn't actually happen
     if (!_checkNeedBuild()) return;
 
     CellList::build(stream);

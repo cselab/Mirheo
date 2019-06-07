@@ -11,6 +11,6 @@ include ../make/common.mk
 	 sed "s/@RUN_CMD@/$(RUN_CMD)/" > $@
 	@chmod +x $@
 
-test:; atest `find tests -type f`
+test:; @atest `find tests -type f`
 
 .PHONY: test

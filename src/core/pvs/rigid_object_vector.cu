@@ -107,20 +107,18 @@ RigidObjectVector::~RigidObjectVector() = default;
 // TODO refactor this
 
 static void splitMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions,
-                         std::vector<float> &pos, std::vector<RigidReal4> &quaternion,
+                         std::vector<float3> &pos, std::vector<RigidReal4> &quaternion,
                          std::vector<RigidReal3> &vel, std::vector<RigidReal3> &omega,
                          std::vector<RigidReal3> &force, std::vector<RigidReal3> &torque)
 {
     int n = motions.size();
-    pos  .resize(3*n); quaternion.resize(n);
-    vel  .resize(n);        omega.resize(n);
-    force.resize(n);       torque.resize(n);
+    pos  .resize(n); quaternion.resize(n);
+    vel  .resize(n);      omega.resize(n);
+    force.resize(n);     torque.resize(n);
 
-    float3 *pos3 = (float3*) pos.data();
-    
     for (int i = 0; i < n; ++i) {
         auto m = motions[i];
-        pos3[i] = domain.local2global(make_float3(m.r));
+        pos[i] = domain.local2global(make_float3(m.r));
         quaternion[i] = m.q;
         vel[i] = m.vel;
         omega[i] = m.omega;
@@ -140,7 +138,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float>>();
+    auto positions = std::make_shared<std::vector<float3>>();
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
     
@@ -151,12 +149,12 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
     std::vector<XDMF::Channel> channels = {
-        XDMF::Channel( "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, DataTypeWrapper<RigidReal4>() ),
-        XDMF::Channel( "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
-        XDMF::Channel( "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
-        XDMF::Channel( "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() ),
-        XDMF::Channel( "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() )
-    };         
+         { "quaternion", quaternion .data(), XDMF::Channel::DataForm::Quaternion, rigidType, DataTypeWrapper<RigidReal4>() },
+         { "velocity",   vel        .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
+         { "omega",      omega      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
+         { "force",      force      .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
+         { "torque",     torque     .data(), XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() }
+    };      
 
     _extractPersistentExtraObjectData(channels, /* blacklist */ {ChannelNames::motions} );
     
@@ -165,12 +163,6 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     createCheckpointSymlink(comm, path, "ROV", "xmf", checkpointId);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
-}
-
-static void shiftCoordinates(const DomainInfo& domain, std::vector<RigidMotion>& motions)
-{
-    for (auto& m : motions)
-        m.r = make_rigidReal3( domain.global2local(make_float3(m.r)) );
 }
 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
@@ -182,29 +174,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    auto loc_ids     = local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto loc_motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-    
-    std::vector<int64_t>         ids(loc_ids->size());
-    std::vector<RigidMotion> motions(loc_motions->size());
-    
-    std::copy(loc_ids    ->begin(), loc_ids    ->end(), ids.begin());
-    std::copy(loc_motions->begin(), loc_motions->end(), motions.begin());
-    
-    RestartHelpers::exchangeData(comm, map, ids, 1);
-    RestartHelpers::exchangeData(comm, map, motions, 1);
+    _redistributeObjectData(comm, map);
 
-    shiftCoordinates(state->domain, motions);
-    
-    loc_ids->resize_anew(ids.size());
-    loc_motions->resize_anew(motions.size());
-
-    std::copy(ids.begin(), ids.end(), loc_ids->begin());
-    std::copy(motions.begin(), motions.end(), loc_motions->begin());
-
-    loc_ids->uploadToDevice(defaultStream);
-    loc_motions->uploadToDevice(defaultStream);
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d object infos", loc_motions->size());
+    info("Successfully read object infos of '%s'", name.c_str());
 }
