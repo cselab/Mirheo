@@ -58,8 +58,7 @@ void SimulationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const
 void SimulationPlugin::finalize()
 {
     debug3("Plugin %s is finishing all the communications", name.c_str());
-    MPI_Check( MPI_Wait(&sizeReq, MPI_STATUS_IGNORE) );
-    MPI_Check( MPI_Wait(&dataReq, MPI_STATUS_IGNORE) );
+    waitPrevSend();
 }
 
 int SimulationPlugin::_tag()

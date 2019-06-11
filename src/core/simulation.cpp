@@ -1168,7 +1168,7 @@ void Simulation::notifyPostProcess(int tag, int msg) const
 {
     if (interComm != MPI_COMM_NULL)
     {
-        MPI_Check( MPI_Send(&msg, 1, MPI_INT, rank, tag, interComm) );
+        MPI_Check( MPI_Ssend(&msg, 1, MPI_INT, rank, tag, interComm) );
         debug("notify postprocess with tag %d and message %d", tag, msg);
     }
 }
