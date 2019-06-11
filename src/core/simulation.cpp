@@ -317,7 +317,7 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
     belongingCheckerMap[name] = std::move(checker);
 }
 
-void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
+void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int tag)
 {
     std::string name = plugin->name;
 
@@ -328,9 +328,10 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
     if (found)
         die("More than one plugin is called %s", name.c_str());
 
+    plugin->setTag(tag);
+    
     if (restartStatus != RestartStatus::Anew)
         plugin->restart(cartComm, restartFolder);
-    
     plugins.push_back(std::move(plugin));
 }
 

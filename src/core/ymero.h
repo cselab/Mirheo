@@ -108,6 +108,7 @@ private:
     int computeTask;
     bool noPostprocess;
     bool noSplash;
+    int pluginsTag {0}; ///< used to create unique tag per plugin
     
     bool initialized    = false;
     bool initializedMpi = false;

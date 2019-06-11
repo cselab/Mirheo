@@ -246,16 +246,18 @@ void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongin
 void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
     checkNotInitialized();
+
+    int tag = pluginsTag++;
     
     if (isComputeTask())
     {
         if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess) )
-            sim->registerPlugin(simPlugin);
+            sim->registerPlugin(simPlugin, tag);
     }
     else
     {
         if ( postPlugin != nullptr && !noPostprocess )
-            post->registerPlugin(postPlugin);
+            post->registerPlugin(postPlugin, tag);
     }
 }
 

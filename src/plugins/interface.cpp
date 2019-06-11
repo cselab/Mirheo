@@ -12,12 +12,12 @@ Plugin::~Plugin()
     if (comm != MPI_COMM_NULL)
         MPI_Check(MPI_Comm_free(&comm));
 }
-    
+
 void Plugin::handshake() {}
 
-int Plugin::_tag(const std::string& name)
+void Plugin::setTag(int tag)
 {
-    return (int)( nameHash(name) % MaxTag );
+    this->tag = tag;
 }
 
 void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -29,6 +29,14 @@ void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     MPI_Check( MPI_Comm_size(this->comm, &nranks) );
 }
 
+int Plugin::_sizeTag() const {_checkTag(); return 2 * tag + 0;}
+int Plugin::_dataTag() const {_checkTag(); return 2 * tag + 1;}
+
+void Plugin::_checkTag() const
+{
+    if (tag == UNINITIALIZED_TAG)
+        die("plugin tag is uninitialized");
+}
 
 
 SimulationPlugin::SimulationPlugin(const YmrState *state, std::string name) :
@@ -51,7 +59,7 @@ void SimulationPlugin::serializeAndSend (cudaStream_t stream) {}
 
 void SimulationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), _tag());
+    debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", name.c_str(), _sizeTag(), _dataTag());
     _setup(comm, interComm);
 }
 
@@ -59,11 +67,6 @@ void SimulationPlugin::finalize()
 {
     debug3("Plugin %s is finishing all the communications", name.c_str());
     waitPrevSend();
-}
-
-int SimulationPlugin::_tag()
-{
-    return Plugin::_tag(name);
 }
 
 void SimulationPlugin::waitPrevSend()
@@ -88,8 +91,8 @@ void SimulationPlugin::send(const void* data, int sizeInBytes)
     waitPrevSend();
         
     debug2("Plugin '%s' is sending the data (%d bytes)", name.c_str(), sizeInBytes);
-    MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT, rank, 2*_tag(), interComm, &sizeReq) );
-    MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, 2*_tag()+1, interComm, &dataReq) );
+    MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT,  rank, _sizeTag(), interComm, &sizeReq) );
+    MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, _dataTag(), interComm, &dataReq) );
 }
 
 
@@ -106,7 +109,7 @@ PostprocessPlugin::~PostprocessPlugin() = default;
 MPI_Request PostprocessPlugin::waitData()
 {
     MPI_Request req;
-    MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, 2*_tag(), interComm, &req) );
+    MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, _sizeTag(), interComm, &req) );
     return req;
 }
 
@@ -115,7 +118,7 @@ void PostprocessPlugin::recv()
     data.resize(size);
     MPI_Status status;
     int count;
-    MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, 2*_tag()+1, interComm, &status) );
+    MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, _dataTag(), interComm, &status) );
     MPI_Check( MPI_Get_count(&status, MPI_BYTE, &count) );
 
     if (count != size)
@@ -129,13 +132,8 @@ void PostprocessPlugin::deserialize(MPI_Status& stat) {};
 
 void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up postproc plugin '%s', MPI tag is %d", name.c_str(), _tag());
+    debug("Setting up postproc plugin '%s', MPI tags are (%d, %d)", name.c_str(), _sizeTag(), _dataTag());
     _setup(comm, interComm);
-}
-
-int PostprocessPlugin::_tag()
-{
-    return Plugin::_tag(name);
 }
 
 

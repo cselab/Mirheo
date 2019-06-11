@@ -57,7 +57,7 @@ public:
     void registerInteraction            (std::shared_ptr<Interaction> interaction);
     void registerIntegrator             (std::shared_ptr<Integrator> integrator);
     void registerBouncer                (std::shared_ptr<Bouncer> bouncer);
-    void registerPlugin                 (std::shared_ptr<SimulationPlugin> plugin);
+    void registerPlugin                 (std::shared_ptr<SimulationPlugin> plugin, int tag);
     void registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker);
 
 

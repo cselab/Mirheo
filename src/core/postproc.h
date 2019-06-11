@@ -12,7 +12,7 @@ public:
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/");
     ~Postprocess();
 
-    void registerPlugin( std::shared_ptr<PostprocessPlugin> plugin );
+    void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);
     void run();
     void init();
 
