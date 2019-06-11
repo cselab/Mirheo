@@ -20,6 +20,11 @@ YMeRo requires at least Kepler-generation NVIDIA GPU and depends on a few extern
 - HDF5 parallel library
 - libbfd for pretty debug information in case of an error
 
+.. note::
+
+   The code has been tested with  ``mpich-3.2.1``, ``mpich-3.3.1`` and ``openmpi-3.1.3``.
+   A known bug in ``mpich-3.3`` causes YMeRo to deadlock, use another version instead.
+  
 With all the prerequisites installed, you can take the following steps to run YMeRo:
 
 #. Get the up-to-date version of the code:
