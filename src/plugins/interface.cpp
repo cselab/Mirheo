@@ -14,7 +14,6 @@ Plugin::~Plugin()
 }
     
 void Plugin::handshake() {}
-void Plugin::talk() {}  
 
 int Plugin::_tag(const std::string& name)
 {
@@ -50,7 +49,7 @@ void SimulationPlugin::beforeParticleDistribution (cudaStream_t stream) {}
 void SimulationPlugin::serializeAndSend (cudaStream_t stream) {}
 
 
-void SimulationPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void SimulationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     debug("Setting up simulation plugin '%s', MPI tag is %d", name.c_str(), _tag());
     _setup(comm, interComm);
@@ -99,7 +98,8 @@ void SimulationPlugin::send(const void* data, int sizeInBytes)
 // PostprocessPlugin
 
 PostprocessPlugin::PostprocessPlugin(std::string name) :
-    Plugin(), YmrObject(name)
+    Plugin(),
+    YmrObject(name)
 {}
 
 PostprocessPlugin::~PostprocessPlugin() = default;

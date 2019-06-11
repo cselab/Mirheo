@@ -15,7 +15,6 @@ public:
     virtual ~Plugin();
     
     virtual void handshake();
-    virtual void talk();
 
 protected:
     MPI_Comm comm, interComm;
@@ -23,7 +22,7 @@ protected:
 
     std::hash<std::string> nameHash;
     
-    // limitation by CrayMPI (wtf Cray???)
+    // limitation by CrayMPI
     static const int MaxTag = 16767;
 
     int _tag(const std::string& name);
