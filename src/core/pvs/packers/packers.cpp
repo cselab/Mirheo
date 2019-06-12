@@ -27,7 +27,7 @@ ParticleExtraPacker::ParticleExtraPacker(ParticleVector *pv, LocalParticleVector
 }
 
 
-ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, PackPredicate predicate, cudaStream_t stream)
+ObjectExtraPacker::ObjectExtraPacker(ObjectVector *ov, LocalObjectVector *lov, PackPredicate predicate, cudaStream_t stream)
 {
     if (ov == nullptr || lov == nullptr) return;
 
@@ -39,7 +39,7 @@ ObjectExtraPacker::ObjectExtraPacker(ObjectVector* ov, LocalObjectVector* lov, P
 }
 
 
-ObjectPacker::ObjectPacker(ObjectVector* ov, LocalObjectVector* lov, PackPredicate predicate, cudaStream_t stream) :
+ObjectPacker::ObjectPacker(ObjectVector *ov, LocalObjectVector *lov, PackPredicate predicate, cudaStream_t stream) :
     part(ov, lov, predicate, stream),
     obj (ov, lov, predicate, stream)
 {
