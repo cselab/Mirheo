@@ -81,6 +81,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
                        bool gpuAwareMPI) :
     YmrObject("simulation"),
     nranks3D(nranks3D),
+    cartComm(cartComm),
     interComm(interComm),
     state(state),
     globalCheckpointEvery(globalCheckpointEvery),
@@ -92,10 +93,14 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
     interactionManager(std::make_unique<InteractionManager>())
 {
     int nranks[3], periods[3], coords[3];
+    int topology;
+    MPI_Check( MPI_Topo_test(cartComm, &topology) );
 
-    MPI_Check(MPI_Comm_dup(cartComm, &this->cartComm));
-    MPI_Check(MPI_Cart_get(cartComm, 3, nranks, periods, coords));
-    MPI_Check(MPI_Comm_rank(cartComm, &rank));
+    if (topology != MPI_CART)
+        die("Simulation expects a cartesian communicator");
+    
+    MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, coords) );
+    MPI_Check( MPI_Comm_rank(cartComm, &rank) );
 
     nranks3D = {nranks[0], nranks[1], nranks[2]};
     rank3D   = {coords[0], coords[1], coords[2]};
@@ -110,11 +115,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
          state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);    
 }
 
-Simulation::~Simulation()
-{
-    MPI_Check( MPI_Comm_free(&cartComm) );
-}
-
+Simulation::~Simulation() = default;
 
 //================================================================================================
 // Access for plugins
