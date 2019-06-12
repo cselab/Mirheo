@@ -54,13 +54,13 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *out
 
     // One warp per object
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int objId = gid / warpSize;
-    const int tid = gid % warpSize;
+    const int objId  = gid / warpSize;
+    const int laneId = gid % warpSize;
 
     if (objId >= view.nObjects) return;
 
     bool isRemaining = true;
-    for (int i = tid; i < view.objSize; i += warpSize)
+    for (int i = laneId; i < view.objSize; i += warpSize)
     {
         Particle p(view.readParticle(objId * view.objSize + i));
         
@@ -75,19 +75,19 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *out
     if (!isRemaining) return;
 
     int dstObjId;
-    if (tid == 0)
+    if (laneId == 0)
         dstObjId = atomicAdd(nRemaining, 1);
     dstObjId = warpShfl(dstObjId, 0);
 
-    char* dstAddr = output + dstObjId * packer.totalPackedSize_byte;
-    for (int pid = tid; pid < view.objSize; pid += warpSize)
+    char *dstAddr = output + dstObjId * packer.totalPackedSize_byte;
+    for (int pid = laneId; pid < view.objSize; pid += warpSize)
     {
         const int srcPid = objId * view.objSize + pid;
         packer.part.pack(srcPid, dstAddr + pid*packer.part.packedSize_byte);
     }
 
     dstAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.pack(objId, dstAddr);
+    if (laneId == 0) packer.obj.pack(objId, dstAddr);
 }
 
 __global__ static void unpackRemainingObjects(const char *from, OVview view, ObjectPacker packer)
