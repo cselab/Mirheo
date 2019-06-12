@@ -1,10 +1,5 @@
 #pragma once
 
-#include <memory>
-
-#include <core/utils/make_unique.h>
-#include <core/utils/pytypes.h>
-
 #include "interface.h"
 
 #include "simple_stationary_wall.h"
@@ -17,6 +12,10 @@
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
 #include "wall_with_velocity.h"
+
+#include <core/utils/pytypes.h>
+
+#include <memory>
 
 class ParticleVector;
 class CellList;

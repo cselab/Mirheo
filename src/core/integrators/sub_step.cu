@@ -8,7 +8,8 @@
 #include <core/pvs/particle_vector.h>
 #include <core/utils/common.h>
 #include <core/utils/kernel_launch.h>
-#include <core/utils/make_unique.h>
+
+#include <memory>
 
 IntegratorSubStep::IntegratorSubStep(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name),

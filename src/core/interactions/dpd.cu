@@ -3,7 +3,6 @@
 #include "pairwise_interactions/dpd.h"
 
 #include <core/celllist.h>
-#include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 
 #include <memory>

@@ -3,8 +3,9 @@
 #include "pairwise_with_stress.impl.h"
 #include "pairwise_interactions/sdpd.h"
 
-#include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
+
+#include <memory>
 
 BasicInteractionSDPDWithStress::BasicInteractionSDPDWithStress(const YmrState *state, std::string name, float rc,
                                                                float viscosity, float kBT, float stressPeriod) :

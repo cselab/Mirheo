@@ -12,7 +12,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/task_scheduler.h>
 #include <core/utils/folders.h>
-#include <core/utils/make_unique.h>
 #include <core/utils/restart_helpers.h>
 #include <core/walls/interface.h>
 #include <core/ymero_state.h>
@@ -20,6 +19,7 @@
 
 #include <algorithm>
 #include <cuda_profiler_api.h>
+#include <memory>
 
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \

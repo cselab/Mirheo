@@ -4,7 +4,6 @@
 #include <core/datatypes.h>
 #include <core/domain.h>
 #include <core/pvs/data_manager.h>
-#include <core/utils/make_unique.h>
 #include <core/utils/pytypes.h>
 #include <core/ymero_object.h>
 

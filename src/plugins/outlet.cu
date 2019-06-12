@@ -7,7 +7,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 #include <core/utils/kernel_launch.h>
-#include <core/utils/make_unique.h>
+
+#include <memory>
 
 using AccumulatedIntType = unsigned long long int;
 

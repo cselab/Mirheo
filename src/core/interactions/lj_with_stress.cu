@@ -1,14 +1,12 @@
-#include <memory>
-
 #include "lj_with_stress.h"
 #include "pairwise_with_stress.impl.h"
 #include "pairwise_interactions/lj.h"
 #include "pairwise_interactions/lj_object_aware.h"
 #include "pairwise_interactions/lj_rod_aware.h"
 
-#include <core/utils/make_unique.h>
 #include <core/pvs/particle_vector.h>
 
+#include <memory>
 
 InteractionLJWithStress::InteractionLJWithStress(const YmrState *state, std::string name,
                                                  float rc, float epsilon, float sigma, float maxForce,

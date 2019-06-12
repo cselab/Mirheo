@@ -1,5 +1,4 @@
-#include <mpi.h>
-#include <cuda_runtime.h>
+#include "ymero.h"
 
 #include <core/bouncers/interface.h>
 #include <core/initial_conditions/interface.h>
@@ -14,14 +13,15 @@
 #include <core/simulation.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/folders.h>
-#include <core/utils/make_unique.h>
 #include <core/version.h>
 #include <core/walls/interface.h>
 #include <core/walls/simple_stationary_wall.h>
 #include <core/walls/wall_helpers.h>
 #include <plugins/interface.h>
 
-#include "ymero.h"
+#include <cuda_runtime.h>
+#include <memory>
+#include <mpi.h>
 
 static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)
 {

@@ -1,14 +1,14 @@
-#include <queue>
-#include <unistd.h>
-#include <sstream>
-#include <fstream>
+#include <core/task_scheduler.h>
+#include <core/logger.h>
+#include <core/utils/nvtx.h>
 
 #include <extern/pugixml/src/pugixml.hpp>
 
-#include <core/task_scheduler.h>
-#include <core/logger.h>
-#include <core/utils/make_unique.h>
-#include <core/utils/nvtx.h>
+#include <fstream>
+#include <memory>
+#include <queue>
+#include <sstream>
+#include <unistd.h>
 
 TaskScheduler::TaskScheduler()
 {
