@@ -1,22 +1,31 @@
 #include "device_packer.h"
 
-void DevicePacker::registerChannel(DataManager& manager, int sz, char *ptr, bool& needUpload, cudaStream_t stream)
+void DevicePacker::registerChannel(DataManager& manager, CudaVarPtr varPtr, bool& needUpload, cudaStream_t stream)
 {
     if (manager.channelPtrs.size() <= nChannels)
     {
-        manager.channelPtrs.        resize(nChannels+1, stream);
-        manager.channelSizes.       resize(nChannels+1, stream);
-
+        manager.channelPtrs.resize(nChannels+1, stream);
         needUpload = true;
     }
 
-    if (ptr != manager.channelPtrs[nChannels])
-        needUpload = true;
+    cuda_variant::apply_visitor([&](auto ptr)
+    {
+        using T = typename std::remove_pointer<decltype(ptr)>::type;
+        packedSize_byte += sizeof(T);
 
-    manager.channelSizes[nChannels] = sz;
-    manager.channelPtrs[nChannels] = ptr;
+        if (cuda_variant::holds_alternative<T*> (manager.channelPtrs[nChannels]))
+        {
+            T *other = cuda_variant::get<T*> (manager.channelPtrs[nChannels]);
+            if (other != ptr)
+                needUpload = true;
+        }
+        else
+            needUpload = true;
 
-    packedSize_byte += sz;
+    }, varPtr);
+
+    manager.channelPtrs[nChannels] = varPtr;
+    
     ++nChannels;
 }
 
@@ -28,18 +37,9 @@ void DevicePacker::registerChannels(PackPredicate predicate, DataManager& manage
         
         if (!predicate(name_desc)) continue;
 
-        int sz = desc->container->datatype_size();
+        auto varPtr = getDevPtr(desc->varDataPtr);
 
-        if (sz % sizeof(int) != 0)
-            die("Size of extra data per particle should be divisible by 4 bytes (PV '%s', data entry '%s')",
-                pvName.c_str(), name_desc.first.c_str());
-
-        if ( sz % sizeof(float4) && (desc->shiftTypeSize == 4 || desc->shiftTypeSize == 8) )
-            die("Size of extra data per particle should be divisible by 16 bytes"
-                "when shifting is required (PV '%s', data entry '%s')",
-                pvName.c_str(), name_desc.first.c_str());
-
-        registerChannel(manager, sz, reinterpret_cast<char*>(desc->container->genericDevPtr()), needUpload, stream);
+        registerChannel(manager, varPtr, needUpload, stream);
     }
 }
 
@@ -48,11 +48,7 @@ void DevicePacker::setAndUploadData(DataManager& manager, bool needUpload, cudaS
     packedSize_byte = ( (packedSize_byte + sizeof(float4) - 1) / sizeof(float4) ) * sizeof(float4);
 
     if (needUpload)
-    {
-        manager.channelPtrs.        uploadToDevice(stream);
-        manager.channelSizes.       uploadToDevice(stream);
-    }
+        manager.channelPtrs.uploadToDevice(stream);
 
-    channelData         = manager.channelPtrs.        devPtr();
-    channelSizes        = manager.channelSizes.       devPtr();
+    channelData = manager.channelPtrs.devPtr();
 }

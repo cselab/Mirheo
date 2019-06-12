@@ -1,6 +1,6 @@
 #include "data_manager.h"
 
-CudaVarPtr getDevPtr(VarPinnedBufferPtr& varPinnedBuf)
+CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf)
 {
     CudaVarPtr ptr;
     mpark::visit([&](auto pinnedPtr)

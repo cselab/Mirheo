@@ -21,7 +21,7 @@ using VarPinnedBufferPtr = mpark::variant<
 #undef MAKE_WRAPPER
     >;
 
-CudaVarPtr getDevPtr(VarPinnedBufferPtr& varPinnedBuf);
+CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf);
 
 /**
  * \class DataManager
@@ -205,11 +205,8 @@ private:
      */
     std::vector<NamedChannelDesc> sortedChannels;
 
-    /// Helper buffers, used by a Packer
-    PinnedBuffer<int> channelSizes;
-
-    /// Helper buffer, used by a Packer
-    PinnedBuffer<char*> channelPtrs;
+    /// Helper buffer, used by packers
+    PinnedBuffer<CudaVarPtr> channelPtrs;
 
     friend class DevicePacker;
     friend class ParticlePacker;

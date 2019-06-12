@@ -1,9 +1,12 @@
 #pragma once
 
-#include <string>
+
 #include <core/datatypes.h>
+#include <core/utils/cuda_variant.h>
+
 #include <extern/variant/include/mpark/variant.hpp>
-#include <extern/cuda_variant/variant/variant.h>
+
+#include <string>
 
 #define TYPE_TABLE__(OP, SEP)                   \
     OP(int)          SEP                        \
@@ -34,8 +37,6 @@ using TypeDescriptor = mpark::variant<
     TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
-
-namespace cuda_variant = variant;
 
 using CudaVarPtr = cuda_variant::variant<
 #define MAKE_WRAPPER(a) a*
