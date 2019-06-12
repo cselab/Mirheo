@@ -95,7 +95,7 @@ __global__ static void unpackRemainingObjects(const char *from, OVview view, Obj
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
 
-    const char* srcAddr = from + packer.totalPackedSize_byte * objId;
+    const char *srcAddr = from + packer.totalPackedSize_byte * objId;
 
     for (int pid = tid; pid < view.objSize; pid += blockDim.x)
     {
@@ -361,7 +361,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         SAFE_KERNEL_LAUNCH(
                 packRemainingObjects,
                 getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, defaultStream,
-                ovView,    packer, tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
+                ovView, packer, tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
 
         // Copy temporary buffers back
         nRemaining.downloadFromDevice(defaultStream);
