@@ -50,7 +50,7 @@ struct DevicePacker
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
-                auto dstPtr = cuda_variant::get<T*>(dst.channelData[i]);
+                auto dstPtr = cuda_variant::get_alternative<T*>(dst.channelData[i]);
 
                 dstPtr[dstId]= srcPtr[srcId];
                 
