@@ -1,12 +1,11 @@
 #include "device_packer.h"
 
-void DevicePacker::registerChannel(DataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream)
+void DevicePacker::registerChannel(DataManager& manager, int sz, char *ptr, bool& needUpload, cudaStream_t stream)
 {
     if (manager.channelPtrs.size() <= nChannels)
     {
         manager.channelPtrs.        resize(nChannels+1, stream);
         manager.channelSizes.       resize(nChannels+1, stream);
-        manager.channelShiftTypes.  resize(nChannels+1, stream);
 
         needUpload = true;
     }
@@ -16,7 +15,6 @@ void DevicePacker::registerChannel(DataManager& manager, int sz, char *ptr, int 
 
     manager.channelSizes[nChannels] = sz;
     manager.channelPtrs[nChannels] = ptr;
-    manager.channelShiftTypes[nChannels] = typesize;
 
     packedSize_byte += sz;
     ++nChannels;
@@ -41,9 +39,7 @@ void DevicePacker::registerChannels(PackPredicate predicate, DataManager& manage
                 "when shifting is required (PV '%s', data entry '%s')",
                 pvName.c_str(), name_desc.first.c_str());
 
-        registerChannel(manager, sz,
-                        reinterpret_cast<char*>(desc->container->genericDevPtr()),
-                        desc->shiftTypeSize, needUpload, stream);
+        registerChannel(manager, sz, reinterpret_cast<char*>(desc->container->genericDevPtr()), needUpload, stream);
     }
 }
 
@@ -55,10 +51,8 @@ void DevicePacker::setAndUploadData(DataManager& manager, bool needUpload, cudaS
     {
         manager.channelPtrs.        uploadToDevice(stream);
         manager.channelSizes.       uploadToDevice(stream);
-        manager.channelShiftTypes.  uploadToDevice(stream);
     }
 
     channelData         = manager.channelPtrs.        devPtr();
     channelSizes        = manager.channelSizes.       devPtr();
-    channelShiftTypes   = manager.channelShiftTypes.  devPtr();
 }

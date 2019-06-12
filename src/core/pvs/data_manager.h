@@ -206,7 +206,7 @@ private:
     std::vector<NamedChannelDesc> sortedChannels;
 
     /// Helper buffers, used by a Packer
-    PinnedBuffer<int>   channelSizes, channelShiftTypes;
+    PinnedBuffer<int> channelSizes;
 
     /// Helper buffer, used by a Packer
     PinnedBuffer<char*> channelPtrs;

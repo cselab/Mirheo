@@ -17,7 +17,6 @@ struct DevicePacker
 
     int nChannels = 0;                    ///< number of data channels to pack / unpack
     int *channelSizes        = nullptr;   ///< size if bytes of each channel entry, e.g. sizeof(Particle)
-    int *channelShiftTypes   = nullptr;   ///< if type is 4, then treat data to shift as float3, if it is 8 -- as double3
     char **channelData       = nullptr;   ///< device pointers of the packed data
 
 #ifdef __CUDACC__
@@ -112,8 +111,7 @@ private:
     
 protected:
 
-    void registerChannel (DataManager& manager, int sz, char *ptr, int typesize, bool& needUpload, cudaStream_t stream);
-    void registerChannels(PackPredicate predicate,
-                          DataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
+    void registerChannel (DataManager& manager, int sz, char *ptr, bool& needUpload, cudaStream_t stream);
+    void registerChannels(PackPredicate predicate, DataManager& manager, const std::string& pvName, bool& needUpload, cudaStream_t stream);
     void setAndUploadData(DataManager& manager, bool needUpload, cudaStream_t stream);
 };
