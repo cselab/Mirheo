@@ -3,7 +3,6 @@
 #include "exchanger_interfaces.h"
 
 #include <core/containers.h>
-#include <core/pvs/extra_data/packers.h>
 
 class ObjectVector;
 class ObjectsPacker;

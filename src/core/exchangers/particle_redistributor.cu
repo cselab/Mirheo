@@ -7,7 +7,6 @@
 #include "utils/fragments_mapping.h"
 
 #include <core/celllist.h>
-#include <core/pvs/extra_data/packers.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>

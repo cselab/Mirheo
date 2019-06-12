@@ -12,7 +12,7 @@
 #include <core/celllist.h>
 #include <core/field/utils.h>
 #include <core/logger.h>
-#include <core/pvs/extra_data/packers.h>
+#include <core/pvs/packers/packers.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/ov.h>

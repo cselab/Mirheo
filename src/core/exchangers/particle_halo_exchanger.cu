@@ -9,7 +9,6 @@
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
-#include <core/pvs/extra_data/packers.h>
 
 #include <unistd.h>
 

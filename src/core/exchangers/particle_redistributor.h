@@ -2,8 +2,6 @@
 
 #include "exchanger_interfaces.h"
 
-#include <core/pvs/extra_data/packers.h>
-
 class ParticleVector;
 class CellList;
 class ParticlesPacker;
