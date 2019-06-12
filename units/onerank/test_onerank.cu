@@ -1,19 +1,19 @@
 // Yo ho ho ho
 #define private public
 
-#include <gtest/gtest.h>
+#include "../timer.h"
 
-#include <core/utils/make_unique.h>
-#include <core/pvs/particle_vector.h>
 #include <core/celllist.h>
 #include <core/domain.h>
 #include <core/exchangers/api.h>
-#include <core/logger.h>
 #include <core/integrators/factory.h>
 #include <core/interactions/dpd.h>
+#include <core/logger.h>
+#include <core/pvs/particle_vector.h>
 
-#include "../timer.h"
-#include <unistd.h>
+#include <gtest/gtest.h>
+
+#include <memory>
 
 Logger logger;
 

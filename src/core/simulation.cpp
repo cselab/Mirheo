@@ -12,7 +12,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/task_scheduler.h>
 #include <core/utils/folders.h>
-#include <core/utils/make_unique.h>
 #include <core/utils/restart_helpers.h>
 #include <core/walls/interface.h>
 #include <core/ymero_state.h>
@@ -20,6 +19,7 @@
 
 #include <algorithm>
 #include <cuda_profiler_api.h>
+#include <memory>
 
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \
@@ -81,6 +81,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
                        bool gpuAwareMPI) :
     YmrObject("simulation"),
     nranks3D(nranks3D),
+    cartComm(cartComm),
     interComm(interComm),
     state(state),
     globalCheckpointEvery(globalCheckpointEvery),
@@ -92,10 +93,14 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
     interactionManager(std::make_unique<InteractionManager>())
 {
     int nranks[3], periods[3], coords[3];
+    int topology;
+    MPI_Check( MPI_Topo_test(cartComm, &topology) );
 
-    MPI_Check(MPI_Comm_dup(cartComm, &this->cartComm));
-    MPI_Check(MPI_Cart_get(cartComm, 3, nranks, periods, coords));
-    MPI_Check(MPI_Comm_rank(cartComm, &rank));
+    if (topology != MPI_CART)
+        die("Simulation expects a cartesian communicator");
+    
+    MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, coords) );
+    MPI_Check( MPI_Comm_rank(cartComm, &rank) );
 
     nranks3D = {nranks[0], nranks[1], nranks[2]};
     rank3D   = {coords[0], coords[1], coords[2]};
@@ -110,11 +115,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrS
          state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);    
 }
 
-Simulation::~Simulation()
-{
-    MPI_Check( MPI_Comm_free(&cartComm) );
-}
-
+Simulation::~Simulation() = default;
 
 //================================================================================================
 // Access for plugins
@@ -317,7 +318,7 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
     belongingCheckerMap[name] = std::move(checker);
 }
 
-void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
+void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int tag)
 {
     std::string name = plugin->name;
 
@@ -328,9 +329,10 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin)
     if (found)
         die("More than one plugin is called %s", name.c_str());
 
+    plugin->setTag(tag);
+    
     if (restartStatus != RestartStatus::Anew)
         plugin->restart(cartComm, restartFolder);
-    
     plugins.push_back(std::move(plugin));
 }
 
@@ -1168,7 +1170,7 @@ void Simulation::notifyPostProcess(int tag, int msg) const
 {
     if (interComm != MPI_COMM_NULL)
     {
-        MPI_Check( MPI_Send(&msg, 1, MPI_INT, rank, tag, interComm) );
+        MPI_Check( MPI_Ssend(&msg, 1, MPI_INT, rank, tag, interComm) );
         debug("notify postprocess with tag %d and message %d", tag, msg);
     }
 }

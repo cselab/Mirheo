@@ -15,19 +15,22 @@ public:
     virtual ~Plugin();
     
     virtual void handshake();
-    virtual void talk();
 
+    void setTag(int tag);
+    
 protected:
     MPI_Comm comm, interComm;
     int rank, nranks;
-
-    std::hash<std::string> nameHash;
     
-    // limitation by CrayMPI (wtf Cray???)
-    static const int MaxTag = 16767;
-
-    int _tag(const std::string& name);
     void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
+
+    int _sizeTag() const;
+    int _dataTag() const;
+
+private:
+    void _checkTag() const;
+    enum {UNINITIALIZED_TAG = -1};
+    int tag {UNINITIALIZED_TAG};
 };
 
 class SimulationPlugin : public Plugin, public YmrSimulationObject
@@ -53,11 +56,9 @@ protected:
     int localSendSize;
     MPI_Request sizeReq, dataReq;
 
-    int _tag();
-    
     void waitPrevSend();
     void send(const std::vector<char>& data);
-    void send(const void* data, int sizeInBytes);
+    void send(const void *data, int sizeInBytes);
 };
 
 
@@ -78,8 +79,6 @@ public:
 
 protected:
 
-    int _tag();
-    
     std::vector<char> data;
     int size;    
 };

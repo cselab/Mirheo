@@ -2,13 +2,13 @@
 
 #include <core/containers.h>
 #include <core/logger.h>
-#include <core/utils/make_unique.h>
 #include <core/utils/type_map.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 
 #include <cuda_runtime.h>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 

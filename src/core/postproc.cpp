@@ -17,9 +17,10 @@ Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkp
 
 Postprocess::~Postprocess() = default;
 
-void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin)
+void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag)
 {
     info("New plugin registered: %s", plugin->name.c_str());
+    plugin->setTag(tag);
     plugins.push_back( std::move(plugin) );
 }
 
