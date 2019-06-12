@@ -84,7 +84,8 @@ private:
     template <typename T, typename PaddedType = float4>
     inline __device__ size_t paddedSize() const
     {
-        return (sizeof(T) + sizeof(PaddedType) - 1) / sizeof(PaddedType);
+        constexpr int npads = (sizeof(T) + sizeof(PaddedType) - 1) / sizeof(PaddedType);
+        return npads * sizeof(PaddedType);
     }
     
 #endif /* __CUDACC__ */
