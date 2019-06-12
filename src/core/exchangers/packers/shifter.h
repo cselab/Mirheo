@@ -24,7 +24,7 @@ struct Shifter
                            -domain.localSize.y * dir.y,
                            -domain.localSize.z * dir.z };
         
-            TypeShift::shift(var, shift);
+            TypeShift::apply(var, shift);
         }
         return var;
     }

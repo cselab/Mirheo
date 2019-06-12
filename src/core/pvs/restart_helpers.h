@@ -87,14 +87,14 @@ template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
 {
     auto shift = domain.local2global({0.f, 0.f, 0.f});
-    for (auto& d : data) TypeShift::shift(d, shift);    
+    for (auto& d : data) TypeShift::apply(d, shift);    
 }
 
 template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
 {
     auto shift = domain.global2local({0.f, 0.f, 0.f});
-    for (auto& d : data) TypeShift::shift(d, shift);    
+    for (auto& d : data) TypeShift::apply(d, shift);    
 }
 
 } // namespace RestartHelpers
