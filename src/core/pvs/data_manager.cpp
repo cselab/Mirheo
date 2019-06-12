@@ -1,5 +1,15 @@
 #include "data_manager.h"
 
+CudaVarPtr getDevPtr(VarPinnedBufferPtr& varPinnedBuf)
+{
+    CudaVarPtr ptr;
+    mpark::visit([&](auto pinnedPtr)
+    {
+        ptr = pinnedPtr->devPtr();
+    }, varPinnedBuf);
+    return ptr;
+}
+
 void DataManager::setPersistenceMode(const std::string& name, DataManager::PersistenceMode persistence)
 {
     if (persistence == PersistenceMode::None) return;

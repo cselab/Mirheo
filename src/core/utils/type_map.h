@@ -3,6 +3,7 @@
 #include <string>
 #include <core/datatypes.h>
 #include <extern/variant/include/mpark/variant.hpp>
+#include <extern/cuda_variant/variant/variant.h>
 
 #define TYPE_TABLE__(OP, SEP)                   \
     OP(int)          SEP                        \
@@ -30,6 +31,14 @@ struct DataTypeWrapper {using type = T;};
 
 using TypeDescriptor = mpark::variant<
 #define MAKE_WRAPPER(a) DataTypeWrapper<a>
+    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+#undef MAKE_WRAPPER
+    >;
+
+namespace cuda_variant = variant;
+
+using CudaVarPtr = cuda_variant::variant<
+#define MAKE_WRAPPER(a) a*
     TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;

@@ -21,6 +21,8 @@ using VarPinnedBufferPtr = mpark::variant<
 #undef MAKE_WRAPPER
     >;
 
+CudaVarPtr getDevPtr(VarPinnedBufferPtr& varPinnedBuf);
+
 /**
  * \class DataManager
  *

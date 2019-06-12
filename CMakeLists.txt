@@ -74,6 +74,7 @@ set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/core/")
 set(PLUGINS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/plugins/")
 set(BINDINGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/bindings/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/ymero")
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/extern/cuda_variant/ )
 
 # generate version.cpp
 configure_file(
