@@ -192,8 +192,10 @@ __device__ inline void sort3(float2* v)
     if (v[1].x > v[2].x) swap(v[1], v[2]);
 }
 
+static constexpr float NoCollision = -1.f;
+
 // find "time" (0.0 to 1.0) of the segment - moving triangle intersection
-// returns -1 is no intersection
+// returns NoCollision is no intersection
 // sets intPoint and intTriangle if intersection found
 __device__ inline float
 intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
@@ -312,7 +314,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     if ( fabs(roots[2].y) < tol && roots[2].x >= 0.0f && roots[2].x <= 1.0f )
         if (checkIfInside(roots[2].x)) return roots[2].x;
 
-    return -1.0f;
+    return NoCollision;
 }
 
 static __global__
@@ -344,7 +346,7 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     float intSign;
     float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, rOld, intPoint, intTriangle, intSign);
 
-    if (alpha < -0.1f) return;
+    if (alpha == NoCollision) return;
 
     atomicMax(collisionTimes+pid, __float_as_int(1.0f - alpha));
     fineTable.push_back(pid_trid);
