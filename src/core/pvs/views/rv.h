@@ -10,7 +10,7 @@ struct RVview : public OVview
     int   *states   { nullptr };
     float *energies { nullptr };
 
-    RVview(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr, cudaStream_t stream = 0) :
+    RVview(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr) :
         OVview(rv, lrv)
     {
         if (rv == nullptr || lrv == nullptr) return;
@@ -26,3 +26,15 @@ struct RVview : public OVview
     }
 };
 
+struct RVviewWithOldParticles : public RVview
+{
+    float4 *oldPositions = nullptr;
+
+    RVviewWithOldParticles(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr) :
+        RVview(rv, lrv)
+    {
+        if (rv == nullptr || lrv == nullptr) return;
+
+        oldPositions = lrv->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
+    }
+};
