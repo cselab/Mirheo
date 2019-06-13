@@ -1,13 +1,12 @@
 #pragma once
 
-#include <core/pvs/membrane_vector.h>
-#include <core/utils/cuda_common.h>
-#include <core/celllist.h>
+#include "common.h"
+
 #include <core/bounce_solver.h>
-
-#include <core/utils/cuda_rng.h>
-
+#include <core/celllist.h>
 #include <core/pvs/views/ov.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
 
 namespace MeshBounceKernels
 {
@@ -15,20 +14,6 @@ namespace MeshBounceKernels
 struct Triangle
 {
     float3 v0, v1, v2;
-};
-
-template<typename T>
-struct CollisionTable
-{
-    const int maxSize;
-    int* total;
-    T* indices;
-
-    __device__ void push_back(T idx)
-    {
-        int i = atomicAdd(total, 1);
-        if (i < maxSize) indices[i] = idx;
-    }
 };
 
 using TriangleTable = CollisionTable<int2>;
@@ -120,41 +105,6 @@ void findBouncesInCell(int pstart, int pend, int globTrid,
             triangleTable.push_back({pid, globTrid});
     }
 }
-
-
-
-// =====================================================
-// Small convenience functions
-// =====================================================
-
-
-template<typename T>
-__device__ inline T fmin_vec(T v)
-{
-    return v;
-}
-
-template<typename T, typename... Args>
-__device__ inline T fmin_vec(T v, Args... args)
-{
-    return fminf(v, fmin_vec(args...));
-}
-
-template<typename T>
-__device__ inline T fmax_vec(T v)
-{
-    return v;
-}
-
-template<typename T, typename... Args>
-__device__ inline T fmax_vec(T v, Args... args)
-{
-    return fmaxf(v, fmax_vec(args...));
-}
-
-// =====================================================
-// =====================================================
-
 
 //__launch_bounds__(128, 6)
 static __global__
@@ -589,4 +539,4 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.z, f2);
 }
 
-} // namespace BounceKernels
+} // namespace MeshBounceKernels
