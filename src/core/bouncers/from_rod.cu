@@ -33,95 +33,58 @@ std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const
 
 void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
 {
-    // auto activeRV = local ? rv->local() : rv->halo();
+    auto activeRV = local ? rv->local() : rv->halo();
 
-    // debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
-    //       pv->local()->size(), pv->name.c_str(),
-    //       activeRV->nObjects,  rv->name.c_str(),
-    //       local ? "local" : "halo");
+    debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
+          pv->local()->size(), pv->name.c_str(),
+          activeRV->nObjects,  rv->name.c_str(),
+          local ? "local" : "halo");
 
-    // rv->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
+    rv->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
 
-    // int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
+    int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
 
-    // // Set maximum possible number of _coarse_ and _fine_ collisions with segments
-    // // In case of crash, the estimate should be increased
-    // int maxCoarseCollisions = coarseCollisionsPerSeg * totalSegments;
-    // coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
-    // coarseTable.nCollisions.clear(stream);
-    // MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
-    //                                                   coarseTable.nCollisions.devPtr(),
-    //                                                   coarseTable.collisionTable.devPtr() };
-
-    // int maxFineCollisions = fineCollisionsPerSeg * totalSegments;
-    // fineTable.collisionTable.resize_anew(maxFineCollisions);
-    // fineTable.nCollisions.clear(stream);
-    // MeshBounceKernels::TriangleTable devFineTable { maxFineCollisions,
-    //                                                 fineTable.nCollisions.devPtr(),
-    //                                                 fineTable.collisionTable.devPtr() };
-
-    // // Setup collision times array. For speed and simplicity initial time will be 0,
-    // // and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
-    // // is the collision time, or 0 if no collision with the particle found
-    // collisionTimes.resize_anew(pv->local()->size());
-    // collisionTimes.clear(stream);
-
-    // const int nthreads = 128;
-
-    // activeRV->forces()->clear(stream);
-
-    // OVviewWithNewOldVertices vertexView(ov, activeOV, stream);
-    // PVviewWithOldParticles pvView(pv, pv->local());
-
-    // // Step 1, find all the candidate collisions
-    // SAFE_KERNEL_LAUNCH(
-    //         BounceKernels::findBouncesInMesh,
-    //         getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-    //         vertexView, pvView, ov->mesh.get(), cl->cellInfo(), devCoarseTable );
-
-    // coarseTable.nCollisions.downloadFromDevice(stream);
-    // debug("Found %d triangle collision candidates", coarseTable.nCollisions[0]);
-
-    // if (coarseTable.nCollisions[0] > maxCoarseCollisions)
-    //     die("Found too many triangle collision candidates (%d),"
-    //         "something may be broken or you need to increase the estimate", coarseTable.nCollisions[0]);
-
-    // // Step 2, filter the candidates
-    // SAFE_KERNEL_LAUNCH(
-    //         BounceKernels::refineCollisions,
-    //         getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
-    //         vertexView, pvView, ov->mesh.get(),
-    //         coarseTable.nCollisions[0], devCoarseTable.indices,
-    //         devFineTable, collisionTimes.devPtr() );
-
-    // fineTable.nCollisions.downloadFromDevice(stream);
-    // debug("Found %d precise triangle collisions", fineTable.nCollisions[0]);
-
-    // if (fineTable.nCollisions[0] > maxFineCollisions)
-    //     die("Found too many precise triangle collisions (%d),"
-    //         "something may be broken or you need to increase the estimate", fineTable.nCollisions[0]);
+    // Set maximum possible number of collisions with segments
+    // In case of crash, the estimate should be increased
+    int maxCollisions = collisionsPerSeg * totalSegments;
+    table.collisionTable.resize_anew(maxCollisions);
+    table.nCollisions.clear(stream);
+    RodBounceKernels::SegmentTable devCollisionTable { maxCollisions,
+                                                       table.nCollisions.devPtr(),
+                                                       table.collisionTable.devPtr() };
 
 
-    // // Step 3, resolve the collisions
-    // SAFE_KERNEL_LAUNCH(
-    //         BounceKernels::performBouncingTriangle,
-    //         getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
-    //         vertexView, pvView, ov->mesh.get(),
-    //         fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-    //         state->dt, kbT, drand48(), drand48() );
+    // Setup collision times array. For speed and simplicity initial time will be 0,
+    // and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
+    // is the collision time, or 0 if no collision with the particle found
+    collisionTimes.resize_anew(pv->local()->size());
+    collisionTimes.clear(stream);
 
-    // if (rov != nullptr)
-    // {
-    //     // make a fake view with vertices instead of particles
-    //     ROVview view(rov, local ? rov->local() : rov->halo());
-    //     view.objSize   = ov->mesh->getNvertices();
-    //     view.size      = view.nObjects * view.objSize;
-    //     view.positions = vertexView.vertices;
-    //     view.forces    = vertexView.vertexForces;
+    const int nthreads = 128;
 
-    //     SAFE_KERNEL_LAUNCH(
-    //             RigidIntegrationKernels::collectRigidForces,
-    //             getNblocks(view.size, nthreads), nthreads, 0, stream,
-    //             view );
-    // }
+    activeRV->forces().clear(stream);
+
+    RVviewWithOldParticles rvView(rv, activeRV);
+    PVviewWithOldParticles pvView(pv, pv->local());
+
+    // Step 1, find all the candidate collisions
+    SAFE_KERNEL_LAUNCH(
+            RodBounceKernels::findBounces,
+            getNblocks(totalSegments, nthreads), nthreads, 0, stream,
+            rvView, radius, pvView, cl->cellInfo(), devCollisionTable, collisionTimes.devPtr() );
+
+    table.nCollisions.downloadFromDevice(stream);
+    int nCollisions = table.nCollisions[0];
+    debug("Found %d rod collision candidates", nCollisions);
+
+    if (table.nCollisions[0] > maxCollisions)
+        die("Found too many rod collisions (%d),"
+            "something may be broken or you need to increase the estimate", nCollisions);
+
+    // Step 2, resolve the collisions
+    SAFE_KERNEL_LAUNCH(
+            RodBounceKernels::performBouncing,
+            getNblocks(table.nCollisions[0], nthreads), nthreads, 0, stream,
+            rvView, radius, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
+            state->dt, kbT, drand48(), drand48() );
 }

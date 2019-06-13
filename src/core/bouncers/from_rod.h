@@ -30,10 +30,9 @@ private:
      * Maximum supported number of collisions per step
      * will be #bouncesPerSeg * total number of triangles in mesh
      */
-    const float coarseCollisionsPerSeg = 5.0f;
-    const float fineCollisionsPerSeg = 1.0f;
+    const float collisionsPerSeg = 5.0f;
 
-    CollisionTableWrapper<int2> coarseTable, fineTable;
+    CollisionTableWrapper<int2> table;
 
     // times stored as int so that we can use atomicMax
     // note that times are always positive, thus guarantees ordering
