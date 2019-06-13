@@ -172,7 +172,7 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
     for (int id0 = 0; id0 < nvertices; ++id0) {
         int degree = degrees[id0];
         int startId = id0 * maxDegree;
-        v0 = f4tof3(vertices[id0]);
+        v0 = make_float3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
             int id1 = adjacent[startId + j];
@@ -180,8 +180,8 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
 
             assert(id2 != NOT_SET);
 
-            v1 = f4tof3(vertices[id1]);
-            v2 = f4tof3(vertices[id2]);
+            v1 = make_float3(vertices[id1]);
+            v2 = make_float3(vertices[id2]);
 
             initialAreas[startId + j] = computeArea(v0, v1, v2);
         }
@@ -199,7 +199,7 @@ void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<float4>& vertic
     for (int id0 = 0; id0 < nvertices; ++id0) {
         int degree = degrees[id0];
         int startId = id0 * maxDegree;
-        v0 = f4tof3(vertices[id0]);
+        v0 = make_float3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
             int id1 = adjacent[startId + j];
@@ -207,8 +207,8 @@ void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<float4>& vertic
 
             assert(id2 != NOT_SET);
 
-            v1 = f4tof3(vertices[id1]);
-            v2 = f4tof3(vertices[id2]);
+            v1 = make_float3(vertices[id1]);
+            v2 = make_float3(vertices[id2]);
 
             initialDotProducts[startId + j] = dot(v1 - v0, v2 - v0);
         }

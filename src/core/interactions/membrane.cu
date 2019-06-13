@@ -24,9 +24,9 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     for (int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {
         int3 ids = mesh.triangles[i];
 
-        auto v0 = make_real3(f4tof3( view.readPosition(offset + ids.x) ));
-        auto v1 = make_real3(f4tof3( view.readPosition(offset + ids.y) ));
-        auto v2 = make_real3(f4tof3( view.readPosition(offset + ids.z) ));
+        auto v0 = make_real3(make_float3( view.readPosition(offset + ids.x) ));
+        auto v1 = make_real3(make_float3( view.readPosition(offset + ids.y) ));
+        auto v2 = make_real3(make_float3( view.readPosition(offset + ids.z) ));
 
         a_v.x += triangleArea(v0, v1, v2);
         a_v.y += triangleSignedVolume(v0, v1, v2);

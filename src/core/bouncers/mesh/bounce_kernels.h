@@ -39,9 +39,9 @@ Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
 {
     auto addr = vertices + startId;
     return {
-        f4tof3( addr[trid.x] ),
-        f4tof3( addr[trid.y] ),
-        f4tof3( addr[trid.z] ) };
+        make_float3( addr[trid.x] ),
+        make_float3( addr[trid.y] ),
+        make_float3( addr[trid.z] ) };
 }
 
 

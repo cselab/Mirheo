@@ -36,7 +36,7 @@ private:
     const float fineCollisionsPerTri = 1.0f;
 
     CollisionTableWrapper<int2> coarseTable, fineTable;
-    DeviceBuffer<int> collisionTimes;
+    DeviceBuffer<int> collisionTimes; // times stored as int so that we can use atomicMax
 
     float kbT;
 
