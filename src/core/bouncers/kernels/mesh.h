@@ -9,7 +9,7 @@
 
 #include <core/pvs/views/ov.h>
 
-namespace BounceKernels
+namespace MeshBounceKernels
 {
 
 struct Triangle
