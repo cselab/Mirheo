@@ -10,7 +10,7 @@ class Bouncer:
 
 class Ellipsoid(Bouncer):
     r"""
-        This bouncer will use the analytical ellipsoid representation to perform the bounce.
+        This bouncer will use the analytical ellipsoid representation of the rigid objects to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     
@@ -47,6 +47,25 @@ class Mesh(Bouncer):
             Args:
                 name: name of the bouncer
                 kbt:  Maxwell distribution temperature defining post-collision velocity
+        
+
+        """
+        pass
+
+class Rod(Bouncer):
+    r"""
+        This bouncer will use the analytical representation of enlarged segments by a given radius.
+        The velocity of the particles bounced from the segments is reversed with respect to the boundary velocity at the contact point.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, radius: float) -> None
+
+
+            Args:
+                name: name of the checker
+                radius: radius of the segments
+            
         
 
         """
