@@ -6,10 +6,9 @@
 #include <core/pvs/views/rv.h>
 #include <core/utils/kernel_launch.h>
 
-BounceFromRod::BounceFromRod(const YmrState *state, std::string name, float radius, float kbT) :
+BounceFromRod::BounceFromRod(const YmrState *state, std::string name, float radius) :
     Bouncer(state, name),
-    radius(radius),
-    kbT(kbT)
+    radius(radius)
 {}
 
 BounceFromRod::~BounceFromRod() = default;
@@ -83,14 +82,14 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStrea
     int nCollisions = table.nCollisions[0];
     debug("Found %d rod collision candidates", nCollisions);
 
-    if (table.nCollisions[0] > maxCollisions)
+    if (nCollisions > maxCollisions)
         die("Found too many rod collisions (%d),"
             "something may be broken or you need to increase the estimate", nCollisions);
 
     // Step 2, resolve the collisions
     SAFE_KERNEL_LAUNCH(
             RodBounceKernels::performBouncing,
-            getNblocks(table.nCollisions[0], nthreads), nthreads, 0, stream,
+            getNblocks(nCollisions, nthreads), nthreads, 0, stream,
             rvView, radius, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
-            state->dt, kbT, drand48(), drand48() );
+            state->dt);
 }

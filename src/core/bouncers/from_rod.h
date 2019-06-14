@@ -13,7 +13,7 @@ class BounceFromRod : public Bouncer
 {
 public:
 
-    BounceFromRod(const YmrState *state, std::string name, float radius, float kbT);
+    BounceFromRod(const YmrState *state, std::string name, float radius);
     ~BounceFromRod();
 
     void setPrerequisites(ParticleVector *pv) override;
@@ -39,7 +39,6 @@ private:
     // note that times are always positive, thus guarantees ordering
     DeviceBuffer<int> collisionTimes;
 
-    float kbT;
     float radius;
 
     RodVector *rv;

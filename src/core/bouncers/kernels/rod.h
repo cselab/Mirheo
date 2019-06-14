@@ -195,7 +195,7 @@ __device__ inline float3 localToCartesianCoords(const float3& local, const Segme
 __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
                                 PVviewWithOldParticles pvView, int nCollisions,
                                 const int2 *collisionInfos, const int *collisionTimes,
-                                float dt, float kBT, float seed0, float seed1)
+                                float dt)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= nCollisions) return;
