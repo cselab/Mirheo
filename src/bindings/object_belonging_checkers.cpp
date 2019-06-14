@@ -1,9 +1,10 @@
-#include <core/object_belonging/interface.h>
-#include <core/object_belonging/ellipsoid_belonging.h>
-#include <core/object_belonging/mesh_belonging.h>
-
 #include "bindings.h"
 #include "class_wrapper.h"
+
+#include <core/object_belonging/ellipsoid_belonging.h>
+#include <core/object_belonging/interface.h>
+#include <core/object_belonging/mesh_belonging.h>
+#include <core/object_belonging/rod_belonging.h>
 
 using namespace pybind11::literals;
 
@@ -33,6 +34,16 @@ void exportObjectBelongingCheckers(py::module& m)
              "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
+            )");
+
+    py::handlers_class<RodBelongingChecker>(m, "Rod", pycheck, R"(
+        This checker will detect *inside*-*outside* status with respect to every segment of the rod, enlarged by a given radius.
+    )")
+        .def(py::init<const YmrState*, std::string, float>(),
+             "state"_a, "name"_a, "radius"_a, R"(
+            Args:
+                name: name of the checker
+                radius: radius of the rod
             )");
 }
 
