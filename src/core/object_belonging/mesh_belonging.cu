@@ -146,7 +146,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const float
 
 } // namespace MeshBelongingKernels
 
-void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream_t stream)
+void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     int nthreads = 128;
 

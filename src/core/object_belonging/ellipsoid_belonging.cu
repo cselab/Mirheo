@@ -8,6 +8,9 @@
 #include <core/utils/kernel_launch.h>
 #include <core/utils/quaternion.h>
 
+namespace EllipsoidBelongingKernels
+{
+
 __device__ inline float ellipsoidF(const float3 r, const float3 invAxes)
 {
     return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
@@ -53,8 +56,9 @@ __global__ void insideEllipsoid(REOVview reView, CellListInfo cinfo, PVview pvVi
     }
 }
 
+} // namespace EllipsoidBelongingKernels
 
-void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream_t stream)
+void EllipsoidBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     int nthreads = 512;
 
@@ -68,23 +72,24 @@ void EllipsoidBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaS
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
     ov->findExtentAndCOM(stream, ParticleVectorType::Halo);
 
-    auto view = REOVview(reov, reov->local());
+    auto pvView   = cl->getView<PVview>();
+    auto reovView = REOVview(reov, reov->local());
     debug("Computing inside/outside tags for %d local ellipsoids '%s' and %d '%s' particles",
-          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+          reovView.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
     SAFE_KERNEL_LAUNCH(
-            insideEllipsoid,
-            view.nObjects, nthreads, 0, stream,
-            view, cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+            EllipsoidBelongingKernels::insideEllipsoid,
+            reovView.nObjects, nthreads, 0, stream,
+            reovView, cl->cellInfo(), pvView, tags.devPtr());
 
-    view = REOVview(reov, reov->halo());
+    reovView = REOVview(reov, reov->halo());
     debug("Computing inside/outside tags for %d halo ellipsoids '%s' and %d '%s' particles",
-          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+          reovView.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
     SAFE_KERNEL_LAUNCH(
-            insideEllipsoid,
-            view.nObjects, nthreads, 0, stream,
-            view, cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+            EllipsoidBelongingKernels::insideEllipsoid,
+            reovView.nObjects, nthreads, 0, stream,
+            reovView, cl->cellInfo(), pvView, tags.devPtr());
 }
 
 
