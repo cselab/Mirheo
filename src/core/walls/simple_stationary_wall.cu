@@ -236,7 +236,7 @@ SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, 
     SDF_basedWall(state, name),
     insideWallChecker(std::move(insideWallChecker))
 {
-    bounceForce.clear(0);
+    bounceForce.clear(defaultStream);
 }
 
 template<class InsideWallChecker>
