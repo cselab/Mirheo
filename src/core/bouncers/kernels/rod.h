@@ -213,7 +213,9 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     auto matNew = readMatFrame(rvView.positions    + rodId * rvView.objSize, segId);
     auto matOld = readMatFrame(rvView.oldPositions + rodId * rvView.objSize, segId);
 
-    auto rNew = make_float3(pvView.readPosition(pid));
+    Particle p (pvView.readParticle(pid));
+    
+    auto rNew = p.r;
     auto rOld = pvView.readOldPosition(pid);
 
     auto alpha = collision(radius, segNew, segOld, rNew, rOld);
@@ -224,9 +226,19 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
 
     auto localCoords = getLocalCoords(rNew, rOld, segNew, segOld, matNew, matOld, alpha);
 
-    float3 newPos = localToCartesianCoords(localCoords, segNew, matNew);
+    float3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
+    float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
+    float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
+    // bounce back velocity
+    float3 newVel = 2 * colVel - p.u;
+
+    p.r = colPosNew;
+    p.u = newVel;
+    
     // TODO compute momentum to transfer
+
+    pvView.writeParticle(pid, p);
 }
 
     
