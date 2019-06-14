@@ -1,5 +1,6 @@
 #include <core/bouncers/from_ellipsoid.h>
 #include <core/bouncers/from_mesh.h>
+#include <core/bouncers/from_rod.h>
 #include <core/bouncers/interface.h>
 
 #include "bindings.h"
@@ -32,7 +33,7 @@ void exportBouncers(py::module& m)
         )");
         
     py::handlers_class<BounceFromRigidEllipsoid>(m, "Ellipsoid", pybounce, R"(
-        This bouncer will use the analytical ellipsoid representation to perform the bounce.
+        This bouncer will use the analytical ellipsoid representation of the rigid objects to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     )")
@@ -40,6 +41,18 @@ void exportBouncers(py::module& m)
              "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
+            
+        )");
+
+    py::handlers_class<BounceFromRod>(m, "Rod", pybounce, R"(
+        This bouncer will use the analytical representation of enlarged segments by a given radius.
+        The velocity of the particles bounced from the segments is reversed with respect to the boundary velocity at the contact point.
+    )")
+        .def(py::init<const YmrState*, std::string, float>(),
+             "state"_a, "name"_a, "radius"_a, R"(
+            Args:
+                name: name of the checker
+                radius: radius of the segments
             
         )");
 }
