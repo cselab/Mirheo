@@ -37,6 +37,16 @@ Segment readMatFrame(const float4 *rodPos, int segmentId)
 
 static constexpr float NoCollision = -1.f;
 
+__device__ inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
+{
+    float3 dr = r1 - r0;
+    float alpha = dot(x - r0, dr) / dot(dr, dr);
+    alpha = min(1.f, max(0.f, alpha));
+    float3 p = r0 + alpha * dr;
+    float3 dx = x - p;
+    return dot(dx, dx);
+}
+
 // find "time" (0.0 to 1.0) of the segment - moving triangle intersection
 // returns NoCollision is no intersection
 // sets intPoint and intSegment if intersection found
@@ -53,21 +63,18 @@ float collision(const float radius,
     auto F = [=] (float t) {
         float3 r0t = segOld.r0 + t * dr0;
         float3 r1t = segOld.r1 + t * dr1;
-        float3 xt = xOld +       t * dx;
+        float3  xt = xOld +      t * dx;
 
-        float3 e = r1t - r0t;
-        float  a = dot(xt - r0t, e) / dot(e, e);
-        a = min(1.f, max(0.f, a));
-        float3 p = r0t + a * e;
-        return length(p-xt) - radius;
+        float dsq = squaredDistanceToSegment(r0t, r1t, xt);
+        return dsq - radius*radius;
     };
 
-    constexpr float tol = 1e-6f;
-    float2 res = solveLinSearch_verbose(F, 0.0f, 1.0f, tol);
-    auto alpha = res.x;
-    auto Fval  = res.y;
+    if (F(1.f) > 0.f) return NoCollision;
 
-    if (fabs(Fval) < tol && alpha >= 0.0f && alpha <= 1.0f)
+    constexpr float tol = 1e-6f;
+    float alpha = solveLinSearch(F, 0.0f, 1.0f, tol);
+
+    if (alpha >= 0.0f && alpha <= 1.0f)
         return alpha;
 
     return NoCollision;
@@ -88,7 +95,7 @@ void findBouncesInCell(int pstart, int pend, int globSegId,
 
         auto alpha = collision(radius, segNew, segOld, rNew, rOld);
 
-        if (alpha == NoCollision) return;
+        if (alpha == NoCollision) continue;
 
         atomicMax(collisionTimes+pid, __float_as_int(1.0f - alpha));
         segmentTable.push_back({pid, globSegId});
@@ -114,8 +121,8 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
     const float3 lo = fmin_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
     const float3 hi = fmax_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - tol);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + tol);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - (radius + tol));
+    const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + (radius + tol));
 
     int3 cid3;
 
