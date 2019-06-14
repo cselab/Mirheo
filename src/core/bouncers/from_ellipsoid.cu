@@ -1,10 +1,10 @@
 #include "from_ellipsoid.h"
+#include "kernels/ellipsoid.h"
 
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/views/reov.h>
-#include <core/rigid_kernels/bounce.h>
 #include <core/rigid_kernels/integration.h>
 #include <core/utils/kernel_launch.h>
 
