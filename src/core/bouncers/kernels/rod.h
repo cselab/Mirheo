@@ -198,6 +198,52 @@ __device__ inline float3 localToCartesianCoords(const float3& local, const Segme
     return seg.r0 + x;
 }
 
+struct Forces
+{
+    float3 fr0, fr1, fu0, fu1;
+};
+
+__device__ inline Forces transferMomentumToSegment(float dt, float partMass, const float3& pos, const float3& dV,
+                                                   const Segment& seg, const Segment& mat)
+{
+    Forces out;
+    float3 rc = 0.5f * (seg.r0 + seg.r1);
+    float3 dx = pos - rc;
+    
+    float3 F = (partMass / dt) * dV;
+    float3 T = cross(dx, F);
+
+    // linear momentum equaly to everyone
+    out.fr0 = out.fr1 = out.fu0 = out.fu1 = -0.25f * F;
+
+    float3 dr = seg.r1 - seg.r0;
+    auto t = normalize(dr);
+    float3 du = mat.r1 - mat.r0;
+
+    float3 Tpara = dot(T, t) * t;
+    float3 Tperp = T - Tpara;
+
+    float tdu = dot(du, t);
+    float3 du_ = du - tdu * t;
+
+    float paraFactor = 1.f / (dot(du, du) + tdu*tdu);
+    
+    float3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
+
+    // the above force gives extra torque in Tperp direction
+    // compensate that here
+    Tperp -= (paraFactor * tdu*tdu * length(Tpara)) * du_;
+    
+    float3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
+
+    out.fr0 -= fTperp;
+    out.fr1 += fTperp;
+
+    out.fu0 -= fTpara;
+    out.fu1 += fTpara;
+
+    return out;
+}
 
 __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
                                 PVviewWithOldParticles pvView, int nCollisions,
@@ -240,12 +286,19 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     // bounce back velocity
     float3 newVel = 2 * colVel - p.u;
 
+    auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
+    
     p.r = colPosNew;
     p.u = newVel;
     
-    // TODO compute momentum to transfer
-
     pvView.writeParticle(pid, p);
+
+    auto faddr = rvView.forces + rodId * rvView.objSize + 5*segId;
+
+    atomicAdd(faddr + 0, segF.fr0);
+    atomicAdd(faddr + 1, segF.fu0);
+    atomicAdd(faddr + 2, segF.fu1);
+    atomicAdd(faddr + 5, segF.fr1);
 }
 
     
