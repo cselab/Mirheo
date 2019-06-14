@@ -255,6 +255,13 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 }
 
 template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+}
+
+template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 {
     frozen = pv;

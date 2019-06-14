@@ -26,6 +26,12 @@ void BounceFromRod::setup(ObjectVector *ov)
     ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Persistent, sizeof(float));
 }
 
+void BounceFromRod::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+}
+
 std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const
 {
     return {ChannelNames::oldPositions};

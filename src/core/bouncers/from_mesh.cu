@@ -47,6 +47,12 @@ void BounceFromMesh::setup(ObjectVector *ov)
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
+void BounceFromMesh::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+}
+
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
 {
     if (rov)

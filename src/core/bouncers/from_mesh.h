@@ -18,6 +18,7 @@ public:
     BounceFromMesh(const YmrState *state, std::string name, float kbT);
     ~BounceFromMesh();
 
+    void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     
 private:

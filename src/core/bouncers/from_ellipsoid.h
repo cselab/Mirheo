@@ -14,6 +14,7 @@ public:
 
     void setup(ObjectVector *ov) override;
 
+    void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     
 protected:

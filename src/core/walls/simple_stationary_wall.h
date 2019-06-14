@@ -17,6 +17,8 @@ public:
     ~SimpleStationaryWall();
 
     void setup(MPI_Comm& comm) override;
+    void setPrerequisites(ParticleVector *pv) override;
+    
     void attachFrozen(ParticleVector *pv) override;
 
     void removeInner(ParticleVector *pv) override;

@@ -29,6 +29,12 @@ void BounceFromRigidEllipsoid::setup(ObjectVector *ov)
     ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
+void BounceFromRigidEllipsoid::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+}
+
 std::vector<std::string> BounceFromRigidEllipsoid::getChannelsToBeExchanged() const
 {
     return {ChannelNames::motions, ChannelNames::oldMotions};

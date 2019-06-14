@@ -16,6 +16,7 @@ public:
     BounceFromRod(const YmrState *state, std::string name, float radius, float kbT);
     ~BounceFromRod();
 
+    void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     
 private:
