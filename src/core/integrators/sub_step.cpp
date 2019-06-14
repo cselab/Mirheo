@@ -7,7 +7,6 @@
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/common.h>
-#include <core/utils/kernel_launch.h>
 
 #include <memory>
 
