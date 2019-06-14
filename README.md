@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* add bounce back on rods
+* **internal changes**:
+  * do not rely on hash for mpi tags in plugins
 
 ### v0.16.3
 
