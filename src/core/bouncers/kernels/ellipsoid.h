@@ -2,7 +2,6 @@
 
 #include <core/bounce_solver.h>
 #include <core/celllist.h>
-#include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/reov.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/quaternion.h>
@@ -140,31 +139,6 @@ __global__ void bounceEllipsoid(REOVviewWithOldMotion ovView, PVviewWithOldParti
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;
-
-//    if (  ovView.motions[objId].r.x < -15.9 )
-//    {
-//        auto motion = ovView.motions[objId];
-//        if(threadIdx.x == 0)
-//        printf("obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-//                "    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
-//                motion.r.x,  motion.r.y,  motion.r.z,
-//                motion.vel.x,  motion.vel.y,  motion.vel.z,
-//                motion.force.x,  motion.force.y,  motion.force.z,
-//                motion.torque.x, motion.torque.y, motion.torque.z ,
-//                motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
-//                motion.omega.x,  motion.omega.y,  motion.omega.z);
-//
-//        motion = ovView.old_motions[objId];
-//        if(threadIdx.x == 0)
-//        printf("OLD obj  %d  r [%f %f %f]   v [%f %f %f],  f [%f %f %f],  t [%f %f %f],   \n"
-//                "    q [%f %f %f %f]   w [%f %f %f] \n", ovView.ids[objId],
-//                motion.r.x,  motion.r.y,  motion.r.z,
-//                motion.vel.x,  motion.vel.y,  motion.vel.z,
-//                motion.force.x,  motion.force.y,  motion.force.z,
-//                motion.torque.x, motion.torque.y, motion.torque.z ,
-//                motion.q.x,  motion.q.y,  motion.q.z, motion.q.w,
-//                motion.omega.x,  motion.omega.y,  motion.omega.z);
-//    }
 
     for (int i=tid; i-tid < totCells; i+=blockDim.x)
     {
