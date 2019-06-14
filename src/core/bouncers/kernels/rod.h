@@ -180,7 +180,7 @@ __device__ inline float3 getLocalCoords(const float3& xNew, const float3& xOld,
     return getLocalCoords(colPoint, colSeg, colMat); 
 }
 
-__device__ inline float3 localToCartesianCoords(const float& local, const Segment& seg, const Segment& mat)
+__device__ inline float3 localToCartesianCoords(const float3& local, const Segment& seg, const Segment& mat)
 {
     auto t = normalize(seg.r1 - seg.r0);
     auto u = mat.r1 - mat.r0;

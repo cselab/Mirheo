@@ -64,7 +64,7 @@ void BounceFromRigidEllipsoid::exec(ParticleVector *pv, CellList *cl, bool local
     }
 
     SAFE_KERNEL_LAUNCH(
-            bounceEllipsoid,
+            EllipsoidBounceKernels::bounceEllipsoid,
             ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
             ovView, pvView, cl->cellInfo(), state->dt );
 }
