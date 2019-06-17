@@ -3,8 +3,55 @@
 #include "utils/time_stamp.h"
 
 #include <core/pvs/rigid_object_vector.h>
+#include <core/pvs/views/ov.h>
 #include <core/simulation.h>
 #include <core/utils/folders.h>
+#include <core/utils/helper_math.h>
+
+namespace ObjStatsPluginKernels {
+
+__global__ void collectObjStats(OVview view, RigidMotion *motionStats)
+{
+    const int objId  = blockIdx.x;
+    const int tid    = threadIdx.x;
+    const int laneId = tid % warpSize;
+
+    RigidMotion local = {0};
+
+    const auto com = view.comAndExtents[objId].com;
+    
+    for (int i = tid; i < view.objSize; i += blockDim.x)
+    {
+        int pid = objId * view.objSize + i;
+        const Particle p = view.readParticle(pid);
+        float3 f = make_float3(view.forces[pid]);
+
+        float3 dr = p.r - com;
+        
+        local.vel    += p.u;
+        local.omega  += cross(dr, p.u);
+        local.force  += f;
+        local.torque += cross(dr, f);
+    }
+
+    auto add = [](const RigidReal& a, const RigidReal& b) {return a+b;};
+
+    warpReduce(local.vel,    add);
+    warpReduce(local.omega,  add);
+    warpReduce(local.force,  add);
+    warpReduce(local.torque, add);
+
+    if (laneId == 0)
+    {
+        atomicAdd( &motionStats[objId].vel,   local.vel   / view.objSize);
+        atomicAdd( &motionStats[objId].omega, local.omega / view.objSize);
+
+        atomicAdd( &motionStats[objId].force,  local.force );
+        atomicAdd( &motionStats[objId].torque, local.torque);
+    }
+}
+
+} // namespace ObjStatsPluginKernels
 
 ObjStatsPlugin::ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name),
