@@ -12,7 +12,7 @@
 #include "density_control.h"
 #include "displacement.h"
 #include "dump_mesh.h"
-#include "dump_obj_position.h"
+#include "dump_obj_stats.h"
 #include "dump_particles.h"
 #include "dump_particles_with_mesh.h"
 #include "dump_xyz.h"
