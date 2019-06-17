@@ -58,8 +58,8 @@ void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
 
 //=================================================================================
 
-void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, std::vector<int64_t>& ids,
-                    std::vector<COMandExtent> coms, std::vector<RigidMotion> motions)
+static void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, const std::vector<int64_t>& ids,
+                           const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );

@@ -30,8 +30,8 @@ public:
 
 private:
     std::string ovName;
-    ObjectVector* ov;
-    RigidObjectVector* rov{nullptr};
+    ObjectVector *ov;
+    RigidObjectVector *rov{nullptr};
 
     float3 translation, rotation;
 
