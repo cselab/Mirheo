@@ -154,7 +154,7 @@ void exportPlugins(py::module& m)
     )");
 
     
-    py::handlers_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
+    py::handlers_class<ObjStatsPlugin>(m, "ObjStats", pysim, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
         
@@ -169,8 +169,8 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
-    py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost, R"(
-        Postprocess side plugin of :any:`ObjPositions`.
+    py::handlers_class<ObjStatsDumper>(m, "ObjStatsDumper", pypost, R"(
+        Postprocess side plugin of :any:`ObjStats`.
         Responsible for performing the I/O.
     )");
 
@@ -498,9 +498,9 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.ply
     )");
 
-    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjStats, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
-        Create :any:`ObjPositions` plugin
+        Create :any:`ObjStats` plugin
         
         Args:
             name: name of the plugin

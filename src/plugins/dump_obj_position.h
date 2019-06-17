@@ -10,10 +10,10 @@
 #include <core/rigid_kernels/rigid_motion.h>
 
 
-class ObjPositionsPlugin : public SimulationPlugin
+class ObjStatsPlugin : public SimulationPlugin
 {
 public:
-    ObjPositionsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery);
+    ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -39,11 +39,11 @@ private:
 };
 
 
-class ObjPositionsDumper : public PostprocessPlugin
+class ObjStatsDumper : public PostprocessPlugin
 {
 public:
-    ObjPositionsDumper(std::string name, std::string path);
-    ~ObjPositionsDumper();
+    ObjStatsDumper(std::string name, std::string path);
+    ~ObjStatsDumper();
 
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;

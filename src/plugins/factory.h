@@ -281,11 +281,11 @@ createDumpXYZPlugin(bool computeTask, const YmrState *state, std::string name, P
     return { simPl, postPl };
 }
 
-static pair_shared< ObjPositionsPlugin, ObjPositionsDumper >
-createDumpObjPosition(bool computeTask, const YmrState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
+static pair_shared< ObjStatsPlugin, ObjStatsDumper >
+createDumpObjStats(bool computeTask, const YmrState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ObjPositionsPlugin> (state, name, ov->name, dumpEvery) : nullptr;
-    auto postPl = computeTask ? nullptr : std::make_shared<ObjPositionsDumper> (name, path);
+    auto simPl  = computeTask ? std::make_shared<ObjStatsPlugin> (state, name, ov->name, dumpEvery) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, path);
 
     return { simPl, postPl };
 }

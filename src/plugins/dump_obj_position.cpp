@@ -6,13 +6,13 @@
 #include <core/simulation.h>
 #include <core/utils/folders.h>
 
-ObjPositionsPlugin::ObjPositionsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
+ObjStatsPlugin::ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name),
     ovName(ovName),
     dumpEvery(dumpEvery)
 {}
 
-void ObjPositionsPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -23,13 +23,13 @@ void ObjPositionsPlugin::setup(Simulation* simulation, const MPI_Comm& comm, con
     info("Plugin %s initialized for the following object vectors: %s", name.c_str(), ovName.c_str());
 }
 
-void ObjPositionsPlugin::handshake()
+void ObjStatsPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer, ovName);
     send(sendBuffer);
 }
 
-void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
+void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -43,7 +43,7 @@ void ObjPositionsPlugin::afterIntegration(cudaStream_t stream)
     needToSend = true;
 }
 
-void ObjPositionsPlugin::serializeAndSend(cudaStream_t stream)
+void ObjStatsPlugin::serializeAndSend(cudaStream_t stream)
 {
     if (!needToSend) return;
 
@@ -129,24 +129,24 @@ static void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, flo
 //=================================================================================
 
 
-ObjPositionsDumper::ObjPositionsDumper(std::string name, std::string path) :
+ObjStatsDumper::ObjStatsDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(makePath(path))
 {}
 
-ObjPositionsDumper::~ObjPositionsDumper()
+ObjStatsDumper::~ObjStatsDumper()
 {
     if (activated)
         MPI_Check( MPI_File_close(&fout) );
 }
 
-void ObjPositionsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+void ObjStatsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
     activated = createFoldersCollective(comm, path);
 }
 
-void ObjPositionsDumper::handshake()
+void ObjStatsDumper::handshake()
 {
     auto req = waitData();
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
@@ -165,7 +165,7 @@ void ObjPositionsDumper::handshake()
 }
 
 
-void ObjPositionsDumper::deserialize(MPI_Status& stat)
+void ObjStatsDumper::deserialize(MPI_Status& stat)
 {
     YmrState::TimeType curTime;
     DomainInfo domain;
