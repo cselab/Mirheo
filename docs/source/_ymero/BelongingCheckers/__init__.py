@@ -44,4 +44,21 @@ class Mesh(BelongingChecker):
         """
         pass
 
+class Rod(BelongingChecker):
+    r"""
+        This checker will detect *inside*-*outside* status with respect to every segment of the rod, enlarged by a given radius.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, radius: float) -> None
+
+
+            Args:
+                name: name of the checker
+                radius: radius of the rod
+            
+
+        """
+        pass
+
 

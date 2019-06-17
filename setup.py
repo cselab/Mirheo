@@ -37,8 +37,8 @@ class CopyLibrary(build_ext):
 setup(
     name='YMeRo',
     version=version.ymr_version,
-    author='Dmitry Alexeev',
-    author_email='alexeedm@ethz.ch',
+    author='Dmitry Alexeev, Lucas Amoudruz',
+    author_email='alexeedm@ethz.ch, amlucas@ethz.ch',
     description='Computational Microfluidics',
     long_description='',
     packages = ['ymero'],
