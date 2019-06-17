@@ -21,9 +21,9 @@ u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov, dump_every=1
 
 u.run(2)
 
-# TEST: dump.rigid_stats
+# TEST: dump.rov_stats
 # cd dump
-# rm -rf stats rigid_stats.out.txt
-# ymr.run --runargs "-n 2" ./rigid_stats.py
-# cp stats/ellipsoid.txt rigid_stats.out.txt
+# rm -rf stats rov_stats.out.txt
+# ymr.run --runargs "-n 2" ./rov_stats.py
+# cp stats/ellipsoid.txt rov_stats.out.txt
 

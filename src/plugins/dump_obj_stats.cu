@@ -7,6 +7,7 @@
 #include <core/simulation.h>
 #include <core/utils/folders.h>
 #include <core/utils/helper_math.h>
+#include <core/utils/kernel_launch.h>
 
 namespace ObjStatsPluginKernels {
 
@@ -84,7 +85,27 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
     coms.copy( *ov->local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);
 
     if (ov->local()->dataPerObject.checkChannelExists(ChannelNames::oldMotions))
-        motions.copy( *ov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions), stream);
+    {
+        auto& oldMotions = *ov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions);
+        motions.copy(oldMotions, stream);
+        isRov = true;
+    }
+    else
+    {
+        const int nthreads = 128;
+        OVview view(ov, ov->local());
+        motionStats.resize_anew(view.nObjects);
+
+        motionStats.clear(stream);
+
+        SAFE_KERNEL_LAUNCH(
+            ObjStatsPluginKernels::collectObjStats,
+            view.nObjects, nthreads, 0, stream,
+            view, motionStats.devPtr());
+
+        motions.copy(motionStats, stream);
+        isRov = false;
+    }
     
     savedTime = state->currentTime;
     needToSend = true;
@@ -97,7 +118,7 @@ void ObjStatsPlugin::serializeAndSend(cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, ids, coms, motions);
+    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, isRov, ids, coms, motions);
     send(sendBuffer);
     
     needToSend=false;
@@ -105,8 +126,8 @@ void ObjStatsPlugin::serializeAndSend(cudaStream_t stream)
 
 //=================================================================================
 
-static void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, const std::vector<int64_t>& ids,
-                           const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions)
+static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, const std::vector<int64_t>& ids,
+                       const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -119,7 +140,7 @@ static void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, flo
     ss.setf(std::ios::fixed, std::ios::floatfield);
     ss.precision(5);
 
-    for(int i = 0; i < np; ++i)
+    for (int i = 0; i < np; ++i)
     {
         auto com = coms[i];
         com.com = domain.local2global(com.com);
@@ -129,32 +150,33 @@ static void writePositions(MPI_Comm comm, DomainInfo domain, MPI_File& fout, flo
                 << std::setw(10) << com.com.y << " "
                 << std::setw(10) << com.com.z;
 
-        if (!motions.empty())
+        auto& motion = motions[i];
+
+        if (isRov)
         {
-            auto& motion = motions[i];
-
             ss << "    "
-                    << std::setw(10) << motion.q.x << " "
-                    << std::setw(10) << motion.q.y << " "
-                    << std::setw(10) << motion.q.z << " "
-                    << std::setw(10) << motion.q.w << "    "
-
-                    << std::setw(10) << motion.vel.x << " "
-                    << std::setw(10) << motion.vel.y << " "
-                    << std::setw(10) << motion.vel.z << "    "
-
-                    << std::setw(10) << motion.omega.x << " "
-                    << std::setw(10) << motion.omega.y << " "
-                    << std::setw(10) << motion.omega.z << "    "
-
-                    << std::setw(10) << motion.force.x << " "
-                    << std::setw(10) << motion.force.y << " "
-                    << std::setw(10) << motion.force.z << "    "
-
-                    << std::setw(10) << motion.torque.x << " "
-                    << std::setw(10) << motion.torque.y << " "
-                    << std::setw(10) << motion.torque.z;
+               << std::setw(10) << motion.q.x << " "
+               << std::setw(10) << motion.q.y << " "
+               << std::setw(10) << motion.q.z << " "
+               << std::setw(10) << motion.q.w;
         }
+
+        ss << "    "   
+           << std::setw(10) << motion.vel.x << " "
+           << std::setw(10) << motion.vel.y << " "
+           << std::setw(10) << motion.vel.z << "    "
+            
+           << std::setw(10) << motion.omega.x << " "
+           << std::setw(10) << motion.omega.y << " "
+           << std::setw(10) << motion.omega.z << "    "
+            
+           << std::setw(10) << motion.force.x << " "
+           << std::setw(10) << motion.force.y << " "
+           << std::setw(10) << motion.force.z << "    "
+            
+           << std::setw(10) << motion.torque.x << " "
+           << std::setw(10) << motion.torque.y << " "
+           << std::setw(10) << motion.torque.z;
 
         ss << std::endl;
     }
@@ -219,11 +241,12 @@ void ObjStatsDumper::deserialize(MPI_Status& stat)
     std::vector<int64_t> ids;
     std::vector<COMandExtent> coms;
     std::vector<RigidMotion> motions;
+    bool isRov;
 
-    SimpleSerializer::deserialize(data, curTime, domain, ids, coms, motions);
+    SimpleSerializer::deserialize(data, curTime, domain, isRov, ids, coms, motions);
 
     if (activated)
-        writePositions(comm, domain, fout, curTime, ids, coms, motions);
+        writeStats(comm, domain, fout, curTime, ids, coms, motions, isRov);
 }
 
 

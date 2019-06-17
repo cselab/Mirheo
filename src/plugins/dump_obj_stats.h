@@ -1,21 +1,20 @@
 #pragma once
 
-#include <plugins/interface.h>
+#include "interface.h"
+
 #include <core/containers.h>
 #include <core/datatypes.h>
-
-#include <vector>
-
 #include <core/pvs/object_vector.h>
 #include <core/rigid_kernels/rigid_motion.h>
 
+#include <vector>
 
 class ObjStatsPlugin : public SimulationPlugin
 {
 public:
     ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery);
 
-    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;
@@ -31,7 +30,9 @@ private:
     HostBuffer<int64_t> ids;
     HostBuffer<COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
+    DeviceBuffer<RigidMotion> motionStats;
     YmrState::TimeType savedTime = 0;
+    bool isRov {false};
 
     std::vector<char> sendBuffer;
 
