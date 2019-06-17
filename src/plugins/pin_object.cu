@@ -155,7 +155,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
     if (rov != nullptr && (rotation.x != Unrestricted || rotation.y != Unrestricted || rotation.z != Unrestricted))
     {
         torques.resize_anew(totObjs);
-        torques.clear(0);
+        torques.clear(defaultStream);
     }
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",

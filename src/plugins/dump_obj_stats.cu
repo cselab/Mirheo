@@ -150,7 +150,7 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float c
                 << std::setw(10) << com.com.y << " "
                 << std::setw(10) << com.com.z;
 
-        auto& motion = motions[i];
+        const auto& motion = motions[i];
 
         if (isRov)
         {
