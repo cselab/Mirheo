@@ -4,18 +4,14 @@ import ymero as ymr
 import numpy as np
 
 density = 4
-path   = "ply/"
-pvname = "rbc"
-off    = "rbc_mesh.off"
-
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
 u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
-mesh = ymr.ParticleVectors.MembraneMesh(off)
+mesh = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 
-pv_rbc = ymr.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
+pv_rbc = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh)
 ic_rbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
