@@ -148,7 +148,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 
     forces.resize_anew(totObjs);
-    forces.clear(0);
+    forces.clear(defaultStream);
 
     // Also check torques if object is rigid and if we need to restrict rotation
     rov = dynamic_cast<RigidObjectVector*>(ov);
