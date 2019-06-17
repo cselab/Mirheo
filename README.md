@@ -15,6 +15,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### unreleased
 
 * add bounce back on rods
+* add belonging checker for rods
+* **tests** belonging checkers
 * **internal changes**:
   * do not rely on hash for mpi tags in plugins
 
