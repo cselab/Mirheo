@@ -2,11 +2,6 @@
 
 import ymero as ymr
 import numpy as np
-import trimesh, argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--readFrom", choices=["off", 'trimesh'])
-args = parser.parse_args()
 
 density = 4
 path   = "ply/"
