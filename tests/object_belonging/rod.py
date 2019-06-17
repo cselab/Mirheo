@@ -40,5 +40,5 @@ if u.isMasterTask():
 # TEST: object_belonging.rod
 # cd object_belonging
 # rm -rf pos.inner.txt belonging.out.txt
-# ymr.run --runargs "-n 2" ./rod.py
+# ymr.run --runargs "-n 1" ./rod.py
 # cat pos.inner.txt | LC_ALL=en_US.utf8 sort > belonging.out.txt

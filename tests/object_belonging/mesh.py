@@ -32,7 +32,7 @@ if u.isMasterTask():
 
 # TEST: object_belonging.mesh
 # cd object_belonging
-# rm -rf ply/ pos.inner.txt 
+# rm -rf pos.inner.txt belonging.out.txt 
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mesh.py
+# ymr.run --runargs "-n 1" ./mesh.py
 # cat pos.inner.txt | LC_ALL=en_US.utf8 sort > belonging.out.txt

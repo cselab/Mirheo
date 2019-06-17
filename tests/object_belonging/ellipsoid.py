@@ -4,7 +4,6 @@ import ymero as ymr
 import numpy as np
 
 density = 4
-
 ranks  = (1, 1, 1)
 
 axes = (1.0, 2.0, 3.0)
@@ -38,6 +37,6 @@ if u.isMasterTask():
 
 # TEST: object_belonging.ellipsoid
 # cd object_belonging
-# rm -rf ply/ pos.inner.txt 
-# ymr.run --runargs "-n 2" ./ellipsoid.py
+# rm -rf pos.inner.txt belonging.out.txt
+# ymr.run --runargs "-n 1" ./ellipsoid.py
 # cat pos.inner.txt | LC_ALL=en_US.utf8 sort > belonging.out.txt
