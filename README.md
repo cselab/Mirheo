@@ -12,13 +12,17 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
 
-* add bounce back on rods
-* add belonging checker for rods
+### v0.17.0
+
+* add CylinderRigidObjectVectors (CROVs)
+* add bounce back on rods and CROVs
+* add belonging checker for rods and CROVs
 * **tests** belonging checkers
 * **internal changes**:
   * do not rely on hash for mpi tags in plugins
+  * generic kernels in belonging and bounce for RigidObjectVectors with analytical shapes 
 
 ### v0.16.3
 
