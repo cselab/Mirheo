@@ -12,10 +12,10 @@ public:
         halfL(0.5 * L)
     {}
 
-    __HD__ inline float inOutFunction(float3 x) const
+    __HD__ inline float inOutFunction(float3 coo) const
     {
-        float dr = sqrtf(sqr(x.x) + sqr(x.y)) - R;
-        float dz = fabs(x.z) - halfL;
+        float dr = sqrtf(sqr(coo.x) + sqr(coo.y)) - R;
+        float dz = fabs(coo.z) - halfL;
 
         float dist2edge = sqrtf(sqr(dz) + sqr(dr));
         float dist2disk = dr > 0 ? dist2edge : dz;
@@ -26,10 +26,20 @@ public:
             : fmin(dist2cyl, dist2disk);
     }
 
-    __HD__ inline float3 normal(float3 r) const
+    __HD__ inline float3 normal(float3 coo) const
     {
-        // TODO
-        return normalize(make_float3(1.f, 0.f, 0.f));
+        constexpr float eps = 1e-6f;
+        float rsq = sqr(coo.x) + sqr(coo.y);
+        float rinv = rsq > eps ? rsqrtf(rsq) : 0.f;
+
+        float dr = sqrtf(rsq) - R;
+        float dz = fabs(coo.z) - halfL;
+        
+        float3 er {rinv * coo.x, rinv * coo.y, 0.f};
+        float3 ez {0.f, 0.f, coo.z > 0 ? 1.f : -1.f};
+
+        float3 n = fabs(dr) > fabs(dz) ? er : ez;
+        return n;
     }
     
 
