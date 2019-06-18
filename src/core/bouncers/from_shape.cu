@@ -75,6 +75,3 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
 
 ASHAPE_TABLE(INSTANTIATE)
 
-
-
-
