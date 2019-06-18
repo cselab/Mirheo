@@ -28,7 +28,9 @@ public:
 
     __HD__ inline float3 normal(float3 coo) const
     {
-        constexpr float eps = 1e-6f;
+        constexpr float eps   = 1e-6f;
+        constexpr float delta = 1e-3f;
+        
         float rsq = sqr(coo.x) + sqr(coo.y);
         float rinv = rsq > eps ? rsqrtf(rsq) : 0.f;
 
@@ -38,7 +40,10 @@ public:
         float3 er {rinv * coo.x, rinv * coo.y, 0.f};
         float3 ez {0.f, 0.f, coo.z > 0 ? 1.f : -1.f};
 
-        float3 n = fabs(dr) > fabs(dz) ? er : ez;
+        
+        float3 n {0.f, 0.f, 0.f};
+        if (fabs(dr) < delta) n += er;
+        if (fabs(dr) < delta) n += ez;
         return n;
     }
     

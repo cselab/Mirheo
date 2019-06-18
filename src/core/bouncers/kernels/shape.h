@@ -49,13 +49,13 @@ __device__ inline void bounceCellArray(
 
         // Push out a little bit
         auto normal = shape.normal(newCoo);
-        newCoo += threshold*normal;
+        newCoo += threshold * normal;
 
         // If smth went notoriously bad
         if (shape.inOutFunction(newCoo) < 0.0f)
         {
-            printf("Bounce-back failed on particle %d (%f %f %f)  %f -> %f to %f, alpha %f. Recovering to old position\n",
-                    p.i1, p.r.x, p.r.y, p.r.z,
+            printf("Bounce-back failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f to %f, alpha %f. Recovering to old position\n",
+                   p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
                     shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
                     shape.inOutFunction(newCoo - threshold*normal), alpha);
 
