@@ -26,6 +26,13 @@ public:
             : fmin(dist2cyl, dist2disk);
     }
 
+    __HD__ inline float3 normal(float3 r) const
+    {
+        // TODO
+        return normalize(make_float3(1.f, 0.f, 0.f));
+    }
+    
+
     inline float3 inertiaTensor(float totalMass) const
     {
         const float xx = totalMass * R * R / 4.0;

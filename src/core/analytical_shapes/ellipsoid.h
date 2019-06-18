@@ -17,6 +17,14 @@ public:
         return sqr(r.x * invAxes.x) + sqr(r.y * invAxes.y) + sqr(r.z * invAxes.z) - 1.0f;
     }
 
+    __HD__ inline float3 normal(float3 r) const
+    {
+        return normalize(make_float3(
+            axes.y*axes.y * axes.z*axes.z * r.x,
+            axes.z*axes.z * axes.x*axes.x * r.y,
+            axes.x*axes.x * axes.y*axes.y * r.z));
+    }
+    
     inline float3 inertiaTensor(float totalMass) const
     {
         return totalMass / 5.0f * make_float3

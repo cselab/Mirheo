@@ -47,14 +47,8 @@ __device__ inline void bounceCellArray(
         float alpha = solveLinSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
         float3 newCoo = oldCoo + dr*max(alpha, 0.0f);
 
-        // TODO
         // Push out a little bit
-        // float3 normal = normalize(make_float3(
-        //         axes.y*axes.y * axes.z*axes.z * newCoo.x,
-        //         axes.z*axes.z * axes.x*axes.x * newCoo.y,
-        //         axes.x*axes.x * axes.y*axes.y * newCoo.z));
-
-        float3 normal{0.f, 0.f, 0.f};
+        auto normal = shape.normal(newCoo);
         newCoo += threshold*normal;
 
         // If smth went notoriously bad
