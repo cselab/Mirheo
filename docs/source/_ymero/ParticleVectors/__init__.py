@@ -416,7 +416,7 @@ class RigidObjectVector(ObjectVector):
                     name: name of the created PV 
                     mass: mass of a single particle
                     inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    object_size: number of frozen particles per object
                     mesh: :any:`Mesh` object used for bounce back and dump
         
 
@@ -595,9 +595,122 @@ class RodVector(ObjectVector):
         """
         pass
 
+class RigidCylinderVector(RigidObjectVector):
+    r"""
+        :any:`RigidObjectVector` specialized for cylindrical shapes.
+        The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
+    
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(name: str, mass: float, object_size: int, radius: float, length: float) -> None
+
+
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the cylinder
+                    length: length of the cylinder
+        
+
+2. __init__(name: str, mass: float, object_size: int, radius: float, length: float, mesh: ParticleVectors.Mesh) -> None
+
+
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the cylinder
+                    length: length of the cylinder
+                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
+        
+
+        """
+        pass
+
+    def getCoordinates():
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def getForces():
+        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def getVelocities():
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
+    def setCoordinates():
+        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+
+
+            Args:
+                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def setForces():
+        r"""setForces(forces: List[List[float[3]]]) -> None
+
+
+            Args:
+                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def setVelocities():
+        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+
+
+            Args:
+                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
 class RigidEllipsoidVector(RigidObjectVector):
     r"""
-        Rigid Ellipsoid is the same as the Rigid Object except that it can only represent ellipsoidal shapes.
+        :any:`RigidObjectVector` specialized for ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     
     """
@@ -611,7 +724,7 @@ Overloaded function.
                 Args:
                     name: name of the created PV
                     mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    object_size: number of frozen particles per object
                     semi_axes: ellipsoid principal semi-axes
         
 
@@ -621,9 +734,9 @@ Overloaded function.
                 Args:
                     name: name of the created PV
                     mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    object_size: number of frozen particles per object
+                    radius: radius of the cylinder
                     semi_axes: ellipsoid principal semi-axes
-                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
         
 
         """

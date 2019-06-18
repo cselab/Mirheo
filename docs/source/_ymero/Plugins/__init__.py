@@ -132,14 +132,15 @@ class MeshPlugin(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
-class ObjPositions(SimulationPlugin):
+class ObjStats(SimulationPlugin):
     r"""
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
-        If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
+        Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
+        If the objects are rigid bodies, also will be written the quaternion describing the rotation.
         
         The file format is the following:
         
-        <object id> <simulation time> <COM>x3 [<quaternion>x4 <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3]
+        <object id> <simulation time> <COM>x3 [<quaternion>x4] <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3
         
         .. note::
             Note that all the written values are *instantaneous*
@@ -148,9 +149,9 @@ class ObjPositions(SimulationPlugin):
             This plugin is inactive if postprocess is disabled
     
     """
-class ObjPositionsDumper(PostprocessPlugin):
+class ObjStatsDumper(PostprocessPlugin):
     r"""
-        Postprocess side plugin of :any:`ObjPositions`.
+        Postprocess side plugin of :any:`ObjStats`.
         Responsible for performing the I/O.
     
     """
@@ -530,10 +531,10 @@ def createDumpMesh():
     pass
 
 def createDumpObjectStats():
-    r"""createDumpObjectStats(state: YmrState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.ObjPositions, Plugins.ObjPositionsDumper]
+    r"""createDumpObjectStats(state: YmrState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.ObjStats, Plugins.ObjStatsDumper]
 
 
-        Create :any:`ObjPositions` plugin
+        Create :any:`ObjStats` plugin
         
         Args:
             name: name of the plugin

@@ -18,7 +18,6 @@ Classes
 -------
 .. automodsumm:: _ymero.Plugins
    :classes-only:
-   :skip: PostprocessStats, UniformCartesianDumper, XYZDumper, MeshDumper, ObjPositionsDumper, ReportPinObject, ParticleDumperPlugin, PostprocessVelocityControl
 
 Creation functions
 ------------------
