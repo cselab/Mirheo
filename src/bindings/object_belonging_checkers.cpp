@@ -1,7 +1,8 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/object_belonging/ellipsoid_belonging.h>
+#include <core/analytical_shapes/api.h>
+#include <core/object_belonging/shape_belonging.h>
 #include <core/object_belonging/interface.h>
 #include <core/object_belonging/mesh_belonging.h>
 #include <core/object_belonging/rod_belonging.h>
@@ -27,8 +28,17 @@ void exportObjectBelongingCheckers(py::module& m)
                 name: name of the checker
         )");
         
-    py::handlers_class<EllipsoidBelongingChecker>(m, "Ellipsoid", pycheck, R"(
+    py::handlers_class<ShapeBelongingChecker<Ellipsoid>>(m, "Ellipsoid", pycheck, R"(
         This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
+    )")
+        .def(py::init<const YmrState*, std::string>(),
+             "state"_a, "name"_a, R"(
+            Args:
+                name: name of the checker
+            )");
+
+    py::handlers_class<ShapeBelongingChecker<Cylinder>>(m, "Cylinder", pycheck, R"(
+        This checker will use the analytical representation of the cylinder to detect *inside*-*outside* status.
     )")
         .def(py::init<const YmrState*, std::string>(),
              "state"_a, "name"_a, R"(

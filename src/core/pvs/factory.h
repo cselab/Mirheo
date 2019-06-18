@@ -19,7 +19,7 @@ createEllipsoidROV(const YmrState *state, std::string name, float mass, int objS
 }
 
 static std::shared_ptr<RigidShapedObjectVector<Ellipsoid>>
-createEllipsoidROV(const YmrState *state, std::string name, float mass, int objSize, PyTypes::float3 axes, std::shared_ptr<Mesh> mesh)
+createEllipsoidROVWithMesh(const YmrState *state, std::string name, float mass, int objSize, PyTypes::float3 axes, std::shared_ptr<Mesh> mesh)
 {
     Ellipsoid ell(make_float3(axes));
     return std::make_shared<RigidShapedObjectVector<Ellipsoid>>
@@ -36,7 +36,7 @@ createCylinderROV(const YmrState *state, std::string name, float mass, int objSi
 }
 
 static std::shared_ptr<RigidShapedObjectVector<Cylinder>>
-createCylinderROV(const YmrState *state, std::string name, float mass, int objSize, float R, float L, std::shared_ptr<Mesh> mesh)
+createCylinderROVWithMesh(const YmrState *state, std::string name, float mass, int objSize, float R, float L, std::shared_ptr<Mesh> mesh)
 {
     Cylinder cyl(R, L);
     return std::make_shared<RigidShapedObjectVector<Cylinder>>

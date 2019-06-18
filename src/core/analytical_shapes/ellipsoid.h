@@ -25,7 +25,7 @@ public:
              sqr(axes.x) + sqr(axes.y));
     }
 
-    static constexpr char desc[] = "Ellipsoid";
+    static const char *desc;
     
 private:    
     float3 axes, invAxes;
