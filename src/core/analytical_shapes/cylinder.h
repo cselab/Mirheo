@@ -9,7 +9,7 @@ class Cylinder
 public:
     Cylinder(float R, float L) :
         R(R),
-        halfL(0.5*L)
+        halfL(0.5 * L)
     {}
 
     __HD__ inline float inOutFunction(float3 x) const
@@ -21,16 +21,16 @@ public:
         float dist2disk = dr > 0 ? dist2edge : dz;
         float dist2cyl  = dz > 0 ? dist2edge : dr;
 
-        return (dz <= 0 && dr <= 0)
-                     ? max(dist2cyl, dist2disk)
-                     : min(dist2cyl, dist2disk);
+        return (dz <= 0) && (dr <= 0)
+            ? fmax(dist2cyl, dist2disk)
+            : fmin(dist2cyl, dist2disk);
     }
 
     inline float3 inertiaTensor(float totalMass) const
     {
-        const float xx = totalMass * R * R / 8.0;
+        const float xx = totalMass * R * R / 4.0;
         const float yy = xx;
-        const float zz = totalMass * halfL * halfL / 6.0;
+        const float zz = totalMass * halfL * halfL / 3.0;
         
         return make_float3(yy + zz, xx + zz, xx + yy);
     }
