@@ -6,7 +6,6 @@
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/factory.h>
