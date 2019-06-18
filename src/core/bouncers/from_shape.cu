@@ -43,7 +43,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
 {
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*>(ov);
     if (rsov == nullptr)
-        die("Analytic %s bounce only works with Rigid %s vector");
+        die("Analytic %s bounce only works with Rigid %s vector", Shape::desc, Shape::desc);
 
     debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
           pv->local()->size(), pv->name.c_str(),

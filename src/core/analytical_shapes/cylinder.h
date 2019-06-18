@@ -4,6 +4,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/helper_math.h>
 
+#include <string>
+
 class Cylinder
 {
 public:
@@ -35,6 +37,8 @@ public:
         return make_float3(yy + zz, xx + zz, xx + yy);
     }
 
+    static constexpr char desc[] = "Cylinder";
+    
 private:
     
     float R, halfL;
