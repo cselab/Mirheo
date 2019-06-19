@@ -10,7 +10,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 32, 24)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv1 = ymr.ParticleVectors.ParticleVector('pv1', mass = 1)
 u.registerParticleVector(pv1, ymr.InitialConditions.Uniform(density=4))
@@ -42,8 +42,8 @@ u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv2], sample_every, du
 u.run(1010)
 
 
-# nTEST: plugins.imposeVelocity
+# nTEST: plugins.impose_velocity
 # cd plugins
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./impose_velocity.py > /dev/null
+# ymr.run --runargs "-n 2" ./impose_velocity.py
 # ymr.avgh5 yz velocity h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt

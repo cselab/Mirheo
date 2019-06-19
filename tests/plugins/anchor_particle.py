@@ -8,8 +8,6 @@ domain = [8, 8, 8]
 
 u = ymr.ymero(ranks, tuple(domain), dt=0.01, debug_level=3, log_filename='log', no_splash=True)
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-
 center = (domain[0]/2, domain[1]/2, domain[2]/2)
 
 R = 2.0
@@ -29,13 +27,11 @@ pos = [list(positions(0)[0]), [0., 0., 0.], [1., 1., 1.]]
 vel = [[0., 0., 0.]] * 3
 pids = [1]
 
-ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
-u.registerParticleVector(pv=pv, ic=ic)
+pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = ymr.InitialConditions.FromArray(pos, vel)
+u.registerParticleVector(pv, ic)
 
 u.registerPlugins(ymr.Plugins.createAnchorParticles("anchor", pv, positions, velocities, pids, 100, "anchor/"))
-
-# dump_every = 50
-# u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
 
 u.run(500)
 
