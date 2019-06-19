@@ -12,7 +12,7 @@ ranks  = (1, 1, 1)
 domain = [4., 4., 4.]
 density = 8
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 if args.filter == "half":
     def my_filter(r):
@@ -35,18 +35,17 @@ if pv:
     np.savetxt("pos.ic.txt", icpos)
     np.savetxt("vel.ic.txt", icvel)
 
-
 del(u)
 
 
 # TEST: ic.uniform.filtered.half
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./filtered.py --filter half > /dev/null
+# ymr.run --runargs "-n 2" ./filtered.py --filter half
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
 
 # TEST: ic.uniform.filtered.quarter
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./filtered.py --filter quarter > /dev/null
+# ymr.run --runargs "-n 2" ./filtered.py --filter quarter
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

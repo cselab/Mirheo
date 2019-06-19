@@ -7,7 +7,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 R = 6.0
 density = 5.0
@@ -34,13 +34,10 @@ vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-#u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
-#u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
-
-sampleEvery = 5
-dumpEvery = 5000
-binSize = (0.5, 0.5, 0.5)
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [], 'h5/solvent-'))
+sample_every = 5
+dump_every = 5000
+bin_size = (0.5, 0.5, 0.5)
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [], 'h5/solvent-'))
 
 u.run(5001)
 
@@ -49,6 +46,6 @@ del(u)
 # nTEST: mdpd.drop
 # cd mdpd
 # rm -rf stats.txt
-# ymr.run --runargs "-n 2" ./drop.py > /dev/null
+# ymr.run --runargs "-n 2" ./drop.py
 # ymr.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
 

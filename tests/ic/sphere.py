@@ -7,7 +7,7 @@ ranks  = (1, 1, 1)
 domain = [4., 4., 4.]
 density = 8
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.UniformSphere(density=density, center=(2., 2., 2.), radius=2.0, inside=True)
@@ -25,5 +25,5 @@ if pv:
 # TEST: ic.uniform.sphere
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./sphere.py > /dev/null
+# ymr.run --runargs "-n 2" ./sphere.py
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

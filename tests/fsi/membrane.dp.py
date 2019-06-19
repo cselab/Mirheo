@@ -2,14 +2,13 @@
 
 import numpy as np
 import ymero as ymr
-
 import sys, argparse
+
 sys.path.append("..")
 from common.membrane_params import lina_parameters
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--substep', dest='substep', action='store_true')
-parser.set_defaults(substep=False)
+parser.add_argument('--substep', action='store_true', default=False)
 args = parser.parse_args()
 
 tend = 3.0
@@ -23,11 +22,11 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_flu = ymr.InitialConditions.Uniform(density=8)
-u.registerParticleVector(pv=pv_flu, ic=ic_flu)
+pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_sol = ymr.InitialConditions.Uniform(density=8)
+u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
@@ -53,14 +52,12 @@ else:
     u.registerIntegrator(vv)
     u.setIntegrator(vv, pv_rbc)
 
-u.setInteraction(dpd, pv_flu, pv_flu)
-u.setInteraction(dpd, pv_flu, pv_rbc)
+u.setInteraction(dpd, pv_sol, pv_sol)
+u.setInteraction(dpd, pv_sol, pv_rbc)
 
 vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
-u.setIntegrator(vv_dp, pv_flu)
-
-# u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt), "ply/"))
+u.setIntegrator(vv_dp, pv_sol)
 
 nsteps = (int) (tend/dt)
 u.run(nsteps)
@@ -74,12 +71,12 @@ if pv_rbc is not None:
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./membrane.dp.py > /dev/null
+# ymr.run --runargs "-n 2" ./membrane.dp.py 
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: fsi.membrane.dp.substep
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./membrane.dp.py --substep > /dev/null
+# ymr.run --runargs "-n 2" ./membrane.dp.py --substep
 # mv pos.rbc.txt pos.rbc.out.txt 

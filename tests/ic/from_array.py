@@ -6,7 +6,7 @@ import ymero as ymr
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 
@@ -15,7 +15,7 @@ v=[1., 2., 3.]
 vel = [[a*v[0], a*v[1], a*v[2]] for a in [0.1, 0.5, 0.8, 1.5]]
 
 ic = ymr.InitialConditions.FromArray(pos=pos, vel=vel)
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 u.run(2)
 
@@ -29,5 +29,5 @@ if pv:
 # TEST: ic.fromArray
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./fromArray.py > /dev/null
+# ymr.run --runargs "-n 2" ./from_array.py
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

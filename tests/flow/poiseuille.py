@@ -47,11 +47,12 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vcSampleEvery = 5
-vcTuneEvery = 5
-vcDumpEvery = 500
+vc_sample_every = 5
+vc_tune_every = 5
+vc_dump_every = 500
 
-u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcTuneEvery, vcDumpEvery, vtarget, Kp, Ki, Kd))
+u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain,
+                                                    vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
 
 u.run(20002)
 

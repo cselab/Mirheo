@@ -5,11 +5,10 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--density', dest='density', type=float)
-parser.add_argument('--axes', dest='axes', type=float, nargs=3)
-parser.add_argument('--coords', dest='coords', type=str)
-parser.add_argument('--bounceBack', dest='bounceBack', action='store_true')
-parser.set_defaults(bounceBack=False)
+parser.add_argument('--density',  type=float)
+parser.add_argument('--axes',     type=float, nargs=3)
+parser.add_argument('--coords',   type=str)
+parser.add_argument('--bounce_back', action='store_true', default=False)
 args = parser.parse_args()
 
 dt   = 0.001
@@ -22,8 +21,8 @@ domain = (16, 8, 8)
 
 u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pvSolvent = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
-icSolvent = ymr.InitialConditions.Uniform(density)
+pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_sol = ymr.InitialConditions.Uniform(density)
 
 dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
 vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
@@ -31,35 +30,33 @@ vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 
 coords = np.loadtxt(args.coords).tolist()
-pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
-icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
+pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+ic_ell = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv")
 
-u.registerParticleVector(pv=pvSolvent, ic=icSolvent)
+u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 u.registerIntegrator(vv)
-u.setIntegrator(vv, pvSolvent)
+u.setIntegrator(vv, pv_sol)
 
-u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
-u.registerIntegrator(vvEllipsoid)
-u.setIntegrator(vvEllipsoid, pvEllipsoid)
+u.registerParticleVector(pv=pv_ell, ic=ic_ell)
+u.registerIntegrator(vv_ell)
+u.setIntegrator(vv_ell, pv_ell)
 
 u.registerInteraction(dpd)
-u.setInteraction(dpd, pvSolvent, pvSolvent)
-u.setInteraction(dpd, pvSolvent, pvEllipsoid)
+u.setInteraction(dpd, pv_sol, pv_sol)
+u.setInteraction(dpd, pv_sol, pv_ell)
 
 belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
-u.registerObjectBelongingChecker(belongingChecker, pvEllipsoid)
-u.applyObjectBelongingChecker(belongingChecker, pv=pvSolvent, correct_every=0, inside="none", outside="")
+u.registerObjectBelongingChecker(belongingChecker, pv_ell)
+u.applyObjectBelongingChecker(belongingChecker, pv=pv_sol, correct_every=0, inside="none", outside="")
 
-if args.bounceBack:
-    bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
+if args.bounce_back:
+    bb = ymr.Bouncers.Ellipsoid("bounce_ell")
     u.registerBouncer(bb)
-    u.setBouncer(bb, pvEllipsoid, pvSolvent)
+    u.setBouncer(bb, pv_ell, pv_sol)
 
-# u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvEllipsoid, 500, [], 'h5/ell_particles-'))
-
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
 
 u.run(10000)
 
@@ -81,6 +78,6 @@ u.run(10000)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f --bounceBack
+# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f --bounce_back
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 

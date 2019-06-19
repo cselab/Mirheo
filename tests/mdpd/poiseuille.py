@@ -10,11 +10,11 @@ vtarget = (1.0, 0, 0)
 
 density = 10
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = ymr.InitialConditions.Uniform(density=density)
-u.registerParticleVector(pv=pv, ic=ic)
+ic = ymr.InitialConditions.Uniform(density)
+u.registerParticleVector(pv, ic)
 
 rc = 1.0
 rd = 0.75
@@ -45,11 +45,11 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 
-gridSampleEvery = 2
-gridDumpEvery   = 1000
-gridBinSize     = (1., 1., 0.5)
+grid_sample_every = 2
+grid_dump_every   = 1000
+grid_bin_size     = (1., 1., 0.5)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], gridSampleEvery, gridDumpEvery, gridBinSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 
 factor = 0.08
@@ -57,19 +57,16 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-vcSampleEvery = 5
-vcTuneEvery = 5
-vcDumpEvery = 500
+vc_sample_every = 5
+vc_tune_every = 5
+vc_dump_every = 500
 
-u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vcSampleEvery, vcTuneEvery, vcDumpEvery, vtarget, Kp, Ki, Kd))
-
-#u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
-#u.registerPlugins(ymr.Plugins.createDumpParticles('wallDump', frozen, 1000, [], 'h5/wall_particles-'))
+u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
 
 u.run(20002)
 
 # nTEST: mdpd.poiseuille
 # cd mdpd
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./poiseuille.py > /dev/null
+# ymr.run --runargs "-n 2" ./poiseuille.py
 # ymr.avgh5 xy velocity h5/solvent-0001[5-9].h5 | awk '{print $1}' > profile.out.txt

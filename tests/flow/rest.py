@@ -10,7 +10,7 @@ domain = (12, 8, 10)
 rc = 1.0
 density = 8
 
-u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density)
