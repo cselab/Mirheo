@@ -74,8 +74,8 @@ u.run(5000)
 # cd bounce/rigid
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
-# rho=8.0; ax=1.0; ay=2.0; az=1.0
+# rho=8.0; R=1.5; L=5.0
 # rm -rf pos*.txt vel*.txt
-# cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# cp ../../../data/cylinder_coords_${rho}_${R}_${L}.txt $f
 # ymr.run --runargs "-n 2" ./cylinder.py --coords $f
 # cat stats/cylinder.txt | awk '{print $2, $15, $9}' > rigid.out.txt
