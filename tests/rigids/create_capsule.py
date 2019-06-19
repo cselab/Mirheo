@@ -11,15 +11,15 @@ def create_capsule(density, R, L, niter):
 
     ranks  = (1, 1, 1)
     fact = 3
-    domain = (fact*R, fact*R, fact*L/2)
+    domain = (fact*R, fact*R, fact*(L/2+R))
     
     u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
     vv = ymr.Integrators.VelocityVerlet('vv')
     
-    coords = [[-R, -R, -L/2],
-              [ R,  R,  L/2]]
+    coords = [[-R, -R, -L/2-R],
+              [ R,  R,  L/2+R]]
     com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
     
     fake_oV = ymr.ParticleVectors.RigidCapsuleVector('OV', mass=1, object_size=len(coords), radius=R, length=L)
