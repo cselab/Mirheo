@@ -12,7 +12,10 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* add Capsule Rigid Vectors together with bonce back and belonging checkers
+* tests: renaming, semantic
 
 ### v0.17.0
 
