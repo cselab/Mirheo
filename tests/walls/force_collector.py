@@ -65,14 +65,14 @@ if u.isComputeTask():
     data_hi = np.loadtxt(outname_hi)
     data_lo = np.loadtxt(outname_lo)
 
-    avg_from = 5
-    fx_hi = abs(np.mean(data_hi[avg_from:,1]))
-    fx_lo = abs(np.mean(data_lo[avg_from:,1]))
+    # avg_from = 5
+    # fx_hi = abs(np.mean(data_hi[avg_from:,1]))
+    # fx_lo = abs(np.mean(data_lo[avg_from:,1]))
     
-    Sxy_hi = fx_hi / A
-    Sxy_lo = fx_lo / A
-    thSxy = abs(gdot) * 4.96 * gdpd
-    print(thSxy, Sxy_hi, Sxy_lo)
+    # Sxy_hi = fx_hi / A
+    # Sxy_lo = fx_lo / A
+    # thSxy = abs(gdot) * 4.96 * gdpd
+    # print(thSxy, Sxy_hi, Sxy_lo)
 
 # nTEST: walls.force_collector.couette
 # cd walls/
