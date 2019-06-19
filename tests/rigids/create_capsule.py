@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def create_cylinder(density, R, L, niter):
+def create_capsule(density, R, L, niter):
     import ymero as ymr
     
     def recenter(coords, com):
@@ -22,14 +22,14 @@ def create_cylinder(density, R, L, niter):
               [ R,  R,  L/2]]
     com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
     
-    fake_oV = ymr.ParticleVectors.RigidCylinderVector('OV', mass=1, object_size=len(coords), radius=R, length=L)
+    fake_oV = ymr.ParticleVectors.RigidCapsuleVector('OV', mass=1, object_size=len(coords), radius=R, length=L)
     fake_ic = ymr.InitialConditions.Rigid(com_q, coords)
-    belonging_checker = ymr.BelongingCheckers.Cylinder("checker")
+    belonging_checker = ymr.BelongingCheckers.Capsule("checker")
     
-    pv_cyl = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
+    pv_cap = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
     
-    if pv_cyl:
-        frozen_coords = pv_cyl.getCoordinates()
+    if pv_cap:
+        frozen_coords = pv_cap.getCoordinates()
         frozen_coords = recenter(frozen_coords, com_q[0])
     else:
         frozen_coords = [[]]
@@ -52,16 +52,16 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=str)
     args = parser.parse_args()
 
-    coords = create_cylinder(args.density, args.R, args.L, args.niter)
+    coords = create_capsule(args.density, args.R, args.L, args.niter)
 
     if coords is not None:
         np.savetxt(args.out, coords)
     
-# TEST: rigids.create_cylinder
+# TEST: rigids.create_capsule
 # set -eu
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# ymr.run --runargs "-n 2"  ./create_cylinder.py --R 3.0 --L 5.0 --density 8 --niter 0 --out $pfile
+# ymr.run --runargs "-n 2"  ./create_capsule.py --R 3.0 --L 5.0 --density 8 --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt
 
