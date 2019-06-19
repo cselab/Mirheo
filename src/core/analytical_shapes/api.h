@@ -1,8 +1,10 @@
 #pragma once
 
-#include "ellipsoid.h"
+#include "capsule.h"
 #include "cylinder.h"
+#include "ellipsoid.h"
 
 #define ASHAPE_TABLE(_) \
-    _(Ellipsoid)        \
-    _(Cylinder)
+    _(Capsule)          \
+    _(Cylinder)         \
+    _(Ellipsoid)

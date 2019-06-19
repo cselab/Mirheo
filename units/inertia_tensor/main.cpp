@@ -42,10 +42,10 @@ static float3 inertiaTensorMC(long nsamples, const Shape& shape, float3 low, flo
         zz /= V;
     }
 
-    // auto B = high - low;
-    // printf("%g\n", V / nsamples);
-    // printf("V = %g\n", V * B.x * B.y * B.z / nsamples);
-    // printf("%g %g %g\n", xy / nsamples, xz / nsamples, yz / nsamples);
+    auto B = high - low;
+    printf("%g\n", V / nsamples);
+    printf("V = %g\n", V * B.x * B.y * B.z / nsamples);
+    printf("%g %g %g\n", xy / nsamples, xz / nsamples, yz / nsamples);
     
     float3 I {float(yy + zz),
               float(xx + zz),
@@ -86,6 +86,23 @@ TEST (InertiaTensor, Cylinder)
     // printf("%g %g %g   %g %g %g\n",
     //        Iref.x, Iref.y, Iref.z,
     //        I.x, I.y, I.z);
+
+    ASSERT_LE(Lmax(I, Iref), 1e-2);
+}
+
+TEST (InertiaTensor, Capsule)
+{
+    float L = 5.0;
+    float R = 3.0;
+    float3 lim {R, R, 0.55f * L + R};
+    Capsule cap(R, L);
+
+    float3 Iref = inertiaTensorMC(10000000, cap, -lim, lim);
+    float3 I    = cap.inertiaTensor(1.0);
+
+    printf("%g %g %g   %g %g %g\n",
+           Iref.x, Iref.y, Iref.z,
+           I.x, I.y, I.z);
 
     ASSERT_LE(Lmax(I, Iref), 1e-2);
 }
