@@ -19,7 +19,7 @@ axes = tuple(args.axes)
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
@@ -30,18 +30,18 @@ if args.withMesh:
     for i in range(3):
         ell.vertices[:,i] *= axes[i]
     mesh = ymr.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
-    pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes, mesh=mesh)
+    pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes, mesh=mesh)
 else:
-    pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+    pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
 
-icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
+ic_ell = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv")
 
-u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
-u.registerIntegrator(vvEllipsoid)
-u.setIntegrator(vvEllipsoid, pvEllipsoid)
+u.registerParticleVector(pv_ell, ic_ell)
+u.registerIntegrator(vv_ell)
+u.setIntegrator(vv_ell, pv_ell)
 
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=500, path="stats"))
+u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
 
 M = (0.1, 0., 0.)
 
@@ -51,30 +51,30 @@ def magneticField(t):
     return (magn * np.cos(arg), magn * np.sin(arg), 0.)
 
 
-u.registerPlugins(ymr.Plugins.createMagneticOrientation("externalB", pvEllipsoid, moment=M, magneticFunction=magneticField))
+u.registerPlugins(ymr.Plugins.createMagneticOrientation("externalB", pv_ell, moment=M, magneticFunction=magneticField))
 
 if args.withMesh:
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, 1000, path="ply/"))
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_ell, 1000, path="ply/"))
 
 u.run(10000)
 
 del(u)
 
 
-# nTEST: rigids.magneticOrientation.Static
+# nTEST: rigids.magnetic_orientation.static
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./magneticOrientation.py --axes $ax $ay $az --coords $f --phi 0.7853981634 > /dev/null
+# ymr.run --runargs "-n 2" ./magnetic_orientation.py --axes $ax $ay $az --coords $f --phi 0.7853981634
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
 
-# nTEST: rigids.magneticOrientation.Time
+# nTEST: rigids.magnetic_orientation.time
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./magneticOrientation.py --axes $ax $ay $az --coords $f --omega 0.005 > /dev/null
+# ymr.run --runargs "-n 2" ./magnetic_orientation.py --axes $ax $ay $az --coords $f --omega 0.005
 # cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt

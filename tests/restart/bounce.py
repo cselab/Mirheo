@@ -40,29 +40,29 @@ u.registerParticleVector(pvSolvent, icSolvent)
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pvSolvent)
 
-meshRbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pvRbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=meshRbc)
-icRbc   = ymr.InitialConditions.Membrane(
+mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+ic_rbc   = ymr.InitialConditions.Membrane(
     [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   0.7071, 0.0, 0.7071, 0.0]]
 )
 
-u.registerParticleVector(pvRbc, icRbc)
-u.setIntegrator(vv, pvRbc)
+u.registerParticleVector(pv_rbc, ic_rbc)
+u.setIntegrator(vv, pv_rbc)
 
 prm_rbc = lina_parameters(1.0)
 int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
 u.registerInteraction(int_rbc)
-u.setInteraction(int_rbc, pvRbc, pvRbc)
+u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
 
-bb = ymr.Bouncers.Mesh("bounceRbc", kbt=0.0)
+bb = ymr.Bouncers.Mesh("bounce_rbc", kbt=0.0)
 u.registerBouncer(bb)
-u.setBouncer(bb, pvRbc, pvSolvent)
+u.setBouncer(bb, pv_rbc, pvSolvent)
 
 if args.vis:
     dump_every = int(0.1 / dt)
     u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dump_every, [], 'h5/solvent-'))
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvRbc, dump_every, path="ply/"))
+    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, path="ply/"))
 
 
 if args.restart:
@@ -72,7 +72,7 @@ niters = int (t_end / dt)
 u.run(niters)
 
 if args.restart and u.isComputeTask():
-    pos = pvRbc.getCoordinates()
+    pos = pv_rbc.getCoordinates()
     if len(pos) > 0:
         np.savetxt("pos.rbc.txt", pos)
 

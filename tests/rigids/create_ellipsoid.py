@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def createEllipsoid(density, axes, niter):
+def create_ellipsoid(density, axes, niter):
     import ymero as ymr
     
     def recenter(coords, com):
@@ -14,7 +14,7 @@ def createEllipsoid(density, axes, niter):
     fact = 3
     domain = (fact*axes[0], fact*axes[1], fact*axes[2])
     
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
     vv = ymr.Integrators.VelocityVerlet('vv')
@@ -23,20 +23,20 @@ def createEllipsoid(density, axes, niter):
               [ axes[0],  axes[1],  axes[2]]]
     com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
     
-    fakeOV = ymr.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=len(coords), semi_axes=axes)
-    fakeIc = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-    belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+    fake_oV = ymr.ParticleVectors.RigidEllipsoidVector('OV', mass=1, object_size=len(coords), semi_axes=axes)
+    fake_ic = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+    belonging_checker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
     
-    pvEllipsoid = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, [dpd], vv, density, niter)
+    pv_ell = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
     
-    if pvEllipsoid:
-        frozenCoords = pvEllipsoid.getCoordinates()
-        frozenCoords = recenter(frozenCoords, com_q[0])
+    if pv_ell:
+        frozen_coords = pv_ell.getCoordinates()
+        frozen_coords = recenter(frozen_coords, com_q[0])
     else:
-        frozenCoords = [[]]
+        frozen_coords = [[]]
 
     if u.isMasterTask():
-        return frozenCoords
+        return frozen_coords
     else:
         return None
 
@@ -52,16 +52,16 @@ if __name__ == '__main__':
     parser.add_argument('--out', dest='out', type=str)
     args = parser.parse_args()
 
-    coords = createEllipsoid(args.density, args.axes, args.niter)
+    coords = create_ellipsoid(args.density, args.axes, args.niter)
 
     if coords is not None:
         np.savetxt(args.out, coords)
     
-# TEST: rigids.createEllipsoid
+# TEST: rigids.create_ellipsoid
 # set -eu
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# ymr.run --runargs "-n 2"  ./createEllipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 0 --out $pfile > /dev/null
+# ymr.run --runargs "-n 2"  ./create_ellipsoid.py --axes 2.0 3.0 4.0 --density 8 --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt
 

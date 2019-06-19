@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def createFromMesh(density, vertices, triangles, inertia, niter):
+def create_from_mesh(density, vertices, triangles, inertia, niter):
 
     import ymero as ymr
 
@@ -35,30 +35,30 @@ def createFromMesh(density, vertices, triangles, inertia, niter):
 
     mesh = ymr.ParticleVectors.Mesh(vertices, triangles)
 
-    fakeOV = ymr.ParticleVectors.RigidObjectVector('OV', mass=1, inertia=inertia, object_size=len(coords), mesh=mesh)
-    fakeIc = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-    belongingChecker = ymr.BelongingCheckers.Mesh("meshChecker")
+    fake_ov = ymr.ParticleVectors.RigidObjectVector('OV', mass=1, inertia=inertia, object_size=len(coords), mesh=mesh)
+    fake_ic = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
+    belonging_checker = ymr.BelongingCheckers.Mesh("meshChecker")
     
-    pvMesh = u.makeFrozenRigidParticles(belongingChecker, fakeOV, fakeIc, [dpd], vv, density, niter)
+    pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, niter)
 
     if pvMesh:
-        frozenCoords = pvMesh.getCoordinates()
-        frozenCoords = recenter(frozenCoords, com_q[0])
+        frozen_coords = pvMesh.getCoordinates()
+        frozen_coords = recenter(frozen_coords, com_q[0])
     else:
-        frozenCoords = [[]]
+        frozen_coords = [[]]
 
     if u.isMasterTask():
-        return frozenCoords
+        return frozen_coords
     else:
         return None
 
 
-def createFromMeshFile(density, fname, niter):
+def create_from_mesh_file(density, fname, niter):
     import trimesh
     m = trimesh.load(fname);
     # TODO diagonalize
     inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
-    return createFromMesh(density, m.vertices.tolist(), m.faces.tolist(), inertia, niter)
+    return create_from_mesh(density, m.vertices.tolist(), m.faces.tolist(), inertia, niter)
 
 if __name__ == '__main__':
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--out', dest='out', type=str)
     args = parser.parse_args()
 
-    coords = createFromMeshFile(args.density, args.fname, args.niter)
+    coords = create_from_mesh_file(args.density, args.fname, args.niter)
 
     # assume only one rank is working
     if coords is not None:
@@ -79,10 +79,10 @@ if __name__ == '__main__':
     
 
 
-# TEST: rigids.createFromMesh
+# TEST: rigids.create_from_mesh
 # set -eu
 # cd rigids
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
-# ymr.run --runargs "-n 2" ./createFromMesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile
+# ymr.run --runargs "-n 2" ./create_from_mesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt 
