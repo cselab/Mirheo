@@ -9,7 +9,7 @@ domain = (16, 16, 16)
 ext_force = 1.0
 rc = 1.0
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = ymr.InitialConditions.Uniform(density=10)
@@ -39,5 +39,5 @@ u.run(5002)
 # nTEST: sdpd.double_poiseuille
 # cd sdpd
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./double_poiseuille.py > /dev/null
+# ymr.run --runargs "-n 2" ./double_poiseuille.py
 # ymr.avgh5 xz velocity h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt

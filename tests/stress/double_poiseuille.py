@@ -12,7 +12,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 1.)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=4)
@@ -36,5 +36,5 @@ u.run(5002)
 # nTEST: stress.double_poiseuille
 # cd stress
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./double_poiseuille.py > /dev/null
+# ymr.run --runargs "-n 2" ./double_poiseuille.py
 # ymr.avgh5 xz stresses h5/solvent-0000[2-4].h5 | awk '{print $2}' > stress.out.txt

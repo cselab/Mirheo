@@ -10,7 +10,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -39,18 +39,16 @@ u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv)
 
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 0.5)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 0.5)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
-
-#u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(7002)
 
 # nTEST: walls.analytic.plates
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./plates.py > /dev/null
+# ymr.run --runargs "-n 2" ./plates.py
 # ymr.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt

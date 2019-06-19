@@ -17,7 +17,7 @@ tend    = 10.1
 
 gdpd = 11.0
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -74,8 +74,8 @@ if u.isComputeTask():
     thSxy = abs(gdot) * 4.96 * gdpd
     print(thSxy, Sxy_hi, Sxy_lo)
 
-# nTEST: walls.forceCollector.couette
+# nTEST: walls.force_collector.couette
 # cd walls/
 # rm -rf wallForce*txt
-# ymr.run --runargs "-n 2" ./forceCollector.py  > /dev/null
+# ymr.run --runargs "-n 2" ./force_collector.py
 # cat wallForceHi.txt | awk 'NR>1 {print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt

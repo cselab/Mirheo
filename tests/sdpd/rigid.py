@@ -21,7 +21,7 @@ density  = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = ymr.InitialConditions.Uniform(density)
@@ -88,7 +88,7 @@ u.run(10000)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f > /dev/null
+# ymr.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
 # nTEST: sdpd.fsi.ellipsoid.edge
@@ -98,5 +98,5 @@ u.run(10000)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f --xpos 0.1 > /dev/null
+# ymr.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f --xpos 0.1
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt

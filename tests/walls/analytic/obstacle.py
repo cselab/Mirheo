@@ -16,7 +16,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -54,22 +54,22 @@ vtarget = (0.1, 0, 0)
 
 u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 1.0)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 1.0)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(7002)
 
 # nTEST: walls.analytic.obstacle.cylinder
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./obstacle.py --type cylinder > /dev/null
+# ymr.run --runargs "-n 2" ./obstacle.py --type cylinder
 # ymr.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
 
 # nTEST: walls.analytic.obstacle.sphere
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./obstacle.py --type sphere > /dev/null
+# ymr.run --runargs "-n 2" ./obstacle.py --type sphere
 # ymr.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt

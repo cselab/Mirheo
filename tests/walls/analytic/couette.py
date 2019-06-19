@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -59,22 +59,22 @@ else:
 u.registerIntegrator(move)
 u.setIntegrator(move, frozen_hi)
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (8., 8., 1.0)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (8., 8., 1.0)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run((int)(tend/dt))
 
 # nTEST: walls.analytic.couette
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./couette.py --type stationary > /dev/null
+# ymr.run --runargs "-n 2" ./couette.py --type stationary
 # ymr.avgh5 xy velocity h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt
 
 # nTEST: walls.analytic.couette.oscillating
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./couette.py --type oscillating > /dev/null
+# ymr.run --runargs "-n 2" ./couette.py --type oscillating
 # ymr.avgh5 xy velocity h5/solvent-00009.h5 | awk '{print $1}' > profile.out.txt

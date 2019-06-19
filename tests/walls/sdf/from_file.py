@@ -18,7 +18,7 @@ domain = args.domain
 
 density = 8
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -51,34 +51,34 @@ vtarget = (args.vtarget, 0, 0)
 
 u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 1.0)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 1.0)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(args.niters)
 
-# nTEST: walls.sdf.fromFile.profile
+# nTEST: walls.sdf.from_file.profile
 # cd walls/sdf
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain > /dev/null
+# ymr.run --runargs "-n 2" ./from_file.py --sdf_file $f --domain $domain
 # ymr.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
 
-# nTEST: walls.sdf.fromFile.sdf
+# nTEST: walls.sdf.from_file.sdf
 # cd walls/sdf
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=0 > /dev/null
+# ymr.run --runargs "-n 2" ./from_file.py --sdf_file $f --domain $domain --niters=0
 # ymr.avgh5 z sdf h5/wall.h5 > sdf.out.txt
 
-# nTEST: walls.sdf.fromFile.particles
+# nTEST: walls.sdf.from_file.particles
 # cd walls/sdf
 # rm -rf h5
 # f=../../../data/pachinko_one_post_sdf.dat
 # domain=`head -n 1 $f`
-# ymr.run --runargs "-n 2" ./fromFile.py --sdf_file $f --domain $domain --niters=5002 --vtarget=5 > /dev/null
+# ymr.run --runargs "-n 2" ./from_file.py --sdf_file $f --domain $domain --niters=5002 --vtarget=5
 # grep "inside the wall" log_00000.log | awk '{print $6 / 100.0;}' > particles.out.txt

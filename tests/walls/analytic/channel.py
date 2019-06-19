@@ -8,7 +8,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--type", choices=["squarePipe", 'cylinderPipe'])
 args = parser.parse_args()
 
-
 dt = 0.001
 
 ranks  = (1, 1, 1)
@@ -18,7 +17,7 @@ force = (1.0, 0, 0)
 density = 4
 rc = 1.0
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='stdout')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -57,22 +56,22 @@ vtarget = (0.1, 0, 0)
 
 u.registerPlugins(ymr.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 1.0)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 1.0)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(7002)
 
 # nTEST: walls.analytic.channel.cylinder
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./channel.py --type cylinderPipe > /dev/null
+# ymr.run --runargs "-n 2" ./channel.py --type cylinderPipe
 # ymr.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
 
 # nTEST: walls.analytic.channel.square
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./channel.py --type squarePipe > /dev/null
+# ymr.run --runargs "-n 2" ./channel.py --type squarePipe
 # ymr.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt

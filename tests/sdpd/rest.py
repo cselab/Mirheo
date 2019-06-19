@@ -14,7 +14,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=8, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', args.mass)
 ic = ymr.InitialConditions.Uniform(density=10)
@@ -49,7 +49,6 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 u.registerPlugins(ymr.Plugins.createStats('stats', "stats.txt", 1000))
-#u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, 1000, [], 'h5/solvent_particles-'))
 
 u.run(5001)
 

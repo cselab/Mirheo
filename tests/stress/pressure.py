@@ -15,7 +15,7 @@ domain = (32, 32, 32)
 tdump_every = 0.001
 dump_every = int(tdump_every / dt)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_name="pv"
 path="pressure"
@@ -53,6 +53,6 @@ del(u)
 # nTEST: stress.pressure
 # cd stress
 # rm -rf pressure
-# ymr.run --runargs "-n 2" ./pressure.py --out pressure.txt > /dev/null
+# ymr.run --runargs "-n 2" ./pressure.py --out pressure.txt
 # cat pressure.txt | uscale 0.1 > pressure.out.txt
 

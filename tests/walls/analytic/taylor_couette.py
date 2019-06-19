@@ -14,7 +14,7 @@ rc      = 1.0
 omega   = 0.5 # angular velocity of outer cylinder; inner is fixed
 tend    = 10.1
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=density)
@@ -47,16 +47,16 @@ rotate = ymr.Integrators.Rotate('rotate', (center[0], center[1], 0.), omega=(0, 
 u.registerIntegrator(rotate)
 u.setIntegrator(rotate, frozen_out)
 
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 1.)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 1.)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sampleEvery, dumpEvery, binSize, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run((int)(tend/dt))
 
-# nTEST: walls.analytic.taylorCouette
+# nTEST: walls.analytic.taylor_couette
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./taylorCouette.py > /dev/null
+# ymr.run --runargs "-n 2" ./taylor_couette.py
 # ymr.avgh5 zy velocity h5/solvent-0000[7-9].h5 > profile.out.txt
