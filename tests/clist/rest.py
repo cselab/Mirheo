@@ -12,17 +12,17 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (6, 6, 6)
 
-rcFake = 1.0
+rc_fake = 1.0
 rc = 0.75
 
 u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=4)
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 if args.non_primary:
-    null_lj = ymr.Interactions.LJ('fake', rc, epsilon=0.0, sigma=rcFake)
+    null_lj = ymr.Interactions.LJ('fake', rc, epsilon=0.0, sigma=rc_fake)
     u.registerInteraction(null_lj)
     u.setInteraction(null_lj, pv, pv)
 

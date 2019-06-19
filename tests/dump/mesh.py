@@ -16,7 +16,7 @@ off    = "rbc_mesh.off"
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 if args.readFrom == "off":
     mesh = ymr.ParticleVectors.MembraneMesh(off)
@@ -24,11 +24,11 @@ elif args.readFrom == "trimesh":
     m = trimesh.load(off);
     mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
 
-rbc  = ymr.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
-icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
-u.registerParticleVector(pv=rbc, ic=icrbc)
+pv_rbc = ymr.ParticleVectors.MembraneVector(pvname, mass=1.0, mesh=mesh)
+ic_rbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+u.registerParticleVector(pv_rbc, ic_rbc)
 
-u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", rbc, 1, path))
+u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 1, path))
 
 u.run(3)
 
@@ -41,12 +41,12 @@ if u.isMasterTask():
 # cd dump
 # rm -rf ply/ vertices.txt faces.txt mesh.out.txt 
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mesh.py --readFrom off > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --readFrom off
 # cat vertices.txt faces.txt > mesh.out.txt
 
 # TEST: dump.mesh.fromTrimesh
 # cd dump
 # rm -rf ply/ vertices.txt faces.txt mesh.out.txt 
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mesh.py --readFrom trimesh > /dev/null
+# ymr.run --runargs "-n 2" ./mesh.py --readFrom trimesh
 # cat vertices.txt faces.txt > mesh.out.txt

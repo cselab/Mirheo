@@ -13,14 +13,14 @@ domain = (12, 8, 10)
 
 rc=1.0
 
-u = ymr.ymero(ranks, domain, dt=0, debug_level=8, log_filename='log', no_splash=True)
+u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
 mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
 
-rbc  = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh)
-icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
-u.registerParticleVector(pv=rbc, ic=icrbc)
+pv_rbc = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh)
+ic_rbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+u.registerParticleVector(pv_rbc, ic_rbc)
 
 box_lo = (          - domain[0],           - domain[1],             rc)
 box_hi = (domain[0] + domain[0], domain[1] + domain[1], domain[2] - rc)
@@ -28,10 +28,10 @@ plates = ymr.Walls.Box("plates", box_lo, box_hi, inside=True)
 u.registerWall(plates, 0)
 
 # fake repulsion module to force sdf computation
-u.registerPlugins(ymr.Plugins.createWallRepulsion("wallRepulsion", rbc, plates, C=500, h=rc, max_force=500))
+u.registerPlugins(ymr.Plugins.createWallRepulsion("wallRepulsion", pv_rbc, plates, C=500, h=rc, max_force=500))
 
 dump_every = 1
-u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dump_every, [["sdf", "scalar"]], 'h5/rbc-'))
+u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dump_every, [["sdf", "scalar"]], 'h5/rbc-'))
 
 u.run(2)
 

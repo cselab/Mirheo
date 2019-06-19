@@ -14,7 +14,7 @@ u = ymr.ymero(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash 
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(args.density)
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 dump_every = 1
 

@@ -17,7 +17,7 @@ vel = [[0.3, 0.2, 0.1],
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.FromArray(pos, vel)
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 dump_every = 1
 

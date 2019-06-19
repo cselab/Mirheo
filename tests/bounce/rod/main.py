@@ -44,7 +44,6 @@ def torsion(s): return 0
 
 l0 = L / num_segments
 
-#com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   0.7071, 0.0, 0.7071, 0.0]]
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1.0, 0.0, 0.0, 0.0]]
 
 pv_rod = ymr.ParticleVectors.RodVector('rod', mass_rod, num_segments)

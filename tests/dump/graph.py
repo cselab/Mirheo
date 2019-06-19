@@ -7,7 +7,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (4, 4, 4)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = ymr.InitialConditions.Uniform(density=2)
@@ -28,6 +28,6 @@ u.save_dependency_graph_graphml("tasks")
 # snTEST: dump.graph
 # cd dump
 # rm -rf tasks.graphml
-# ymr.run --runargs "-n 1" ./graph.py > /dev/null
+# ymr.run --runargs "-n 1" ./graph.py
 # cat tasks.graphml > tasks.out.txt
 

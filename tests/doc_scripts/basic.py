@@ -35,16 +35,16 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 # Set the dumping parameters
-sampleEvery = 2
-dumpEvery   = 1000
-binSize     = (1., 1., 1.)
+sample_every = 2
+dump_every   = 1000
+bin_size     = (1., 1., 1.)
 
 # Write some simulation statistics on the screen
 u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
 
 # Create and register XDMF plugin
 u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv],
-                                                sampleEvery, dumpEvery, binSize,
+                                                sample_every, dump_every, bin_size,
                                                 [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 # Run 5002 time-steps

@@ -5,10 +5,10 @@ import ymero as ymr
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--axes', dest='axes', type=float, nargs=3)
-parser.add_argument('--coords', dest='coords', type=str)
+parser.add_argument('--axes',   type=float, nargs=3)
+parser.add_argument('--coords', type=str)
 parser.add_argument('--vis',    action='store_true', default=False)
-parser.add_argument('--drag', type=float, default=0.0)
+parser.add_argument('--drag',   type=float,          default=0.0)
 args = parser.parse_args()
 
 ranks  = (1, 1, 1)
@@ -23,7 +23,6 @@ mass = 1.0
 
 u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
-
 # rod
 
 com_q_rod = [[ 0.5 * domain[0],
@@ -31,11 +30,8 @@ com_q_rod = [[ 0.5 * domain[0],
                0.5 * domain[2] - L/2,
                1.0, 0.0, 0.0, 0.0]]
 
-def center_line(s):
-    return (0, 0, (0.5-s) * L)
-
-def torsion(s):
-    return 0.0
+def center_line(s): return (0, 0, (0.5-s) * L)
+def torsion(s):     return 0.0
 
 def length(a, b):
     return np.sqrt(

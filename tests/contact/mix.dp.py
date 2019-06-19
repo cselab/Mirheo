@@ -8,13 +8,11 @@ sys.path.append("..")
 from common.membrane_params import lina_parameters
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--density', dest='density', type=float)
-parser.add_argument('--axes', dest='axes', type=float, nargs=3)
-parser.add_argument('--coords', dest='coords', type=str)
-parser.add_argument('--bounceBack', dest='bounceBack', action='store_true')
-parser.add_argument('--substep', dest='substep', action='store_true')
-parser.set_defaults(bounceBack=False)
-parser.set_defaults(substep=False)
+parser.add_argument('--density', type=float)
+parser.add_argument('--axes',    type=float, nargs=3)
+parser.add_argument('--coords',  type=str)
+parser.add_argument('--bounce_back', action='store_true', default=False)
+parser.add_argument('--substep',    action='store_true', default=False)
 args = parser.parse_args()
 
 tend = 10.0
@@ -28,11 +26,11 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv_flu = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_flu = ymr.InitialConditions.Uniform(density=args.density)
-u.registerParticleVector(pv=pv_flu, ic=ic_flu)
+pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_sol = ymr.InitialConditions.Uniform(density=args.density)
+u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
@@ -75,26 +73,26 @@ else:
     u.registerIntegrator(vv)
     u.setIntegrator(vv, pv_rbc)
 
-u.setInteraction(dpd, pv_flu, pv_flu)
-u.setInteraction(dpd, pv_flu, pv_rbc)
-u.setInteraction(dpd, pv_flu, pv_ell)
+u.setInteraction(dpd, pv_sol, pv_sol)
+u.setInteraction(dpd, pv_sol, pv_rbc)
+u.setInteraction(dpd, pv_sol, pv_ell)
 u.setInteraction(cnt, pv_rbc, pv_rbc)
 u.setInteraction(cnt, pv_rbc, pv_ell)
 u.setInteraction(cnt, pv_ell, pv_ell)
 
 vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
-u.setIntegrator(vv_dp, pv_flu)
+u.setIntegrator(vv_dp, pv_sol)
 
-belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+belonging_checker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
-u.registerObjectBelongingChecker(belongingChecker, pv_ell)
-u.applyObjectBelongingChecker(belongingChecker, pv=pv_flu, correct_every=0, inside="none", outside="")
+u.registerObjectBelongingChecker(belonging_checker, pv_ell)
+u.applyObjectBelongingChecker(belonging_checker, pv=pv_sol, correct_every=0, inside="none", outside="")
 
-if args.bounceBack:
-    bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
+if args.bounce_back:
+    bb = ymr.Bouncers.Ellipsoid("bounce_ellipsoid")
     u.registerBouncer(bb)
-    u.setBouncer(bb, pv_ell, pv_flu)
+    u.setBouncer(bb, pv_ell, pv_sol)
 
 
 debug = 0
@@ -120,5 +118,5 @@ if pv_rbc is not None:
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./mix.dp.py --density $rho --axes $ax $ay $az --coords $f > /dev/null
+# ymr.run --runargs "-n 2" ./mix.dp.py --density $rho --axes $ax $ay $az --coords $f
 # mv pos.rbc.txt pos.rbc.out.txt 
