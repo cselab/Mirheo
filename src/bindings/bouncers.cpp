@@ -33,10 +33,10 @@ void exportBouncers(py::module& m)
                 kbt:  Maxwell distribution temperature defining post-collision velocity
         )");
         
-    py::handlers_class<BounceFromRigidShape<Ellipsoid>>(m, "Ellipsoid", pybounce, R"(
-        This bouncer will use the analytical ellipsoid representation of the rigid objects to perform the bounce.
+    py::handlers_class<BounceFromRigidShape<Capsule>>(m, "Capsule", pybounce, R"(
+        This bouncer will use the analytical capsule representation of the rigid objects to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
-        The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
+        The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
     )")
         .def(py::init<const YmrState*, std::string>(),
              "state"_a, "name"_a, R"(
@@ -49,6 +49,18 @@ void exportBouncers(py::module& m)
         This bouncer will use the analytical cylinder representation of the rigid objects to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
+    )")
+        .def(py::init<const YmrState*, std::string>(),
+             "state"_a, "name"_a, R"(
+            Args:
+                name: name of the checker
+            
+        )");
+
+    py::handlers_class<BounceFromRigidShape<Ellipsoid>>(m, "Ellipsoid", pybounce, R"(
+        This bouncer will use the analytical ellipsoid representation of the rigid objects to perform the bounce.
+        No additional correction from the Object Belonging Checker is usually required.
+        The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     )")
         .def(py::init<const YmrState*, std::string>(),
              "state"_a, "name"_a, R"(

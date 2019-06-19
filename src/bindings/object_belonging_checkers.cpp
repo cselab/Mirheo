@@ -28,8 +28,8 @@ void exportObjectBelongingCheckers(py::module& m)
                 name: name of the checker
         )");
         
-    py::handlers_class<ShapeBelongingChecker<Ellipsoid>>(m, "Ellipsoid", pycheck, R"(
-        This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
+    py::handlers_class<ShapeBelongingChecker<Capsule>>(m, "Capsule", pycheck, R"(
+        This checker will use the analytical representation of the capsule to detect *inside*-*outside* status.
     )")
         .def(py::init<const YmrState*, std::string>(),
              "state"_a, "name"_a, R"(
@@ -39,6 +39,15 @@ void exportObjectBelongingCheckers(py::module& m)
 
     py::handlers_class<ShapeBelongingChecker<Cylinder>>(m, "Cylinder", pycheck, R"(
         This checker will use the analytical representation of the cylinder to detect *inside*-*outside* status.
+    )")
+        .def(py::init<const YmrState*, std::string>(),
+             "state"_a, "name"_a, R"(
+            Args:
+                name: name of the checker
+            )");
+
+    py::handlers_class<ShapeBelongingChecker<Ellipsoid>>(m, "Ellipsoid", pycheck, R"(
+        This checker will use the analytical representation of the ellipsoid to detect *inside*-*outside* status.
     )")
         .def(py::init<const YmrState*, std::string>(),
              "state"_a, "name"_a, R"(

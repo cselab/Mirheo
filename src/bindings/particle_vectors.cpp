@@ -153,28 +153,28 @@ void exportParticleVectors(py::module& m)
                     mesh: :any:`Mesh` object used for bounce back and dump
         )");
         
-    py::handlers_class<RigidShapedObjectVector<Ellipsoid>> (m, "RigidEllipsoidVector", pyrov, R"(
-        :any:`RigidObjectVector` specialized for ellipsoidal shapes.
+    py::handlers_class<RigidShapedObjectVector<Capsule>> (m, "RigidCapsuleVector", pyrov, R"(
+        :any:`RigidObjectVector` specialized for capsule shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init(&ParticleVectorFactory::createEllipsoidROV),
-             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
+        .def(py::init(&ParticleVectorFactory::createCapsuleROV),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, R"(
                 Args:
                     name: name of the created PV
                     mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    semi_axes: ellipsoid principal semi-axes
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the capsule
+                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
         )")
-        .def(py::init(&ParticleVectorFactory::createEllipsoidROVWithMesh),
-             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
+        .def(py::init(&ParticleVectorFactory::createCapsuleROVWithMesh),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, "mesh"_a, R"(
                 Args:
                     name: name of the created PV
                     mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    radius: radius of the cylinder
-                    semi_axes: ellipsoid principal semi-axes
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the capsule
+                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
         )");
-
 
     py::handlers_class<RigidShapedObjectVector<Cylinder>> (m, "RigidCylinderVector", pyrov, R"(
         :any:`RigidObjectVector` specialized for cylindrical shapes.
@@ -198,6 +198,28 @@ void exportParticleVectors(py::module& m)
                     radius: radius of the cylinder
                     length: length of the cylinder
                     mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
+        )");
+
+    py::handlers_class<RigidShapedObjectVector<Ellipsoid>> (m, "RigidEllipsoidVector", pyrov, R"(
+        :any:`RigidObjectVector` specialized for ellipsoidal shapes.
+        The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
+    )")
+        .def(py::init(&ParticleVectorFactory::createEllipsoidROV),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of frozen particles per object
+                    semi_axes: ellipsoid principal semi-axes
+        )")
+        .def(py::init(&ParticleVectorFactory::createEllipsoidROVWithMesh),
+             "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of frozen particles per object
+                    radius: radius of the cylinder
+                    semi_axes: ellipsoid principal semi-axes
         )");
 
 
