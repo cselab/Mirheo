@@ -5,7 +5,7 @@ import ymero as ymr
 import sys, argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--stressFree', action="store_true", default=False)
+parser.add_argument('--stress_free', action="store_true", default=False)
 args = parser.parse_args()
 
 dt = 0.001
@@ -13,7 +13,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
@@ -36,7 +36,7 @@ prm_rbc = {
     "theta"  : 0.0
 }
     
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=args.stressFree)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=args.stress_free)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
@@ -56,11 +56,11 @@ u.run(2)
 # nTEST: membrane.shear.wlc
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./wlc.py > /dev/null
+# ymr.run --runargs "-n 2" ./wlc.py
 # ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
 
-# nTEST: membrane.shear.wlc.stressFree.biconcave
+# nTEST: membrane.shear.wlc.stress_free.biconcave
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./wlc.py --stressFree > /dev/null
+# ymr.run --runargs "-n 2" ./wlc.py --stress_free
 # ymr.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt

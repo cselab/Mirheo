@@ -16,7 +16,7 @@ def fopen(fname):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', type=str, required=True)
-parser.add_argument('--out', type=str, required=True)
+parser.add_argument('--out',  type=str, required=True)
 args = parser.parse_args()
 
 

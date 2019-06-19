@@ -8,8 +8,7 @@ sys.path.append("..")
 from common.membrane_params import lina_parameters
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--stressFree', action='store_true', default=False)
-parser.add_argument('--sphereStressFree', action='store_true', default=False)
+parser.add_argument('--stress_free',  action='store_true', default=False)
 parser.add_argument('--fluctuations', action='store_true', default=False)
 args = parser.parse_args()
 
@@ -18,12 +17,9 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-if args.sphereStressFree:
-    mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off", "sphere_mesh.off")
-else:
-    mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
 
 pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
@@ -35,7 +31,7 @@ prm_rbc["C0"] = 0.0
 prm_rbc["kad"] = 0.0
 prm_rbc["DA0"] = 0.0
 prm_rbc.pop("theta")
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Juelicher", **prm_rbc, stress_free=args.stressFree)
+int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Juelicher", **prm_rbc, stress_free=args.stress_free)
 
 vv = ymr.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
@@ -65,5 +61,5 @@ if pv_rbc is not None:
 # nTEST: membrane.rest.juelicher
 # cd membrane
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./rest.juelicher.py > /dev/null
+# ymr.run --runargs "-n 2" ./rest.juelicher.py
 # mv pos.rbc.txt pos.rbc.out.txt 

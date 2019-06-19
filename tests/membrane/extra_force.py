@@ -15,7 +15,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 mesh = trimesh.load_mesh(args.mesh)
 
@@ -50,8 +50,8 @@ if pv_rbc is not None:
     np.savetxt("pos.rbc.txt", rbc_pos)
 
 
-# nTEST: membrane.extraForce
+# nTEST: membrane.extra_force
 # cd membrane
 # mesh="../../data/rbc_mesh.off"
-# ymr.run --runargs "-n 2" ./extraForce.py --mesh $mesh > /dev/null
+# ymr.run --runargs "-n 2" ./extra_force.py --mesh $mesh
 # mv pos.rbc.txt pos.rbc.out.txt 
