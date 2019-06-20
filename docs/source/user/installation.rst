@@ -111,8 +111,20 @@ Additional compile options are provided through ``cmake``:
 Tools
 *****
 
-Additional helper tools can be installed for convenience.
-They are required for testing the code.
+Additional helper tools can be installed for convenience and are required for testing the code.
+
+Configuration
+-------------
+
+The tools will automatically load modules for installing and running the code.
+Furthermore, CMake options can be saved in those wrapper tools for convenience.
+The list of modules and cmake flags can be customised by adding corresponding files in ``tools/config`` (see available examples).
+The ``__default`` files can be modified accordingly to your system.
+
+Installation
+------------
+
+The tools can be installed by typing:
 
    .. code-block:: console
         
@@ -131,7 +143,7 @@ They are required for testing the code.
 
 
    .. note::
-      In order to run on a cluster with a job scheduler (e.g. slurm), the ``--exec-cmd`` option should be set to the right command, such as ``srun``:
+      In order to run on a cluster with a job scheduler (e.g. slurm), the ``--exec-cmd`` option should be set to the right command (e.g. ``srun``):
       
       .. code-block:: console
       
@@ -140,14 +152,84 @@ They are required for testing the code.
       The default value is ``mpiexec``
 
 
-The tools will automatically load modules for installing, running and testing the code.
-The modules and CMAKE flags can be customised by adding corresponding files in ``tools/config`` (see available examples).
-The ``__default`` files can be modified accordingly to your system.
-
-The installation can be tested by calling
+After installation, it is advised to test the tools by invoking
 
    .. code-block:: console
         
       $ make test
 
-The above command requires the  `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see :ref:`user-testing`).
+The above command requires the `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see :ref:`user-testing`).
+
+
+Tools description
+-----------------
+
+ymr.load
+~~~~~~~~
+
+This tool is not executable but need to be sourced instead.
+This simply contains the list of of possible modules required by YMeRo.
+``ymr.load.post`` is similar and contains modules required only for postprocessing as it migh conflict with ``ymr.load``. 
+
+
+ymr.make
+~~~~~~~~
+
+Wrapper used to compile YMeRo.
+It calls the ``make`` command and additionally loads the correct modules and pass optional CMake flags.
+The arguments are the same as the ``make`` command.
+
+ymr.run
+~~~~~~~
+
+Wrapper used to run YMeRo.
+It runs a given command after loading the correct modules.
+Internally calls the ``--exec-cmd`` passed during the configuation.
+Additionally, the user can execute profiling or debugging tools (see ``ymr.run --help`` for more information).
+The parameters for the exec-cmd can be passed through the ``--runargs`` option, e.g.
+
+    .. code-block:: console
+
+       $ ymr.run --runargs "-n 2" echo "Hello!"
+       Hello!
+       Hello!
+
+Alternatively, these arguments can be passed through the environment variable ``YMR_RUNARGS``:
+
+    .. code-block:: console
+
+       $ YMR_RUNARGS="-n 2" ymr.run echo "Hello!"
+       Hello!
+       Hello!
+
+The latter use is very useful when passing a common run option to all tests for example.
+
+
+ymr.post
+~~~~~~~~
+
+Wrapper used to run postprocess tools.
+This is different from ``ymr.run`` as it does not execute in parallel and can load a different set of modules (see ``ymr.load.post``)
+
+ymr.avgh5
+~~~~~~~~~
+
+a simple postprocessing tool used in many tests.
+It allows to average a grid field contained in one or multiple h5 files along given directions.
+See more detailed documentation in 
+
+    .. code-block:: console
+
+       $ ymr.avgh5 --help
+
+ymr.restart.id
+~~~~~~~~~~~~~~
+
+Convenience tool to manipulate the restart ID from multiple restart files.
+See more detailed documentation in 
+
+    .. code-block:: console
+
+       $ ymr.restart.id --help
+
+

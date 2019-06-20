@@ -595,6 +595,118 @@ class RodVector(ObjectVector):
         """
         pass
 
+class RigidCapsuleVector(RigidObjectVector):
+    r"""
+        :any:`RigidObjectVector` specialized for capsule shapes.
+        The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
+    
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(name: str, mass: float, object_size: int, radius: float, length: float) -> None
+
+
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the capsule
+                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+        
+
+2. __init__(name: str, mass: float, object_size: int, radius: float, length: float, mesh: ParticleVectors.Mesh) -> None
+
+
+                Args:
+                    name: name of the created PV
+                    mass: mass of a single particle
+                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
+                    radius: radius of the capsule
+                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+        
+
+        """
+        pass
+
+    def getCoordinates():
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def getForces():
+        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def getVelocities():
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns: 
+                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
+    def setCoordinates():
+        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+
+
+            Args:
+                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def setForces():
+        r"""setForces(forces: List[List[float[3]]]) -> None
+
+
+            Args:
+                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def setVelocities():
+        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+
+
+            Args:
+                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
 class RigidCylinderVector(RigidObjectVector):
     r"""
         :any:`RigidObjectVector` specialized for cylindrical shapes.

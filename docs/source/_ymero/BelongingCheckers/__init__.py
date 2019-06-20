@@ -8,6 +8,22 @@ class BelongingChecker:
         """
         pass
 
+class Capsule(BelongingChecker):
+    r"""
+        This checker will use the analytical representation of the capsule to detect *inside*-*outside* status.
+    
+    """
+    def __init__():
+        r"""__init__(name: str) -> None
+
+
+            Args:
+                name: name of the checker
+            
+
+        """
+        pass
+
 class Cylinder(BelongingChecker):
     r"""
         This checker will use the analytical representation of the cylinder to detect *inside*-*outside* status.

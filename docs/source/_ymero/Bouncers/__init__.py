@@ -8,6 +8,25 @@ class Bouncer:
         """
         pass
 
+class Capsule(Bouncer):
+    r"""
+        This bouncer will use the analytical capsule representation of the rigid objects to perform the bounce.
+        No additional correction from the Object Belonging Checker is usually required.
+        The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
+    
+    """
+    def __init__():
+        r"""__init__(name: str) -> None
+
+
+            Args:
+                name: name of the checker
+            
+        
+
+        """
+        pass
+
 class Cylinder(Bouncer):
     r"""
         This bouncer will use the analytical cylinder representation of the rigid objects to perform the bounce.
