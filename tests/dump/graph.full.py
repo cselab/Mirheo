@@ -11,7 +11,7 @@ u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=Tr
 
 u.save_dependency_graph_graphml("tasks.full", current=False)
 
-# nTEST: dump.graph.full
+# TEST: dump.graph.full
 # cd dump
 # rm -rf tasks.graphml
 # ymr.run --runargs "-n 1" ./graph.full.py
