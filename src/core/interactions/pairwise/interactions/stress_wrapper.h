@@ -1,7 +1,8 @@
 #pragma once
 
+#include "accumulators/forceStress.h"
+
 #include <core/datatypes.h>
-#include <core/interactions/accumulators/forceStress.h>
 #include <core/utils/common.h>
 #include <core/ymero_state.h>
 

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "accumulators/force.h"
 #include "fetchers.h"
 #include "interface.h"
 
-#include <core/interactions/accumulators/force.h>
 #include <core/interactions/utils/step_random_gen.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/restart_helpers.h>

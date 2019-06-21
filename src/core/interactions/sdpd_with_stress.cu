@@ -1,7 +1,7 @@
 #include "sdpd_with_stress.h"
 
 #include "pairwise_with_stress.impl.h"
-#include "pairwise_interactions/sdpd.h"
+#include "pairwise/interactions/sdpd.h"
 
 #include <core/pvs/particle_vector.h>
 

@@ -3,7 +3,6 @@
 #include "lj.h"
 
 #include <core/datatypes.h>
-#include <core/interactions/accumulators/force.h>
 #include <core/pvs/rod_vector.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>

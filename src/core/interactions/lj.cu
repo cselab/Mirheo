@@ -1,8 +1,8 @@
 #include "lj.h"
 #include "pairwise.impl.h"
-#include "pairwise_interactions/lj.h"
-#include "pairwise_interactions/lj_object_aware.h"
-#include "pairwise_interactions/lj_rod_aware.h"
+#include "pairwise/interactions/lj.h"
+#include "pairwise/interactions/lj_object_aware.h"
+#include "pairwise/interactions/lj_rod_aware.h"
 
 #include <core/celllist.h>
 

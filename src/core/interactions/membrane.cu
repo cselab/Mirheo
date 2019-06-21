@@ -44,25 +44,26 @@ InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name
                                          bool stressFree, float growUntil) :
     Interaction(state, name, /* default cutoff rc */ 1.0)
 {
-    mpark::visit([&](auto bePrms, auto shPrms) {                     
-                     using DihedralForce = typename decltype(bePrms)::DihedralForce;
-
-                     if (stressFree)
-                     {
-                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
-                         
-                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
-                             (state, name, commonParams, shPrms, bePrms, growUntil);
-                     }
-                     else                         
-                     {
-                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
-                         
-                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
-                             (state, name, commonParams, shPrms, bePrms, growUntil);
-                     }
-                     
-                 }, bendingParams, shearParams);
+    mpark::visit([&](auto bePrms, auto shPrms)
+    {                     
+        using DihedralForce = typename decltype(bePrms)::DihedralForce;
+        
+        if (stressFree)
+        {
+            using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
+            
+            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                (state, name, commonParams, shPrms, bePrms, growUntil);
+        }
+        else                         
+        {
+            using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
+            
+            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                (state, name, commonParams, shPrms, bePrms, growUntil);
+        }
+        
+    }, bendingParams, shearParams);
 }
 
 InteractionMembrane::~InteractionMembrane() = default;

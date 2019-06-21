@@ -1,10 +1,9 @@
 #pragma once
 
+#include "accumulators/density.h"
 #include "density_kernels.h"
 #include "fetchers.h"
 #include "interface.h"
-
-#include <core/interactions/accumulators/density.h>
 
 class CellList;
 class LocalParticleVector;

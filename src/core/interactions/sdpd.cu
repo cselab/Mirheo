@@ -1,8 +1,8 @@
 #include "sdpd.h"
 
 #include "pairwise.impl.h"
-#include "pairwise_interactions/density.h"
-#include "pairwise_interactions/sdpd.h"
+#include "pairwise/interactions/density.h"
+#include "pairwise/interactions/sdpd.h"
 
 #include <core/celllist.h>
 #include <core/utils/common.h>

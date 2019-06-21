@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pairwise_interactions/type_traits.h"
+#include "interactions/type_traits.h"
 
 #include <core/celllist.h>
 #include <core/utils/cuda_common.h>

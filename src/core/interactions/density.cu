@@ -1,7 +1,7 @@
 #include "density.h"
 
 #include "pairwise.impl.h"
-#include "pairwise_interactions/density.h"
+#include "pairwise/interactions/density.h"
 
 #include <core/celllist.h>
 #include <core/utils/common.h>

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "accumulators/force.h"
 #include "lj.h"
 
 #include <core/datatypes.h>
-#include <core/interactions/accumulators/force.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/cpu_gpu_defines.h>

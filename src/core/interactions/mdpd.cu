@@ -1,7 +1,7 @@
 #include "mdpd.h"
 
 #include "pairwise.impl.h"
-#include "pairwise_interactions/mdpd.h"
+#include "pairwise/interactions/mdpd.h"
 
 #include <core/celllist.h>
 #include <core/utils/common.h>

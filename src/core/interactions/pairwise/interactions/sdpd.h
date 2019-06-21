@@ -1,11 +1,11 @@
 #pragma once
 
+#include "accumulators/force.h"
+#include "density_kernels.h"
 #include "fetchers.h"
 #include "interface.h"
 #include "pressure_EOS.h"
-#include "density_kernels.h"
 
-#include <core/interactions/accumulators/force.h>
 #include <core/interactions/utils/step_random_gen.h>
 #include <core/utils/restart_helpers.h>
 #include <core/ymero_state.h>

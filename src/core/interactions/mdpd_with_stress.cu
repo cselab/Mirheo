@@ -1,6 +1,6 @@
 #include "mdpd_with_stress.h"
+#include "pairwise/interactions/mdpd.h"
 #include "pairwise_with_stress.impl.h"
-#include "pairwise_interactions/mdpd.h"
 
 #include <core/pvs/particle_vector.h>
 
