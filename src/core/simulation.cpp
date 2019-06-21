@@ -1057,7 +1057,7 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
     scheduler->addDependency(tasks->objHaloIntermediateInit, {}, {tasks->gatherInteractionIntermediate});
     scheduler->addDependency(tasks->objHaloIntermediateFinalize, {}, {tasks->objHaloIntermediateInit});
     
-    scheduler->addDependency(tasks->partHaloFinalInit, {}, {tasks->pluginsBeforeForces, tasks->gatherInteractionIntermediate});
+    scheduler->addDependency(tasks->partHaloFinalInit, {}, {tasks->pluginsBeforeForces, tasks->gatherInteractionIntermediate, tasks->objHaloIntermediateInit});
     scheduler->addDependency(tasks->partHaloFinalFinalize, {}, {tasks->partHaloFinalInit});
 
     scheduler->addDependency(tasks->haloForces, {}, {tasks->partHaloFinalFinalize, tasks->objHaloIntermediateFinalize});
