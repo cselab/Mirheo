@@ -1,9 +1,9 @@
 #pragma once
 
+#include "accumulators/force.h"
 #include "fetchers.h"
 #include "interface.h"
 
-#include <core/interactions/accumulators/force.h>
 #include <core/ymero_state.h>
 
 #include <random>
