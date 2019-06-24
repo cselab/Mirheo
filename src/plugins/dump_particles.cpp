@@ -18,7 +18,7 @@ ParticleSenderPlugin::ParticleSenderPlugin(const YmrState *state, std::string na
     channelData.resize(channelNames.size());
 }
 
-void ParticleSenderPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 

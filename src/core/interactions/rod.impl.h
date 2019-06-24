@@ -53,8 +53,10 @@ public:
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        if (saveEnergies) pv1->requireDataPerParticle<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
-        if (saveStates)   pv1->requireDataPerParticle<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+        auto rv1 = dynamic_cast<RodVector *> (pv1);
+        
+        if (saveEnergies) rv1->requireDataPerBisegment<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (saveStates)   rv1->requireDataPerBisegment<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
     }
     
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
@@ -66,8 +68,8 @@ public:
 
         RVview view(rv, rv->local());
 
-        if (saveEnergies) rv->local()->dataPerParticle.getData<float>(ChannelNames::energies)->clear(defaultStream);
-        if (saveStates)   rv->local()->dataPerParticle.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
+        if (saveEnergies) rv->local()->dataPerBisegment.getData<float>(ChannelNames::energies)->clear(defaultStream);
+        if (saveStates)   rv->local()->dataPerBisegment.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
 
 
         {

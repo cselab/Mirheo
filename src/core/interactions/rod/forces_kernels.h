@@ -140,19 +140,10 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
     atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
 
-    if (saveStates)
-    {
-        #pragma unroll
-        for (int j = 0; j < 5; ++j)
-            view.states[start + stride + j] = state;
-    }
-
-    if (saveEnergies)
-    {
-        #pragma unroll
-        for (int j = 0; j < 5; ++j)
-            view.energies[start + stride + j] = E;
-    }
+    const int globalBiSegmentId = rodId * nBiSegments + biSegmentId;
+    
+    if (saveStates)   view.states  [globalBiSegmentId] = state;
+    if (saveEnergies) view.energies[globalBiSegmentId] = E;
 }
 
 

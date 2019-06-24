@@ -14,6 +14,7 @@
 #include "dump_mesh.h"
 #include "dump_obj_stats.h"
 #include "dump_particles.h"
+#include "dump_particles_rod.h"
 #include "dump_particles_with_mesh.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
@@ -252,6 +253,21 @@ createDumpParticlesPlugin(bool computeTask, const YmrState *state, std::string n
     extractChannelInfos(channels, names, types);
         
     auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->name, dumpEvery, names, types) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
+
+    return { simPl, postPl };
+}
+
+static pair_shared< ParticleWithRodQuantitiesSenderPlugin, ParticleDumperPlugin >
+createDumpParticlesWithRodDataPlugin(bool computeTask, const YmrState *state, std::string name, ParticleVector *pv, int dumpEvery,
+                                     std::vector< std::pair<std::string, std::string> > channels, std::string path)
+{
+    std::vector<std::string> names;
+    std::vector<ParticleSenderPlugin::ChannelType> types;
+
+    extractChannelInfos(channels, names, types);
+        
+    auto simPl  = computeTask ? std::make_shared<ParticleWithRodQuantitiesSenderPlugin> (state, name, pv->name, dumpEvery, names, types) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
     return { simPl, postPl };
