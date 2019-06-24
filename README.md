@@ -14,7 +14,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### unreleased
 
-* **fix** was a possible deadlock for many nodes / many objects suspensions; see commit 4b65e00e 
+* **fix** was a possible deadlock for many nodes / many objects suspensions; see commit 4b65e00eba8cf163db3e99e1730e6f16c12fcd26
 * add Capsule Rigid Vectors together with bonce back and belonging checkers
 * tests: renaming, semantic
 
