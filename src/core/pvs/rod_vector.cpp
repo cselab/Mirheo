@@ -26,14 +26,18 @@ void LocalRodVector::resize(int np, cudaStream_t stream)
 {
     LocalObjectVector::resize(np, stream);
 
-    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+    int totNumBisegments = (getNumSegmentsPerRod() - 1) * nObjects;
+
+    dataPerBisegment.resize(totNumBisegments, stream);
 }
 
 void LocalRodVector::resize_anew(int np)
 {
     LocalObjectVector::resize_anew(np);
     
-    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+    int totNumBisegments = (getNumSegmentsPerRod() - 1) * nObjects;
+
+    dataPerBisegment.resize_anew(totNumBisegments);
 }
 
 int LocalRodVector::getNumSegmentsPerRod() const

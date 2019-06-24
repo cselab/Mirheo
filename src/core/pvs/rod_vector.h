@@ -15,6 +15,8 @@ public:
     void resize_anew(int np) override;
 
     int getNumSegmentsPerRod() const;
+
+    DataManager dataPerBisegment;
 };
 
 
@@ -26,4 +28,28 @@ public:
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
+
+
+    template<typename T>
+    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence)
+    {
+        requireDataPerBisegment<T>(name, persistence, 0);
+    }
+
+    template<typename T>
+    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
+    {
+        requireDataPerBisegment<T>(local(), name, persistence, shiftDataSize);
+        requireDataPerBisegment<T>(halo(),  name, persistence, shiftDataSize);
+    }
+
+private:
+    template<typename T>
+    void requireDataPerBisegment(LocalRodVector *lrv, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
+    {
+        lrv->dataPerBisegment.createData<T> (name, lrv->nObjects);
+        lrv->dataPerBisegment.setPersistenceMode(name, persistence);
+        if (shiftDataSize != 0) lrv->dataPerBisegment.requireShift(name, shiftDataSize);
+    }
+
 };
