@@ -194,7 +194,7 @@ void exportPlugins(py::module& m)
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     )");
 
-    py::handlers_class<ParticleWithRodQuantitiesSenderPlugin>(m, "ParticleWithRodDataPlugin", pysim, R"(
+    py::handlers_class<ParticleWithRodQuantitiesSenderPlugin>(m, "ParticleSenderWithRodDataPlugin", pysim, R"(
         Extension of :any:`ParticleSenderPlugin` to support bisegment data.
         If a field of optional data is per bisegment data (for a rod) this plugin will first scatter this data to particles.
     )");

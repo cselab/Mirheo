@@ -190,6 +190,12 @@ class ParticleSenderPlugin(SimulationPlugin):
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
     
     """
+class ParticleSenderWithRodDataPlugin(SimulationPlugin):
+    r"""
+        Extension of :any:`ParticleSenderPlugin` to support bisegment data.
+        If a field of optional data is per bisegment data (for a rod) this plugin will first scatter this data to particles.
+    
+    """
 class ParticleWithMeshDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleWithMeshSenderPlugin`.
@@ -593,6 +599,32 @@ def createDumpParticlesWithMesh():
                 * 'vector': 3 floats per particle
                 * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
+    
+
+    """
+    pass
+
+def createDumpParticlesWithRodData():
+    r"""createDumpParticlesWithRodData(state: YmrState, name: str, rv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderWithRodDataPlugin, Plugins.ParticleDumperPlugin]
+
+
+        Create :any:`ParticleSenderWithRodDataPlugin` plugin
+        The interface is the same as :any:`createDumpParticles`
+
+        Args:
+            name: name of the plugin
+            rv: :any:`RodVector` that we'll work with
+            dump_every: write files every this many time-steps 
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of pairs name - type.
+                Name is the channel (per particle) name.
+                The "velocity" and "id" channels are always activated.
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Available types are:
+
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
     
 
     """
