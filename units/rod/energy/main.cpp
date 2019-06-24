@@ -268,8 +268,6 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
              ymrCenterLine, ymrTorsion, a);
 
-    ic.exec(comm, &rv, defaultStream);
-
     RodParameters params;
     params.kBending = make_float3(kBending);
     params.kappaEq  = {make_float2(kappaEq)};
@@ -282,13 +280,14 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.ksFrame  = 0.f;
     InteractionRod gpuInt(&state, "twist_forces", params, false, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
-
+    ic.exec(comm, &rv, defaultStream);
+    
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto  cpuEnergies = computeBendingEnergies<EnergyMode::Absolute>
@@ -298,7 +297,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real gpuE = gpuEnergies[5 * i + 5];
+        real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
         auto dE = fabs(cpuE - gpuE);
@@ -400,8 +399,6 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
              ymrCenterLine, ymrTorsion, a);
     
-    ic.exec(comm, &rv, defaultStream);
-
     RodParameters params;
     params.kBending = make_float3(0.f);
     params.kappaEq  = {make_float2(0.f)};
@@ -414,13 +411,14 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     params.ksFrame  = 0.f;
     InteractionRod gpuInt(&state, "twist_forces", params, false, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+    ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto cpuEnergies = computeTwistEnergies<EnergyMode::Absolute>
@@ -430,7 +428,7 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real gpuE = gpuEnergies[5 * i + 5];
+        real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
         auto dE = fabs(cpuE - gpuE);
