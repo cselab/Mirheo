@@ -34,6 +34,26 @@ __device__ inline real2 symmetricMatMult(const real3& A, const real2& x)
 }
 
 template <int Nstates>
+__device__ inline real computeEnergy(real l, real2 kappa0, real2 kappa1, real tau, int state,
+                                     const GPU_RodBiSegmentParameters<Nstates>& params)
+{
+    real2 dkappa0 = kappa0 - make_real2(params.kappaEq[state]);
+    real2 dkappa1 = kappa1 - make_real2(params.kappaEq[state]);
+    
+    real2 Bkappa0 = symmetricMatMult(make_real3(params.kBending), dkappa0);
+    real2 Bkappa1 = symmetricMatMult(make_real3(params.kBending), dkappa1);
+    
+    real Eb = 0.25_r * l * (dot(dkappa0, Bkappa0) + dot(dkappa1, Bkappa1));
+    
+    real dtau = tau - params.tauEq[state];
+    
+    real Et = 0.5_r * l * params.kTwist * dtau * dtau;
+
+    return Eb + Et + params.groundE[state];
+}
+
+
+template <int Nstates>
 struct BiSegment
 {
     real3 e0, e1, t0, t1, dp0, dp1, bicur;
@@ -232,30 +252,12 @@ struct BiSegment
         tau = safeDiffTheta(theta0, theta1) * linv;
     }
 
-    __device__ inline real computeEnergy(real2 kappa0, real2 kappa1, real tau, int state,
-                                         const GPU_RodBiSegmentParameters<Nstates>& params) const
-    {
-        real2 dkappa0 = kappa0 - make_real2(params.kappaEq[state]);
-        real2 dkappa1 = kappa1 - make_real2(params.kappaEq[state]);
-
-        real2 Bkappa0 = symmetricMatMult(make_real3(params.kBending), dkappa0);
-        real2 Bkappa1 = symmetricMatMult(make_real3(params.kBending), dkappa1);
-
-        real Eb = 0.25_r * l * (dot(dkappa0, Bkappa0) + dot(dkappa1, Bkappa1));
-
-        real dtau = tau - params.tauEq[state];
-
-        real Et = 0.5_r * l * params.kTwist * dtau * dtau;
-
-        return Eb + Et + params.groundE[state];
-    }
-    
     __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
     {
         real2 kappa0, kappa1;
         real tau;
         computeCurvatures(kappa0, kappa1);
         computeTorsion(tau);
-        return computeEnergy(kappa0, kappa1, tau, state, params);
+        return ::computeEnergy(l, kappa0, kappa1, tau, state, params);
     }
 };

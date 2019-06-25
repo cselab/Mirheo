@@ -42,10 +42,9 @@ template <int Nstates>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool saveStates, bool saveEnergies) :
+    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
         parameters(parameters),
-        saveStates(saveStates),
         saveEnergies(saveEnergies)
     {}
 
@@ -54,9 +53,15 @@ public:
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
         auto rv1 = dynamic_cast<RodVector *> (pv1);
-        
+
         if (saveEnergies) rv1->requireDataPerBisegment<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
-        if (saveStates)   rv1->requireDataPerBisegment<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+
+        if (Nstates > 1)
+        {
+            rv1->requireDataPerBisegment<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<float4>  (ChannelNames::rodKappa, DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<float2>  (ChannelNames::rodTau_l, DataManager::PersistenceMode::None);
+        }
     }
     
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
@@ -67,10 +72,6 @@ public:
               rv->local()->nObjects, rv->name.c_str());
 
         RVview view(rv, rv->local());
-
-        if (saveEnergies) rv->local()->dataPerBisegment.getData<float>(ChannelNames::energies)->clear(defaultStream);
-        if (saveStates)   rv->local()->dataPerBisegment.getData<int>(ChannelNames::polyStates)->clear(defaultStream);
-
 
         {
             const int nthreads = 128;
@@ -84,14 +85,35 @@ public:
         }
 
         {
+            auto devParams = getBiSegmentParams<Nstates>(parameters);
+
+            if (Nstates > 1)
+            {
+                auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
+                auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+
+                int nthreads = 128;
+                int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
+                
+                SAFE_KERNEL_LAUNCH(RodForcesKernels::computeBisegmentData,
+                                   nblocks, nthreads, 0, stream,
+                                   view, kappa, tau_l);
+
+
+                nthreads = 128;
+                nblocks = view.nObjects;
+                
+                SAFE_KERNEL_LAUNCH(RodForcesKernels::findPolymorphicStates<Nstates>,
+                                   nblocks, nthreads, 0, stream,
+                                   view, devParams, kappa, tau_l, saveEnergies);
+            }
+
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
-        
-            auto devParams = getBiSegmentParams<Nstates>(parameters);
-        
+
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
                                nblocks, nthreads, 0, stream,
-                               view, devParams, saveStates, saveEnergies);
+                               view, devParams);
         }
     }
 

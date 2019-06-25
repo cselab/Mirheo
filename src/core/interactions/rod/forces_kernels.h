@@ -88,8 +88,97 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     atomicAdd(view.forces + start + 5, make_float3(fr1));
 }
 
+
+__device__ inline void writeBisegmentData(int i, float4 *kappa, float2 *tau_l,
+                                          real2 k0, real2 k1, real tau, real l)
+{
+    kappa[i] = { (float) k0.x, (float) k0.y,
+                 (float) k1.x, (float) k1.y };
+
+    tau_l[i] = { (float) tau, (float) l };
+}
+
+__device__ inline void fetchBisegmentData(int i, const float4 *kappa, const float2 *tau_l,
+                                          real2& k0, real2& k1, real& tau, real& l)
+{
+    auto ks = kappa[i];
+    auto tl = tau_l[i];
+    k0.x = ks.x;
+    k0.y = ks.y;
+
+    k1.x = ks.z;
+    k1.y = ks.w;
+
+    tau = tl.x;
+    l = tl.y;
+}
+
+__global__ void computeBisegmentData(RVview view, float4 *kappa, float2 *tau_l)
+{
+    constexpr int stride = 5;
+    const int i = threadIdx.x + blockIdx.x * blockDim.x;
+    const int nBiSegments = view.nSegments - 1;
+    const int rodId       = i / nBiSegments;
+    const int biSegmentId = i % nBiSegments;
+    const int start = view.objSize * rodId + biSegmentId * stride;
+
+    if (rodId       >= view.nObjects ) return;
+    if (biSegmentId >= nBiSegments   ) return;
+
+    const BiSegment<0> bisegment(view, start);
+
+    real2 k0, k1;
+    real tau;
+    bisegment.computeCurvatures(k0, k1);
+    bisegment.computeTorsion(tau);
+
+    writeBisegmentData(i, kappa, tau_l, k0, k1, tau, bisegment.l);
+}
+
 template <int Nstates>
-__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params, bool saveStates, bool saveEnergies)
+__global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Nstates> params, const float4 *kappa, const float2 *tau_l, bool saveEnergies)
+{
+    const int tid   = threadIdx.x;
+    const int rodId = blockIdx.x;
+    
+    const int nBiSegments = view.nSegments - 1;
+
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    {
+        real2 k0, k1;
+        real tau, l;
+        int i = rodId * nBiSegments + biSegmentId;
+
+        fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
+
+        int state = 0;
+        real E = computeEnergy(l, k0, k1, tau, state, params);            
+        
+        #pragma unroll
+        for (int s = 1; s < Nstates; ++s)
+        {
+            real Es = computeEnergy(l, k0, k1, tau, s, params);
+            if (Es < E)
+            {
+                E = Es;
+                state = s;
+            }
+        }
+
+        view.states[i] = state;
+        if (saveEnergies) view.energies[i] = E;
+    }
+}
+
+template <int Nstates>
+__device__ inline int getState(const RVview& view, int i)
+{
+    if (Nstates > 1) return view.states[i];
+    else             return 0;
+}
+
+template <int Nstates>
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -104,24 +193,9 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     const BiSegment<Nstates> bisegment(view, start);
 
     real3 fr0, fr2, fpm0, fpm1;
-    int state = 0;
-    real E = 0;
-
-    if (Nstates > 1 || saveEnergies)
-        E = bisegment.computeEnergy(state, params);
-        
-    #pragma unroll
-    for (int s = 1; s < Nstates; ++s)
-    {
-        real Es = bisegment.computeEnergy(s, params);
-        if (Es < E)
-        {
-            E = Es;
-            state = s;
-        }
-    }
-    
     fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
+
+    const int state = getState<Nstates>(view, i);
     
     bisegment.computeBendingForces(state, params, fr0, fr2, fpm0, fpm1);
     bisegment.computeTwistForces  (state, params, fr0, fr2, fpm0, fpm1);
@@ -139,11 +213,6 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     atomicAdd(view.forces + start +          2, make_float3(fpp0));
     atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
     atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
-
-    const int globalBiSegmentId = rodId * nBiSegments + biSegmentId;
-    
-    if (saveStates)   view.states  [globalBiSegmentId] = state;
-    if (saveEnergies) view.energies[globalBiSegmentId] = E;
 }
 
 

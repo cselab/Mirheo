@@ -244,12 +244,12 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 
 std::shared_ptr<InteractionRod>
 InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
-                                         bool saveStates, bool saveEnergies, const MapParams& parameters)
+                                         bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
     desc.checkAllRead();
-    return std::make_shared<InteractionRod>(state, name, params, saveStates, saveEnergies);
+    return std::make_shared<InteractionRod>(state, name, params, saveEnergies);
 }
 
 

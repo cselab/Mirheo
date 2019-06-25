@@ -54,11 +54,11 @@ createInteractionMembrane(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name, bool dumpStates, bool dumpEnergies, py::kwargs kwargs)
+createInteractionRod(const YmrState *state, std::string name, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionRod(state, name, dumpStates, dumpEnergies, parameters);
+    return InteractionFactory::createInteractionRod(state, name, dumpEnergies, parameters);
 }
 
 static std::shared_ptr<BasicInteractionSDPD>
@@ -486,10 +486,9 @@ void exportInteractions(py::module& m)
     )");
 
     pyRodForces.def(py::init(&createInteractionRod),
-                    "state"_a, "name"_a, "save_states"_a=false, "save_energies"_a=false, R"( 
+                    "state"_a, "name"_a, "save_energies"_a=false, R"( 
              Args:
                  name: name of the interaction
-                 save_states: if `True`, save the state of each bisegment
                  save_energies: if `True`, save the energies of each bisegment
 
              kwargs:

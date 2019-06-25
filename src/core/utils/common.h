@@ -16,8 +16,6 @@ static const std::string forces        = "__forces";
 static const std::string stresses      = "stresses";
 static const std::string densities     = "densities";
 static const std::string oldPositions  = "old_positions";
-static const std::string polyStates    = "states";
-static const std::string energies      = "energies";
 
 // per object fields
 static const std::string motions     = "motions";
@@ -29,7 +27,13 @@ static const std::string areaVolumes = "area_volumes";
 static const std::string areas          = "areas";
 static const std::string meanCurvatures = "meanCurvatures";
 static const std::string lenThetaTot    = "lenThetaTot";
-    
+
+// per bisegment data
+static const std::string polyStates    = "states";
+static const std::string energies      = "energies";
+static const std::string rodKappa      = "biseg_kappa";
+static const std::string rodTau_l      = "biseg_tau_l";
+
     
 // per entity (particles or objects
 static const std::string globalIds   = "ids";
