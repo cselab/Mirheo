@@ -2,6 +2,7 @@
 
 #include "interface.h"
 #include "rod/forces_kernels.h"
+#include "rod/states_kernels.h"
 #include "rod/parameters.h"
 
 #include <core/pvs/rod_vector.h>
@@ -95,7 +96,7 @@ public:
                 int nthreads = 128;
                 int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
                 
-                SAFE_KERNEL_LAUNCH(RodForcesKernels::computeBisegmentData,
+                SAFE_KERNEL_LAUNCH(RodStatesKernels::computeBisegmentData,
                                    nblocks, nthreads, 0, stream,
                                    view, kappa, tau_l);
 
@@ -103,7 +104,7 @@ public:
                 nthreads = 128;
                 nblocks = view.nObjects;
                 
-                SAFE_KERNEL_LAUNCH(RodForcesKernels::findPolymorphicStates<Nstates>,
+                SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
                                    nblocks, nthreads, 0, stream,
                                    view, devParams, kappa, tau_l);
             }
