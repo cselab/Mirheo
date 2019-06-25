@@ -16,8 +16,14 @@ struct RodParameters
     float ksFrame;   ///< spring force magnitude for material frame
 };
 
-struct SpinParameters
+struct StatesPenalizationParameters
 {
+    // TODO; for now no penalization implemented
+};
+
+struct StatesSpinParameters
+{
+    int nsteps;
     float kBT;
     float J;
 };

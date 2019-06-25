@@ -11,7 +11,7 @@ InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParam
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
         if (nstates == Nstates) {                                       \
             impl = std::make_unique<InteractionRodImpl<Nstates>>        \
-                (state, name, parameters, saveEnergies);    \
+                (state, name, parameters, saveEnergies);                \
             debug("Create interaction rod with %d states", Nstates);    \
             return;                                                     \
         } } while(0)

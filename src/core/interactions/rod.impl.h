@@ -4,6 +4,7 @@
 #include "rod/forces_kernels.h"
 #include "rod/states_kernels.h"
 #include "rod/parameters.h"
+#include "rod/update_states.h"
 
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/views/rv.h>
@@ -72,9 +73,9 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        computeBoundForces       (rv, stream);
-        computePolymorphicStates (rv, stream);
-        computeElasticForces     (rv, stream);
+        computeBoundForces      (rv, stream);
+        updatePolymorphicStates (rv, stream);
+        computeElasticForces    (rv, stream);
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
@@ -96,7 +97,7 @@ protected:
                            view, devParams);
     }
 
-    void computePolymorphicStates(RodVector *rv, cudaStream_t stream)
+    void updatePolymorphicStates(RodVector *rv, cudaStream_t stream)
     {
         if (Nstates > 1)
         {
@@ -106,20 +107,17 @@ protected:
             auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
             auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
 
-            int nthreads = 128;
-            int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
+            const int nthreads = 128;
+            const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
                 
             SAFE_KERNEL_LAUNCH(RodStatesKernels::computeBisegmentData,
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
 
 
-            nthreads = 128;
-            nblocks = view.nObjects;
-                
-            SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
-                               nblocks, nthreads, 0, stream,
-                               view, devParams, kappa, tau_l);
+            StatesPenalizationParameters stateParams; // TODO
+
+            updateStates<Nstates>(rv, devParams, stateParams, stream);
         }
     }
     
