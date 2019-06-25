@@ -278,7 +278,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.a0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    InteractionRod gpuInt(&state, "twist_forces", params, true);
+    InteractionRod gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
     
@@ -409,7 +409,7 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     params.a0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    InteractionRod gpuInt(&state, "twist_forces", params, true);
+    InteractionRod gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
 
