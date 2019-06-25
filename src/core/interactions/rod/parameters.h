@@ -1,5 +1,7 @@
 #pragma once
 
+#include <random>
+
 struct RodParameters
 {
     float3 kBending; ///< bending force magnitude in that order: (Bxx, Bxy, Byy) (symmetric matrix)
@@ -26,4 +28,11 @@ struct StatesSpinParameters
     int nsteps;
     float kBT;
     float J;
+
+    inline auto generate() {return udistr(gen);}
+    
+private:
+
+    std::mt19937 gen;
+    std::uniform_real_distribution<float> udistr;
 };

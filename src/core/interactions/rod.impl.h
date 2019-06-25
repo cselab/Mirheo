@@ -60,9 +60,9 @@ public:
 
         if (Nstates > 1)
         {
-            rv1->requireDataPerBisegment<int>  (ChannelNames::polyStates, DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<float4>  (ChannelNames::rodKappa, DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<float2>  (ChannelNames::rodTau_l, DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<int>     (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<float4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<float2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
         }
     }
     
@@ -137,6 +137,5 @@ protected:
 protected:
 
     RodParameters parameters;
-
-    bool saveStates, saveEnergies;
+    bool saveEnergies;
 };

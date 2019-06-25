@@ -32,6 +32,7 @@ static auto getGPUParams(StatesSpinParameters& p)
     dp.J    = p.J;
     dp.kBT  = p.kBT;
     dp.beta = 1.0 /  p.kBT;
+    dp.seed = p.generate();
     return dp;
 }
 
