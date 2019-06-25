@@ -136,7 +136,7 @@ __global__ void computeBisegmentData(RVview view, float4 *kappa, float2 *tau_l)
 }
 
 template <int Nstates>
-__global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Nstates> params, const float4 *kappa, const float2 *tau_l, bool saveEnergies)
+__global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Nstates> params, const float4 *kappa, const float2 *tau_l)
 {
     const int tid   = threadIdx.x;
     const int rodId = blockIdx.x;
@@ -166,7 +166,6 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
         }
 
         view.states[i] = state;
-        if (saveEnergies) view.energies[i] = E;
     }
 }
 
@@ -178,7 +177,7 @@ __device__ inline int getState(const RVview& view, int i)
 }
 
 template <int Nstates>
-__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params)
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params, bool saveEnergies)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -213,6 +212,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     atomicAdd(view.forces + start +          2, make_float3(fpp0));
     atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
     atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
+
+    if (saveEnergies) view.energies[i] = bisegment.computeEnergy(state, params);
 }
 
 

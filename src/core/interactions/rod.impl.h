@@ -105,7 +105,7 @@ public:
                 
                 SAFE_KERNEL_LAUNCH(RodForcesKernels::findPolymorphicStates<Nstates>,
                                    nblocks, nthreads, 0, stream,
-                                   view, devParams, kappa, tau_l, saveEnergies);
+                                   view, devParams, kappa, tau_l);
             }
 
             const int nthreads = 128;
@@ -113,7 +113,7 @@ public:
 
             SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
                                nblocks, nthreads, 0, stream,
-                               view, devParams);
+                               view, devParams, saveEnergies);
         }
     }
 
