@@ -72,55 +72,70 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        RVview view(rv, rv->local());
-
-        {
-            const int nthreads = 128;
-            const int nblocks  = getNblocks(view.nObjects * view.nSegments, nthreads);
-        
-            auto devParams = getBoundParams(parameters);
-        
-            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
-                               nblocks, nthreads, 0, stream,
-                               view, devParams);
-        }
-
-        {
-            auto devParams = getBiSegmentParams<Nstates>(parameters);
-
-            if (Nstates > 1)
-            {
-                auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
-                auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
-
-                int nthreads = 128;
-                int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
-                
-                SAFE_KERNEL_LAUNCH(RodStatesKernels::computeBisegmentData,
-                                   nblocks, nthreads, 0, stream,
-                                   view, kappa, tau_l);
-
-
-                nthreads = 128;
-                nblocks = view.nObjects;
-                
-                SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
-                                   nblocks, nthreads, 0, stream,
-                                   view, devParams, kappa, tau_l);
-            }
-
-            const int nthreads = 128;
-            const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
-
-            SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
-                               nblocks, nthreads, 0, stream,
-                               view, devParams, saveEnergies);
-        }
+        computeBoundForces       (rv, stream);
+        computePolymorphicStates (rv, stream);
+        computeElasticForces     (rv, stream);
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {}
     
+protected:
+
+    void computeBoundForces(RodVector *rv, cudaStream_t stream)
+    {
+        RVview view(rv, rv->local());
+
+        const int nthreads = 128;
+        const int nblocks  = getNblocks(view.nObjects * view.nSegments, nthreads);
+        
+        auto devParams = getBoundParams(parameters);
+        
+        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
+                           nblocks, nthreads, 0, stream,
+                           view, devParams);
+    }
+
+    void computePolymorphicStates(RodVector *rv, cudaStream_t stream)
+    {
+        if (Nstates > 1)
+        {
+            RVview view(rv, rv->local());
+            auto devParams = getBiSegmentParams<Nstates>(parameters);
+
+            auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
+            auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+
+            int nthreads = 128;
+            int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
+                
+            SAFE_KERNEL_LAUNCH(RodStatesKernels::computeBisegmentData,
+                               nblocks, nthreads, 0, stream,
+                               view, kappa, tau_l);
+
+
+            nthreads = 128;
+            nblocks = view.nObjects;
+                
+            SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
+                               nblocks, nthreads, 0, stream,
+                               view, devParams, kappa, tau_l);
+        }
+    }
+    
+    void computeElasticForces(RodVector *rv, cudaStream_t stream)
+    {
+        RVview view(rv, rv->local());
+        auto devParams = getBiSegmentParams<Nstates>(parameters);
+        
+        const int nthreads = 128;
+        const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
+
+        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
+                           nblocks, nthreads, 0, stream,
+                           view, devParams, saveEnergies);
+    }
+
 protected:
 
     RodParameters parameters;
