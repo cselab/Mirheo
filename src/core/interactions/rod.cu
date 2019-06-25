@@ -1,17 +1,32 @@
 #include "rod.h"
 #include "rod.impl.h"
 
+template <int Nstates>
+auto instantiateImpl(const YmrState *state, std::string name, RodParameters parameters, VarSpinParams varSpinParams, bool saveEnergies)
+{
+    std::unique_ptr<Interaction> impl;
+
+    mpark::visit([&](auto spinParams)
+    {
+        using SpinParamsType = decltype(spinParams);
+        
+        impl = std::make_unique<InteractionRodImpl<Nstates, SpinParamsType>>
+            (state, name, parameters, spinParams, saveEnergies);
+    }, varSpinParams);
+
+    return impl;
+}
 
 InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters,
-                               bool saveEnergies) :
+                               VarSpinParams varSpinParams, bool saveEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {
     int nstates = parameters.kappaEq.size();
-    
+
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
         if (nstates == Nstates) {                                       \
-            impl = std::make_unique<InteractionRodImpl<Nstates>>        \
-                (state, name, parameters, saveEnergies);                \
+            impl = instantiateImpl<Nstates>                             \
+                (state, name, parameters, varSpinParams, saveEnergies); \
             debug("Create interaction rod with %d states", Nstates);    \
             return;                                                     \
         } } while(0)

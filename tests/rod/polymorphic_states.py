@@ -60,7 +60,7 @@ prms = {
     "E0"        : E0
 }
 
-int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
+int_rod = ymr.Interactions.RodForces("rod_forces", "smoothing", **prms);
 u.registerInteraction(int_rod)
 
 vv = ymr.Integrators.VelocityVerlet('vv')

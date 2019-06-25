@@ -141,7 +141,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
     
     const int nBiSegments = view.nSegments - 1;
 
-    extern __shared__ int *states;
+    extern __shared__ int states[];
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
     {

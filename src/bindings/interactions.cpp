@@ -54,11 +54,11 @@ createInteractionMembrane(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name, bool dumpEnergies, py::kwargs kwargs)
+createInteractionRod(const YmrState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionRod(state, name, dumpEnergies, parameters);
+    return InteractionFactory::createInteractionRod(state, name, stateUpdateDesc, dumpEnergies, parameters);
 }
 
 static std::shared_ptr<BasicInteractionSDPD>
@@ -486,9 +486,10 @@ void exportInteractions(py::module& m)
     )");
 
     pyRodForces.def(py::init(&createInteractionRod),
-                    "state"_a, "name"_a, "save_energies"_a=false, R"( 
+                    "state"_a, "name"_a, "state_update"_a="none", "save_energies"_a=false, R"( 
              Args:
                  name: name of the interaction
+                 state_update: description of the state update method; only makes sense for multiple states. See below for possible choices.
                  save_energies: if `True`, save the energies of each bisegment
 
              kwargs:
@@ -502,6 +503,16 @@ void exportInteractions(py::module& m)
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
                  * **E0** (float):           (optional) energy ground state
+
+             state update parameters, for **state_update** = 'smoothing':
+
+                 (not fully implemented yet; for now just takes minimum state but no smoothing term)
+
+             state update parameters, for **state_update** = 'spin':
+
+                 * **nsteps** number of MC step per iteration
+                 * **kBT** temperature used in the acceptance-rejection algorithm
+                 * **J** neighbouring spin 'dislike' energy
 
              The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.

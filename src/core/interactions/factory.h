@@ -29,7 +29,7 @@ createInteractionMembrane(const YmrState *state, std::string name,
                           bool stressFree, float growUntil);
 
 std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name,
+createInteractionRod(const YmrState *state, std::string name, std::string stateUpdate,
                      bool saveEnergies, const std::map<std::string, VarParam>& parameters);
 
 std::shared_ptr<BasicInteractionDensity>

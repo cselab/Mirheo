@@ -11,7 +11,13 @@
 
 template <int Nstates>
 static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
-                         StatesPenalizationParameters& stateParams, cudaStream_t stream)
+                         StatesParametersNone& stateParams, cudaStream_t stream)
+{}
+
+
+template <int Nstates>
+static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
+                         StatesSmoothingParameters& stateParams, cudaStream_t stream)
 {
     RVview view(rv, rv->local());
 
@@ -50,12 +56,14 @@ static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates
     const int nthreads = 512;
     const int nblocks = view.nObjects;
 
+    size_t shared_size = sizeof(int) * (view.nSegments - 1);
+    
     for (int i = 0; i < stateParams.nsteps; ++i)
     {
         auto devSpinParams = getGPUParams(stateParams);
         
         SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStatesMCStep<Nstates>,
-                           nblocks, nthreads, 0, stream,
+                           nblocks, nthreads, shared_size, stream,
                            view, devParams, devSpinParams, kappa, tau_l);
     }
 }

@@ -40,13 +40,14 @@ static auto getBiSegmentParams(const RodParameters& p)
     return dp;
 }
 
-template <int Nstates>
+template <int Nstates, class StateParameters>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, bool saveEnergies) :
+    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
         parameters(parameters),
+        stateParameters(stateParameters),
         saveEnergies(saveEnergies)
     {}
 
@@ -114,10 +115,7 @@ protected:
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
 
-
-            StatesPenalizationParameters stateParams; // TODO
-
-            updateStates<Nstates>(rv, devParams, stateParams, stream);
+            updateStates<Nstates>(rv, devParams, stateParameters, stream);
         }
     }
     
@@ -137,5 +135,6 @@ protected:
 protected:
 
     RodParameters parameters;
+    StateParameters stateParameters;
     bool saveEnergies;
 };

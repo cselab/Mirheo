@@ -242,14 +242,42 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     return p;
 }
 
+static StatesSmoothingParameters readStatesSmoothingRodParameters(ParametersWrap& desc)
+{
+    return StatesSmoothingParameters{};
+}
+
+static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
+{
+    StatesSpinParameters p;
+
+    p.nsteps = desc.read<float>("nsteps");
+    p.kBT    = desc.read<float>("kBT");
+    p.J      = desc.read<float>("J");
+    return p;
+}
+
+
 std::shared_ptr<InteractionRod>
-InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
+InteractionFactory::createInteractionRod(const YmrState *state, std::string name, std::string stateUpdate,
                                          bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
+
+    VarSpinParams spinParams;
+    
+    if      (stateUpdate == "none")
+        spinParams = StatesParametersNone{};
+    else if (stateUpdate == "smoothing")
+        spinParams = readStatesSmoothingRodParameters(desc);
+    else if (stateUpdate == "spin")
+        spinParams = readStatesSpinRodParameters(desc);
+    else
+        die("unrecognised state update method: '%s'", stateUpdate.c_str());
+    
     desc.checkAllRead();
-    return std::make_shared<InteractionRod>(state, name, params, saveEnergies);
+    return std::make_shared<InteractionRod>(state, name, params, spinParams, saveEnergies);
 }
 
 

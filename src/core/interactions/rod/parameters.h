@@ -18,7 +18,9 @@ struct RodParameters
     float ksFrame;   ///< spring force magnitude for material frame
 };
 
-struct StatesPenalizationParameters
+struct StatesParametersNone {};
+
+struct StatesSmoothingParameters
 {
     // TODO; for now no penalization implemented
 };
