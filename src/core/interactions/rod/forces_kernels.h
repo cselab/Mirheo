@@ -15,6 +15,12 @@ struct GPU_RodBoundsParameters
     float ksCenter, ksFrame;
 };
 
+struct GPU_SpinParameters
+{
+    float J, kBT, beta, seed;
+};
+
+
 namespace RodForcesKernels
 {
 
@@ -166,6 +172,93 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
         }
 
         view.states[i] = state;
+    }
+}
+
+template <int Nstates>
+__device__ inline int randomOtherState(int current, float seed)
+{
+    float u = Saru::mean0var1(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
+    int s = (Nstates - 1) * u;
+    return s >= current ? s + 1 : s;
+}
+
+template <int Nstates>
+__device__ inline int acceptReject(int sprev, int scurrent, int snext,
+                                   const real2& k0, const real2& k1, const real& tau, const real& l,
+                                   const GPU_RodBiSegmentParameters<Nstates>& params,
+                                   const GPU_SpinParameters& spinParams)
+{
+    int sother = randomOtherState<Nstates>(scurrent, spinParams.seed);
+
+    float Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
+        + spinParams.J * (abs(scurrent-sprev) + abs(scurrent-snext));
+
+    float Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
+        + spinParams.J * (abs(sother  -sprev) + abs(sother  -snext));
+
+    float dE = Eother - Ecurrent;
+    
+    float u = Saru::mean0var1(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
+
+    if (spinParams.kBT < 1e-6)
+        return dE > 0 ? scurrent : sother;
+    
+    if (u < exp(-dE * spinParams.beta))
+        return sother;
+
+    return scurrent;
+}
+
+template <int Nstates>
+__global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParameters<Nstates> params,
+                                            GPU_SpinParameters spinParams, const float4 *kappa, const float2 *tau_l)
+{
+    const int tid   = threadIdx.x;
+    const int rodId = blockIdx.x;
+    
+    const int nBiSegments = view.nSegments - 1;
+
+    extern __shared__ int *states;
+
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    {
+        int i = rodId * nBiSegments + biSegmentId;
+        states[biSegmentId] = view.states[i];
+    }
+
+    __syncthreads();
+
+    auto execPhase = [&](int odd)
+    {
+        for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+        {
+            if (biSegmentId % 2 == odd) continue;
+            
+            real2 k0, k1;
+            real tau, l;
+            int i = rodId * nBiSegments + biSegmentId;
+            
+            fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
+
+            int scurrent = states[biSegmentId];
+            int sprev = states[max(biSegmentId - 1, 0          )];
+            int snext = states[min(biSegmentId + 1, nBiSegments)];
+
+            states[biSegmentId] = acceptReject(sprev, scurrent, snext, k0, k1, tau, l, params, spinParams);
+        }
+    };
+
+    execPhase(0);
+    __syncthreads();
+
+    execPhase(1);
+    __syncthreads();
+
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    {
+        int i = rodId * nBiSegments + biSegmentId;
+        view.states[i] = states[biSegmentId];
     }
 }
 

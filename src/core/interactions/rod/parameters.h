@@ -15,3 +15,9 @@ struct RodParameters
     float ksCenter;  ///< spring force magnitude for centerline
     float ksFrame;   ///< spring force magnitude for material frame
 };
+
+struct SpinParameters
+{
+    float kBT;
+    float J;
+};
