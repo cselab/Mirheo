@@ -53,6 +53,16 @@ static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates
 
     rv->local()->dataPerBisegment.getData<int>(ChannelNames::polyStates)->clear(stream);
 
+    // initialize to ground energies without spin interactions
+    {
+        const int nthreads = 128;
+        const int nblocks = view.nObjects;
+        
+        SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
+                           nblocks, nthreads, 0, stream,
+                           view, devParams, kappa, tau_l);
+    }
+    
     const int nthreads = 512;
     const int nblocks = view.nObjects;
 

@@ -23,19 +23,32 @@ InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParam
 {
     int nstates = parameters.kappaEq.size();
 
-#define CHECK_IMPLEMENT(Nstates) do {                                   \
-        if (nstates == Nstates) {                                       \
-            impl = instantiateImpl<Nstates>                             \
-                (state, name, parameters, varSpinParams, saveEnergies); \
-            debug("Create interaction rod with %d states", Nstates);    \
-            return;                                                     \
-        } } while(0)
+    if (mpark::holds_alternative<StatesParametersNone>(varSpinParams))
+    {
+        if (nstates != 1)
+            die("only one state supported for state_update = 'none' (while creating %s)", name.c_str());
 
-    CHECK_IMPLEMENT(1); // normal rod
-    CHECK_IMPLEMENT(2); // 2 polymorphic states
-    CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
-    
-    die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
+        impl = std::make_unique<InteractionRodImpl<1, StatesParametersNone>>
+            (state, name, parameters, mpark::get<StatesParametersNone>(varSpinParams), saveEnergies);
+    }
+    else
+    {
+        if (nstates <= 1)
+            warn("using only one state for state_update != 'none' (while creating %s)", name.c_str());
+        
+#define CHECK_IMPLEMENT(Nstates) do {                                   \
+            if (nstates == Nstates) {                                   \
+                impl = instantiateImpl<Nstates>                         \
+                    (state, name, parameters, varSpinParams, saveEnergies); \
+                debug("Create interaction rod with %d states", Nstates); \
+                return;                                                 \
+            } } while(0)
+        
+        CHECK_IMPLEMENT(2); // 2 polymorphic states
+        CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
+
+        die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
+    }
 }
 
 InteractionRod::~InteractionRod() = default;

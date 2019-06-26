@@ -100,9 +100,10 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 template <int Nstates>
 __device__ inline int randomOtherState(int current, float seed)
 {
-    float u = Saru::mean0var1(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
-    int s = (Nstates - 1) * u;
-    return s >= current ? s + 1 : s;
+    float u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
+    unsigned int r = 4294967295.0f * u;
+    int s = r % (Nstates - 1);
+    return s >= current ? (s + 1) % Nstates : s;
 }
 
 template <int Nstates>
@@ -121,10 +122,10 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
 
     float dE = Eother - Ecurrent;
     
-    float u = Saru::mean0var1(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
+    float u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
 
     if (spinParams.kBT < 1e-6)
-        return dE > 0 ? scurrent : sother;
+        return dE < 0 ? sother : scurrent;
     
     if (u < exp(-dE * spinParams.beta))
         return sother;
@@ -143,7 +144,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     extern __shared__ int states[];
 
-    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
     {
         int i = rodId * nBiSegments + biSegmentId;
         states[biSegmentId] = view.states[i];
@@ -153,7 +154,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     auto execPhase = [&](int odd)
     {
-        for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+        for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
         {
             if (biSegmentId % 2 == odd) continue;
             
@@ -164,8 +165,8 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
             fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
             int scurrent = states[biSegmentId];
-            int sprev = states[max(biSegmentId - 1, 0          )];
-            int snext = states[min(biSegmentId + 1, nBiSegments)];
+            int sprev = states[max(biSegmentId - 1, 0            )];
+            int snext = states[min(biSegmentId + 1, nBiSegments-1)];
 
             states[biSegmentId] = acceptReject(sprev, scurrent, snext, k0, k1, tau, l, params, spinParams);
         }
@@ -177,7 +178,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
     execPhase(1);
     __syncthreads();
 
-    for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
+    for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
     {
         int i = rodId * nBiSegments + biSegmentId;
         view.states[i] = states[biSegmentId];
