@@ -12,8 +12,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
 
+### v1.0.0
+
+* **rename to Mirheo** 
 * add spin based state update for rods with polymorphic states (not validated yet)
 * **fix** was a possible deadlock for many nodes / many objects suspensions; see commit 4b65e00eba8cf163db3e99e1730e6f16c12fcd26
 * add Capsule Rigid Vectors together with bonce back and belonging checkers
