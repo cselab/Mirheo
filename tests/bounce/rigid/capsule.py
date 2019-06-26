@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -17,7 +17,7 @@ length = 5.0
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2] + 1.5],
@@ -29,9 +29,9 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
                        size  = (nparts, 3))
 
 
-pv_sol = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic_sol = ymr.InitialConditions.FromArray(pos.tolist(), vel.tolist())
-vv_sol = ymr.Integrators.VelocityVerlet('vv')
+pv_sol = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic_sol = mir.InitialConditions.FromArray(pos.tolist(), vel.tolist())
+vv_sol = mir.Integrators.VelocityVerlet('vv')
 u.registerParticleVector(pv_sol, ic_sol)
 u.registerIntegrator(vv_sol)
 u.setIntegrator(vv_sol, pv_sol)
@@ -44,30 +44,30 @@ if args.vis:
     import trimesh
     cap_mesh = trimesh.creation.capsule(radius = radius, height = length)
     cap_mesh.vertices = cap_mesh.vertices - [0, 0, length/2]
-    mesh = ymr.ParticleVectors.Mesh(cap_mesh.vertices.tolist(), cap_mesh.faces.tolist())
-    ov_rig = ymr.ParticleVectors.RigidCapsuleVector('capsule', mass=1, object_size=len(coords), radius=radius, length=length, mesh=mesh)
+    mesh = mir.ParticleVectors.Mesh(cap_mesh.vertices.tolist(), cap_mesh.faces.tolist())
+    ov_rig = mir.ParticleVectors.RigidCapsuleVector('capsule', mass=1, object_size=len(coords), radius=radius, length=length, mesh=mesh)
 else:
-    ov_rig = ymr.ParticleVectors.RigidCapsuleVector('capsule', mass=1, object_size=len(coords), radius=radius, length=length)
+    ov_rig = mir.ParticleVectors.RigidCapsuleVector('capsule', mass=1, object_size=len(coords), radius=radius, length=length)
 
-ic_rig = ymr.InitialConditions.Rigid(com_q, coords)
-vv_rig = ymr.Integrators.RigidVelocityVerlet("capvv")
+ic_rig = mir.InitialConditions.Rigid(com_q, coords)
+vv_rig = mir.Integrators.RigidVelocityVerlet("capvv")
 u.registerParticleVector(ov_rig, ic_rig)
 u.registerIntegrator(vv_rig)
 u.setIntegrator(vv_rig, ov_rig)
 
 
-bb = ymr.Bouncers.Capsule("bouncer")
+bb = mir.Bouncers.Capsule("bouncer")
 u.registerBouncer(bb)
 u.setBouncer(bb, ov_rig, pv_sol)
 
 dump_every = 500
 
 if args.vis:
-    u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump', pv_sol, dump_every, [], 'h5/solvent-'))
-    u.registerPlugins(ymr.Plugins.createDumpParticles('pcap_dump', ov_rig, dump_every, [], 'h5/rigid-'))
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", ov_rig, dump_every, path="ply/"))
+    u.registerPlugins(mir.Plugins.createDumpParticles('part_dump', pv_sol, dump_every, [], 'h5/solvent-'))
+    u.registerPlugins(mir.Plugins.createDumpParticles('pcap_dump', ov_rig, dump_every, [], 'h5/rigid-'))
+    u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", ov_rig, dump_every, path="ply/"))
 
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("rigStats", ov_rig, dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov_rig, dump_every, path="stats"))
 
 u.run(5000)
 
@@ -79,5 +79,5 @@ u.run(5000)
 # rho=8.0; R=1.5; L=5.0
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/capsule_coords_${rho}_${R}_${L}.txt $f
-# ymr.run --runargs "-n 2" ./capsule.py --coords $f
+# mir.run --runargs "-n 2" ./capsule.py --coords $f
 # cat stats/capsule.txt | awk '{print $2, $15, $9}' > rigid.out.txt

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = [16, 16, 16]
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 1., 0., 0.,    1.0, 0.0, 0.0, 0.0],
          [ 5., 0., 0.,    1.0, 2.0, 0.0, 0.0],
@@ -32,15 +32,15 @@ def center_line(s):
 def torsion(s):
     return 0.0
 
-rv = ymr.ParticleVectors.RodVector('rod', mass=1, num_segments = 100)
+rv = mir.ParticleVectors.RodVector('rod', mass=1, num_segments = 100)
 if args.initial_frame is None:
-    ic = ymr.InitialConditions.Rod(com_q, center_line, torsion, a)
+    ic = mir.InitialConditions.Rod(com_q, center_line, torsion, a)
 else:
-    ic = ymr.InitialConditions.Rod(com_q, center_line, torsion, a, args.initial_frame)
+    ic = mir.InitialConditions.Rod(com_q, center_line, torsion, a, args.initial_frame)
 u.registerParticleVector(rv, ic)
 
 dump_every = 1
-u.registerPlugins(ymr.Plugins.createDumpParticles('rod_dump', rv, dump_every, [], 'h5/rod_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, [], 'h5/rod_particles-'))
 
 u.run(2)
 
@@ -55,11 +55,11 @@ del u
 # TEST: ic.rod
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./rod.py
+# mir.run --runargs "-n 2" ./rod.py
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
 
 # TEST: ic.rod.initial_frame
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./rod.py --initial_frame 1 0 0
+# mir.run --runargs "-n 2" ./rod.py --initial_frame 1 0 0
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

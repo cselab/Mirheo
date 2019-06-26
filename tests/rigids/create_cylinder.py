@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 def create_cylinder(density, R, L, niter):
-    import ymero as ymr
+    import mirheo as mir
     
     def recenter(coords, com):
         coords = [[r[0]-com[0], r[1]-com[1], r[2]-com[2]] for r in coords]
@@ -13,18 +13,18 @@ def create_cylinder(density, R, L, niter):
     fact = 3
     domain = (fact*R, fact*R, fact*L/2)
     
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
-    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
-    vv = ymr.Integrators.VelocityVerlet('vv')
+    dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+    vv = mir.Integrators.VelocityVerlet('vv')
     
     coords = [[-R, -R, -L/2],
               [ R,  R,  L/2]]
     com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
     
-    fake_oV = ymr.ParticleVectors.RigidCylinderVector('OV', mass=1, object_size=len(coords), radius=R, length=L)
-    fake_ic = ymr.InitialConditions.Rigid(com_q, coords)
-    belonging_checker = ymr.BelongingCheckers.Cylinder("checker")
+    fake_oV = mir.ParticleVectors.RigidCylinderVector('OV', mass=1, object_size=len(coords), radius=R, length=L)
+    fake_ic = mir.InitialConditions.Rigid(com_q, coords)
+    belonging_checker = mir.BelongingCheckers.Cylinder("checker")
     
     pv_cyl = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
     
@@ -62,6 +62,6 @@ if __name__ == '__main__':
 # cd rigids
 # rm -rf pos.txt pos.out.txt
 # pfile=pos.txt
-# ymr.run --runargs "-n 2"  ./create_cylinder.py --R 3.0 --L 5.0 --density 8 --niter 0 --out $pfile
+# mir.run --runargs "-n 2"  ./create_cylinder.py --R 3.0 --L 5.0 --density 8 --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt
 

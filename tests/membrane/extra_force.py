@@ -2,7 +2,7 @@
 
 import sys, trimesh, argparse
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 sys.path.append("..")
 from common.membrane_params import lina_parameters
 
@@ -15,19 +15,19 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 mesh = trimesh.load_mesh(args.mesh)
 
-mesh_rbc = ymr.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
-pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
-ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+mesh_rbc = mir.ParticleVectors.MembraneMesh(mesh.vertices.tolist(), mesh.faces.tolist())
+pv_rbc   = mir.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+ic_rbc   = mir.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 prm_rbc = lina_parameters(1.0)
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc)
+int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc)
 
-vv = ymr.Integrators.VelocityVerlet('vv')
+vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
@@ -40,8 +40,8 @@ force_magn = 500.0
 forces[id_min][0] = - force_magn
 forces[id_max][0] = + force_magn
 
-u.registerPlugins(ymr.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist()))
-u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/"))
+u.registerPlugins(mir.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist()))
+u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/"))
 
 u.run(5000)
 
@@ -53,5 +53,5 @@ if pv_rbc is not None:
 # nTEST: membrane.extra_force
 # cd membrane
 # mesh="../../data/rbc_mesh.off"
-# ymr.run --runargs "-n 2" ./extra_force.py --mesh $mesh
+# mir.run --runargs "-n 2" ./extra_force.py --mesh $mesh
 # mv pos.rbc.txt pos.rbc.out.txt 

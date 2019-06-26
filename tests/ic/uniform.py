@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 
 ranks  = (1, 1, 1)
 domain = [4., 2., 3.]
 density = 8
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = ymr.InitialConditions.Uniform(density)
+pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = mir.InitialConditions.Uniform(density)
 u.registerParticleVector(pv, ic)
 
 u.run(2)
@@ -25,5 +25,5 @@ if pv:
 # TEST: ic.uniform
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./uniform.py
+# mir.run --runargs "-n 2" ./uniform.py
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

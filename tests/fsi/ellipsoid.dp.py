@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import argparse
 
@@ -19,20 +19,20 @@ density = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_sol = ymr.InitialConditions.Uniform(density)
+pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_sol = mir.InitialConditions.Uniform(density)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
-vv = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
+dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
+vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 
 coords = np.loadtxt(args.coords).tolist()
-pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
-ic_ell = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vv_ell = ymr.Integrators.RigidVelocityVerlet("ellvv")
+pv_ell = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+ic_ell = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vv_ell = mir.Integrators.RigidVelocityVerlet("ellvv")
 
 u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 u.registerIntegrator(vv)
@@ -46,17 +46,17 @@ u.registerInteraction(dpd)
 u.setInteraction(dpd, pv_sol, pv_sol)
 u.setInteraction(dpd, pv_sol, pv_ell)
 
-belongingChecker = ymr.BelongingCheckers.Ellipsoid("ellipsoidChecker")
+belongingChecker = mir.BelongingCheckers.Ellipsoid("ellipsoidChecker")
 
 u.registerObjectBelongingChecker(belongingChecker, pv_ell)
 u.applyObjectBelongingChecker(belongingChecker, pv=pv_sol, correct_every=0, inside="none", outside="")
 
 if args.bounce_back:
-    bb = ymr.Bouncers.Ellipsoid("bounce_ell")
+    bb = mir.Bouncers.Ellipsoid("bounce_ell")
     u.registerBouncer(bb)
     u.setBouncer(bb, pv_ell, pv_sol)
 
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
 
 u.run(10000)
 
@@ -68,7 +68,7 @@ u.run(10000)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f
+# mir.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 
 # nTEST: fsi.rigid.ellipsoid.bounce
@@ -78,6 +78,6 @@ u.run(10000)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f --bounce_back
+# mir.run --runargs "-n 2" ./ellipsoid.dp.py --density $rho --axes $ax $ay $az --coords $f --bounce_back
 # cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
 

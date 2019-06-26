@@ -4,7 +4,7 @@ import numpy as np
 
 def create_from_mesh(density, vertices, triangles, inertia, niter):
 
-    import ymero as ymr
+    import mirheo as mir
 
     def recenter(coords, com):
         coords = [[r[0]-com[0], r[1]-com[1], r[2]-com[2]] for r in coords]
@@ -25,19 +25,19 @@ def create_from_mesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
-    dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
-    vv = ymr.Integrators.VelocityVerlet('vv')
+    dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+    vv = mir.Integrators.VelocityVerlet('vv')
     
     coords = [bb_lo, bb_hi]
     com_q  = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 
-    mesh = ymr.ParticleVectors.Mesh(vertices, triangles)
+    mesh = mir.ParticleVectors.Mesh(vertices, triangles)
 
-    fake_ov = ymr.ParticleVectors.RigidObjectVector('OV', mass=1, inertia=inertia, object_size=len(coords), mesh=mesh)
-    fake_ic = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-    belonging_checker = ymr.BelongingCheckers.Mesh("meshChecker")
+    fake_ov = mir.ParticleVectors.RigidObjectVector('OV', mass=1, inertia=inertia, object_size=len(coords), mesh=mesh)
+    fake_ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+    belonging_checker = mir.BelongingCheckers.Mesh("meshChecker")
     
     pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, niter)
 
@@ -84,5 +84,5 @@ if __name__ == '__main__':
 # cd rigids
 # cp ../../data/rbc_mesh.off .
 # pfile="pos.txt"
-# ymr.run --runargs "-n 2" ./create_from_mesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile
+# mir.run --runargs "-n 2" ./create_from_mesh.py --density 8 --fname rbc_mesh.off --niter 0 --out $pfile
 # cat $pfile | LC_ALL=en_US.utf8 sort > pos.out.txt 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -12,7 +12,7 @@ ranks  = (1, 1, 1)
 domain = [4., 4., 4.]
 density = 8
 
-u = ymr.ymero(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 if args.filter == "half":
     def my_filter(r):
@@ -23,8 +23,8 @@ elif args.filter == "quarter":
 else:
     exit(1)
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = ymr.InitialConditions.UniformFiltered(density, my_filter)
+pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = mir.InitialConditions.UniformFiltered(density, my_filter)
 u.registerParticleVector(pv=pv, ic=ic)
 
 u.run(2)
@@ -41,11 +41,11 @@ del(u)
 # TEST: ic.uniform.filtered.half
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./filtered.py --filter half
+# mir.run --runargs "-n 2" ./filtered.py --filter half
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
 
 # TEST: ic.uniform.filtered.quarter
 # cd ic
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./filtered.py --filter quarter
+# mir.run --runargs "-n 2" ./filtered.py --filter quarter
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

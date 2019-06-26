@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 
 dt = 0.001
 
@@ -10,21 +10,21 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = ymr.InitialConditions.Uniform(density=density)
+pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic = mir.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=50.0, kbt=1.0, power=0.5)
+dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=50.0, kbt=1.0, power=0.5)
 u.registerInteraction(dpd)
 
-plate_lo = ymr.Walls.Plane("plate_lo", (0, 0, -1), (0, 0,              1))
-plate_hi = ymr.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
+plate_lo = mir.Walls.Plane("plate_lo", (0, 0, -1), (0, 0,              1))
+plate_hi = mir.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
 u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
-vv = ymr.Integrators.VelocityVerlet("vv")
+vv = mir.Integrators.VelocityVerlet("vv")
 frozen = u.makeFrozenWallParticles(pvName="plates", walls=[plate_lo, plate_hi], interactions=[dpd], integrator=vv, density=density)
 
 u.setWall(plate_lo, pv)
@@ -34,7 +34,7 @@ u.setWall(plate_hi, pv)
 for p in (pv, frozen):
     u.setInteraction(dpd, p, pv)
 
-vv_dp = ymr.Integrators.VelocityVerlet_withConstForce("vv_dp", force)
+vv_dp = mir.Integrators.VelocityVerlet_withConstForce("vv_dp", force)
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv)
 
@@ -43,12 +43,12 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 0.5)
 
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
 
 u.run(7002)
 
 # nTEST: walls.analytic.plates
 # cd walls/analytic
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./plates.py
-# ymr.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt
+# mir.run --runargs "-n 2" ./plates.py
+# mir.avgh5 xy velocity h5/solvent-0000[4-7].h5 | awk '{print $1}' > profile.out.txt

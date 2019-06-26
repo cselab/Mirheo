@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 
 dt = 0.001
 rc = 1.0
@@ -9,31 +9,31 @@ density = 8.0
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 # create the particle vectors
 #############################
 
 # create MembraneVector for membranes
-mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
+mesh_rbc = mir.ParticleVectors.MembraneMesh("rbc_mesh.off")
 
-pv_rbc = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+pv_rbc = mir.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
 pos_qs = [[ 5.0,  5.0, 2.0,     1.0, 0.0, 0.0, 0.0], # we create 4 membranes
           [11.0,  5.0, 6.0,     1.0, 0.0, 0.0, 0.0],
           [5.0,  11.0, 10.0,    1.0, 0.0, 0.0, 0.0],
           [11.0, 11.0, 14.0,    1.0, 0.0, 0.0, 0.0]]
-ic_rbc   = ymr.InitialConditions.Membrane(pos_qs)
+ic_rbc   = mir.InitialConditions.Membrane(pos_qs)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 # create particleVector for outer solvent
-pv_outer = ymr.ParticleVectors.ParticleVector('pv_outer', mass = 1.0)
-ic_outer = ymr.InitialConditions.Uniform(density)
+pv_outer = mir.ParticleVectors.ParticleVector('pv_outer', mass = 1.0)
+ic_outer = mir.InitialConditions.Uniform(density)
 u.registerParticleVector(pv_outer, ic_outer)
 
 # To create the inner solvent, we split the outer solvent (which originally occupies
 # the whole domain) into outer and inner solvent
 # This is done thanks to the belonging checker:
-inner_checker = ymr.BelongingCheckers.Mesh("inner_solvent_checker")
+inner_checker = mir.BelongingCheckers.Mesh("inner_solvent_checker")
 
 # the checker needs to be registered, as any other object; it is associated to a given object vector
 u.registerObjectBelongingChecker(inner_checker, pv_rbc)
@@ -61,8 +61,8 @@ prms_rbc = {
     "theta"  : 6.97
 }
 
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prms_rbc)
-int_dpd = ymr.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prms_rbc)
+int_dpd = mir.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
 
 u.registerInteraction(int_rbc)
 u.registerInteraction(int_dpd)
@@ -89,7 +89,7 @@ if u.isComputeTask():
 # integrators
 #############
 
-vv = ymr.Integrators.VelocityVerlet('vv')
+vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 
 u.setIntegrator(vv, pv_outer)
@@ -101,7 +101,7 @@ u.setIntegrator(vv, pv_rbc)
 
 # The solvent must not go through the membrane
 # we can enforce this by setting a bouncer
-bouncer = ymr.Bouncers.Mesh("membrane_bounce", kbt=0.5)
+bouncer = mir.Bouncers.Mesh("membrane_bounce", kbt=0.5)
 
 # we register the bouncer object as any other object
 u.registerBouncer(bouncer)
@@ -113,11 +113,11 @@ u.setBouncer(bouncer, pv_rbc, pv_inner)
 # plugins
 #########
 
-u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
+u.registerPlugins(mir.Plugins.createStats('stats', every=500))
 
 dump_every = 500
-u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump_inner', pv_inner, dump_every, [], 'h5/inner-'))
-u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump_outer', pv_outer, dump_every, [], 'h5/outer-'))
-u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/"))
+u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_inner', pv_inner, dump_every, [], 'h5/inner-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_outer', pv_outer, dump_every, [], 'h5/outer-'))
+u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/"))
 
 u.run(5002)

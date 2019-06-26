@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import sys, argparse
 
 sys.path.append("..")
@@ -22,31 +22,31 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv_sol = ymr.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_sol = ymr.InitialConditions.Uniform(density=8)
+pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
+ic_sol = mir.InitialConditions.Uniform(density=8)
 u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 
 
-mesh_rbc = ymr.ParticleVectors.MembraneMesh("rbc_mesh.off")
-pv_rbc   = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
-ic_rbc   = ymr.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+mesh_rbc = mir.ParticleVectors.MembraneMesh("rbc_mesh.off")
+pv_rbc   = mir.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
+ic_rbc   = mir.InitialConditions.Membrane([[8.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
+dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.25)
 
 prm_rbc = lina_parameters(1.0)
-int_rbc = ymr.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
+int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
 
 u.registerInteraction(dpd)
 
 if args.substep:
-    integrator = ymr.Integrators.SubStep('substep_membrane', substeps, int_rbc)
+    integrator = mir.Integrators.SubStep('substep_membrane', substeps, int_rbc)
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
-    vv = ymr.Integrators.VelocityVerlet('vv')
+    vv = mir.Integrators.VelocityVerlet('vv')
     u.registerInteraction(int_rbc)
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
     u.registerIntegrator(vv)
@@ -55,7 +55,7 @@ else:
 u.setInteraction(dpd, pv_sol, pv_sol)
 u.setInteraction(dpd, pv_sol, pv_rbc)
 
-vv_dp = ymr.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
+vv_dp = mir.Integrators.VelocityVerlet_withPeriodicForce('vv_dp', force=a, direction='x')
 u.registerIntegrator(vv_dp)
 u.setIntegrator(vv_dp, pv_sol)
 
@@ -71,12 +71,12 @@ if pv_rbc is not None:
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./membrane.dp.py 
+# mir.run --runargs "-n 2" ./membrane.dp.py 
 # mv pos.rbc.txt pos.rbc.out.txt 
 
 # nTEST: fsi.membrane.dp.substep
 # cd fsi
 # rm -rf pos.rbc.out.txt pos.rbc.txt
 # cp ../../data/rbc_mesh.off .
-# ymr.run --runargs "-n 2" ./membrane.dp.py --substep
+# mir.run --runargs "-n 2" ./membrane.dp.py --substep
 # mv pos.rbc.txt pos.rbc.out.txt 
