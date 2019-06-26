@@ -6,7 +6,7 @@
 Testing
 #######
 
-YMeRo can be tested with a set of regression tests (located in ``tests``) and unit tests (located in ``units``).
+Mirheo can be tested with a set of regression tests (located in ``tests``) and unit tests (located in ``units``).
 
 Regression tests
 ****************
@@ -53,8 +53,8 @@ The library must be built in the ``build`` folder (see :ref:`user-install`).
   .. code-block:: console
 
      $ cd units
-     $ ymr.make
-     $ ymr.make test
+     $ mir.make
+     $ mir.make test
 
   .. note::
 

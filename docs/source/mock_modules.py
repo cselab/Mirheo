@@ -5,17 +5,17 @@ import pathlib
 import inspect
 import re
 
-import ymero
+import mirheo
 
-mock_name = '_ymero'
+mock_name = '_mirheo'
 
 def simplify_docstring(docstr):
     if docstr is None:
         return None
     
-    strip_self = re.sub('self:\s+libymero[^\s\)]+\s+', '', docstr)
-    strip_libymr = re.sub('libymero\.', '', strip_self)
-    return strip_libymr
+    strip_self = re.sub('self:\s+libmirheo[^\s\)]+\s+', '', docstr)
+    strip_libmir = re.sub('libmirheo\.', '', strip_self)
+    return strip_libmir
 
 def class_members(cls):
     return inspect.getmembers(cls, lambda x : inspect.isfunction(x) or
@@ -75,15 +75,15 @@ def genmodule(name, fname, needfuncs):
     fout.close()
 
 pathlib.Path(mock_name).mkdir(parents=True, exist_ok=True)
-genmodule('ymero', mock_name + '/__init__.py', False)
+genmodule('mirheo', mock_name + '/__init__.py', False)
 
 
-submodules = inspect.getmembers(sys.modules['ymero'],
+submodules = inspect.getmembers(sys.modules['mirheo'],
                                 lambda member: inspect.ismodule(member)
-                                and 'ymero' in member.__name__ )
+                                and 'mirheo' in member.__name__ )
 
 for mname, m in submodules:
     subpath = mock_name + '/' + mname
     pathlib.Path(subpath).mkdir(parents=True, exist_ok=True)
-    genmodule('libymero.' + mname, subpath + '/__init__.py', True)
+    genmodule('libmirheo.' + mname, subpath + '/__init__.py', True)
 

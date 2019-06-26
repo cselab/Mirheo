@@ -13,21 +13,21 @@ These non-moving particles reside inside the walls and interact with the regular
 If the density and distribution of the frozen particles is the same as of the corresponding liquid particles,
 the density oscillations in the liquid in proximity of the wall is minimal.
 The frozen particles have to be created based on the wall in the beginning of the simulation,
-see :any:`ymero.makeFrozenWallParticles`.
+see :any:`mirheo.makeFrozenWallParticles`.
 
 In the beginning of the simulation all the particles defined in the simulation
-(even not attached to the wall by :any:`ymero`) will be checked against all of the walls.
+(even not attached to the wall by :any:`mirheo`) will be checked against all of the walls.
 Those inside the wall as well as objects partly inside the wall will be deleted.
-The only exception are the frozen PVs, created by the :any:`ymero.makeFrozenWallParticles` or
+The only exception are the frozen PVs, created by the :any:`mirheo.makeFrozenWallParticles` or
 the PVs manually set to be treated as frozen by :any:`Wall.attachFrozenParticles`
 
 Summary
 ========
-.. automodsumm:: _ymero.Walls
+.. automodsumm:: _mirheo.Walls
 
 Details
 ========
-.. automodule:: _ymero.Walls
+.. automodule:: _mirheo.Walls
    :members:
    :show-inheritance:
    :undoc-members:

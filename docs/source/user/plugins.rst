@@ -16,17 +16,17 @@ Summary
 
 Classes
 -------
-.. automodsumm:: _ymero.Plugins
+.. automodsumm:: _mirheo.Plugins
    :classes-only:
 
 Creation functions
 ------------------
-.. automodsumm:: _ymero.Plugins
+.. automodsumm:: _mirheo.Plugins
    :functions-only:
 
 Details
 ========
-.. automodule:: _ymero.Plugins
+.. automodule:: _mirheo.Plugins
    :members:
    :show-inheritance:
    :undoc-members:

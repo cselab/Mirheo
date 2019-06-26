@@ -13,15 +13,15 @@ Object belonging checkers serve two purpooses:
        reference :any:`ObjectVector` will be moved to the outer PV (and viceversa).
        If one of the PVs was specified as "none", the erroneous particles will be deleted from the simulation.
 
-See also :any:`ymero.registerObjectBelongingChecker` and :any:`ymero.applyObjectBelongingChecker`.
+See also :any:`mirheo.registerObjectBelongingChecker` and :any:`mirheo.applyObjectBelongingChecker`.
        
 Summary
 ========
-.. automodsumm:: _ymero.BelongingCheckers
+.. automodsumm:: _mirheo.BelongingCheckers
 
 Details
 ========
-.. automodule:: _ymero.BelongingCheckers
+.. automodule:: _mirheo.BelongingCheckers
    :members:
    :show-inheritance:
    :undoc-members:

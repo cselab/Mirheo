@@ -9,11 +9,11 @@ from the previous state
 
 Summary
 ========
-.. automodsumm:: _ymero.InitialConditions
+.. automodsumm:: _mirheo.InitialConditions
 
 Details
 ========
-.. automodule:: _ymero.InitialConditions
+.. automodule:: _mirheo.InitialConditions
    :members:
    :show-inheritance:
    :undoc-members:

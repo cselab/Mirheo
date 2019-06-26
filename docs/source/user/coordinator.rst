@@ -1,6 +1,6 @@
-.. _user-ymero:
+.. _user-mirheo:
 
-YMeRo coordinator
+Mirheo coordinator
 ######################
 
 The coordinator class stitches together data containers, :ref:`user-pv`, and all the handlers,
@@ -20,14 +20,14 @@ One and only one instance of this class should be created in the beginning of an
         from mpi4py import MPI
 
         
-.. autoclass:: _ymero.ymero
+.. autoclass:: _mirheo.mirheo
    :members:
    :undoc-members:
    :special-members: __init__
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _ymero.ymero
+    .. autoautosummary:: _mirheo.mirheo
         :methods:
 
  
