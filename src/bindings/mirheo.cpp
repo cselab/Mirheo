@@ -2,7 +2,7 @@
 
 #include <pybind11/stl.h>
 
-#include <core/ymero.h>
+#include <core/mirheo.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
 #include <core/walls/interface.h>
@@ -29,13 +29,13 @@ CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
     return CheckpointIdAdvanceMode::PingPong;
 }
 
-void exportYmero(py::module& m)
+void exportMirheo(py::module& m)
 {
-    py::handlers_class<YmrState>(m, "YmrState", R"(
+    py::handlers_class<MirState>(m, "MirState", R"(
         state of the simulation shared by all simulation objects.
     )");
     
-    py::class_<YMeRo>(m, "ymero", R"(
+    py::class_<Mirheo>(m, "mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (PyTypes::int3 nranks, PyTypes::float3 domain, float dt,
@@ -44,10 +44,10 @@ void exportYmero(py::module& m)
                            bool cudaMPI, bool noSplash, long comm) {
 
                 auto checkpointMode = getCheckpointMode(checkpointModeStr);
-                if (comm == 0) return std::make_unique<YMeRo> (      nranks, domain, dt, log, debuglvl,
+                if (comm == 0) return std::make_unique<Mirheo> (      nranks, domain, dt, log, debuglvl,
                                                                      checkpointEvery, checkpointFolder, checkpointMode,
                                                                      cudaMPI, noSplash);
-                else           return std::make_unique<YMeRo> (comm, nranks, domain, dt, log, debuglvl,
+                else           return std::make_unique<Mirheo> (comm, nranks, domain, dt, log, debuglvl,
                                                                      checkpointEvery, checkpointFolder, checkpointMode,
                                                                      cudaMPI, noSplash);
             } ),
@@ -55,7 +55,7 @@ void exportYmero(py::module& m)
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
              "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
              "no_splash"_a=false, "comm_ptr"_a=0, R"(
-                Create the YMeRo coordinator.
+                Create the Mirheo coordinator.
                 
                 .. warning::
                     Debug level determines the amount of output produced by each of the simulation processes:
@@ -94,34 +94,34 @@ void exportYmero(py::module& m)
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         )")
         
-        .def("registerParticleVector", &YMeRo::registerParticleVector,
+        .def("registerParticleVector", &Mirheo::registerParticleVector,
             "pv"_a, "ic"_a=nullptr, "checkpoint_every"_a=0, R"(
             Register particle vector
             
             Args:
                 pv: :any:`ParticleVector`
-                ic: :class:`~libymero.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
+                ic: :class:`~libmirheo.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
                     every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
-                    (see :py:meth:`_ymero.ymero.__init__`). 
+                    (see :py:meth:`_mirheo.mirheo.__init__`). 
                     The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
                     Default value of 0 means no checkpoint.
         )")
-        .def("registerIntegrator", &YMeRo::registerIntegrator,
+        .def("registerIntegrator", &Mirheo::registerIntegrator,
              "integrator"_a, R"(
                 Register an :any:`Integrator` to the coordinator
 
                 Args:
                     integrator: the :any:`Integrator` to register
          )")
-        .def("registerInteraction", &YMeRo::registerInteraction,
+        .def("registerInteraction", &Mirheo::registerInteraction,
              "interaction"_a, R"(
                 Register an :any:`Interaction` to the coordinator
 
                 Args:
                     interaction: the :any:`Interaction` to register
         )")
-        .def("registerObjectBelongingChecker", &YMeRo::registerObjectBelongingChecker,
+        .def("registerObjectBelongingChecker", &Mirheo::registerObjectBelongingChecker,
              "checker"_a, "ov"_a, R"(
                 Register Object Belonging Checker
                 
@@ -130,14 +130,14 @@ void exportYmero(py::module& m)
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
         
-        .def("registerBouncer",  &YMeRo::registerBouncer,
+        .def("registerBouncer",  &Mirheo::registerBouncer,
              "bouncer"_a, R"(
                Register Object Bouncer
 
                Args:
                    bouncer: the :any:`Bouncer` to register
         )")
-        .def("registerWall",     &YMeRo::registerWall,
+        .def("registerWall",     &Mirheo::registerWall,
              "wall"_a, "check_every"_a=0, R"(
                Register a :any:`Wall`.
 
@@ -145,9 +145,9 @@ void exportYmero(py::module& m)
                    wall: the :any:`Wall` to register
                    check_every: if positive, check every this many time steps if particles penetrate the walls 
         )")
-        .def("registerPlugins",  &YMeRo::registerPlugins, "Register Plugins")
+        .def("registerPlugins",  &Mirheo::registerPlugins, "Register Plugins")
 
-        .def("setIntegrator",  &YMeRo::setIntegrator,
+        .def("setIntegrator",  &Mirheo::setIntegrator,
              "integrator"_a, "pv"_a, R"(
                Set a specific :any:`Integrator` to a given :any:`ParticleVector`
 
@@ -155,7 +155,7 @@ void exportYmero(py::module& m)
                    integrator: the :any:`Integrator` to assign
                    pv: the concerned :any:`ParticleVector`
         )")
-        .def("setInteraction", &YMeRo::setInteraction,
+        .def("setInteraction", &Mirheo::setInteraction,
              "interaction"_a, "pv1"_a, "pv2"_a, R"(
                 Forces between two instances of :any:`ParticleVector` (they can be the same) will be computed according to the defined interaction.
 
@@ -165,7 +165,7 @@ void exportYmero(py::module& m)
                     pv2: second :any:`ParticleVector`
 
         )")
-        .def("setBouncer", &YMeRo::setBouncer,
+        .def("setBouncer", &Mirheo::setBouncer,
              "bouncer"_a, "ov"_a, "pv"_a, R"(
                 Assign a :any:`Bouncer` between an :any:`ObjectVector` and a :any:`ParticleVector`.
 
@@ -174,7 +174,7 @@ void exportYmero(py::module& m)
                     ov: the :any:`ObjectVector` to be bounced on
                     pv: the :any:`ParticleVector` to be bounced
         )")
-        .def("setWall",        &YMeRo::setWallBounce,
+        .def("setWall",        &Mirheo::setWallBounce,
              "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25f, R"(
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
 
@@ -184,9 +184,9 @@ void exportYmero(py::module& m)
                     maximum_part_travel: maximum distance that one particle travels in one time step.
                         this should be as small as possible for performance reasons but large enough for correctness
          )")
-        .def("getState",       &YMeRo::getYmrState,    "Return ymero state")
+        .def("getState",       &Mirheo::getMirState,    "Return mirheo state")
         
-        .def("dumpWalls2XDMF",    &YMeRo::dumpWalls2XDMF,
+        .def("dumpWalls2XDMF",    &Mirheo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
                 
@@ -196,7 +196,7 @@ void exportYmero(py::module& m)
                     filename: base filename output, will create to files filename.xmf and filename.h5 
         )")        
 
-        .def("computeVolumeInsideWalls", &YMeRo::computeVolumeInsideWalls,
+        .def("computeVolumeInsideWalls", &Mirheo::computeVolumeInsideWalls,
             "walls"_a, "nSamplesPerRank"_a=100000, R"(
                 Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
                 The computation is made via simple Monte-Carlo.
@@ -206,7 +206,7 @@ void exportYmero(py::module& m)
                     nSamplesPerRank: number of Monte-Carlo samples used per rank
         )")        
         
-        .def("applyObjectBelongingChecker",    &YMeRo::applyObjectBelongingChecker,
+        .def("applyObjectBelongingChecker",    &Mirheo::applyObjectBelongingChecker,
             "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", "checkpoint_every"_a=0, R"(
                 Apply the **checker** to the given particle vector.
                 One and only one of the options **inside** or **outside** has to be specified.
@@ -226,7 +226,7 @@ void exportYmero(py::module& m)
                     
         )")
         
-        .def("makeFrozenWallParticles", &YMeRo::makeFrozenWallParticles,
+        .def("makeFrozenWallParticles", &Mirheo::makeFrozenWallParticles,
              "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
                 
@@ -247,7 +247,7 @@ void exportYmero(py::module& m)
                     
         )")
 
-        .def("makeFrozenRigidParticles", &YMeRo::makeFrozenRigidParticles,
+        .def("makeFrozenRigidParticles", &Mirheo::makeFrozenRigidParticles,
              "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
                 
@@ -269,7 +269,7 @@ void exportYmero(py::module& m)
                     
         )")
         
-        .def("restart", &YMeRo::restart,
+        .def("restart", &Mirheo::restart,
              "folder"_a="restart/", R"(
                Restart the simulation. This function should typically be called just before running the simulation.
                It will read the state of all previously registered instances of :any:`ParticleVector`, :any:`Interaction`, etc.
@@ -283,11 +283,11 @@ void exportYmero(py::module& m)
                    folder: folder with the checkpoint files
         )")
 
-        .def("isComputeTask", &YMeRo::isComputeTask, "Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task")
-        .def("isMasterTask",  &YMeRo::isMasterTask,  "Returns ``True`` if the current rank is the root")
-        .def("start_profiler", &YMeRo::startProfiler, "Tells nvprof to start recording timeline")
-        .def("stop_profiler",  &YMeRo::stopProfiler,  "Tells nvprof to stop recording timeline")
-        .def("save_dependency_graph_graphml",  &YMeRo::saveDependencyGraph_GraphML,
+        .def("isComputeTask", &Mirheo::isComputeTask, "Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task")
+        .def("isMasterTask",  &Mirheo::isMasterTask,  "Returns ``True`` if the current rank is the root")
+        .def("start_profiler", &Mirheo::startProfiler, "Tells nvprof to start recording timeline")
+        .def("stop_profiler",  &Mirheo::stopProfiler,  "Tells nvprof to stop recording timeline")
+        .def("save_dependency_graph_graphml",  &Mirheo::saveDependencyGraph_GraphML,
              "fname"_a, "current"_a = true, R"(
              Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
              
@@ -296,9 +296,9 @@ void exportYmero(py::module& m)
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
              
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_ymero.ymero.run`.
+                 if current is set to True, this must be called **after** :py:meth:`_mirheo.mirheo.run`.
          )")
-        .def("run", &YMeRo::run,
+        .def("run", &Mirheo::run,
              "niters"_a, R"(
              Advance the system for a given amount of time steps.
 

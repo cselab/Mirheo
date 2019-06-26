@@ -43,7 +43,7 @@ castToMap(const py::kwargs& kwargs, const std::string intName)
 }
 
 static std::shared_ptr<InteractionMembrane>
-createInteractionMembrane(const YmrState *state, std::string name,
+createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           bool stressFree, float growUntil, py::kwargs kwargs)
 {
@@ -54,7 +54,7 @@ createInteractionMembrane(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
+createInteractionRod(const MirState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
@@ -62,7 +62,7 @@ createInteractionRod(const YmrState *state, std::string name, std::string stateU
 }
 
 static std::shared_ptr<BasicInteractionSDPD>
-createInteractionPairwiseSDPD(const YmrState *state, std::string name,
+createInteractionPairwiseSDPD(const MirState *state, std::string name,
                               float rc, float viscosity, float kBT,
                               std::string EOS, std::string density,
                               bool stress, py::kwargs kwargs)
@@ -74,7 +74,7 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionLJ>
-createInteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+createInteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                     std::string awareMode, bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -84,7 +84,7 @@ createInteractionLJ(const YmrState *state, std::string name, float rc, float eps
 }
 
 static std::shared_ptr<InteractionDPD>
-createInteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+createInteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
                      bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -94,7 +94,7 @@ createInteractionDPD(const YmrState *state, std::string name, float rc, float a,
 }
 
 static std::shared_ptr<InteractionMDPD>
-createInteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kBT, float power,
+createInteractionMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kBT, float power,
                       bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);

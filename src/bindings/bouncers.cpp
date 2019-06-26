@@ -27,7 +27,7 @@ void exportBouncers(py::module& m)
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
             and added to the velocity of the mesh triangle at the collision point.
     )")
-        .def(py::init<const YmrState*, std::string, float>(), "state"_a, "name"_a, "kbt"_a=0.5, R"(
+        .def(py::init<const MirState*, std::string, float>(), "state"_a, "name"_a, "kbt"_a=0.5, R"(
             Args:
                 name: name of the bouncer
                 kbt:  Maxwell distribution temperature defining post-collision velocity
@@ -38,7 +38,7 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init<const YmrState*, std::string>(),
+        .def(py::init<const MirState*, std::string>(),
              "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
@@ -50,7 +50,7 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init<const YmrState*, std::string>(),
+        .def(py::init<const MirState*, std::string>(),
              "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
@@ -62,7 +62,7 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init<const YmrState*, std::string>(),
+        .def(py::init<const MirState*, std::string>(),
              "state"_a, "name"_a, R"(
             Args:
                 name: name of the checker
@@ -73,7 +73,7 @@ void exportBouncers(py::module& m)
         This bouncer will use the analytical representation of enlarged segments by a given radius.
         The velocity of the particles bounced from the segments is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init<const YmrState*, std::string, float>(),
+        .def(py::init<const MirState*, std::string, float>(),
              "state"_a, "name"_a, "radius"_a, R"(
             Args:
                 name: name of the checker

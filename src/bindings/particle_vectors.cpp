@@ -22,7 +22,7 @@ void exportParticleVectors(py::module& m)
         Basic particle vector, consists of identical disconnected particles.
     )");
     
-    pypv.def(py::init<const YmrState*, std::string, float>(), py::return_value_policy::move,
+    pypv.def(py::init<const MirState*, std::string, float>(), py::return_value_policy::move,
              "state"_a, "name"_a, "mass"_a, R"(
             Args:
                 name: name of the created PV 
@@ -130,7 +130,7 @@ void exportParticleVectors(py::module& m)
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
     )")
-        .def(py::init<const YmrState*, std::string, float, std::shared_ptr<MembraneMesh>>(),
+        .def(py::init<const MirState*, std::string, float, std::shared_ptr<MembraneMesh>>(),
              "state"_a, "name"_a, "mass"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV 
@@ -143,7 +143,7 @@ void exportParticleVectors(py::module& m)
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
-    pyrov.def(py::init<const YmrState*, std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
+    pyrov.def(py::init<const MirState*, std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
               "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
                 Args:
                     name: name of the created PV 
@@ -226,7 +226,7 @@ void exportParticleVectors(py::module& m)
     py::handlers_class<RodVector> (m, "RodVector", pyov, R"(
         Rod Vector is an :any:`ObjectVector` which reprents rod geometries.
     )")
-        .def(py::init<const YmrState*, std::string, float, int>(),
+        .def(py::init<const MirState*, std::string, float, int>(),
              "state"_a, "name"_a, "mass"_a, "num_segments"_a, R"(
                 Args:
                     name: name of the created Rod Vector
