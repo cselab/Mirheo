@@ -12,12 +12,12 @@ import weakref
 import re
 
 
-from libymero import *
+from libmirheo import *
 
 __all__ = ["version", "tools"]
 
 
-# Global variable for the ymero coordination class
+# Global variable for the mirheo coordination class
 # Used in decorators to access compute task status
 # This variable made a weak reference to not prevent
 # cleanup of the simulation
@@ -113,11 +113,11 @@ def __init__():
     classes = {}
     submodules = inspect.getmembers(sys.modules[__name__],
                                     lambda member: inspect.ismodule(member)
-                                    and 'ymero' in member.__name__ )
+                                    and 'mirheo' in member.__name__ )
     for m in submodules:
         classes[m[0]] = inspect.getmembers(sys.modules[m[1].__name__],
                                         lambda member: inspect.isclass(member)
-                                        and 'ymero' in member.__module__ )
+                                        and 'mirheo' in member.__module__ )
 
     for module in classes.keys():
         if module != 'Plugins':            
@@ -128,7 +128,7 @@ def __init__():
                         need_state = False
                     setattr(cls[1], '__init__', decorate_with_state(cls[1].__init__, need_state))
                     setattr(cls[1], '__new__', decorate_with_state(cls[1].__new__, need_state))
-                    getattr(cls[1], '__init__').__doc__ = re.sub('state: libymero.YmrState, ', '', getattr(cls[1], '__init__').__doc__)
+                    getattr(cls[1], '__init__').__doc__ = re.sub('state: libmirheo.MirState, ', '', getattr(cls[1], '__init__').__doc__)
 
     # Now wrap plugins creation
     # Also change the names of the function
@@ -137,7 +137,7 @@ def __init__():
         if m[0] == 'Plugins':
             funcs = inspect.getmembers(sys.modules[m[1].__name__],
                                         lambda member: inspect.isbuiltin(member)
-                                        and 'ymero' in member.__module__)
+                                        and 'mirheo' in member.__module__)
             
             
             for f in funcs:
@@ -148,11 +148,11 @@ def __init__():
                     getattr(m[1], newname).__doc__ = re.sub('compute_task: bool, ', '', getattr(m[1], newname).__doc__)
                     
 
-    # Wrap initialization of the ymero coordinator
-    ymero.__init__ = decorate_coordinator(ymero.__init__)
+    # Wrap initialization of the mirheo coordinator
+    mirheo.__init__ = decorate_coordinator(mirheo.__init__)
     
     # Wrap registration of the plugins
-    ymero.registerPlugins = decorate_register_plugins(ymero.registerPlugins)
+    mirheo.registerPlugins = decorate_register_plugins(mirheo.registerPlugins)
 
 
 __init__()
