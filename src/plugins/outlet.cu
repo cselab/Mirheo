@@ -66,7 +66,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
 } // namespace RegionOutletPluginKernels
 
 
-RegionOutletPlugin::RegionOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                        RegionFunc region, float3 resolution) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
@@ -157,7 +157,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
 
 } // namespace DensityOutletPluginKernels
 
-DensityOutletPlugin::DensityOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+DensityOutletPlugin::DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                          float rate, RegionFunc region, float3 resolution) :
     RegionOutletPlugin(state, name, pvNames, region, resolution),
     numberDensity(numberDensity)
@@ -215,7 +215,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
 
 } // namespace RateOutletPluginKernels
 
-RateOutletPlugin::RateOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+RateOutletPlugin::RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                    float rate, RegionFunc region, float3 resolution) :
     RegionOutletPlugin(state, name, pvNames, region, resolution),
     rate(rate)

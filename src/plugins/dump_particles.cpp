@@ -6,7 +6,7 @@
 #include <core/simulation.h>
 #include <core/utils/folders.h>
 
-ParticleSenderPlugin::ParticleSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
                                            std::vector<ChannelType> channelTypes) :
     SimulationPlugin(state, name),
@@ -75,7 +75,7 @@ void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
         p.x = r.x; p.y = r.y; p.z = r.z;
     }
 
-    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), positions.size());
     waitPrevSend();
@@ -149,7 +149,7 @@ static void unpackParticles(const std::vector<float4> &pos4, const std::vector<f
     }
 }
 
-void ParticleDumperPlugin::_recvAndUnpack(YmrState::TimeType &time, YmrState::StepType& timeStamp)
+void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp)
 {
     int c = 0;
     SimpleSerializer::deserialize(data, timeStamp, time, pos4, vel4, channelData);
@@ -167,8 +167,8 @@ void ParticleDumperPlugin::deserialize(MPI_Status& stat)
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 
-    YmrState::TimeType time;
-    YmrState::StepType timeStamp;
+    MirState::TimeType time;
+    MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
     std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);

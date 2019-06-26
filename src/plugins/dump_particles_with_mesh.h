@@ -6,7 +6,7 @@ class ParticleWithMeshSenderPlugin : public ParticleSenderPlugin
 {
 public:
 
-    ParticleWithMeshSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+    ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                  std::vector<std::string> channelNames,
                                  std::vector<ChannelType> channelTypes);
 

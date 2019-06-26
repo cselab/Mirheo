@@ -19,7 +19,7 @@ __global__ void addTorque(ROVview view, float3 torque)
 
 } // namespace AddTorqueKernels
 
-AddTorquePlugin::AddTorquePlugin(const YmrState *state, std::string name, std::string rovName, float3 torque) :
+AddTorquePlugin::AddTorquePlugin(const MirState *state, std::string name, std::string rovName, float3 torque) :
     SimulationPlugin(state, name),
     rovName(rovName),
     torque(torque)

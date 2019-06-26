@@ -7,7 +7,7 @@ class ParticleVector;
 class ParticleDragPlugin : public SimulationPlugin
 {
 public:
-    ParticleDragPlugin(const YmrState *state, std::string name, std::string pvName, float drag);
+    ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, float drag);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;

@@ -61,7 +61,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
 }
 } // namespace ImposeVelocityKernels
 
-ImposeVelocityPlugin::ImposeVelocityPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+ImposeVelocityPlugin::ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                            float3 low, float3 high, float3 targetVel, int every) :
     SimulationPlugin(state, name),
     pvNames(pvNames),

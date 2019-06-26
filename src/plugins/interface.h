@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/logger.h>
-#include <core/ymero_object.h>
+#include <core/mirheo_object.h>
 
 #include <mpi.h>
 #include <vector>
@@ -33,10 +33,10 @@ private:
     int tag {UNINITIALIZED_TAG};
 };
 
-class SimulationPlugin : public Plugin, public YmrSimulationObject
+class SimulationPlugin : public Plugin, public MirSimulationObject
 {
 public:
-    SimulationPlugin(const YmrState *state, std::string name);
+    SimulationPlugin(const MirState *state, std::string name);
     virtual ~SimulationPlugin();
 
     virtual void beforeCellLists            (cudaStream_t stream);
@@ -64,7 +64,7 @@ protected:
 
 
 
-class PostprocessPlugin : public Plugin, public YmrObject
+class PostprocessPlugin : public Plugin, public MirObject
 {
 public:
     PostprocessPlugin(std::string name);

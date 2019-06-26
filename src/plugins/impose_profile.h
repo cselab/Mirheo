@@ -13,7 +13,7 @@ class CellList;
 class ImposeProfilePlugin : public SimulationPlugin
 {
 public:
-    ImposeProfilePlugin(const YmrState *state, std::string name, std::string pvName,
+    ImposeProfilePlugin(const MirState *state, std::string name, std::string pvName,
                         float3 low, float3 high, float3 targetVel, float kbT);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

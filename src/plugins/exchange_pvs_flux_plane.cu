@@ -68,7 +68,7 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
 } // namespace ExchangePvsFluxPlaneKernels
 
 
-ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const YmrState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
+ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
     SimulationPlugin(state, name),
     pv1Name(pv1Name),
     pv2Name(pv2Name),

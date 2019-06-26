@@ -21,7 +21,7 @@ __global__ void copyForces(PVview view, float3 *savedForces)
 
 } // namespace ForceSaverKernels
 
-ForceSaverPlugin::ForceSaverPlugin(const YmrState *state, std::string name, std::string pvName) :
+ForceSaverPlugin::ForceSaverPlugin(const MirState *state, std::string name, std::string pvName) :
     SimulationPlugin(state, name), pvName(pvName), pv(nullptr)
 {}
 

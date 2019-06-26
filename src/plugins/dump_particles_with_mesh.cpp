@@ -4,7 +4,7 @@
 #include <core/simulation.h>
 #include <core/utils/folders.h>
 
-ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                                            std::vector<std::string> channelNames,
                                                            std::vector<ChannelType> channelTypes) :
     ParticleSenderPlugin(state, name, pvName, dumpEvery, channelNames, channelTypes)
@@ -82,8 +82,8 @@ void ParticleWithMeshDumperPlugin::deserialize(MPI_Status& stat)
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 
-    YmrState::TimeType time;
-    YmrState::StepType timeStamp;
+    MirState::TimeType time;
+    MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
     int totNVertices = positions->size();    

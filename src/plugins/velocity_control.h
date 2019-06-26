@@ -13,7 +13,7 @@ class ParticleVector;
 class SimulationVelocityControl : public SimulationPlugin
 {
 public:
-    SimulationVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                               float3 low, float3 high,
                               int sampleEvery, int tuneEvery, int dumpEvery,
                               float3 targetVel, float Kp, float Ki, float Kd);

@@ -6,7 +6,7 @@
 #include <core/utils/kernel_launch.h>
 #include <core/utils/type_map.h>
 
-ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const YmrState *state, std::string name, std::string pvName,
+ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const MirState *state, std::string name, std::string pvName,
                                                        std::string channelName, std::string savedName) :
     SimulationPlugin(state, name),
     pvName(pvName),

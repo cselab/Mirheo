@@ -11,7 +11,7 @@ class ParticleVector;
 class ParticleCheckerPlugin : public SimulationPlugin
 {
 public:
-    ParticleCheckerPlugin(const YmrState *state, std::string name, int checkEvery);
+    ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery);
     ~ParticleCheckerPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

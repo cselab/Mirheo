@@ -7,7 +7,7 @@
 #include <core/simulation.h>
 #include <core/utils/folders.h>
 
-XYZPlugin::XYZPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery) :
+XYZPlugin::XYZPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery) :
     SimulationPlugin(state, name), pvName(pvName),
     dumpEvery(dumpEvery)
 {}
@@ -41,7 +41,7 @@ void XYZPlugin::serializeAndSend(cudaStream_t stream)
         r.x = r3.x; r.y = r3.y; r.z = r3.z;
     }
 
-    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, timeStamp, pv->name, positions);
@@ -64,7 +64,7 @@ void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 void XYZDumper::deserialize(MPI_Status& stat)
 {
     std::string pvName;
-    YmrState::StepType timeStamp;
+    MirState::StepType timeStamp;
     
     SimpleSerializer::deserialize(data, timeStamp, pvName, pos);
 

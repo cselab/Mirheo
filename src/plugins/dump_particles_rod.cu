@@ -30,7 +30,7 @@ __global__ void copyRodQuantities(int numBiSegmentsPerObject, int objSize, int n
 
 
 ParticleWithRodQuantitiesSenderPlugin::
-ParticleWithRodQuantitiesSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+ParticleWithRodQuantitiesSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                       std::vector<std::string> channelNames,
                                       std::vector<ChannelType> channelTypes) :
     ParticleSenderPlugin(state, name, pvName, dumpEvery, channelNames, channelTypes)

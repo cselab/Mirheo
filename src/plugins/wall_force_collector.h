@@ -11,7 +11,7 @@ class SDF_basedWall;
 class WallForceCollectorPlugin : public SimulationPlugin
 {
 public:
-    WallForceCollectorPlugin(const YmrState *state, std::string name,
+    WallForceCollectorPlugin(const MirState *state, std::string name,
                              std::string wallName, std::string frozenPvName,
                              int sampleEvery, int dumpEvery);
     ~WallForceCollectorPlugin();

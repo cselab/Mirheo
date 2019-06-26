@@ -54,7 +54,7 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
 
 } // namespace ObjStatsPluginKernels
 
-ObjStatsPlugin::ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
+ObjStatsPlugin::ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name),
     ovName(ovName),
     dumpEvery(dumpEvery)
@@ -236,7 +236,7 @@ void ObjStatsDumper::handshake()
 
 void ObjStatsDumper::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType curTime;
+    MirState::TimeType curTime;
     DomainInfo domain;
     std::vector<int64_t> ids;
     std::vector<COMandExtent> coms;

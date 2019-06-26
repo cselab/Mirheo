@@ -38,7 +38,7 @@ __global__ void sampleRelative(
 } // namespace AverageRelativeFlowKernels
 
 AverageRelative3D::AverageRelative3D(
-    const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    const MirState *state, std::string name, std::vector<std::string> pvNames,
     std::vector<std::string> channelNames,
     std::vector<Average3D::ChannelType> channelTypes, int sampleEvery,
     int dumpEvery, float3 binSize, std::string relativeOVname, int relativeID) :
@@ -226,7 +226,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
     extractLocalBlock();
     nSamples = 0;
 
-    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1; // -1 to start from 0
+    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1; // -1 to start from 0
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();

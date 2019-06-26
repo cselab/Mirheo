@@ -11,7 +11,7 @@ class ParticleVector;
 class TemperaturizePlugin : public SimulationPlugin
 {
 public:
-    TemperaturizePlugin(const YmrState *state, std::string name, std::string pvName, float kbT, bool keepVelocity);
+    TemperaturizePlugin(const MirState *state, std::string name, std::string pvName, float kbT, bool keepVelocity);
     
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;

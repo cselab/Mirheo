@@ -11,7 +11,7 @@
 
 #include <regex>
 
-MeshPlugin::MeshPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery) :
+MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name), ovName(ovName),
     dumpEvery(dumpEvery)
 {}
@@ -47,7 +47,7 @@ void MeshPlugin::serializeAndSend(cudaStream_t stream)
 
     auto& mesh = ov->mesh;
 
-    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, timeStamp, ov->name,
@@ -157,7 +157,7 @@ void MeshDumper::deserialize(MPI_Status& stat)
     std::string ovName;
     int nvertices, ntriangles;
 
-    YmrState::StepType timeStamp;
+    MirState::StepType timeStamp;
     SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity, vertices);
 
     std::string currentFname = path + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";

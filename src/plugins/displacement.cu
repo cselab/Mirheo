@@ -30,7 +30,7 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, float4 *positi
 
 } // namespace DisplacementKernels
 
-ParticleDisplacementPlugin::ParticleDisplacementPlugin(const YmrState *state, std::string name, std::string pvName, int updateEvery) :
+ParticleDisplacementPlugin::ParticleDisplacementPlugin(const MirState *state, std::string name, std::string pvName, int updateEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
     pv(nullptr),

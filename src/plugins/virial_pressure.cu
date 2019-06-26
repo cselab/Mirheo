@@ -35,7 +35,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 }
 } // namespace VirialPressureKernels
 
-VirialPressurePlugin::VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
+VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
                                            FieldFunction func, float3 h, int dumpEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
@@ -141,7 +141,7 @@ void VirialPressureDumper::handshake()
 
 void VirialPressureDumper::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType curTime;
+    MirState::TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;
 
     SimpleSerializer::deserialize(data, curTime, localPressure);

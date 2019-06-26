@@ -16,7 +16,7 @@ using CountType = unsigned long long;
 class SimulationStats : public SimulationPlugin
 {
 public:
-    SimulationStats(const YmrState *state, std::string name, int fetchEvery);
+    SimulationStats(const MirState *state, std::string name, int fetchEvery);
     ~SimulationStats();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

@@ -22,7 +22,7 @@ private:
     HostBuffer<float4> positions;
 
 public:
-    XYZPlugin(const YmrState *state, std::string name, std::string pvNames, int dumpEvery);
+    XYZPlugin(const MirState *state, std::string name, std::string pvNames, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 

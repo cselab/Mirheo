@@ -18,7 +18,7 @@ public:
     using ImplicitSurfaceFunc = std::function<float(float3)>;
     using VelocityFieldFunc = std::function<float3(float3)>;
     
-    VelocityInletPlugin(const YmrState *state, std::string name, std::string pvName,
+    VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                         ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
                         float3 resolution, float numberDensity, float kBT);
 

@@ -8,7 +8,7 @@ class ParticleWithRodQuantitiesSenderPlugin : public ParticleSenderPlugin
 {
 public:
     
-    ParticleWithRodQuantitiesSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+    ParticleWithRodQuantitiesSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                           std::vector<std::string> channelNames,
                                           std::vector<ChannelType> channelTypes);
     

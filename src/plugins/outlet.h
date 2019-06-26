@@ -19,7 +19,7 @@ class RegionOutletPlugin : public SimulationPlugin
 public:
     using RegionFunc = std::function<float(float3)>;
     
-    RegionOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                        RegionFunc region, float3 resolution);
 
     ~RegionOutletPlugin();
@@ -52,7 +52,7 @@ class DensityOutletPlugin : public RegionOutletPlugin
 {
 public:
     
-    DensityOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                         float numberDensity, RegionFunc region, float3 resolution);
 
     ~DensityOutletPlugin();
@@ -70,7 +70,7 @@ class RateOutletPlugin : public RegionOutletPlugin
 {
 public:
     
-    RateOutletPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                      float rate, RegionFunc region, float3 resolution);
 
     ~RateOutletPlugin();

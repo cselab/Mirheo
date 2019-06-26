@@ -29,7 +29,7 @@ __global__ void totalForce(PVview view, double3 *totalForce)
 } //namespace WallForceCollector
 
 
-WallForceCollectorPlugin::WallForceCollectorPlugin(const YmrState *state, std::string name,
+WallForceCollectorPlugin::WallForceCollectorPlugin(const MirState *state, std::string name,
                                                    std::string wallName, std::string frozenPvName,
                                                    int sampleEvery, int dumpEvery) :
     SimulationPlugin(state, name),
@@ -110,7 +110,7 @@ WallForceDumperPlugin::~WallForceDumperPlugin()
 
 void WallForceDumperPlugin::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTime;
     int nsamples;
     double localForce[3], totalForce[3] = {0.0, 0.0, 0.0};
 

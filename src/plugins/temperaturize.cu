@@ -24,7 +24,7 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
     view.writeVelocity(gid, u.toFloat4());
 }
 
-TemperaturizePlugin::TemperaturizePlugin(const YmrState *state, std::string name, std::string pvName, float kbT, bool keepVelocity) :
+TemperaturizePlugin::TemperaturizePlugin(const MirState *state, std::string name, std::string pvName, float kbT, bool keepVelocity) :
     SimulationPlugin(state, name),
     pvName(pvName),
     kbT(kbT),

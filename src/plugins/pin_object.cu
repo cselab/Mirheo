@@ -129,7 +129,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelo
 
 } // namespace PinObjectKernels::
 
-PinObjectPlugin::PinObjectPlugin(const YmrState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
+PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
     SimulationPlugin(state, name),
     ovName(ovName),
     translation(translation),
@@ -260,7 +260,7 @@ void ReportPinObjectPlugin::handshake()
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 {
     std::vector<float4> forces, torques;
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);

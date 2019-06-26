@@ -30,7 +30,7 @@ __global__ void anchorParticles(PVview view, int n, const int *pids, const float
 
 } // namespace AnchorParticleKernels
 
-AnchorParticlesPlugin::AnchorParticlesPlugin(const YmrState *state, std::string name, std::string pvName,
+AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string name, std::string pvName,
                                              FuncTime3D positions, FuncTime3D velocities,
                                              std::vector<int> pids, int reportEvery) :
     SimulationPlugin(state, name),
@@ -160,7 +160,7 @@ void AnchorParticlesStatsPlugin::handshake()
 void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
 {
     std::vector<double3> forces;
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces);

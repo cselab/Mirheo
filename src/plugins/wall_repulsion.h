@@ -12,7 +12,7 @@ class SDF_basedWall;
 class WallRepulsionPlugin : public SimulationPlugin
 {
 public:
-    WallRepulsionPlugin(const YmrState *state, std::string name,
+    WallRepulsionPlugin(const MirState *state, std::string name,
                         std::string pvName, std::string wallName,
                         float C, float h, float maxForce = 1e3f);
 

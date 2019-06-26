@@ -12,7 +12,7 @@
 class ObjStatsPlugin : public SimulationPlugin
 {
 public:
-    ObjStatsPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery);
+    ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -31,7 +31,7 @@ private:
     HostBuffer<COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
     DeviceBuffer<RigidMotion> motionStats;
-    YmrState::TimeType savedTime = 0;
+    MirState::TimeType savedTime = 0;
     bool isRov {false};
 
     std::vector<char> sendBuffer;
