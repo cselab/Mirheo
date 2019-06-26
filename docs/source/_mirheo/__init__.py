@@ -1,9 +1,9 @@
-class YmrState:
+class MirState:
     r"""
         state of the simulation shared by all simulation objects.
     
     """
-class ymero:
+class mirheo:
     r"""
         Main coordination class, should only be one instance at a time
     
@@ -12,7 +12,7 @@ class ymero:
         r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
-                Create the YMeRo coordinator.
+                Create the Mirheo coordinator.
                 
                 .. warning::
                     Debug level determines the amount of output produced by each of the simulation processes:
@@ -110,15 +110,15 @@ class ymero:
         pass
 
     def getState():
-        r"""getState(self: ymero) -> YmrState
+        r"""getState(self: mirheo) -> MirState
 
-Return ymero state
+Return mirheo state
 
         """
         pass
 
     def isComputeTask():
-        r"""isComputeTask(self: ymero) -> bool
+        r"""isComputeTask(self: mirheo) -> bool
 
 Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task
 
@@ -126,7 +126,7 @@ Returns ``True`` if the current rank is a simulation task and ``False`` if it is
         pass
 
     def isMasterTask():
-        r"""isMasterTask(self: ymero) -> bool
+        r"""isMasterTask(self: mirheo) -> bool
 
 Returns ``True`` if the current rank is the root
 
@@ -250,7 +250,7 @@ Returns ``True`` if the current rank is the root
                 ic: :class:`~InitialConditions.InitialConditions` that will generate the initial distibution of the particles
                 checkpoint_every:
                     every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
-                    (see :py:meth:`_ymero.ymero.__init__`). 
+                    (see :py:meth:`_mirheo.mirheo.__init__`). 
                     The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
                     Default value of 0 means no checkpoint.
         
@@ -323,7 +323,7 @@ Register Plugins
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
              
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_ymero.ymero.run`.
+                 if current is set to True, this must be called **after** :py:meth:`_mirheo.mirheo.run`.
          
 
         """
@@ -391,7 +391,7 @@ Register Plugins
         pass
 
     def start_profiler():
-        r"""start_profiler(self: ymero) -> None
+        r"""start_profiler(self: mirheo) -> None
 
 Tells nvprof to start recording timeline
 
@@ -399,7 +399,7 @@ Tells nvprof to start recording timeline
         pass
 
     def stop_profiler():
-        r"""stop_profiler(self: ymero) -> None
+        r"""stop_profiler(self: mirheo) -> None
 
 Tells nvprof to stop recording timeline
 

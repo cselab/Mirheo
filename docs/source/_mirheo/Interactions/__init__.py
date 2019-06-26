@@ -374,12 +374,12 @@ class RodForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, save_states: bool = False, save_energies: bool = False, **kwargs) -> None
+        r"""__init__(name: str, state_update: str = 'none', save_energies: bool = False, **kwargs) -> None
 
  
              Args:
                  name: name of the interaction
-                 save_states: if `True`, save the state of each bisegment
+                 state_update: description of the state update method; only makes sense for multiple states. See below for possible choices.
                  save_energies: if `True`, save the energies of each bisegment
 
              kwargs:
@@ -393,6 +393,16 @@ class RodForces(Interaction):
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
                  * **E0** (float):           (optional) energy ground state
+
+             state update parameters, for **state_update** = 'smoothing':
+
+                 (not fully implemented yet; for now just takes minimum state but no smoothing term)
+
+             state update parameters, for **state_update** = 'spin':
+
+                 * **nsteps** number of MC step per iteration
+                 * **kBT** temperature used in the acceptance-rejection algorithm
+                 * **J** neighbouring spin 'dislike' energy
 
              The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.
