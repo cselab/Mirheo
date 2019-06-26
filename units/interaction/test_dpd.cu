@@ -52,7 +52,7 @@ void execute(MPI_Comm comm, float3 length)
     DomainInfo domain{length, {0,0,0}, length};
     const float dt = 0.002;
     
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
 
     const float rc = 1.0f;
     ParticleVector dpds1(&state, "dpd1", 1.0f);

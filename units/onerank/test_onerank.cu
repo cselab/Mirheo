@@ -206,7 +206,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
     domainInfo.globalStart.y = -0.5f * length.y;
     domainInfo.globalStart.z = -0.5f * length.z;
 
-    YmrState state(domainInfo, dt);
+    MirState state(domainInfo, dt);
     
     ParticleVector pv(&state, "pv", mass);
     PrimaryCellList cells(&pv, rc, length);

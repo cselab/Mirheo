@@ -24,7 +24,7 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
     float3 domainStart = -length / 2.0f;
     DomainInfo domain{length, {0,0,0}, length};
     float dt = 0; // dummy dt
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
 
     ParticleVector dpds(&state, "dpd", 1.0f);
     std::unique_ptr<CellList> cells = std::make_unique<PrimaryCellList>(&dpds, rc, length);

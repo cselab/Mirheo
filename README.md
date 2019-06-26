@@ -1,13 +1,13 @@
-# YMeRo
+# Mirheo
 
-[![Documentation Status](https://readthedocs.org/projects/ymero/badge/?version=latest)](https://ymero.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/mirheo/badge/?version=latest)](https://mirheo.readthedocs.io/en/latest/?badge=latest)
 
 Computational Microfluidics
 
-YMeRo is a GPU high-performance and high-throughput code aimed at simulation of flows at milli- and microscales.
+Mirheo is a GPU high-performance and high-throughput code aimed at simulation of flows at milli- and microscales.
 The code uses Dissipative Particle Dynamics method to describe the liquid and its interaction with cells and other bodies.
 
-For more information, please refer to the online documentation: http://ymero.readthedocs.io/
+For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
 
 ## Changelog
@@ -126,8 +126,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### v0.12.3
 
 * **interface changes**
-  * use checkpoint instead of restart in Ymero coordinator constructor
-  * add checkpoint_mode parameter to Ymero coordinator constructor
+  * use checkpoint instead of restart in Mirheo coordinator constructor
+  * add checkpoint_mode parameter to Mirheo coordinator constructor
 * checkpoint/restart mechanism is more uniform
 
 ### v0.12.2
@@ -145,8 +145,8 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.12.0
 
-* **fix** `ymero.restart()` will now indeed restart the simulation
-* **interface change** Renamed and moved parameter for MPI communicator in the ymero constructor
+* **fix** `mirheo.restart()` will now indeed restart the simulation
+* **interface change** Renamed and moved parameter for MPI communicator in the mirheo constructor
 * **interface change** Density interaction needs a density kernel
 * add SDPD interactions
 * add more density kernels
@@ -288,7 +288,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 ### v0.9.3
 
 * **fix**: the stress entries are now cleared before forces; could be cleared more by other interaction handlers
-* use ymero state inside the simulation objects; do not have current time, step and dt separate in simulation
+* use mirheo state inside the simulation objects; do not have current time, step and dt separate in simulation
 
 ### v0.9.2
 
@@ -301,7 +301,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.9.0
 
-* Add common YmrState object.
+* Add common MirState object.
 * **interface change**:
   * the time step is now passed to the coordinator constructor
   * the time step is not passed to any other object
@@ -325,7 +325,7 @@ For more information, please refer to the online documentation: http://ymero.rea
 
 ### v0.6.1
 
-* rename uDeviceX to YMeRo
+* rename uDeviceX to Mirheo
 * synchronzation bug fix
 
 ### v0.6.0
