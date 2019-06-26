@@ -7,7 +7,7 @@ Installation
 ############
 
 Mirheo
-*****
+******
 
 Mirheo requires at least Kepler-generation NVIDIA GPU and depends on a few external tools and libraries:
 

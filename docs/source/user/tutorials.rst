@@ -15,7 +15,7 @@ This section will guide you in the |mir| interface step by step with examples.
 
 
 Hello World: run Mirheo
-**********************
+***********************
 
 We start with a very minimal script running |mir|.
 
