@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ymero_object.h"
+#include "core/mirheo_object.h"
 #include <core/containers.h>
 #include <core/domain.h>
 #include <core/pvs/particle_vector.h>
@@ -12,10 +12,10 @@
 class CellList;
 class GPUcontainer;
 
-class Wall : public YmrSimulationObject
+class Wall : public MirSimulationObject
 {
 public:
-    Wall(const YmrState *state, std::string name);
+    Wall(const MirState *state, std::string name);
     virtual ~Wall();
 
     virtual void setup(MPI_Comm& comm) = 0;

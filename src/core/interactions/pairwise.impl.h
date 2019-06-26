@@ -22,7 +22,7 @@ class InteractionPair : public Interaction
 {
 public:
     
-    InteractionPair(const YmrState *state, std::string name, float rc, PairwiseInteraction pair) :
+    InteractionPair(const MirState *state, std::string name, float rc, PairwiseInteraction pair) :
         Interaction(state, name, rc),
         defaultPair(pair)
     {}

@@ -6,7 +6,7 @@
 
 #include <memory>
 
-InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::string name,
+InteractionDPDWithStress::InteractionDPDWithStress(const MirState *state, std::string name,
                                                    float rc, float a, float gamma, float kbt, float power, float stressPeriod) :
     InteractionDPD(state, name, rc, a, gamma, kbt, power, false)
 {

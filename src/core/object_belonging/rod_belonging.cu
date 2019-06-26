@@ -83,7 +83,7 @@ __global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellLi
 } // namespace RodBelongingKernels
 
 
-RodBelongingChecker::RodBelongingChecker(const YmrState *state, std::string name, float radius) :
+RodBelongingChecker::RodBelongingChecker(const MirState *state, std::string name, float radius) :
     ObjectBelongingChecker_Common(state, name),
     radius(radius)
 {}

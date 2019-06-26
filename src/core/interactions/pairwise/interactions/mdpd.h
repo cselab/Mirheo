@@ -7,7 +7,7 @@
 #include <core/interactions/utils/step_random_gen.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/restart_helpers.h>
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
 #include <random>
 
@@ -80,7 +80,7 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
     {
         seed = stepGen.generate(state);
     }

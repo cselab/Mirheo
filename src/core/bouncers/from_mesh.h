@@ -15,7 +15,7 @@ class BounceFromMesh : public Bouncer
 {
 public:
 
-    BounceFromMesh(const YmrState *state, std::string name, float kbT);
+    BounceFromMesh(const MirState *state, std::string name, float kbT);
     ~BounceFromMesh();
 
     void setPrerequisites(ParticleVector *pv) override;

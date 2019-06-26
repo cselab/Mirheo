@@ -107,7 +107,7 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 } // namespace ObjRodBindingKernels
 
 
-ObjectRodBindingInteraction::ObjectRodBindingInteraction(const YmrState *state, std::string name,
+ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
                                                          float torque, float3 relAnchor, float kBound) :
     Interaction(state, name, /*rc*/ 1.0f),
     torque(torque),

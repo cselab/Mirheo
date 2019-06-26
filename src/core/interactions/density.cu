@@ -10,7 +10,7 @@
 #include <memory>
 
 
-BasicInteractionDensity::BasicInteractionDensity(const YmrState *state, std::string name, float rc) :
+BasicInteractionDensity::BasicInteractionDensity(const MirState *state, std::string name, float rc) :
     Interaction(state, name, rc)
 {}
 
@@ -48,7 +48,7 @@ void BasicInteractionDensity::halo (ParticleVector *pv1, ParticleVector *pv2, Ce
 
 
 template <class DensityKernel>
-InteractionDensity<DensityKernel>::InteractionDensity(const YmrState *state, std::string name, float rc,
+InteractionDensity<DensityKernel>::InteractionDensity(const MirState *state, std::string name, float rc,
                                                       DensityKernel densityKernel) :
     BasicInteractionDensity(state, name, rc),
     densityKernel(densityKernel)

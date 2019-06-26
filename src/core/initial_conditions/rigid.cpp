@@ -111,7 +111,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
 
     // Do the initial rotation
     ov->local()->forces().clear(stream);
-    YmrState dummyState(ov->state->domain, /* dt */ 0.f);
+    MirState dummyState(ov->state->domain, /* dt */ 0.f);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
     integrator.stage2(pv, stream);
 }

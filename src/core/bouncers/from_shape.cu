@@ -10,7 +10,7 @@
 #include <core/utils/kernel_launch.h>
 
 template <class Shape>
-BounceFromRigidShape<Shape>::BounceFromRigidShape(const YmrState *state, std::string name) :
+BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state, std::string name) :
     Bouncer(state, name)
 {}
 

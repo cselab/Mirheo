@@ -14,7 +14,7 @@
  * @param kbT temperature which will be used to create a particle
  * velocity after the bounce, @see performBouncing()
  */
-BounceFromMesh::BounceFromMesh(const YmrState *state, std::string name, float kbT) :
+BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kbT) :
     Bouncer(state, name),
     kbT(kbT)
 {}

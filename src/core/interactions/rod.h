@@ -12,7 +12,7 @@ using VarSpinParams = mpark::variant<StatesParametersNone,
 class InteractionRod : public Interaction
 {
 public:
-    InteractionRod(const YmrState *state, std::string name,
+    InteractionRod(const MirState *state, std::string name,
                    RodParameters params, VarSpinParams spinParams, bool saveEnergies);
     virtual ~InteractionRod();
 

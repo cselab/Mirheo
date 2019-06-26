@@ -44,7 +44,7 @@ template <int Nstates, class StateParameters>
 class InteractionRodImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const YmrState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
+    InteractionRodImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
         parameters(parameters),
         stateParameters(stateParameters),

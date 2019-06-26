@@ -12,7 +12,7 @@ class InteractionDPD : public Interaction
 public:
     constexpr static float Default = std::numeric_limits<float>::infinity();
 
-    InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float power);
+    InteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kbt, float power);
 
     ~InteractionDPD();
 
@@ -28,7 +28,7 @@ public:
     
 protected:
 
-    InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float power, bool allocateImpl);
+    InteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kbt, float power, bool allocateImpl);
         
     // Default values
     float a, gamma, kbt, power;

@@ -117,13 +117,13 @@ int LocalObjectVector::getNobjects(int np) const
 }
 
 
-ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, int objSize, int nObjects) :
+ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, int objSize, int nObjects) :
     ObjectVector( state, name, mass, objSize,
                   std::make_unique<LocalObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalObjectVector>(this, objSize, 0) )
 {}
 
-ObjectVector::ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, int objSize,
                            std::unique_ptr<LocalParticleVector>&& local,
                            std::unique_ptr<LocalParticleVector>&& halo) :
     ParticleVector(state, name, mass, std::move(local), std::move(halo)),

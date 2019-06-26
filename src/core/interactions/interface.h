@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ymero_object.h"
+#include "core/mirheo_object.h"
 
 #include <cuda_runtime.h>
 #include <functional>
@@ -19,10 +19,10 @@ class ParticleVector;
  * The cut-off raduis has to be removed later from the interface,
  * such that only certain interactions require cell-lists.
  */
-class Interaction : public YmrSimulationObject
+class Interaction : public MirSimulationObject
 {
 public:
-    Interaction(const YmrState *state, std::string name, float rc);
+    Interaction(const MirState *state, std::string name, float rc);
 
     virtual ~Interaction();
 

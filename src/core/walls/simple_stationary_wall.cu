@@ -232,7 +232,7 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float *sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
-SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
+SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker) :
     SDF_basedWall(state, name),
     insideWallChecker(std::move(insideWallChecker))
 {

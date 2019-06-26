@@ -7,7 +7,7 @@
 #include <memory>
 #include <mpi.h>
 
-class YmrState;
+class MirState;
 
 class Simulation;
 class Postprocess;
@@ -23,28 +23,28 @@ class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
 
-class YMeRo
+class Mirheo
 {
 public:
-    YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+    Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/",
           CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
           bool gpuAwareMPI=false, bool noSplash=false);
 
-    YMeRo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+    Mirheo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/",
           CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
           bool gpuAwareMPI=false, bool noSplash=false);
 
-    YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+    Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           std::string logFileName, int verbosity, int checkpointEvery=0,
           std::string checkpointFolder="restart/",
           CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
           bool gpuAwareMPI=false, bool noSplash=false);
 
-    ~YMeRo();
+    ~Mirheo();
     
     void restart(std::string folder="restart/");
     bool isComputeTask() const;
@@ -72,9 +72,9 @@ public:
     void setBouncer     (Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv);
     void setWallBounce  (Wall *wall, ParticleVector *pv, float maximumPartTravel = 0.25f);
 
-    YmrState* getState();
-    const YmrState* getState() const;
-    std::shared_ptr<YmrState> getYmrState();
+    MirState* getState();
+    const MirState* getState() const;
+    std::shared_ptr<MirState> getMirState();
 
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
     double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
@@ -102,7 +102,7 @@ public:
 private:
     std::unique_ptr<Simulation> sim;
     std::unique_ptr<Postprocess> post;
-    std::shared_ptr<YmrState> state;
+    std::shared_ptr<MirState> state;
     
     int rank;
     int computeTask;

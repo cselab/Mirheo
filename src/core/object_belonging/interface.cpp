@@ -1,7 +1,7 @@
 #include "interface.h"
 
-ObjectBelongingChecker::ObjectBelongingChecker(const YmrState *state, std::string name) :
-    YmrSimulationObject(state, name)
+ObjectBelongingChecker::ObjectBelongingChecker(const MirState *state, std::string name) :
+    MirSimulationObject(state, name)
 {}
 
 ObjectBelongingChecker::~ObjectBelongingChecker() = default;

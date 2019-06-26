@@ -10,7 +10,7 @@ class BounceFromRigidShape : public Bouncer
 {
 public:
 
-    BounceFromRigidShape(const YmrState *state, std::string name);
+    BounceFromRigidShape(const MirState *state, std::string name);
     ~BounceFromRigidShape();
 
     void setup(ObjectVector *ov) override;

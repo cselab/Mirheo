@@ -9,7 +9,7 @@
 #include <core/pvs/particle_vector.h>
 
 template<class ForcingTerm>
-IntegratorVV<ForcingTerm>::IntegratorVV(const YmrState *state, std::string name, ForcingTerm forcingTerm) :
+IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, std::string name, ForcingTerm forcingTerm) :
     Integrator(state, name), forcingTerm(forcingTerm)
 {}
 

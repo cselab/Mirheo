@@ -8,21 +8,21 @@
 #include <string>
 
 /**
- * Global quantities accessible by all simulation objects in YMeRo
+ * Global quantities accessible by all simulation objects in Mirheo
  */
-class YmrState
+class MirState
 {
 public:
     using TimeType = double;
     using StepType = long long;
     
-    YmrState(DomainInfo domain, float dt);
-    YmrState(const YmrState&);
-    YmrState& operator=(YmrState other);
+    MirState(DomainInfo domain, float dt);
+    MirState(const MirState&);
+    MirState& operator=(MirState other);
 
-    virtual ~YmrState();
+    virtual ~MirState();
 
-    void swap(YmrState& other);
+    void swap(MirState& other);
     
     void reinitTime();
     

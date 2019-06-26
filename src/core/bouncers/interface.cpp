@@ -1,7 +1,7 @@
 #include "interface.h"
 
-Bouncer::Bouncer(const YmrState *state, std::string name) :
-    YmrSimulationObject(state, name)
+Bouncer::Bouncer(const MirState *state, std::string name) :
+    MirSimulationObject(state, name)
 {}
 
 Bouncer::~Bouncer() = default;

@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <mpi.h>
 
-#include "core/ymero_object.h"
+#include "core/mirheo_object.h"
 
 class ParticleVector;
 
@@ -19,12 +19,12 @@ class ParticleVector;
  *    So all the integration for now is done in stage2()
  * \endrst
  */
-class Integrator : public YmrSimulationObject
+class Integrator : public MirSimulationObject
 {
 public:
     
     /// Set the name of the integrator and state
-    Integrator(const YmrState *state, std::string name);
+    Integrator(const MirState *state, std::string name);
 
     virtual ~Integrator();
 

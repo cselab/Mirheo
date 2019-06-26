@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ymero_state.h"
+#include "mirheo_state.h"
 
 #include <core/utils/common.h>
 
@@ -8,15 +8,15 @@
 #include <string>
 
 /**
- * Base class for all the objects of YMeRo
+ * Base class for all the objects of Mirheo
  * Only stores name and provides interface for
  * checkpoint / restart mechanism
  */
-class YmrObject
+class MirObject
 {
 public:
-    YmrObject(std::string name);
-    virtual ~YmrObject();
+    MirObject(std::string name);
+    virtual ~MirObject();
 
     virtual void checkpoint(MPI_Comm comm, std::string path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
@@ -30,15 +30,15 @@ public:
 };
 
 /**
- * Base class for the objects of YMeRo simulation task
+ * Base class for the objects of Mirheo simulation task
  * may additionally store global quantities in the future
  */
-class YmrSimulationObject : public YmrObject
+class MirSimulationObject : public MirObject
 {
 public:
-    YmrSimulationObject(const YmrState *state, std::string name);
-    ~YmrSimulationObject();
+    MirSimulationObject(const MirState *state, std::string name);
+    ~MirSimulationObject();
 
 public:
-    const YmrState *state;
+    const MirState *state;
 };

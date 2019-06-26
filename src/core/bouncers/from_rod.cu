@@ -6,7 +6,7 @@
 #include <core/pvs/views/rv.h>
 #include <core/utils/kernel_launch.h>
 
-BounceFromRod::BounceFromRod(const YmrState *state, std::string name, float radius) :
+BounceFromRod::BounceFromRod(const MirState *state, std::string name, float radius) :
     Bouncer(state, name),
     radius(radius)
 {}

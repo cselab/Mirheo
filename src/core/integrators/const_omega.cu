@@ -4,7 +4,7 @@
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
-IntegratorConstOmega::IntegratorConstOmega(const YmrState *state, std::string name, float3 center, float3 omega) :
+IntegratorConstOmega::IntegratorConstOmega(const MirState *state, std::string name, float3 center, float3 omega) :
     Integrator(state, name),
     center(center), omega(omega)
 {}

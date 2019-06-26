@@ -6,7 +6,7 @@
 #include <core/pvs/rod_vector.h>
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
 class PairwiseLJRodAware : public PairwiseLJ
 {
@@ -46,7 +46,7 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
     {
         auto rv1 = dynamic_cast<RodVector*>(lpv1->pv);
         auto rv2 = dynamic_cast<RodVector*>(lpv2->pv);

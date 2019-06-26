@@ -8,7 +8,7 @@ class RodVector;
 class ObjectRodBindingInteraction : public Interaction
 {
 public:
-    ObjectRodBindingInteraction(const YmrState *state, std::string name,
+    ObjectRodBindingInteraction(const MirState *state, std::string name,
                                 float torque, float3 relAnchor, float kBound);
 
     ~ObjectRodBindingInteraction();

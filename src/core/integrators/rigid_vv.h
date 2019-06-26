@@ -8,7 +8,7 @@
 class IntegratorVVRigid : public Integrator
 {
 public:
-    IntegratorVVRigid(const YmrState *state, std::string name);
+    IntegratorVVRigid(const MirState *state, std::string name);
 
     ~IntegratorVVRigid();
 

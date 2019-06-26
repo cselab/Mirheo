@@ -3,7 +3,7 @@
 #include <core/analytical_shapes/api.h>
 
 template <class Shape> RigidShapedObjectVector<Shape>::
-RigidShapedObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+RigidShapedObjectVector(const MirState *state, std::string name, float mass, int objSize,
                         Shape shape, int nObjects) :
     RigidObjectVector(state, name, mass,
                       shape.inertiaTensor(mass * objSize),
@@ -14,7 +14,7 @@ RigidShapedObjectVector(const YmrState *state, std::string name, float mass, int
 {}
 
 template <class Shape> RigidShapedObjectVector<Shape>::
-RigidShapedObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+RigidShapedObjectVector(const MirState *state, std::string name, float mass, int objSize,
                         Shape shape, std::shared_ptr<Mesh> mesh, int nObjects) :
     RigidObjectVector(state, name, mass,
                       shape.inertiaTensor(mass * objSize),

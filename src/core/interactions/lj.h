@@ -8,7 +8,7 @@ class InteractionLJ : public Interaction
 public:
     enum class AwareMode {None, Object, Rod};
     
-    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, AwareMode awareness, int minSegmentsDist=0);
+    InteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce, AwareMode awareness, int minSegmentsDist=0);
 
     ~InteractionLJ();
 
@@ -23,7 +23,7 @@ public:
                                  float epsilon, float sigma, float maxForce);
 
 protected:
-    InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+    InteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                   AwareMode awareness, int minSegmentsDist, bool allocate);
     
     AwareMode awareness;

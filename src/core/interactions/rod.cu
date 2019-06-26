@@ -2,7 +2,7 @@
 #include "rod.impl.h"
 
 template <int Nstates>
-auto instantiateImpl(const YmrState *state, std::string name, RodParameters parameters, VarSpinParams varSpinParams, bool saveEnergies)
+auto instantiateImpl(const MirState *state, std::string name, RodParameters parameters, VarSpinParams varSpinParams, bool saveEnergies)
 {
     std::unique_ptr<Interaction> impl;
 
@@ -17,7 +17,7 @@ auto instantiateImpl(const YmrState *state, std::string name, RodParameters para
     return impl;
 }
 
-InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters,
+InteractionRod::InteractionRod(const MirState *state, std::string name, RodParameters parameters,
                                VarSpinParams varSpinParams, bool saveEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {

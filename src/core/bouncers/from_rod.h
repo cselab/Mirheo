@@ -13,7 +13,7 @@ class BounceFromRod : public Bouncer
 {
 public:
 
-    BounceFromRod(const YmrState *state, std::string name, float radius);
+    BounceFromRod(const MirState *state, std::string name, float radius);
     ~BounceFromRod();
 
     void setPrerequisites(ParticleVector *pv) override;

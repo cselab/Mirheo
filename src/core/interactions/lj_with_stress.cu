@@ -8,7 +8,7 @@
 
 #include <memory>
 
-InteractionLJWithStress::InteractionLJWithStress(const YmrState *state, std::string name,
+InteractionLJWithStress::InteractionLJWithStress(const MirState *state, std::string name,
                                                  float rc, float epsilon, float sigma, float maxForce,
                                                  AwareMode awareness, int minSegmentsDist, float stressPeriod) :
     InteractionLJ(state, name, rc, epsilon, sigma, maxForce, awareness, minSegmentsDist, false),

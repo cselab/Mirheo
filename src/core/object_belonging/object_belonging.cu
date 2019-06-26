@@ -38,7 +38,7 @@ __global__ void copyInOut(PVview view, const BelongingTags *tags,
 
 } // namespace ObjectBelongingKernels
 
-ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const YmrState *state, std::string name) :
+ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *state, std::string name) :
     ObjectBelongingChecker(state, name)
 {}
 

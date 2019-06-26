@@ -8,7 +8,7 @@
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(const YmrState *state, std::string name, float3 vel, float period) :
+IntegratorOscillate::IntegratorOscillate(const MirState *state, std::string name, float3 vel, float period) :
     Integrator(state, name),
     vel(vel), period(period)
 {

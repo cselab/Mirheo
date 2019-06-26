@@ -20,7 +20,7 @@ public:
         
 protected:
     
-    BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
+    BasicInteractionSDPD(const MirState *state, std::string name, float rc,
                          float viscosity, float kBT);
 
     float viscosity, kBT;
@@ -31,7 +31,7 @@ class InteractionSDPD : public BasicInteractionSDPD
 {
 public:
     
-    InteractionSDPD(const YmrState *state, std::string name, float rc,
+    InteractionSDPD(const MirState *state, std::string name, float rc,
                     PressureEOS pressure, DensityKernel densityKernel,
                     float viscosity, float kBT);
 
@@ -39,7 +39,7 @@ public:
         
 protected:
 
-    InteractionSDPD(const YmrState *state, std::string name, float rc,
+    InteractionSDPD(const MirState *state, std::string name, float rc,
                     PressureEOS pressure, DensityKernel densityKernel,
                     float viscosity, float kBT, bool allocateImpl);
     

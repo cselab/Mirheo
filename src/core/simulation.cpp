@@ -14,7 +14,7 @@
 #include <core/utils/folders.h>
 #include <core/utils/restart_helpers.h>
 #include <core/walls/interface.h>
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 #include <plugins/interface.h>
 
 #include <algorithm>
@@ -76,10 +76,10 @@ struct SimulationTasks
 #undef DECLARE    
 };
 
-Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
+Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
                        int globalCheckpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode,
                        bool gpuAwareMPI) :
-    YmrObject("simulation"),
+    MirObject("simulation"),
     nranks3D(nranks3D),
     cartComm(cartComm),
     interComm(interComm),
@@ -1139,7 +1139,7 @@ void Simulation::init()
 
 void Simulation::run(int nsteps)
 {
-    YmrState::TimeType begin = state->currentStep, end = state->currentStep + nsteps;
+    MirState::TimeType begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
 

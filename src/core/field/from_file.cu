@@ -218,7 +218,7 @@ static void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDom
             }
 }
 
-FieldFromFile::FieldFromFile(const YmrState *state, std::string name, std::string fieldFileName, float3 h) :
+FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, float3 h) :
     Field(state, name, h),
     fieldFileName(fieldFileName)
 {}

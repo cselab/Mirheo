@@ -1,4 +1,4 @@
-#include "ymero.h"
+#include "mirheo.h"
 
 #include <core/bouncers/interface.h>
 #include <core/initial_conditions/interface.h>
@@ -57,7 +57,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
     MPI_Check( MPI_Comm_free(&shmcomm) );
 }
 
-void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
+void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
                  int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI)
 {
     int nranks;
@@ -83,7 +83,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         selectIntraNodeGPU(comm);
 
         createCartComm(comm, nranks3D, &cartComm);
-        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<MirState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, MPI_COMM_NULL, getState(),
                                             checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
         computeTask = 0;
@@ -110,7 +110,7 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
         selectIntraNodeGPU(compComm);
 
         createCartComm(compComm, nranks3D, &cartComm);
-        state = std::make_shared<YmrState> (createDomainInfo(cartComm, globalDomainSize), dt);
+        state = std::make_shared<MirState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, interComm, getState(),
                                             checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
     }
@@ -127,14 +127,14 @@ void YMeRo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string l
     MPI_Check( MPI_Comm_free(&splitComm) );
 }
 
-void YMeRo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
+void Mirheo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
 {
     if      (logFileName == "stdout")  logger.init(comm, stdout,             verbosity);
     else if (logFileName == "stderr")  logger.init(comm, stderr,             verbosity);
     else                               logger.init(comm, logFileName+".log", verbosity);
 }
 
-YMeRo::YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
              std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
              CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
@@ -147,7 +147,7 @@ YMeRo::YMeRo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
           checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
 }
 
-YMeRo::YMeRo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
              std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
              CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
@@ -159,7 +159,7 @@ YMeRo::YMeRo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDoma
           checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);    
 }
 
-YMeRo::YMeRo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
              std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
              CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
@@ -175,9 +175,9 @@ static void safeCommFree(MPI_Comm *comm)
         MPI_Check( MPI_Comm_free(comm) );
 }
 
-YMeRo::~YMeRo()
+Mirheo::~Mirheo()
 {
-    debug("YMeRo coordinator is destroyed");
+    debug("Mirheo coordinator is destroyed");
     
     sim.reset();
     post.reset();
@@ -192,7 +192,7 @@ YMeRo::~YMeRo()
         MPI_Finalize();
 }
 
-void YMeRo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
+void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
 {
     checkNotInitialized();
     
@@ -200,7 +200,7 @@ void YMeRo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, co
         sim->registerParticleVector(pv, ic, checkpointEvery);
 }
 
-void YMeRo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
+void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
     checkNotInitialized();
     
@@ -208,7 +208,7 @@ void YMeRo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
         sim->registerIntegrator(integrator);
 }
 
-void YMeRo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
+void Mirheo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
     checkNotInitialized();
     
@@ -216,7 +216,7 @@ void YMeRo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
         sim->registerInteraction(interaction);
 }
 
-void YMeRo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
+void Mirheo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
     checkNotInitialized();
     
@@ -224,7 +224,7 @@ void YMeRo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
         sim->registerWall(wall, checkEvery);
 }
 
-void YMeRo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
+void Mirheo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
     checkNotInitialized();
     
@@ -232,7 +232,7 @@ void YMeRo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
         sim->registerBouncer(bouncer);
 }
 
-void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
+void Mirheo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
     checkNotInitialized();
     
@@ -243,7 +243,7 @@ void YMeRo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongin
     }
 }
 
-void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
+void Mirheo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
     checkNotInitialized();
 
@@ -261,7 +261,7 @@ void YMeRo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, 
     }
 }
 
-void YMeRo::setIntegrator(Integrator *integrator, ParticleVector *pv)
+void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 {
     checkNotInitialized();
     
@@ -269,7 +269,7 @@ void YMeRo::setIntegrator(Integrator *integrator, ParticleVector *pv)
         sim->setIntegrator(integrator->name, pv->name);
 }
 
-void YMeRo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
+void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
 {
     checkNotInitialized();
     
@@ -277,7 +277,7 @@ void YMeRo::setInteraction(Interaction *interaction, ParticleVector *pv1, Partic
         sim->setInteraction(interaction->name, pv1->name, pv2->name);
 }
 
-void YMeRo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
+void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
 {
     checkNotInitialized();
     
@@ -285,7 +285,7 @@ void YMeRo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
 
-void YMeRo::setWallBounce(Wall *wall, ParticleVector *pv, float maximumPartTravel)
+void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, float maximumPartTravel)
 {
     checkNotInitialized();
     
@@ -293,22 +293,22 @@ void YMeRo::setWallBounce(Wall *wall, ParticleVector *pv, float maximumPartTrave
         sim->setWallBounce(wall->name, pv->name, maximumPartTravel);
 }
 
-YmrState* YMeRo::getState()
+MirState* Mirheo::getState()
 {
     return state.get();
 }
 
-const YmrState* YMeRo::getState() const
+const MirState* Mirheo::getState() const
 {
     return state.get();
 }
 
-std::shared_ptr<YmrState> YMeRo::getYmrState()
+std::shared_ptr<MirState> Mirheo::getMirState()
 {
     return state;
 }
 
-void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
+void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
 {
     if (!isComputeTask()) return;
 
@@ -330,7 +330,7 @@ void YMeRo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::fl
     WallHelpers::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
 }
 
-double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
+double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
 {
     if (!isComputeTask()) return 0;
 
@@ -352,7 +352,7 @@ double YMeRo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls,
     return WallHelpers::volumeInsideWalls(sdfWalls, state->domain, sim->cartComm, nSamplesPerRank);
 }
 
-std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvName,
+std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvName,
                                                                std::vector<std::shared_ptr<Wall>> walls,
                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                std::shared_ptr<Integrator> integrator,
@@ -385,7 +385,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
         info("Working with wall '%s'", wall->name.c_str());   
     }
 
-    YmrState stateCpy = *getState();
+    MirState stateCpy = *getState();
     
     Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState());
 
@@ -429,7 +429,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenWallParticles(std::string pvNam
     return pv;
 }
 
-std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
+std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
                                                                 std::shared_ptr<ObjectVector> shape,
                                                                 std::shared_ptr<InitialConditions> icShape,
                                                                 std::vector<std::shared_ptr<Interaction>> interactions,
@@ -452,7 +452,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->name, mass);
     auto ic = std::make_shared<UniformIC>(density);
 
-    YmrState stateCpy = *getState();
+    MirState stateCpy = *getState();
 
     {
         Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState());
@@ -488,7 +488,7 @@ std::shared_ptr<ParticleVector> YMeRo::makeFrozenRigidParticles(std::shared_ptr<
     return freezesim.getSharedPVbyName(insideName);
 }
 
-std::shared_ptr<ParticleVector> YMeRo::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
+std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                       ParticleVector* pv,
                                                                       int checkEvery,
                                                                       std::string inside,
@@ -520,13 +520,13 @@ std::shared_ptr<ParticleVector> YMeRo::applyObjectBelongingChecker(ObjectBelongi
     return sim->getSharedPVbyName(newPVname);
 }
 
-void YMeRo::sayHello()
+void Mirheo::sayHello()
 {
     if (noSplash) return;
     
     static const int max_length_version =  9;
     static const int max_length_sha1    = 46;
-    std::string version = Version::ymr_version;
+    std::string version = Version::mir_version;
     std::string sha1    = Version::git_SHA1;
 
     int missing_spaces = max(0, max_length_version - (int) version.size());
@@ -537,13 +537,13 @@ void YMeRo::sayHello()
     
     printf("\n");
     printf("**************************************************\n");
-    printf("*                YMeRo %s                 *\n", version.c_str());
+    printf("*                Mirheo %s                 *\n", version.c_str());
     printf("* %s *\n", sha1.c_str());
     printf("**************************************************\n");
     printf("\n");
 }
 
-void YMeRo::setup()
+void Mirheo::setup()
 {
     if (initialized) return;
     
@@ -553,14 +553,14 @@ void YMeRo::setup()
     initialized = true;
 }
 
-void YMeRo::checkNotInitialized() const
+void Mirheo::checkNotInitialized() const
 {
     if (initialized)
         die("Coordinator is already initialized.\n"
             "Do not call any register or set functions after 'restart' or 'run'");
 }
 
-void YMeRo::restart(std::string folder)
+void Mirheo::restart(std::string folder)
 {
     folder = makePath(folder);
 
@@ -570,35 +570,35 @@ void YMeRo::restart(std::string folder)
     else                 post->restart(folder);
 }
 
-bool YMeRo::isComputeTask() const
+bool Mirheo::isComputeTask() const
 {
     return (computeTask == 0);
 }
 
-bool YMeRo::isMasterTask() const
+bool Mirheo::isMasterTask() const
 {
     return (rank == 0 && isComputeTask());
 }
 
-void YMeRo::saveDependencyGraph_GraphML(std::string fname, bool current) const
+void Mirheo::saveDependencyGraph_GraphML(std::string fname, bool current) const
 {
     if (isComputeTask())
         sim->saveDependencyGraph_GraphML(fname, current);
 }
 
-void YMeRo::startProfiler()
+void Mirheo::startProfiler()
 {
     if (isComputeTask())
         sim->startProfiler();
 }
 
-void YMeRo::stopProfiler()
+void Mirheo::stopProfiler()
 {
     if (isComputeTask())
         sim->stopProfiler();
 }
 
-void YMeRo::run(int nsteps)
+void Mirheo::run(int nsteps)
 {
     setup();
     

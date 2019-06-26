@@ -13,7 +13,7 @@ class InteractionPair_withStress : public Interaction
 public:
     enum class InteractionType { Regular, Halo };
 
-    InteractionPair_withStress(const YmrState *state, std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
+    InteractionPair_withStress(const MirState *state, std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),

@@ -7,7 +7,7 @@
 
 #include <memory>
 
-InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float power, bool allocateImpl) :
+InteractionDPD::InteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kbt, float power, bool allocateImpl) :
     Interaction(state, name, rc),
     a(a), gamma(gamma), kbt(kbt), power(power)
 {
@@ -17,7 +17,7 @@ InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc
     }
 }
 
-InteractionDPD::InteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kbt, float power) :
+InteractionDPD::InteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kbt, float power) :
     InteractionDPD(state, name, rc, a, gamma, kbt, power, true)
 {}
 

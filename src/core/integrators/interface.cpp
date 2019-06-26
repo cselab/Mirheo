@@ -2,8 +2,8 @@
 
 #include <core/pvs/particle_vector.h>
 
-Integrator::Integrator(const YmrState *state, std::string name) :
-    YmrSimulationObject(state, name)
+Integrator::Integrator(const MirState *state, std::string name) :
+    MirSimulationObject(state, name)
 {}
 
 Integrator::~Integrator() = default;

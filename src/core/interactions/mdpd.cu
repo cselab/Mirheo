@@ -10,7 +10,7 @@
 #include <memory>
 
 
-InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl) :
+InteractionMDPD::InteractionMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power, bool allocateImpl) :
     Interaction(state, name, rc),
     rd(rd), a(a), b(b), gamma(gamma), kbt(kbt), power(power)
 {
@@ -20,7 +20,7 @@ InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float 
     }
 }
 
-InteractionMDPD::InteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power) :
+InteractionMDPD::InteractionMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt, float power) :
     InteractionMDPD(state, name, rc, rd, a, b, gamma, kbt, power, true)
 {}
 

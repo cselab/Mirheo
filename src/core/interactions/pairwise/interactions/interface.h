@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
 class PairwiseKernel
 {
@@ -9,7 +9,7 @@ public:
                        LocalParticleVector *lpv2,
                        CellList *cl1,
                        CellList *cl2,
-                       const YmrState *state)
+                       const MirState *state)
     {}
     
     virtual void writeState(std::ofstream& fout)

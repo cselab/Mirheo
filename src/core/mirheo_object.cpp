@@ -1,16 +1,16 @@
-#include "ymero_object.h"
+#include "mirheo_object.h"
 
 #include <core/logger.h>
 #include <core/utils/folders.h>
 
-YmrObject::YmrObject(std::string name) :
+MirObject::MirObject(std::string name) :
     name(name)
 {}
 
-YmrObject::~YmrObject() = default;
+MirObject::~MirObject() = default;
 
-void YmrObject::checkpoint(MPI_Comm comm, std::string path, int checkpointId) {}
-void YmrObject::restart   (MPI_Comm comm, std::string path) {}
+void MirObject::checkpoint(MPI_Comm comm, std::string path, int checkpointId) {}
+void MirObject::restart   (MPI_Comm comm, std::string path) {}
 
 
 static void appendIfNonEmpty(std::string& base, const std::string& toAppend)
@@ -29,14 +29,14 @@ static std::string createBaseName(const std::string& path,
 }
 
 
-std::string YmrObject::createCheckpointName(std::string path, std::string identifier, std::string extension) const
+std::string MirObject::createCheckpointName(std::string path, std::string identifier, std::string extension) const
 {
     auto base = createBaseName(path, name, identifier);
     appendIfNonEmpty(base, extension);
     return base;
 }
 
-std::string YmrObject::createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const
+std::string MirObject::createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const
 {
     auto base = createBaseName(path, name, identifier);
     base += "-" + getStrZeroPadded(checkpointId);
@@ -44,7 +44,7 @@ std::string YmrObject::createCheckpointNameWithId(std::string path, std::string 
     return base;
 }
 
-void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const
+void MirObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -61,9 +61,9 @@ void YmrObject::createCheckpointSymlink(MPI_Comm comm, std::string path, std::st
 }
 
 
-YmrSimulationObject::YmrSimulationObject(const YmrState *state, std::string name) :
-    YmrObject(name),
+MirSimulationObject::MirSimulationObject(const MirState *state, std::string name) :
+    MirObject(name),
     state(state)
 {}
 
-YmrSimulationObject::~YmrSimulationObject() = default;
+MirSimulationObject::~MirSimulationObject() = default;

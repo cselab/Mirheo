@@ -10,7 +10,7 @@
 
 #include <memory>
 
-IntegratorSubStep::IntegratorSubStep(const YmrState *state, std::string name, int substeps, Interaction *fastForces) :
+IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name),
     substeps(substeps),
     subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),

@@ -10,7 +10,7 @@
 
 #include <core/rigid_kernels/integration.h>
 
-IntegratorVVRigid::IntegratorVVRigid(const YmrState *state, std::string name) :
+IntegratorVVRigid::IntegratorVVRigid(const MirState *state, std::string name) :
     Integrator(state, name)
 {}
 

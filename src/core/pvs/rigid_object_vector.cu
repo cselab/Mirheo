@@ -70,7 +70,7 @@ PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(cudaStream_t stream)
 
 
 
-RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
+RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, float partMass,
                                      float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
@@ -96,7 +96,7 @@ RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, fl
                                       DataManager::PersistenceMode::None);
 }
 
-RigidObjectVector::RigidObjectVector(const YmrState *state, std::string name, float partMass,
+RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, float partMass,
                                      PyTypes::float3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     RigidObjectVector( state, name, partMass, make_float3(J), objSize, mesh, nObjects )

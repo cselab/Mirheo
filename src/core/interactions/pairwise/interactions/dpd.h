@@ -77,7 +77,7 @@ public:
         return (const HandlerType&)(*this);
     }
 
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const YmrState *state) override
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
     {
         this->seed = stepGen.generate(state);
     }

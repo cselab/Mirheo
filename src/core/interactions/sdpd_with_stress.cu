@@ -7,7 +7,7 @@
 
 #include <memory>
 
-BasicInteractionSDPDWithStress::BasicInteractionSDPDWithStress(const YmrState *state, std::string name, float rc,
+BasicInteractionSDPDWithStress::BasicInteractionSDPDWithStress(const MirState *state, std::string name, float rc,
                                                                float viscosity, float kBT, float stressPeriod) :
     BasicInteractionSDPD(state, name, rc, viscosity, kBT)
 {}
@@ -18,7 +18,7 @@ BasicInteractionSDPDWithStress::~BasicInteractionSDPDWithStress() = default;
 
 template <class PressureEOS, class DensityKernel>
 InteractionSDPDWithStress<PressureEOS, DensityKernel>::
-InteractionSDPDWithStress(const YmrState *state, std::string name, float rc,
+InteractionSDPDWithStress(const MirState *state, std::string name, float rc,
                           PressureEOS pressure, DensityKernel densityKernel,
                           float viscosity, float kBT, float stressPeriod) :
     BasicInteractionSDPDWithStress(state, name, rc, viscosity, kBT, stressPeriod)

@@ -10,7 +10,7 @@ struct IntegratorVV : Integrator
 {
     ForcingTerm forcingTerm;
 
-    IntegratorVV(const YmrState *state, std::string name, ForcingTerm forcingTerm);
+    IntegratorVV(const MirState *state, std::string name, ForcingTerm forcingTerm);
     ~IntegratorVV();
 
     void stage1(ParticleVector *pv, cudaStream_t stream) override;

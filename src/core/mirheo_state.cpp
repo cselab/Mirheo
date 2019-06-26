@@ -1,28 +1,28 @@
-#include "ymero_state.h"
+#include "mirheo_state.h"
 
 #include <core/logger.h>
 #include <core/utils/restart_helpers.h>
 
-static const std::string fname = "state.ymero";
+static const std::string fname = "state.mirheo";
 
-YmrState::YmrState(DomainInfo domain, float dt) :
+MirState::MirState(DomainInfo domain, float dt) :
     domain(domain),
     dt(dt),
     currentTime(0),
     currentStep(0)
 {}
 
-YmrState::YmrState(const YmrState&) = default;
+MirState::MirState(const MirState&) = default;
 
-YmrState& YmrState::operator=(YmrState other)
+MirState& MirState::operator=(MirState other)
 {
     swap(other);
     return *this;
 }
 
-YmrState::~YmrState() = default;
+MirState::~MirState() = default;
 
-void YmrState::swap(YmrState& other)
+void MirState::swap(MirState& other)
 {
     std::swap(domain,      other.domain);
     std::swap(dt,          other.dt);
@@ -37,13 +37,13 @@ static bool isMasterRank(MPI_Comm comm)
     return rank == 0;
 }
 
-void YmrState::reinitTime()
+void MirState::reinitTime()
 {
     currentTime = 0;
     currentStep = 0;
 }
 
-void YmrState::checkpoint(MPI_Comm comm, std::string folder)
+void MirState::checkpoint(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))
         return;
@@ -60,7 +60,7 @@ void YmrState::checkpoint(MPI_Comm comm, std::string folder)
                   dt, currentTime, currentStep);
 }
 
-void YmrState::restart(MPI_Comm comm, std::string folder)
+void MirState::restart(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))
         return;    

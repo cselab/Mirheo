@@ -4,8 +4,8 @@
 #include <core/utils/cuda_common.h>
 
 
-Field::Field(const YmrState *state, std::string name, float3 hField) :
-    YmrSimulationObject(state, name),
+Field::Field(const MirState *state, std::string name, float3 hField) :
+    MirSimulationObject(state, name),
     fieldArray(nullptr)
 {
     // We'll make sdf a bit bigger, so that particles that flew away

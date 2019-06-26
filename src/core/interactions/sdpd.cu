@@ -10,7 +10,7 @@
 
 #include <memory>
 
-BasicInteractionSDPD::BasicInteractionSDPD(const YmrState *state, std::string name, float rc,
+BasicInteractionSDPD::BasicInteractionSDPD(const MirState *state, std::string name, float rc,
                                            float viscosity, float kBT) :
     Interaction(state, name, rc),
     viscosity(viscosity),
@@ -59,7 +59,7 @@ void BasicInteractionSDPD::halo(ParticleVector *pv1, ParticleVector *pv2,
 
 
 template <class PressureEOS, class DensityKernel>
-InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const YmrState *state, std::string name, float rc,
+InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const MirState *state, std::string name, float rc,
                                                              PressureEOS pressure, DensityKernel densityKernel,
                                                              float viscosity, float kBT, bool allocateImpl) :
     BasicInteractionSDPD(state, name, rc, viscosity, kBT),
@@ -74,7 +74,7 @@ InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const YmrState *sta
 }
 
 template <class PressureEOS, class DensityKernel>
-InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const YmrState *state, std::string name, float rc,
+InteractionSDPD<PressureEOS, DensityKernel>::InteractionSDPD(const MirState *state, std::string name, float rc,
                                                              PressureEOS pressure, DensityKernel densityKernel,
                                                              float viscosity, float kBT) :
     InteractionSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, true)
