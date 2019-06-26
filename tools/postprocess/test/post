@@ -1,2 +1,2 @@
 # TEST: post.echo
-ymr.post echo 1 > echo.out.txt
+mir.post echo 1 > echo.out.txt

@@ -1,9 +1,9 @@
 # TEST: run.echo
-ymr.run --runargs "-n 1" echo 1 > echo.out.txt
+mir.run --runargs "-n 1" echo 1 > echo.out.txt
 
 # TEST: run.echo.2
-ymr.run --runargs "-n 2" echo 1 > echo.out.txt
+mir.run --runargs "-n 2" echo 1 > echo.out.txt
 
 # TEST: run.echo.ENV
-YMR_RUNARGS="-n 2" ymr.run echo 1 > echo.out.txt
+MIR_RUNARGS="-n 2" mir.run echo 1 > echo.out.txt
 

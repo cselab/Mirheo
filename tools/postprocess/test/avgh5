@@ -1,20 +1,20 @@
 # TEST: avgh5.den.alldir
-ymr.avgh5 xyz density data/h5/*.h5 > avg.out.txt
+mir.avgh5 xyz density data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.den.yzdir
-ymr.avgh5 yz density data/h5/*.h5 > avg.out.txt
+mir.avgh5 yz density data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.den.xdir
-ymr.avgh5 x density data/h5/*.h5 > avg.out.txt
+mir.avgh5 x density data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.alldir
-ymr.avgh5 xyz velocity data/h5/*.h5 > avg.out.txt
+mir.avgh5 xyz velocity data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.xzdir
-ymr.avgh5 xz velocity data/h5/*.h5 > avg.out.txt
+mir.avgh5 xz velocity data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.xdir
-ymr.avgh5 x velocity data/h5/*.h5 > avg.out.txt
+mir.avgh5 x velocity data/h5/*.h5 > avg.out.txt
 
 # TEST: avgh5.vel.alldir.1step
-ymr.avgh5 xz velocity data/h5/00001.h5 > avg.out.txt
+mir.avgh5 xz velocity data/h5/00001.h5 > avg.out.txt

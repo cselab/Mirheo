@@ -12,14 +12,14 @@ RUN_CMD=@RUN_CMD@
 
 usage() {
     cat <<EOF
-wrapper for ymero executable.
+wrapper for mirheo executable.
 automatically loads the required modules.
 
 usage: $EXE_PREFIX.run [--runargs RUNARGS] <executable> [ARGS]
 
 --runargs option allows to pass arguments to ${RUN_CMD}
 These options can be alternatively passed by setting the 
-environment variable YMR_RUNARGS
+environment variable MIR_RUNARGS
 
 additional executables are used if one of the following
 environment variable is set (its value must contain the 
@@ -35,11 +35,11 @@ env variable
 
 example:
 
-    DRYRUN= MEM=  $EXE_PREFIX.run --runargs "-n 2" ./ymero
+    DRYRUN= MEM=  $EXE_PREFIX.run --runargs "-n 2" ./mirheo
 
 will print
    
-   $RUN_CMD -n 2 $EXE_CUDA_MEMCHECK ./ymero
+   $RUN_CMD -n 2 $EXE_CUDA_MEMCHECK ./mirheo
 
 EOF
     exit 1
@@ -58,8 +58,8 @@ then
     fi
 fi
 
-if test ! -z "${YMR_RUNARGS+x}"; then
-    RUNARGS="$RUNARGS $YMR_RUNARGS"
+if test ! -z "${MIR_RUNARGS+x}"; then
+    RUNARGS="$RUNARGS $MIR_RUNARGS"
 fi
 
 exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-P=ymr
+P=mir
 prefix=${HOME}/bin
 runcmd=mpiexec
 
@@ -12,7 +12,7 @@ Options:
 
   --bin-prefix <prefix>      set tools installation prefix;
   	   		     default: ${prefix}
-  --exec-cmd   <cmd>         set run command for ymero;
+  --exec-cmd   <cmd>         set run command for mirheo;
   	   		     default: ${runcmd}
   --help                     print help message
 
