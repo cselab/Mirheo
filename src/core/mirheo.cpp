@@ -537,7 +537,7 @@ void Mirheo::sayHello()
     
     printf("\n");
     printf("**************************************************\n");
-    printf("*                Mirheo %s                 *\n", version.c_str());
+    printf("*                Mirheo %s                *\n", version.c_str());
     printf("* %s *\n", sha1.c_str());
     printf("**************************************************\n");
     printf("\n");
