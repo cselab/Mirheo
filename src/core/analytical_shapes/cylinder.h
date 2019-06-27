@@ -43,7 +43,7 @@ public:
         
         float3 n {0.f, 0.f, 0.f};
         if (fabs(dr) < delta) n += er;
-        if (fabs(dr) < delta) n += ez;
+        if (fabs(dz) < delta) n += ez;
         return n;
     }
     
