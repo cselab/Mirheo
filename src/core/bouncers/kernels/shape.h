@@ -4,10 +4,38 @@
 #include <core/celllist.h>
 #include <core/pvs/views/rsov.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/cuda_rng.h>
 #include <core/utils/quaternion.h>
 
 namespace ShapeBounceKernels
 {
+
+template <class Shape>
+__device__ inline float3 rescue(float3 candidate, float dt, float tol, const Shape& shape)
+{
+    const int maxIters = 100;
+    const float factor = 50.0f * dt;
+
+    for (int i = 0; i < maxIters; i++)
+    {
+        float v = shape.inOutFunction(candidate);
+        if (v > tol) break;
+
+        float3 rndShift;
+        float seed0 = candidate.x - floorf(candidate.x) / i;
+        float seed1 = candidate.y - floorf(candidate.y) * i;
+        float seed2 = candidate.z - floorf(candidate.z) + i;
+        
+        rndShift.x = Saru::mean0var1(seed0, seed1, seed2);
+        rndShift.y = Saru::mean0var1(rndShift.x, seed0, seed1);
+        rndShift.z = Saru::mean0var1(rndShift.y, seed2, seed1 * seed0);
+
+        if (shape.inOutFunction(candidate + factor * rndShift) > v)
+            candidate += factor * rndShift;
+    }
+
+    return candidate;
+}
 
 template <class Shape>
 __device__ inline void bounceCellArray(
@@ -43,25 +71,46 @@ __device__ inline void bounceCellArray(
         // If the particle is outside - skip it, it's fine
         if (shape.inOutFunction(coo) > 0.0f) continue;
 
-        // This is intersection point
-        float alpha = solveLinSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
-        float3 newCoo = oldCoo + dr*max(alpha, 0.0f);
-
-        // Push out a little bit
-        auto normal = shape.normal(newCoo);
-        newCoo += threshold * normal;
-
-        // If smth went notoriously bad
-        if (shape.inOutFunction(newCoo) < 0.0f)
+        float3 newCoo;
+        
+        // worst case scenario: was already inside before, we need to rescue the particle
+        if (shape.inOutFunction(oldCoo) <= 0.0f)
         {
-            printf("Bounce-back failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f to %f, alpha %f. Recovering to old position\n",
-                   p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
-                    shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
-                    shape.inOutFunction(newCoo - threshold*normal), alpha);
+            newCoo = rescue(coo, dt, threshold, shape);
 
-            newCoo = oldCoo;
+            if (shape.inOutFunction(newCoo) < 0.0f)
+            {
+                printf("Bounce-back rescue failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f (rescued: %g).\n",
+                       p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
+                       shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
+                       shape.inOutFunction(newCoo));
+
+                newCoo = oldCoo;
+            }
         }
+        // otherwise find intersection and perform the bounce
+        else
+        {
+            // This is intersection point
+            float alpha = solveLinSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
+            newCoo = oldCoo + dr*max(alpha, 0.0f);
 
+            // Push out a little bit
+            auto normal = shape.normal(newCoo);
+            newCoo += threshold * normal;
+
+            // If smth went notoriously bad
+            if (shape.inOutFunction(newCoo) < 0.0f)
+            {
+                printf("Bounce-back failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f to %f, alpha %f. Recovering to old position\n",
+                       p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
+                       shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
+                       shape.inOutFunction(newCoo - threshold*normal), alpha);
+
+                newCoo = oldCoo;
+            }
+        }
+        
         // Return to the original frame
         newCoo = rotate(newCoo, motion.q) + motion.r;
 
