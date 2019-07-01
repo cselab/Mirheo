@@ -1,4 +1,4 @@
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import trimesh
 
@@ -23,10 +23,10 @@ inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
     
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
-dpd = ymr.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
-vv  = ymr.Integrators.VelocityVerlet('vv')
+dpd = mir.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+vv  = mir.Integrators.VelocityVerlet('vv')
 
 # we create here a fake rigid object in the center of the domain with only 2 particles
 # those particles will be used to compute the extents in the object belonging, so they
@@ -39,11 +39,11 @@ bb_lo = m.vertices.min(axis=0).tolist()
 coords = [bb_lo, bb_hi]
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1, 0, 0, 0]]
 
-mesh = ymr.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
-fake_ov = ymr.ParticleVectors.RigidObjectVector('fake_ov', mass, inertia, len(coords), mesh)
-fake_ic = ymr.InitialConditions.Rigid(com_q, coords)
+mesh = mir.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
+fake_ov = mir.ParticleVectors.RigidObjectVector('fake_ov', mass, inertia, len(coords), mesh)
+fake_ic = mir.InitialConditions.Rigid(com_q, coords)
 
-belonging_checker = ymr.BelongingCheckers.Mesh("mesh_checker")
+belonging_checker = mir.BelongingCheckers.Mesh("mesh_checker")
 
 # similarly to wall creation, we freeze particles inside a rigid object
 pv_rigid = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, niter)

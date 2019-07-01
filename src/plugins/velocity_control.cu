@@ -61,7 +61,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 
 } // namespace VelocityControlKernels
 
-SimulationVelocityControl::SimulationVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+SimulationVelocityControl::SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                                      float3 low, float3 high,
                                                      int sampleEvery, int tuneEvery, int dumpEvery,
                                                      float3 targetVel, float Kp, float Ki, float Kd) :
@@ -187,8 +187,8 @@ PostprocessVelocityControl::~PostprocessVelocityControl()
 
 void PostprocessVelocityControl::deserialize(MPI_Status& stat)
 {
-    YmrState::StepType currentTimeStep;
-    YmrState::TimeType currentTime;
+    MirState::StepType currentTimeStep;
+    MirState::TimeType currentTime;
     float3 vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);

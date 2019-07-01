@@ -7,7 +7,7 @@
 #include <vector>
 
 Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
-    YmrObject("postprocess"),
+    MirObject("postprocess"),
     comm(comm),
     interComm(interComm),
     checkpointFolder(checkpointFolder)

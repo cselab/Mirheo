@@ -1,26 +1,54 @@
 #include "rod.h"
 #include "rod.impl.h"
 
+template <int Nstates>
+auto instantiateImpl(const MirState *state, std::string name, RodParameters parameters, VarSpinParams varSpinParams, bool saveEnergies)
+{
+    std::unique_ptr<Interaction> impl;
 
-InteractionRod::InteractionRod(const YmrState *state, std::string name, RodParameters parameters,
-                               bool saveStates, bool saveEnergies) :
+    mpark::visit([&](auto spinParams)
+    {
+        using SpinParamsType = decltype(spinParams);
+        
+        impl = std::make_unique<InteractionRodImpl<Nstates, SpinParamsType>>
+            (state, name, parameters, spinParams, saveEnergies);
+    }, varSpinParams);
+
+    return impl;
+}
+
+InteractionRod::InteractionRod(const MirState *state, std::string name, RodParameters parameters,
+                               VarSpinParams varSpinParams, bool saveEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {
     int nstates = parameters.kappaEq.size();
-    
-#define CHECK_IMPLEMENT(Nstates) do {                                   \
-        if (nstates == Nstates) {                                       \
-            impl = std::make_unique<InteractionRodImpl<Nstates>>        \
-                (state, name, parameters, saveStates, saveEnergies);    \
-            debug("Create interaction rod with %d states", Nstates);    \
-            return;                                                     \
-        } } while(0)
 
-    CHECK_IMPLEMENT(1); // normal rod
-    CHECK_IMPLEMENT(2); // 2 polymorphic states
-    CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
-    
-    die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
+    if (mpark::holds_alternative<StatesParametersNone>(varSpinParams))
+    {
+        if (nstates != 1)
+            die("only one state supported for state_update = 'none' (while creating %s)", name.c_str());
+
+        impl = std::make_unique<InteractionRodImpl<1, StatesParametersNone>>
+            (state, name, parameters, mpark::get<StatesParametersNone>(varSpinParams), saveEnergies);
+    }
+    else
+    {
+        if (nstates <= 1)
+            warn("using only one state for state_update != 'none' (while creating %s)", name.c_str());
+        
+#define CHECK_IMPLEMENT(Nstates) do {                                   \
+            if (nstates == Nstates) {                                   \
+                impl = instantiateImpl<Nstates>                         \
+                    (state, name, parameters, varSpinParams, saveEnergies); \
+                debug("Create interaction rod with %d states", Nstates); \
+                return;                                                 \
+            } } while(0)
+        
+        CHECK_IMPLEMENT(2); // 2 polymorphic states
+        CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
+
+        die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
+    }
 }
 
 InteractionRod::~InteractionRod() = default;

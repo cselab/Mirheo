@@ -1,4 +1,4 @@
-PROJECT_NAME      = "ymero"
+PROJECT_NAME      = "mirheo"
 XML_OUTPUT        = xml
 INPUT             = ../src/core ../src/plugins
 FILE_PATTERNS     = *.h *.cpp *.cu

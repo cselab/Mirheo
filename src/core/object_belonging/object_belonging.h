@@ -13,7 +13,7 @@ class ObjectBelongingChecker_Common : ObjectBelongingChecker
 public:
     std::string name;
 
-    ObjectBelongingChecker_Common(const YmrState *state, std::string name);
+    ObjectBelongingChecker_Common(const MirState *state, std::string name);
 
     ~ObjectBelongingChecker_Common() override;
 

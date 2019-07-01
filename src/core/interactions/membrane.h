@@ -18,7 +18,7 @@ class InteractionMembrane : public Interaction
 {
 public:
 
-    InteractionMembrane(const YmrState *state, std::string name, CommonMembraneParameters commonParams,
+    InteractionMembrane(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                         VarBendingParams bendingParams, VarShearParams shearParams, bool stressFree, float growUntil);
     ~InteractionMembrane();
     

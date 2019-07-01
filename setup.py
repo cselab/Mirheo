@@ -8,7 +8,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 import sys
-sys.path.insert(0, 'src/ymero')
+sys.path.insert(0, 'src/mirheo')
 import version
 
 
@@ -25,7 +25,7 @@ class CopyLibrary(build_ext):
 
     def copy_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-        library = glob.glob(ext.sourcedir + '/build/libymero.cpython*.so')
+        library = glob.glob(ext.sourcedir + '/build/libmirheo.cpython*.so')
 
         if (len(library) == 0):
             raise ValueError('No pre-build library found in folder ' + 
@@ -35,15 +35,15 @@ class CopyLibrary(build_ext):
 
 
 setup(
-    name='YMeRo',
-    version=version.ymr_version,
-    author='Dmitry Alexeev',
-    author_email='alexeedm@ethz.ch',
+    name='Mirheo',
+    version=version.mir_version,
+    author='Dmitry Alexeev, Lucas Amoudruz',
+    author_email='alexeedm@ethz.ch, amlucas@ethz.ch',
     description='Computational Microfluidics',
     long_description='',
-    packages = ['ymero'],
-    package_dir = {'ymero' : 'src/ymero'},
-    ext_modules=[BinaryExtension('libymero', sourcedir='./')],
+    packages = ['mirheo'],
+    package_dir = {'mirheo' : 'src/mirheo'},
+    ext_modules=[BinaryExtension('libmirheo', sourcedir='./')],
     cmdclass=dict(build_ext=CopyLibrary),
     zip_safe=False,
 )

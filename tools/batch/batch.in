@@ -6,7 +6,7 @@ EXE_PREFIX=@EXE_PREFIX@
 
 usage() {
     cat <<EOF
-batch submission wrapper for YMeRo
+batch submission wrapper for Mirheo
 automatically loads the required modules and launch a given batch script.
 
 usage: $EXE_PREFIX.batch <batch file>

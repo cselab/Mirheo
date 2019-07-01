@@ -24,7 +24,7 @@
  * @param m RBC membrane mesh
  * @return parameters to be passed to GPU kernels
  */
-static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const YmrState *state)
+static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const MirState *state)
 {
     MembraneForcesKernels::GPU_CommonMembraneParameters devP;
 
@@ -66,7 +66,7 @@ class InteractionMembraneImpl : public Interaction
 {
 public:
 
-    InteractionMembraneImpl(const YmrState *state, std::string name, CommonMembraneParameters parameters,
+    InteractionMembraneImpl(const MirState *state, std::string name, CommonMembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
                             float growUntil, long seed = 42424242) :

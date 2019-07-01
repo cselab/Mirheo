@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import argparse
 
@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = tuple(args.nranks)
 domain = (31, 18, 59)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 np.random.seed(84)
 com_q = np.random.rand(args.nobjects, 7)
@@ -26,35 +26,34 @@ vels  = np.random.rand(args.nobjects, 3)
 
 coords = np.loadtxt(args.coords).tolist()
 
+pv_ell = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
+ic_ell = mir.InitialConditions.Rigid(com_q=com_q.tolist(), coords=coords, init_vels=vels.tolist())
+vv_ell = mir.Integrators.RigidVelocityVerlet("ellvv")
 
-pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
-icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q.tolist(), coords=coords, init_vels=vels.tolist())
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
+u.registerParticleVector(pv_ell, ic_ell)
+u.registerIntegrator(vv_ell)
+u.setIntegrator(vv_ell, pv_ell)
 
-u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
-u.registerIntegrator(vvEllipsoid)
-u.setIntegrator(vvEllipsoid, pvEllipsoid)
-
-u.registerPlugins( ymr.Plugins.createDumpObjectStats("objStats", ov=pvEllipsoid, dump_every=10, path="stats") )
+u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every=10, path="stats") )
 u.run(1000)
 
 
-# nTEST: freefly.onerank
+# nTEST: rigids.many_random_flying.onerank
 # set -eu
 # cd rigids
 # f="pos.txt"
 # rm -rf stats freefly.out.txt $f
 # rho=4.0; ax=1.0; ay=2.0; az=3.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./many_random_flying.py --nranks 1 1 1 --nobjects 55  $f > /dev/null
+# mir.run --runargs "-n 2" ./many_random_flying.py --nranks 1 1 1 --nobjects 55  $f
 # LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
 
-# nTEST: freefly.manyranks
+# nTEST: rigids.many_random_flying.manyranks
 # set -eu
 # cd rigids
 # f="pos.txt"
 # rm -rf stats freefly.out.txt $f
 # rho=4.0; ax=1.0; ay=2.0; az=3.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 12" ./many_random_flying.py --nranks 1 2 3 --nobjects 123  $f > /dev/null
+# mir.run --runargs "-n 12" ./many_random_flying.py --nranks 1 2 3 --nobjects 123  $f
 # LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt

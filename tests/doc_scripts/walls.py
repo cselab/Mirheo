@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 
 rc = 1.0      # cutoff radius
 density = 8.0 # number density
@@ -8,12 +8,12 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
-pv  = ymr.ParticleVectors.ParticleVector('pv', mass = 1.0)
-ic  = ymr.InitialConditions.Uniform(density)
-dpd = ymr.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
-vv  = ymr.Integrators.VelocityVerlet('vv')
+pv  = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
+ic  = mir.InitialConditions.Uniform(density)
+dpd = mir.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+vv  = mir.Integrators.VelocityVerlet('vv')
 
 u.registerInteraction(dpd)
 u.registerParticleVector(pv, ic)
@@ -25,7 +25,7 @@ center = (domain[1]*0.5, domain[2]*0.5) # center in the (yz) plane
 radius = 0.5 * domain[1] - rc           # radius needs to be smaller than half of the domain
                                         # because of the frozen particles
 
-wall = ymr.Walls.Cylinder("cylinder", center=center, radius=radius, axis="x", inside=True)
+wall = mir.Walls.Cylinder("cylinder", center=center, radius=radius, axis="x", inside=True)
 
 u.registerWall(wall) # register the wall in the coordinator
 
@@ -47,12 +47,12 @@ u.setInteraction(dpd, pv, pv_frozen)
 # pv_frozen do not move, only pv needs an integrator in this case
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(ymr.Plugins.createStats('stats', every=500))
+u.registerPlugins(mir.Plugins.createStats('stats', every=500))
 dump_every = 500
-u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump', pv, dump_every, [], 'h5/solvent_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('part_dump', pv, dump_every, [], 'h5/solvent_particles-'))
 
 # we can also dump the frozen particles for visualization purpose
-u.registerPlugins(ymr.Plugins.createDumpParticles('part_dump_wall', pv_frozen, dump_every, [], 'h5/wall_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_wall', pv_frozen, dump_every, [], 'h5/wall_particles-'))
 
 # we can dump the wall sdf in xdmf + h5 format for visualization purpose
 # the dumped file is a grid with spacings h containing the SDF values 

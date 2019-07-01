@@ -13,7 +13,7 @@ class ParticleVector;
 class ImposeVelocityPlugin : public SimulationPlugin
 {
 public:
-    ImposeVelocityPlugin(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                          float3 low, float3 high, float3 targetVel, int every);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

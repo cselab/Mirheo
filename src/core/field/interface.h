@@ -2,7 +2,7 @@
 
 #include <core/domain.h>
 #include <core/containers.h>
-#include <core/ymero_object.h>
+#include <core/mirheo_object.h>
 
 #include <core/utils/cpu_gpu_defines.h>
 #include <core/utils/helper_math.h>
@@ -63,10 +63,10 @@ protected:
 };
 
 
-class Field : public FieldDeviceHandler, public YmrSimulationObject
+class Field : public FieldDeviceHandler, public MirSimulationObject
 {
 public:    
-    Field(const YmrState *state, std::string name, float3 h);
+    Field(const MirState *state, std::string name, float3 h);
     virtual ~Field();
 
     Field(Field&&);

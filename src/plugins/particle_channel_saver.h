@@ -8,7 +8,7 @@ class ParticleVector;
 class ParticleChannelSaverPlugin : public SimulationPlugin
 {
 public:
-    ParticleChannelSaverPlugin(const YmrState *state, std::string name, std::string pvName,
+    ParticleChannelSaverPlugin(const MirState *state, std::string name, std::string pvName,
                                std::string channelName, std::string savedName);
 
     void beforeIntegration(cudaStream_t stream) override;

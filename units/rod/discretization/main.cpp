@@ -119,13 +119,13 @@ static std::vector<real> computeTorsions(const float4 *positions, int nSegments)
 
 static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int nSegments, CurvatureFunc ref)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return 0.f;
     };
@@ -136,11 +136,11 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
+             mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -166,13 +166,13 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
 
 static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return (float) torsion(s);
     };
@@ -183,11 +183,11 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
+             mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 

@@ -24,9 +24,9 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     for (int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {
         int3 ids = mesh.triangles[i];
 
-        auto v0 = make_real3(f4tof3( view.readPosition(offset + ids.x) ));
-        auto v1 = make_real3(f4tof3( view.readPosition(offset + ids.y) ));
-        auto v2 = make_real3(f4tof3( view.readPosition(offset + ids.z) ));
+        auto v0 = make_real3(make_float3( view.readPosition(offset + ids.x) ));
+        auto v1 = make_real3(make_float3( view.readPosition(offset + ids.y) ));
+        auto v2 = make_real3(make_float3( view.readPosition(offset + ids.z) ));
 
         a_v.x += triangleArea(v0, v1, v2);
         a_v.y += triangleSignedVolume(v0, v1, v2);
@@ -39,30 +39,31 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 }
 } // namespace InteractionMembraneKernels
 
-InteractionMembrane::InteractionMembrane(const YmrState *state, std::string name, CommonMembraneParameters commonParams,
+InteractionMembrane::InteractionMembrane(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                                          VarBendingParams bendingParams, VarShearParams shearParams,
                                          bool stressFree, float growUntil) :
     Interaction(state, name, /* default cutoff rc */ 1.0)
 {
-    mpark::visit([&](auto bePrms, auto shPrms) {                     
-                     using DihedralForce = typename decltype(bePrms)::DihedralForce;
-
-                     if (stressFree)
-                     {
-                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
-                         
-                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
-                             (state, name, commonParams, shPrms, bePrms, growUntil);
-                     }
-                     else                         
-                     {
-                         using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
-                         
-                         impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
-                             (state, name, commonParams, shPrms, bePrms, growUntil);
-                     }
-                     
-                 }, bendingParams, shearParams);
+    mpark::visit([&](auto bePrms, auto shPrms)
+    {                     
+        using DihedralForce = typename decltype(bePrms)::DihedralForce;
+        
+        if (stressFree)
+        {
+            using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
+            
+            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                (state, name, commonParams, shPrms, bePrms, growUntil);
+        }
+        else                         
+        {
+            using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
+            
+            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+                (state, name, commonParams, shPrms, bePrms, growUntil);
+        }
+        
+    }, bendingParams, shearParams);
 }
 
 InteractionMembrane::~InteractionMembrane() = default;

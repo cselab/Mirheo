@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
-bool isTimeEvery(const YmrState *state, int dumpEvery);
-bool isTimeEvery(const YmrState *state, float dumpEvery) = delete;
+bool isTimeEvery(const MirState *state, int dumpEvery);
+bool isTimeEvery(const MirState *state, float dumpEvery) = delete;
 
-YmrState::StepType getTimeStamp(const YmrState *state, int dumpEvery);
-YmrState::StepType getTimeStamp(const YmrState*, float) = delete;
+MirState::StepType getTimeStamp(const MirState *state, int dumpEvery);
+MirState::StepType getTimeStamp(const MirState*, float) = delete;
 

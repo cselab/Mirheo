@@ -13,7 +13,7 @@ class ParticleVector;
 class SimulationRadialVelocityControl : public SimulationPlugin
 {
 public:
-    SimulationRadialVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+    SimulationRadialVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                     float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
                                     float3 center, float targetVel, float Kp, float Ki, float Kd);
 

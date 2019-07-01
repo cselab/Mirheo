@@ -39,7 +39,7 @@ class ObjectVector : public ParticleVector
 {
 public:
     
-    ObjectVector(const YmrState *state, std::string name, float mass, int objSize, int nObjects = 0);
+    ObjectVector(const MirState *state, std::string name, float mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
     
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
@@ -68,7 +68,7 @@ public:
     std::shared_ptr<Mesh> mesh;
     
 protected:
-    ObjectVector(const YmrState *state, std::string name, float mass, int objSize,
+    ObjectVector(const MirState *state, std::string name, float mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
 

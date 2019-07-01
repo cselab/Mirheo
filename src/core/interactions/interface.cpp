@@ -2,8 +2,8 @@
 
 #include <core/utils/common.h>
 
-Interaction::Interaction(const YmrState *state, std::string name, float rc) :
-    YmrSimulationObject(state, name),
+Interaction::Interaction(const MirState *state, std::string name, float rc) :
+    MirSimulationObject(state, name),
     rc(rc)
 {}
 

@@ -50,7 +50,7 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, float k, float3 t
 
 } // namespace PinRodExtremityKernels
 
-PinRodExtremityPlugin::PinRodExtremityPlugin(const YmrState *state, std::string name, std::string rvName,
+PinRodExtremityPlugin::PinRodExtremityPlugin(const MirState *state, std::string name, std::string rvName,
                                              int segmentId, float fmagn, float3 targetDirection) :
     SimulationPlugin(state, name),
     rvName(rvName),

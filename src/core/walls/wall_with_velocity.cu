@@ -44,7 +44,7 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 
 template<class InsideWallChecker, class VelocityField>
 WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
-(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
+(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
     SimpleStationaryWall<InsideWallChecker>(name, state, std::move(insideWallChecker)),
     velField(std::move(velField))
 {}

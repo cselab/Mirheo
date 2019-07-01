@@ -96,7 +96,7 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
 
 } // namespace DensityControlPluginKernels
 
-DensityControlPlugin::DensityControlPlugin(const YmrState *state, std::string name,
+DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string name,
                                            std::vector<std::string> pvNames, float targetDensity,
                                            RegionFunc region, float3 resolution,
                                            float levelLo, float levelHi, float levelSpace,
@@ -307,8 +307,8 @@ PostprocessDensityControl::~PostprocessDensityControl()
 
 void PostprocessDensityControl::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType currentTimeStep;
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTimeStep;
+    MirState::TimeType currentTime;
     std::vector<float> densities, forces;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);

@@ -126,7 +126,7 @@ __global__ void generateParticles(float seed, float kBT, int nNewParticles, int 
 } // namespace velocityInletKernels
 
 
-VelocityInletPlugin::VelocityInletPlugin(const YmrState *state, std::string name, std::string pvName,
+VelocityInletPlugin::VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                                          ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
                                          float3 resolution, float numberDensity, float kBT) :
     SimulationPlugin(state, name),

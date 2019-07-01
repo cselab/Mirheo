@@ -5,7 +5,7 @@
 #include <core/domain.h>
 #include <core/pvs/data_manager.h>
 #include <core/utils/pytypes.h>
-#include <core/ymero_object.h>
+#include <core/mirheo_object.h>
 
 #include <memory>
 #include <set>
@@ -46,11 +46,11 @@ protected:
 };
 
 
-class ParticleVector : public YmrSimulationObject
+class ParticleVector : public MirSimulationObject
 {
 public:
     
-    ParticleVector(const YmrState *state, std::string name, float mass, int n=0);
+    ParticleVector(const MirState *state, std::string name, float mass, int n=0);
     ~ParticleVector() override;
     
     LocalParticleVector* local() { return _local.get(); }
@@ -87,7 +87,7 @@ public:
     }
 
 protected:
-    ParticleVector(const YmrState *state, std::string name, float mass,
+    ParticleVector(const MirState *state, std::string name, float mass,
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 

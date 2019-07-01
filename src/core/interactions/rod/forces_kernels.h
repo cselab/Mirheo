@@ -89,7 +89,14 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
 }
 
 template <int Nstates>
-__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params, bool saveStates, bool saveEnergies)
+__device__ inline int getState(const RVview& view, int i)
+{
+    if (Nstates > 1) return view.states[i];
+    else             return 0;
+}
+
+template <int Nstates>
+__global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameters<Nstates> params, bool saveEnergies)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -104,24 +111,9 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     const BiSegment<Nstates> bisegment(view, start);
 
     real3 fr0, fr2, fpm0, fpm1;
-    int state = 0;
-    real E = 0;
-
-    if (Nstates > 1 || saveEnergies)
-        E = bisegment.computeEnergy(state, params);
-        
-    #pragma unroll
-    for (int s = 1; s < Nstates; ++s)
-    {
-        real Es = bisegment.computeEnergy(s, params);
-        if (Es < E)
-        {
-            E = Es;
-            state = s;
-        }
-    }
-    
     fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
+
+    const int state = getState<Nstates>(view, i);
     
     bisegment.computeBendingForces(state, params, fr0, fr2, fpm0, fpm1);
     bisegment.computeTwistForces  (state, params, fr0, fr2, fpm0, fpm1);
@@ -140,19 +132,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
     atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
 
-    if (saveStates)
-    {
-        #pragma unroll
-        for (int j = 0; j < 5; ++j)
-            view.states[start + stride + j] = state;
-    }
-
-    if (saveEnergies)
-    {
-        #pragma unroll
-        for (int j = 0; j < 5; ++j)
-            view.energies[start + stride + j] = E;
-    }
+    if (saveEnergies) view.energies[i] = bisegment.computeEnergy(state, params);
 }
 
 

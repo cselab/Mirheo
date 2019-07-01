@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import argparse
 
@@ -15,20 +15,20 @@ domain = (32, 32, 32)
 tdump_every = 0.001
 dump_every = int(tdump_every / dt)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_name="pv"
 path="pressure"
 
-pv = ymr.ParticleVectors.ParticleVector(pv_name, mass = 1)
-ic = ymr.InitialConditions.Uniform(density=10)
+pv = mir.ParticleVectors.ParticleVector(pv_name, mass = 1)
+ic = mir.InitialConditions.Uniform(density=10)
 u.registerParticleVector(pv=pv, ic=ic)
 
-dpd = ymr.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5, stress=True, stress_period=tdump_every)
+dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=1.0, power=0.5, stress=True, stress_period=tdump_every)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 
-vv = ymr.Integrators.VelocityVerlet('vv')
+vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
@@ -37,7 +37,7 @@ def predicate_all_domain(r):
 
 h = (1.0, 1.0, 1.0)
 
-u.registerPlugins(ymr.Plugins.createVirialPressurePlugin('Pressure', pv, predicate_all_domain, h, dump_every, path))
+u.registerPlugins(mir.Plugins.createVirialPressurePlugin('Pressure', pv, predicate_all_domain, h, dump_every, path))
 
 u.run(2001)
 
@@ -53,6 +53,6 @@ del(u)
 # nTEST: stress.pressure
 # cd stress
 # rm -rf pressure
-# ymr.run --runargs "-n 2" ./pressure.py --out pressure.txt > /dev/null
+# mir.run --runargs "-n 2" ./pressure.py --out pressure.txt
 # cat pressure.txt | uscale 0.1 > pressure.out.txt
 

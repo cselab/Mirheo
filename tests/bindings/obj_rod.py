@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--axes', dest='axes', type=float, nargs=3)
-parser.add_argument('--coords', dest='coords', type=str)
+parser.add_argument('--axes',   type=float, nargs=3)
+parser.add_argument('--coords', type=str)
 parser.add_argument('--vis',    action='store_true', default=False)
-parser.add_argument('--drag', type=float, default=0.0)
+parser.add_argument('--drag',   type=float,          default=0.0)
 args = parser.parse_args()
 
 ranks  = (1, 1, 1)
@@ -21,8 +21,7 @@ L = 14.0
 num_segments = 10
 mass = 1.0
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
-
+u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 # rod
 
@@ -31,11 +30,8 @@ com_q_rod = [[ 0.5 * domain[0],
                0.5 * domain[2] - L/2,
                1.0, 0.0, 0.0, 0.0]]
 
-def center_line(s):
-    return (0, 0, (0.5-s) * L)
-
-def torsion(s):
-    return 0.0
+def center_line(s): return (0, 0, (0.5-s) * L)
+def torsion(s):     return 0.0
 
 def length(a, b):
     return np.sqrt(
@@ -46,8 +42,8 @@ def length(a, b):
 h = 1.0 / num_segments
 l0 = length(center_line(h), center_line(0))
 a0 = l0/2
-pv_rod = ymr.ParticleVectors.RodVector('rod', mass, num_segments)
-ic_rod = ymr.InitialConditions.Rod(com_q_rod, center_line, torsion, a0)
+pv_rod = mir.ParticleVectors.RodVector('rod', mass, num_segments)
+ic_rod = mir.InitialConditions.Rod(com_q_rod, center_line, torsion, a0)
 
 
 # ellipsoid
@@ -64,13 +60,13 @@ if args.vis:
     ell = trimesh.creation.icosphere(subdivisions=2, radius = 1.0)
     for i in range(3):
         ell.vertices[:,i] *= axes[i]
-    mesh = ymr.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
-    pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass, object_size=len(coords), semi_axes=axes, mesh=mesh)
+    mesh = mir.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
+    pv_ell = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass, object_size=len(coords), semi_axes=axes, mesh=mesh)
 else:
-    pv_ell = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass, object_size=len(coords), semi_axes=axes)
+    pv_ell = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass, object_size=len(coords), semi_axes=axes)
 
-ic_ell = ymr.InitialConditions.Rigid(com_q_ell, coords)
-vv_ell = ymr.Integrators.RigidVelocityVerlet("vv_ell")
+ic_ell = mir.InitialConditions.Rigid(com_q_ell, coords)
+vv_ell = mir.Integrators.RigidVelocityVerlet("vv_ell")
 
 u.registerParticleVector(pv_ell, ic_ell)
 u.registerParticleVector(pv_rod, ic_rod)
@@ -91,28 +87,28 @@ prms = {
     "kappa0"     : (0., 0.)
 }
 
-int_rod = ymr.Interactions.RodForces("rod_forces", **prms);
+int_rod = mir.Interactions.RodForces("rod_forces", **prms);
 u.registerInteraction(int_rod)
 u.setInteraction(int_rod, pv_rod, pv_rod)
 
 anchor=(0.0, 0.0, -axes[2])
 torque  = 0.1
 k_bound = 100.0
-int_bind = ymr.Interactions.ObjRodBinding("binding", torque, anchor, k_bound);
+int_bind = mir.Interactions.ObjRodBinding("binding", torque, anchor, k_bound);
 u.registerInteraction(int_bind)
 u.setInteraction(int_bind, pv_ell, pv_rod)
 
-vv_rod = ymr.Integrators.VelocityVerlet('vv_rod')
+vv_rod = mir.Integrators.VelocityVerlet('vv_rod')
 u.registerIntegrator(vv_rod)
 u.setIntegrator(vv_rod, pv_rod)
 
 if args.drag > 0.0:
-    u.registerPlugins(ymr.Plugins.createParticleDrag('rod_drag', pv_rod, args.drag))
+    u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', pv_rod, args.drag))
 
 if args.vis:
     dump_every = int (t_dump_every/dt)
-    u.registerPlugins(ymr.Plugins.createDumpParticles('rod_dump', pv_rod, dump_every, [], 'h5/rod_particles-'))
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pv_ell, dump_every, path="ply/"))
+    u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', pv_rod, dump_every, [], 'h5/rod_particles-'))
+    u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_ell, dump_every, path="ply/"))
 
 
 u.run(int (t_end / dt))
@@ -130,5 +126,5 @@ del u
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./obj_rod.py --axes $ax $ay $az --coords $f --vis
+# mir.run --runargs "-n 2" ./obj_rod.py --axes $ax $ay $az --coords $f --vis
 # cat pos.txt > pos.out.txt

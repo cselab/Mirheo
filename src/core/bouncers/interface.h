@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ymero_object.h"
+#include "core/mirheo_object.h"
 
 #include <cuda_runtime.h>
 #include <mpi.h>
@@ -14,10 +14,10 @@ class ObjectVector;
 /**
  * Interface for a class implementing bouncing from objects
  */
-class Bouncer : public YmrSimulationObject
+class Bouncer : public MirSimulationObject
 {
 public:
-    Bouncer(const YmrState *state, std::string name);
+    Bouncer(const MirState *state, std::string name);
     virtual ~Bouncer();
 
     /**

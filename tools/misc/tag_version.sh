@@ -2,7 +2,7 @@
 
 usage() {
     cat <<EOF
-wrapper to export tag to git for versioning udeviceX
+wrapper to export tag to git for versioning Mirho
 usage: 
        ./tag_version.sh <VERSION>
 

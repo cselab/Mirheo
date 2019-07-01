@@ -9,7 +9,7 @@ public:
             
 protected:
     
-    BasicInteractionSDPDWithStress(const YmrState *state, std::string name, float rc,
+    BasicInteractionSDPDWithStress(const MirState *state, std::string name, float rc,
                                    float viscosity, float kBT, float stressPeriod);
 };
 
@@ -18,7 +18,7 @@ class InteractionSDPDWithStress : public BasicInteractionSDPDWithStress
 {
 public:
     
-    InteractionSDPDWithStress(const YmrState *state, std::string name, float rc,
+    InteractionSDPDWithStress(const MirState *state, std::string name, float rc,
                               PressureEOS pressure, DensityKernel densityKernel,
                               float viscosity, float kBT, float stressPeriod);
 

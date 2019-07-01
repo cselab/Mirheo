@@ -21,7 +21,7 @@ __global__ void applyDrag(PVview view, float drag)
 
 } // namespace ParticleDragPluginKernels
 
-ParticleDragPlugin::ParticleDragPlugin(const YmrState *state, std::string name, std::string pvName, float drag) :
+ParticleDragPlugin::ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, float drag) :
     SimulationPlugin(state, name),
     pvName(pvName),
     drag(drag)

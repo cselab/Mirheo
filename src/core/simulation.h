@@ -5,7 +5,7 @@
 #include <core/domain.h>
 #include <core/logger.h>
 #include <core/exchangers/exchanger_interfaces.h>
-#include <core/ymero_object.h>
+#include <core/mirheo_object.h>
 
 #include <functional>
 #include <map>
@@ -15,7 +15,7 @@
 #include <vector>
 
 // Some forward declarations
-class YmrState;
+class MirState;
 class ParticleVector;
 class ObjectVector;
 class CellList;
@@ -31,7 +31,7 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 struct SimulationTasks;
 
-class Simulation : protected YmrObject
+class Simulation : protected MirObject
 {
 public:
     int3 nranks3D;
@@ -40,9 +40,9 @@ public:
     MPI_Comm cartComm;
     MPI_Comm interComm;
 
-    YmrState *state;
+    MirState *state;
 
-    Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, YmrState *state,
+    Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
                int globalCheckpointEvery = 0, std::string checkpointFolder = "restart/",
                CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
                bool gpuAwareMPI = false);
@@ -225,8 +225,8 @@ private:
 
     void createTasks();
 
-    using YmrObject::restart;
-    using YmrObject::checkpoint;
+    using MirObject::restart;
+    using MirObject::checkpoint;
 
     void restartState(std::string folder);
     void checkpointState();

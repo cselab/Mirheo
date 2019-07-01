@@ -45,7 +45,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
 }
 } // namespace StatsKernels
     
-SimulationStats::SimulationStats(const YmrState *state, std::string name, int fetchEvery) :
+SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
     fetchEvery(fetchEvery)
 {
@@ -130,8 +130,8 @@ PostprocessStats::~PostprocessStats()
 
 void PostprocessStats::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType currentTime;
-    YmrState::StepType currentTimeStep;
+    MirState::TimeType currentTime;
+    MirState::StepType currentTimeStep;
     float realTime;
     Stats::CountType nparticles, maxNparticles, minNparticles;
 

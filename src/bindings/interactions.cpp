@@ -43,7 +43,7 @@ castToMap(const py::kwargs& kwargs, const std::string intName)
 }
 
 static std::shared_ptr<InteractionMembrane>
-createInteractionMembrane(const YmrState *state, std::string name,
+createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           bool stressFree, float growUntil, py::kwargs kwargs)
 {
@@ -54,15 +54,15 @@ createInteractionMembrane(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionRod>
-createInteractionRod(const YmrState *state, std::string name, bool dumpStates, bool dumpEnergies, py::kwargs kwargs)
+createInteractionRod(const MirState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionRod(state, name, dumpStates, dumpEnergies, parameters);
+    return InteractionFactory::createInteractionRod(state, name, stateUpdateDesc, dumpEnergies, parameters);
 }
 
 static std::shared_ptr<BasicInteractionSDPD>
-createInteractionPairwiseSDPD(const YmrState *state, std::string name,
+createInteractionPairwiseSDPD(const MirState *state, std::string name,
                               float rc, float viscosity, float kBT,
                               std::string EOS, std::string density,
                               bool stress, py::kwargs kwargs)
@@ -74,7 +74,7 @@ createInteractionPairwiseSDPD(const YmrState *state, std::string name,
 }
 
 static std::shared_ptr<InteractionLJ>
-createInteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+createInteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                     std::string awareMode, bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -84,7 +84,7 @@ createInteractionLJ(const YmrState *state, std::string name, float rc, float eps
 }
 
 static std::shared_ptr<InteractionDPD>
-createInteractionDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+createInteractionDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
                      bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -94,7 +94,7 @@ createInteractionDPD(const YmrState *state, std::string name, float rc, float a,
 }
 
 static std::shared_ptr<InteractionMDPD>
-createInteractionMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kBT, float power,
+createInteractionMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kBT, float power,
                       bool stress, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -486,10 +486,10 @@ void exportInteractions(py::module& m)
     )");
 
     pyRodForces.def(py::init(&createInteractionRod),
-                    "state"_a, "name"_a, "save_states"_a=false, "save_energies"_a=false, R"( 
+                    "state"_a, "name"_a, "state_update"_a="none", "save_energies"_a=false, R"( 
              Args:
                  name: name of the interaction
-                 save_states: if `True`, save the state of each bisegment
+                 state_update: description of the state update method; only makes sense for multiple states. See below for possible choices.
                  save_energies: if `True`, save the energies of each bisegment
 
              kwargs:
@@ -503,6 +503,16 @@ void exportInteractions(py::module& m)
                  * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
                  * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
                  * **E0** (float):           (optional) energy ground state
+
+             state update parameters, for **state_update** = 'smoothing':
+
+                 (not fully implemented yet; for now just takes minimum state but no smoothing term)
+
+             state update parameters, for **state_update** = 'spin':
+
+                 * **nsteps** number of MC step per iteration
+                 * **kBT** temperature used in the acceptance-rejection algorithm
+                 * **J** neighbouring spin 'dislike' energy
 
              The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.

@@ -34,11 +34,30 @@ __device__ inline real2 symmetricMatMult(const real3& A, const real2& x)
 }
 
 template <int Nstates>
+__device__ inline real computeEnergy(real l, real2 kappa0, real2 kappa1, real tau, int state,
+                                     const GPU_RodBiSegmentParameters<Nstates>& params)
+{
+    real2 dkappa0 = kappa0 - make_real2(params.kappaEq[state]);
+    real2 dkappa1 = kappa1 - make_real2(params.kappaEq[state]);
+    
+    real2 Bkappa0 = symmetricMatMult(make_real3(params.kBending), dkappa0);
+    real2 Bkappa1 = symmetricMatMult(make_real3(params.kBending), dkappa1);
+    
+    real Eb = 0.25_r * l * (dot(dkappa0, Bkappa0) + dot(dkappa1, Bkappa1));
+    
+    real dtau = tau - params.tauEq[state];
+    
+    real Et = 0.5_r * l * params.kTwist * dtau * dtau;
+
+    return Eb + Et + params.groundE[state];
+}
+
+
+template <int Nstates>
 struct BiSegment
 {
     real3 e0, e1, t0, t1, dp0, dp1, bicur;
     real bicurFactor, e0inv, e1inv, linv, l;
-    int state;
 
     __device__ inline BiSegment(const RVview& view, int start)
     {
@@ -190,12 +209,9 @@ struct BiSegment
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
-    __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
-    {
-        real4  Q = getQfrom(t0, t1);
-        real3 u0 = normalize(anyOrthogonal(t0));
-        real3 u1 = normalize(rotate(u0, Q));
 
+    __device__ inline void computeCurvatures(real2& kappa0, real2& kappa1) const
+    {
         real dpt0 = dot(dp0, t0);
         real dpt1 = dot(dp1, t1);
 
@@ -208,20 +224,18 @@ struct BiSegment
         real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
         real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
     
-        real2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
-                       -dpPerp0inv * linv * dot(bicur,    dp0)};
+        kappa0.x =   dpPerp0inv * linv * dot(bicur, t0_dp0);
+        kappa0.y = - dpPerp0inv * linv * dot(bicur,    dp0);
 
-        real2 kappa1 { +dpPerp1inv * linv * dot(bicur, t1_dp1),
-                       -dpPerp1inv * linv * dot(bicur,    dp1)};
+        kappa1.x =   dpPerp1inv * linv * dot(bicur, t1_dp1);
+        kappa1.y = - dpPerp1inv * linv * dot(bicur,    dp1);
+    }
 
-        real2 dkappa0 = kappa0 - make_real2(params.kappaEq[state]);
-        real2 dkappa1 = kappa1 - make_real2(params.kappaEq[state]);
-
-        real2 Bkappa0 = symmetricMatMult(make_real3(params.kBending), dkappa0);
-        real2 Bkappa1 = symmetricMatMult(make_real3(params.kBending), dkappa1);
-
-        real Eb = 0.25_r * l * (dot(dkappa0, Bkappa0) + dot(dkappa1, Bkappa1));
-
+    __device__ inline void computeTorsion(real& tau) const
+    {
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
@@ -235,11 +249,15 @@ struct BiSegment
         real theta0 = atan2(dpv0, dpu0);
         real theta1 = atan2(dpv1, dpu1);
     
-        real tau = safeDiffTheta(theta0, theta1) * linv;
-        real dtau = tau - params.tauEq[state];
+        tau = safeDiffTheta(theta0, theta1) * linv;
+    }
 
-        real Et = 0.5_r * l * params.kTwist * dtau * dtau;
-
-        return Eb + Et + params.groundE[state];
+    __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
+    {
+        real2 kappa0, kappa1;
+        real tau;
+        computeCurvatures(kappa0, kappa1);
+        computeTorsion(tau);
+        return ::computeEnergy(l, kappa0, kappa1, tau, state, params);
     }
 };

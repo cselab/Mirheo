@@ -83,16 +83,16 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 // Particle Vector
 //============================================================================
 
-ParticleVector::ParticleVector(const YmrState *state, std::string name, float mass, int n) :
+ParticleVector::ParticleVector(const MirState *state, std::string name, float mass, int n) :
     ParticleVector(state, name, mass,
                    std::make_unique<LocalParticleVector>(this, n),
                    std::make_unique<LocalParticleVector>(this, 0) )
 {}
 
-ParticleVector::ParticleVector(const YmrState *state, std::string name,  float mass,
+ParticleVector::ParticleVector(const MirState *state, std::string name,  float mass,
                                std::unique_ptr<LocalParticleVector>&& local,
                                std::unique_ptr<LocalParticleVector>&& halo) :
-    YmrSimulationObject(state, name),
+    MirSimulationObject(state, name),
     mass(mass),
     _local(std::move(local)),
     _halo(std::move(halo))

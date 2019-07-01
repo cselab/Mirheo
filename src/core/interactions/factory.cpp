@@ -9,8 +9,8 @@
 #include "mdpd_with_stress.h"
 #include "membrane.h"
 #include "obj_rod_binding.h"
-#include "pairwise_interactions/density_kernels.h"
-#include "pairwise_interactions/pressure_EOS.h"
+#include "pairwise/interactions/density_kernels.h"
+#include "pairwise/interactions/pressure_EOS.h"
 #include "rod.h"
 #include "sdpd.h"
 #include "sdpd_with_stress.h"
@@ -175,7 +175,7 @@ static JuelicherBendingParameters readJuelicherParameters(ParametersWrap& desc)
 }
 
 std::shared_ptr<InteractionMembrane>
-InteractionFactory::createInteractionMembrane(const YmrState *state, std::string name,
+InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               const MapParams& parameters,
                                               bool stressFree, float growUntil)
@@ -242,14 +242,42 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     return p;
 }
 
+static StatesSmoothingParameters readStatesSmoothingRodParameters(ParametersWrap& desc)
+{
+    return StatesSmoothingParameters{};
+}
+
+static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
+{
+    StatesSpinParameters p;
+
+    p.nsteps = desc.read<float>("nsteps");
+    p.kBT    = desc.read<float>("kBT");
+    p.J      = desc.read<float>("J");
+    return p;
+}
+
+
 std::shared_ptr<InteractionRod>
-InteractionFactory::createInteractionRod(const YmrState *state, std::string name,
-                                         bool saveStates, bool saveEnergies, const MapParams& parameters)
+InteractionFactory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
+                                         bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
+
+    VarSpinParams spinParams;
+    
+    if      (stateUpdate == "none")
+        spinParams = StatesParametersNone{};
+    else if (stateUpdate == "smoothing")
+        spinParams = readStatesSmoothingRodParameters(desc);
+    else if (stateUpdate == "spin")
+        spinParams = readStatesSpinRodParameters(desc);
+    else
+        die("unrecognised state update method: '%s'", stateUpdate.c_str());
+    
     desc.checkAllRead();
-    return std::make_shared<InteractionRod>(state, name, params, saveStates, saveEnergies);
+    return std::make_shared<InteractionRod>(state, name, params, spinParams, saveEnergies);
 }
 
 
@@ -265,7 +293,7 @@ static bool isWendlandC2Density(const std::string& desc)
 }
 
 std::shared_ptr<BasicInteractionDensity>
-InteractionFactory::createPairwiseDensity(const YmrState *state, std::string name, float rc,
+InteractionFactory::createPairwiseDensity(const MirState *state, std::string name, float rc,
                                           const std::string& density)
 {
     if (isSimpleMDPDDensity(density))
@@ -320,7 +348,7 @@ static float readStressPeriod(ParametersWrap& desc)
 
 template <typename PressureKernel, typename DensityKernel>
 static std::shared_ptr<BasicInteractionSDPD>
-allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
+allocatePairwiseSDPD(const MirState *state, std::string name, float rc,
                      PressureKernel pressure, DensityKernel density,
                      float viscosity, float kBT,
                      bool stress, float stressPeriod)
@@ -334,7 +362,7 @@ allocatePairwiseSDPD(const YmrState *state, std::string name, float rc,
 }
 
 std::shared_ptr<BasicInteractionSDPD>
-InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, float rc, float viscosity, float kBT,
+InteractionFactory::createPairwiseSDPD(const MirState *state, std::string name, float rc, float viscosity, float kBT,
                                        const std::string& EOS, const std::string& density, bool stress,
                                        const MapParams& parameters)
 {
@@ -369,7 +397,7 @@ InteractionFactory::createPairwiseSDPD(const YmrState *state, std::string name, 
 }
 
 std::shared_ptr<InteractionDPD>
-InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
+InteractionFactory::createPairwiseDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
                                       bool stress, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
@@ -386,7 +414,7 @@ InteractionFactory::createPairwiseDPD(const YmrState *state, std::string name, f
 }
 
 std::shared_ptr<InteractionMDPD>
-InteractionFactory::createPairwiseMDPD(const YmrState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
+InteractionFactory::createPairwiseMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
                                        float power, bool stress, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
@@ -401,7 +429,7 @@ InteractionFactory::createPairwiseMDPD(const YmrState *state, std::string name, 
 }
 
 std::shared_ptr<InteractionLJ>
-InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+InteractionFactory::createPairwiseLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                                      std::string awareMode, bool stress, const MapParams& parameters)
 {
     int minSegmentsDist = 0;
@@ -429,7 +457,7 @@ InteractionFactory::createPairwiseLJ(const YmrState *state, std::string name, fl
 }
 
 std::shared_ptr<ObjectRodBindingInteraction>
-InteractionFactory::createInteractionObjRodBinding(const YmrState *state, std::string name,
+InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::string name,
                                                    float torque, PyTypes::float3 relAnchor, float kBound)
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, make_float3(relAnchor), kBound);

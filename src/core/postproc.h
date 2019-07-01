@@ -1,12 +1,12 @@
 #pragma once
 
-#include <core/ymero_object.h>
+#include <core/mirheo_object.h>
 #include <plugins/interface.h>
 
 #include <memory>
 #include <mpi.h>
 
-class Postprocess : YmrObject
+class Postprocess : MirObject
 {
 public:
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/");
@@ -22,8 +22,8 @@ public:
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;
     
-    using YmrObject::restart;
-    using YmrObject::checkpoint;
+    using MirObject::restart;
+    using MirObject::checkpoint;
 
 private:
     MPI_Comm comm;

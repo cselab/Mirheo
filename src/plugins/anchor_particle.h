@@ -15,7 +15,7 @@ using FuncTime3D = std::function<std::vector<float3>(float)>;
 class AnchorParticlesPlugin : public SimulationPlugin
 {
 public:
-    AnchorParticlesPlugin(const YmrState *state, std::string name, std::string pvName,
+    AnchorParticlesPlugin(const MirState *state, std::string name, std::string pvName,
                           FuncTime3D positions, FuncTime3D velocities,
                           std::vector<int> pids, int reportEvery);
 

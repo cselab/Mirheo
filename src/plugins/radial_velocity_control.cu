@@ -70,7 +70,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquar
 
 } // namespace RadialVelocityControlKernels
 
-SimulationRadialVelocityControl::SimulationRadialVelocityControl(const YmrState *state, std::string name, std::vector<std::string> pvNames,
+SimulationRadialVelocityControl::SimulationRadialVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                                                  float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
                                                                  float3 center, float targetVel, float Kp, float Ki, float Kd) :
     SimulationPlugin(state, name),
@@ -202,8 +202,8 @@ PostprocessRadialVelocityControl::~PostprocessRadialVelocityControl()
 
 void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
 {
-    YmrState::TimeType currentTimeStep;
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTimeStep;
+    MirState::TimeType currentTime;
     float vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);

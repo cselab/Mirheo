@@ -8,7 +8,7 @@ class ParticleVector;
 class ForceSaverPlugin : public SimulationPlugin
 {
 public:
-    ForceSaverPlugin(const YmrState *state, std::string name, std::string pvName);
+    ForceSaverPlugin(const MirState *state, std::string name, std::string pvName);
 
     void beforeIntegration(cudaStream_t stream) override;
     

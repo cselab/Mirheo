@@ -129,7 +129,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelo
 
 } // namespace PinObjectKernels::
 
-PinObjectPlugin::PinObjectPlugin(const YmrState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
+PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
     SimulationPlugin(state, name),
     ovName(ovName),
     translation(translation),
@@ -148,14 +148,14 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 
     forces.resize_anew(totObjs);
-    forces.clear(0);
+    forces.clear(defaultStream);
 
     // Also check torques if object is rigid and if we need to restrict rotation
     rov = dynamic_cast<RigidObjectVector*>(ov);
     if (rov != nullptr && (rotation.x != Unrestricted || rotation.y != Unrestricted || rotation.z != Unrestricted))
     {
         torques.resize_anew(totObjs);
-        torques.clear(0);
+        torques.clear(defaultStream);
     }
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
@@ -260,7 +260,7 @@ void ReportPinObjectPlugin::handshake()
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 {
     std::vector<float4> forces, torques;
-    YmrState::TimeType currentTime;
+    MirState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);

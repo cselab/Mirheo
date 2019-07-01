@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import trimesh, argparse
 
@@ -11,17 +11,17 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = ymr.ymero(ranks, domain, dt=0, debug_level=8, log_filename='log')
+u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
-mesh = ymr.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
+mesh = mir.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
 
-rbc  = ymr.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh)
-icrbc = ymr.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
-u.registerParticleVector(pv=rbc, ic=icrbc)
+pv_rbc = mir.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh)
+ic_rbc = mir.InitialConditions.Membrane([[6.0, 4.0, 5.0,   1.0, 0.0, 0.0, 0.0]])
+u.registerParticleVector(pv_rbc, ic_rbc)
 
 dumpEvery = 1
-u.registerPlugins(ymr.Plugins.createDumpParticlesWithMesh('partDump', rbc, dumpEvery, [], 'h5/rbc-'))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dumpEvery, [], 'h5/rbc-'))
 
 u.run(2)
 
@@ -29,5 +29,5 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # mesh="../../data/rbc_mesh.off"
-# ymr.run --runargs "-n 2" ./h5.mesh.py --mesh $mesh > /dev/null
-# ymr.post h5dump -d position h5/rbc-00000.h5 | awk '{print $2, $3, $4}' | LC_ALL=en_US.utf8 sort > h5.mesh.out.txt
+# mir.run --runargs "-n 2" ./h5.mesh.py --mesh $mesh
+# mir.post h5dump -d position h5/rbc-00000.h5 | awk '{print $2, $3, $4}' | LC_ALL=en_US.utf8 sort > h5.mesh.out.txt

@@ -33,11 +33,6 @@ inline int getNblocks(const int n, const int nthreads)
     return (n+nthreads-1) / nthreads;
 }
 
-__HD__ inline float3 f4tof3(float4 x)
-{
-    return make_float3(x.x, x.y, x.z);
-}
-
 template<typename T>
 __HD__ inline  T sqr(T val)
 {

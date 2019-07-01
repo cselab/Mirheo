@@ -11,13 +11,13 @@ install: build
 	$(PIP) install . --user --upgrade
 
 uninstall:
-	$(PIP) uninstall ymero
+	$(PIP) uninstall mirheo
 
 docs:
 	make -C docs/
 
 test: install
-	(cd tests; ymr.make test)
+	(cd tests; mir.make test)
 
 clean:; rm -rf build
 

@@ -9,7 +9,7 @@ class ParticleVector;
 class ParticleDisplacementPlugin : public SimulationPlugin
 {
 public:
-    ParticleDisplacementPlugin(const YmrState *state, std::string name, std::string pvName, int updateEvery);
+    ParticleDisplacementPlugin(const MirState *state, std::string name, std::string pvName, int updateEvery);
     ~ParticleDisplacementPlugin();
 
     void afterIntegration(cudaStream_t stream) override;

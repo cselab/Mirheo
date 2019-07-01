@@ -14,7 +14,7 @@ template<class InsideWallChecker, class VelocityField>
 class WallWithVelocity : public SimpleStationaryWall<InsideWallChecker>
 {
 public:
-    WallWithVelocity(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField);
+    WallWithVelocity(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField);
 
     void setup(MPI_Comm& comm) override;
     void attachFrozen(ParticleVector* pv) override;

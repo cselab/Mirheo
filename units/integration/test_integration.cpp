@@ -7,7 +7,7 @@
 Logger logger;
 cudaStream_t defaultStream = 0;
 
-static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, YmrState *state)
+static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirState *state)
 {
     integrator->setPrerequisites(pv);
     
@@ -123,7 +123,7 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
 {
     double l2, linf;
     DomainInfo domain; // dummy domain
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     
     auto vv = IntegratorFactory::createVV(&state, "vv");
     ParticleVector pv(&state, "pv", mass, nparticles);

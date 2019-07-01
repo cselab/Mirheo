@@ -24,7 +24,7 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 }
 } // namespace MagneticOrientationPluginKernels
 
-MagneticOrientationPlugin::MagneticOrientationPlugin(const YmrState *state, std::string name, std::string rovName,
+MagneticOrientationPlugin::MagneticOrientationPlugin(const MirState *state, std::string name, std::string rovName,
                                                      float3 moment, UniformMagneticFunc magneticFunction) :
     SimulationPlugin(state, name),
     rovName(rovName),

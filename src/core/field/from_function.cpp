@@ -2,7 +2,7 @@
 
 #include <core/utils/cuda_common.h>
 
-FieldFromFunction::FieldFromFunction(const YmrState *state, std::string name, FieldFunction func, float3 h) :
+FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, float3 h) :
     Field(state, name, h),
     func(func)
 {}

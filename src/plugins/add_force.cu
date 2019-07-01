@@ -19,7 +19,7 @@ __global__ void addForce(PVview view, float3 force)
 
 } // namespace AddForceKernels
 
-AddForcePlugin::AddForcePlugin(const YmrState *state, std::string name, std::string pvName, float3 force) :
+AddForcePlugin::AddForcePlugin(const MirState *state, std::string name, std::string pvName, float3 force) :
     SimulationPlugin(state, name),
     pvName(pvName),
     force(force)

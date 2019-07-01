@@ -20,7 +20,7 @@ public:
 
     using RegionFunc = std::function<float(float3)>;
     
-    DensityControlPlugin(const YmrState *state, std::string name,
+    DensityControlPlugin(const MirState *state, std::string name,
                          std::vector<std::string> pvNames, float targetDensity,
                          RegionFunc region, float3 resolution,
                          float levelLo, float levelHi, float levelSpace,

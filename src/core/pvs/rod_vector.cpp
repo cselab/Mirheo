@@ -26,14 +26,18 @@ void LocalRodVector::resize(int np, cudaStream_t stream)
 {
     LocalObjectVector::resize(np, stream);
 
-    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+    int totNumBisegments = (getNumSegmentsPerRod() - 1) * nObjects;
+
+    dataPerBisegment.resize(totNumBisegments, stream);
 }
 
 void LocalRodVector::resize_anew(int np)
 {
     LocalObjectVector::resize_anew(np);
     
-    int numTotSegments = getNumSegmentsPerRod() * nObjects;
+    int totNumBisegments = (getNumSegmentsPerRod() - 1) * nObjects;
+
+    dataPerBisegment.resize_anew(totNumBisegments);
 }
 
 int LocalRodVector::getNumSegmentsPerRod() const
@@ -41,7 +45,7 @@ int LocalRodVector::getNumSegmentsPerRod() const
     return getNumSegments(objSize);
 }
 
-RodVector::RodVector(const YmrState *state, std::string name, float mass, int nSegments, int nObjects) :
+RodVector::RodVector(const MirState *state, std::string name, float mass, int nSegments, int nObjects) :
     ObjectVector( state, name, mass, getNumParts(nSegments),
                   std::make_unique<LocalRodVector>(this, getNumParts(nSegments), nObjects),
                   std::make_unique<LocalRodVector>(this, getNumParts(nSegments), 0) )

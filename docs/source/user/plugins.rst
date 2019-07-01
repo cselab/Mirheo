@@ -16,18 +16,17 @@ Summary
 
 Classes
 -------
-.. automodsumm:: _ymero.Plugins
+.. automodsumm:: _mirheo.Plugins
    :classes-only:
-   :skip: PostprocessStats, UniformCartesianDumper, XYZDumper, MeshDumper, ObjPositionsDumper, ReportPinObject, ParticleDumperPlugin, PostprocessVelocityControl
 
 Creation functions
 ------------------
-.. automodsumm:: _ymero.Plugins
+.. automodsumm:: _mirheo.Plugins
    :functions-only:
 
 Details
 ========
-.. automodule:: _ymero.Plugins
+.. automodule:: _mirheo.Plugins
    :members:
    :show-inheritance:
    :undoc-members:

@@ -1,6 +1,6 @@
 #include "membrane_vector.h"
 
-MembraneVector::MembraneVector(const YmrState *state, std::string name, float mass, std::shared_ptr<MembraneMesh> mptr, int nObjects) :
+MembraneVector::MembraneVector(const MirState *state, std::string name, float mass, std::shared_ptr<MembraneMesh> mptr, int nObjects) :
     ObjectVector( state, name, mass, mptr->getNvertices(),
                   std::make_unique<LocalObjectVector>(this, mptr->getNvertices(), nObjects),
                   std::make_unique<LocalObjectVector>(this, mptr->getNvertices(), 0) )

@@ -3,10 +3,17 @@
 #include "interface.h"
 #include "rod/parameters.h"
 
+#include <extern/variant/include/mpark/variant.hpp>
+
+using VarSpinParams = mpark::variant<StatesParametersNone,
+                                     StatesSmoothingParameters,
+                                     StatesSpinParameters>;
+
 class InteractionRod : public Interaction
 {
 public:
-    InteractionRod(const YmrState *state, std::string name, RodParameters params, bool saveStates, bool saveEnergies);
+    InteractionRod(const MirState *state, std::string name,
+                   RodParameters params, VarSpinParams spinParams, bool saveEnergies);
     virtual ~InteractionRod();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;

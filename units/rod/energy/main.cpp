@@ -183,13 +183,13 @@ template <CheckMode checkMode>
 static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                real3 kBending, real2 kappaEq, EnergyFunc ref, real EtotRef)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return (float) torsion(s);;
     };
@@ -200,11 +200,11 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
+             mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -245,13 +245,13 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
 static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                   real3 kBending, real2 kappaEq)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return (float) torsion(s);;
     };
@@ -262,13 +262,11 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
-
-    ic.exec(comm, &rv, defaultStream);
+             mirCenterLine, mirTorsion, a);
 
     RodParameters params;
     params.kBending = make_float3(kBending);
@@ -280,15 +278,16 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.a0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    InteractionRod gpuInt(&state, "twist_forces", params, false, true);
+    InteractionRod gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
-
+    ic.exec(comm, &rv, defaultStream);
+    
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto  cpuEnergies = computeBendingEnergies<EnergyMode::Absolute>
@@ -298,7 +297,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real gpuE = gpuEnergies[5 * i + 5];
+        real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
         auto dE = fabs(cpuE - gpuE);
@@ -314,13 +313,13 @@ template <CheckMode checkMode>
 static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                              real kTwist, real tauEq, EnergyFunc ref, real EtotRef)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return (float) torsion(s);;
     };
@@ -331,11 +330,11 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
+             mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -377,13 +376,13 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
 static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                 real kTwist, real tauEq)
 {
-    RodIC::MappingFunc3D ymrCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D ymrTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](float s)
     {
         return (float) torsion(s);;
     };
@@ -394,14 +393,12 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
     float mass = 1.f;
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
     
     RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             ymrCenterLine, ymrTorsion, a);
+             mirCenterLine, mirTorsion, a);
     
-    ic.exec(comm, &rv, defaultStream);
-
     RodParameters params;
     params.kBending = make_float3(0.f);
     params.kappaEq  = {make_float2(0.f)};
@@ -412,15 +409,16 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     params.a0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    InteractionRod gpuInt(&state, "twist_forces", params, false, true);
+    InteractionRod gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+    ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerParticle.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto cpuEnergies = computeTwistEnergies<EnergyMode::Absolute>
@@ -430,7 +428,7 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real gpuE = gpuEnergies[5 * i + 5];
+        real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
         auto dE = fabs(cpuE - gpuE);

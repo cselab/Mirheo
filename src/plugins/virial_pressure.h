@@ -15,7 +15,7 @@ using ReductionType = double;
 class VirialPressurePlugin : public SimulationPlugin
 {
 public:
-    VirialPressurePlugin(const YmrState *state, std::string name, std::string pvName,
+    VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
                          FieldFunction func, float3 h, int dumpEvery);
 
     ~VirialPressurePlugin();
@@ -36,7 +36,7 @@ private:
     FieldFromFunction region;
     
     PinnedBuffer<VirialPressure::ReductionType> localVirialPressure {1};
-    YmrState::TimeType savedTime = 0;
+    MirState::TimeType savedTime = 0;
 
     std::vector<char> sendBuffer;
 

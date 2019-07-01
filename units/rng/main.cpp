@@ -1,7 +1,7 @@
 #include <core/logger.h>
 #include <core/interactions/utils/step_random_gen.h>
 #include <core/domain.h>
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
 #include <cmath>
 #include <cstdio>
@@ -15,7 +15,7 @@ static std::vector<float> generateSamples(Gen gen, float dt, long n)
 {
     DomainInfo domain;
     std::vector<float> samples (n);
-    YmrState state(domain, dt);
+    MirState state(domain, dt);
     state.currentTime = 0;    
 
     for (state.currentStep = 0; state.currentStep < n; ++state.currentStep)
@@ -50,7 +50,7 @@ static real computeAutoCorrelation(Gen gen, float dt, long n)
 class GenFromTime
 {
 public:
-    float generate(const YmrState *state)
+    float generate(const MirState *state)
     {
         float t = state->currentTime;
         int v = *((int*)&t);

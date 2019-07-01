@@ -62,9 +62,9 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             auto& pos = ov->local()->positions();
             auto& vel = ov->local()->velocities();
             
-            for (int i=0; i<ov->mesh->getNvertices(); i++)
+            for (int i = 0; i < ov->mesh->getNvertices(); i++)
             {
-                float3 r = rotate(f4tof3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+                float3 r = rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
                 Particle p;
                 p.r = r;
                 p.u = make_float3(0);

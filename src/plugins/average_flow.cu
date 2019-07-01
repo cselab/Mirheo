@@ -41,7 +41,7 @@ int Average3D::getNcomponents(Average3D::ChannelType type) const
     return components;
 }
 
-Average3D::Average3D(const YmrState *state, std::string name,
+Average3D::Average3D(const MirState *state, std::string name,
                      std::vector<std::string> pvNames,
                      std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
                      int sampleEvery, int dumpEvery, float3 binSize) :
@@ -207,7 +207,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     
     scaleSampled(stream);
 
-    YmrState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
+    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
     
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();

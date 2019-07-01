@@ -11,7 +11,7 @@ class IntegratorOscillate : public Integrator
 {
 public:
 
-    IntegratorOscillate(const YmrState *state, std::string name, float3 vel, float period);
+    IntegratorOscillate(const MirState *state, std::string name, float3 vel, float period);
 
     ~IntegratorOscillate();
 

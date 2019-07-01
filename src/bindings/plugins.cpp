@@ -154,13 +154,14 @@ void exportPlugins(py::module& m)
     )");
 
     
-    py::handlers_class<ObjPositionsPlugin>(m, "ObjPositions", pysim, R"(
+    py::handlers_class<ObjStatsPlugin>(m, "ObjStats", pysim, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
-        If the objects are rigid bodies, also will be written: COM velocity, rotation, angular velocity, force, torque.
+        Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
+        If the objects are rigid bodies, also will be written the quaternion describing the rotation.
         
         The file format is the following:
         
-        <object id> <simulation time> <COM>x3 [<quaternion>x4 <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3]
+        <object id> <simulation time> <COM>x3 [<quaternion>x4] <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3
         
         .. note::
             Note that all the written values are *instantaneous*
@@ -169,8 +170,8 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
     )");
 
-    py::handlers_class<ObjPositionsDumper>(m, "ObjPositionsDumper", pypost, R"(
-        Postprocess side plugin of :any:`ObjPositions`.
+    py::handlers_class<ObjStatsDumper>(m, "ObjStatsDumper", pypost, R"(
+        Postprocess side plugin of :any:`ObjStats`.
         Responsible for performing the I/O.
     )");
 
@@ -191,6 +192,11 @@ void exportPlugins(py::module& m)
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
+    )");
+
+    py::handlers_class<ParticleWithRodQuantitiesSenderPlugin>(m, "ParticleSenderWithRodDataPlugin", pysim, R"(
+        Extension of :any:`ParticleSenderPlugin` to support bisegment data.
+        If a field of optional data is per bisegment data (for a rod) this plugin will first scatter this data to particles.
     )");
 
 
@@ -498,9 +504,9 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.ply
     )");
 
-    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjPosition, 
+    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjStats, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
-        Create :any:`ObjPositions` plugin
+        Create :any:`ObjStats` plugin
         
         Args:
             name: name of the plugin
@@ -530,7 +536,29 @@ void exportPlugins(py::module& m)
                 * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     )");
-    
+
+    m.def("__createDumpParticlesWithRodData", &PluginFactory::createDumpParticlesWithRodDataPlugin, 
+          "compute_task"_a, "state"_a, "name"_a, "rv"_a, "dump_every"_a,
+          "channels"_a, "path"_a, R"(
+        Create :any:`ParticleSenderWithRodDataPlugin` plugin
+        The interface is the same as :any:`createDumpParticles`
+
+        Args:
+            name: name of the plugin
+            rv: :any:`RodVector` that we'll work with
+            dump_every: write files every this many time-steps 
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of pairs name - type.
+                Name is the channel (per particle) name.
+                The "velocity" and "id" channels are always activated.
+                Type is to provide the type of quantity to extract from the channel.                                            
+                Available types are:
+
+                * 'scalar': 1 float per particle
+                * 'vector': 3 floats per particle
+                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+    )");
+
     m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a,
           "channels"_a, "path"_a, R"(

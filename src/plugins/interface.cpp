@@ -39,9 +39,9 @@ void Plugin::_checkTag() const
 }
 
 
-SimulationPlugin::SimulationPlugin(const YmrState *state, std::string name) :
+SimulationPlugin::SimulationPlugin(const MirState *state, std::string name) :
     Plugin(),
-    YmrSimulationObject(state, name),
+    MirSimulationObject(state, name),
     sizeReq(MPI_REQUEST_NULL),
     dataReq(MPI_REQUEST_NULL)
 {}
@@ -101,7 +101,7 @@ void SimulationPlugin::send(const void* data, int sizeInBytes)
 
 PostprocessPlugin::PostprocessPlugin(std::string name) :
     Plugin(),
-    YmrObject(name)
+    MirObject(name)
 {}
 
 PostprocessPlugin::~PostprocessPlugin() = default;

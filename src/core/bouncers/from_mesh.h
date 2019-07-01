@@ -15,9 +15,10 @@ class BounceFromMesh : public Bouncer
 {
 public:
 
-    BounceFromMesh(const YmrState *state, std::string name, float kbT);
+    BounceFromMesh(const MirState *state, std::string name, float kbT);
     ~BounceFromMesh();
 
+    void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     
 private:
@@ -36,6 +37,9 @@ private:
     const float fineCollisionsPerTri = 1.0f;
 
     CollisionTableWrapper<int2> coarseTable, fineTable;
+
+    // times stored as int so that we can use atomicMax
+    // note that times are always positive, thus guarantees ordering
     DeviceBuffer<int> collisionTimes;
 
     float kbT;

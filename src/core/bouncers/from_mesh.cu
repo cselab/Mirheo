@@ -1,5 +1,5 @@
 #include "from_mesh.h"
-#include "mesh/bounce_kernels.h"
+#include "kernels/mesh.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -14,7 +14,7 @@
  * @param kbT temperature which will be used to create a particle
  * velocity after the bounce, @see performBouncing()
  */
-BounceFromMesh::BounceFromMesh(const YmrState *state, std::string name, float kbT) :
+BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kbT) :
     Bouncer(state, name),
     kbT(kbT)
 {}
@@ -47,6 +47,12 @@ void BounceFromMesh::setup(ObjectVector *ov)
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, sizeof(RigidReal));
 }
 
+void BounceFromMesh::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+}
+
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
 {
     if (rov)
@@ -74,18 +80,18 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased
     int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
-    coarseTable.nCollisions.clear(stream);
     coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
-    BounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
-                                                  coarseTable.nCollisions.devPtr(),
-                                                  coarseTable.collisionTable.devPtr() };
-
+    coarseTable.nCollisions.clear(stream);
+    MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
+                                                      coarseTable.nCollisions.devPtr(),
+                                                      coarseTable.collisionTable.devPtr() };
+    
     int maxFineCollisions = fineCollisionsPerTri * totalTriangles;
-    fineTable.nCollisions.clear(stream);
     fineTable.collisionTable.resize_anew(maxFineCollisions);
-    BounceKernels::TriangleTable devFineTable { maxFineCollisions,
-                                                fineTable.nCollisions.devPtr(),
-                                                fineTable.collisionTable.devPtr() };
+    fineTable.nCollisions.clear(stream);
+    MeshBounceKernels::TriangleTable devFineTable { maxFineCollisions,
+                                                    fineTable.nCollisions.devPtr(),
+                                                    fineTable.collisionTable.devPtr() };
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
     // and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
@@ -110,7 +116,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
-            BounceKernels::findBouncesInMesh,
+            MeshBounceKernels::findBouncesInMesh,
             getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(), cl->cellInfo(), devCoarseTable );
 
@@ -123,7 +129,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 2, filter the candidates
     SAFE_KERNEL_LAUNCH(
-            BounceKernels::refineCollisions,
+            MeshBounceKernels::refineCollisions,
             getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             coarseTable.nCollisions[0], devCoarseTable.indices,
@@ -139,7 +145,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     // Step 3, resolve the collisions
     SAFE_KERNEL_LAUNCH(
-            BounceKernels::performBouncingTriangle,
+            MeshBounceKernels::performBouncingTriangle,
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),

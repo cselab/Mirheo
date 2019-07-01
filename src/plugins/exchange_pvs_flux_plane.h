@@ -11,7 +11,7 @@ class ParticleVector;
 class ExchangePVSFluxPlanePlugin : public SimulationPlugin
 {
 public:
-    ExchangePVSFluxPlanePlugin(const YmrState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane);
+    ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeCellLists(cudaStream_t stream) override;

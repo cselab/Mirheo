@@ -15,7 +15,7 @@ class CellList;
 class AverageRelative3D : public Average3D
 {
 public:
-    AverageRelative3D(const YmrState *state, std::string name,
+    AverageRelative3D(const MirState *state, std::string name,
                       std::vector<std::string> pvNames,
                       std::vector<std::string> channelNames,
                       std::vector<Average3D::ChannelType> channelTypes,

@@ -9,7 +9,7 @@ StepRandomGen::StepRandomGen(long seed) :
 
 StepRandomGen::~StepRandomGen() = default;
 
-float StepRandomGen::generate(const YmrState *state)
+float StepRandomGen::generate(const MirState *state)
 {        
     if (state->currentStep != lastIteration)
     {

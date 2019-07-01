@@ -13,10 +13,12 @@ class SimpleStationaryWall : public SDF_basedWall
 {
 public:
 
-    SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker);
+    SimpleStationaryWall(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker);
     ~SimpleStationaryWall();
 
     void setup(MPI_Comm& comm) override;
+    void setPrerequisites(ParticleVector *pv) override;
+    
     void attachFrozen(ParticleVector *pv) override;
 
     void removeInner(ParticleVector *pv) override;

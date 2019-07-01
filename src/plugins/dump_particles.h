@@ -20,7 +20,7 @@ public:
         Scalar, Vector, Tensor6
     };
     
-    ParticleSenderPlugin(const YmrState *state, std::string name, std::string pvName, int dumpEvery,
+    ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                          std::vector<std::string> channelNames,
                          std::vector<ChannelType> channelTypes);
 
@@ -57,7 +57,7 @@ public:
 
 protected:
 
-    void _recvAndUnpack(YmrState::TimeType &time, YmrState::StepType& timeStamp);
+    void _recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp);
     
     static constexpr int zeroPadding = 5;
     std::string path;

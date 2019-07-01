@@ -31,7 +31,7 @@ __global__ void forceFromSDF(PVview view, const float *sdfs, const float3 *gradi
 }
 } // WallRepulsionPluginKernels
 
-WallRepulsionPlugin::WallRepulsionPlugin(const YmrState *state, std::string name,
+WallRepulsionPlugin::WallRepulsionPlugin(const MirState *state, std::string name,
                                          std::string pvName, std::string wallName,
                                          float C, float h, float maxForce) :
     SimulationPlugin(state, name),

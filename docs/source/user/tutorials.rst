@@ -6,30 +6,30 @@
 .. role:: bash(code)
    :language: bash
 
-.. |ymr| replace:: **YMeRo**
+.. |mir| replace:: **Mirheo**
    
 Tutorials
 ##########
 
-This section will guide you in the |ymr| interface step by step with examples.
+This section will guide you in the |mir| interface step by step with examples.
 
 
-Hello World: run YMeRo
-**********************
+Hello World: run Mirheo
+***********************
 
-We start with a very minimal script running |ymr|.
+We start with a very minimal script running |mir|.
 
 .. literalinclude:: ../../../tests/doc_scripts/hello.py
    :name: hello-py
    :caption: `hello.py`
 
 The time step of the simulation and the domain size are common to all objects in the simulation,
-hence it has to be passed to the coordinator (see its :py:meth:`constructor <_ymero.ymero.__init__>`).
+hence it has to be passed to the coordinator (see its :py:meth:`constructor <_mirheo.mirheo.__init__>`).
 We do not add anything more before running the simulation (last line).
 
 .. note::
     We also specified the number of ranks in **each** direction.
-    Together with the domain size, this tells |ymr| how the simulation domain will be split across MPI ranks.
+    Together with the domain size, this tells |mir| how the simulation domain will be split across MPI ranks.
     The number of simulation tasks must correspond to this variable.
 
 The above script can be run as:
@@ -38,8 +38,8 @@ The above script can be run as:
 
     mpirun -np 1 python3 hello.py
 
-Running :ref:`hello-py` will only print the "hello world" message of |ymr|, which consists of the version and git SHA1 of the code.
-Furthermore, |ymr| will dump log files (one per MPI rank) which name is specified when creating the coordinator.
+Running :ref:`hello-py` will only print the "hello world" message of |mir|, which consists of the version and git SHA1 of the code.
+Furthermore, |mir| will dump log files (one per MPI rank) which name is specified when creating the coordinator.
 Depending on the ``debug_level`` variable, the log files will provide information on the simulation progress.
 
 
@@ -56,10 +56,10 @@ The initial conditions are :any:`Uniform` randomly placed particles in the domai
 
 This example demonstrates how to build a simulation:
 
-#. **Create** the :py:class:`coordinator <_ymero.ymero>`
+#. **Create** the :py:class:`coordinator <_mirheo.mirheo>`
 #. **Create** the simulation objects (particle vectors, initial conditions...)
-#. **Register** the above objects into the :py:class:`coordinator <_ymero.ymero>` (see ``register*`` functions)
-#. **link** the registered objects together in the :py:class:`coordinator <_ymero.ymero>` (see ``set*`` functions)
+#. **Register** the above objects into the :py:class:`coordinator <_mirheo.mirheo>` (see ``register*`` functions)
+#. **link** the registered objects together in the :py:class:`coordinator <_mirheo.mirheo>` (see ``set*`` functions)
 
 The above script can be run as:
 
@@ -69,8 +69,8 @@ The above script can be run as:
 
 
 .. note::
-   The :ref:`rest-py` script contains plugins of type :py:class:`Stats <_ymero.Plugins.SimulationStats>`
-   and  :py:class:`ParticleDumper <_ymero.Plugins. ParticleDumperPlugin>`,
+   The :ref:`rest-py` script contains plugins of type :py:class:`Stats <_mirheo.Plugins.SimulationStats>`
+   and  :py:class:`ParticleDumper <_mirheo.Plugins. ParticleDumperPlugin>`,
    which needs a **postprocess** rank additionally to the **simulation** rank in order to be active.
    The simulation is then launched with 2 ranks.
 
@@ -89,11 +89,11 @@ Additionally, the particle positions and velocities are dumped in the ``h5`` fol
 Adding Walls
 ************
 
-We extend the previous example by introducing :py:mod:`Walls <_ymero.Walls>` in the simulation.
+We extend the previous example by introducing :py:mod:`Walls <_mirheo.Walls>` in the simulation.
 Two components are required to form walls:
 
 * a geometry representation of the wall surface.
-  In |ymr|, wall surfaces are represented as zero level set of a Signed Distance Function (SDF).
+  In |mir|, wall surfaces are represented as zero level set of a Signed Distance Function (SDF).
   This is used to decide which particles are kept at the beginning of the simulation,
   but also to prevent penetrability of the walls by solvent particles.
 
@@ -113,10 +113,10 @@ Two components are required to form walls:
 
 This example demonstrates how to construct walls:
 
-#. **Create** :py:mod:`Walls <_ymero.Walls>` representation
-#. **Create** :py:mod:`Interactions <_ymero.Interactions>` and an :py:mod:`Integrator <_ymero.Integrators>` to equilibrate frozen particles
-#. **Create** the frozen particles with :py:meth:`_ymero.ymero.makeFrozenWallParticles`
-#. **Set** walls to given PVs with :py:meth:`_ymero.ymero.setWall`
+#. **Create** :py:mod:`Walls <_mirheo.Walls>` representation
+#. **Create** :py:mod:`Interactions <_mirheo.Interactions>` and an :py:mod:`Integrator <_mirheo.Integrators>` to equilibrate frozen particles
+#. **Create** the frozen particles with :py:meth:`_mirheo.mirheo.makeFrozenWallParticles`
+#. **Set** walls to given PVs with :py:meth:`_mirheo.mirheo.setWall`
 #. **Set** interactions with the frozen particles as normal PVs
    
 The execution of :ref:`walls-py` should output the `stats.txt` file as well as information output in the console.
@@ -133,8 +133,8 @@ Additionally, frozen and solvent particles, as well as the walls SDF are dumped 
 Membranes
 *********
 
-:py:class:`Membranes <_ymero.ParticleVectors.MembraneVector>` are a set of particles connected into a triangle mesh.
-They can interact as normal :py:class:`PVs <_ymero.ParticleVectors.ParticleVector>` but have additional *internal* interactions, which we will use in this example.
+:py:class:`Membranes <_mirheo.ParticleVectors.MembraneVector>` are a set of particles connected into a triangle mesh.
+They can interact as normal :py:class:`PVs <_mirheo.ParticleVectors.ParticleVector>` but have additional *internal* interactions, which we will use in this example.
 Here we simulate one membrane with a given initial mesh "rbc_mesh.py" which can be taken from the ``data/`` folder of the repository.
 The membrane is subjected to shear, bending, viscous and constraint forces and evolves over time thanks to a :any:`VelocityVerlet` integrator.
 
@@ -145,7 +145,7 @@ The membrane is subjected to shear, bending, viscous and constraint forces and e
 .. note::
    The interactions handle different combinations of shear and bending models.
    Each model may require different parameters.
-   Refer to :py:meth:`_ymero.Interactions.MembraneForces` for more information on the models and their corresponding parameters.
+   Refer to :py:meth:`_mirheo.Interactions.MembraneForces` for more information on the models and their corresponding parameters.
 
 .. figure:: ../images/docs/membrane.gif
     :figclass: align-center
@@ -161,7 +161,7 @@ It is easy to extend the above simple examples into quite complicated simulation
 In this example we simulate a suspension of a few membranes inside a solvent.
 We also show here how to split inside from outside solvents into 2 :any:`ParticleVectors <ParticleVector>`.
 This is useful when the 2 solvents do not have the same properties (such as viscosity).
-The example also demonstrates how to avoid penetration of the solvents through the membranes thanks to :py:mod:`_ymero.Bouncers`.
+The example also demonstrates how to avoid penetration of the solvents through the membranes thanks to :py:mod:`_mirheo.Bouncers`.
 
 Note that in this example, we also show that it is easy to add many different interactions between given particle vectors.
 
@@ -186,7 +186,7 @@ Creating Rigid Objects
 **********************
 
 Rigid objects are modeled as frozen particles moving together in a rigid motion, together with bounce back of particles, similarly to the walls.
-In |ymr|, we need to create a :any:`RigidObjectVector`, in which each rigid object has the **same** frozen particles template.
+In |mir|, we need to create a :any:`RigidObjectVector`, in which each rigid object has the **same** frozen particles template.
 Generating these frozen particles can be done in a separate simulation using a :any:`BelongingChecker`.
 This is shown in the following script for the simple mesh `sphere_mesh.off` which can be found in the `data/` folder:
 
@@ -196,7 +196,7 @@ This is shown in the following script for the simple mesh `sphere_mesh.off` whic
 
 .. note::
    here we make use of `trimesh <https://github.com/mikedh/trimesh>`_ as we need some properties of the mesh.
-   This would also allow to load many other formats not supported by |ymr|, such as ply.
+   This would also allow to load many other formats not supported by |mir|, such as ply.
 
 .. note::
    The saved coordinates must be in the frame of reference of the rigid object, hence the shift at the end of the script.
@@ -224,5 +224,5 @@ Going further
 *************
 
 A set of maintained tests can be used as examples in the `tests/` folder.
-These tests use many features of |ymr| and can serve as a baseline for building more complex simulations.
+These tests use many features of |mir| and can serve as a baseline for building more complex simulations.
 See also the :ref:`user-testing` section of this documentation. 

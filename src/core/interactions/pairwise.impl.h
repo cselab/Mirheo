@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include "pairwise_kernels.h"
+#include "pairwise/kernels.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -22,7 +22,7 @@ class InteractionPair : public Interaction
 {
 public:
     
-    InteractionPair(const YmrState *state, std::string name, float rc, PairwiseInteraction pair) :
+    InteractionPair(const MirState *state, std::string name, float rc, PairwiseInteraction pair) :
         Interaction(state, name, rc),
         defaultPair(pair)
     {}

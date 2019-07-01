@@ -135,7 +135,7 @@ static __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPos
     ovView.readPosition(p, pid);
 
     // Some explicit conversions for double precision
-    p.r = motion.r + rotate( f4tof3(initialPositions[locId]), motion.q );
+    p.r = motion.r + rotate( make_float3(initialPositions[locId]), motion.q );
 
     if (action == ApplyRigidMotion::PositionsAndVelocities)
     {

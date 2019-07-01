@@ -7,6 +7,9 @@
 
 #include <core/celllist.h>
 
+namespace ObjectBelongingKernels
+{
+
 __global__ void copyInOut(PVview view, const BelongingTags *tags,
                           float4 *insPos, float4 *insVel,
                           float4 *outPos, float4 *outVel,
@@ -33,7 +36,9 @@ __global__ void copyInOut(PVview view, const BelongingTags *tags,
     }
 }
 
-ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const YmrState *state, std::string name) :
+} // namespace ObjectBelongingKernels
+
+ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *state, std::string name) :
     ObjectBelongingChecker(state, name)
 {}
 
@@ -87,7 +92,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
     PVview view(src, src->local());
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            copyInOut,
+            ObjectBelongingKernels::copyInOut,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, tags.devPtr(),
             bufInsPos.devPtr(), bufInsVel.devPtr(),
@@ -119,7 +124,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
     }
 }
 
-void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl, cudaStream_t stream)
+void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     tagInner(pv, cl, stream);
 
@@ -130,7 +135,7 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
     PVview view(pv, pv->local());
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-                copyInOut,
+                ObjectBelongingKernels::copyInOut,
                 getNblocks(view.size, nthreads), nthreads, 0, stream,
                 view, tags.devPtr(), nullptr, nullptr, nullptr, nullptr,
                 nInside.devPtr(), nOutside.devPtr() );
@@ -142,7 +147,7 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector* pv, CellList* cl,
         pv->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], pv->local()->size());
 }
 
-void ObjectBelongingChecker_Common::setup(ObjectVector* ov)
+void ObjectBelongingChecker_Common::setup(ObjectVector *ov)
 {
     this->ov = ov;
 }

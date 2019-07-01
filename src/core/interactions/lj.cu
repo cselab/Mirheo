@@ -1,14 +1,14 @@
 #include "lj.h"
 #include "pairwise.impl.h"
-#include "pairwise_interactions/lj.h"
-#include "pairwise_interactions/lj_object_aware.h"
-#include "pairwise_interactions/lj_rod_aware.h"
+#include "pairwise/interactions/lj.h"
+#include "pairwise/interactions/lj_object_aware.h"
+#include "pairwise/interactions/lj_rod_aware.h"
 
 #include <core/celllist.h>
 
 #include <memory>
 
-InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+InteractionLJ::InteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                              AwareMode awareness, int minSegmentsDist, bool allocate) :
     Interaction(state, name, rc),
     awareness(awareness),
@@ -33,7 +33,7 @@ InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, 
     }
 }
 
-InteractionLJ::InteractionLJ(const YmrState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
+InteractionLJ::InteractionLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
                              AwareMode awareness, int minSegmentsDist) :
     InteractionLJ(state, name, rc, epsilon, sigma, maxForce, awareness, minSegmentsDist, true)
 {}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse, trimesh
 
 parser = argparse.ArgumentParser()
@@ -14,7 +14,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -26,12 +26,12 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
                        size  = (nparts, 3))
 
 
-pvSolvent = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-icSolvent = ymr.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
-vvSolvent = ymr.Integrators.VelocityVerlet('vv')
-u.registerParticleVector(pvSolvent, icSolvent)
-u.registerIntegrator(vvSolvent)
-u.setIntegrator(vvSolvent, pvSolvent)
+pv_sol = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic_sol = mir.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
+vv_sol = mir.Integrators.VelocityVerlet('vv')
+u.registerParticleVector(pv_sol, ic_sol)
+u.registerIntegrator(vv_sol)
+u.setIntegrator(vv_sol, pv_sol)
 
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   0.7071, 0, 0.7071, 0]]
@@ -41,27 +41,27 @@ coords = [[-2., -2., -2.],
 m = trimesh.load(args.file);
 inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 
-mesh    = ymr.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
-pvRigid = ymr.ParticleVectors.RigidObjectVector('rigid', mass=100, inertia=inertia, object_size=len(coords), mesh=mesh)
+mesh    = mir.ParticleVectors.Mesh(m.vertices.tolist(), m.faces.tolist())
+pv_rig = mir.ParticleVectors.RigidObjectVector('rigid', mass=100, inertia=inertia, object_size=len(coords), mesh=mesh)
 
 
-icRigid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvRigid = ymr.Integrators.RigidVelocityVerlet("vvRigid")
-u.registerParticleVector(pv=pvRigid, ic=icRigid)
-u.registerIntegrator(vvRigid)
-u.setIntegrator(vvRigid, pvRigid)
+ic_rig = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vv_rig = mir.Integrators.RigidVelocityVerlet("vv_rig")
+u.registerParticleVector(pv_rig, ic_rig)
+u.registerIntegrator(vv_rig)
+u.setIntegrator(vv_rig, pv_rig)
 
-bb = ymr.Bouncers.Mesh("bounceRigid", kbt=0.0)
+bb = mir.Bouncers.Mesh("bounce_rig", kbt=0.0)
 u.registerBouncer(bb)
-u.setBouncer(bb, pvRigid, pvSolvent)
+u.setBouncer(bb, pv_rig, pv_sol)
 
-dumpEvery=500
+dump_every = 500
 
 if args.vis:
-    u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-'))
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvRigid, dumpEvery, path="ply/"))
+    u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_sol, dump_every, [], 'h5/solvent-'))
+    u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rig, dump_every, path="ply/"))
 
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("rigStats", ov=pvRigid, dump_every=dumpEvery, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov=pv_rig, dump_every=dump_every, path="stats"))
 
 u.run(5000)
     
@@ -72,5 +72,5 @@ u.run(5000)
 # rm -rf stats rigid.out.txt
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
-# ymr.run --runargs "-n 2" ./mesh.py --file $f
+# mir.run --runargs "-n 2" ./mesh.py --file $f
 # cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

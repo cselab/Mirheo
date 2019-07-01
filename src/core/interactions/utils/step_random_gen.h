@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/ymero_state.h>
+#include <core/mirheo_state.h>
 
 #include <fstream>
 #include <random>
@@ -18,13 +18,13 @@ public:
     explicit StepRandomGen(long seed);
     ~StepRandomGen();
     
-    float generate(const YmrState *state);
+    float generate(const MirState *state);
 
     friend std::ofstream& operator<<(std::ofstream& stream, const StepRandomGen& gen);
     friend std::ifstream& operator>>(std::ifstream& stream,       StepRandomGen& gen);
     
 private:
-    YmrState::StepType lastIteration {-1};
+    MirState::StepType lastIteration {-1};
     float lastSample;
     std::mt19937 gen;
     std::uniform_real_distribution<float> udistr;

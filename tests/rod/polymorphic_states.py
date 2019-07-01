@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -17,7 +17,7 @@ t_dump_every = 1.0
 L = 5.0
 num_segments = 60
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 
@@ -44,8 +44,8 @@ def length(a, b):
 h = 1.0 / num_segments
 l0 = length(center_line(h), center_line(0))
 
-rv = ymr.ParticleVectors.RodVector('rod', mass=1, num_segments = num_segments)
-ic = ymr.InitialConditions.Rod(com_q, center_line, torsion, a0)
+rv = mir.ParticleVectors.RodVector('rod', mass=1, num_segments = num_segments)
+ic = mir.InitialConditions.Rod(com_q, center_line, torsion, a0)
 u.registerParticleVector(rv, ic)
 
 prms = {
@@ -60,18 +60,18 @@ prms = {
     "E0"        : E0
 }
 
-int_rod = ymr.Interactions.RodForces("rod_forces", save_states=True, **prms);
+int_rod = mir.Interactions.RodForces("rod_forces", "smoothing", **prms);
 u.registerInteraction(int_rod)
 
-vv = ymr.Integrators.VelocityVerlet('vv')
+vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setInteraction(int_rod, rv, rv)
 u.setIntegrator(vv, rv)
 
-u.registerPlugins(ymr.Plugins.createParticleDrag('rod_drag', rv, drag))
+u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', rv, drag))
 
 dump_every = int (t_dump_every/dt)
-u.registerPlugins(ymr.Plugins.createDumpParticles('rod_dump', rv, dump_every, [("states", "scalar")], 'h5/rod_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithRodData('rod_dump', rv, dump_every, [("states", "scalar")], 'h5/rod_particles-'))
 
 u.run(int (t_end / dt))
 
@@ -84,5 +84,5 @@ del u
 # nTEST: rod.polymorphic_states.0.4
 # cd rod
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./polymorphic_states.py --fraction 0.4
+# mir.run --runargs "-n 2" ./polymorphic_states.py --fraction 0.4
 # cat pos.rod.txt > pos.out.txt

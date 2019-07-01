@@ -232,11 +232,11 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, float *sdfs, InsideWallC
 //===============================================================================================
 
 template<class InsideWallChecker>
-SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const YmrState *state, InsideWallChecker&& insideWallChecker) :
+SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker) :
     SDF_basedWall(state, name),
     insideWallChecker(std::move(insideWallChecker))
 {
-    bounceForce.clear(0);
+    bounceForce.clear(defaultStream);
 }
 
 template<class InsideWallChecker>
@@ -252,6 +252,13 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
     insideWallChecker.setup(comm, state->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
+}
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::setPrerequisites(ParticleVector *pv)
+{
+    // do not set it to persistent because bounce happens after integration
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
 }
 
 template<class InsideWallChecker>

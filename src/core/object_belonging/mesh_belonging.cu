@@ -2,7 +2,6 @@
 
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_ellipsoid_object_vector.h>
 #include <core/pvs/views/ov.h>
 #include <core/rigid_kernels/rigid_motion.h>
 #include <core/utils/kernel_launch.h>
@@ -146,7 +145,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const float
 
 } // namespace MeshBelongingKernels
 
-void MeshBelongingChecker::tagInner(ParticleVector* pv, CellList* cl, cudaStream_t stream)
+void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     int nthreads = 128;
 

@@ -61,7 +61,7 @@ __global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, Part
 }
 } // namespace ParticleCheckerKernels
     
-ParticleCheckerPlugin::ParticleCheckerPlugin(const YmrState *state, std::string name, int checkEvery) :
+ParticleCheckerPlugin::ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery) :
     SimulationPlugin(state, name),
     checkEvery(checkEvery)
 {}

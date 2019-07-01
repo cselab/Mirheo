@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
-import ymero as ymr
+import mirheo as mir
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -15,7 +15,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = ymr.ymero(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
@@ -26,13 +26,12 @@ vel = np.random.normal(loc   = [1.0, 0., 0.],
                        scale = [0.1, 0.01, 0.01],
                        size  = (nparts, 3))
 
-
-pvSolvent = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-icSolvent = ymr.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
-vvSolvent = ymr.Integrators.VelocityVerlet('vv')
-u.registerParticleVector(pvSolvent, icSolvent)
-u.registerIntegrator(vvSolvent)
-u.setIntegrator(vvSolvent, pvSolvent)
+pv_sol = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+ic_sol = mir.InitialConditions.FromArray(pos=pos.tolist(), vel=vel.tolist())
+vv_sol = mir.Integrators.VelocityVerlet('vv')
+u.registerParticleVector(pv_sol, ic_sol)
+u.registerIntegrator(vv_sol)
+u.setIntegrator(vv_sol, pv_sol)
 
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
@@ -43,29 +42,29 @@ if args.vis:
     ell = trimesh.creation.icosphere(subdivisions=2, radius = 1.0)
     for i in range(3):
         ell.vertices[:,i] *= args.axes[i]
-    mesh = ymr.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
-    pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes, mesh=mesh)
+    mesh = mir.ParticleVectors.Mesh(ell.vertices.tolist(), ell.faces.tolist())
+    pv_rig = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes, mesh=mesh)
 else:
-    pvEllipsoid = ymr.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
+    pv_rig = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=args.axes)
 
-icEllipsoid = ymr.InitialConditions.Rigid(com_q=com_q, coords=coords)
-vvEllipsoid = ymr.Integrators.RigidVelocityVerlet("ellvv")
-u.registerParticleVector(pv=pvEllipsoid, ic=icEllipsoid)
-u.registerIntegrator(vvEllipsoid)
-u.setIntegrator(vvEllipsoid, pvEllipsoid)
+ic_rig = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+vv_rig = mir.Integrators.RigidVelocityVerlet("ellvv")
+u.registerParticleVector(pv=pv_rig, ic=ic_rig)
+u.registerIntegrator(vv_rig)
+u.setIntegrator(vv_rig, pv_rig)
 
 
-bb = ymr.Bouncers.Ellipsoid("bounceEllipsoid")
+bb = mir.Bouncers.Ellipsoid("bouncer")
 u.registerBouncer(bb)
-u.setBouncer(bb, pvEllipsoid, pvSolvent)
+u.setBouncer(bb, pv_rig, pv_sol)
 
 dump_every = 500
 
 if args.vis:
-    u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pvSolvent, dumpEvery, [], 'h5/solvent-'))
-    u.registerPlugins(ymr.Plugins.createDumpMesh("mesh_dump", pvEllipsoid, dumpEvery, path="ply/"))
+    u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_sol, dump_every, [], 'h5/solvent-'))
+    u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rig, dump_every, path="ply/"))
 
-u.registerPlugins(ymr.Plugins.createDumpObjectStats("rigStats", pvEllipsoid, dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", pv_rig, dump_every, path="stats"))
 
 u.run(5000)    
 
@@ -77,5 +76,5 @@ u.run(5000)
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# ymr.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
+# mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

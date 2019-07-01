@@ -9,11 +9,11 @@ Pairwise short-range interactions are currently supported, and membrane forces.
 
 Summary
 ========
-.. automodsumm:: _ymero.Interactions
+.. automodsumm:: _mirheo.Interactions
 
 Details
 ========
-.. automodule:: _ymero.Interactions
+.. automodule:: _mirheo.Interactions
    :members:
    :show-inheritance:
    :undoc-members:

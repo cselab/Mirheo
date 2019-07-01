@@ -1,12 +1,12 @@
 #include "dpd_with_stress.h"
 #include "pairwise_with_stress.impl.h"
-#include "pairwise_interactions/dpd.h"
+#include "pairwise/interactions/dpd.h"
 
 #include <core/pvs/particle_vector.h>
 
 #include <memory>
 
-InteractionDPDWithStress::InteractionDPDWithStress(const YmrState *state, std::string name,
+InteractionDPDWithStress::InteractionDPDWithStress(const MirState *state, std::string name,
                                                    float rc, float a, float gamma, float kbt, float power, float stressPeriod) :
     InteractionDPD(state, name, rc, a, gamma, kbt, power, false)
 {

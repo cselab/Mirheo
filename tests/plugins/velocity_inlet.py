@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import ymero as ymr
+import mirheo as mir
 import numpy as np
 import argparse
 
@@ -14,12 +14,12 @@ kBT = 0.0
 ranks  = (1, 1, 1)
 domain = (32, 32, 32)
 
-u = ymr.ymero(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
-pv = ymr.ParticleVectors.ParticleVector('pv', mass = 1)
-u.registerParticleVector(pv, ymr.InitialConditions.Uniform(density=0))
+pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
+u.registerParticleVector(pv, mir.InitialConditions.Uniform(density=0))
 
-vv = ymr.Integrators.VelocityVerlet('vv')
+vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
@@ -78,34 +78,31 @@ elif args.geometry == "plane":
 else:
     exit(1)
     
-u.registerPlugins(ymr.Plugins.createVelocityInlet('inlet', pv, inlet_surface, inlet_velocity, resolution, inlet_density, kBT))
-
-#dump_every   = 100
-#u.registerPlugins(ymr.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
+u.registerPlugins(mir.Plugins.createVelocityInlet('inlet', pv, inlet_surface, inlet_velocity, resolution, inlet_density, kBT))
 
 sample_every = 10
 dump_every = 1000
 bin_size = (1.0, 1.0, 1.0)
-u.registerPlugins(ymr.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [], 'h5/solvent-'))
 
 u.run(1010)
 
 del (u)
 
-# nTEST: plugins.velocityInlet.sphere
+# nTEST: plugins.velocity_inlet.sphere
 # cd plugins
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry sphere  > /dev/null
-# ymr.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.run --runargs "-n 2" ./velocity_inlet.py --geometry sphere  > /dev/null
+# mir.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
 
-# nTEST: plugins.velocityInlet.cylinder
+# nTEST: plugins.velocity_inlet.cylinder
 # cd plugins
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry cylinder  > /dev/null
-# ymr.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.run --runargs "-n 2" ./velocity_inlet.py --geometry cylinder  > /dev/null
+# mir.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
 
-# nTEST: plugins.velocityInlet.plane
+# nTEST: plugins.velocity_inlet.plane
 # cd plugins
 # rm -rf h5
-# ymr.run --runargs "-n 2" ./velocity_inlet.py --geometry plane  > /dev/null
-# ymr.avgh5 xz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.run --runargs "-n 2" ./velocity_inlet.py --geometry plane  > /dev/null
+# mir.avgh5 xz density h5/solvent-0000*.h5 > profile.out.txt

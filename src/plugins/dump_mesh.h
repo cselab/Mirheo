@@ -23,7 +23,7 @@ private:
     ObjectVector* ov;
 
 public:
-    MeshPlugin(const YmrState *state, std::string name, std::string ovName, int dumpEvery);
+    MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
