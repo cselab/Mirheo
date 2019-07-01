@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/utils/cpu_gpu_defines.h>
+
 template <typename TPadding = float4>
 __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)
 {

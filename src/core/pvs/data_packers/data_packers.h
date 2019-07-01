@@ -11,7 +11,7 @@
 
 using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&) >;
 
-struct GenericData
+struct GenericDataHandler
 {
     int nChannels              {0};        ///< number of data channels to pack / unpack
     CudaVarPtr *varChannelData {nullptr};  ///< device pointers of the packed data
@@ -80,6 +80,22 @@ private:
             }, varChannelData[i]);
         }
     }
+};
+
+class GenericData : public GenericDataHandler
+{
+public:
+    GenericData();
+
+    void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
+
+    GenericDataHandler& handler();
+    
+protected:
+
+    void registerChannel(DataManager& dataManager, CudaVarPtr varPtr, bool& needUpload, cudaStream_t stream);
+    
+    PinnedBuffer<CudaVarPtr> channelData;
 };
 
 class ParticlePacker
