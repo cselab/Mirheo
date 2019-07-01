@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../data_manager.h"
+#include <core/pvs/data_manager.h>
+#include <core/utils/cpu_gpu_defines.h>
 
 #include <cassert>
 #include <functional>
@@ -18,12 +19,11 @@ struct DevicePacker
     int nChannels    = 0;        ///< number of data channels to pack / unpack
     CudaVarPtr *channelData = nullptr;  ///< device pointers of the packed data
 
-#ifdef __CUDACC__
     /**
      * Pack entity with id srcId into memory starting with dstAddr
      * with no shift
      */
-    inline __device__ void pack(int srcId, char *dstAddr) const
+    inline __D__ void pack(int srcId, char *dstAddr) const
     {
         for (int i = 0; i < nChannels; i++)
         {
@@ -41,7 +41,7 @@ struct DevicePacker
      * with no shift
      * Assumes that the 2 packers contain the same channels
      */
-    inline __device__ void pack(int srcId, DevicePacker& dst, int dstId) const
+    inline __D__ void pack(int srcId, DevicePacker& dst, int dstId) const
     {
         assert (nChannels == dst.nChannels);
         
@@ -61,7 +61,7 @@ struct DevicePacker
     /**
      * Unpack entity from memory by srcAddr to the channels to id dstId
      */
-    inline __device__ void unpack(const char *srcAddr, int dstId) const
+    inline __D__ void unpack(const char *srcAddr, int dstId) const
     {
         for (int i = 0; i < nChannels; i++)
         {
@@ -74,21 +74,15 @@ struct DevicePacker
         }
     }
 
-
-#endif /* __CUDACC__ */
     
 private:
 
-#ifdef __CUDACC__
-
     template <typename T, typename PaddedType = float4>
-    inline __device__ size_t paddedSize() const
+    inline __D__ size_t paddedSize() const
     {
         constexpr int npads = (sizeof(T) + sizeof(PaddedType) - 1) / sizeof(PaddedType);
         return npads * sizeof(PaddedType);
     }
-    
-#endif /* __CUDACC__ */
     
 protected:
 
