@@ -15,8 +15,8 @@ __D__ inline void _add(T *v, T s, float eps)
         atomicAdd(v, s);
 #else
         *v += s;
-    }
 #endif // __CUDACC__
+    }
 }
 
 template <typename T3>
