@@ -7,7 +7,7 @@
 namespace TypeShift
 {
 template <typename T>
-__HD__ inline void add(T& v, float3 s)
+__HD__ inline void _add(T& v, float3 s)
 {
     v.x += s.x;
     v.y += s.y;
@@ -17,17 +17,17 @@ __HD__ inline void add(T& v, float3 s)
 template <typename T>
 __HD__ inline void apply(T& var, float3 shift) {}
 
-__HD__ inline void apply(float3&      var, float3 shift) {add(var,   shift);}
-__HD__ inline void apply(float4&      var, float3 shift) {add(var,   shift);}
-__HD__ inline void apply(double3&     var, float3 shift) {add(var,   shift);}
-__HD__ inline void apply(double4&     var, float3 shift) {add(var,   shift);}
-__HD__ inline void apply(RigidMotion& var, float3 shift) {add(var.r, shift);}
+__HD__ inline void apply(float3&      var, float3 shift) {_add(var,   shift);}
+__HD__ inline void apply(float4&      var, float3 shift) {_add(var,   shift);}
+__HD__ inline void apply(double3&     var, float3 shift) {_add(var,   shift);}
+__HD__ inline void apply(double4&     var, float3 shift) {_add(var,   shift);}
+__HD__ inline void apply(RigidMotion& var, float3 shift) {_add(var.r, shift);}
 
 __HD__ inline void apply(COMandExtent& var, float3 shift)
 {
-    add(var.com,  shift);
-    add(var.low,  shift);
-    add(var.high, shift);
+    _add(var.com,  shift);
+    _add(var.low,  shift);
+    _add(var.high, shift);
 }
 
 } // namespace TypeShift
