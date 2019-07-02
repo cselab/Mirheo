@@ -14,13 +14,13 @@ using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&)
 
 struct GenericPackerHandler
 {
-    inline __D__ void pack(int srcId, int dstId, char *dstBuffer, int numElements) const
+    inline __D__ char* pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
-    inline __D__ void packShift(int srcId, int dstId, char *dstBuffer, int numElements,
+    inline __D__ char* packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                 float3 shift) const
     {
         TransformShift t {shift};
@@ -28,27 +28,26 @@ struct GenericPackerHandler
     }
 
 
-    inline __D__ void unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
+    inline __D__ const char* unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
         TransformNone t;
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ void unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
+    inline __D__ const char* unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
                                   float3 shift) const
     {
         TransformShift t {shift};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ void unpackAtomicAddNonZero(int srcId, int dstId,
-                                             const char *srcBuffer, int numElements,
-                                             float eps) const
+    inline __D__ const char* unpackAtomicAddNonZero(int srcId, int dstId,
+                                                    const char *srcBuffer, int numElements,
+                                                    float eps) const
     {
         TransformAtomicAdd t {eps};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
-
 
 private:
 
@@ -83,7 +82,7 @@ private:
     };
 
     template <class Transform>
-    inline __D__ void pack(const Transform& transform, int srcId, int dstId,
+    inline __D__ char* pack(const Transform& transform, int srcId, int dstId,
                            char *dstBuffer, int numElements) const
     {
         for (int i = 0; i < nChannels; ++i)
@@ -96,11 +95,13 @@ private:
                 dstBuffer += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
+
+        return dstBuffer;
     }
 
     template <class Transform>
-    inline __D__ void unpack(const Transform& transform, int srcId, int dstId,
-                             const char *srcBuffer, int numElements) const
+    inline __D__ const char* unpack(const Transform& transform, int srcId, int dstId,
+                                    const char *srcBuffer, int numElements) const
     {
         for (int i = 0; i < nChannels; i++)
         {
@@ -112,6 +113,8 @@ private:
                 srcBuffer += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
+
+        return srcBuffer;
     }
 
 
