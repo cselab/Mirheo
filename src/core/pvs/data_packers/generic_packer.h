@@ -16,28 +16,28 @@ struct GenericPackerHandler
     inline __D__ void pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
-        pack(t, srcId, dstId, dstBuffer, numElements);
+        return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
     inline __D__ void packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                 float3 shift) const
     {
         TransformShift t {shift};
-        pack(t, srcId, dstId, dstBuffer, numElements);
+        return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
 
     inline __D__ void unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
         TransformNone t;
-        unpack(t, srcId, dstId, srcBuffer, numElements);
+        return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
     inline __D__ void unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
                                   float3 shift) const
     {
         TransformShift t {shift};
-        unpack(t, srcId, dstId, srcBuffer, numElements);
+        return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
 private:
@@ -101,8 +101,6 @@ protected:
 class GenericPacker : public GenericPackerHandler
 {
 public:
-    GenericPacker();
-
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
 
     GenericPackerHandler& handler();

@@ -1,8 +1,5 @@
 #include "generic_packer.h"
 
-GenericPacker::GenericPacker()
-{}
-
 void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicate, cudaStream_t stream)
 {
     nChannels = 0;
