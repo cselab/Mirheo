@@ -30,10 +30,10 @@ ObjectPackerHandler ObjectPacker::handler()
     return oh;
 }
 
-size_t ObjectPacker::getSizeBytes(int numElements) const
+size_t ObjectPacker::getSizeBytes(int nObjects, int objSize) const
 {
-    return ParticlePacker::getSizeBytes(numElements) +
-        objectData.getSizeBytes(numElements);
+    return ParticlePacker::getSizeBytes(nObjects * objSize) +
+        objectData.getSizeBytes(nObjects);
 }
 
 
@@ -52,8 +52,10 @@ RodPackerHandler RodPacker::handler()
     return rh;
 }
 
-size_t RodPacker::getSizeBytes(int numElements) const
+size_t RodPacker::getSizeBytes(int nObjects, int objSize) const
 {
-    return ObjectPacker::getSizeBytes(numElements) +
-        bisegmentData.getSizeBytes(numElements);
+    int nBiSegmentsPerObj = (objSize - 1) / 5 - 1;
+    int nBisegments = nBiSegmentsPerObj * nObjects;
+    return ObjectPacker::getSizeBytes(nObjects, objSize) +
+        bisegmentData.getSizeBytes(nBisegments);
 }
