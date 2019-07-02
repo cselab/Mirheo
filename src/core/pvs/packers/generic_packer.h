@@ -14,36 +14,36 @@ using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&)
 
 struct GenericPackerHandler
 {
-    inline __D__ char* pack(int srcId, int dstId, char *dstBuffer, int numElements) const
+    inline __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
-    inline __D__ char* packShift(int srcId, int dstId, char *dstBuffer, int numElements,
-                                float3 shift) const
-    {
-        TransformShift t {shift};
-        return pack(t, srcId, dstId, dstBuffer, numElements);
-    }
-
-
-    inline __D__ const char* unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
-    {
-        TransformNone t;
-        return unpack(t, srcId, dstId, srcBuffer, numElements);
-    }
-
-    inline __D__ const char* unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
+    inline __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                   float3 shift) const
     {
         TransformShift t {shift};
+        return pack(t, srcId, dstId, dstBuffer, numElements);
+    }
+
+
+    inline __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
+    {
+        TransformNone t;
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ const char* unpackAtomicAddNonZero(int srcId, int dstId,
-                                                    const char *srcBuffer, int numElements,
-                                                    float eps) const
+    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
+                                    float3 shift) const
+    {
+        TransformShift t {shift};
+        return unpack(t, srcId, dstId, srcBuffer, numElements);
+    }
+
+    inline __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
+                                               const char *srcBuffer, int numElements,
+                                               float eps) const
     {
         TransformAtomicAdd t {eps};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
@@ -99,39 +99,41 @@ private:
     };
 
     template <class Transform>
-    inline __D__ char* pack(const Transform& transform, int srcId, int dstId,
-                           char *dstBuffer, int numElements) const
+    inline __D__ size_t pack(const Transform& transform, int srcId, int dstId,
+                             char *dstBuffer, int numElements) const
     {
+        size_t totPacked = 0;
         for (int i = 0; i < nChannels; ++i)
         {
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
-                auto buffStart = reinterpret_cast<T*>(dstBuffer);
+                auto buffStart = reinterpret_cast<T*>(dstBuffer + totPacked);
                 transform( &buffStart[dstId], srcPtr[srcId] );
-                dstBuffer += getPaddedSize<T>(numElements);
+                totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
 
-        return dstBuffer;
+        return totPacked;
     }
 
     template <class Transform>
-    inline __D__ const char* unpack(const Transform& transform, int srcId, int dstId,
-                                    const char *srcBuffer, int numElements) const
+    inline __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
+                               const char *srcBuffer, int numElements) const
     {
+        size_t totPacked = 0;
         for (int i = 0; i < nChannels; i++)
         {
             cuda_variant::apply_visitor([&](auto dstPtr)
             {
                 using T = typename std::remove_pointer<decltype(dstPtr)>::type;
-                auto buffStart = reinterpret_cast<const T*>(srcBuffer);
+                auto buffStart = reinterpret_cast<const T*>(srcBuffer + totPacked);
                 transform( &dstPtr[dstId], buffStart[srcId] );
-                srcBuffer += getPaddedSize<T>(numElements);
+                totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
 
-        return srcBuffer;
+        return totPacked;
     }
 
 

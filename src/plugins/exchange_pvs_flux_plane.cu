@@ -39,7 +39,7 @@ __global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, 
 
 __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, PVview view2,
                               float4 plane, int oldsize2, int *numberCrossed,
-                              ParticleExtraPacker extra1, ParticleExtraPacker extra2)
+                              ParticlePackerHandler extra1, ParticlePackerHandler extra2)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
@@ -61,7 +61,7 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
         p.mark();
         view1.writeParticle(pid, p);
 
-        extra1.pack(pid, extra2, dst);
+        extra1.particles.copyTo(extra2.particles, pid, dst);
     }
 }
 
@@ -73,9 +73,12 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, st
     pv1Name(pv1Name),
     pv2Name(pv2Name),
     plane(plane),
-    numberCrossedParticles(1)
+    numberCrossedParticles(1),
+    extra1(std::make_unique<ParticlePacker>()),
+    extra2(std::make_unique<ParticlePacker>())
 {}
 
+ExchangePVSFluxPlanePlugin::~ExchangePVSFluxPlanePlugin() = default;
 
 void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -113,17 +116,26 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 
     view2 = PVview(pv2, pv2->local());
 
-    auto packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
-        return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
+    // we will copy positions and velocities manually in the kernel
+    PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc)
+    {
+        auto name = namedDesc.first;
+        auto desc = namedDesc.second;
+        return
+            (name != ChannelNames::positions) &&
+            (name != ChannelNames::velocities) &&
+            (desc->persistence == DataManager::PersistenceMode::Persistent);
     };
     
-    ParticleExtraPacker extra1(pv1, pv1->local(), packPredicate, stream);
-    ParticleExtraPacker extra2(pv2, pv2->local(), packPredicate, stream);
+    
+    extra1->update(pv1->local(), packPredicate, stream);
+    extra2->update(pv2->local(), packPredicate, stream);
 
     SAFE_KERNEL_LAUNCH(
-            ExchangePvsFluxPlaneKernels::moveParticles,
-            getNblocks(view1.size, nthreads), nthreads, 0, stream,
-            domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr(), extra1, extra2 );
+        ExchangePvsFluxPlaneKernels::moveParticles,
+        getNblocks(view1.size, nthreads), nthreads, 0, stream,
+        domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr(),
+        extra1->handler(), extra2->handler() );
 
     if (numPartsExchange > 0)
     {

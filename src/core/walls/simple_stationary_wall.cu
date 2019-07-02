@@ -48,7 +48,7 @@ __global__ void collectRemaining(PVview view, float4 *remainingPos, float4 *rema
 }
 
 template<typename InsideWallChecker>
-__global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *output, int *nRemaining, InsideWallChecker checker)
+__global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer, char *output, int *nRemaining, InsideWallChecker checker, int maxNumObj)
 {
     const float tolerance = 1e-6f;
 
@@ -79,32 +79,33 @@ __global__ void packRemainingObjects(OVview view, ObjectPacker packer, char *out
         dstObjId = atomicAdd(nRemaining, 1);
     dstObjId = warpShfl(dstObjId, 0);
 
-    char *dstAddr = output + dstObjId * packer.totalPackedSize_byte;
+    size_t offsetObjData = 0;
+    
     for (int pid = laneId; pid < view.objSize; pid += warpSize)
     {
-        const int srcPid = objId * view.objSize + pid;
-        packer.part.pack(srcPid, dstAddr + pid*packer.part.packedSize_byte);
+        int srcPid = objId    * view.objSize + pid;
+        int dstPid = dstObjId * view.objSize + pid;
+        offsetObjData = packer.particles.pack(srcPid, dstPid, output, maxNumObj * view.objSize);
     }
 
-    dstAddr += view.objSize * packer.part.packedSize_byte;
-    if (laneId == 0) packer.obj.pack(objId, dstAddr);
+    if (laneId == 0) packer.objects.pack(objId, dstObjId, output + offsetObjData, maxNumObj);
 }
 
-__global__ static void unpackRemainingObjects(const char *from, OVview view, ObjectPacker packer)
+__global__ void unpackRemainingObjects(const char *from, OVview view, ObjectPackerHandler packer, int maxNumObj)
 {
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
 
-    const char *srcAddr = from + packer.totalPackedSize_byte * objId;
-
+    size_t offsetObjData = 0;
+    
     for (int pid = tid; pid < view.objSize; pid += blockDim.x)
     {
         const int dstId = objId*view.objSize + pid;
-        packer.part.unpack(srcAddr + pid*packer.part.packedSize_byte, dstId);
+        const int srcId = objId*view.objSize + pid;
+        offsetObjData = packer.particles.unpack(srcId, dstId, from, maxNumObj * view.objSize);
     }
 
-    srcAddr += view.objSize * packer.part.packedSize_byte;
-    if (tid == 0) packer.obj.unpack(srcAddr, objId);
+    if (tid == 0) packer.objects.unpack(objId, objId, from + offsetObjData, maxNumObj);
 }
 //===============================================================================================
 // Boundary cells kernels
@@ -361,25 +362,28 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer(ov, ov->local(), packPredicate, defaultStream);
+        ObjectPacker packer;
+        packer.update(ov->local(), packPredicate, defaultStream);
+        const int maxNumObj = ovView.nObjects;
 
-        DeviceBuffer<char> tmp(ovView.nObjects * packer.totalPackedSize_byte);
+        DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj, ovView.objSize));
 
         SAFE_KERNEL_LAUNCH(
                 packRemainingObjects,
                 getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, defaultStream,
-                ovView, packer, tmp.devPtr(), nRemaining.devPtr(), insideWallChecker.handler() );
+                ovView, packer.handler(), tmp.devPtr(), nRemaining.devPtr(),
+                insideWallChecker.handler(), maxNumObj );
 
         // Copy temporary buffers back
         nRemaining.downloadFromDevice(defaultStream);
         ov->local()->resize_anew(nRemaining[0] * ov->objSize);
         ovView = OVview(ov, ov->local());
-        packer = ObjectPacker(ov, ov->local(), packPredicate, defaultStream);
+        packer.update(ov->local(), packPredicate, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
                 unpackRemainingObjects,
                 ovView.nObjects, nthreads, 0, defaultStream,
-                tmp.devPtr(), ovView, packer  );
+                tmp.devPtr(), ovView, packer.handler(), maxNumObj );
     }
 
     pv->haloValid = false;
