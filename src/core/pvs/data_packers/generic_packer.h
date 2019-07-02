@@ -4,6 +4,7 @@
 
 #include <core/pvs/data_manager.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/type_add.h>
 #include <core/utils/type_shift.h>
 
 #include <cassert>
@@ -40,24 +41,45 @@ struct GenericPackerHandler
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
+    inline __D__ void unpackAtomicAddNonZero(int srcId, int dstId,
+                                             const char *srcBuffer, int numElements,
+                                             float eps) const
+    {
+        TransformAtomicAdd t {eps};
+        return unpack(t, srcId, dstId, srcBuffer, numElements);
+    }
+
+
 private:
 
     struct TransformNone
     {
         template <typename T>
-        inline __D__ T operator()(const T& val) const {return val;}
+        inline __D__ void operator()(T *addr, const T& val) const {*addr = val;}
     };
 
     struct TransformShift
     {
         template <typename T>
-        inline __D__ T operator()(T val) const
+        inline __D__ void operator()(T *addr, T val) const
         {
             TypeShift::apply(val, shift);
-            return val;
+            *addr = val;
         }
 
         float3 shift;
+    };
+
+    struct TransformAtomicAdd
+    {
+        template <typename T>
+        inline __D__ void operator()(T *addr, T val) const
+        {
+            TypeAtomicAdd::apply(addr, val, eps);
+            *addr = val;
+        }
+
+        float eps;
     };
 
     template <class Transform>
@@ -70,7 +92,7 @@ private:
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
                 auto buffStart = reinterpret_cast<T*>(dstBuffer);
-                buffStart[dstId] = transform( srcPtr[srcId] );
+                transform( &buffStart[dstId], srcPtr[srcId] );
                 dstBuffer += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
@@ -86,12 +108,14 @@ private:
             {
                 using T = typename std::remove_pointer<decltype(dstPtr)>::type;
                 auto buffStart = reinterpret_cast<const T*>(srcBuffer);
-                dstPtr[dstId] = transform( buffStart[srcId] );
+                transform( &dstPtr[dstId], buffStart[srcId] );
                 srcBuffer += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
     }
 
+
+    
 protected:
 
     int nChannels              {0};        ///< number of data channels to pack / unpack
