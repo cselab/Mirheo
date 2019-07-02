@@ -49,6 +49,23 @@ struct GenericPackerHandler
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
+    inline __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId)
+    {
+        assert (nChannels == dst.nChannels);
+        
+        for (int i = 0; i < nChannels; ++i)
+        {
+            cuda_variant::apply_visitor([&](auto srcPtr)
+            {
+                using T = typename std::remove_pointer<decltype(srcPtr)>::type;
+                auto dstPtr = cuda_variant::get_alternative<T*>(dst.varChannelData[i]);
+
+                dstPtr[dstId]= srcPtr[srcId];
+                
+            }, varChannelData[i]);
+        }
+    }
+
 private:
 
     struct TransformNone
