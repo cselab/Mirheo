@@ -24,9 +24,6 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
 
 GenericPackerHandler& GenericPacker::handler()
 {
-    nChannels      = channelData.size();
-    varChannelData = channelData.devPtr();
-    
     return *static_cast<GenericPackerHandler*> (this);
 }
 
@@ -56,4 +53,18 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool& needUpload, cudaStr
     channelData[nChannels] = varPtr;
     
     ++nChannels;
+}
+
+size_t GenericPacker::getSizeBytes(int numElements) const
+{
+    size_t size = 0;
+    for (auto varPtr : channelData)
+    {
+        cuda_variant::apply_visitor([&](auto ptr)
+        {
+            using T = typename std::remove_pointer<decltype(ptr)>::type;
+            size += getPaddedSize<T>(numElements);
+        }, varPtr);
+    }
+    return size;
 }

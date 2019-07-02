@@ -131,6 +131,8 @@ public:
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
 
     GenericPackerHandler& handler();
+
+    size_t getSizeBytes(int numElements) const;
     
 protected:
 
