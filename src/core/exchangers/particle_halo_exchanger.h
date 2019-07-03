@@ -18,6 +18,7 @@ private:
     std::vector<CellList*> cellLists;
     std::vector<ParticleVector*> particles;
     std::vector<std::unique_ptr<ParticlePacker>> packers;
+    std::vector<std::unique_ptr<ParticlePacker>> unpackers;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

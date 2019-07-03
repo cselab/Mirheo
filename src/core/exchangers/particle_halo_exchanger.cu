@@ -146,11 +146,13 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
         return std::find(channels.begin(), channels.end(), namedDesc.first) != channels.end();
     };
     
-    auto packer = std::make_unique<ParticlePacker> (predicate);
-    auto helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
+    auto   packer = std::make_unique<ParticlePacker> (predicate);
+    auto unpacker = std::make_unique<ParticlePacker> (predicate);
+    auto   helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
 
-    helpers.push_back(std::move(helper));
-    packers.push_back(std::move(packer));
+    helpers  .push_back(std::move(  helper));
+    packers  .push_back(std::move(  packer));
+    unpackers.push_back(std::move(unpacker));
 
     std::string msg_channels = channels.empty() ? "no channels." : "with channels: ";
     for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
@@ -226,8 +228,8 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
 void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto pv = particles[id];
-    auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto helper   = helpers  [id].get();
+    auto unpacker = unpackers[id].get();
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
     pv->halo()->resize_anew(totalRecvd);
@@ -239,11 +241,12 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
         const int nthreads = 64;
         const int nblocks  = helper->nBuffers;
 
-        packer->update(pv->halo(), stream); // TODO add differetn packers for unpack
+        unpacker->update(pv->halo(), stream);
+
         SAFE_KERNEL_LAUNCH(
             ParticleHaloExchangersKernels::unpackParticles,
             nblocks, nthreads, 0, stream,
-            helper->wrapRecvData(), packer->handler());
+            helper->wrapRecvData(), unpacker->handler());
     }
     
     pv->haloValid = true;
