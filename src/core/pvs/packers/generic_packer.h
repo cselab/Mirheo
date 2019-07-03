@@ -36,8 +36,8 @@ struct GenericPackerHandler
     }
 
     template <typename T>
-    inline __D__ size_t packShiftElement(float3 shift, const T& val, int dstId,
-                                         char *dstBuffer, int numElements) const
+    inline __D__ size_t packShiftElement(const T& val, int dstId, char *dstBuffer,
+                                         int numElements, float3 shift) const
     {
         TransformShift t {shift};
         return packElement(t, val, dstId, dstBuffer, numElements);

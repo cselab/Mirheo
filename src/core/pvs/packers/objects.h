@@ -12,10 +12,10 @@ struct ObjectPackerHandler : public ParticlePackerHandler
 class ObjectPacker : public ParticlePacker
 {
 public:
-    ObjectPacker();
+    ObjectPacker(PackPredicate predicate);
     ~ObjectPacker();
     
-    void update(LocalObjectVector *lov, PackPredicate& predicate, cudaStream_t stream);
+    void update(LocalObjectVector *lov, cudaStream_t stream);
     ObjectPackerHandler handler();
     size_t getSizeBytes(int numElements) const override;
 

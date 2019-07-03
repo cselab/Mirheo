@@ -2,12 +2,15 @@
 
 #include <core/pvs/object_vector.h>
 
-ObjectPacker::ObjectPacker() = default;
+ObjectPacker::ObjectPacker(PackPredicate predicate) :
+    ParticlePacker(predicate)
+{}
+
 ObjectPacker::~ObjectPacker() = default;
 
-void ObjectPacker::update(LocalObjectVector *lov, PackPredicate& predicate, cudaStream_t stream)
+void ObjectPacker::update(LocalObjectVector *lov, cudaStream_t stream)
 {
-    ParticlePacker::update(lov, predicate, stream);
+    ParticlePacker::update(lov, stream);
     objectData.updateChannels(lov->dataPerObject, predicate, stream);
     objSize = lov->objSize;
 }

@@ -2,12 +2,15 @@
 
 #include <core/pvs/rod_vector.h>
 
-RodPacker::RodPacker() = default;
+RodPacker::RodPacker(PackPredicate predicate) :
+    ObjectPacker(predicate)
+{}
+
 RodPacker::~RodPacker() = default;
 
-void RodPacker::update(LocalRodVector *lrv, PackPredicate& predicate, cudaStream_t stream)
+void RodPacker::update(LocalRodVector *lrv, cudaStream_t stream)
 {
-    ObjectPacker::update(lrv, predicate, stream);
+    ObjectPacker::update(lrv, stream);
     bisegmentData.updateChannels(lrv->dataPerBisegment, predicate, stream);
     nBisegments = lrv->getNumSegmentsPerRod();
 }

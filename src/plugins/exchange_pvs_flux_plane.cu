@@ -73,10 +73,22 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, st
     pv1Name(pv1Name),
     pv2Name(pv2Name),
     plane(plane),
-    numberCrossedParticles(1),
-    extra1(std::make_unique<ParticlePacker>()),
-    extra2(std::make_unique<ParticlePacker>())
-{}
+    numberCrossedParticles(1)
+{
+    // we will copy positions and velocities manually in the kernel
+    PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
+    {
+        auto name = namedDesc.first;
+        auto desc = namedDesc.second;
+        return
+            (name != ChannelNames::positions) &&
+            (name != ChannelNames::velocities) &&
+            (desc->persistence == DataManager::PersistenceMode::Persistent);
+    };
+
+    extra1 = std::make_unique<ParticlePacker>(predicate);
+    extra2 = std::make_unique<ParticlePacker>(predicate);
+}
 
 ExchangePVSFluxPlanePlugin::~ExchangePVSFluxPlanePlugin() = default;
 
@@ -114,22 +126,10 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     pv2->local()->resize(new_size2, stream);
     numberCrossedParticles.clear(stream);
 
-    view2 = PVview(pv2, pv2->local());
-
-    // we will copy positions and velocities manually in the kernel
-    PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc)
-    {
-        auto name = namedDesc.first;
-        auto desc = namedDesc.second;
-        return
-            (name != ChannelNames::positions) &&
-            (name != ChannelNames::velocities) &&
-            (desc->persistence == DataManager::PersistenceMode::Persistent);
-    };
+    view2 = PVview(pv2, pv2->local());    
     
-    
-    extra1->update(pv1->local(), packPredicate, stream);
-    extra2->update(pv2->local(), packPredicate, stream);
+    extra1->update(pv1->local(), stream);
+    extra2->update(pv2->local(), stream);
 
     SAFE_KERNEL_LAUNCH(
         ExchangePvsFluxPlaneKernels::moveParticles,

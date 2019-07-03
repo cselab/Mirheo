@@ -14,10 +14,10 @@ class RodPacker : public ObjectPacker
 {
 public:
 
-    RodPacker();
+    RodPacker(PackPredicate predicate);
     ~RodPacker();
     
-    void update(LocalRodVector *lrv, PackPredicate& predicate, cudaStream_t stream);
+    void update(LocalRodVector *lrv, cudaStream_t stream);
     RodPackerHandler handler();
     size_t getSizeBytes(int numElements) const override;
 

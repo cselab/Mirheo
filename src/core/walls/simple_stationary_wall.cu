@@ -366,8 +366,8 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer;
-        packer.update(ov->local(), packPredicate, defaultStream);
+        ObjectPacker packer(packPredicate);
+        packer.update(ov->local(), defaultStream);
         const int maxNumObj = ovView.nObjects;
 
         DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj));
@@ -382,7 +382,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         nRemaining.downloadFromDevice(defaultStream);
         ov->local()->resize_anew(nRemaining[0] * ov->objSize);
         ovView = OVview(ov, ov->local());
-        packer.update(ov->local(), packPredicate, defaultStream);
+        packer.update(ov->local(), defaultStream);
 
         SAFE_KERNEL_LAUNCH(
             StationaryWallsKernels::unpackRemainingObjects,

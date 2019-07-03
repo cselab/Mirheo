@@ -2,15 +2,19 @@
 
 #include <core/pvs/particle_vector.h>
 
-ParticlePacker::ParticlePacker() = default;
+ParticlePacker::ParticlePacker(PackPredicate predicate) :
+    predicate(predicate)
+{}
 
-ParticlePacker::ParticlePacker(const std::vector<size_t>& extraTypeSize) :
+ParticlePacker::ParticlePacker(PackPredicate predicate,
+                               const std::vector<size_t>& extraTypeSize) :
+    predicate(predicate),
     extraTypeSize(extraTypeSize)
 {}
 
 ParticlePacker::~ParticlePacker() = default;
 
-void ParticlePacker::update(LocalParticleVector *lpv, PackPredicate& predicate, cudaStream_t stream)
+void ParticlePacker::update(LocalParticleVector *lpv, cudaStream_t stream)
 {
     particleData.updateChannels(lpv->dataPerParticle, predicate, stream);
 }
