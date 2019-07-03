@@ -6,12 +6,6 @@ ParticlePacker::ParticlePacker(PackPredicate predicate) :
     predicate(predicate)
 {}
 
-ParticlePacker::ParticlePacker(PackPredicate predicate,
-                               const std::vector<size_t>& extraTypeSize) :
-    predicate(predicate),
-    extraTypeSize(extraTypeSize)
-{}
-
 ParticlePacker::~ParticlePacker() = default;
 
 void ParticlePacker::update(LocalParticleVector *lpv, cudaStream_t stream)
@@ -26,10 +20,5 @@ ParticlePackerHandler ParticlePacker::handler()
 
 size_t ParticlePacker::getSizeBytes(int numElements) const
 {
-    size_t totSize = particleData.getSizeBytes(numElements);
-
-    for (const auto& datumSize : extraTypeSize)
-        totSize += getPaddedSize(datumSize, numElements);
-    
-    return totSize;
+    return particleData.getSizeBytes(numElements);
 }

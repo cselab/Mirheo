@@ -15,8 +15,6 @@ class ParticlePacker
 {
 public:
     ParticlePacker(PackPredicate predicate);
-    ParticlePacker(PackPredicate predicate,
-                   const std::vector<size_t>& extraTypeSize);
     ~ParticlePacker();
     
     void update(LocalParticleVector *lpv, cudaStream_t stream);
@@ -26,8 +24,4 @@ public:
 protected:
     PackPredicate predicate;
     GenericPacker particleData;
-
-    // optional elements which will be manually packed
-    // but used in getSizeBytes
-    const std::vector<size_t> extraTypeSize;
 };
