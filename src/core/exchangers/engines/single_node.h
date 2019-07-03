@@ -16,10 +16,10 @@ class SingleNodeEngine : public ExchangeEngine
 {
 public:
     SingleNodeEngine(std::unique_ptr<Exchanger> exchanger);
+    ~SingleNodeEngine();
+    
     void init(cudaStream_t stream)     override;
     void finalize(cudaStream_t stream) override;
-    
-    ~SingleNodeEngine() = default;
 
 private:
     std::unique_ptr<Exchanger> exchanger;

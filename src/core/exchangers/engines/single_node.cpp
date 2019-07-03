@@ -8,6 +8,8 @@ SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
         exchanger(std::move(exchanger))
 {}
 
+SingleNodeEngine::~SingleNodeEngine() = default;
+
 void SingleNodeEngine::init(cudaStream_t stream)
 {
     auto& helpers = exchanger->helpers;
