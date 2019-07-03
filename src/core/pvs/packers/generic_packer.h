@@ -113,6 +113,15 @@ private:
         float eps;
     };
 
+    template <class Transform, typename T>
+    inline __D__ size_t packElement(const Transform& transform, const T& val, int dstId,
+                                    char *dstBuffer, int numElements) const
+    {
+        auto buffStart = reinterpret_cast<T*>(dstBuffer);
+        transform( &buffStart[dstId], val );
+        return getPaddedSize<T>(numElements);
+    }
+
     template <class Transform>
     inline __D__ size_t pack(const Transform& transform, int srcId, int dstId,
                              char *dstBuffer, int numElements) const
@@ -123,15 +132,23 @@ private:
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
-                auto buffStart = reinterpret_cast<T*>(dstBuffer + totPacked);
-                transform( &buffStart[dstId], srcPtr[srcId] );
-                totPacked += getPaddedSize<T>(numElements);
+                totPacked += packElement(transform, srcPtr[srcId],
+                                         dstId, dstBuffer + totPacked, numElements);
             }, varChannelData[i]);
         }
 
         return totPacked;
     }
 
+    template <class Transform, typename T>
+    inline __D__ size_t unpackElement(const Transform& transform, int srcId, T& val,
+                                      const char *srcBuffer, int numElements) const
+    {
+        auto buffStart = reinterpret_cast<const T*>(srcBuffer);
+        transform( &val, buffStart[srcId] );
+        return getPaddedSize<T>(numElements);
+    }
+    
     template <class Transform>
     inline __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
                                const char *srcBuffer, int numElements) const
@@ -142,9 +159,8 @@ private:
             cuda_variant::apply_visitor([&](auto dstPtr)
             {
                 using T = typename std::remove_pointer<decltype(dstPtr)>::type;
-                auto buffStart = reinterpret_cast<const T*>(srcBuffer + totPacked);
-                transform( &dstPtr[dstId], buffStart[srcId] );
-                totPacked += getPaddedSize<T>(numElements);
+                totPacked += unpackElement(transform, srcId, dstPtr[dstId],
+                                           srcBuffer + totPacked, numElements);
             }, varChannelData[i]);
         }
 
