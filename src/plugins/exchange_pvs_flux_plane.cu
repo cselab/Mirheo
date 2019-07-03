@@ -1,6 +1,6 @@
 #include "exchange_pvs_flux_plane.h"
 
-#include <core/pvs/packers/packers.h>
+#include <core/pvs/packers/particles.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/simulation.h>
