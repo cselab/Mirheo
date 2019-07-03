@@ -4,7 +4,7 @@
 
 class ParticleVector;
 class CellList;
-class ParticlesPacker;
+class ParticlePacker;
 
 class ParticleRedistributor : public Exchanger
 {
@@ -17,7 +17,7 @@ public:
 private:
     std::vector<ParticleVector*> particles;
     std::vector<CellList*> cellLists;
-    std::vector<std::unique_ptr<ParticlesPacker>> packers;
+    std::vector<std::unique_ptr<ParticlePacker>> packers;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

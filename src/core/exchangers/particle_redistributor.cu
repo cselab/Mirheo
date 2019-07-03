@@ -1,12 +1,10 @@
 #include "exchange_helpers.h"
-#include "packers/map.h"
-#include "packers/particles.h"
-#include "packers/shifter.h"
 #include "particle_redistributor.h"
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
 
 #include <core/celllist.h>
+#include <core/pvs/packers/particles.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
@@ -37,7 +35,8 @@ inline __device__ bool hasToLeave(int3 dir) {
 }
 
 template <PackMode packMode>
-__global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEntry *map, Shifter shift, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo domain,
+                                    ParticlePackerHandler packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int faceId = blockIdx.y;
@@ -67,7 +66,8 @@ __global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEn
 
         if (p.isMarked()) continue;
         
-        if (hasToLeave(dir)) {
+        if (hasToLeave(dir))
+        {
             const int bufId = FragmentMapping::getId(dir);
 
             int myId = atomicAdd(dataWrap.sizes + bufId, 1);
@@ -78,14 +78,16 @@ __global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEn
             }
             else
             {
-                MapEntry me(srcId, bufId);
+                const float3 shift { -domain.localSize.x * dir.x,
+                                     -domain.localSize.y * dir.y,
+                                     -domain.localSize.z * dir.z };
 
-                int offset = dataWrap.offsets[bufId];
-                map[offset + myId] = me;
+                const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
-                auto dstPos = (float4*) (dataWrap.buffer + dataWrap.offsetsBytes[bufId]);
-                dstPos[myId] = shift(p.r2Float4(), bufId);
+                auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
 
+                packer.particles.packShift(srcId, myId, buffer, numElements, shift);
+                
                 // mark the particle as exited to assist cell-list building
                 Float3_int pos = p.r2Float3_int();
                 pos.mark();
@@ -94,6 +96,23 @@ __global__ void getExitingPositionsAndMap(CellListInfo cinfo, PVview view, MapEn
         }
     }
 }
+
+__global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
+                                ParticlePackerHandler packer)
+{
+    const int bufId = blockIdx.x;
+
+    const int numElements = dataWrap.sizes[bufId];
+
+    for (int pid = threadIdx.x; pid < numElements; ++pid)
+    {
+        const int dstId = startDstId + dataWrap.offsets[bufId] + pid;
+        const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+        
+        packer.particles.unpack(pid, dstId, buffer, numElements);
+    }
+}
+
 } // namespace ParticleRedistributorKernels
 
 //===============================================================================================
@@ -117,11 +136,13 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("Redistributor (for %s) must be used with a primary cell-list", pv->name.c_str());
 
-    auto packer = std::make_unique<ParticlesPacker>(pv, [](const DataManager::NamedChannelDesc& namedDesc) {
+    PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
+    {
         return (namedDesc.second->persistence == DataManager::PersistenceMode::Persistent) ||
-            (namedDesc.first == ChannelNames::positions);
-    });
-    
+            namedDesc.first == ChannelNames::positions;
+    };
+
+    auto packer = std::make_unique<ParticlePacker>(predicate);
     auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());
 
     packers.push_back(std::move(packer));
@@ -135,22 +156,26 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto pv = particles[id];
     auto cl = cellLists[id];
     auto helper = helpers[id].get();
+    auto packer = packers[id].get();
 
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
     helper->send.sizes.clear(stream);
+
+    packer->update(pv->local(), stream);
 
     if (pv->local()->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
-        Shifter shift(false, pv->state->domain);
 
         SAFE_KERNEL_LAUNCH(
-            ParticleRedistributorKernels::getExitingPositionsAndMap<PackMode::Query>,
+            ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
             nblocks, nthreads, 0, stream,
-            cl->cellInfo(), cl->getView<PVview>(), nullptr, shift, helper->wrapSendData() );
+            cl->cellInfo(), cl->getView<PVview>(),
+            pv->state->domain, packer->handler(),
+            helper->wrapSendData() );
     }
     helper->computeSendOffsets_Dev2Dev(stream);
 }
@@ -170,22 +195,18 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
-        Shifter shift(true, pv->state->domain);
         
         helper->resizeSendBuf();
-        int totalOutgoing = helper->send.offsets[helper->nBuffers];
-        helper->map.resize_anew(totalOutgoing);
         
         // Sizes will still remain on host, no need to download again
         helper->send.sizes.clearDevice(stream);
         
         SAFE_KERNEL_LAUNCH(
-            ParticleRedistributorKernels::getExitingPositionsAndMap<PackMode::Pack>,
+            ParticleRedistributorKernels::getExitingParticles<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
-            cl->cellInfo(), cl->getView<PVview>(), helper->map.devPtr(), shift, helper->wrapSendData() );
-
-        const std::vector<std::string> alreadyPacked = {ChannelNames::positions};
-        packer->packToBuffer(pv->local(), helper->map, &helper->send, alreadyPacked, stream);
+            cl->cellInfo(), cl->getView<PVview>(),
+            pv->state->domain, packer->handler(),
+            helper->wrapSendData() );
     }
 }
 
@@ -195,15 +216,23 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
 
-    int oldsize = pv->local()->size();
+    int oldSize = pv->local()->size();
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
-    pv->local()->resize(oldsize + totalRecvd,  stream);
+    pv->local()->resize(oldSize + totalRecvd,  stream);
 
     if (totalRecvd > 0)
-        packer->unpackFromBuffer(pv->local(), &helper->recv, oldsize, stream);
+    {
+        const int nthreads = 64;
+        const int nblocks  = helper->nBuffers;
+        
+        SAFE_KERNEL_LAUNCH(
+            ParticleRedistributorKernels::unpackParticles,
+            nblocks, nthreads, 0, stream,
+            oldSize, helper->wrapRecvData(), packer->handler());
+
+        // Particles may have migrated, rebuild cell-lists
+        pv->cellListStamp++;
+    }
 
     pv->redistValid = true;
-
-    // Particles may have migrated, rebuild cell-lists
-    if (totalRecvd > 0)    pv->cellListStamp++;
 }
