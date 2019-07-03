@@ -1,10 +1,11 @@
 #pragma once
 
-#include "exchanger_interfaces.h"
-#include "exchange_helpers.h"
+#include "../exchanger_interfaces.h"
 
 #include <mpi.h>
 #include <string>
+
+class ExchangeHelper;
 
 /**
  * Engine implementing MPI exchange logic.
@@ -36,9 +37,9 @@ public:
 private:
     std::unique_ptr<Exchanger> exchanger;
     
-    int dir2rank[FragmentMapping::numFragments];
-    int dir2sendTag[FragmentMapping::numFragments];
-    int dir2recvTag[FragmentMapping::numFragments];    
+    std::vector<int> dir2rank;
+    std::vector<int> dir2sendTag;
+    std::vector<int> dir2recvTag;    
     int nActiveNeighbours;
 
     int myrank;

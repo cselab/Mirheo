@@ -3,8 +3,8 @@
 #include <mpi.h>
 
 #include "exchanger_interfaces.h"
-#include "mpi_engine.h"
-#include "single_node_engine.h"
+#include "engines/mpi.h"
+#include "engines/single_node.h"
 
 #include "particle_halo_exchanger.h"
 #include "object_halo_exchanger.h"

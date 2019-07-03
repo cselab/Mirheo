@@ -1,5 +1,6 @@
-#include "mpi_engine.h"
-#include "utils/fragments_mapping.h"
+#include "mpi.h"
+#include "../exchange_helpers.h"
+#include "../utils/fragments_mapping.h"
 
 #include <core/utils/timer.h>
 #include <core/logger.h>
@@ -9,7 +10,10 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
     nActiveNeighbours(FragmentMapping::numFragments - 1),
     gpuAwareMPI(gpuAwareMPI),
-    exchanger(std::move(exchanger))
+    exchanger(std::move(exchanger)),
+    dir2rank   (FragmentMapping::numFragments),
+    dir2sendTag(FragmentMapping::numFragments),
+    dir2recvTag(FragmentMapping::numFragments)
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -27,7 +31,7 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
         for(int c = 0; c < 3; ++c)
             coordsNeigh[c] = coords[c] + d[c];
 
-        MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, dir2rank + i) );
+        MPI_Check( MPI_Cart_rank(haloComm, coordsNeigh, &dir2rank[i]) );
 
         dir2sendTag[i] = i;
         dir2recvTag[i] = FragmentMapping::getId(-d[0], -d[1], -d[2]);

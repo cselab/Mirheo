@@ -1,10 +1,11 @@
 #pragma once
 
-#include "exchanger_interfaces.h"
-#include "exchange_helpers.h"
+#include "../exchanger_interfaces.h"
 
 #include <mpi.h>
 #include <string>
+
+class ExchangeHelper;
 
 /**
  * Engine used when there is only one node
