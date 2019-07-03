@@ -15,8 +15,9 @@ class RodPacker : public ObjectPacker
 public:
     void update(LocalRodVector *lrv, PackPredicate& predicate, cudaStream_t stream);
     RodPackerHandler handler();
-    size_t getSizeBytes(int nObjects, int objSize) const;
+    size_t getSizeBytes(int numElements) const override;
 
 protected:
     GenericPacker bisegmentData;
+    int nBisegments;
 };

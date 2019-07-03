@@ -25,11 +25,11 @@ public:
 
 public:
     int nObjects { 0 };
-
+    int objSize  { 0 };
+    
     DataManager dataPerObject;
 
 protected:
-    int objSize { 0 };
 
     int getNobjects(int np) const;
 };

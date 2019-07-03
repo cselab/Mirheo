@@ -366,7 +366,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         packer.update(ov->local(), packPredicate, defaultStream);
         const int maxNumObj = ovView.nObjects;
 
-        DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj, ovView.objSize));
+        DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj));
 
         SAFE_KERNEL_LAUNCH(
                 packRemainingObjects,

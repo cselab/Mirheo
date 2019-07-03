@@ -6,6 +6,7 @@ void ObjectPacker::update(LocalObjectVector *lov, PackPredicate& predicate, cuda
 {
     ParticlePacker::update(lov, predicate, stream);
     objectData.updateChannels(lov->dataPerObject, predicate, stream);
+    objSize = lov->objSize;
 }
 
 ObjectPackerHandler ObjectPacker::handler()
@@ -16,8 +17,8 @@ ObjectPackerHandler ObjectPacker::handler()
     return oh;
 }
 
-size_t ObjectPacker::getSizeBytes(int nObjects, int objSize) const
+size_t ObjectPacker::getSizeBytes(int numElements) const
 {
-    return ParticlePacker::getSizeBytes(nObjects * objSize) +
-        objectData.getSizeBytes(nObjects);
+    return ParticlePacker::getSizeBytes(numElements * objSize) +
+        objectData.getSizeBytes(numElements);
 }

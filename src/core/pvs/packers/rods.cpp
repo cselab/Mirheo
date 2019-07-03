@@ -6,6 +6,7 @@ void RodPacker::update(LocalRodVector *lrv, PackPredicate& predicate, cudaStream
 {
     ObjectPacker::update(lrv, predicate, stream);
     bisegmentData.updateChannels(lrv->dataPerBisegment, predicate, stream);
+    nBisegments = lrv->getNumSegmentsPerRod();
 }
 
 RodPackerHandler RodPacker::handler()
@@ -17,10 +18,8 @@ RodPackerHandler RodPacker::handler()
     return rh;
 }
 
-size_t RodPacker::getSizeBytes(int nObjects, int objSize) const
+size_t RodPacker::getSizeBytes(int numElements) const
 {
-    int nBiSegmentsPerObj = (objSize - 1) / 5 - 1;
-    int nBisegments = nBiSegmentsPerObj * nObjects;
-    return ObjectPacker::getSizeBytes(nObjects, objSize) +
+    return ObjectPacker::getSizeBytes(numElements) +
         bisegmentData.getSizeBytes(nBisegments);
 }

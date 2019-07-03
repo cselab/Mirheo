@@ -14,8 +14,9 @@ class ObjectPacker : public ParticlePacker
 public:
     void update(LocalObjectVector *lov, PackPredicate& predicate, cudaStream_t stream);
     ObjectPackerHandler handler();
-    size_t getSizeBytes(int nObjects, int objSize) const;
+    size_t getSizeBytes(int numElements) const override;
 
 protected:
+    int objSize;
     GenericPacker objectData;
 };
