@@ -27,6 +27,22 @@ struct GenericPackerHandler
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
+    template <typename T>
+    inline __D__ size_t packElement(const T& val, int dstId,
+                                    char *dstBuffer, int numElements) const
+    {
+        TransformNone t;
+        return packElement(t, val, dstId, dstBuffer, numElements);
+    }
+
+    template <typename T>
+    inline __D__ size_t packShiftElement(float3 shift, const T& val, int dstId,
+                                         char *dstBuffer, int numElements) const
+    {
+        TransformShift t {shift};
+        return packElement(t, val, dstId, dstBuffer, numElements);
+    }
+
 
     inline __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {

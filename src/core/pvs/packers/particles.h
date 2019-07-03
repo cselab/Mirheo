@@ -1,6 +1,7 @@
 #pragma once
 
 #include "generic_packer.h"
+
 #include <vector>
 
 class LocalParticleVector;
