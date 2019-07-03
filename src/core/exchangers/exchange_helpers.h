@@ -78,6 +78,7 @@ public:
      * that can be used in the device code.
      */
     BufferOffsetsSizesWrap wrapSendData();
+    BufferOffsetsSizesWrap wrapRecvData();
 
 public:
     const int nBuffers = FragmentMapping::numFragments;   ///< equal to number of neighbours + 1, for now fixed

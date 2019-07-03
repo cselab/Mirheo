@@ -97,3 +97,10 @@ BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()
             send.offsets.devPtr(), send.sizes.devPtr(),
             send.offsetsBytes.devPtr()};
 }
+
+BufferOffsetsSizesWrap ExchangeHelper::wrapRecvData()
+{
+    return {nBuffers, recv.buffer.devPtr(),
+            recv.offsets.devPtr(), recv.sizes.devPtr(),
+            recv.offsetsBytes.devPtr()};
+}
