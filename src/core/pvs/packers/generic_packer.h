@@ -66,6 +66,21 @@ struct GenericPackerHandler
         }
     }
 
+    inline __D__ size_t getSizeBytes(int numElements) const
+    {
+        size_t sz = 0;
+
+        for (int i = 0; i < nChannels; ++i)
+        {
+            cuda_variant::apply_visitor([&](auto srcPtr)
+            {
+                using T = typename std::remove_pointer<decltype(srcPtr)>::type;
+                sz += getPaddedSize<T>(numElements);
+            }, varChannelData[i]);
+        }
+        return sz;
+    }
+
 private:
 
     struct TransformNone
