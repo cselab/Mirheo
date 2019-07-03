@@ -3,7 +3,7 @@
 #include <core/initial_conditions/rigid.h>
 #include <core/initial_conditions/uniform.h>
 #include <core/logger.h>
-#include <core/pvs/packers/packers.h>
+#include <core/pvs/packers/objects.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ashape_object_vector.h>
 #include <core/utils/cuda_common.h>
@@ -280,7 +280,7 @@ TEST (PACKERS_SIMPLE, objects)
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
     packer.update(lrev, predicate, defaultStream);
     
-    size_t sizeBuff = packer.getSizeBytes(nObjs, objSize);
+    size_t sizeBuff = packer.getSizeBytes(nObjs);
     DeviceBuffer<char> buffer(sizeBuff);
 
     const int nthreads = 128;
