@@ -13,6 +13,10 @@ struct RodPackerHandler : public ObjectPackerHandler
 class RodPacker : public ObjectPacker
 {
 public:
+
+    RodPacker();
+    ~RodPacker();
+    
     void update(LocalRodVector *lrv, PackPredicate& predicate, cudaStream_t stream);
     RodPackerHandler handler();
     size_t getSizeBytes(int numElements) const override;

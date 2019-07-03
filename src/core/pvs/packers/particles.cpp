@@ -2,6 +2,14 @@
 
 #include <core/pvs/particle_vector.h>
 
+ParticlePacker::ParticlePacker() = default;
+
+ParticlePacker::ParticlePacker(const std::vector<size_t>& extraTypeSize) :
+    extraTypeSize(extraTypeSize)
+{}
+
+ParticlePacker::~ParticlePacker() = default;
+
 void ParticlePacker::update(LocalParticleVector *lpv, PackPredicate& predicate, cudaStream_t stream)
 {
     particleData.updateChannels(lpv->dataPerParticle, predicate, stream);
@@ -14,5 +22,10 @@ ParticlePackerHandler ParticlePacker::handler()
 
 size_t ParticlePacker::getSizeBytes(int numElements) const
 {
-    return particleData.getSizeBytes(numElements);
+    size_t totSize = particleData.getSizeBytes(numElements);
+
+    for (const auto& datumSize : extraTypeSize)
+        totSize += getPaddedSize(datumSize, numElements);
+    
+    return totSize;
 }

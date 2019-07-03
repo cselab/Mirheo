@@ -1,6 +1,7 @@
 #pragma once
 
 #include "generic_packer.h"
+#include <vector>
 
 class LocalParticleVector;
 
@@ -12,16 +13,18 @@ struct ParticlePackerHandler
 class ParticlePacker
 {
 public:
+    ParticlePacker();
+    ParticlePacker(const std::vector<size_t>& extraTypeSize);
+    ~ParticlePacker();
+    
     void update(LocalParticleVector *lpv, PackPredicate& predicate, cudaStream_t stream);
     ParticlePackerHandler handler();
     virtual size_t getSizeBytes(int numElements) const;
 
-    template <typename T>
-    static constexpr size_t getSizeBytesExtraEntry(int numElements)
-    {
-        return getPaddedSize<T>(numElements);
-    }
-    
 protected:
     GenericPacker particleData;
+
+    // optional elements which will be manually packed
+    // but used in getSizeBytes
+    const std::vector<size_t> extraTypeSize;
 };

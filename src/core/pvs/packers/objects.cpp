@@ -2,6 +2,9 @@
 
 #include <core/pvs/object_vector.h>
 
+ObjectPacker::ObjectPacker() = default;
+ObjectPacker::~ObjectPacker() = default;
+
 void ObjectPacker::update(LocalObjectVector *lov, PackPredicate& predicate, cudaStream_t stream)
 {
     ParticlePacker::update(lov, predicate, stream);
