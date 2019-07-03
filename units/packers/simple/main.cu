@@ -3,7 +3,7 @@
 #include <core/initial_conditions/rigid.h>
 #include <core/initial_conditions/uniform.h>
 #include <core/logger.h>
-#include <core/pvs/data_packers/data_packers.h>
+#include <core/pvs/packers/packers.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ashape_object_vector.h>
 #include <core/utils/cuda_common.h>
@@ -52,7 +52,7 @@ __global__ void packObjectsIdentityMap(int nObjects, int objSize, ObjectPackerHa
     // so that buffer is updated for conserned threads
 
     if (i < nParticles)
-        buffer = packer.particles.pack(srcId, dstId, buffer, nParticles);
+        buffer += packer.particles.pack(srcId, dstId, buffer, nParticles);
 
     if ( i < nObjects)
         packer.objects.pack(srcId, dstId, buffer, nObjects);
@@ -70,7 +70,7 @@ __global__ void unpackObjectsIdentityMap(int nObjects, int objSize, const char *
     // so that buffer is updated for conserned threads
 
     if (i < nParticles)
-        buffer = packer.particles.unpack(srcId, dstId, buffer, nParticles);
+        buffer += packer.particles.unpack(srcId, dstId, buffer, nParticles);
 
     if (i < nObjects)
         packer.objects.unpack(srcId, dstId, buffer, nObjects);
