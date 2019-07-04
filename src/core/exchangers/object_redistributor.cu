@@ -1,13 +1,12 @@
 #include "object_redistributor.h"
 #include "exchange_helpers.h"
-#include "packers/map.h"
-#include "packers/objects.h"
 #include "utils/fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/views/ov.h>
+#include <core/pvs/packers/objects.h>
 #include <core/logger.h>
 #include <core/utils/cuda_common.h>
 
@@ -20,10 +19,12 @@ namespace ObjecRedistributorKernels
 {
 
 template <PackMode packMode>
-__global__ void getExitingObjectsMap(const DomainInfo domain, OVview view, MapEntry *map, BufferOffsetsSizesWrap dataWrap)
+__global__ void getExitingObjects(DomainInfo domain, OVview view,
+                                  ObjectPackerHandler packer, BufferOffsetsSizesWrap dataWrap)
 {
-    const int objId = threadIdx.x + blockIdx.x * blockDim.x;
-
+    const int objId = blockIdx.x;
+    const int tid   = threadIdx.x;
+    
     if (objId >= view.nObjects) return;
 
     // Find to which buffer this object should go
@@ -40,7 +41,12 @@ __global__ void getExitingObjectsMap(const DomainInfo domain, OVview view, MapEn
 
     const int bufId = FragmentMapping::getId(dx, dy, dz);
 
-    int dstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
+    __shared__ int shDstObjId;
+
+    __syncthreads();
+    
+    if (tid == 0)
+        shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
     if (packMode == PackMode::Query)
     {
@@ -48,9 +54,53 @@ __global__ void getExitingObjectsMap(const DomainInfo domain, OVview view, MapEn
     }
     else
     {
-        int dstId = dataWrap.offsets[bufId] + dstObjId;
-        map[dstId] = MapEntry(objId, bufId);
+        __syncthreads();
+        
+        const float3 shift{ - domain.localSize.x * dx,
+                            - domain.localSize.y * dy,
+                            - domain.localSize.z * dz };
+
+        auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+        int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
+
+        size_t offsetBytes = 0;
+        
+        for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+        {
+            const int srcPid = objId      * view.objSize + pid;
+            const int dstPid = shDstObjId * view.objSize + pid;
+            
+            offsetBytes = packer.particles.packShift(srcPid, dstPid, buffer, numElements, shift);
+        }
+
+        if (tid == 0)
+            packer.objects.packShift(objId, shDstObjId, buffer + offsetBytes, numElements, shift);
     }
+}
+
+__global__ void unpackObjects(const char *buffer, int startDstObjId,
+                              OVview view, ObjectPackerHandler packer)
+{
+    const int objId = blockIdx.x;
+    const int tid   = threadIdx.x;
+    const int numElements = gridDim.x;
+
+    const int srcObjId = objId;
+    const int dstObjId = objId + startDstObjId;
+    
+    size_t offsetBytes = 0;
+    
+    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    {
+        const int dstPid = dstObjId * view.objSize + pid;
+        const int srcPid = srcObjId * view.objSize + pid;
+        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer, numElements);
+    }
+
+    buffer += offsetBytes;
+    
+    if (tid == 0)
+        packer.objects.unpack(srcObjId, dstObjId, buffer, numElements);
 }
 
 } // namespace ObjecRedistributorKernels
@@ -72,11 +122,13 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     int id = objects.size();
     objects.push_back(ov);
 
-    auto packer = std::make_unique<ObjectsPacker>(ov, [](const DataManager::NamedChannelDesc& namedDesc) {
+    PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
+    {
         return (namedDesc.second->persistence == DataManager::PersistenceMode::Persistent) ||
             (namedDesc.first == ChannelNames::positions);
-    });
-
+    };
+    
+    auto packer = std::make_unique<ObjectPacker>(predicate);
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
 
     packers.push_back(std::move(packer));
@@ -91,6 +143,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto ov  = objects[id];
     auto lov = ov->local();
     auto helper = helpers[id].get();
+    auto packer = packers[id].get();
     auto bulkId = helper->bulkId;
     
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
@@ -98,17 +151,20 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     OVview ovView(ov, ov->local());
 
     debug2("Counting exiting objects of '%s'", ov->name.c_str());
-    const int nthreads = 32;
 
     // Prepare sizes
     helper->send.sizes.clear(stream);
+    packer->update(ov->local(), stream);
     
     if (ovView.nObjects > 0)
     {
+        const int nthreads = 256;
+        const int nblocks  = ovView.nObjects;
+        
         SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::getExitingObjectsMap<PackMode::Query>,
-            getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
-            ov->state->domain, ovView, nullptr, helper->wrapSendData() );
+            ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
+            nblocks, nthreads, 0, stream,
+            ov->state->domain, ovView, packer->handler(), helper->wrapSendData() );
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -136,7 +192,6 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
     OVview ovView(ov, ov->local());
 
-    const int nthreads = 32;
     int nObjsBulk = helper->send.sizes[bulkId];
 
     // Early termination - no redistribution
@@ -153,19 +208,23 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     helper->send.sizes.clearDevice(stream);
     helper->map.resize_anew(ovView.nObjects);
     
-    SAFE_KERNEL_LAUNCH(
-        ObjecRedistributorKernels::getExitingObjectsMap<PackMode::Pack>,
-        getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
-        ov->state->domain, ovView, helper->map.devPtr(), helper->wrapSendData() );
+    const int nthreads = 256;
+    const int nblocks  = ovView.nObjects;
 
-    packer->packToBuffer(lov, helper->map, &helper->send, stream);
-    
+    SAFE_KERNEL_LAUNCH(
+        ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
+        nblocks, nthreads, 0, stream,
+        ov->state->domain, ovView, packer->handler(), helper->wrapSendData() );    
 
     // Unpack the central buffer into the object vector itself
     // Renew view and packer, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
 
-    packer->unpackBulkFromBuffer(lov, helper->bulkId, &helper->send, stream);
+    SAFE_KERNEL_LAUNCH(
+         ObjecRedistributorKernels::unpackObjects,
+         nObjsBulk, nthreads, 0, stream,
+         helper->send.buffer.devPtr() + helper->send.offsetsBytes[bulkId], 0,
+         ovView, packer->handler() );
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
@@ -186,7 +245,23 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     ov->local()->resize((oldNObjs + totalRecvd) * objSize, stream);
 
-    packer->unpackFromBuffer(ov->local(), &helper->recv, oldNObjs, stream);
+    OVview ovView(ov, ov->local());
+    
+    for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
+    {
+        int nObjs = helper->recv.sizes[bufId];
+
+        if (bufId == helper->bulkId || nObjs == 0) continue;
+
+        const int nthreads = 256;
+        
+        SAFE_KERNEL_LAUNCH(
+            ObjecRedistributorKernels::unpackObjects,
+            nObjs, nthreads, 0, stream,
+            helper->recv.buffer.devPtr() + helper->recv.offsetsBytes[bufId],
+            oldNObjs + helper->recv.offsets[bufId],
+            ovView, packer->handler() );
+    }
 
     ov->redistValid = true;
 

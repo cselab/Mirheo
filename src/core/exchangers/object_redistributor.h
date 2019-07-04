@@ -5,7 +5,7 @@
 #include <core/containers.h>
 
 class ObjectVector;
-class ObjectsPacker;
+class ObjectPacker;
 
 class ObjectRedistributor : public Exchanger
 {
@@ -17,7 +17,7 @@ public:
     
 private:
     std::vector<ObjectVector*> objects;
-    std::vector<std::unique_ptr<ObjectsPacker>> packers;
+    std::vector<std::unique_ptr<ObjectPacker>> packers;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
