@@ -213,9 +213,9 @@ TEST (PACKERS_SIMPLE, particles)
 
     int n = lpv->size();
 
-    ParticlePacker packer;
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
-    packer.update(lpv, predicate, defaultStream);
+    ParticlePacker packer(predicate);
+    packer.update(lpv, defaultStream);
     
     size_t sizeBuff = packer.getSizeBytes(n);
     DeviceBuffer<char> buffer(sizeBuff);
@@ -276,9 +276,9 @@ TEST (PACKERS_SIMPLE, objects)
 
     int n = lrev->size();
 
-    ObjectPacker packer;
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
-    packer.update(lrev, predicate, defaultStream);
+    ObjectPacker packer(predicate);
+    packer.update(lrev, defaultStream);
     
     size_t sizeBuff = packer.getSizeBytes(nObjs);
     DeviceBuffer<char> buffer(sizeBuff);
