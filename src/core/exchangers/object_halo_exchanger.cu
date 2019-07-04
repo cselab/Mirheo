@@ -224,7 +224,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
-            getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
+            ovView.nObjects, nthreads, 0, stream,
             ov->state->domain, ovView, helper->map.devPtr(), rc,
             packer->handler(), helper->wrapSendData());
     }
@@ -239,7 +239,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
     ov->halo()->resize_anew(totalRecvd * ov->objSize);
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, ov->halo());
     
     unpacker->update(ov->halo(), stream);
 
