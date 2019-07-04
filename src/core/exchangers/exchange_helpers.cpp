@@ -1,5 +1,6 @@
 #include "exchange_helpers.h"
-#include "packers/interface.h"
+
+#include <core/pvs/packers/particles.h>
 
 template <typename T>
 static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
@@ -12,10 +13,10 @@ static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
         of[i+1] = of[i] + sz[i];
 }
 
-static void computeSizesBytes(const Packer *packer, const PinnedBuffer<int>& sz, PinnedBuffer<size_t>& szBytes)
+static void computeSizesBytes(const ParticlePacker *packer, const PinnedBuffer<int>& sz, PinnedBuffer<size_t>& szBytes)
 {
     for (int i = 0; i < sz.size(); ++i)
-        szBytes[i] = packer->getPackedSizeBytes(sz[i]);
+        szBytes[i] = packer->getSizeBytes(sz[i]);
 }
 
 void BufferInfos::clearAllSizes(cudaStream_t stream)
@@ -41,7 +42,7 @@ void BufferInfos::uploadInfosToDevice(cudaStream_t stream)
 }
 
 
-ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, Packer *packer) :
+ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer) :
     name(name),
     uniqueId(uniqueId),
     packer(packer)

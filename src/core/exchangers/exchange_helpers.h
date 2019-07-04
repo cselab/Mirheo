@@ -34,7 +34,7 @@ struct BufferInfos
 };
 
 
-class Packer;
+class ParticlePacker;
 
 /**
  * Class that keeps communication data per ParticleVector.
@@ -43,7 +43,7 @@ class ExchangeHelper
 {
 public:
     
-    ExchangeHelper(std::string name, int uniqueId, Packer *packer);
+    ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer);
 
     ~ExchangeHelper();
 
@@ -92,5 +92,5 @@ public:
     std::vector<int> recvRequestIdxs;
     
 private:
-    Packer *packer;
+    ParticlePacker *packer;
 };
