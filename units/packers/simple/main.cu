@@ -28,6 +28,17 @@ __global__ void packParticlesIdentityMap(int n, ParticlePackerHandler packer, ch
     packer.particles.pack(srcId, dstId, buffer, n);
 }
 
+__global__ void packShiftParticlesIdentityMap(int n, float3 shift, ParticlePackerHandler packer, char *buffer)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    if (i >= n) return;
+
+    int srcId = i;
+    int dstId = i;
+    
+    packer.particles.packShift(srcId, dstId, buffer, n, shift);
+}
+
 __global__ void unpackParticlesIdentityMap(int n, const char *buffer, ParticlePackerHandler packer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -227,6 +238,69 @@ TEST (PACKERS_SIMPLE, particles)
         packParticlesIdentityMap,
         nblocks, nthreads, 0, defaultStream,
         n, packer.handler(), buffer.devPtr());
+
+    // make sure we actually copy back the stuff
+    pos.clearDevice(defaultStream);
+    vel.clearDevice(defaultStream);
+
+    SAFE_KERNEL_LAUNCH(
+        unpackParticlesIdentityMap,
+        nblocks, nthreads, 0, defaultStream,
+        n, buffer.devPtr(), packer.handler());
+
+    pos.downloadFromDevice(defaultStream);
+    vel.downloadFromDevice(defaultStream);
+
+    for (int i = 0; i < n; ++i)
+    {
+        ASSERT_TRUE(areEquals(pos[i], pos_cpy[i])) << "failed for position with id " << i;
+        ASSERT_TRUE(areEquals(vel[i], vel_cpy[i])) << "failed for velocity with id " << i;
+    }
+}
+
+TEST (PACKERS_SIMPLE, particlesShift)
+{
+    float dt = 0.f;
+    float L = 8.f;
+    float density = 4.f;
+    float3 shift {42.0f, 43.0f, 44.0f};
+    DomainInfo domain;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    MirState state(domain, dt);
+    auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
+    auto lpv = pv->local();
+
+    auto& pos = lpv->positions();
+    auto& vel = lpv->velocities();
+    
+    std::vector<float4> pos_cpy(pos.begin(), pos.end());
+    std::vector<float4> vel_cpy(vel.begin(), vel.end());
+
+    for (auto& r : pos_cpy)
+    {
+        r.x += shift.x;
+        r.y += shift.y;
+        r.z += shift.z;
+    }
+    
+    int n = lpv->size();
+
+    PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
+    ParticlePacker packer(predicate);
+    packer.update(lpv, defaultStream);
+    
+    size_t sizeBuff = packer.getSizeBytes(n);
+    DeviceBuffer<char> buffer(sizeBuff);
+
+    const int nthreads = 128;
+    const int nblocks  = getNblocks(n, nthreads);
+
+    SAFE_KERNEL_LAUNCH(
+        packShiftParticlesIdentityMap,
+        nblocks, nthreads, 0, defaultStream,
+        n, shift, packer.handler(), buffer.devPtr());
 
     // make sure we actually copy back the stuff
     pos.clearDevice(defaultStream);
