@@ -104,7 +104,7 @@ __global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
 
     const int numElements = dataWrap.sizes[bufId];
 
-    for (int pid = threadIdx.x; pid < numElements; ++pid)
+    for (int pid = threadIdx.x; pid < numElements; pid += blockDim.x)
     {
         const int dstId = startDstId + dataWrap.offsets[bufId] + pid;
         const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
