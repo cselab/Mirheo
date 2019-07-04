@@ -33,13 +33,6 @@ struct GenericPackerHandler
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements,
-                                    float3 shift) const
-    {
-        TransformShift t {shift};
-        return unpack(t, srcId, dstId, srcBuffer, numElements);
-    }
-
     inline __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
                                                const char *srcBuffer, int numElements,
                                                float eps) const
@@ -112,15 +105,6 @@ private:
         float eps;
     };
 
-    template <class Transform, typename T>
-    inline __D__ size_t packElement(const Transform& transform, const T& val, int dstId,
-                                    char *dstBuffer, int numElements) const
-    {
-        auto buffStart = reinterpret_cast<T*>(dstBuffer);
-        transform( &buffStart[dstId], val );
-        return getPaddedSize<T>(numElements);
-    }
-
     template <class Transform>
     inline __D__ size_t pack(const Transform& transform, int srcId, int dstId,
                              char *dstBuffer, int numElements) const
@@ -131,23 +115,15 @@ private:
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
-                totPacked += packElement(transform, srcPtr[srcId],
-                                         dstId, dstBuffer + totPacked, numElements);
+                auto buffStart = reinterpret_cast<T*>(dstBuffer + totPacked);
+                transform( &buffStart[dstId], srcPtr[srcId] );
+                totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
 
         return totPacked;
     }
 
-    template <class Transform, typename T>
-    inline __D__ size_t unpackElement(const Transform& transform, int srcId, T& val,
-                                      const char *srcBuffer, int numElements) const
-    {
-        auto buffStart = reinterpret_cast<const T*>(srcBuffer);
-        transform( &val, buffStart[srcId] );
-        return getPaddedSize<T>(numElements);
-    }
-    
     template <class Transform>
     inline __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
                                const char *srcBuffer, int numElements) const
@@ -158,20 +134,20 @@ private:
             cuda_variant::apply_visitor([&](auto dstPtr)
             {
                 using T = typename std::remove_pointer<decltype(dstPtr)>::type;
-                totPacked += unpackElement(transform, srcId, dstPtr[dstId],
-                                           srcBuffer + totPacked, numElements);
+                auto buffStart = reinterpret_cast<const T*>(srcBuffer + totPacked);
+                transform( &dstPtr[dstId], buffStart[srcId] );
+                totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
 
         return totPacked;
     }
-
-
     
 protected:
 
-    int nChannels              {0};        ///< number of data channels to pack / unpack
-    CudaVarPtr *varChannelData {nullptr};  ///< device pointers of the packed data
+    int nChannels              {0};       ///< number of data channels to pack / unpack
+    CudaVarPtr *varChannelData {nullptr}; ///< device pointers of the packed data
+    bool *needShift            {nullptr}; ///< flag per channel: true if data needs to be shifted
 };
 
 class GenericPacker : public GenericPackerHandler
@@ -185,7 +161,9 @@ public:
     
 protected:
 
-    void registerChannel(CudaVarPtr varPtr, bool& needUpload, cudaStream_t stream);
+    void registerChannel(CudaVarPtr varPtr,  bool needShift,
+                         bool& needUpload, cudaStream_t stream);
     
     PinnedBuffer<CudaVarPtr> channelData;
+    PinnedBuffer<bool> needShiftData;
 };

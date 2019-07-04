@@ -13,13 +13,17 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
 
         auto varPtr = getDevPtr(desc->varDataPtr);
 
-        registerChannel(varPtr, needUpload, stream);
+        registerChannel(varPtr, desc->needShift(), needUpload, stream);
     }
 
     if (needUpload)
-        channelData.uploadToDevice(stream);
+    {
+        channelData  .uploadToDevice(stream);
+        needShiftData.uploadToDevice(stream);
+    }
 
-    varChannelData = channelData.devPtr();
+    varChannelData = channelData  .devPtr();
+    needShift      = needShiftData.devPtr();
 }
 
 GenericPackerHandler& GenericPacker::handler()
@@ -27,11 +31,13 @@ GenericPackerHandler& GenericPacker::handler()
     return *static_cast<GenericPackerHandler*> (this);
 }
 
-void GenericPacker::registerChannel(CudaVarPtr varPtr, bool& needUpload, cudaStream_t stream)
+void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
+                                    bool& needUpload, cudaStream_t stream)
 {
     if (channelData.size() <= nChannels)
     {
-        channelData.resize(nChannels+1, stream);
+        channelData  .resize(nChannels+1, stream);
+        needShiftData.resize(nChannels+1, stream);
         needUpload = true;
     }
 
@@ -42,7 +48,7 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool& needUpload, cudaStr
         if (cuda_variant::holds_alternative<T*> (channelData[nChannels]))
         {
             T *other = cuda_variant::get<T*> (channelData[nChannels]);
-            if (other != ptr)
+            if (other != ptr || needShiftData[nChannels] != needShift)
                 needUpload = true;
         }
         else
@@ -50,7 +56,8 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool& needUpload, cudaStr
 
     }, varPtr);
 
-    channelData[nChannels] = varPtr;
+    channelData  [nChannels] = varPtr;
+    needShiftData[nChannels] = needShift;
     
     ++nChannels;
 }
