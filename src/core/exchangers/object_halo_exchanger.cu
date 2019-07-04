@@ -92,8 +92,9 @@ __global__ void getObjectHaloAndMap(const DomainInfo domain, const OVview view, 
                 const int srcPid = objId      * view.objSize + pid;
                 const int dstPid = shDstObjId * view.objSize + pid;
 
-                offsetBytes = packer.particles.packShift(srcPid, dstPid,
-                                                         buffer, numElements, shift);
+                offsetBytes = packer.particles.packShift(srcPid, dstPid, buffer,
+                                                         numElements * view.objSize,
+                                                         shift);
             }
 
             buffer += offsetBytes;
@@ -125,7 +126,8 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId,
     {
         const int dstPid = dstObjId * view.objSize + pid;
         const int srcPid = srcObjId * view.objSize + pid;
-        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer, numElements);
+        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
+                                              numElements * view.objSize);
     }
 
     buffer += offsetBytes;

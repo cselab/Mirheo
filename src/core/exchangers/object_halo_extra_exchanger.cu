@@ -31,7 +31,8 @@ __global__ void pack(const OVview view, ObjectPackerHandler packer,
         int srcId = srcObjId * view.objSize + pid;
         int dstId = dstObjId * view.objSize + pid;
 
-        offsetBytes = packer.particles.pack(srcId, dstId, buffer, numElements);
+        offsetBytes = packer.particles.pack(srcId, dstId, buffer,
+                                            numElements * view.objSize);
     }
 
     buffer += offsetBytes;
@@ -55,7 +56,8 @@ __global__ void unpack(const char *buffer, int startDstObjId,
     {
         const int dstPid = dstObjId * view.objSize + pid;
         const int srcPid = srcObjId * view.objSize + pid;
-        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer, numElements);
+        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
+                                              numElements * view.objSize);
     }
 
     buffer += offsetBytes;
@@ -130,7 +132,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     
     SAFE_KERNEL_LAUNCH(
         ObjectHaloExtraExchangerKernels::pack,
-        ovView.nObjects, nthreads, 0, stream,
+        map.size(), nthreads, 0, stream,
         ovView, packer->handler(), map.devPtr(),
         helper->wrapSendData() );
 }

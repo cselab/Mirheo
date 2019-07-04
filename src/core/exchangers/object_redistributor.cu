@@ -70,11 +70,14 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
             const int srcPid = objId      * view.objSize + pid;
             const int dstPid = shDstObjId * view.objSize + pid;
             
-            offsetBytes = packer.particles.packShift(srcPid, dstPid, buffer, numElements, shift);
+            offsetBytes = packer.particles.packShift(srcPid, dstPid, buffer,
+                                                     numElements * view.objSize, shift);
         }
 
+        buffer += offsetBytes;
+        
         if (tid == 0)
-            packer.objects.packShift(objId, shDstObjId, buffer + offsetBytes, numElements, shift);
+            packer.objects.packShift(objId, shDstObjId, buffer, numElements, shift);
     }
 }
 
@@ -94,7 +97,8 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId,
     {
         const int dstPid = dstObjId * view.objSize + pid;
         const int srcPid = srcObjId * view.objSize + pid;
-        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer, numElements);
+        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
+                                              numElements * view.objSize);
     }
 
     buffer += offsetBytes;
@@ -246,7 +250,8 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     ov->local()->resize((oldNObjs + totalRecvd) * objSize, stream);
 
     OVview ovView(ov, ov->local());
-    
+
+    // TODO separate streams?
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
         int nObjs = helper->recv.sizes[bufId];

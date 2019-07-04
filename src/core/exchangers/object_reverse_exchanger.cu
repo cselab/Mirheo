@@ -27,7 +27,8 @@ __global__ void reversePack(char *buffer, int startDstObjId,
     {
         const int dstPid = dstObjId * view.objSize + pid;
         const int srcPid = srcObjId * view.objSize + pid;
-        offsetBytes = packer.particles.pack(srcPid, dstPid, buffer, numElements);
+        offsetBytes = packer.particles.pack(srcPid, dstPid, buffer,
+                                            numElements * view.objSize);
     }
 
     buffer += offsetBytes;
@@ -59,7 +60,8 @@ __global__ void reverseUnpackAndAdd(const OVview view, ObjectPackerHandler packe
         int dstId = dstObjId * view.objSize + pid;
 
         offsetBytes = packer.particles.
-            unpackAtomicAddNonZero(srcId, dstId, buffer, numElements, eps);
+            unpackAtomicAddNonZero(srcId, dstId, buffer,
+                                   numElements * view.objSize, eps);
     }
 
     buffer += offsetBytes;
@@ -166,7 +168,7 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
         
     SAFE_KERNEL_LAUNCH(
         ObjectReverseExchangerKernels::reverseUnpackAndAdd,
-        ovView.nObjects, nthreads, 0, stream,
+        map.size(), nthreads, 0, stream,
         ovView, unpacker->handler(),
         map.devPtr(), helper->wrapRecvData());
 }
