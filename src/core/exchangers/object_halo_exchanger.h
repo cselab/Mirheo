@@ -7,7 +7,7 @@
 #include <memory>
 
 class ObjectVector;
-class ObjectsPacker;
+class ObjectPacker;
 class MapEntry;
 
 class ObjectHaloExchanger : public Exchanger
@@ -25,7 +25,8 @@ public:
 protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
-    std::vector<std::unique_ptr<ObjectsPacker>> packers;
+    std::vector<std::unique_ptr<ObjectPacker>>   packers;
+    std::vector<std::unique_ptr<ObjectPacker>> unpackers;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
