@@ -23,7 +23,7 @@ struct GenericPackerHandler
     inline __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                   float3 shift) const
     {
-        TransformShift t {shift};
+        TransformShift t {shift, needShift};
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
@@ -78,25 +78,30 @@ private:
     struct TransformNone
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, const T& val) const {*addr = val;}
+        inline __D__ void operator()(T *addr, const T& val, int channelId) const
+        {
+            *addr = val;
+        }
     };
 
     struct TransformShift
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, T val) const
+        inline __D__ void operator()(T *addr, T val, int channelId) const
         {
-            TypeShift::apply(val, shift);
+            if (needShift[channelId])
+                TypeShift::apply(val, shift);
             *addr = val;
         }
 
         float3 shift;
+        const bool *needShift;
     };
 
     struct TransformAtomicAdd
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, T val) const
+        inline __D__ void operator()(T *addr, T val, int channelId) const
         {
             TypeAtomicAdd::apply(addr, val, eps);
             *addr = val;
@@ -116,7 +121,7 @@ private:
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
                 auto buffStart = reinterpret_cast<T*>(dstBuffer + totPacked);
-                transform( &buffStart[dstId], srcPtr[srcId] );
+                transform( &buffStart[dstId], srcPtr[srcId], i );
                 totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
@@ -135,7 +140,7 @@ private:
             {
                 using T = typename std::remove_pointer<decltype(dstPtr)>::type;
                 auto buffStart = reinterpret_cast<const T*>(srcBuffer + totPacked);
-                transform( &dstPtr[dstId], buffStart[srcId] );
+                transform( &dstPtr[dstId], buffStart[srcId], i );
                 totPacked += getPaddedSize<T>(numElements);
             }, varChannelData[i]);
         }
