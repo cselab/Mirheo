@@ -11,6 +11,9 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
         
         if (!predicate(nameDesc)) continue;
 
+        debug2("Packer: adding channel '%s' (id %d)\n",
+               nameDesc.first.c_str(), nChannels);
+
         auto varPtr = getDevPtr(desc->varDataPtr);
 
         registerChannel(varPtr, desc->needShift(), needUpload, stream);
@@ -52,7 +55,9 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
                 needUpload = true;
         }
         else
+        {
             needUpload = true;
+        }
 
     }, varPtr);
 

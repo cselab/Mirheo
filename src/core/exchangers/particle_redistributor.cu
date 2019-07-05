@@ -17,20 +17,23 @@ enum class PackMode
 
 namespace ParticleRedistributorKernels
 {
-inline __device__ int encodeCellId1d(int cid, int ncells) {
+inline __device__ int encodeCellId1d(int cid, int ncells)
+{
     if      (cid <  0     ) return -1;
     else if (cid >= ncells) return  1;
     else                    return  0;
 }
 
-inline __device__ int3 encodeCellId(int3 cid, int3 ncells) {
+inline __device__ int3 encodeCellId(int3 cid, int3 ncells)
+{
     cid.x = encodeCellId1d(cid.x, ncells.x);
     cid.y = encodeCellId1d(cid.y, ncells.y);
     cid.z = encodeCellId1d(cid.z, ncells.z);
     return cid;
 }
 
-inline __device__ bool hasToLeave(int3 dir) {
+inline __device__ bool hasToLeave(int3 dir)
+{
     return dir.x != 0 || dir.y != 0 || dir.z != 0;
 }
 
@@ -157,14 +160,15 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto cl = cellLists[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
-
+    auto lpv = pv->local();
+    
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
 
     helper->send.sizes.clear(stream);
 
-    packer->update(pv->local(), stream);
+    packer->update(lpv, stream);
 
-    if (pv->local()->size() > 0)
+    if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
@@ -215,15 +219,16 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     auto pv = particles[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
-
-    int oldSize = pv->local()->size();
+    auto lpv = pv->local();
+    
+    int oldSize = lpv->size();
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
-    pv->local()->resize(oldSize + totalRecvd,  stream);
+    lpv->resize(oldSize + totalRecvd, stream);
 
     if (totalRecvd > 0)
     {
         const int nthreads = 64;
-        const int nblocks  = helper->nBuffers;
+        const int nblocks  = helper->nBuffers - 1;
         
         SAFE_KERNEL_LAUNCH(
             ParticleRedistributorKernels::unpackParticles,
