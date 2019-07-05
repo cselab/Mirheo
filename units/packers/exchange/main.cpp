@@ -32,27 +32,27 @@ static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel
     vel.uploadToDevice(defaultStream);
 }
 
-// // check that ref pos and vel are exactly L apart
-// static void checkRef(const PinnedBuffer<float4>& pos,
-//                      const PinnedBuffer<float4>& vel,
-//                      float3 L)
-// {
-//     constexpr float eps = 1e-6f;
-//     for (int i = 0; i < pos.size(); ++i)
-//     {
-//         auto r = make_float3(pos[i]);
-//         auto v = make_float3(vel[i]);
-//         auto e = fabs(r-v) - L;
+// check that ref pos and vel are exactly L apart
+static void checkRef(const PinnedBuffer<float4>& pos,
+                     const PinnedBuffer<float4>& vel,
+                     float3 L)
+{
+    constexpr float eps = 1e-6f;
+    for (int i = 0; i < pos.size(); ++i)
+    {
+        auto r = make_float3(pos[i]);
+        auto v = make_float3(vel[i]);
+        auto e = fabs(r-v) - L;
 
-//         ASSERT_LE(fabs(e.x), eps);
-//         ASSERT_LE(fabs(e.y), eps);
-//         ASSERT_LE(fabs(e.z), eps);
-//     }
-// }
+        auto minErr = std::min(e.x, std::min(e.y, e.z));
+
+        ASSERT_LE(minErr, eps);
+    }
+}
 
 
 
-struct Comp
+struct Comp // for sorting
 {
     bool operator()(float4 a_, float4 b_) const
     {
@@ -65,14 +65,6 @@ struct Comp
     } 
 };
 
-inline bool isInside(float3 r, float3 L)
-{
-    return
-        (r.x >= -0.5f * L.x) && (r.x < 0.5f * L.x) &&
-        (r.y >= -0.5f * L.y) && (r.y < 0.5f * L.y) &&
-        (r.z >= -0.5f * L.z) && (r.z < 0.5f * L.z);
-}
-
 static void checkHalo(const PinnedBuffer<float4>& lpos,
                       const PinnedBuffer<float4>& hpos,
                       float3 L, float rc)
@@ -80,13 +72,6 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
     std::vector<float4> hposSorted(hpos.begin(), hpos.end());
     std::sort(hposSorted.begin(), hposSorted.end(), Comp());
 
-    // for (int i = 0; i < 30; ++i)
-    // {
-    //     Float3_int val(hposSorted[i]);
-    //     printf("%d %g %g %g\n",
-    //            val.i, val.v.x, val.v.y, val.v.z);
-    // }
-    
     for (int i = 0; i < lpos.size(); ++i)
     {
         const auto r0 = lpos[i];
@@ -182,7 +167,7 @@ TEST (PACKERS_EXCHANGE, particles)
     hvel.downloadFromDevice(defaultStream);
 
     checkHalo(lpos, hpos, domain.localSize, rc);
-    // checkRef(hpos, hvel, domain.localSize);
+    checkRef(hpos, hvel, domain.localSize);
 }
 
 
