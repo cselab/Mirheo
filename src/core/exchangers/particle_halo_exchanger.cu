@@ -80,10 +80,10 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
         __syncthreads();
 
 #pragma unroll 2
-        for (int i = 0; i < current; i++)
+        for (int j = 0; j < current; ++j)
         {
-            const int bufId = validHalos[i];
-            const int myId  = blockSum[bufId] + haloOffset[i];
+            const int bufId = validHalos[j];
+            const int myId  = blockSum[bufId] + haloOffset[j];
 
             auto dir = FragmentMapping::getDir(bufId);
             
@@ -95,12 +95,12 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
             auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
             
 #pragma unroll 3
-            for (int i = 0; i < pend-pstart; i++)
+            for (int i = 0; i < pend-pstart; ++i)
             {
-                const int dstId = myId   + i;
-                const int srcId = pstart + i;
+                const int dstPid = myId   + i;
+                const int srcPid = pstart + i;
 
-                packer.particles.packShift(srcId, dstId, buffer, numElements, shift);
+                packer.particles.packShift(srcPid, dstPid, buffer, numElements, shift);
             }
         }
     }

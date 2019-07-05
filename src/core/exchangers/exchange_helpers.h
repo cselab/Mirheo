@@ -1,10 +1,11 @@
 #pragma once
 
 #include "utils/fragments_mapping.h"
-#include "packers/map.h"
+#include "utils/map.h"
+
+#include <core/containers.h>
 
 #include <mpi.h>
-#include <core/containers.h>
 #include <string>
 #include <vector>
 

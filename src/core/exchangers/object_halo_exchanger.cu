@@ -1,7 +1,6 @@
 #include "object_halo_exchanger.h"
 #include "exchange_helpers.h"
 #include "utils/fragments_mapping.h"
-#include "packers/map.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/object_vector.h>
