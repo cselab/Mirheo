@@ -19,7 +19,7 @@
 Logger logger;
 
 // move particles no more than rc in random direction
-void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085)
+static void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085)
 {
     float frac = 0.9f;
     std::mt19937 gen(seed);
@@ -34,7 +34,32 @@ void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085)
     pos.uploadToDevice(defaultStream);
 }
 
-void checkInside(const PinnedBuffer<float4>& pos, float3 L)
+inline void backToDomain(float& x, float L)
+{
+    if      (x < -0.5f * L) x += L;
+    else if (x >= 0.5f * L) x -= L;
+}
+
+// create the reference data
+// here we test 2 things:
+// - correct reordering
+// - correct shift
+// by copying corrected positions to velocities
+static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel, float3 L)
+{
+    for (int i = 0; i < pos.size(); ++i)
+    {
+        auto v = pos[i];
+        backToDomain(v.x, L.x);
+        backToDomain(v.y, L.y);
+        backToDomain(v.z, L.z);
+        vel[i] = v;
+    }
+    
+    vel.uploadToDevice(defaultStream);
+}
+
+static void checkInside(const PinnedBuffer<float4>& pos, float3 L)
 {
     for (const auto& r : pos)
     {
@@ -48,12 +73,26 @@ void checkInside(const PinnedBuffer<float4>& pos, float3 L)
     }
 }
 
+static void checkRef(const PinnedBuffer<float4>& pos,
+                     const PinnedBuffer<float4>& vel)
+{
+    for (int i = 0; i < pos.size(); ++i)
+    {
+        auto r = pos[i];
+        auto v = vel[i];
+
+        ASSERT_EQ(r.x, v.x);
+        ASSERT_EQ(r.y, v.y);
+        ASSERT_EQ(r.z, v.z);
+    }
+}
+
 TEST (PACKERS_REDISTRIBUTE, particles)
 {
     float dt = 0.f;
     float rc = 1.f;
-    float L  = 8.f;
-    float density = 4.f;
+    float L  = 48.f;
+    float density = 8.f;
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
@@ -66,6 +105,7 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     auto& vel = lpv->velocities();
 
     moveParticles(rc, pos);
+    createRef(pos, vel, domain.localSize);    
 
     int n = lpv->size();
 
@@ -86,6 +126,7 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     vel.downloadFromDevice(defaultStream);
 
     checkInside(pos, domain.localSize);
+    checkRef(pos, vel);
 }
 
 
