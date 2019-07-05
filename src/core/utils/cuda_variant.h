@@ -14,7 +14,7 @@ __HD__ inline bool holds_alternative(const Variant& var)
 {
     return apply_visitor([](auto entry)
     {
-        return std::is_same<T, decltype(var)>::value;
+        return std::is_same<T, decltype(entry)>::value;
     }, var);
 }
 
