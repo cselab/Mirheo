@@ -20,12 +20,6 @@ enum class PackMode
 namespace ParticleHaloExchangersKernels
 {
 
-/**
- * Get halos
- * @param cinfo
- * @param packer
- * @param dataWrap
- */
 template <PackMode packMode>
 __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
                         ParticlePackerHandler packer, BufferOffsetsSizesWrap dataWrap)
@@ -87,9 +81,9 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
 
             auto dir = FragmentMapping::getDir(bufId);
             
-            const float3 shift { -domain.localSize.x * dir.x,
-                                 -domain.localSize.y * dir.y,
-                                 -domain.localSize.z * dir.z };
+            const float3 shift { - domain.localSize.x * dir.x,
+                                 - domain.localSize.y * dir.y,
+                                 - domain.localSize.z * dir.z };
 
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
             auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
@@ -111,12 +105,12 @@ __global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerH
     const int bufId = blockIdx.x;
 
     const int numElements = dataWrap.sizes[bufId];
+    const int offset  = dataWrap.offsets[bufId];
+    const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
 
     for (int pid = threadIdx.x; pid < numElements; pid += blockDim.x)
     {
-        const int dstId = dataWrap.offsets[bufId] + pid;
-        const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
-        
+        const int dstId = offset + pid;
         packer.particles.unpack(pid, dstId, buffer, numElements);
     }
 }
@@ -172,15 +166,14 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
     
-    helper->send.sizes.clear(stream);
+    helper->send.sizes.clearDevice(stream);
     packer->update(lpv, stream);
     
     if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
-
         const int nthreads = 64;
-        const int nfaces = 6;
+        const int nfaces   = 6;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         SAFE_KERNEL_LAUNCH(
@@ -210,7 +203,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
-        const int nfaces = 6;
+        const int nfaces   = 6;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         helper->resizeSendBuf();
@@ -230,17 +223,19 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto helper   = helpers  [id].get();
     auto unpacker = unpackers[id].get();
 
+    auto lpv = pv->halo();
+    
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
-    pv->halo()->resize_anew(totalRecvd);
+    lpv->resize_anew(totalRecvd);
 
     debug2("received %d particles from halo exchange", totalRecvd);
 
     if (totalRecvd > 0)
     {
         const int nthreads = 64;
-        const int nblocks  = helper->nBuffers;
+        const int nblocks  = helper->nBuffers - 1;
 
-        unpacker->update(pv->halo(), stream);
+        unpacker->update(lpv, stream);
 
         SAFE_KERNEL_LAUNCH(
             ParticleHaloExchangersKernels::unpackParticles,
