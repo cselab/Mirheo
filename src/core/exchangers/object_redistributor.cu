@@ -210,7 +210,6 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Gather data
     helper->resizeSendBuf();
     helper->send.sizes.clearDevice(stream);
-    helper->map.resize_anew(ovView.nObjects);
     
     const int nthreads = 256;
     const int nblocks  = ovView.nObjects;

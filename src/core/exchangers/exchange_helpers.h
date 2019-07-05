@@ -1,7 +1,6 @@
 #pragma once
 
 #include "utils/fragments_mapping.h"
-#include "utils/map.h"
 
 #include <core/containers.h>
 
@@ -89,7 +88,6 @@ public:
     int uniqueId;                    ///< a unique exchange id: used for tags
     
     BufferInfos send, recv;
-    DeviceBuffer<MapEntry> map; ///< map to help packing the data
     std::vector<int> recvRequestIdxs;
     
 private:

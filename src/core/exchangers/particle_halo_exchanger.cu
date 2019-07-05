@@ -214,7 +214,6 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         helper->resizeSendBuf();
-        helper->map.resize_anew(nEntities);
         helper->send.sizes.clearDevice(stream);
         
         SAFE_KERNEL_LAUNCH(

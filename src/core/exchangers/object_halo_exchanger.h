@@ -1,6 +1,7 @@
 #pragma once
 
 #include "exchanger_interfaces.h"
+#include "utils/map.h"
 
 #include <core/containers.h>
 
@@ -26,6 +27,7 @@ protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
     std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;
+    std::vector<DeviceBuffer<MapEntry>> maps;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

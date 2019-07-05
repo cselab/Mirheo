@@ -171,6 +171,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
+    maps     .emplace_back();
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
 }
@@ -210,7 +211,8 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
-
+    auto& map = maps[id];
+    
     int nhalo = helper->send.offsets[helper->nBuffers];
     OVview ovView(ov, ov->local());
 
@@ -221,12 +223,12 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
-        helper->map.resize_anew(nhalo);
+        map.resize_anew(nhalo);
         
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
             ovView.nObjects, nthreads, 0, stream,
-            ov->state->domain, ovView, helper->map.devPtr(), rc,
+            ov->state->domain, ovView, map.devPtr(), rc,
             packer->handler(), helper->wrapSendData());
     }
 }
@@ -273,5 +275,5 @@ PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
 
 DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(int id)
 {
-    return helpers[id]->map;
+    return maps[id];
 }
