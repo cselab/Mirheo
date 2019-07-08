@@ -51,10 +51,10 @@ __global__ void unpackParticlesIdentityMap(int n, const char *buffer, ParticlePa
 }
 
 
-__global__ void packObjectsIdentityMap(int nObjects, int objSize, ObjectPackerHandler packer, char *buffer)
+__global__ void packObjectsIdentityMap(int nObjects, ObjectPackerHandler packer, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int nParticles = nObjects * objSize;
+    int nParticles = nObjects * packer.objSize;
 
     int srcId = i;
     int dstId = i;
@@ -69,10 +69,10 @@ __global__ void packObjectsIdentityMap(int nObjects, int objSize, ObjectPackerHa
         packer.objects.pack(srcId, dstId, buffer, nObjects);
 }
 
-__global__ void unpackObjectsIdentityMap(int nObjects, int objSize, const char *buffer, ObjectPackerHandler packer)
+__global__ void unpackObjectsIdentityMap(int nObjects, const char *buffer, ObjectPackerHandler packer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int nParticles = nObjects * objSize;
+    int nParticles = nObjects * packer.objSize;
 
     int srcId = i;
     int dstId = i;
@@ -247,7 +247,7 @@ TEST (PACKERS_SIMPLE, objects)
     SAFE_KERNEL_LAUNCH(
         packObjectsIdentityMap,
         nblocks, nthreads, 0, defaultStream,
-        nObjs, objSize, packer.handler(), buffer.devPtr());
+        nObjs, packer.handler(), buffer.devPtr());
 
     // make sure we actually copy back the stuff
     pos .clearDevice(defaultStream);
@@ -257,7 +257,7 @@ TEST (PACKERS_SIMPLE, objects)
     SAFE_KERNEL_LAUNCH(
         unpackObjectsIdentityMap,
         nblocks, nthreads, 0, defaultStream,
-        nObjs, objSize, buffer.devPtr(), packer.handler());
+        nObjs, buffer.devPtr(), packer.handler());
 
     pos .downloadFromDevice(defaultStream);
     vel .downloadFromDevice(defaultStream);
