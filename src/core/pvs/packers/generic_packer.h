@@ -104,7 +104,6 @@ private:
         inline __D__ void operator()(T *addr, T val, int channelId) const
         {
             TypeAtomicAdd::apply(addr, val, eps);
-            *addr = val;
         }
 
         float eps;
