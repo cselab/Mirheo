@@ -1,8 +1,9 @@
 #include "particle_halo_exchanger.h"
-#include "common.h"
+
 #include "exchange_helpers.h"
-#include "utils/fragments_mapping.h"
+#include "utils/common.h"
 #include "utils/face_dispatch.h"
+#include "utils/fragments_mapping.h"
 
 #include <core/celllist.h>
 #include <core/logger.h>

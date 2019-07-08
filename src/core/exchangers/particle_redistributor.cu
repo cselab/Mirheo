@@ -1,6 +1,7 @@
-#include "common.h"
-#include "exchange_helpers.h"
 #include "particle_redistributor.h"
+
+#include "exchange_helpers.h"
+#include "utils/common.h"
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
 

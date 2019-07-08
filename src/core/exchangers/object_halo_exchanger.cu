@@ -1,6 +1,7 @@
 #include "object_halo_exchanger.h"
-#include "common.h"
+
 #include "exchange_helpers.h"
+#include "utils/common.h"
 #include "utils/fragments_mapping.h"
 
 #include <core/utils/kernel_launch.h>
