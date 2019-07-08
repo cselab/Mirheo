@@ -1,4 +1,6 @@
 #include "object_redistributor.h"
+
+#include "common.h"
 #include "exchange_helpers.h"
 #include "utils/fragments_mapping.h"
 
@@ -29,17 +31,9 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
 
     // Find to which buffer this object should go
     auto prop = view.comAndExtents[objId];
-    int dx = 0, dy = 0, dz = 0;
+    auto dir  = ExchangersCommon::getDirection(prop.com, domain.localSize);
 
-    if (prop.com.x  < -0.5f*domain.localSize.x) dx = -1;
-    if (prop.com.y  < -0.5f*domain.localSize.y) dy = -1;
-    if (prop.com.z  < -0.5f*domain.localSize.z) dz = -1;
-
-    if (prop.com.x >=  0.5f*domain.localSize.x) dx = 1;
-    if (prop.com.y >=  0.5f*domain.localSize.y) dy = 1;
-    if (prop.com.z >=  0.5f*domain.localSize.z) dz = 1;
-
-    const int bufId = FragmentMapping::getId(dx, dy, dz);
+    const int bufId = FragmentMapping::getId(dir);
 
     __shared__ int shDstObjId;
 
@@ -56,9 +50,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     {
         __syncthreads();
         
-        const float3 shift{ - domain.localSize.x * dx,
-                            - domain.localSize.y * dy,
-                            - domain.localSize.z * dz };
+        auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
         auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
         int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
@@ -116,11 +108,6 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId,
 ObjectRedistributor::ObjectRedistributor() = default;
 ObjectRedistributor::~ObjectRedistributor() = default;
 
-bool ObjectRedistributor::needExchange(int id)
-{
-    return !objects[id]->redistValid;
-}
-
 void ObjectRedistributor::attach(ObjectVector *ov)
 {
     int id = objects.size();
@@ -152,13 +139,13 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     
     ov->findExtentAndCOM(stream, ParticleVectorType::Local);
     
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
 
     debug2("Counting exiting objects of '%s'", ov->name.c_str());
 
     // Prepare sizes
     helper->send.sizes.clear(stream);
-    packer->update(ov->local(), stream);
+    packer->update(lov, stream);
     
     if (ovView.nObjects > 0)
     {
@@ -194,18 +181,20 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     auto bulkId = helper->bulkId;
     auto packer = packers[id].get();
 
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
 
     int nObjsBulk = helper->send.sizes[bulkId];
 
     // Early termination - no redistribution
     if (helper->send.offsets[helper->nBuffers] == 0)
     {
-        debug2("No objects of '%s' leaving, no need to rebuild the object vector", ov->name.c_str());
+        debug2("No objects of '%s' leaving, no need to rebuild the object vector",
+               ov->name.c_str());
         return;
     }
 
-    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjsBulk, ov->name.c_str());
+    debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjsBulk,
+           ov->name.c_str());
 
     // Gather data
     helper->resizeSendBuf();
@@ -220,8 +209,9 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
         ov->state->domain, ovView, packer->handler(), helper->wrapSendData() );    
 
     // Unpack the central buffer into the object vector itself
-    // Renew view and packer, as the ObjectVector may have resized
+    // Renew view, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
+    ovView = OVview(ov, lov);    
 
     SAFE_KERNEL_LAUNCH(
          ObjecRedistributorKernels::unpackObjects,
@@ -237,18 +227,20 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
 
 void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 {
-    auto ov = objects[id];
+    auto ov     = objects[id];
+    auto lov    = ov->local();
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
 
-    int oldNObjs = ov->local()->nObjects;
+    int oldNObjs = lov->nObjects;
     int objSize = ov->objSize;
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
-    ov->local()->resize((oldNObjs + totalRecvd) * objSize, stream);
+    lov->resize((oldNObjs + totalRecvd) * objSize, stream);
+    packer->update(lov, stream);
 
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
 
     // TODO separate streams?
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
@@ -274,5 +266,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
         ov->cellListStamp++;
 }
 
-
-
+bool ObjectRedistributor::needExchange(int id)
+{
+    return !objects[id]->redistValid;
+}
