@@ -5,17 +5,17 @@
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/packers/objects.h>
-#include <core/pvs/views/ov.h>
 #include <core/utils/kernel_launch.h>
 
 namespace ObjectHaloExtraExchangerKernels
 {
-__global__ void pack(const OVview view, ObjectPackerHandler packer,
-                     const MapEntry *map, BufferOffsetsSizesWrap dataWrap)
+__global__ void pack(ObjectPackerHandler packer, const MapEntry *map,
+                     BufferOffsetsSizesWrap dataWrap)
 {
     int tid         = threadIdx.x;
     int dstObjId    = blockIdx.x;
     int numElements = gridDim.x;
+    int objSize     = packer.objSize;
 
     auto mapEntry = map[dstObjId];
 
@@ -26,38 +26,39 @@ __global__ void pack(const OVview view, ObjectPackerHandler packer,
 
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        int srcId = srcObjId * view.objSize + pid;
-        int dstId = dstObjId * view.objSize + pid;
+        int srcId = srcObjId * objSize + pid;
+        int dstId = dstObjId * objSize + pid;
 
         offsetBytes = packer.particles.pack(srcId, dstId, buffer,
-                                            numElements * view.objSize);
+                                            numElements * objSize);
     }
 
     buffer += offsetBytes;
     if (tid == 0)
-        packer.objects.pack(srcObjId, dstObjId, buffer, numElements);    
+        packer.objects.pack(srcObjId, dstObjId, buffer, numElements);
 }
 
 __global__ void unpack(const char *buffer, int startDstObjId,
-                       OVview view, ObjectPackerHandler packer)
+                       ObjectPackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
     const int numElements = gridDim.x;
+    const int objSize = packer.objSize;
 
     const int srcObjId = objId;
     const int dstObjId = objId + startDstObjId;
     
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        const int dstPid = dstObjId * view.objSize + pid;
-        const int srcPid = srcObjId * view.objSize + pid;
+        const int dstPid = dstObjId * objSize + pid;
+        const int srcPid = srcObjId * objSize + pid;
         offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
-                                              numElements * view.objSize);
+                                              numElements * objSize);
     }
 
     buffer += offsetBytes;
@@ -126,14 +127,12 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
 
-    OVview ovView(ov, ov->local());
-
     const int nthreads = 256;
     
     SAFE_KERNEL_LAUNCH(
         ObjectHaloExtraExchangerKernels::pack,
         map.size(), nthreads, 0, stream,
-        ovView, packer->handler(), map.devPtr(),
+        packer->handler(), map.devPtr(),
         helper->wrapSendData() );
 }
 
@@ -147,8 +146,6 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
     hov->resize_anew(totalRecvd * ov->objSize);
-    OVview ovView(ov, hov);
-    
     unpacker->update(hov, stream);
 
     // TODO different streams
@@ -165,6 +162,6 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
             nObjs, nthreads, 0, stream,
             helper->recv.getBufferDevPtr(bufId),
             helper->recv.offsets[bufId],
-            ovView, unpacker->handler() );
+            unpacker->handler() );
     }
 }

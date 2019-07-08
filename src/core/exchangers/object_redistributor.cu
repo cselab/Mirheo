@@ -72,23 +72,24 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
 }
 
 __global__ void unpackObjects(const char *buffer, int startDstObjId,
-                              OVview view, ObjectPackerHandler packer)
+                              ObjectPackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
     const int numElements = gridDim.x;
+    const int objSize = packer.objSize;
 
     const int srcObjId = objId;
     const int dstObjId = objId + startDstObjId;
     
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        const int dstPid = dstObjId * view.objSize + pid;
-        const int srcPid = srcObjId * view.objSize + pid;
+        const int dstPid = dstObjId * objSize + pid;
+        const int srcPid = srcObjId * objSize + pid;
         offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
-                                              numElements * view.objSize);
+                                              numElements * objSize);
     }
 
     buffer += offsetBytes;
@@ -214,14 +215,13 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Unpack the central buffer into the object vector itself
     // Renew view, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
-    ovView = OVview(ov, lov);
     packer->update(lov, stream);
 
     SAFE_KERNEL_LAUNCH(
          ObjecRedistributorKernels::unpackObjects,
          nObjsBulk, nthreads, 0, stream,
          helper->send.getBufferDevPtr(bulkId), 0,
-         ovView, packer->handler() );
+         packer->handler() );
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
@@ -244,8 +244,6 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     lov->resize((oldNObjs + totalRecvd) * objSize, stream);
     packer->update(lov, stream);
 
-    OVview ovView(ov, lov);
-
     // TODO separate streams?
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
@@ -260,7 +258,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
             nObjs, nthreads, 0, stream,
             helper->recv.getBufferDevPtr(bufId),
             oldNObjs + helper->recv.offsets[bufId],
-            ovView, packer->handler() );
+            packer->handler() );
     }
 
     ov->redistValid = true;

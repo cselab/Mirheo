@@ -5,30 +5,30 @@
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/packers/objects.h>
-#include <core/pvs/views/ov.h>
 #include <core/utils/kernel_launch.h>
 
 namespace ObjectReverseExchangerKernels
 {
 
 __global__ void reversePack(char *buffer, int startDstObjId,
-                            OVview view, ObjectPackerHandler packer)
+                            ObjectPackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
     const int numElements = gridDim.x;
+    const int objSize = packer.objSize;
 
     const int dstObjId = objId;
     const int srcObjId = objId + startDstObjId;
     
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        const int dstPid = dstObjId * view.objSize + pid;
-        const int srcPid = srcObjId * view.objSize + pid;
+        const int dstPid = dstObjId * objSize + pid;
+        const int srcPid = srcObjId * objSize + pid;
         offsetBytes = packer.particles.pack(srcPid, dstPid, buffer,
-                                            numElements * view.objSize);
+                                            numElements * objSize);
     }
 
     buffer += offsetBytes;
@@ -37,13 +37,14 @@ __global__ void reversePack(char *buffer, int startDstObjId,
         packer.objects.pack(srcObjId, dstObjId, buffer, numElements);
 }
 
-__global__ void reverseUnpackAndAdd(const OVview view, ObjectPackerHandler packer,
-                                    const MapEntry *map, BufferOffsetsSizesWrap dataWrap)
+__global__ void reverseUnpackAndAdd(ObjectPackerHandler packer, const MapEntry *map,
+                                    BufferOffsetsSizesWrap dataWrap)
 {
     constexpr float eps = 1e-6f;
     int tid         = threadIdx.x;
     int srcObjId    = blockIdx.x;
     int numElements = gridDim.x;
+    int objSize = packer.objSize;
 
     auto mapEntry = map[srcObjId];
 
@@ -54,14 +55,14 @@ __global__ void reverseUnpackAndAdd(const OVview view, ObjectPackerHandler packe
 
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        int srcId = srcObjId * view.objSize + pid;
-        int dstId = dstObjId * view.objSize + pid;
+        int srcId = srcObjId * objSize + pid;
+        int dstId = dstObjId * objSize + pid;
 
         offsetBytes = packer.particles.
             unpackAtomicAddNonZero(srcId, dstId, buffer,
-                                   numElements * view.objSize, eps);
+                                   numElements * objSize, eps);
     }
 
     buffer += offsetBytes;
@@ -128,8 +129,6 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
-
-    OVview ovView(ov, hov);
     
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
@@ -144,7 +143,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
             nObjs, nthreads, 0, stream,
             helper->send.getBufferDevPtr(bufId),
             helper->send.offsets[bufId],
-            ovView, packer->handler() );
+            packer->handler() );
     }
     
     debug2("Will send back data for %d objects", helper->send.offsets[helper->nBuffers]);
@@ -156,8 +155,6 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto lov      = ov->local();
     auto helper   =   helpers[id].get();
     auto unpacker = unpackers[id].get();
-
-    OVview ovView(ov, lov);
 
     unpacker->update(lov, stream);
     
@@ -171,6 +168,6 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         ObjectReverseExchangerKernels::reverseUnpackAndAdd,
         map.size(), nthreads, 0, stream,
-        ovView, unpacker->handler(),
-        map.devPtr(), helper->wrapRecvData());
+        unpacker->handler(), map.devPtr(),
+        helper->wrapRecvData());
 }

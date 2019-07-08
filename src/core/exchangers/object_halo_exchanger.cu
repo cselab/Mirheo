@@ -19,8 +19,8 @@ namespace ObjectHaloExchangeKernels
 {
 
 template <PackMode packMode>
-__global__ void getObjectHaloAndMap(const DomainInfo domain, const OVview view, MapEntry *map,
-                                    const float rc, ObjectPackerHandler packer,
+__global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *map,
+                                    float rc, ObjectPackerHandler packer,
                                     BufferOffsetsSizesWrap dataWrap)
 {
     const int objId = blockIdx.x;
@@ -109,23 +109,24 @@ __global__ void getObjectHaloAndMap(const DomainInfo domain, const OVview view, 
 }
 
 __global__ void unpackObjects(const char *buffer, int startDstObjId,
-                              OVview view, ObjectPackerHandler packer)
+                              ObjectPackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
     const int numElements = gridDim.x;
+    const int objSize = packer.objSize;
 
     const int srcObjId = objId;
     const int dstObjId = objId + startDstObjId;
     
     size_t offsetBytes = 0;
     
-    for (int pid = tid; pid < view.objSize; pid += blockDim.x)
+    for (int pid = tid; pid < objSize; pid += blockDim.x)
     {
-        const int dstPid = dstObjId * view.objSize + pid;
-        const int srcPid = srcObjId * view.objSize + pid;
+        const int dstPid = dstObjId * objSize + pid;
+        const int srcPid = srcObjId * objSize + pid;
         offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
-                                              numElements * view.objSize);
+                                              numElements * objSize);
     }
 
     buffer += offsetBytes;
@@ -244,8 +245,6 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
     hov->resize_anew(totalRecvd * ov->objSize);
-    OVview ovView(ov, hov);
-    
     unpacker->update(hov, stream);
 
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
@@ -261,7 +260,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
             nObjs, nthreads, 0, stream,
             helper->recv.getBufferDevPtr(bufId),
             helper->recv.offsets[bufId],
-            ovView, unpacker->handler() );
+            unpacker->handler() );
     }
 }
 
