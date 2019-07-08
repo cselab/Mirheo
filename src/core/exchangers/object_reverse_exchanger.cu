@@ -50,7 +50,7 @@ __global__ void reverseUnpackAndAdd(const OVview view, ObjectPackerHandler packe
     const int bufId    = mapEntry.getBufId();
     const int dstObjId = mapEntry.getId();
     
-    auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+    auto buffer = dataWrap.getBuffer(bufId);
 
     size_t offsetBytes = 0;
     
@@ -110,29 +110,30 @@ void ObjectReverseExchanger::prepareSizes(int id, cudaStream_t stream)
     auto  helper  = helpers[id].get();
     auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
     
-    for (int i = 0; i < helper->nBuffers; i++)
+    for (int i = 0; i < helper->nBuffers; ++i)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
 }
 
 void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
 {
     auto ov     = objects[id];
+    auto hov    = ov->halo();
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
     
     debug2("Preparing '%s' data to reverse send", ov->name.c_str());
 
-    packer->update(ov->halo(), stream);
+    packer->update(hov, stream);
 
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
 
-    OVview ovView(ov, ov->halo());
+    OVview ovView(ov, hov);
     
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
-        int nObjs = helper->recv.sizes[bufId];
+        int nObjs = helper->send.sizes[bufId];
 
         if (bufId == helper->bulkId || nObjs == 0) continue;
 
@@ -141,7 +142,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ObjectReverseExchangerKernels::reversePack,
             nObjs, nthreads, 0, stream,
-            helper->send.buffer.devPtr() + helper->send.offsetsBytes[bufId],
+            helper->send.getBufferDevPtr(bufId),
             helper->send.offsets[bufId],
             ovView, packer->handler() );
     }
@@ -151,13 +152,14 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
 
 void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
-    auto ov       =   objects[id];
+    auto ov       = objects[id];
+    auto lov      = ov->local();
     auto helper   =   helpers[id].get();
     auto unpacker = unpackers[id].get();
 
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
 
-    unpacker->update(ov->local(), stream);
+    unpacker->update(lov, stream);
     
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
     auto& map = entangledHaloExchanger->getMap(id);

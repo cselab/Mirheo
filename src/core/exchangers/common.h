@@ -10,9 +10,9 @@ __device__ inline int3 getDirection(float3 pos, float3 L)
     if (pos.y < -0.5f * L.y) dir.y = -1;
     if (pos.z < -0.5f * L.z) dir.z = -1;
 
-    if (pos.x >= -0.5f * L.x) dir.x = 1;
-    if (pos.y >= -0.5f * L.y) dir.y = 1;
-    if (pos.z >= -0.5f * L.z) dir.z = 1;
+    if (pos.x >= 0.5f * L.x) dir.x = 1;
+    if (pos.y >= 0.5f * L.y) dir.y = 1;
+    if (pos.z >= 0.5f * L.z) dir.z = 1;
     
     return dir;
 }

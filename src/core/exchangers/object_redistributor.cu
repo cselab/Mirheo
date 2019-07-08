@@ -27,8 +27,6 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
     
-    if (objId >= view.nObjects) return;
-
     // Find to which buffer this object should go
     auto prop = view.comAndExtents[objId];
     auto dir  = ExchangersCommon::getDirection(prop.com, domain.localSize);
@@ -52,7 +50,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
         
         auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
-        auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+        auto buffer = dataWrap.getBuffer(bufId);
         int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
         size_t offsetBytes = 0;
@@ -107,6 +105,11 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId,
 
 ObjectRedistributor::ObjectRedistributor() = default;
 ObjectRedistributor::~ObjectRedistributor() = default;
+
+bool ObjectRedistributor::needExchange(int id)
+{
+    return !objects[id]->redistValid;
+}
 
 void ObjectRedistributor::attach(ObjectVector *ov)
 {
@@ -211,12 +214,13 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     // Unpack the central buffer into the object vector itself
     // Renew view, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
-    ovView = OVview(ov, lov);    
+    ovView = OVview(ov, lov);
+    packer->update(lov, stream);
 
     SAFE_KERNEL_LAUNCH(
          ObjecRedistributorKernels::unpackObjects,
          nObjsBulk, nthreads, 0, stream,
-         helper->send.buffer.devPtr() + helper->send.offsetsBytes[bulkId], 0,
+         helper->send.getBufferDevPtr(bulkId), 0,
          ovView, packer->handler() );
     
     helper->send.sizes[bulkId] = 0;
@@ -254,7 +258,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ObjecRedistributorKernels::unpackObjects,
             nObjs, nthreads, 0, stream,
-            helper->recv.buffer.devPtr() + helper->recv.offsetsBytes[bufId],
+            helper->recv.getBufferDevPtr(bufId),
             oldNObjs + helper->recv.offsets[bufId],
             ovView, packer->handler() );
     }
@@ -264,9 +268,4 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     // Particles may have migrated, rebuild cell-lists
     if (totalRecvd > 0)
         ov->cellListStamp++;
-}
-
-bool ObjectRedistributor::needExchange(int id)
-{
-    return !objects[id]->redistValid;
 }

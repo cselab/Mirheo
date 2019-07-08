@@ -1,4 +1,5 @@
 #include "object_halo_exchanger.h"
+#include "common.h"
 #include "exchange_helpers.h"
 #include "utils/fragments_mapping.h"
 
@@ -74,12 +75,9 @@ __global__ void getObjectHaloAndMap(const DomainInfo domain, const OVview view, 
             __syncthreads();
 
             const int3 dir = FragmentMapping::getDir(bufId);
-            
-            const float3 shift{ - domain.localSize.x * dir.x,
-                                - domain.localSize.y * dir.y,
-                                - domain.localSize.z * dir.z };
+            auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
-            auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+            auto buffer = dataWrap.getBuffer(bufId);
             int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
             size_t offsetBytes = 0;
@@ -104,7 +102,8 @@ __global__ void getObjectHaloAndMap(const DomainInfo domain, const OVview view, 
             // save map
             
             int myOffset = dataWrap.offsets[bufId] + shDstObjId;
-            map[myOffset] = MapEntry(objId, bufId);
+            if (tid == 0)
+                map[myOffset] = MapEntry(objId, bufId);
         }
     }
 }
@@ -179,6 +178,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
 void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
+    auto lov = ov->local();
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
@@ -187,9 +187,9 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 
     debug2("Counting halo objects of '%s'", ov->name.c_str());
 
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
     helper->send.sizes.clear(stream);
-    packer->update(ov->local(), stream);
+    packer->update(lov, stream);
 
     if (ovView.nObjects > 0)
     {
@@ -208,13 +208,15 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
 void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 {
     auto ov  = objects[id];
+    auto lov = ov->local();
     auto rc  = rcs[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
     auto& map = maps[id];
     
     int nhalo = helper->send.offsets[helper->nBuffers];
-    OVview ovView(ov, ov->local());
+    OVview ovView(ov, lov);
+    map.resize_anew(nhalo);
 
     if (ovView.nObjects > 0)
     {
@@ -223,7 +225,6 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
-        map.resize_anew(nhalo);
         
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
@@ -235,16 +236,17 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
 
 void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
-    auto ov = objects[id];
-    auto helper = helpers[id].get();
+    auto ov       = objects[id];
+    auto hov      = ov->halo();
+    auto helper   = helpers[id].get();
     auto unpacker = unpackers[id].get();
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
-    ov->halo()->resize_anew(totalRecvd * ov->objSize);
-    OVview ovView(ov, ov->halo());
+    hov->resize_anew(totalRecvd * ov->objSize);
+    OVview ovView(ov, hov);
     
-    unpacker->update(ov->halo(), stream);
+    unpacker->update(hov, stream);
 
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
@@ -257,7 +259,7 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::unpackObjects,
             nObjs, nthreads, 0, stream,
-            helper->recv.buffer.devPtr() + helper->recv.offsetsBytes[bufId],
+            helper->recv.getBufferDevPtr(bufId),
             helper->recv.offsets[bufId],
             ovView, unpacker->handler() );
     }
