@@ -229,6 +229,8 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     {
         const int nthreads = 64;
         const int nblocks  = helper->nBuffers - 1;
+
+        packer->update(lpv, stream);
         
         SAFE_KERNEL_LAUNCH(
             ParticleRedistributorKernels::unpackParticles,
