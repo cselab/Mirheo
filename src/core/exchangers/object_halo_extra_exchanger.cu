@@ -12,15 +12,16 @@ namespace ObjectHaloExtraExchangerKernels
 __global__ void pack(ObjectPackerHandler packer, const MapEntry *map,
                      BufferOffsetsSizesWrap dataWrap)
 {
-    int tid         = threadIdx.x;
-    int dstObjId    = blockIdx.x;
-    int numElements = gridDim.x;
-    int objSize     = packer.objSize;
+    const int tid         = threadIdx.x;
+    const int objId       = blockIdx.x;
+    const int numElements = gridDim.x;
+    const int objSize     = packer.objSize;
 
-    auto mapEntry = map[dstObjId];
+    auto mapEntry = map[objId];
 
     const int bufId    = mapEntry.getBufId();
     const int srcObjId = mapEntry.getId();
+    const int dstObjId = objId - dataWrap.offsets[bufId];
     
     auto buffer = dataWrap.getBuffer(bufId);
 

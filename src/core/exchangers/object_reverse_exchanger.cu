@@ -41,15 +41,15 @@ __global__ void reverseUnpackAndAdd(ObjectPackerHandler packer, const MapEntry *
                                     BufferOffsetsSizesWrap dataWrap)
 {
     constexpr float eps = 1e-6f;
-    int tid         = threadIdx.x;
-    int srcObjId    = blockIdx.x;
-    int numElements = gridDim.x;
-    int objSize = packer.objSize;
+    const int tid         = threadIdx.x;
+    const int objId       = blockIdx.x;
+    const int numElements = gridDim.x;
+    const int objSize = packer.objSize;
 
-    auto mapEntry = map[srcObjId];
-
+    auto mapEntry = map[objId];
     const int bufId    = mapEntry.getBufId();
     const int dstObjId = mapEntry.getId();
+    const int srcObjId = objId - dataWrap.offsets[bufId];
     
     auto buffer = dataWrap.getBuffer(bufId);
 
