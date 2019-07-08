@@ -3,6 +3,7 @@
 #include "utils/fragments_mapping.h"
 
 #include <core/containers.h>
+#include <core/utils/cpu_gpu_defines.h>
 
 #include <mpi.h>
 #include <string>
@@ -19,6 +20,10 @@ struct BufferOffsetsSizesWrap
     int *offsets;  ///< device array of size #nBuffers+1 with i-th buffer start index in elements number
     int *sizes;    ///< device array of size #nBuffers with i-th buffer size in elements number
     size_t *offsetsBytes; ///< device array of size #nBuffers+1 with i-th buffer start index in bytes
+    __D__ inline char* getBuffer(int bufId)
+    {
+        return buffer + offsetsBytes[bufId];
+    }
 };
 
 struct BufferInfos
@@ -31,6 +36,7 @@ struct BufferInfos
     void clearAllSizes(cudaStream_t stream);
     void resizeInfos(int nBuffers);
     void uploadInfosToDevice(cudaStream_t stream);
+    char* getBufferDevPtr(int bufId);
 };
 
 

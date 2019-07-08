@@ -1,4 +1,5 @@
 #include "particle_halo_exchanger.h"
+#include "common.h"
 #include "exchange_helpers.h"
 #include "utils/fragments_mapping.h"
 #include "utils/face_dispatch.h"
@@ -80,13 +81,10 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
             const int myId  = blockSum[bufId] + haloOffset[j];
 
             auto dir = FragmentMapping::getDir(bufId);
-            
-            const float3 shift { - domain.localSize.x * dir.x,
-                                 - domain.localSize.y * dir.y,
-                                 - domain.localSize.z * dir.z };
+            auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
-            auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+            auto buffer = dataWrap.getBuffer(bufId);
             
 #pragma unroll 3
             for (int i = 0; i < pend-pstart; ++i)
@@ -106,7 +104,7 @@ __global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerH
 
     const int numElements = dataWrap.sizes[bufId];
     const int offset  = dataWrap.offsets[bufId];
-    const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+    const auto buffer = dataWrap.getBuffer(bufId);
 
     for (int pid = threadIdx.x; pid < numElements; pid += blockDim.x)
     {

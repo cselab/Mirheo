@@ -1,3 +1,4 @@
+#include "common.h"
 #include "exchange_helpers.h"
 #include "particle_redistributor.h"
 #include "utils/face_dispatch.h"
@@ -81,13 +82,11 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
             }
             else
             {
-                const float3 shift { -domain.localSize.x * dir.x,
-                                     -domain.localSize.y * dir.y,
-                                     -domain.localSize.z * dir.z };
+                auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
                 const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
-                auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+                auto buffer = dataWrap.getBuffer(bufId);
 
                 packer.particles.packShift(srcId, myId, buffer, numElements, shift);
                 
@@ -110,7 +109,7 @@ __global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
     for (int pid = threadIdx.x; pid < numElements; pid += blockDim.x)
     {
         const int dstId = startDstId + dataWrap.offsets[bufId] + pid;
-        const auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+        const auto buffer = dataWrap.getBuffer(bufId);
         
         packer.particles.unpack(pid, dstId, buffer, numElements);
     }

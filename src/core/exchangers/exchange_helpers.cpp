@@ -41,6 +41,10 @@ void BufferInfos::uploadInfosToDevice(cudaStream_t stream)
     offsetsBytes .uploadToDevice(stream);
 }
 
+char* BufferInfos::getBufferDevPtr(int bufId)
+{
+    return buffer.devPtr() + offsetsBytes[bufId];
+}
 
 ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer) :
     name(name),
