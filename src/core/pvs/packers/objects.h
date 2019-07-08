@@ -6,6 +6,7 @@ class LocalObjectVector;
 
 struct ObjectPackerHandler : public ParticlePackerHandler
 {
+    int objSize;
     GenericPackerHandler objects;
 };
 

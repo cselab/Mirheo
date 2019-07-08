@@ -19,6 +19,7 @@ ObjectPackerHandler ObjectPacker::handler()
 {
     ObjectPackerHandler oh;
     oh.particles = particleData.handler();
+    oh.objSize   = objSize;
     oh.objects   = objectData.handler();
     return oh;
 }

@@ -6,6 +6,7 @@ class LocalRodVector;
 
 struct RodPackerHandler : public ObjectPackerHandler
 {
+    int nBisegments;
     GenericPackerHandler bisegments;
 };
 

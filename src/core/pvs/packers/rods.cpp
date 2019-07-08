@@ -18,9 +18,10 @@ void RodPacker::update(LocalRodVector *lrv, cudaStream_t stream)
 RodPackerHandler RodPacker::handler()
 {
     RodPackerHandler rh;
-    rh.particles  = particleData.handler();
-    rh.objects    = objectData.handler();
-    rh.bisegments = bisegmentData.handler();
+    rh.particles   = particleData.handler();
+    rh.objects     = objectData.handler();
+    rh.nBisegments = nBisegments;
+    rh.bisegments  = bisegmentData.handler();
     return rh;
 }
 
