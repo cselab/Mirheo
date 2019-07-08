@@ -22,7 +22,7 @@ __global__ void pack(const OVview view, ObjectPackerHandler packer,
     const int bufId    = mapEntry.getBufId();
     const int srcObjId = mapEntry.getId();
     
-    auto buffer = dataWrap.buffer + dataWrap.offsetsBytes[bufId];
+    auto buffer = dataWrap.getBuffer(bufId);
 
     size_t offsetBytes = 0;
     
@@ -120,7 +120,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     auto ov     = objects[id];
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
-    auto& map   = entangledHaloExchanger->getMap(id);
+    const auto& map = entangledHaloExchanger->getMap(id);
 
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);
@@ -140,15 +140,16 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
 void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
 {
     auto ov       = objects[id];
+    auto hov      = ov->halo();
     auto helper   = helpers[id].get();
     auto unpacker = unpackers[id].get();
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
-    ov->halo()->resize_anew(totalRecvd * ov->objSize);
-    OVview ovView(ov, ov->local());
+    hov->resize_anew(totalRecvd * ov->objSize);
+    OVview ovView(ov, hov);
     
-    unpacker->update(ov->halo(), stream);
+    unpacker->update(hov, stream);
 
     // TODO different streams
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
@@ -162,7 +163,7 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExtraExchangerKernels::unpack,
             nObjs, nthreads, 0, stream,
-            helper->recv.buffer.devPtr() + helper->recv.offsetsBytes[bufId],
+            helper->recv.getBufferDevPtr(bufId),
             helper->recv.offsets[bufId],
             ovView, unpacker->handler() );
     }
