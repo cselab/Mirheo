@@ -2,13 +2,10 @@
 
 #include <core/logger.h>
 
-StreamPool::StreamPool(int n) :
-    streams(n),
+StreamPool::StreamPool(size_t n) :
+    n(n),
     eventsEnd(n)
 {
-    for (auto& s : streams)
-        CUDA_Check( cudaStreamCreate(&s) );
-
     for (auto& e : eventsEnd)
         CUDA_Check( cudaEventCreate(&e) );
 
@@ -26,19 +23,30 @@ StreamPool::~StreamPool()
     CUDA_Check( cudaEventDestroy(eventStart) );
 }
 
-const cudaStream_t& StreamPool::get(int id) const
-{
-    return streams[id];
-}
-
 void StreamPool::setStart(cudaStream_t streamBefore)
 {
+    if (streams.size() != n)
+    {
+        int priority;
+
+        CUDA_Check( cudaStreamGetPriority(streamBefore, &priority) );
+        
+        streams.resize(n);
+        for (auto& s : streams)
+            CUDA_Check( cudaStreamCreateWithPriority(&s, cudaStreamNonBlocking, priority) );
+    }
+    
     constexpr unsigned int flags = 0; // must be zero according to docs
     
     CUDA_Check( cudaEventRecord(eventStart, streamBefore) );
     
     for (auto s : streams)
         CUDA_Check( cudaStreamWaitEvent(s, eventStart, flags) );
+}
+
+const cudaStream_t& StreamPool::get(int id) const
+{
+    return streams[id];
 }
 
 void StreamPool::setEnd(cudaStream_t streamAfter)
