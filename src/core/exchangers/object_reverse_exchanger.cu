@@ -1,6 +1,7 @@
 #include "object_reverse_exchanger.h"
 #include "exchange_helpers.h"
 #include "object_halo_exchanger.h"
+#include "utils/stream_pool.h"
 
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
@@ -95,10 +96,13 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     auto   packer = std::make_unique<ObjectPacker>(predicate);
     auto unpacker = std::make_unique<ObjectPacker>(predicate);
     auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto       sp = std::make_unique<StreamPool>(helper->nBuffers);
     
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
+
+    streamPools.push_back(std::move(sp));
 }
 
 bool ObjectReverseExchanger::needExchange(int id)
@@ -121,6 +125,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     auto hov    = ov->halo();
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
+    auto streamPool = streamPools[id].get();
     
     debug2("Preparing '%s' data to reverse send", ov->name.c_str());
 
@@ -129,6 +134,8 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);
     helper->resizeSendBuf();
+
+    streamPool->setStart(stream);
     
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
@@ -140,11 +147,13 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
         
         SAFE_KERNEL_LAUNCH(
             ObjectReverseExchangerKernels::reversePack,
-            nObjs, nthreads, 0, stream,
+            nObjs, nthreads, 0, streamPool->get(bufId),
             helper->send.getBufferDevPtr(bufId),
             helper->send.offsets[bufId],
             packer->handler() );
     }
+
+    streamPool->setEnd(stream);
     
     debug2("Will send back data for %d objects", helper->send.offsets[helper->nBuffers]);
 }

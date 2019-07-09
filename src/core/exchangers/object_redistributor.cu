@@ -3,6 +3,7 @@
 #include "exchange_helpers.h"
 #include "utils/common.h"
 #include "utils/fragments_mapping.h"
+#include "utils/stream_pool.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
@@ -100,10 +101,6 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId,
 
 } // namespace ObjecRedistributorKernels
 
-//===============================================================================================
-// Member functions
-//===============================================================================================
-
 ObjectRedistributor::ObjectRedistributor() = default;
 ObjectRedistributor::~ObjectRedistributor() = default;
 
@@ -125,9 +122,11 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     
     auto packer = std::make_unique<ObjectPacker>(predicate);
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
-
+    auto sp     = std::make_unique<StreamPool>(helper->nBuffers);
+    
     packers.push_back(std::move(packer));
     helpers.push_back(std::move(helper));
+    streamPools.push_back(std::move(sp));
 
     info("The Object vector '%s' was attached to redistributor", ov->name.c_str());
 }
@@ -235,6 +234,7 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     auto lov    = ov->local();
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
+    auto streamPool = streamPools[id].get();
 
     int oldNObjs = lov->nObjects;
     int objSize = ov->objSize;
@@ -244,7 +244,8 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     lov->resize((oldNObjs + totalRecvd) * objSize, stream);
     packer->update(lov, stream);
 
-    // TODO separate streams?
+    streamPool->setStart(stream);
+    
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
         int nObjs = helper->recv.sizes[bufId];
@@ -255,11 +256,13 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
         
         SAFE_KERNEL_LAUNCH(
             ObjecRedistributorKernels::unpackObjects,
-            nObjs, nthreads, 0, stream,
+            nObjs, nthreads, 0, streamPool->get(bufId),
             helper->recv.getBufferDevPtr(bufId),
             oldNObjs + helper->recv.offsets[bufId],
             packer->handler() );
     }
+
+    streamPool->setEnd(stream);
 
     ov->redistValid = true;
 

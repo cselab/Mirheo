@@ -6,6 +6,7 @@
 
 class ObjectVector;
 class ObjectPacker;
+class StreamPool;
 
 class ObjectRedistributor : public Exchanger
 {
@@ -18,6 +19,7 @@ public:
 private:
     std::vector<ObjectVector*> objects;
     std::vector<std::unique_ptr<ObjectPacker>> packers;
+    std::vector<std::unique_ptr<StreamPool>> streamPools;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

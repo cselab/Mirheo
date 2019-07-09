@@ -3,6 +3,7 @@
 #include "exchange_helpers.h"
 #include "utils/common.h"
 #include "utils/fragments_mapping.h"
+#include "utils/stream_pool.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/object_vector.h>
@@ -168,10 +169,13 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     auto   packer = std::make_unique<ObjectPacker>(predicate);
     auto unpacker = std::make_unique<ObjectPacker>(predicate);
     auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto       sp = std::make_unique<StreamPool>(helper->nBuffers);
 
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
+
+    streamPools.push_back(std::move(sp));
     maps     .emplace_back();
     
     info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
@@ -242,12 +246,15 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto hov      = ov->halo();
     auto helper   = helpers[id].get();
     auto unpacker = unpackers[id].get();
-
+    auto streamPool = streamPools[id].get();
+    
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 
     hov->resize_anew(totalRecvd * ov->objSize);
     unpacker->update(hov, stream);
 
+    streamPool->setStart(stream);
+    
     for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
     {
         int nObjs = helper->recv.sizes[bufId];
@@ -258,11 +265,13 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
         
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExchangeKernels::unpackObjects,
-            nObjs, nthreads, 0, stream,
+            nObjs, nthreads, 0, streamPool->get(bufId),
             helper->recv.getBufferDevPtr(bufId),
             helper->recv.offsets[bufId],
             unpacker->handler() );
     }
+
+    streamPool->setEnd(stream);
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(int id)

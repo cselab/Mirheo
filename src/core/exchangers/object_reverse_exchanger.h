@@ -10,6 +10,7 @@
 class ObjectVector;
 class ObjectHaloExchanger;
 class ObjectPacker;
+class StreamPool;
 
 class ObjectReverseExchanger : public Exchanger
 {
@@ -23,6 +24,7 @@ protected:
     std::vector<ObjectVector*> objects;    
     ObjectHaloExchanger *entangledHaloExchanger;
     std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;        
+    std::vector<std::unique_ptr<StreamPool>> streamPools;
     
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;
