@@ -5,7 +5,6 @@
 class ParticleVector;
 class CellList;
 class ParticlePacker;
-class StreamPool;
 
 class ParticleHaloExchanger : public Exchanger
 {
@@ -19,7 +18,6 @@ private:
     std::vector<CellList*> cellLists;
     std::vector<ParticleVector*> particles;
     std::vector<std::unique_ptr<ParticlePacker>> packers, unpackers;
-    std::vector<std::unique_ptr<StreamPool>> streamPools;
 
     void prepareSizes(int id, cudaStream_t stream) override;
     void prepareData (int id, cudaStream_t stream) override;

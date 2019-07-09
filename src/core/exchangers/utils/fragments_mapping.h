@@ -26,7 +26,7 @@ inline __HD__ int getId(int3 dir)
     return getId(dir.x, dir.y, dir.z);
 }
 
-static const int numFragments = 27;
-static const int bulkId = 26;
+constexpr int numFragments = 27;
+constexpr int bulkId       = 26;
 
 } // namespace FragmentMapping

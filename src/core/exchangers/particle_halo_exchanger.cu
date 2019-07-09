@@ -4,7 +4,7 @@
 #include "utils/common.h"
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
-#include "utils/stream_pool.h"
+#include "utils/map.h"
 
 #include <core/celllist.h>
 #include <core/logger.h>
@@ -100,14 +100,28 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
     }
 }
 
-__global__ void unpackParticles(const char *buffer, int startDstPid, int numElements,
-                                ParticlePackerHandler packer)
+__global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerHandler packer)
 {
-    const int pid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (pid >= numElements) return;
+    const int tid = threadIdx.x;
+    const int pid = tid + blockIdx.x * blockDim.x;
+    
+    extern __shared__ int offsets[];
+    
+    const int nBuffers = dataWrap.nBuffers;
 
-    const int srcPid = pid;
-    const int dstPid = pid + startDstPid;
+    for (int i = tid; i < nBuffers + 1; i += blockDim.x)
+        offsets[i] = dataWrap.offsets[i];
+    __syncthreads();
+
+    if (pid >= offsets[nBuffers]) return;
+
+    const int bufId = dispatchThreadsPerBuffer(nBuffers, offsets, pid);
+    
+    auto buffer = dataWrap.getBuffer(bufId);
+    const int numElements = dataWrap.sizes[bufId];
+    
+    const int srcPid = pid - offsets[bufId];
+    const int dstPid = pid;
 
     packer.particles.unpack(srcPid, dstPid, buffer, numElements);
 }
@@ -140,12 +154,10 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     auto   packer = std::make_unique<ParticlePacker> (predicate);
     auto unpacker = std::make_unique<ParticlePacker> (predicate);
     auto   helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
-    auto       sp = std::make_unique<StreamPool>(helper->nBuffers);
     
     helpers  .push_back(std::move(  helper));
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
-    streamPools.push_back(std::move(sp));
     
     std::string msg_channels = channels.empty() ? "no channels." : "with channels: ";
     for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
@@ -221,35 +233,26 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto pv = particles[id];
     auto helper   = helpers  [id].get();
     auto unpacker = unpackers[id].get();
-    auto streamPool = streamPools[id].get();
 
     auto lpv = pv->halo();
+
+    const auto& offsets = helper->recv.offsets;
     
-    int totalRecvd = helper->recv.offsets[helper->nBuffers];
+    int totalRecvd = offsets[helper->nBuffers];
     lpv->resize_anew(totalRecvd);
 
     debug2("received %d particles from halo exchange", totalRecvd);
 
     unpacker->update(lpv, stream);
     
-    streamPool->setStart(stream);
+    const int nthreads = 128;
+    const int nblocks  = getNblocks(totalRecvd, nthreads);
+    const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
     
-    for (int bufId = 0; bufId < helper->nBuffers; ++bufId)
-    {
-        const int numElements = helper->recv.sizes[bufId];
-        const int nthreads = 64;
-        const int nblocks  = getNblocks(numElements, nthreads);
-        
-
-        SAFE_KERNEL_LAUNCH(
-            ParticleHaloExchangersKernels::unpackParticles,
-            nblocks, nthreads, 0, streamPool->get(bufId),
-            helper->recv.getBufferDevPtr(bufId),
-            helper->recv.offsets[bufId], numElements,
-            unpacker->handler());
-    }
-    
-    streamPool->setEnd(stream);
+    SAFE_KERNEL_LAUNCH(
+        ParticleHaloExchangersKernels::unpackParticles,
+        nblocks, nthreads, shMemSize, stream,
+        helper->wrapRecvData(), unpacker->handler());
     
     pv->haloValid = true;
 }
