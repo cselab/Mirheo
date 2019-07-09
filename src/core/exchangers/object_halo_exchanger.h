@@ -10,7 +10,6 @@
 class ObjectVector;
 class ObjectPacker;
 class MapEntry;
-class StreamPool;
 
 class ObjectHaloExchanger : public Exchanger
 {
@@ -28,7 +27,6 @@ protected:
     std::vector<float> rcs;
     std::vector<ObjectVector*> objects;
     std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;
-    std::vector<std::unique_ptr<StreamPool>> streamPools;
     std::vector<DeviceBuffer<MapEntry>> maps;
 
     void prepareSizes(int id, cudaStream_t stream) override;
