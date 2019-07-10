@@ -26,8 +26,8 @@ public:
     {
         if (self)
         {
-            const int dstObjId = dst.getId() / objSize;
-            const int srcObjId = src.getId() / objSize;
+            const int dstObjId = dst.i1 / objSize;
+            const int srcObjId = src.i1 / objSize;
 
             if (dstObjId == srcObjId) return make_float3(0.0f);
         }
