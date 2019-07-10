@@ -40,19 +40,20 @@ public:
     {
         None, Persistent
     };
+
+    enum class ShiftMode
+    {
+        None, Shift
+    };
     
-    /**
-     * Struct that contains of data itself (as a unique_ptr to \c GPUcontainer)
-     * and its properties: needExchange (for MPI) and shiftTypeSize (for shift)
-     */
     struct ChannelDescription 
     {
         std::unique_ptr<GPUcontainer> container;
-        PersistenceMode persistence = PersistenceMode::None;
-        int shiftTypeSize = 0;
+        PersistenceMode persistence {PersistenceMode::None};
+        ShiftMode shift {ShiftMode::None};
         VarPinnedBufferPtr varDataPtr;
 
-        inline bool needShift() const {return shiftTypeSize > 0;}
+        inline bool needShift() const {return shift == ShiftMode::Shift;}
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
@@ -97,31 +98,7 @@ public:
      */
     void setPersistenceMode(const std::string& name, PersistenceMode persistence);
 
-    /**
-     * @brief Make buffer elements be shifted when migrating to another MPI rank
-     *
-     * When elements of the corresponding buffer are migrated
-     * to another MPI subdomain, a coordinate shift will be applied
-     * to the 'first' 3 floats (if \c datatypeSize == 4) or
-     * to the 'first' 3 doubles (if \c datatypeSize == 8) of the element
-     * 'first' refers to the representation of the element as an array of floats or doubles
-     *
-     * Therefore supported structs should look like this:
-     * \code{.cpp}
-     * struct NeedShift { float3 / double3 cooToShift; int exampleOtherVar1; double2 exampleOtherVar2; ... };
-     * \endcode
-     *
-     * \rst
-     * .. note::
-     *    Elements of the buffer should be aligned to 16-byte boundary
-     *    Use \c __align__(16) when defining your structure
-     * \endrst
-     *
-     * @param name channel name
-     * @param datatypeSize treat coordinates as \c float (== 4) or as \c double (== 8)
-     * Other values are not allowed
-     */
-    void requireShift(const std::string& name, size_t datatypeSize);
+    void setShiftMode(const std::string& name, ShiftMode shift);
 
     /**
      * Get gpu buffer by name
@@ -173,11 +150,6 @@ public:
      * Returns true if the channel is persistent
      */
     bool checkPersistence(const std::string& name) const;
-
-    /**
-     * Returns 0 if no shift needed, 4 if shift with floats needed, 8 -- if shift with doubles
-     */
-    int shiftTypeSize(const std::string& name) const;
 
     /// Resize all the channels, keep their data
     void resize(int n, cudaStream_t stream);

@@ -29,27 +29,23 @@ public:
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
 
-
     template<typename T>
-    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence)
+    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence,
+                                 DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerBisegment<T>(name, persistence, 0);
-    }
-
-    template<typename T>
-    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
-    {
-        requireDataPerBisegment<T>(local(), name, persistence, shiftDataSize);
-        requireDataPerBisegment<T>(halo(),  name, persistence, shiftDataSize);
+        requireDataPerBisegment<T>(local(), name, persistence, shift);
+        requireDataPerBisegment<T>(halo(),  name, persistence, shift);
     }
 
 private:
     template<typename T>
-    void requireDataPerBisegment(LocalRodVector *lrv, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerBisegment(LocalRodVector *lrv, std::string name,
+                                 DataManager::PersistenceMode persistence,
+                                 DataManager::ShiftMode shift)
     {
         lrv->dataPerBisegment.createData<T> (name, lrv->nObjects);
         lrv->dataPerBisegment.setPersistenceMode(name, persistence);
-        if (shiftDataSize != 0) lrv->dataPerBisegment.requireShift(name, shiftDataSize);
+        lrv->dataPerBisegment.setShiftMode(name, shift);
     }
 
 };

@@ -74,16 +74,11 @@ public:
     void setForces_vector(PyTypes::VectorOfFloat3& forces);    
     
     template<typename T>
-    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence)
+    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence,
+                                DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerParticle<T>(name, persistence, 0);
-    }
-    
-    template<typename T>
-    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
-    {
-        requireDataPerParticle<T>(local(), name, persistence, shiftDataSize);
-        requireDataPerParticle<T>(halo(),  name, persistence, shiftDataSize);
+        requireDataPerParticle<T>(local(), name, persistence, shift);
+        requireDataPerParticle<T>(halo(),  name, persistence, shift);
     }
 
 protected:
@@ -103,11 +98,13 @@ protected:
 private:
 
     template<typename T>
-    void requireDataPerParticle(LocalParticleVector *lpv, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerParticle(LocalParticleVector *lpv, std::string name,
+                                DataManager::PersistenceMode persistence,
+                                DataManager::ShiftMode shift)
     {
         lpv->dataPerParticle.createData<T> (name, lpv->size());
         lpv->dataPerParticle.setPersistenceMode(name, persistence);
-        if (shiftDataSize != 0) lpv->dataPerParticle.requireShift(name, shiftDataSize);
+        lpv->dataPerParticle.setShiftMode(name, shift);
     }
 
 public:    

@@ -90,7 +90,7 @@ RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, fl
     // rigid motion must be exchanged and shifted
     requireDataPerObject<RigidMotion>(ChannelNames::motions,
                                       DataManager::PersistenceMode::Persistent,
-                                      sizeof(RigidReal));
+                                      DataManager::ShiftMode::Shift);
 
     requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
                                       DataManager::PersistenceMode::None);

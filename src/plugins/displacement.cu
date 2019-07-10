@@ -50,7 +50,7 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     pv->requireDataPerParticle<float4>(savedPositionChannelName,
                                        DataManager::PersistenceMode::Persistent,
-                                       sizeof(float4::x));
+                                       DataManager::ShiftMode::Shift);
 
     PVview view(pv, pv->local());
     const int nthreads = 128;    

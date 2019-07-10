@@ -51,16 +51,11 @@ public:
     void restart    (MPI_Comm comm, std::string path) override;
 
     template<typename T>
-    void requireDataPerObject(std::string name, DataManager::PersistenceMode persistence)
+    void requireDataPerObject(std::string name, DataManager::PersistenceMode persistence,
+                              DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerObject<T>(name, persistence, 0);
-    }
-
-    template<typename T>
-    void requireDataPerObject(std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
-    {
-        requireDataPerObject<T>(local(), name, persistence, shiftDataSize);
-        requireDataPerObject<T>(halo(),  name, persistence, shiftDataSize);
+        requireDataPerObject<T>(local(), name, persistence, shift);
+        requireDataPerObject<T>(halo(),  name, persistence, shift);
     }
 
 public:
@@ -83,11 +78,13 @@ protected:
     
 private:
     template<typename T>
-    void requireDataPerObject(LocalObjectVector* lov, std::string name, DataManager::PersistenceMode persistence, size_t shiftDataSize)
+    void requireDataPerObject(LocalObjectVector* lov, std::string name,
+                              DataManager::PersistenceMode persistence,
+                              DataManager::ShiftMode shift)
     {
         lov->dataPerObject.createData<T> (name, lov->nObjects);
         lov->dataPerObject.setPersistenceMode(name, persistence);
-        if (shiftDataSize != 0) lov->dataPerObject.requireShift(name, shiftDataSize);
+        lov->dataPerObject.setShiftMode(name, shift);
 
     }
 };

@@ -22,14 +22,14 @@ void BounceFromRigidShape<Shape>::setup(ObjectVector *ov)
 {
     Bouncer::setup(ov);
 
-    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, sizeof(RigidReal));
+    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Persistent, DataManager::ShiftMode::Shift);
 }
 
 template <class Shape>
 void BounceFromRigidShape<Shape>::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, sizeof(float));
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Shift);
 }
 
 template <class Shape>
