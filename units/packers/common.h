@@ -21,7 +21,7 @@ initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
 }
 
 // rejection sampling for particles inside ellipsoid
-auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
+static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
 {
     PyTypes::VectorOfFloat3 pos;
     pos.reserve(n);
@@ -42,7 +42,7 @@ auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
     return pos;
 }
 
-auto generateObjectComQ(int n, float3 L, long seed=12345)
+static auto generateObjectComQ(int n, float3 L, long seed=12345)
 {
     PyTypes::VectorOfFloat7 com_q;
     com_q.reserve(n);

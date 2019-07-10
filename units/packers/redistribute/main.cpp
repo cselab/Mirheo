@@ -34,6 +34,35 @@ static void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085
     pos.uploadToDevice(defaultStream);
 }
 
+// move objects no more than domainSize in random direction
+static void moveObjects(float3 L, PinnedBuffer<float4>& pos,
+                        PinnedBuffer<RigidMotion>& mot, long seed = 80085)
+{
+    float frac = 0.5f * 0.9f;
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> dx(-frac * L.x, frac * L.x);
+    std::uniform_real_distribution<float> dy(-frac * L.y, frac * L.y);
+    std::uniform_real_distribution<float> dz(-frac * L.z, frac * L.z);
+
+    int objSize = pos.size() / mot.size();
+
+    for (int i = 0; i < mot.size(); ++i)
+    {
+        float3 shift {dx(gen), dy(gen), dz(gen)};
+        mot[i].r += shift;
+
+        for (int j = 0; j < objSize; ++j)
+        {
+            int id = i * objSize + j;
+            pos[id].x += shift.x;
+            pos[id].y += shift.y;
+            pos[id].z += shift.z;
+        }
+    }
+    pos.uploadToDevice(defaultStream);
+    mot.uploadToDevice(defaultStream);
+}
+
 inline void backToDomain(float& x, float L)
 {
     if      (x < -0.5f * L) x += L;
@@ -45,7 +74,8 @@ inline void backToDomain(float& x, float L)
 // - correct reordering
 // - correct shift
 // by copying corrected positions to velocities
-static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel, float3 L)
+static void createRefParticles(const PinnedBuffer<float4>& pos,
+                               PinnedBuffer<float4>& vel, float3 L)
 {
     for (int i = 0; i < pos.size(); ++i)
     {
@@ -59,7 +89,50 @@ static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel
     vel.uploadToDevice(defaultStream);
 }
 
-static void checkInside(const PinnedBuffer<float4>& pos, float3 L)
+
+// create the reference data
+// here we test 2 things:
+// - correct reordering
+// - correct shift
+// by copying corrected positions to velocities
+static void createRefObjects(int objSize, const PinnedBuffer<float4>& pos,
+                             PinnedBuffer<float4>& vel, float3 L)
+{
+    int nObj = pos.size() / objSize;
+    
+    for (int i = 0; i < nObj; ++i)
+    {
+        float3 com {0.f, 0.f, 0.f};
+
+        for (int j = 0; j < objSize; ++j)
+        {
+            int id = i * objSize + j;
+            com.x += pos[id].x;
+            com.y += pos[id].y;
+            com.z += pos[id].z;
+        }
+        com *= (1.0 / objSize);
+        float3 scom = com;
+        
+        backToDomain(scom.x, L.x);
+        backToDomain(scom.y, L.y);
+        backToDomain(scom.z, L.z);
+
+        float3 shift = scom - com;
+
+        for (int j = 0; j < objSize; ++j)
+        {
+            int id = i * objSize + j;
+            vel[id].x = pos[id].x + shift.x;
+            vel[id].y = pos[id].y + shift.y;
+            vel[id].z = pos[id].z + shift.z;
+        }
+    }
+    
+    vel.uploadToDevice(defaultStream);
+}
+
+static void checkInsideParticles(const PinnedBuffer<float4>& pos, float3 L)
 {
     for (const auto& r : pos)
     {
@@ -73,8 +146,49 @@ static void checkInside(const PinnedBuffer<float4>& pos, float3 L)
     }
 }
 
-static void checkRef(const PinnedBuffer<float4>& pos,
-                     const PinnedBuffer<float4>& vel)
+static void checkRefParticles(const PinnedBuffer<float4>& pos,
+                                  const PinnedBuffer<float4>& vel)
+{
+    for (int i = 0; i < pos.size(); ++i)
+    {
+        auto r = pos[i];
+        auto v = vel[i];
+
+        ASSERT_EQ(r.x, v.x);
+        ASSERT_EQ(r.y, v.y);
+        ASSERT_EQ(r.z, v.z);
+    }
+}
+
+static void checkInsideObjects(int objSize, const PinnedBuffer<float4>& pos, float3 L)
+{
+    int nObj = pos.size() / objSize;
+    
+    for (int i = 0; i < nObj; ++i)
+    {
+        float3 com {0.f, 0.f, 0.f};
+
+        for (int j = 0; j < objSize; ++j)
+        {
+            int id = i * objSize + j;
+            com.x += pos[id].x;
+            com.y += pos[id].y;
+            com.z += pos[id].z;
+        }
+        com *= (1.0 / objSize);
+        
+        ASSERT_LT(com.x, 0.5f * L.x);
+        ASSERT_LT(com.y, 0.5f * L.y);
+        ASSERT_LT(com.z, 0.5f * L.z);
+
+        ASSERT_GE(com.x, -0.5f * L.x);
+        ASSERT_GE(com.y, -0.5f * L.y);
+        ASSERT_GE(com.z, -0.5f * L.z);
+    }
+}
+
+static void checkRefObjects(const PinnedBuffer<float4>& pos,
+                            const PinnedBuffer<float4>& vel)
 {
     for (int i = 0; i < pos.size(); ++i)
     {
@@ -105,7 +219,7 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     auto& vel = lpv->velocities();
 
     moveParticles(rc, pos);
-    createRef(pos, vel, domain.localSize);    
+    createRefParticles(pos, vel, domain.localSize);    
 
     int n = lpv->size();
 
@@ -125,8 +239,47 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     pos.downloadFromDevice(defaultStream);
     vel.downloadFromDevice(defaultStream);
 
-    checkInside(pos, domain.localSize);
-    checkRef(pos, vel);
+    checkInsideParticles(pos, domain.localSize);
+    checkRefParticles(pos, vel);
+}
+
+
+TEST (PACKERS_REDISTRIBUTE, objects)
+{
+    float dt = 0.f;
+    float L  = 64.f;
+    int nObjs = 128;
+    int objSize = 555;
+
+    DomainInfo domain;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    MirState state(domain, dt);
+    auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
+    auto lrev = rev->local();
+
+    auto& pos = lrev->positions();
+    auto& vel = lrev->velocities();
+    auto& mot = *lrev->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+
+    moveObjects(domain.localSize, pos, mot);
+    createRefObjects(objSize, pos, vel, domain.localSize);    
+
+    auto redistr = std::make_unique<ObjectRedistributor>();
+    redistr->attach(rev.get());
+
+    auto engine = std::make_unique<SingleNodeEngine>(std::move(redistr));
+
+    engine->init(defaultStream);
+    engine->finalize(defaultStream);
+
+    pos.downloadFromDevice(defaultStream);
+    vel.downloadFromDevice(defaultStream);
+    mot.downloadFromDevice(defaultStream);
+
+    checkInsideObjects(objSize, pos, domain.localSize);
+    checkRefObjects(pos, vel);
 }
 
 
