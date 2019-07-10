@@ -12,7 +12,12 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **refoactoring**: packers
+* add unit tests for packers:
+  * redistribute (particles, objects)
+  * exchange (particles)
 
 ### v1.0.0
 
