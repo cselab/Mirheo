@@ -81,25 +81,8 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
             auto buffer = dataWrap.getBuffer(bufId);
             int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
-            size_t offsetBytes = 0;
-
-            // save data to buffer
+            packer.blockPackShift(numElements, buffer, objId, shDstObjId, shift);
             
-            for (int pid = tid; pid < view.objSize; pid += blockDim.x)
-            {
-                const int srcPid = objId      * view.objSize + pid;
-                const int dstPid = shDstObjId * view.objSize + pid;
-
-                offsetBytes = packer.particles.packShift(srcPid, dstPid, buffer,
-                                                         numElements * view.objSize,
-                                                         shift);
-            }
-
-            buffer += offsetBytes;
-            
-            if (tid == 0)
-                packer.objects.packShift(objId, shDstObjId, buffer, numElements, shift);
-
             // save map
             
             int myOffset = dataWrap.offsets[bufId] + shDstObjId;
@@ -113,8 +96,7 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandl
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    const int objSize = packer.objSize;
-
+    
     extern __shared__ int offsets[];
     
     const int nBuffers = dataWrap.nBuffers;
@@ -129,28 +111,12 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandl
     
     const int srcObjId = objId - offsets[bufId];
     const int dstObjId = objId;
-    
-    size_t offsetBytes = 0;
-    
-    for (int pid = tid; pid < objSize; pid += blockDim.x)
-    {
-        const int dstPid = dstObjId * objSize + pid;
-        const int srcPid = srcObjId * objSize + pid;
-        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
-                                              numElements * objSize);
-    }
 
-    buffer += offsetBytes;
-    
-    if (tid == 0)
-        packer.objects.unpack(srcObjId, dstObjId, buffer, numElements);
+    packer.blockUnpack(numElements, buffer, srcObjId, dstObjId);
 }
 
 } // namespace ObjectHaloExchangeKernels
 
-//===============================================================================================
-// Member functions
-//===============================================================================================
 
 bool ObjectHaloExchanger::needExchange(int id)
 {

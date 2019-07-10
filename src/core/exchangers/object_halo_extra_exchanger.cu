@@ -1,6 +1,8 @@
 #include "object_halo_extra_exchanger.h"
 #include "object_halo_exchanger.h"
 #include "exchange_helpers.h"
+#include "utils/common.h"
+#include "utils/fragments_mapping.h"
 
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
@@ -9,13 +11,11 @@
 
 namespace ObjectHaloExtraExchangerKernels
 {
-__global__ void pack(ObjectPackerHandler packer, const MapEntry *map,
+__global__ void pack(DomainInfo domain, ObjectPackerHandler packer, const MapEntry *map,
                      BufferOffsetsSizesWrap dataWrap)
 {
-    const int tid         = threadIdx.x;
     const int objId       = blockIdx.x;
     const int numElements = gridDim.x;
-    const int objSize     = packer.objSize;
 
     auto mapEntry = map[objId];
 
@@ -24,28 +24,16 @@ __global__ void pack(ObjectPackerHandler packer, const MapEntry *map,
     const int dstObjId = objId - dataWrap.offsets[bufId];
     
     auto buffer = dataWrap.getBuffer(bufId);
+    auto dir   = FragmentMapping::getDir(bufId);
+    auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
-    size_t offsetBytes = 0;
-    
-    for (int pid = tid; pid < objSize; pid += blockDim.x)
-    {
-        int srcId = srcObjId * objSize + pid;
-        int dstId = dstObjId * objSize + pid;
-
-        offsetBytes = packer.particles.pack(srcId, dstId, buffer,
-                                            numElements * objSize);
-    }
-
-    buffer += offsetBytes;
-    if (tid == 0)
-        packer.objects.pack(srcObjId, dstObjId, buffer, numElements);
+    packer.blockPackShift(numElements, buffer, srcObjId, dstObjId, shift);
 }
 
 __global__ void unpack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    const int objSize = packer.objSize;
 
     extern __shared__ int offsets[];
     
@@ -61,21 +49,8 @@ __global__ void unpack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler pack
 
     const int srcObjId = objId - offsets[bufId];
     const int dstObjId = objId;
-    
-    size_t offsetBytes = 0;
-    
-    for (int pid = tid; pid < objSize; pid += blockDim.x)
-    {
-        const int dstPid = dstObjId * objSize + pid;
-        const int srcPid = srcObjId * objSize + pid;
-        offsetBytes = packer.particles.unpack(srcPid, dstPid, buffer,
-                                              numElements * objSize);
-    }
 
-    buffer += offsetBytes;
-    
-    if (tid == 0)
-        packer.objects.unpack(srcObjId, dstObjId, buffer, numElements);
+    packer.blockUnpack(numElements, buffer, srcObjId, dstObjId);
 }
 } // namespace ObjectHaloExtraExchangerKernels
 
@@ -143,7 +118,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         ObjectHaloExtraExchangerKernels::pack,
         map.size(), nthreads, 0, stream,
-        packer->handler(), map.devPtr(),
+        ov->state->domain, packer->handler(), map.devPtr(),
         helper->wrapSendData() );
 }
 
