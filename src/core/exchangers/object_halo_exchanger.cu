@@ -19,9 +19,9 @@ enum class PackMode
 namespace ObjectHaloExchangeKernels
 {
 
-template <PackMode packMode>
+template <PackMode packMode, class PackerHandler>
 __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *map,
-                                    float rc, ObjectPackerHandler packer,
+                                    float rc, PackerHandler packer,
                                     BufferOffsetsSizesWrap dataWrap)
 {
     const int objId = blockIdx.x;
@@ -92,7 +92,8 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
     }
 }
 
-__global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler packer)
+template <class PackerHandler>
+__global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
@@ -173,11 +174,14 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     {
         const int nthreads = 256;
 
-        SAFE_KERNEL_LAUNCH(
-            ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Query>,
-            ovView.nObjects, nthreads, 0, stream,
-            ov->state->domain, ovView, nullptr, rc,
-            packer->handler(), helper->wrapSendData() );
+        mpark::visit([&](auto packerHandler)
+        {
+            SAFE_KERNEL_LAUNCH(
+                ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Query>,
+                ovView.nObjects, nthreads, 0, stream,
+                ov->state->domain, ovView, nullptr, rc,
+                packerHandler, helper->wrapSendData() );
+        }, ExchangersCommon::getHandler(packer));
     }
 
     helper->computeSendOffsets_Dev2Dev(stream);
@@ -204,11 +208,14 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
         
-        SAFE_KERNEL_LAUNCH(
-            ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
-            ovView.nObjects, nthreads, 0, stream,
-            ov->state->domain, ovView, map.devPtr(), rc,
-            packer->handler(), helper->wrapSendData());
+        mpark::visit([&](auto packerHandler)
+        {
+            SAFE_KERNEL_LAUNCH(
+                ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
+                ovView.nObjects, nthreads, 0, stream,
+                ov->state->domain, ovView, map.devPtr(), rc,
+                packerHandler, helper->wrapSendData());
+        }, ExchangersCommon::getHandler(packer));
     }
 }
 
@@ -229,10 +236,13 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     const int nblocks = totalRecvd;
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
     
-    SAFE_KERNEL_LAUNCH(
-        ObjectHaloExchangeKernels::unpackObjects,
-        nblocks, nthreads, shMemSize, stream,
-        helper->wrapRecvData(), unpacker->handler() );
+    mpark::visit([&](auto unpackerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjectHaloExchangeKernels::unpackObjects,
+            nblocks, nthreads, shMemSize, stream,
+            helper->wrapRecvData(), unpackerHandler );
+    }, ExchangersCommon::getHandler(unpacker));
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(int id)

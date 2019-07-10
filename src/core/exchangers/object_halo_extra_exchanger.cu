@@ -11,7 +11,8 @@
 
 namespace ObjectHaloExtraExchangerKernels
 {
-__global__ void pack(DomainInfo domain, ObjectPackerHandler packer, const MapEntry *map,
+template <class PackerHandler>
+__global__ void pack(DomainInfo domain, PackerHandler packer, const MapEntry *map,
                      BufferOffsetsSizesWrap dataWrap)
 {
     const int objId       = blockIdx.x;
@@ -30,7 +31,8 @@ __global__ void pack(DomainInfo domain, ObjectPackerHandler packer, const MapEnt
     packer.blockPackShift(numElements, buffer, srcObjId, dstObjId, shift);
 }
 
-__global__ void unpack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler packer)
+template <class PackerHandler>
+__global__ void unpack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
@@ -114,12 +116,14 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     helper->resizeSendBuf();
 
     const int nthreads = 256;
-    
-    SAFE_KERNEL_LAUNCH(
-        ObjectHaloExtraExchangerKernels::pack,
-        map.size(), nthreads, 0, stream,
-        ov->state->domain, packer->handler(), map.devPtr(),
-        helper->wrapSendData() );
+    mpark::visit([&](auto packerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjectHaloExtraExchangerKernels::pack,
+            map.size(), nthreads, 0, stream,
+            ov->state->domain, packerHandler, map.devPtr(),
+            helper->wrapSendData() );
+    }, ExchangersCommon::getHandler(packer));
 }
 
 void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
@@ -139,9 +143,12 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks  = totalRecvd;
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
-        
-    SAFE_KERNEL_LAUNCH(
-        ObjectHaloExtraExchangerKernels::unpack,
-        nblocks, nthreads, shMemSize, stream,
-        helper->wrapRecvData(), unpacker->handler() );
+
+    mpark::visit([&](auto unpackerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjectHaloExtraExchangerKernels::unpack,
+            nblocks, nthreads, shMemSize, stream,
+            helper->wrapRecvData(), unpackerHandler );
+    }, ExchangersCommon::getHandler(unpacker));
 }

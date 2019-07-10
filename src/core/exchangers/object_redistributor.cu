@@ -20,9 +20,9 @@ enum class PackMode
 namespace ObjecRedistributorKernels
 {
 
-template <PackMode packMode>
+template <PackMode packMode, class PackerHandler>
 __global__ void getExitingObjects(DomainInfo domain, OVview view,
-                                  ObjectPackerHandler packer, BufferOffsetsSizesWrap dataWrap)
+                                  PackerHandler packer, BufferOffsetsSizesWrap dataWrap)
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
@@ -57,8 +57,8 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     }
 }
 
-__global__ void unpackObjects(const char *buffer, int startDstObjId,
-                              ObjectPackerHandler packer)
+template <class PackerHandler>
+__global__ void unpackObjects(const char *buffer, int startDstObjId, PackerHandler packer)
 {
     const int objId = blockIdx.x;
     const int numElements = gridDim.x;
@@ -122,11 +122,14 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     {
         const int nthreads = 256;
         const int nblocks  = ovView.nObjects;
-        
-        SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
-            nblocks, nthreads, 0, stream,
-            ov->state->domain, ovView, packer->handler(), helper->wrapSendData() );
+
+        mpark::visit([&](auto packerHandler)
+        {
+            SAFE_KERNEL_LAUNCH(
+                ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
+                nblocks, nthreads, 0, stream,
+                ov->state->domain, ovView, packerHandler, helper->wrapSendData() );
+        }, ExchangersCommon::getHandler(packer));
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -174,21 +177,26 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks  = ovView.nObjects;
 
-    SAFE_KERNEL_LAUNCH(
-        ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
-        nblocks, nthreads, 0, stream,
-        ov->state->domain, ovView, packer->handler(), helper->wrapSendData() );    
+    mpark::visit([&](auto packerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
+            nblocks, nthreads, 0, stream,
+            ov->state->domain, ovView, packerHandler, helper->wrapSendData() );
+    }, ExchangersCommon::getHandler(packer));
 
     // Unpack the central buffer into the object vector itself
     // Renew view, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
     packer->update(lov, stream);
 
-    SAFE_KERNEL_LAUNCH(
-         ObjecRedistributorKernels::unpackObjects,
-         nObjsBulk, nthreads, 0, stream,
-         helper->send.getBufferDevPtr(bulkId), 0,
-         packer->handler() );
+    mpark::visit([&](auto packerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+             ObjecRedistributorKernels::unpackObjects,
+             nObjsBulk, nthreads, 0, stream,
+             helper->send.getBufferDevPtr(bulkId), 0, packerHandler);
+    }, ExchangersCommon::getHandler(packer));
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
@@ -218,13 +226,15 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
         if (bufId == helper->bulkId || nObjs == 0) continue;
 
         const int nthreads = 256;
-        
-        SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::unpackObjects,
-            nObjs, nthreads, 0, stream,
-            helper->recv.getBufferDevPtr(bufId),
-            oldNObjs + helper->recv.offsets[bufId],
-            packer->handler() );
+
+        mpark::visit([&](auto packerHandler)
+        {
+            SAFE_KERNEL_LAUNCH(
+                ObjecRedistributorKernels::unpackObjects,
+                nObjs, nthreads, 0, stream,
+                helper->recv.getBufferDevPtr(bufId),
+                oldNObjs + helper->recv.offsets[bufId], packerHandler );
+        }, ExchangersCommon::getHandler(packer));
     }
 
     ov->redistValid = true;

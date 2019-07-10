@@ -1,6 +1,7 @@
 #include "object_reverse_exchanger.h"
-#include "exchange_helpers.h"
 #include "object_halo_exchanger.h"
+#include "exchange_helpers.h"
+#include "utils/common.h"
 
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
@@ -10,7 +11,8 @@
 namespace ObjectReverseExchangerKernels
 {
 
-__global__ void reversePack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler packer)
+template <class PackerHandler>
+__global__ void reversePack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 {
     
     const int objId = blockIdx.x;
@@ -34,7 +36,8 @@ __global__ void reversePack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler
     packer.blockPack(numElements, buffer, srcObjId, dstObjId);
 }
 
-__global__ void reverseUnpackAndAdd(ObjectPackerHandler packer, const MapEntry *map,
+template <class PackerHandler>
+__global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
                                     BufferOffsetsSizesWrap dataWrap)
 {
     constexpr float eps = 1e-6f;
@@ -118,11 +121,14 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     const int nblocks = nSendObj;
 
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
-        
-    SAFE_KERNEL_LAUNCH(
-        ObjectReverseExchangerKernels::reversePack,
-        nblocks, nthreads, shMemSize, stream,
-        helper->wrapSendData(), packer->handler() );
+
+    mpark::visit([&](auto packerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjectReverseExchangerKernels::reversePack,
+            nblocks, nthreads, shMemSize, stream,
+            helper->wrapSendData(), packerHandler );
+    }, ExchangersCommon::getHandler(packer));
     
     debug2("Will send back data for %d objects", nSendObj);
 }
@@ -143,9 +149,12 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
 
     const int nthreads = 256;
         
-    SAFE_KERNEL_LAUNCH(
-        ObjectReverseExchangerKernels::reverseUnpackAndAdd,
-        map.size(), nthreads, 0, stream,
-        unpacker->handler(), map.devPtr(),
-        helper->wrapRecvData());
+    mpark::visit([&](auto unpackerHandler)
+    {
+        SAFE_KERNEL_LAUNCH(
+            ObjectReverseExchangerKernels::reverseUnpackAndAdd,
+            map.size(), nthreads, 0, stream,
+            unpackerHandler, map.devPtr(),
+            helper->wrapRecvData());
+    }, ExchangersCommon::getHandler(unpacker));
 }

@@ -1,5 +1,11 @@
 #pragma once
 
+#include <core/pvs/packers/rods.h>
+
+#include <extern/variant/include/mpark/variant.hpp>
+
+using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
+
 namespace ExchangersCommon
 {
 
@@ -22,6 +28,14 @@ __device__ inline float3 getShift(float3 L, int3 dir)
     return {-L.x * dir.x,
             -L.y * dir.y,
             -L.z * dir.z};
+}
+
+inline VarPackHandler getHandler(ObjectPacker *packer)
+{
+    auto rod = dynamic_cast<RodPacker*>(packer);
+
+    if (rod) return rod->handler();
+    return packer->handler();
 }
 
 } // namespace ExchangersCommon
