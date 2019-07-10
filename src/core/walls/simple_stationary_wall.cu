@@ -263,7 +263,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Shift);
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 template<class InsideWallChecker>
@@ -361,7 +361,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     else
     {
         PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->persistence == DataManager::PersistenceMode::Persistent;
+            return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
         };
         
         // Prepare temp storage for extra object data

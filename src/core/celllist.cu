@@ -172,15 +172,16 @@ void CellList::_updateExtraDataChannels(cudaStream_t stream)
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Active) continue;
 
-        mpark::visit([&](auto pinnedBuffPtr) {
-                         using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-
-                         if (!containerManager.checkChannelExists(name))
-                             containerManager.createData<T>(name, np);
-                         
-                     }, desc->varDataPtr);
+        mpark::visit([&](auto pinnedBuffPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
+            
+            if (!containerManager.checkChannelExists(name))
+                containerManager.createData<T>(name, np);
+            
+        }, desc->varDataPtr);
     }
 }
 
@@ -259,7 +260,7 @@ void CellList::_reorderPersistentData(cudaStream_t stream)
     for (const auto& namedChannel : srcExtraData->getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Active) continue;
         _reorderExtraDataEntry(name, desc, stream);
     }
 }
@@ -454,14 +455,15 @@ void PrimaryCellList::_swapPersistentExtraData()
     for (const auto& namedChannel : pvManager.getSortedChannels()) {
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
-        if (desc->persistence != DataManager::PersistenceMode::Persistent) continue;
+        if (desc->persistence != DataManager::PersistenceMode::Active) continue;
 
         const auto& descCont = containerManager.getChannelDescOrDie(name);
 
-        mpark::visit([&](auto pinnedBufferPv) {
-                         auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
-                         std::swap(*pinnedBufferPv, *pinnedBufferCont);
-                     }, desc->varDataPtr);
+        mpark::visit([&](auto pinnedBufferPv) 
+        {
+            auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
+            std::swap(*pinnedBufferPv, *pinnedBufferCont);
+        }, desc->varDataPtr);
     }
 }
 

@@ -22,13 +22,13 @@ void BounceFromRod::setup(ObjectVector *ov)
     if (rv == nullptr)
         die("bounce from rod must be used with a rod vector");
 
-    ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Persistent, DataManager::ShiftMode::Shift);
+    ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void BounceFromRod::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Shift);
+    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const

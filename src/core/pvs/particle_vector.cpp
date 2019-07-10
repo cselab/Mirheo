@@ -16,8 +16,8 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     dataPerParticle.createData<Force>(ChannelNames::forces, n);
 
     // positions are treated specially, do not need to be persistent
-    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Persistent);
-    dataPerParticle.setShiftMode(ChannelNames::positions, DataManager::ShiftMode::Shift);
+    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Active);
+    dataPerParticle.setShiftMode(ChannelNames::positions, DataManager::ShiftMode::Active);
     resize_anew(n);
 }
 
@@ -260,7 +260,7 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
         auto channelName = namedChannelDesc.first;
         auto channelDesc = namedChannelDesc.second;        
         
-        if (channelDesc->persistence != DataManager::PersistenceMode::Persistent)
+        if (channelDesc->persistence != DataManager::PersistenceMode::Active)
             continue;
 
         if (blackList.find(channelName) != blackList.end())

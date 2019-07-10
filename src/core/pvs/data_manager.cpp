@@ -49,7 +49,7 @@ const std::vector<DataManager::NamedChannelDesc>& DataManager::getSortedChannels
 bool DataManager::checkPersistence(const std::string& name) const
 {
     auto& desc = getChannelDescOrDie(name);
-    return desc.persistence == PersistenceMode::Persistent;
+    return desc.persistence == PersistenceMode::Active;
 }
 
 void DataManager::resize(int n, cudaStream_t stream)

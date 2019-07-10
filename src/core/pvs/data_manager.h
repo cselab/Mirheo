@@ -38,12 +38,12 @@ public:
 
     enum class PersistenceMode
     {
-        None, Persistent
+        None, Active
     };
 
     enum class ShiftMode
     {
-        None, Shift
+        None, Active
     };
     
     struct ChannelDescription 
@@ -53,7 +53,7 @@ public:
         ShiftMode shift {ShiftMode::None};
         VarPinnedBufferPtr varDataPtr;
 
-        inline bool needShift() const {return shift == ShiftMode::Shift;}
+        inline bool needShift() const {return shift == ShiftMode::Active;}
     };
 
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;

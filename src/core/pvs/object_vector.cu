@@ -134,7 +134,7 @@ ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, 
     requireDataPerObject<COMandExtent>(ChannelNames::comExtents, DataManager::PersistenceMode::None);
 
     // object ids must always follow objects
-    requireDataPerObject<int64_t>(ChannelNames::globalIds, DataManager::PersistenceMode::Persistent);
+    requireDataPerObject<int64_t>(ChannelNames::globalIds, DataManager::PersistenceMode::Active);
 }
 
 ObjectVector::~ObjectVector() = default;

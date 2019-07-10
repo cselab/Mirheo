@@ -43,6 +43,6 @@ void ParticleChannelSaverPlugin::setup(Simulation *simulation, const MPI_Comm& c
     mpark::visit([&](auto pinnedBufferPtr)
     {
         using T = typename std::remove_reference< decltype(*pinnedBufferPtr->hostPtr()) >::type;
-        pv->requireDataPerParticle<T>(savedName,DataManager::PersistenceMode::Persistent);
+        pv->requireDataPerParticle<T>(savedName, DataManager::PersistenceMode::Active);
     }, desc.varDataPtr);
 }
