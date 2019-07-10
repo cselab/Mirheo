@@ -15,7 +15,6 @@ __global__ void reversePack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler
     
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    const int objSize = packer.objSize;
 
     extern __shared__ int offsets[];
 
@@ -31,32 +30,17 @@ __global__ void reversePack(BufferOffsetsSizesWrap dataWrap, ObjectPackerHandler
 
     const int dstObjId = objId - offsets[bufId];
     const int srcObjId = objId;
-    
-    size_t offsetBytes = 0;
-    
-    for (int pid = tid; pid < objSize; pid += blockDim.x)
-    {
-        const int dstPid = dstObjId * objSize + pid;
-        const int srcPid = srcObjId * objSize + pid;
-        offsetBytes = packer.particles.pack(srcPid, dstPid, buffer,
-                                            numElements * objSize);
-    }
 
-    buffer += offsetBytes;
-    
-    if (tid == 0)
-        packer.objects.pack(srcObjId, dstObjId, buffer, numElements);
+    packer.blockPack(numElements, buffer, srcObjId, dstObjId);
 }
 
 __global__ void reverseUnpackAndAdd(ObjectPackerHandler packer, const MapEntry *map,
                                     BufferOffsetsSizesWrap dataWrap)
 {
     constexpr float eps = 1e-6f;
-    const int tid         = threadIdx.x;
     const int objId       = blockIdx.x;
     const int numElements = gridDim.x;
-    const int objSize = packer.objSize;
-
+    
     auto mapEntry = map[objId];
     const int bufId    = mapEntry.getBufId();
     const int dstObjId = mapEntry.getId();
@@ -64,21 +48,7 @@ __global__ void reverseUnpackAndAdd(ObjectPackerHandler packer, const MapEntry *
     
     auto buffer = dataWrap.getBuffer(bufId);
 
-    size_t offsetBytes = 0;
-    
-    for (int pid = tid; pid < objSize; pid += blockDim.x)
-    {
-        int srcId = srcObjId * objSize + pid;
-        int dstId = dstObjId * objSize + pid;
-
-        offsetBytes = packer.particles.
-            unpackAtomicAddNonZero(srcId, dstId, buffer,
-                                   numElements * objSize, eps);
-    }
-
-    buffer += offsetBytes;
-    if (tid == 0)
-        packer.objects.unpackAtomicAddNonZero(srcObjId, dstObjId, buffer, numElements, eps);    
+    packer.blockUnpackAddNonZero(numElements, buffer, srcObjId, dstObjId, eps);
 }
 
 } // namespace ObjectReverseExchangerKernels
