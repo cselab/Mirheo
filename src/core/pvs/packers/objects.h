@@ -22,87 +22,74 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     inline __device__ size_t blockPack(int numElements, char *buffer,
                                        int srcObjId, int dstObjId) const
     {
-        const int tid = threadIdx.x;
-        __shared__ size_t offsetBytes;
-        
-        for (int pid = tid; pid < objSize; pid += blockDim.x)
-        {
-            const int srcPid = srcObjId * objSize + pid;
-            const int dstPid = dstObjId * objSize + pid;
-            
-            size_t ob = particles.pack(srcPid, dstPid, buffer, numElements * objSize);
-
-            if (tid == 0)
-                offsetBytes = ob;
-        }
-        __syncthreads();
-        buffer += offsetBytes;
-        
-        if (tid == 0)
-            offsetBytes += objects.pack(srcObjId, dstObjId, buffer, numElements);
-
-        __syncthreads();
-        return offsetBytes;
+        return blockApply<PackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
     inline __device__ size_t blockPackShift(int numElements, char *buffer,
                                             int srcObjId, int dstObjId, float3 shift) const
     {
-        const int tid = threadIdx.x;
-        __shared__ size_t offsetBytes;
-        
-        for (int pid = tid; pid < objSize; pid += blockDim.x)
-        {
-            const int srcPid = srcObjId * objSize + pid;
-            const int dstPid = dstObjId * objSize + pid;
-            
-            size_t ob = particles.packShift(srcPid, dstPid, buffer,
-                                            numElements * objSize, shift);
-
-            if (tid == 0)
-                offsetBytes = ob;
-        }
-        __syncthreads();
-        buffer += offsetBytes;
-        
-        if (tid == 0)
-            offsetBytes += objects.packShift(srcObjId, dstObjId,
-                                             buffer, numElements, shift);
-
-        __syncthreads();
-        return offsetBytes;
+        return blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
 
     inline __device__ size_t blockUnpack(int numElements, const char *buffer,
                                          int srcObjId, int dstObjId) const
     {
-        const int tid = threadIdx.x;
-        __shared__ size_t offsetBytes;
-        
-        for (int pid = tid; pid < objSize; pid += blockDim.x)
-        {
-            const int srcPid = srcObjId * objSize + pid;
-            const int dstPid = dstObjId * objSize + pid;
-            
-            size_t ob = particles.unpack(srcPid, dstPid, buffer,
-                                         numElements * objSize);
-
-            if (tid == 0)
-                offsetBytes = ob;
-        }
-        __syncthreads();
-        buffer += offsetBytes;
-        
-        if (tid == 0)
-            offsetBytes += objects.unpack(srcObjId, dstObjId,
-                                          buffer, numElements);
-
-        __syncthreads();
-        return offsetBytes;
+        return blockApply<UnpackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
     inline __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
                                                    int srcObjId, int dstObjId, float eps) const
+    {
+         return blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
+    }
+
+
+protected:
+
+    struct PackOp
+    {
+        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                          int srcId, int dstId, char *buffer, int numElements)
+        {
+            return gpacker.pack(srcId, dstId, buffer, numElements);
+        }
+    };
+
+    struct PackShiftOp
+    {
+        float3 shift;
+        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                          int srcId, int dstId, char *buffer, int numElements)
+        {
+            return gpacker.packShift(srcId, dstId, buffer, numElements, shift);
+        }
+    };
+
+    struct UnpackOp
+    {
+        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                          int srcId, int dstId, const char *buffer,
+                                          int numElements)
+        {
+            return gpacker.unpack(srcId, dstId, buffer, numElements);
+        }
+    };
+
+    struct UnpackAddOp
+    {
+        float eps;
+        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                          int srcId, int dstId, const char *buffer,
+                                          int numElements)
+        {
+            return gpacker.unpackAtomicAddNonZero(srcId, dstId, buffer, numElements, eps);
+        }
+    };
+
+
+    template <class Operation, typename BuffType>
+    inline __device__ size_t blockApply(Operation op, int numElements, BuffType buffer,
+                                        int srcObjId, int dstObjId) const
     {
         const int tid = threadIdx.x;
         __shared__ size_t offsetBytes;
@@ -112,8 +99,7 @@ struct ObjectPackerHandler : public ParticlePackerHandler
             const int srcPid = srcObjId * objSize + pid;
             const int dstPid = dstObjId * objSize + pid;
             
-            size_t ob = particles.unpackAtomicAddNonZero(srcPid, dstPid, buffer,
-                                                         numElements * objSize, eps);
+            size_t ob = op(particles, srcPid, dstPid, buffer, numElements * objSize);
 
             if (tid == 0)
                 offsetBytes = ob;
@@ -122,13 +108,12 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         buffer += offsetBytes;
         
         if (tid == 0)
-            offsetBytes += objects.unpackAtomicAddNonZero(srcObjId, dstObjId,
-                                                          buffer, numElements, eps);
+            offsetBytes += op(objects, srcObjId, dstObjId, buffer, numElements);
 
         __syncthreads();
         return offsetBytes;
     }
-#endif
+#endif // __CUDACC__
 };
 
 class ObjectPacker : public ParticlePacker
