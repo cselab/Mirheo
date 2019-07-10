@@ -8,6 +8,12 @@ struct ObjectPackerHandler : public ParticlePackerHandler
 {
     int objSize;
     GenericPackerHandler objects;
+
+    inline __D__ size_t getSizeBytes(int numElements) const
+    {
+        return ParticlePackerHandler::getSizeBytes(numElements * objSize) +
+            objects.getSizeBytes(numElements);
+    }
 };
 
 class ObjectPacker : public ParticlePacker

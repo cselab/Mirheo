@@ -8,6 +8,13 @@ struct RodPackerHandler : public ObjectPackerHandler
 {
     int nBisegments;
     GenericPackerHandler bisegments;
+
+    inline __D__ size_t getSizeBytes(int numElements) const
+    {
+        return ObjectPackerHandler::getSizeBytes(numElements) +
+            bisegments.getSizeBytes(numElements * nBisegments);
+    }
+
 };
 
 

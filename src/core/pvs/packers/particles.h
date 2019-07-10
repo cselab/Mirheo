@@ -2,6 +2,8 @@
 
 #include "generic_packer.h"
 
+#include <core/utils/cpu_gpu_defines.h>
+
 #include <vector>
 
 class LocalParticleVector;
@@ -9,6 +11,11 @@ class LocalParticleVector;
 struct ParticlePackerHandler
 {
     GenericPackerHandler particles;
+
+    inline __D__ size_t getSizeBytes(int numElements) const
+    {
+        return particles.getSizeBytes(numElements);
+    }
 };
 
 class ParticlePacker

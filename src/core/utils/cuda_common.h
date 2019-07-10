@@ -168,7 +168,8 @@ __device__ inline  int warpReduce(int val, Operation op)
 // per warp prefix sum
 //=======================================================================================
 
-__device__ inline int warpInclusiveScan(int val) {
+template <typename T>
+__device__ inline T warpInclusiveScan(T val) {
     int tid;
     tid = threadIdx.x % warpSize;
     for (int L = 1; L < warpSize; L <<= 1)
@@ -176,7 +177,8 @@ __device__ inline int warpInclusiveScan(int val) {
     return val;
 }
 
-__device__ inline int warpExclusiveScan(int val) {
+template <typename T>
+__device__ inline T warpExclusiveScan(T val) {
     return warpInclusiveScan(val) - val;
 }
 

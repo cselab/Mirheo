@@ -28,5 +28,5 @@ RodPackerHandler RodPacker::handler()
 size_t RodPacker::getSizeBytes(int numElements) const
 {
     return ObjectPacker::getSizeBytes(numElements) +
-        bisegmentData.getSizeBytes(nBisegments);
+        bisegmentData.getSizeBytes(nBisegments * numElements);
 }

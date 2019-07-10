@@ -1,6 +1,71 @@
 #include "exchange_helpers.h"
 
-#include <core/pvs/packers/particles.h>
+#include <core/pvs/packers/rods.h>
+#include <core/utils/cuda_common.h>
+#include <core/utils/kernel_launch.h>
+
+namespace ExchangeHelpersKernels
+{
+// must be executed with only one warp
+template <class Packer>
+__global__ void computeOffsetsSizeBytes(BufferOffsetsSizesWrap wrapData, size_t *sizesBytes,
+                                        Packer packer)
+{
+    const int tid = threadIdx.x;
+    assert(tid < warpSize);
+
+    int size = 0;
+
+    if (tid < wrapData.nBuffers)
+        size = wrapData.sizes[tid];
+
+    size_t sizeBytes = packer.getSizeBytes(size);
+    
+    int    offset      = warpExclusiveScan(size     );
+    size_t offsetBytes = warpExclusiveScan(sizeBytes);
+
+    if (tid < wrapData.nBuffers + 1)
+    {
+        wrapData.offsets     [tid] = offset;
+        wrapData.offsetsBytes[tid] = offsetBytes;
+        sizesBytes[tid] = sizeBytes;
+    }
+}
+
+} // namespace ExchangeHelpersKernels
+
+
+template <class Packer>
+inline void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
+                                       PinnedBuffer<size_t>& sizeBytes,
+                                       const Packer& packer, cudaStream_t stream)
+{
+    // must be launched on one warp only
+    constexpr int nthreads = 32;
+    constexpr int nblocks  = 1;
+    
+    SAFE_KERNEL_LAUNCH(
+        ExchangeHelpersKernels::computeOffsetsSizeBytes,
+        nblocks, nthreads, 0, stream,
+        wrapData, sizeBytes.devPtr(), packer);
+}
+
+static void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
+                                       PinnedBuffer<size_t>& sizeBytes,
+                                       ParticlePacker *pp, cudaStream_t stream)
+{
+    auto rp = dynamic_cast<RodPacker*>(pp);
+    auto op = dynamic_cast<ObjectPacker*>(pp);
+
+    auto execute = [&](const auto& packerHandler)
+    {
+        computeOffsetsSizeBytesDev(wrapData, sizeBytes, packerHandler, stream);
+    };
+    
+    if      (rp != nullptr) execute(rp->handler());
+    else if (op != nullptr) execute(op->handler());
+    else                    execute(pp->handler());
+}
 
 template <typename T>
 static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
@@ -73,10 +138,12 @@ void ExchangeHelper::computeSendOffsets()
 
 void ExchangeHelper::computeSendOffsets_Dev2Dev(cudaStream_t stream)
 {
-    send.sizes.downloadFromDevice(stream);
-    computeSendOffsets();
-    send.offsets.uploadToDevice(stream);
-    send.offsetsBytes.uploadToDevice(stream);
+    computeOffsetsSizeBytesDev(wrapSendData(), send.sizesBytes, packer, stream);
+    
+    send.sizes       .downloadFromDevice(stream, ContainersSynch::Asynch);
+    send.offsets     .downloadFromDevice(stream, ContainersSynch::Asynch);
+    send.sizesBytes  .downloadFromDevice(stream, ContainersSynch::Asynch);
+    send.offsetsBytes.downloadFromDevice(stream, ContainersSynch::Synch);
 }
 
 void ExchangeHelper::resizeSendBuf()
