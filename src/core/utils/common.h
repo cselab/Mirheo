@@ -35,7 +35,7 @@ static const std::string rodKappa      = "biseg_kappa";
 static const std::string rodTau_l      = "biseg_tau_l";
 
     
-// per entity (particles or objects
+// per entity (particles or objects)
 static const std::string globalIds   = "ids";
 
 } // namespace ChannelNames

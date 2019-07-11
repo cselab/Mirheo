@@ -7,6 +7,7 @@
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/rod_vector.h>
 #include <core/pvs/views/ov.h>
 #include <core/pvs/packers/objects.h>
 #include <core/logger.h>
@@ -84,13 +85,18 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     int id = objects.size();
     objects.push_back(ov);
 
+    auto rv = dynamic_cast<RodVector*>(ov);
+    
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
         return (namedDesc.second->persistence == DataManager::PersistenceMode::Active) ||
             (namedDesc.first == ChannelNames::positions);
     };
     
-    auto packer = std::make_unique<ObjectPacker>(predicate);
+    std::unique_ptr<ObjectPacker> packer;
+    if (rv == nullptr) packer = std::make_unique<ObjectPacker>(predicate);
+    else               packer = std::make_unique<RodPacker>   (predicate);
+        
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
     packers.push_back(std::move(packer));

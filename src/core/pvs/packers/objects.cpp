@@ -8,9 +8,13 @@ ObjectPacker::ObjectPacker(PackPredicate predicate) :
 
 ObjectPacker::~ObjectPacker() = default;
 
-void ObjectPacker::update(LocalObjectVector *lov, cudaStream_t stream)
+void ObjectPacker::update(LocalParticleVector *lpv, cudaStream_t stream)
 {
-    ParticlePacker::update(lov, stream);
+    ParticlePacker::update(lpv, stream);
+
+    auto lov = dynamic_cast<LocalObjectVector*>(lpv);
+    if (lov == nullptr) die("Must pass local object vector to object packer update");
+    
     objectData.updateChannels(lov->dataPerObject, predicate, stream);
     objSize = lov->objSize;
 }

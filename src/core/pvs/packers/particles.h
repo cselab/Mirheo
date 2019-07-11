@@ -24,7 +24,7 @@ public:
     ParticlePacker(PackPredicate predicate);
     ~ParticlePacker();
     
-    void update(LocalParticleVector *lpv, cudaStream_t stream);
+    virtual void update(LocalParticleVector *lpv, cudaStream_t stream);
     ParticlePackerHandler handler();
     virtual size_t getSizeBytes(int numElements) const;
 

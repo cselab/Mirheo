@@ -122,7 +122,7 @@ public:
     ObjectPacker(PackPredicate predicate);
     ~ObjectPacker();
     
-    void update(LocalObjectVector *lov, cudaStream_t stream);
+    void update(LocalParticleVector *lpv, cudaStream_t stream) override;
     ObjectPackerHandler handler();
     size_t getSizeBytes(int numElements) const override;
 

@@ -75,7 +75,7 @@ public:
     RodPacker(PackPredicate predicate);
     ~RodPacker();
     
-    void update(LocalRodVector *lrv, cudaStream_t stream);
+    void update(LocalParticleVector *lpv, cudaStream_t stream) override;
     RodPackerHandler handler();
     size_t getSizeBytes(int numElements) const override;
 
