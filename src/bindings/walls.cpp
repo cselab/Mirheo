@@ -70,22 +70,24 @@ void exportWalls(py::module& m)
         )");
         
     py::handlers_class< SimpleStationaryWall<StationaryWall_SDF> >(m, "SDF", pywall, R"(
-        This wall is based on an arbitrary Signed Distance Function defined in the simulation domain on a regular cartesian grid.
-        The wall reads the SDF data from a .sdf file, that has a special structure.
+        This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular cartesian grid.
+        The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
         
         First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
         Next the :math:`Nx \times Ny \times Nz` single precision floating point values are written (in binary representation).
         
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
-        Therefore the boundary is defined by the zero-level isosurface.
+        The boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&WallFactory::createSDFWall),
             "state"_a, "name"_a, "sdfFilename"_a, "h"_a = PyTypes::float3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
-                sdfFilename: lower corner of the box
-                h: resolution of the resampled SDF. In order to have a more accurate SDF representation, the initial function is resampled on a finer grid. The lower this value is, the better the wall will be, however, the  more memory it will consume and the slower the execution will be
+                sdfFilename: name of the ``.sdf`` file
+                h: resolution of the resampled SDF. 
+                   In order to have a more accurate SDF representation, the initial function is resampled on a finer grid. 
+                   The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
         )");
         
     py::handlers_class< WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall, R"(

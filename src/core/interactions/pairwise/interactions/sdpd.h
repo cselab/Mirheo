@@ -20,8 +20,6 @@ template <typename PressureEOS, typename DensityKernel>
 class PairwiseSDPDHandler : public ParticleFetcherWithVelocityDensityAndMass
 {
 public:
-
-    static constexpr float zeta = 3 + 2;
     
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensityAndMass;
@@ -72,6 +70,8 @@ public:
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 protected:
+
+    static constexpr float zeta = 3 + 2;
 
     float inv_rc;
     float seed;

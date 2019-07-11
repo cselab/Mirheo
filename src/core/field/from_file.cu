@@ -131,13 +131,15 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 }
 } // InterpolateKernels
 
-static void readHeader(const std::string fileName, const MPI_Comm& comm, int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte, int64_t& endHeader_byte, int rank)
+static void readHeader(const std::string fileName, const MPI_Comm& comm,
+                       int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte,
+                       int64_t& endHeader_byte, int rank)
 {
     if (rank == 0)
     {
         std::ifstream file(fileName);
         if (!file.good())
-            die("File not found or not accessible");
+            die("'%s': file not found or not accessible", fileName.c_str());
 
         auto fstart = file.tellg();
 
