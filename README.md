@@ -14,9 +14,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ### unreleased
 
-* **refoactoring**: packers
+* **internal changes**:
+  * refactoring of packers
+  * add persistent channels support for rod bisegment data
 * add unit tests for packers:
-  * redistribute (particles, objects)
+  * redistribute (particles, objects, rods)
   * exchange (particles)
 
 ### v1.0.0
