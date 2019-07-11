@@ -46,12 +46,14 @@ template <int Nstates>
 static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
                          StatesSpinParameters& stateParams, cudaStream_t stream)
 {
-    RVview view(rv, rv->local());
+    auto lrv = rv->local();
+    RVview view(rv, lrv);
 
-    auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
-    auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+    auto kappa = lrv->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
+    auto tau_l = lrv->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
 
-    rv->local()->dataPerBisegment.getData<int>(ChannelNames::polyStates)->clear(stream);
+    auto& states = *lrv->dataPerBisegment.getData<int>(ChannelNames::polyStates);
+    states.clear(stream);
 
     // initialize to ground energies without spin interactions
     {
@@ -66,14 +68,15 @@ static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates
     const int nthreads = 512;
     const int nblocks = view.nObjects;
 
-    size_t shared_size = sizeof(int) * (view.nSegments - 1);
+    // TODO check if it fits into shared mem
+    const size_t shMemSize = sizeof(states[0]) * (view.nSegments - 1);
     
     for (int i = 0; i < stateParams.nsteps; ++i)
     {
         auto devSpinParams = getGPUParams(stateParams);
         
         SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStatesMCStep<Nstates>,
-                           nblocks, nthreads, shared_size, stream,
+                           nblocks, nthreads, shMemSize, stream,
                            view, devParams, devSpinParams, kappa, tau_l);
     }
 }

@@ -152,11 +152,11 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     __syncthreads();
 
-    auto execPhase = [&](int odd)
+    auto execPhase = [&](int evenOdd)
     {
         for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
         {
-            if (biSegmentId % 2 == odd) continue;
+            if (biSegmentId % 2 == evenOdd) continue;
             
             real2 k0, k1;
             real tau, l;
@@ -168,14 +168,18 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
             int sprev = states[max(biSegmentId - 1, 0            )];
             int snext = states[min(biSegmentId + 1, nBiSegments-1)];
 
-            states[biSegmentId] = acceptReject(sprev, scurrent, snext, k0, k1, tau, l, params, spinParams);
+            states[biSegmentId] = acceptReject(sprev, scurrent, snext,
+                                               k0, k1, tau, l, params, spinParams);
         }
     };
 
-    execPhase(0);
+    constexpr int evenStep = 0;
+    constexpr int  oddStep = 1;
+    
+    execPhase(evenStep);
     __syncthreads();
 
-    execPhase(1);
+    execPhase(oddStep);
     __syncthreads();
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
