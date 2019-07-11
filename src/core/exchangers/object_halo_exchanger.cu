@@ -6,6 +6,7 @@
 
 #include <core/utils/kernel_launch.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/rod_vector.h>
 #include <core/pvs/packers/objects.h>
 #include <core/pvs/views/ov.h>
 #include <core/logger.h>
@@ -133,6 +134,8 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     objects.push_back(ov);
     rcs.push_back(rc);
 
+    auto rv = dynamic_cast<RodVector*>(ov);
+    
     auto channels = extraChannelNames;
     channels.push_back(ChannelNames::positions);
     channels.push_back(ChannelNames::velocities);
@@ -141,9 +144,20 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     {
         return std::find(channels.begin(), channels.end(), namedDesc.first) != channels.end();
     };
-    
-    auto   packer = std::make_unique<ObjectPacker>(predicate);
-    auto unpacker = std::make_unique<ObjectPacker>(predicate);
+
+    std::unique_ptr<ObjectPacker> packer, unpacker;
+
+    if (rv == nullptr)
+    {
+        packer   = std::make_unique<ObjectPacker>(predicate);
+        unpacker = std::make_unique<ObjectPacker>(predicate);
+    }
+    else
+    {
+        packer   = std::make_unique<RodPacker>(predicate);
+        unpacker = std::make_unique<RodPacker>(predicate);
+    }
+
     auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
 
     packers  .push_back(std::move(  packer));

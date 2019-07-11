@@ -6,6 +6,7 @@
 
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/rod_vector.h>
 #include <core/pvs/packers/objects.h>
 #include <core/utils/kernel_launch.h>
 
@@ -73,6 +74,8 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     int id = objects.size();
     objects.push_back(ov);
 
+    auto rv = dynamic_cast<RodVector*>(ov);
+    
     PackPredicate predicate = [extraChannelNames](const DataManager::NamedChannelDesc& namedDesc)
     {
         return std::find(extraChannelNames.begin(),
@@ -81,8 +84,19 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
             != extraChannelNames.end();
     };
     
-    auto   packer = std::make_unique<ObjectPacker>(predicate);
-    auto unpacker = std::make_unique<ObjectPacker>(predicate);
+    std::unique_ptr<ObjectPacker> packer, unpacker;
+
+    if (rv == nullptr)
+    {
+        packer   = std::make_unique<ObjectPacker>(predicate);
+        unpacker = std::make_unique<ObjectPacker>(predicate);
+    }
+    else
+    {
+        packer   = std::make_unique<RodPacker>(predicate);
+        unpacker = std::make_unique<RodPacker>(predicate);
+    }
+
     auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
     packers  .push_back(std::move(  packer));
