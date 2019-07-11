@@ -3,8 +3,10 @@
 #include <core/analytical_shapes/api.h>
 #include <core/containers.h>
 #include <core/initial_conditions/rigid.h>
+#include <core/initial_conditions/rod.h>
 #include <core/initial_conditions/uniform.h>
 #include <core/pvs/rigid_ashape_object_vector.h>
+#include <core/pvs/rod_vector.h>
 
 #include <memory>
 #include <random>
@@ -78,6 +80,31 @@ initializeRandomREV(const MPI_Comm& comm, const MirState *state, int nObjs, int 
     ic.exec(comm, rev.get(), defaultStream);
 
     return rev;
+}
+
+std::unique_ptr<RodVector>
+initializeRandomRods(const MPI_Comm& comm, const MirState *state, int nObjs, int numSegments)
+{
+    float mass = 1.f;
+    float a = 0.1f;
+    float L = 4.f;
+    
+    auto centerLine = [&](float s) -> PyTypes::float3
+    {
+        return {0.f, 0.f, L * (s-0.5f)};
+    };
+
+    auto torsion = [](float s) {return 0.f;};
+    
+    auto rv = std::make_unique<RodVector>
+        (state, "rv", mass, numSegments);
+
+    auto com_q  = generateObjectComQ(nObjs, state->domain.globalSize);
+    
+    RodIC ic(com_q, centerLine, torsion, a);
+    ic.exec(comm, rv.get(), defaultStream);
+
+    return rv;
 }
 
 inline bool areEquals(float3 a, float3 b)
