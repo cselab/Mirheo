@@ -10,7 +10,6 @@ protected:
 
 public:
     PinnedBuffer<int3> triangles;
-
     PinnedBuffer<float4> vertexCoordinates;
 
     Mesh();
