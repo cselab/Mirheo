@@ -1,21 +1,14 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul  6 14:10:53 2018
 
-@author: alexeedm
-"""
 import inspect
 import functools
 import sys
 import weakref
 import re
 
-
 from libmirheo import *
 
 __all__ = ["version", "tools"]
-
 
 # Global variable for the mirheo coordination class
 # Used in decorators to access compute task status
