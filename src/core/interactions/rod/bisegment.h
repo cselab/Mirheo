@@ -195,16 +195,22 @@ struct BiSegment
         real tau = safeDiffTheta(theta0, theta1) * linv;
         real dtau = tau - params.tauEq[state];
 
+        // contribution from segment length on center line:
+        
         real ftwistLFactor = 0.5_r * params.kTwist * dtau * (tau + params.tauEq[state]);
-
+        
         fr0 -= 0.5_r * ftwistLFactor * t0;
         fr2 += 0.5_r * ftwistLFactor * t1;
 
+        // contribution from theta on center line:
+        
         real dthetaFFactor = dtau * params.kTwist;
-
+        
         fr0 += (0.5_r * dthetaFFactor * e0inv) * bicur;
         fr2 -= (0.5_r * dthetaFFactor * e1inv) * bicur;
 
+        // contribution of theta on material frame:
+        
         fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
