@@ -215,6 +215,7 @@ struct BiSegment
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
+    
 
     __device__ inline void computeCurvatures(real2& kappa0, real2& kappa1) const
     {
@@ -256,6 +257,112 @@ struct BiSegment
         real theta1 = atan2(dpv1, dpu1);
     
         tau = safeDiffTheta(theta0, theta1) * linv;
+    }
+
+    
+    __device__ inline void computeCurvaturesGradients(real3& gradr0x, real3& gradr0y, real3& gradr2x, real3& gradr2y,
+                                                      real3& gradpm0x, real3& gradpm0y, real3& gradpm1x, real3& gradpm1y) const
+    {
+        real dpt0 = dot(dp0, t0);
+        real dpt1 = dot(dp1, t1);
+
+        real3 t0_dp0 = cross(t0, dp0);
+        real3 t1_dp1 = cross(t1, dp1);
+    
+        real3 dpPerp0 = dp0 - dpt0 * t0;
+        real3 dpPerp1 = dp1 - dpt1 * t1;
+
+        real dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
+        real dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
+    
+        real2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
+                       -dpPerp0inv * linv * dot(bicur,    dp0)};
+
+        real2 kappa1 { +dpPerp1inv * linv * dot(bicur, t1_dp1),
+                       -dpPerp1inv * linv * dot(bicur,    dp1)};
+
+        real3 grad0NormKappa0 = - 0.5_r * linv * t0 - (e0inv * dpPerp0inv * dpPerp0inv * dpt0) * dpPerp0;
+        real3 grad2NormKappa0 =   0.5_r * linv * t1;
+
+        real3 grad0NormKappa1 = - 0.5_r * linv * t0;
+        real3 grad2NormKappa1 =   0.5_r * linv * t1 + (e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
+
+        // 1. contributions of center line:    
+        real3 baseGradKappa0x = cross(bicur, dp0) + dot(bicur, t0_dp0) * t0;
+        real3 baseGradKappa1x = cross(bicur, dp1) + dot(bicur, t1_dp1) * t1;
+    
+
+        real3 grad0Kappa0x = kappa0.x * grad0NormKappa0 + dpPerp0inv * linv * (applyGrad0Bicur(t0_dp0) - e0inv * baseGradKappa0x);
+        real3 grad2Kappa0x = kappa0.x * grad2NormKappa0 + dpPerp0inv * linv *  applyGrad2Bicur(t0_dp0);
+        real3 grad0Kappa0y = kappa0.y * grad0NormKappa0 - dpPerp0inv * linv *  applyGrad0Bicur(   dp0);
+        real3 grad2Kappa0y = kappa0.y * grad2NormKappa0 - dpPerp0inv * linv *  applyGrad2Bicur(   dp0);
+
+        real3 grad0Kappa1x = kappa1.x * grad0NormKappa1 + dpPerp1inv * linv *  applyGrad0Bicur(t1_dp1);
+        real3 grad2Kappa1x = kappa1.x * grad2NormKappa1 + dpPerp1inv * linv * (applyGrad2Bicur(t1_dp1) + e1inv * baseGradKappa1x);
+
+        real3 grad0Kappa1y = kappa1.y * grad0NormKappa1 - dpPerp1inv * linv *  applyGrad0Bicur(   dp1);
+        real3 grad2Kappa1y = kappa1.y * grad2NormKappa1 - dpPerp1inv * linv *  applyGrad2Bicur(   dp1);
+    
+        // 1.a contribution of kappa
+        gradr0x += 0.5_r * (grad0Kappa0x + grad0Kappa1x);
+        gradr0y += 0.5_r * (grad0Kappa0y + grad0Kappa1y);
+
+        gradr2x += 0.5_r * (grad2Kappa0x + grad2Kappa1x);
+        gradr2y += 0.5_r * (grad2Kappa0y + grad2Kappa1y);
+
+        // 1.b contribution of l
+        gradr0x += ( 0.5_r * kappa0.x * linv) * t0;
+        gradr0y += ( 0.5_r * kappa0.y * linv) * t0;
+
+        gradr2x += (-0.5_r * kappa1.x * linv) * t1;
+        gradr2y += (-0.5_r * kappa1.y * linv) * t1;
+
+        // 2. contributions material frame:
+
+        real3 baseGradKappaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
+        real3 baseGradKappaMF1 = (- dpPerp1inv * dpPerp1inv) * dpPerp1;
+
+        gradpm0x += kappa0.x * baseGradKappaMF0 + linv * dpPerp0inv * cross(bicur, t0);
+        gradpm0y += kappa0.y * baseGradKappaMF0 - linv * dpPerp0inv * bicur;
+
+        gradpm1x += kappa1.x * baseGradKappaMF1 + linv * dpPerp1inv * cross(bicur, t1);
+        gradpm1x += kappa1.y * baseGradKappaMF1 - linv * dpPerp1inv * bicur;
+    }
+
+    __device__ inline void computeTorsionGradients(real3& gradr0, real3& gradr2, real3& gradpm0, real3& gradpm1) const
+    {
+        real4  Q = getQfrom(t0, t1);
+        real3 u0 = normalize(anyOrthogonal(t0));
+        real3 u1 = normalize(rotate(u0, Q));
+        
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+
+        real dpu0 = dot(dp0, u0);
+        real dpv0 = dot(dp0, v0);
+
+        real dpu1 = dot(dp1, u1);
+        real dpv1 = dot(dp1, v1);
+
+        real theta0 = atan2(dpv0, dpu0);
+        real theta1 = atan2(dpv1, dpu1);
+    
+        real tau = safeDiffTheta(theta0, theta1) * linv;
+
+        // contribution from segment length on center line:
+
+        gradr0 -= 0.5_r * tau * linv * t0;
+        gradr2 += 0.5_r * tau * linv * t1;
+
+        // contribution from theta on center line:
+        
+        gradr0 += (linv * 0.5_r * e0inv) * bicur;
+        gradr2 -= (linv * 0.5_r * e1inv) * bicur;
+
+        // contribution of theta on material frame:
+        
+        gradpm0 += (linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
+        gradpm1 += (linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
     __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
