@@ -200,6 +200,89 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
     return Etot;
 }
 
+static real smoothingEnergy(real gamma, const std::vector<real3>& positions)
+{
+    int n = (positions.size() - 1) / 5;
+    int nBisegments = n - 1;
+    
+    std::vector<real>  taus  (nBisegments);
+    std::vector<real2> omegas(nBisegments);
+
+    for (int i = 1; i < n; ++i)
+    {
+        auto r0 = positions[5*(i-1)];
+        auto r1 = positions[5*(i)];
+        auto r2 = positions[5*(i+1)];
+
+        auto e0 = r1-r0;
+        auto e1 = r2-r1;
+
+        auto t0 = normalize(e0);
+        auto t1 = normalize(e1);
+        
+        auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
+        auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
+
+        auto dp0Perp = dp0 - dot(dp0, t0) * t0;
+        auto dp1Perp = dp1 - dot(dp1, t1) * t1;
+        
+        auto m10 = normalize(dp0Perp);
+        auto m20 = cross(t0, m10);
+
+        auto m11 = normalize(dp1Perp);
+        auto m21 = cross(t1, m11);
+        
+        real denom = length(e0) * length(e1) + dot(e0, e1);
+        auto bicur = (2.f / denom) * cross(e0, e1);
+        
+        real dp0Perpinv = 1.0 / length(dp0Perp);
+        real dp1Perpinv = 1.0 / length(dp1Perp);
+
+        auto  Q = getQfrom(t0, t1);
+        auto u0 = normalize(anyOrthogonal(t0));
+        auto u1 = normalize(rotate(u0, Q));
+
+        auto v0 = cross(t0, u0);
+        auto v1 = cross(t1, u1);
+        
+        auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
+        auto theta1 = atan2(dot(dp1, v1), dot(dp1, u1));
+        
+        real l = 0.5 * (length(e0) + length(e1));
+        real linv = 1.0 / l;
+        
+        real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
+                     - linv * dp0Perpinv * dot(bicur, dp0)};
+        real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
+                     - linv * dp1Perpinv * dot(bicur, dp1)};
+
+        auto tau = safeDiffTheta(theta0, theta1) / l;
+        
+        omegas[i-1] = 0.5 * (om0 + om1);
+        taus  [i-1] = tau;
+    }
+    
+    real Etot = 0;
+    
+    for (int i = 1; i < n-1; ++i)
+    {
+        auto r0 = positions[5*(i-1)];
+        auto r1 = positions[5*(i  )];
+        auto l = length(r1-r0);
+        
+        auto dtau   = taus  [i] - taus  [i-1];
+        auto domega = omegas[i] - omegas[i-1];            
+        
+        auto E = 0.5 * gamma * l * (domega.x * domega.x +
+                                    domega.y * domega.y +
+                                    dtau     * dtau);
+
+        Etot += E;
+    }
+
+    return Etot;
+}
+
 static void bendingForces(real h, const float2 B[2], float2 omega_eq, const std::vector<real3>& positions, std::vector<real3>& forces)
 {
     auto perturbed = positions;
@@ -232,9 +315,10 @@ static void twistForces(real h, float kt, float tau0, const std::vector<real3>& 
     auto perturbed = positions;
     int nSegments = (positions.size() - 1) / 5;
     
-    auto compEnergy = [&]() {
-                          return twistEnergy(kt, tau0, perturbed);
-                      };
+    auto compEnergy = [&]()
+    {
+        return twistEnergy(kt, tau0, perturbed);
+    };
     
     for (size_t i = 0; i < positions.size(); ++i)
     {
