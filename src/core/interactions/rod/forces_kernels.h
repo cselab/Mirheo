@@ -135,5 +135,99 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     if (saveEnergies) view.energies[i] = bisegment.computeEnergy(state, params);
 }
 
+__global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
+                                             const float4 *kappa, const float2 *tau_l)
+{
+    constexpr int stride = 5;
+    const int i = threadIdx.x + blockIdx.x * blockDim.x;
+    const int nBiSegments = view.nSegments - 1;
+    const int rodId       = i / nBiSegments;
+    const int biSegmentId = i % nBiSegments;
+    const int start = view.objSize * rodId + biSegmentId * stride;
+
+    if (rodId       >= view.nObjects ) return;
+    if (biSegmentId >= nBiSegments   ) return;
+
+    const BiSegment<1> bisegment(view, start);
+
+    real3 gradr0x, gradr0y, gradr0z;
+    real3 gradr2x, gradr2y, gradr2z;
+    real3 gradpm0x, gradpm0y, gradpm0z;
+    real3 gradpm1x, gradpm1y, gradpm1z;
+
+    bisegment.computeCurvaturesGradients(gradr0x, gradr0y,
+                                         gradr2x, gradr2y,
+                                         gradpm0x, gradpm0y,
+                                         gradpm1x, gradpm1y);
+
+    bisegment.computeTorsionGradients(gradr0z, gradr2z,
+                                      gradpm0z, gradpm1z);
+
+    const auto k  = kappa[biSegmentId];
+    const auto kl = biSegmentId > 0               ? kappa[biSegmentId-1] : make_real4(0._r);
+    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[biSegmentId+1] : make_real4(0._r);
+
+    const auto tl  = tau_l[biSegmentId];
+    const auto tll = biSegmentId > 0               ? tau_l[biSegmentId-1] : make_real2(0._r);
+    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[biSegmentId+1] : make_real2(0._r);
+
+    const real3 dOmegal = biSegmentId > 0 ?
+        real3 {k.x - kl.x, k.y - kl.y, tl.x - tll.x} : real3 {0._r, 0._r, 0._r};
+
+    const real3 dOmegar = biSegmentId > (nBiSegments-1) ?
+        real3 {kr.x - k.x, kr.y - k.y, tlr.x - tl.x} : real3 {0._r, 0._r, 0._r};
+
+    const real llinv = 1.0_r / tll.y;
+    const real linv  = 1.0_r / tl.y;
+
+    const real coeffl = 0.5_r * kbi * llinv;
+    const real coeffm = 0.5_r * kbi * linv;
+
+    auto applyGrad = [](real3 gx, real3 gy, real3 gz, real3 v) -> real3
+    {
+        return {gx.x * v.x + gy.x * v.y + gz.x * v.z,
+                gx.y * v.x + gy.y * v.y + gz.y * v.z,
+                gx.z * v.x + gy.z * v.y + gz.z * v.z};
+    };
+    
+    real3 fr0 =
+        coeffl * applyGrad(gradr0x, gradr0y, gradr0z, dOmegal) -
+        coeffm * applyGrad(gradr0x, gradr0y, gradr0z, dOmegar);
+
+    real3 fr2 =
+        coeffl * applyGrad(gradr2x, gradr2y, gradr2z, dOmegal) -
+        coeffm * applyGrad(gradr2x, gradr2y, gradr2z, dOmegar);
+
+    const real3 fpm0 = 
+        coeffl * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegal) -
+        coeffm * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegar);
+
+    const real3 fpm1 = 
+        coeffl * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegal) -
+        coeffm * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegar);
+
+    // contribution of l
+    if (biSegmentId < nBiSegments - 1)
+    {
+        const auto coeff = 0.5_r * kbi * dot(dOmegar, dOmegar);
+        fr0 -= coeff * bisegment.t0;
+        fr2 += coeff * bisegment.t1;
+    }
+    
+    // by conservation of momentum
+    auto fr1  = -(fr0 + fr2);
+    auto fpp0 = -fpm0;
+    auto fpp1 = -fpm1;
+    
+    atomicAdd(view.forces + start + 0 * stride, make_float3(fr0));
+    atomicAdd(view.forces + start + 1 * stride, make_float3(fr1));
+    atomicAdd(view.forces + start + 2 * stride, make_float3(fr2));
+
+    atomicAdd(view.forces + start +          1, make_float3(fpm0));
+    atomicAdd(view.forces + start +          2, make_float3(fpp0));
+    atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
+    atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
+}
+
 
 } // namespace RodForcesKernels

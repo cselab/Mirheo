@@ -20,6 +20,16 @@ __D__ inline real2 make_real2(T2 v)
     return {(real) v.x, (real) v.y};
 }
 
+__D__ constexpr inline real2 make_real2(float a)
+{
+    return {(real)a, (real)a};
+}
+
+__D__ constexpr inline real2 make_real2(double a)
+{
+    return {(real)a, (real)a};
+}
+
 template<typename T3>
 __D__ inline real3 make_real3(T3 v)
 {
@@ -34,6 +44,16 @@ __D__ constexpr inline real3 make_real3(float a)
 __D__ constexpr inline real3 make_real3(double a)
 {
     return {(real)a, (real)a, (real)a};
+}
+
+__D__ constexpr inline real4 make_real4(float a)
+{
+    return {(real)a, (real)a, (real)a, (real)a};
+}
+
+__D__ constexpr inline real4 make_real4(double a)
+{
+    return {(real)a, (real)a, (real)a, (real)a};
 }
 
 __D__ constexpr inline real operator "" _r (const long double a)

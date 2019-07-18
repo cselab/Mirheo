@@ -260,8 +260,10 @@ struct BiSegment
     }
 
     
-    __device__ inline void computeCurvaturesGradients(real3& gradr0x, real3& gradr0y, real3& gradr2x, real3& gradr2y,
-                                                      real3& gradpm0x, real3& gradpm0y, real3& gradpm1x, real3& gradpm1y) const
+    __device__ inline void computeCurvaturesGradients(real3& gradr0x, real3& gradr0y,
+                                                      real3& gradr2x, real3& gradr2y,
+                                                      real3& gradpm0x, real3& gradpm0y,
+                                                      real3& gradpm1x, real3& gradpm1y) const
     {
         real dpt0 = dot(dp0, t0);
         real dpt1 = dot(dp1, t1);
@@ -304,11 +306,11 @@ struct BiSegment
         real3 grad2Kappa1y = kappa1.y * grad2NormKappa1 - dpPerp1inv * linv *  applyGrad2Bicur(   dp1);
     
         // 1.a contribution of kappa
-        gradr0x += 0.5_r * (grad0Kappa0x + grad0Kappa1x);
-        gradr0y += 0.5_r * (grad0Kappa0y + grad0Kappa1y);
+        gradr0x = 0.5_r * (grad0Kappa0x + grad0Kappa1x);
+        gradr0y = 0.5_r * (grad0Kappa0y + grad0Kappa1y);
 
-        gradr2x += 0.5_r * (grad2Kappa0x + grad2Kappa1x);
-        gradr2y += 0.5_r * (grad2Kappa0y + grad2Kappa1y);
+        gradr2x = 0.5_r * (grad2Kappa0x + grad2Kappa1x);
+        gradr2y = 0.5_r * (grad2Kappa0y + grad2Kappa1y);
 
         // 1.b contribution of l
         gradr0x += ( 0.5_r * kappa0.x * linv) * t0;
@@ -322,14 +324,15 @@ struct BiSegment
         real3 baseGradKappaMF0 = (- dpPerp0inv * dpPerp0inv) * dpPerp0;
         real3 baseGradKappaMF1 = (- dpPerp1inv * dpPerp1inv) * dpPerp1;
 
-        gradpm0x += kappa0.x * baseGradKappaMF0 + linv * dpPerp0inv * cross(bicur, t0);
-        gradpm0y += kappa0.y * baseGradKappaMF0 - linv * dpPerp0inv * bicur;
+        gradpm0x = kappa0.x * baseGradKappaMF0 + linv * dpPerp0inv * cross(bicur, t0);
+        gradpm0y = kappa0.y * baseGradKappaMF0 - linv * dpPerp0inv * bicur;
 
-        gradpm1x += kappa1.x * baseGradKappaMF1 + linv * dpPerp1inv * cross(bicur, t1);
-        gradpm1x += kappa1.y * baseGradKappaMF1 - linv * dpPerp1inv * bicur;
+        gradpm1x = kappa1.x * baseGradKappaMF1 + linv * dpPerp1inv * cross(bicur, t1);
+        gradpm1x = kappa1.y * baseGradKappaMF1 - linv * dpPerp1inv * bicur;
     }
 
-    __device__ inline void computeTorsionGradients(real3& gradr0, real3& gradr2, real3& gradpm0, real3& gradpm1) const
+    __device__ inline void computeTorsionGradients(real3& gradr0, real3& gradr2,
+                                                   real3& gradpm0, real3& gradpm1) const
     {
         real4  Q = getQfrom(t0, t1);
         real3 u0 = normalize(anyOrthogonal(t0));
@@ -351,8 +354,8 @@ struct BiSegment
 
         // contribution from segment length on center line:
 
-        gradr0 -= 0.5_r * tau * linv * t0;
-        gradr2 += 0.5_r * tau * linv * t1;
+        gradr0 = -0.5_r * tau * linv * t0;
+        gradr2 =  0.5_r * tau * linv * t1;
 
         // contribution from theta on center line:
         
@@ -361,8 +364,8 @@ struct BiSegment
 
         // contribution of theta on material frame:
         
-        gradpm0 += (linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
-        gradpm1 += (linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
+        gradpm0 = (linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
+        gradpm1 = (linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
     __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const
