@@ -354,18 +354,18 @@ struct BiSegment
 
         // contribution from segment length on center line:
 
-        gradr0 = -0.5_r * tau * linv * t0;
-        gradr2 =  0.5_r * tau * linv * t1;
+        gradr0 =  0.5_r * tau * linv * t0;
+        gradr2 = -0.5_r * tau * linv * t1;
 
         // contribution from theta on center line:
         
-        gradr0 += (linv * 0.5_r * e0inv) * bicur;
-        gradr2 -= (linv * 0.5_r * e1inv) * bicur;
+        gradr0 -= (linv * 0.5_r * e0inv) * bicur;
+        gradr2 += (linv * 0.5_r * e1inv) * bicur;
 
         // contribution of theta on material frame:
         
-        gradpm0 = (linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
-        gradpm1 = (linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
+        gradpm0 = (-linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
+        gradpm1 = (-linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
     __device__ inline real computeEnergy(int state, const GPU_RodBiSegmentParameters<Nstates>& params) const

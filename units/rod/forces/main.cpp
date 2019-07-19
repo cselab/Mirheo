@@ -536,27 +536,27 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
     MirState state(DomainInfo(), 0.f);
 
     RodParameters params;
-    params.kBending = 0;
-    params.kappaEq  = {0.f};
+    params.kBending = {0.f, 0.f, 0.f};
+    params.kappaEq  = {{0.f, 0.f}, {0.f, 0.f}};
     params.kTwist   = 0.f;
-    params.tauEq    = {0.f};
-    params.groundE  = {0.f};
+    params.tauEq    = {0.f, 0.f};
+    params.groundE  = {0.f, 0.f};
     params.a0       = 0.f;
     params.l0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    params.kSmoothing = kSmoothing;
+
+    StatesSmoothingParameters stateParams;
+    stateParams.kSmoothing = kSmoothing;
     
     std::vector<real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    InteractionRod interactions(&state, "rod_interaction", params, StatesParametersNone{}, false);
+    InteractionRod interactions(&state, "rod_interaction", params, stateParams, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
-
     refForces.resize(refPositions.size());
-    const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
-    bendingForces(h, B_, kappa, refPositions, refForces);
+    smoothingForces(h, kSmoothing, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
     interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
@@ -689,13 +689,38 @@ TEST (ROD, bendingForces_helix)
     }
 }
 
+TEST (ROD, smoothingForces_circle)
+{
+    real radius = 4.0;
+    real h = 5e-5;
+    
+    auto centerLine = [&](real s) -> real3
+    {
+        real theta = s * 2 * M_PI;
+        real x = radius * cos(theta);
+        real y = radius * sin(theta);
+        return {x, y, 0.f};
+    };
+
+
+    float kSmoothing = 1.0f;
+
+    std::vector<int> nsegs = {8, 16, 32};
+    for (auto n : nsegs)
+    {
+        auto err = testSmoothingForces(kSmoothing, centerLine, n, h);
+        // printf("%d %g\n", n, err);
+        ASSERT_LE(err, 1e-3);
+    }
+}
+
 
 
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "rod_forces.log", 9);
+    logger.init(MPI_COMM_WORLD, "rod_forces.log", 0);
     
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();
