@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parameters.h"
+#include "forces_kernels.h"
 #include "states_kernels.h"
 
 #include <core/pvs/rod_vector.h>
@@ -10,14 +11,16 @@
 #include <core/utils/kernel_launch.h>
 
 template <int Nstates>
-static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
-                         StatesParametersNone& stateParams, cudaStream_t stream)
+static void updateStatesAndApplyForces(RodVector *rv,
+                                       const GPU_RodBiSegmentParameters<Nstates> devParams,
+                                       StatesParametersNone& stateParams, cudaStream_t stream)
 {}
 
 
 template <int Nstates>
-static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
-                         StatesSmoothingParameters& stateParams, cudaStream_t stream)
+static void updateStatesAndApplyForces(RodVector *rv,
+                                       const GPU_RodBiSegmentParameters<Nstates> devParams,
+                                       StatesSmoothingParameters& stateParams, cudaStream_t stream)
 {
     RVview view(rv, rv->local());
 
@@ -43,8 +46,9 @@ static auto getGPUParams(StatesSpinParameters& p)
 }
 
 template <int Nstates>
-static void updateStates(RodVector *rv, const GPU_RodBiSegmentParameters<Nstates> devParams,
-                         StatesSpinParameters& stateParams, cudaStream_t stream)
+static void updateStatesAndApplyForces(RodVector *rv,
+                                       const GPU_RodBiSegmentParameters<Nstates> devParams,
+                                       StatesSpinParameters& stateParams, cudaStream_t stream)
 {
     auto lrv = rv->local();
     RVview view(rv, lrv);

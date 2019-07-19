@@ -4,7 +4,7 @@
 #include "rod/forces_kernels.h"
 #include "rod/states_kernels.h"
 #include "rod/parameters.h"
-#include "rod/update_states.h"
+#include "rod/poly_states.h"
 
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/views/rv.h>
@@ -74,9 +74,9 @@ public:
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->nObjects, rv->name.c_str());
 
-        computeBoundForces      (rv, stream);
-        updatePolymorphicStates (rv, stream);
-        computeElasticForces    (rv, stream);
+        computeBoundForces                    (rv, stream);
+        updatePolymorphicStatesAndApplyForces (rv, stream);
+        computeElasticForces                  (rv, stream);
     }
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
@@ -98,7 +98,7 @@ protected:
                            view, devParams);
     }
 
-    void updatePolymorphicStates(RodVector *rv, cudaStream_t stream)
+    void updatePolymorphicStatesAndApplyForces(RodVector *rv, cudaStream_t stream)
     {
         if (Nstates > 1)
         {
@@ -115,7 +115,7 @@ protected:
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
 
-            updateStates<Nstates>(rv, devParams, stateParameters, stream);
+            updateStatesAndApplyForces<Nstates>(rv, devParams, stateParameters, stream);
         }
     }
     
