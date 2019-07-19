@@ -17,14 +17,16 @@ class mirheo:
                 .. warning::
                     Debug level determines the amount of output produced by each of the simulation processes:
 
-					#. only report fatal errors
-					#. report serious errors
-					#. report warnings (this is the default level)
-					#. report not critical information
-					#. report some debug information
-					#. report more debug
-					#. report all the debug
-					#. force flushing to the file after each message
+
+                        0. silent: no log output
+                        1. only report fatal errors
+                        2. report serious errors
+                        3. report important information steps of simulation and warnings (this is the default level)
+                        4. report not critical information
+                        5. report some debug information
+                        6. report more debug
+                        7. report all the debug
+                        8. force flushing to the file after each message
                     
                     Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
                     Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
@@ -41,8 +43,8 @@ class mirheo:
                         Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
                         the individual ones and sorting with respect to time.
                         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
-                        there is no guarantee that messages from different ranks are synchronized
-                    debug_level: Debug level from 1 to 8, see above.
+                        there is no guarantee that messages from different ranks are synchronized.
+                    debug_level: Debug level from 0 to 8, see above.
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                     checkpoint_folder: folder where the checkpoint files will reside
                     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
