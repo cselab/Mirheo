@@ -22,7 +22,7 @@ struct StatesParametersNone {};
 
 struct StatesSmoothingParameters
 {
-    // TODO; for now no penalization implemented
+    float kSmoothing;
 };
 
 struct StatesSpinParameters

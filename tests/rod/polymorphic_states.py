@@ -51,13 +51,14 @@ u.registerParticleVector(rv, ic)
 prms = {
     "a0" : a0,
     "l0" : l0,
-    "k_s_center": 10000.0,
-    "k_s_frame" : 10000.0,
-    "k_bending" : (30.0, 0.0, 30.0),
-    "k_twist"   : 30.0,
-    "tau0"      : tau0,
-    "kappa0"    : kappa0,
-    "E0"        : E0
+    "k_s_center" : 10000.0,
+    "k_s_frame"  : 10000.0,
+    "k_bending"  : (30.0, 0.0, 30.0),
+    "k_twist"    : 30.0,
+    "k_smoothing": 0.0,
+    "tau0"       : tau0,
+    "kappa0"     : kappa0,
+    "E0"         : E0
 }
 
 int_rod = mir.Interactions.RodForces("rod_forces", "smoothing", **prms);

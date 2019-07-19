@@ -33,6 +33,10 @@ static void updateStatesAndApplyForces(RodVector *rv,
     SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
                        nblocks, nthreads, 0, stream,
                        view, devParams, kappa, tau_l);
+
+    SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodCurvatureSmoothing,
+                       nblocks, nthreads, 0, stream,
+                       view, stateParams.kSmoothing, kappa, tau_l);    
 }
 
 static auto getGPUParams(StatesSpinParameters& p)

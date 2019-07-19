@@ -244,7 +244,9 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 
 static StatesSmoothingParameters readStatesSmoothingRodParameters(ParametersWrap& desc)
 {
-    return StatesSmoothingParameters{};
+    StatesSmoothingParameters p;
+    p.kSmoothing = desc.read<float>("k_smoothing");
+    return p;
 }
 
 static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
