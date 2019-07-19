@@ -277,7 +277,7 @@ private:
 };
 
 /// Unconditionally print to log, debug level is not checked here
-#define   say(...)  logger.log<-1>   (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   say(...)  logger.log<1>    (__FILE__, __LINE__, ##__VA_ARGS__)
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort

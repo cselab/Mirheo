@@ -448,7 +448,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 
             nInside.downloadFromDevice(stream);
 
-            say("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
+            info("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
         }
     }
 }
