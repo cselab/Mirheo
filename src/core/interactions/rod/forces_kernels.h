@@ -163,13 +163,13 @@ __global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
     bisegment.computeTorsionGradients(gradr0z, gradr2z,
                                       gradpm0z, gradpm1z);
 
-    const auto k  = kappa[biSegmentId];
-    const auto kl = biSegmentId > 0               ? kappa[biSegmentId-1] : make_real4(0._r);
-    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[biSegmentId+1] : make_real4(0._r);
+    const auto k  = kappa[i];
+    const auto kl = biSegmentId > 0               ? kappa[i-1] : make_real4(0._r);
+    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[i+1] : make_real4(0._r);
 
-    const auto tl  = tau_l[biSegmentId];
-    const auto tll = biSegmentId > 0               ? tau_l[biSegmentId-1] : make_real2(0._r);
-    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[biSegmentId+1] : make_real2(0._r);
+    const auto tl  = tau_l[i];
+    const auto tll = biSegmentId > 0               ? tau_l[i-1] : make_real2(0._r);
+    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[i+1] : make_real2(0._r);
 
     const real3 dOmegal = biSegmentId > 0 ?
         real3 {k.x - kl.x, k.y - kl.y, tl.x - tll.x} : real3 {0._r, 0._r, 0._r};
@@ -180,8 +180,8 @@ __global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
     const real llinv = 1.0_r / tll.y;
     const real linv  = 1.0_r / tl.y;
 
-    const real coeffl = 0.5_r * kbi * llinv;
-    const real coeffm = 0.5_r * kbi * linv;
+    const real coeffl = biSegmentId > 0 ? 0.5_r * kbi / tll.y : 0._r;
+    const real coeffm = 0.5_r * kbi / tl.y;
 
     auto applyGrad = [](real3 gx, real3 gy, real3 gz, real3 v) -> real3
     {

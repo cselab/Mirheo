@@ -27,13 +27,16 @@ static void updateStatesAndApplyForces(RodVector *rv,
     auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
     auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
 
-    const int nthreads = 128;
-    const int nblocks = view.nObjects;
+    int nthreads = 128;
+    int nblocks = view.nObjects;
 
     SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
                        nblocks, nthreads, 0, stream,
                        view, devParams, kappa, tau_l);
 
+    nthreads = 128;
+    nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
+    
     SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodCurvatureSmoothing,
                        nblocks, nthreads, 0, stream,
                        view, stateParams.kSmoothing, kappa, tau_l);    
