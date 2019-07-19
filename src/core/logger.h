@@ -244,8 +244,8 @@ public:
     void setDebugLvl(int debugLvl)
     {
         runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-        log<-1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-        log<-1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+        log<1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
+        log<1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
     }
 
     /**
@@ -277,7 +277,7 @@ private:
 };
 
 /// Unconditionally print to log, debug level is not checked here
-#define   say(...)  logger.log<-1>   (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   say(...)  logger.log<1>    (__FILE__, __LINE__, ##__VA_ARGS__)
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort
