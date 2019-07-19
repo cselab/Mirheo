@@ -148,7 +148,7 @@ __global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
     if (rodId       >= view.nObjects ) return;
     if (biSegmentId >= nBiSegments   ) return;
 
-    const BiSegment<1> bisegment(view, start);
+    const BiSegment<0> bisegment(view, start);
 
     real3 gradr0x, gradr0y, gradr0z;
     real3 gradr2x, gradr2y, gradr2z;

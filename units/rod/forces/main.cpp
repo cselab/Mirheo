@@ -87,7 +87,7 @@ static void transportBishopFrame(const std::vector<real3>& positions, std::vecto
     }
 }
 
-static real bendingEnergy(const float2 B[2], float2 omega_eq, const std::vector<real3>& positions)
+static real bendingEnergy(const std::vector<real3>& positions, const float2 B[2], float2 omega_eq)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -156,7 +156,7 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positions)
+static real twistEnergy(const std::vector<real3>& positions, real kTwist, real tau0)
 {
     int n = (positions.size() - 1) / 5;
 
@@ -200,7 +200,7 @@ static real twistEnergy(real kTwist, real tau0, const std::vector<real3>& positi
     return Etot;
 }
 
-static real smoothingEnergy(real gamma, const std::vector<real3>& positions)
+static real smoothingEnergy(const std::vector<real3>& positions, real gamma)
 {
     int n = (positions.size() - 1) / 5;
     int nBisegments = n - 1;
@@ -283,23 +283,20 @@ static real smoothingEnergy(real gamma, const std::vector<real3>& positions)
     return Etot;
 }
 
-static void bendingForces(real h, const float2 B[2], float2 omega_eq, const std::vector<real3>& positions, std::vector<real3>& forces)
+template <typename EnergyComp>
+inline void computeForces(const std::vector<real3>& positions, std::vector<real3>& forces, real h,
+                          EnergyComp computeEnergy)
 {
     auto perturbed = positions;
-    auto E0 = bendingEnergy(B, omega_eq, positions);
-
-    auto computeEnergy = [&]() {
-        return bendingEnergy(B, omega_eq, perturbed);
-    };
     
     for (size_t i = 0; i < positions.size(); ++i)
     {
         auto computeForce = [&](real3 dir) {
             const auto r = positions[i];
             perturbed[i] = r + (h/2) * dir;
-            auto Ep = computeEnergy();
+            auto Ep = computeEnergy(perturbed);
             perturbed[i] = r - (h/2) * dir;
-            auto Em = computeEnergy();
+            auto Em = computeEnergy(perturbed);
             perturbed[i] = r;
             return - (Ep - Em) / h;
         };
@@ -310,32 +307,34 @@ static void bendingForces(real h, const float2 B[2], float2 omega_eq, const std:
     }
 }
 
-static void twistForces(real h, float kt, float tau0, const std::vector<real3>& positions, std::vector<real3>& forces)
+static void bendingForces(real h, const float2 B[2], float2 omega_eq,
+                          const std::vector<real3>& positions,
+                          std::vector<real3>& forces)
 {
-    auto perturbed = positions;
-    int nSegments = (positions.size() - 1) / 5;
-    
-    auto compEnergy = [&]()
+    return computeForces(positions, forces, h, [&](const auto& positions)
     {
-        return twistEnergy(kt, tau0, perturbed);
-    };
-    
-    for (size_t i = 0; i < positions.size(); ++i)
-    {
-        auto computeForce = [&](real3 dir) {
-            const auto r = positions[i];
-            perturbed[i] = r + (h/2) * dir;
-            auto Ep = compEnergy();
-            perturbed[i] = r - (h/2) * dir;
-            auto Em = compEnergy();
-            perturbed[i] = r;
-            return - (Ep - Em) / h;
-        };
+        return bendingEnergy(positions, B, omega_eq);
+    });
+}
 
-        forces[i].x = computeForce({1.0, 0.0, 0.0});
-        forces[i].y = computeForce({0.0, 1.0, 0.0});
-        forces[i].z = computeForce({0.0, 0.0, 1.0});
-    }
+static void twistForces(real h, float kt, float tau0,
+                        const std::vector<real3>& positions,
+                        std::vector<real3>& forces)
+{
+    return computeForces(positions, forces, h, [&](const auto& positions)
+    {
+        return twistEnergy(positions, kt, tau0);
+    });
+}
+
+static void smoothingForces(real h, float kbi,
+                            const std::vector<real3>& positions,
+                            std::vector<real3>& forces)
+{
+    return computeForces(positions, forces, h, [&](const auto& positions)
+    {
+        return smoothingEnergy(positions, kbi);
+    });
 }
 
 static void setCrosses(const std::vector<real3>& frames, std::vector<real3>& positions)
