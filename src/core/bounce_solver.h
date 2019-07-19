@@ -49,10 +49,6 @@ __device__ inline float2 solveLinSearch_verbose(Equation F, float a = 0.0f, floa
         if (fabsf(vmid) < tolerance)
             break;
     }
-
-//    if (fabs(vmid) > tolerance)
-//        printf("Equation not solved: %f --> %f, error: %f, best alpha: %f\n", F((float)0.0), F((float)1.0), vmid, mid);
-
     return {mid, vmid};
 }
 
