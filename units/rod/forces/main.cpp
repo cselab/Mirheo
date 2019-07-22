@@ -200,7 +200,7 @@ static real twistEnergy(const std::vector<real3>& positions, real kTwist, real t
     return Etot;
 }
 
-static real smoothingEnergy(const std::vector<real3>& positions, real gamma)
+static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing)
 {
     int n = (positions.size() - 1) / 5;
     int nBisegments = n - 1;
@@ -273,9 +273,11 @@ static real smoothingEnergy(const std::vector<real3>& positions, real gamma)
         auto dtau   = taus  [i] - taus  [i-1];
         auto domega = omegas[i] - omegas[i-1];            
         
-        auto E = 0.5 * gamma * l * (domega.x * domega.x +
-                                    domega.y * domega.y +
-                                    dtau     * dtau);
+        // auto E = 0.5 * kSmoothing * l * (domega.x * domega.x +
+        //                                  domega.y * domega.y +
+        //                                  dtau     * dtau);
+
+        auto E = 0.5 * kSmoothing * l * (dtau     * dtau);
 
         Etot += E;
     }
@@ -566,6 +568,7 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
     forces.copy(rod.local()->forces(), defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
+    FILE * f = fopen("tmp", "w");
     double Linfty = 0;
     for (int i = 0; i < refForces.size(); ++i)
     {
@@ -573,18 +576,19 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
         real3 b = make_real3(forces[i].f);
         real3 diff = a - b;
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
-        
+
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        // if ((i % 5) == 0)
-        //     printf(FMT SEP FMT SEP FMT SEP SEP
-        //            FMT SEP FMT SEP FMT SEP SEP
-        //            FMT SEP FMT "\n",
-        //            EXPAND(a), EXPAND(b),
-        //            length(a), length(b));
+        if ((i % 5) == 0)
+            fprintf(f,
+                    FMT SEP FMT SEP FMT SEP SEP
+                    FMT SEP FMT SEP FMT SEP SEP
+                    FMT SEP FMT "\n",
+                    EXPAND(a), EXPAND(b),
+                    length(a), length(b));
 
         Linfty = std::max(Linfty, err);
     }
-
+    fclose(f);
     checkMomentum(rod.local()->positions(), forces);
     
     return Linfty;
@@ -689,30 +693,58 @@ TEST (ROD, bendingForces_helix)
     }
 }
 
-TEST (ROD, smoothingForces_circle)
-{
-    real radius = 4.0;
-    real h = 5e-5;
+// // expect zero forces everywhere
+// TEST (ROD, smoothingForces_circle)
+// {
+//     real radius = 4.0;
+//     real h = 5e-5;
     
-    auto centerLine = [&](real s) -> real3
-    {
-        real theta = s * 2 * M_PI;
-        real x = radius * cos(theta);
-        real y = radius * sin(theta);
-        return {x, y, 0.f};
-    };
+//     auto centerLine = [&](real s) -> real3
+//     {
+//         real theta = s * 2 * M_PI;
+//         real x = radius * cos(theta);
+//         real y = radius * sin(theta);
+//         return {x, y, 0.f};
+//     };
 
 
-    float kSmoothing = 1.0f;
+//     float kSmoothing = 1.0f;
 
-    std::vector<int> nsegs = {8, 16, 32};
-    for (auto n : nsegs)
-    {
-        auto err = testSmoothingForces(kSmoothing, centerLine, n, h);
-        // printf("%d %g\n", n, err);
-        ASSERT_LE(err, 1e-3);
-    }
-}
+//     std::vector<int> nsegs = {8, 16, 32};
+//     for (auto n : nsegs)
+//     {
+//         auto err = testSmoothingForces(kSmoothing, centerLine, n, h);
+//         // printf("%d %g\n", n, err);
+//         ASSERT_LE(err, 1e-3);
+//     }
+// }
+
+// TEST (ROD, smoothingForces_complex)
+// {
+//     real h = 5e-3;
+    
+//     auto centerLine = [&](real s) -> real3
+//     {
+//         real xmagn = 1.0;
+//         real ymagn = 2.0;
+//         real zmagn = 0.5;
+//         real x = xmagn * cos(s);
+//         real y = ymagn * s;
+//         real z = zmagn * s*s;
+//         return {x, y, z};
+//     };
+
+//     float kSmoothing = 1.0f;
+
+//     // std::vector<int> nsegs = {8, 16, 32};
+//     std::vector<int> nsegs = {256};
+//     for (auto n : nsegs)
+//     {
+//         auto err = testSmoothingForces(kSmoothing, centerLine, n, h);
+//         // printf("%d %g\n", n, err);
+//         ASSERT_LE(err, 1e-3);
+//     }
+// }
 
 
 

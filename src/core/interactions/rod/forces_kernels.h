@@ -135,7 +135,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     if (saveEnergies) view.energies[i] = bisegment.computeEnergy(state, params);
 }
 
-__global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
+__global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
                                              const float4 *kappa, const float2 *tau_l)
 {
     constexpr int stride = 5;
@@ -177,11 +177,8 @@ __global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
     const real3 dOmegar = biSegmentId > (nBiSegments-1) ?
         real3 {kr.x - k.x, kr.y - k.y, tlr.x - tl.x} : real3 {0._r, 0._r, 0._r};
 
-    const real llinv = 1.0_r / tll.y;
-    const real linv  = 1.0_r / tl.y;
-
-    const real coeffl = biSegmentId > 0 ? 0.5_r * kbi / tll.y : 0._r;
-    const real coeffm = 0.5_r * kbi / tl.y;
+    const real coeffl = biSegmentId > 0               ? -kbi / length(bisegment.e0) : 0._r;
+    const real coeffm = biSegmentId < (nBiSegments-1) ?  kbi / length(bisegment.e1) : 0._r;
 
     auto applyGrad = [](real3 gx, real3 gy, real3 gz, real3 v) -> real3
     {
@@ -191,19 +188,19 @@ __global__ void computeRodCurvatureSmoothing(RVview view, const real kbi,
     };
     
     real3 fr0 =
-        coeffl * applyGrad(gradr0x, gradr0y, gradr0z, dOmegal) -
+        coeffl * applyGrad(gradr0x, gradr0y, gradr0z, dOmegal) +
         coeffm * applyGrad(gradr0x, gradr0y, gradr0z, dOmegar);
 
     real3 fr2 =
-        coeffl * applyGrad(gradr2x, gradr2y, gradr2z, dOmegal) -
+        coeffl * applyGrad(gradr2x, gradr2y, gradr2z, dOmegal) +
         coeffm * applyGrad(gradr2x, gradr2y, gradr2z, dOmegar);
 
-    const real3 fpm0 = 
-        coeffl * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegal) -
+    real3 fpm0 = 
+        coeffl * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegal) +
         coeffm * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegar);
 
-    const real3 fpm1 = 
-        coeffl * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegal) -
+    real3 fpm1 = 
+        coeffl * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegal) +
         coeffm * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegar);
 
     // contribution of l
