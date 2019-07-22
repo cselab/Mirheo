@@ -192,7 +192,6 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     }, ExchangersCommon::getHandler(packer));
 
     // Unpack the central buffer into the object vector itself
-    // Renew view, as the ObjectVector may have resized
     lov->resize_anew(nObjsBulk * ov->objSize);
     packer->update(lov, stream);
 
@@ -244,8 +243,5 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     }
 
     ov->redistValid = true;
-
-    // Particles may have migrated, rebuild cell-lists
-    if (totalRecvd > 0)
-        ov->cellListStamp++;
+    ov->cellListStamp++;
 }

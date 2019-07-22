@@ -164,8 +164,13 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     unpackers.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
     maps     .emplace_back();
+
+    std::string allChannelNames = "";
+    for (const auto& name : channels)
+        allChannelNames += "'" + name + "' ";
     
-    info("Object vector %s (rc %f) was attached to halo exchanger", ov->name.c_str(), rc);
+    info("Object vector %s (rc %f) was attached to halo exchanger; will take care of channels %s",
+         ov->name.c_str(), rc, allChannelNames.c_str());
 }
 
 void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
