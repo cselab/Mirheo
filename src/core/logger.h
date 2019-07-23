@@ -1,21 +1,17 @@
 #pragma once
 
-#include <cstdlib>
-#include <cstdio>
-#include <string>
-#include <array>
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
-#include <sstream>
-
-#include <cstdio>
-#include <string>
-
 #include <core/utils/stacktrace_explicit.h>
 
-#include <mpi.h>
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
 #include <cuda_runtime.h>
+#include <iomanip>
+#include <mpi.h>
+#include <sstream>
+#include <string>
 
 #ifndef COMPILE_DEBUG_LVL
 /**
