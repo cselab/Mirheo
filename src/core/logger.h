@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/utils/folders.h>
 #include <core/utils/stacktrace_explicit.h>
 
 #include <algorithm>
@@ -10,7 +11,6 @@
 #include <cuda_runtime.h>
 #include <iomanip>
 #include <mpi.h>
-#include <sstream>
 #include <string>
 
 #ifndef COMPILE_DEBUG_LVL
@@ -72,11 +72,12 @@ public:
     void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
     {
         MPI_Comm_rank(comm, &rank);
-        std::string rankStr = std::string(5 - std::to_string(rank).length(), '0') + std::to_string(rank);
+        constexpr int zeroPadding = 5;
+        std::string rankStr = getStrZeroPadded(rank, zeroPadding);
 
-        auto pos = fname.find_last_of('.');
+        auto pos   = fname.find_last_of('.');
         auto start = fname.substr(0, pos);
-        auto end = fname.substr(pos);
+        auto end   = fname.substr(pos);
 
         fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
 
@@ -92,7 +93,7 @@ public:
      * @param fout file handler, must be opened, typically \e stdout or \e stderr
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, FILE* fout, int debugLvl = 3)
+    void init(MPI_Comm comm, FILE *fout, int debugLvl = 3)
     {
         MPI_Comm_rank(comm, &rank);
         this->fout = fout;
@@ -128,13 +129,15 @@ public:
      * @param args other relevant arguments to \e printf
      */
     template<int importance, class ... Args>
-    inline void log(const char *fname, const int lnum, const char *pattern, Args... args) const
+    inline void log(const char *key,
+                    const char *fname, const int lnum, const char *pattern, Args... args) const
     {
         if (importance > runtimeDebugLvl) return;
 
         if (fout == nullptr)
         {
-            fprintf(stderr, "Logger file is not set but tried to be used at %s : %d with the following message:\n", fname, lnum);
+            fprintf(stderr, "Logger file is not set but tried to be used at %s : %d"
+                    " with the following message:\n", fname, lnum);
             fprintf(stderr, pattern, args...);
             fprintf(stderr, "\n");
             exit(1);
@@ -147,18 +150,19 @@ public:
         auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
 
         std::ostringstream tmout;
-        tmout << std::put_time(std::localtime(&now_c), "%T") << ':' << std::setfill('0') << std::setw(3) << ms.count();
+        tmout << std::put_time(std::localtime(&now_c), "%T") << ':'
+              << std::setfill('0') << std::setw(3) << ms.count();
 
-        const int cappedLvl = std::min((int)lvl2text.size() - 1, importance);
         std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
             + fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
-        FILE* ftmp = (fout != nullptr) ? fout : stdout;
-        fprintf(ftmp, intro.c_str(), rank, (cappedLvl >= 0 ? lvl2text[cappedLvl] : "").c_str(), args...);
+        FILE *ftmp = (fout != nullptr) ? fout : stdout;
+        fprintf(ftmp, intro.c_str(), rank, key, args...);
 
-
-        bool needToFlush = runtimeDebugLvl >= flushThreshold && COMPILE_DEBUG_LVL >= flushThreshold;
+        bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
+                           COMPILE_DEBUG_LVL >= flushThreshold;
         needToFlush = needToFlush || (now - lastFlushed > flushPeriod);
+
         if (needToFlush)
         {
             fflush(fout);
@@ -173,11 +177,11 @@ public:
     template<class ... Args>
     std::string makeSimpleErrString(const char* fname, const int lnum, const char* pattern, Args... args) const
     {
-        int size = 10000;
-        char buffer[size];
+        constexpr int maxSize = 10000;
+        char buffer[maxSize];
         
         std::string intro = "%s" + std::string(pattern); // shut up compiler warning
-        snprintf(buffer, size, intro.c_str(), "", args...);
+        snprintf(buffer, maxSize, intro.c_str(), "", args...);
         
         return std::string(buffer);
     }
@@ -192,7 +196,7 @@ public:
     template<class ... Args>
     inline void _die(Args ... args)
     {
-        log<0>(args...);
+        log<0>("", args...);
         
         // print stacktrace
         std::ostringstream strace;
@@ -231,7 +235,7 @@ public:
         }
     }
 
-    int getDebugLvl()
+    int getDebugLvl() const
     {
         return runtimeDebugLvl;
     }
@@ -240,8 +244,10 @@ public:
     void setDebugLvl(int debugLvl)
     {
         runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-        log<1>(__FILE__, __LINE__, "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-        log<1>(__FILE__, __LINE__, "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+        log<1>("INFO", __FILE__, __LINE__,
+               "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
+        log<1>("INFO", __FILE__, __LINE__,
+               "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
     }
 
     /**
@@ -249,31 +255,26 @@ public:
      * @param lnum  line number of the source file
      * @param code  error code (returned by CUDA call)
      */
-    inline void _CUDA_Check(const char* fname, const int lnum, cudaError_t code)
+    inline void _CUDA_Check(const char *fname, const int lnum, cudaError_t code)
     {
         if (code != cudaSuccess)
             _die(fname, lnum, cudaGetErrorString(code));
     }
 
 private:
-    int runtimeDebugLvl;           ///< debug level defined at runtime through setDebugLvl
-    const int flushThreshold = 8;  ///< value of debug level starting with which every message
-                                   ///< will be flushed to disk immediately
+    int runtimeDebugLvl;  ///< debug level defined at runtime through setDebugLvl
+    static constexpr int flushThreshold = 8; ///< value of debug level starting with which every
+                                             ///< message will be flushed to disk immediately
 
     mutable std::chrono::system_clock::time_point lastFlushed;
     const std::chrono::seconds flushPeriod{2};
 
-    FILE* fout = nullptr;
+    FILE *fout = nullptr;
     int rank;
-
-    /**
-     * Messages will be prefixed with the line from this array depending on their importance level
-     */
-    const std::array<std::string, 5> lvl2text{ {"FATAL", "ERROR", "WARNING", "INFO", "DEBUG"} };
 };
 
 /// Unconditionally print to log, debug level is not checked here
-#define   say(...)  logger.log<1>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   say(...)  logger.log<1>    ("INFO", __FILE__, __LINE__, ##__VA_ARGS__)
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort
@@ -284,49 +285,49 @@ private:
 
 #if COMPILE_DEBUG_LVL >= 1
 /// Report a serious error
-#define error(...)  logger.log<1>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define error(...)  logger.log<1>    ("ERROR", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define error(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 2
 /// Report a warning
-#define  warn(...)  logger.log<2>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define  warn(...)  logger.log<2>    ("WARNING", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define  warn(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 3
 /// Report certain valuable information
-#define  info(...)  logger.log<3>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define  info(...)  logger.log<3>    ("INFO", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define  info(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 4
 /// Print debug output
-#define debug(...)  logger.log<4>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug(...)  logger.log<4>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 5
 /// Print more debug
-#define debug2(...) logger.log<5>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug2(...) logger.log<5>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug2(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 6
 /// Print yet more debug
-#define debug3(...) logger.log<6>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug3(...) logger.log<6>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug3(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 7
 /// Print ultimately verbose debug. God help you scrambling through all the output
-#define debug4(...) logger.log<7>    (__FILE__, __LINE__, ##__VA_ARGS__)
+#define debug4(...) logger.log<7>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug4(...)  do { } while(0)
 #endif
