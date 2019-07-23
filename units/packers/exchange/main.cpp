@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "packers_simple.log", 3);    
+    logger.init(MPI_COMM_WORLD, "packers_exchange.log", 3);    
 
     testing::InitGoogleTest(&argc, argv);
     auto retval = RUN_ALL_TESTS();
