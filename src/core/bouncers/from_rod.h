@@ -18,6 +18,7 @@ public:
 
     void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
+    std::vector<std::string> getChannelsToBeSentBack() const override;
     
 private:
     template <typename T>

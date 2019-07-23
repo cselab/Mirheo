@@ -213,6 +213,7 @@ private:
 private:
 
     std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
+    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
     
     void prepareCellLists();
     void prepareInteractions();

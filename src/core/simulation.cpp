@@ -681,6 +681,27 @@ std::vector<std::string> Simulation::getExtraDataToExchange(ObjectVector *ov)
     return {channels.begin(), channels.end()};
 }
 
+std::vector<std::string> Simulation::getDataToSendBack(const std::vector<std::string>& extraOut,
+                                                       ObjectVector *ov)
+{
+    std::set<std::string> channels;
+
+    for (const auto& name : extraOut)
+        channels.insert(name);
+    
+    for (auto& entry : bouncerMap)
+    {
+        auto& bouncer = entry.second;
+        if (bouncer->getObjectVector() != ov) continue;
+
+        auto extraChannels = bouncer->getChannelsToBeSentBack();
+        for (auto channel : extraChannels)
+            channels.insert(channel);
+    }
+
+    return {channels.begin(), channels.end()};
+}
+
 void Simulation::prepareEngines()
 {
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
@@ -716,18 +737,19 @@ void Simulation::prepareEngines()
                 partHaloIntermediateImp->attach(pvPtr, clInt, {});
 
             if (clOut != nullptr)
-                partHaloFinalImp->attach(pvPtr, clOut, extraInt);            
+                partHaloFinalImp->attach(pvPtr, clOut, extraInt);
         }
         else {
             objRedistImp->attach(ov);
 
             auto extraToExchange = getExtraDataToExchange(ov);
-            
+            auto reverseExchange = getDataToSendBack(extraInt, ov);
+
             objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objHaloReverseFinalImp->attach(ov, extraOut);
 
             objHaloIntermediateImp->attach(ov, extraInt);
-            objHaloReverseIntermediateImp->attach(ov, extraInt);
+            objHaloReverseIntermediateImp->attach(ov, reverseExchange);
         }
     }
     

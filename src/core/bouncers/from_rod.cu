@@ -36,6 +36,11 @@ std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const
     return {ChannelNames::oldPositions};
 }
 
+std::vector<std::string> BounceFromRod::getChannelsToBeSentBack() const
+{
+    return {ChannelNames::forces};
+}
+
 void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
 {
     auto activeRV = local ? rv->local() : rv->halo();
