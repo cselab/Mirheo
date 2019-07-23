@@ -176,8 +176,8 @@ TEST (PACKERS_EXCHANGE, particles)
  * then compare some unique reduced variable
  */
 
-template <template<class> class Container>
-static void clearForces(Container<Force>& forces)
+template <class ForceCont>
+static void clearForces(ForceCont& forces)
 {
     for (auto& f : forces)
         f.f = make_float3(0.f);
@@ -198,9 +198,9 @@ inline Force getField(float3 r, float3 L)
     return f;
 }
 
+template <class ForceCont>
 static void applyFieldLocal(const PinnedBuffer<float4>& pos,
-                            PinnedBuffer<Force>& force,
-                            float3 L)
+                            ForceCont& force, float3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
@@ -210,9 +210,9 @@ static void applyFieldLocal(const PinnedBuffer<float4>& pos,
     }
 }
 
+template <class ForceCont>
 static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
-                               std::vector<Force>& forces,
-                               float3 L)
+                               ForceCont& forces, float3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
@@ -238,11 +238,69 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
     for (size_t i = 0; i < forcesA.size(); ++i)
     {
         auto fA = forcesA[i].f;
-        auto fB = forcesA[i].f;
-        auto err = std::min(fabs(fA.x-fB.x), std::min(fabs(fA.y-fB.y), fabs(fA.z-fB.z)));
-        ASSERT_LE(err, 1e-6f);
+        auto fB = forcesB[i].f;
+        
+        // auto err = std::min(fabs(fA.x-fB.x), std::min(fabs(fA.y-fB.y), fabs(fA.z-fB.z)));
+        // ASSERT_LE(err, 1e-6f);
+
+        ASSERT_TRUE(areEquals(fA, fB));
     }
 }
+
+TEST (PACKERS_EXCHANGE, objects_exchange)
+{
+    float dt = 0.f;
+    float rc = 1.f;
+    float L  = 48.f;
+    int nObjs = 128;
+    int objSize = 555;
+
+    DomainInfo domain;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    MirState state(domain, dt);
+    auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
+    auto lrev = rev->local();
+    auto hrev = rev->halo();
+
+    auto& lpos = lrev->positions();
+    auto& lvel = lrev->velocities();
+    auto& lforces = lrev->forces();
+
+    auto& hpos = hrev->positions();
+    auto& hvel = hrev->velocities();
+    auto& hforces = hrev->forces();
+
+    lpos.downloadFromDevice(defaultStream);
+
+    // will send the forces computed from periodic field
+    // and then compare to what it should be
+    std::vector<std::string> extraExchangeChannels = {ChannelNames::forces};
+
+    auto exchanger = std::make_unique<ObjectHaloExchanger>();
+
+    exchanger->attach(rev.get(), rc, extraExchangeChannels);
+        
+    auto engineExchange = std::make_unique<SingleNodeEngine>(std::move(exchanger));
+
+    clearForces(lforces);
+    applyFieldPeriodic(lpos, lforces, domain.localSize);
+    lforces.uploadToDevice(defaultStream);
+
+    engineExchange->init(defaultStream);
+    engineExchange->finalize(defaultStream);
+
+    hpos   .downloadFromDevice(defaultStream);
+    hforces.downloadFromDevice(defaultStream);
+    
+    std::vector<Force> refForces(hforces.size(), Force(make_float4(0.f)));
+
+    applyFieldLocal(hpos, refForces, domain.localSize);
+
+    compareForces(hforces, refForces);
+}
+
 
 TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 {
