@@ -17,6 +17,7 @@ For more information, please refer to the online documentation: http://mirheo.re
 * **internal changes**:
   * refactoring of packers
   * add persistent channels support for rod bisegment data
+  * allow silent log
 * add unit tests for packers:
   * redistribute (particles, objects, rods)
   * exchange (particles)
