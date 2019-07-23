@@ -50,11 +50,9 @@ static void checkRef(const PinnedBuffer<float4>& pos,
     }
 }
 
-
-
-struct Comp // for sorting
+struct Comp // for sorting particles
 {
-    bool operator()(float4 a_, float4 b_) const
+    bool inline operator()(float4 a_, float4 b_) const
     {
         Float3_int a(a_), b(b_);
         return
@@ -168,6 +166,147 @@ TEST (PACKERS_EXCHANGE, particles)
 
     checkHalo(lpos, hpos, domain.localSize, rc);
     checkRef(hpos, hvel, domain.localSize);
+}
+
+/*
+ * tests for object exchange:
+ * apply a field to the object particles in 2 manners:
+ * - periodic, local one
+ * - local ; exchange + halo
+ * then compare some unique reduced variable
+ */
+
+template <template<class> class Container>
+static void clearForces(Container<Force>& forces)
+{
+    for (auto& f : forces)
+        f.f = make_float3(0.f);
+}
+
+inline bool isInside(float3 r, float3 L)
+{
+    return
+        (r.x >= - 0.5f * L.x && r.x < 0.5f * L.x) &&
+        (r.y >= - 0.5f * L.y && r.y < 0.5f * L.y) &&
+        (r.z >= - 0.5f * L.z && r.z < 0.5f * L.z);
+}
+
+inline Force getField(float3 r, float3 L)
+{
+    Force f;
+    f.f = length(r) * r;
+    return f;
+}
+
+static void applyFieldLocal(const PinnedBuffer<float4>& pos,
+                            PinnedBuffer<Force>& force,
+                            float3 L)
+{
+    for (size_t i = 0; i < pos.size(); ++i)
+    {
+        auto r = make_float3(pos[i]);
+        if (isInside(r, L))
+            force[i] += getField(r, L);
+    }
+}
+
+static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
+                               std::vector<Force>& forces,
+                               float3 L)
+{
+    for (size_t i = 0; i < pos.size(); ++i)
+    {
+        const auto r0 = make_float3(pos[i]);
+
+        for (int ix = -1; ix < 2; ++ix)
+        for (int iy = -1; iy < 2; ++iy)
+        for (int iz = -1; iz < 2; ++iz)
+        {
+            float3 r {r0.x + ix * L.x,
+                      r0.y + iy * L.y,
+                      r0.z + iz * L.z};
+        
+            if (isInside(r, L))
+                forces[i] += getField(r, L);
+        }
+    }
+}
+
+static void compareForces(const PinnedBuffer<Force>& forcesA,
+                          const std::vector<Force>& forcesB)
+{
+    for (size_t i = 0; i < forcesA.size(); ++i)
+    {
+        auto fA = forcesA[i].f;
+        auto fB = forcesA[i].f;
+        auto err = std::min(fabs(fA.x-fB.x), std::min(fabs(fA.y-fB.y), fabs(fA.z-fB.z)));
+        ASSERT_LE(err, 1e-6f);
+    }
+}
+
+TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
+{
+    float dt = 0.f;
+    float rc = 1.f;
+    float L  = 48.f;
+    int nObjs = 128;
+    int objSize = 555;
+
+    DomainInfo domain;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    MirState state(domain, dt);
+    auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
+    auto lrev = rev->local();
+    auto hrev = rev->halo();
+
+    auto& lpos = lrev->positions();
+    auto& lvel = lrev->velocities();
+    auto& lforces = lrev->forces();
+
+    auto& hpos = hrev->positions();
+    auto& hvel = hrev->velocities();
+    auto& hforces = hrev->forces();
+
+    lpos.downloadFromDevice(defaultStream);
+
+    clearForces(lforces);
+    std::vector<Force> refForces(lforces.begin(), lforces.end());
+
+    std::vector<std::string>   extraExchangeChannels = {};
+    std::vector<std::string> reverseExchangeChannels = {ChannelNames::forces};
+
+    auto exchanger        = std::make_unique<ObjectHaloExchanger>();
+    auto reverseExchanger = std::make_unique<ObjectReverseExchanger>(exchanger.get());
+
+    exchanger       ->attach(rev.get(), rc, extraExchangeChannels);
+    reverseExchanger->attach(rev.get(),   reverseExchangeChannels);
+        
+    auto engineExchange        = std::make_unique<SingleNodeEngine>(std::move(exchanger));
+    auto engineReverseExchange = std::make_unique<SingleNodeEngine>(std::move(reverseExchanger));
+
+    engineExchange->init(defaultStream);
+    engineExchange->finalize(defaultStream);
+
+    applyFieldPeriodic(lpos, refForces, domain.localSize);
+
+    hpos   .downloadFromDevice(defaultStream);
+    hforces.downloadFromDevice(defaultStream);
+    clearForces(hforces);
+    
+    applyFieldLocal(lpos, lforces, domain.localSize);
+    applyFieldLocal(hpos, hforces, domain.localSize);
+
+    lforces.uploadToDevice(defaultStream);
+    hforces.uploadToDevice(defaultStream);
+
+    engineReverseExchange->init(defaultStream);
+    engineReverseExchange->finalize(defaultStream);
+
+    lforces.downloadFromDevice(defaultStream);
+
+    compareForces(lforces, refForces);
 }
 
 
