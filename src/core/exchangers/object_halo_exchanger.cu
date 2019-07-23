@@ -158,7 +158,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
         unpacker = std::make_unique<RodPacker>(predicate);
     }
 
-    auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
 
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
@@ -169,7 +169,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<s
     for (const auto& name : channels)
         allChannelNames += "'" + name + "' ";
     
-    info("Object vector %s (rc %f) was attached to halo exchanger; will take care of channels %s",
+    info("Object vector '%s' (rc %f) was attached to halo exchanger with channels %s",
          ov->name.c_str(), rc, allChannelNames.c_str());
 }
 

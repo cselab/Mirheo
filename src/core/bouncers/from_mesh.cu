@@ -66,7 +66,8 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
     if (rov)
         return {ChannelNames::motions};
     else
-        return {ChannelNames::forces};
+        // return {ChannelNames::forces};
+        return {};
 }
 
 /**
@@ -161,6 +162,16 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     if (rov != nullptr)
     {
+        if (!local)
+        {
+            ROVview view(rov, rov->halo());
+
+            SAFE_KERNEL_LAUNCH(
+                RigidIntegrationKernels::clearRigidForces,
+                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
+                view );
+        }
+
         // make a fake view with vertices instead of particles
         ROVview view(rov, local ? rov->local() : rov->halo());
         view.objSize   = ov->mesh->getNvertices();

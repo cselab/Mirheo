@@ -92,11 +92,18 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
         unpacker = std::make_unique<RodPacker>(predicate);
     }
     
-    auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
     packers  .push_back(std::move(  packer));
     unpackers.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
+
+    std::string allChannelNames = channelNames.size() ? "channels " : "no channels.";
+    for (const auto& name : channelNames)
+        allChannelNames += "'" + name + "' ";
+
+    info("Object vector '%s' was attached to reverse halo exchanger with %s",
+         ov->name.c_str(), allChannelNames.c_str());
 }
 
 bool ObjectReverseExchanger::needExchange(int id)
