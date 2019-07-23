@@ -46,6 +46,7 @@ public:
 
     /// return list of extra channel names to be exchanged
     virtual std::vector<std::string> getChannelsToBeExchanged() const = 0;
+    virtual std::vector<std::string> getChannelsToBeSentBack() const;
 
 protected:
     ObjectVector *ov;  /// Particles will be bounced against that ObjectVector

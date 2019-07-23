@@ -39,6 +39,12 @@ std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeExchanged()
 }
 
 template <class Shape>
+std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeSentBack() const
+{
+    return {ChannelNames::motions}; // return forces and torque from remote bounce
+}
+
+template <class Shape>
 void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
 {
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*>(ov);

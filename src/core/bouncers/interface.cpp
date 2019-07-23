@@ -28,3 +28,8 @@ void Bouncer::bounceHalo(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     exec(pv, cl, false, stream);
 }
+
+std::vector<std::string> Bouncer::getChannelsToBeSentBack() const
+{
+    return {};
+}

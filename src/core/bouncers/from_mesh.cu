@@ -61,6 +61,14 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
         return {ChannelNames::oldPositions};
 }
 
+std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
+{
+    if (rov)
+        return {ChannelNames::motions};
+    else
+        return {ChannelNames::forces};
+}
+
 /**
  * Bounce particles from objects with meshes
  */
