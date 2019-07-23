@@ -232,6 +232,51 @@ static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
     }
 }
 
+template <class ForceCont>
+static void applyFieldUnbounded(const PinnedBuffer<float4>& pos,
+                               ForceCont& forces, float3 L)
+{
+    for (size_t i = 0; i < pos.size(); ++i)
+    {
+        const auto r = make_float3(pos[i]);
+        forces[i] += getField(r, L);
+    }
+}
+
+
+inline float linf(float3 a, float3 b)
+{
+    auto d = fabs(a-b);
+    return std::min(d.x, std::min(d.y, d.z));
+}
+
+static void checkForces(const PinnedBuffer<float4>& pos,
+                        const PinnedBuffer<Force>& forces,
+                        float3 L)
+{
+    for (size_t i = 0; i < pos.size(); ++i)
+    {
+        const auto r0 = make_float3(pos[i]);
+        const auto f0 = forces[i].f;
+        float err = 1e9f;
+
+        for (int ix = -1; ix < 2; ++ix)
+        for (int iy = -1; iy < 2; ++iy)
+        for (int iz = -1; iz < 2; ++iz)
+        {
+            if (ix == 0 && iy == 0 && iz == 0) continue;
+
+            float3 r {r0.x + ix * L.x,
+                      r0.y + iy * L.y,
+                      r0.z + iz * L.z};
+            auto f = getField(r, L).f;
+            
+            err = std::min(err, linf(f0, f));
+        }
+        ASSERT_LE(err, 1e-6f);
+    }
+}
+
 static void compareForces(const PinnedBuffer<Force>& forcesA,
                           const std::vector<Force>& forcesB)
 {
@@ -240,19 +285,21 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
         auto fA = forcesA[i].f;
         auto fB = forcesB[i].f;
         
-        // auto err = std::min(fabs(fA.x-fB.x), std::min(fabs(fA.y-fB.y), fabs(fA.z-fB.z)));
-        // ASSERT_LE(err, 1e-6f);
+        auto err = linf(fA, fB);
+        ASSERT_LE(err, 1e-6f);
 
-        ASSERT_TRUE(areEquals(fA, fB));
+        // ASSERT_TRUE(areEquals(fA, fB));
     }
 }
+
+
 
 TEST (PACKERS_EXCHANGE, objects_exchange)
 {
     float dt = 0.f;
     float rc = 1.f;
     float L  = 48.f;
-    int nObjs = 128;
+    int nObjs = 1024;
     int objSize = 555;
 
     DomainInfo domain;
@@ -285,7 +332,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     auto engineExchange = std::make_unique<SingleNodeEngine>(std::move(exchanger));
 
     clearForces(lforces);
-    applyFieldPeriodic(lpos, lforces, domain.localSize);
+    applyFieldUnbounded(lpos, lforces, domain.localSize);
     lforces.uploadToDevice(defaultStream);
 
     engineExchange->init(defaultStream);
@@ -294,11 +341,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     hpos   .downloadFromDevice(defaultStream);
     hforces.downloadFromDevice(defaultStream);
     
-    std::vector<Force> refForces(hforces.size(), Force(make_float4(0.f)));
-
-    applyFieldLocal(hpos, refForces, domain.localSize);
-
-    compareForces(hforces, refForces);
+    checkForces(hpos, hforces, domain.localSize);
 }
 
 
@@ -307,7 +350,7 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     float dt = 0.f;
     float rc = 1.f;
     float L  = 48.f;
-    int nObjs = 128;
+    int nObjs = 1024;
     int objSize = 555;
 
     DomainInfo domain;
