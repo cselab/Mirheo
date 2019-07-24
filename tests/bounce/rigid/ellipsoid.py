@@ -7,6 +7,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--axes', type=float, nargs=3)
 parser.add_argument('--coords', type=str)
+parser.add_argument('--xorigin', type=float, default = 0)
 parser.add_argument('--vis', action='store_true', default=False)
 args = parser.parse_args()
 
@@ -18,7 +19,7 @@ dt   = 0.001
 u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
-pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
+pos = np.random.normal(loc   = [0.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))
 
@@ -34,7 +35,11 @@ u.registerIntegrator(vv_sol)
 u.setIntegrator(vv_sol, pv_sol)
 
 
-com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
+x = 0.5 * domain[0] + args.xorigin
+y = 0.5 * domain[1]
+z = 0.5 * domain[2]
+while x > domain[0]: x -= domain[0]
+com_q = [[x, y, z,   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
 
 if args.vis:
@@ -66,7 +71,7 @@ if args.vis:
 
 u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", pv_rig, dump_every, path="stats"))
 
-u.run(5000)    
+u.run(5000)
 
 # nTEST: bounce.rigid.ellipsoid
 # set -eu
@@ -77,4 +82,15 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
+# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+
+# nTEST: bounce.rigid.ellipsoid.exchange
+# set -eu
+# cd bounce/rigid
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# rho=8.0; ax=1.0; ay=2.0; az=1.0
+# rm -rf pos*.txt vel*.txt
+# cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f --xorigin 4.1
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
