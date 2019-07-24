@@ -568,7 +568,7 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
     forces.copy(rod.local()->forces(), defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
-    FILE * f = fopen("tmp", "w");
+    // FILE * f = fopen("tmp", "w");
     double Linfty = 0;
     for (int i = 0; i < refForces.size(); ++i)
     {
@@ -578,17 +578,17 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
         double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
-        if ((i % 5) == 0)
-            fprintf(f,
-                    FMT SEP FMT SEP FMT SEP SEP
-                    FMT SEP FMT SEP FMT SEP SEP
-                    FMT SEP FMT "\n",
-                    EXPAND(a), EXPAND(b),
-                    length(a), length(b));
+        // if ((i % 5) == 0)
+        //     fprintf(f,
+        //             FMT SEP FMT SEP FMT SEP SEP
+        //             FMT SEP FMT SEP FMT SEP SEP
+        //             FMT SEP FMT "\n",
+        //             EXPAND(a), EXPAND(b),
+        //             length(a), length(b));
 
         Linfty = std::max(Linfty, err);
     }
-    fclose(f);
+    // fclose(f);
     checkMomentum(rod.local()->positions(), forces);
     
     return Linfty;
