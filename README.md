@@ -20,7 +20,9 @@ For more information, please refer to the online documentation: http://mirheo.re
   * allow silent log
 * add unit tests for packers:
   * redistribute (particles, objects, rods)
-  * exchange (particles)
+  * exchange (particles, objects)
+* test for bounce back reverse exchange:
+  * rigid
 
 ### v1.0.0
 
