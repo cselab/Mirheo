@@ -410,6 +410,79 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     compareForces(lforces, refForces);
 }
 
+TEST (PACKERS_EXCHANGE, objects_extra_exchange)
+{
+    float dt = 0.f;
+    float rc = 1.f;
+    float L  = 48.f;
+    int nObjs = 1024;
+    int objSize = 555;
+
+    DomainInfo domain;
+    domain.globalSize  = {L, L, L};
+    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.localSize   = {L, L, L};
+    MirState state(domain, dt);
+    auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
+    auto lrev = rev->local();
+    auto hrev = rev->halo();
+
+    const std::string extraChannelName = "single_float_field";
+    
+    rev->requireDataPerParticle<float>(extraChannelName,
+                                       DataManager::PersistenceMode::None,
+                                       DataManager::ShiftMode::None);
+
+    auto& lpos = lrev->positions();
+    auto& lvel = lrev->velocities();
+    auto& lforces = lrev->forces();
+    auto& lfield = *lrev->dataPerParticle.getData<float>(extraChannelName);
+
+    auto& hpos = hrev->positions();
+    auto& hvel = hrev->velocities();
+    auto& hforces = hrev->forces();
+    auto& hfield = *hrev->dataPerParticle.getData<float>(extraChannelName);
+
+    auto fieldTransform = [](Force f){return length(f.f);};
+    
+    std::vector<std::string> exchangeChannels = {ChannelNames::forces};
+    std::vector<std::string> extraExchangeChannels = {extraChannelName};
+
+    lpos.downloadFromDevice(defaultStream);
+    clearForces(lforces);
+    applyFieldUnbounded(lpos, lforces, domain.localSize);
+    std::transform(lforces.begin(), lforces.end(), lfield.begin(), fieldTransform);
+                   
+    lforces.uploadToDevice(defaultStream);
+    lfield.uploadToDevice(defaultStream);
+    
+    auto exchanger      = std::make_unique<ObjectHaloExchanger>();
+    auto extraExchanger = std::make_unique<ObjectExtraExchanger>(exchanger.get());
+
+    exchanger     ->attach(rev.get(), rc, exchangeChannels);
+    extraExchanger->attach(rev.get(), extraExchangeChannels);
+        
+    auto engineExchange      = std::make_unique<SingleNodeEngine>(std::move(exchanger));
+    auto engineExtraExchange = std::make_unique<SingleNodeEngine>(std::move(extraExchanger));
+
+    engineExchange->init(defaultStream);
+    engineExchange->finalize(defaultStream);
+
+    hforces.downloadFromDevice(defaultStream);
+
+    engineExtraExchange->init(defaultStream);
+    engineExtraExchange->finalize(defaultStream);
+
+    hfield.downloadFromDevice(defaultStream);
+
+    for (size_t i = 0; i < hforces.size(); ++i)
+    {
+        auto ref = fieldTransform(hforces[i]);
+        auto val = hfield[i];
+        ASSERT_EQ(ref, val) << "wrong value for index " << i;
+    }
+}
+
 
 int main(int argc, char **argv)
 {
