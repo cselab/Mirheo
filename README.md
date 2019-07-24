@@ -23,6 +23,8 @@ For more information, please refer to the online documentation: http://mirheo.re
   * exchange (particles, objects)
 * test for bounce back reverse exchange:
   * rigid
+  * membrane mesh
+  * rigid mesh
 
 ### v1.0.0
 
