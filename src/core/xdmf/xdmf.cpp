@@ -70,7 +70,7 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
     }, channel.type);
 }
     
-static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float3> &positions, ParticleVector *pv)
+static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, ParticleVector *pv)
 {
     int n = positions.size();
     const float3 *vel = nullptr;
@@ -114,7 +114,7 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
     }, channel.type);
 }
     
-static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float3>& positions, ObjectVector *ov)
+static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, ObjectVector *ov)
 {
     int n = positions.size();
     const int64_t *ids_data = nullptr;
@@ -165,13 +165,13 @@ static void combineIntoRigidMotions(int n, const RigidMotionsSoA& soa, RigidMoti
     }
 }
     
-static void gatherFromChannels(std::vector<Channel> &channels, std::vector<float> &positions, RigidObjectVector *rov)
+static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, RigidObjectVector *rov)
 {
-    int n = positions.size() / 3;
+    int n = positions.size();
     const int64_t *ids_data {nullptr};
     RigidMotionsSoA soa;
 
-    soa.pos = reinterpret_cast<const float3*>(positions.data());
+    soa.pos = positions.data();
 
     auto ids     = rov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
