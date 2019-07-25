@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/cuda_common.h>
 #include <core/utils/type_map.h>
 
 namespace TypeAtomicAdd
