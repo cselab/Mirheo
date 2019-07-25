@@ -31,6 +31,16 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 struct SimulationTasks;
 
+struct CheckpointInfo
+{
+    CheckpointInfo(int every = 0, const std::string& folder = "restart/",
+                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
+
+    int every;
+    std::string folder;
+    CheckpointIdAdvanceMode mode;
+};
+
 class Simulation : protected MirObject
 {
 public:
@@ -43,9 +53,7 @@ public:
     MirState *state;
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-               int globalCheckpointEvery = 0, std::string checkpointFolder = "restart/",
-               CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
-               bool gpuAwareMPI = false);
+               CheckpointInfo checkpointInfo = {}, bool gpuAwareMPI = false);
 
     ~Simulation();
     

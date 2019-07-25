@@ -76,17 +76,25 @@ struct SimulationTasks
 #undef DECLARE    
 };
 
+
+CheckpointInfo::CheckpointInfo(int every, const std::string& folder,
+                               CheckpointIdAdvanceMode mode) :
+    every(every),
+    folder(folder),
+    mode(mode)
+{}
+
+
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-                       int globalCheckpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode,
-                       bool gpuAwareMPI) :
+                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
     MirObject("simulation"),
     nranks3D(nranks3D),
     cartComm(cartComm),
     interComm(interComm),
     state(state),
-    globalCheckpointEvery(globalCheckpointEvery),
-    checkpointFolder(checkpointFolder),
-    checkpointMode(checkpointMode),
+    globalCheckpointEvery(checkpointInfo.every),
+    checkpointFolder(checkpointInfo.folder),
+    checkpointMode(checkpointInfo.mode),
     gpuAwareMPI(gpuAwareMPI),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),

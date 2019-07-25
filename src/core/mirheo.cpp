@@ -61,6 +61,8 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
                  int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI)
 {
     int nranks;
+
+    CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
     
     initLogger(comm, logFileName, verbosity);   
 
@@ -85,7 +87,7 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
         createCartComm(comm, nranks3D, &cartComm);
         state = std::make_shared<MirState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, MPI_COMM_NULL, getState(),
-                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+                                            checkpointInfo, gpuAwareMPI);
         computeTask = 0;
         return;
     }
@@ -112,7 +114,7 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
         createCartComm(compComm, nranks3D, &cartComm);
         state = std::make_shared<MirState> (createDomainInfo(cartComm, globalDomainSize), dt);
         sim = std::make_unique<Simulation> (cartComm, interComm, getState(),
-                                            checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+                                            checkpointInfo, gpuAwareMPI);
     }
     else
     {
