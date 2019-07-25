@@ -56,7 +56,7 @@ public:
      * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, const std::string fname, int debugLvl = 3)
+    void init(MPI_Comm comm, const std::string& fname, int debugLvl = 3)
     {
         MPI_Comm_rank(comm, &rank);
         constexpr int zeroPadding = 5;
