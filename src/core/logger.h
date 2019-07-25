@@ -66,7 +66,13 @@ public:
         auto start = fname.substr(0, pos);
         auto end   = fname.substr(pos);
 
-        fout.open(start+"_"+rankStr+end, "w");
+        auto status = fout.open(start+"_"+rankStr+end, "w");
+
+        if (status != FileWrapper::Status::Success)
+        {
+            fprintf(stderr, "Logger file '%s' could not be open.\n", fname.c_str());
+            exit(1);
+        }
 
         setDebugLvl(debugLvl);
 
