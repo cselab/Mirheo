@@ -76,15 +76,6 @@ struct SimulationTasks
 #undef DECLARE    
 };
 
-
-CheckpointInfo::CheckpointInfo(int every, const std::string& folder,
-                               CheckpointIdAdvanceMode mode) :
-    every(every),
-    folder(folder),
-    mode(mode)
-{}
-
-
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
                        CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
     MirObject("simulation"),
