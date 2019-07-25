@@ -92,9 +92,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     cartComm(cartComm),
     interComm(interComm),
     state(state),
-    globalCheckpointEvery(checkpointInfo.every),
-    checkpointFolder(checkpointInfo.folder),
-    checkpointMode(checkpointInfo.mode),
+    checkpointInfo(checkpointInfo),
     gpuAwareMPI(gpuAwareMPI),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),
@@ -113,7 +111,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     nranks3D = {nranks[0], nranks[1], nranks[2]};
     rank3D   = {coords[0], coords[1], coords[2]};
 
-    createFoldersCollective(cartComm, checkpointFolder);
+    createFoldersCollective(cartComm, checkpointInfo.folder);
 
     state->reinitTime();
     
@@ -223,7 +221,7 @@ void Simulation::stopProfiler() const
 // Registration
 //================================================================================================
 
-void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery)
+void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic)
 {
     std::string name = pv->name;
 
@@ -243,8 +241,6 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
         if (ic != nullptr)
             ic->exec(cartComm, pv.get(), 0);
     }
-
-    pvsCheckPointPrototype.push_back({pv.get(), checkpointEvery});
 
     auto ov = dynamic_cast<ObjectVector*>(pv.get());
     if(ov != nullptr)
@@ -435,7 +431,7 @@ void Simulation::setObjectBelongingChecker(std::string checkerName, std::string 
 
 void Simulation::applyObjectBelongingChecker(std::string checkerName,
             std::string source, std::string inside, std::string outside,
-            int checkEvery, int checkpointEvery)
+            int checkEvery)
 {
     auto pvSource = getPVbyNameOrDie(source);
 
@@ -466,13 +462,13 @@ void Simulation::applyObjectBelongingChecker(std::string checkerName,
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
         pvInside = std::make_shared<ParticleVector> (state, inside, pvSource->mass);
-        registerParticleVector(pvInside, nullptr, checkpointEvery);
+        registerParticleVector(pvInside, nullptr);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
         pvOutside = std::make_shared<ParticleVector> (state, outside, pvSource->mass);
-        registerParticleVector(pvOutside, nullptr, checkpointEvery);
+        registerParticleVector(pvOutside, nullptr);
     }
 
     splitterPrototypes.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
@@ -805,10 +801,10 @@ void Simulation::createTasks()
     TASK_LIST(INIT);
 #undef INIT
 
-    if (globalCheckpointEvery > 0)
+    if (checkpointInfo.every > 0)
         scheduler->addTask(tasks->checkpoint,
                            [this](cudaStream_t stream) { this->checkpoint(); },
-                           globalCheckpointEvery);
+                           checkpointInfo.every);
 
     for (auto& clVec : cellListMap)
         for (auto& cl : clVec.second)
@@ -1214,12 +1210,12 @@ void Simulation::restartState(std::string folder)
 
 void Simulation::checkpointState()
 {
-    auto filename = createCheckpointNameWithId(checkpointFolder, "state", "txt", checkpointId);
+    auto filename = createCheckpointNameWithId(checkpointInfo.folder, "state", "txt", checkpointId);
 
     if (rank == 0)
         TextIO::write(filename, state->currentTime, state->currentStep, checkpointId);
 
-    createCheckpointSymlink(cartComm, checkpointFolder, "state", "txt", checkpointId);
+    createCheckpointSymlink(cartComm, checkpointInfo.folder, "state", "txt", checkpointId);
 }
 
 static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
@@ -1264,7 +1260,7 @@ void Simulation::restart(std::string folder)
     CUDA_Check( cudaDeviceSynchronize() );
 
     // advance checkpoint Id so that next checkpoint does not override this one
-    advanceCheckpointId(checkpointId, checkpointMode);
+    advanceCheckpointId(checkpointId, checkpointInfo.mode);
 }
 
 void Simulation::checkpoint()
@@ -1273,30 +1269,30 @@ void Simulation::checkpoint()
     
     CUDA_Check( cudaDeviceSynchronize() );
     
-    info("Writing simulation state, into folder %s", checkpointFolder.c_str());
+    info("Writing simulation state, into folder %s", checkpointInfo.folder.c_str());
     
     for (auto& pv : particleVectors)
-        pv->checkpoint(cartComm, checkpointFolder, checkpointId);
+        pv->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : bouncerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler.second->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : integratorMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler.second->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : interactionMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler.second->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : wallMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler.second->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : belongingCheckerMap)
-        handler.second->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler.second->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
     
     for (auto& handler : plugins)
-        handler->checkpoint(cartComm, checkpointFolder, checkpointId);
+        handler->checkpoint(cartComm, checkpointInfo.folder, checkpointId);
 
-    advanceCheckpointId(checkpointId, checkpointMode);
+    advanceCheckpointId(checkpointId, checkpointInfo.mode);
 
     notifyPostProcess(checkpointTag, checkpointId);
     

@@ -47,6 +47,16 @@ enum class CheckpointIdAdvanceMode
     Incremental
 };
 
+struct CheckpointInfo
+{
+    CheckpointInfo(int every = 0, const std::string& folder = "restart/",
+                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
+
+    int every;
+    std::string folder;
+    CheckpointIdAdvanceMode mode;
+};
+
 // tag used to stop the postprocess side to stop
 constexpr int stoppingTag = 424242;
 constexpr int stoppingMsg = -1;

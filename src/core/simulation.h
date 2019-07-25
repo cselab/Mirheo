@@ -31,16 +31,6 @@ class ObjectBelongingChecker;
 class SimulationPlugin;
 struct SimulationTasks;
 
-struct CheckpointInfo
-{
-    CheckpointInfo(int every = 0, const std::string& folder = "restart/",
-                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
-
-    int every;
-    std::string folder;
-    CheckpointIdAdvanceMode mode;
-};
-
 class Simulation : protected MirObject
 {
 public:
@@ -60,7 +50,7 @@ public:
     void restart(std::string folder);
     void checkpoint();
 
-    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic, int checkpointEvery=0);
+    void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
     void registerInteraction            (std::shared_ptr<Interaction> interaction);
     void registerIntegrator             (std::shared_ptr<Integrator> integrator);
@@ -78,7 +68,7 @@ public:
 
     void applyObjectBelongingChecker(std::string checkerName,
             std::string source, std::string inside, std::string outside,
-            int checkEvery, int checkpointEvery=0);
+            int checkEvery);
 
 
     void init();
@@ -120,11 +110,10 @@ private:
         Anew, RestartTolerant, RestartStrict
     };
     RestartStatus restartStatus{RestartStatus::Anew};
-    std::string restartFolder, checkpointFolder;
-    CheckpointIdAdvanceMode checkpointMode;
-    int globalCheckpointEvery;
-    int checkpointId {0};
+    std::string restartFolder;
 
+    int checkpointId {0};
+    CheckpointInfo checkpointInfo;
     int rank;
 
     std::unique_ptr<TaskScheduler> scheduler;
@@ -198,19 +187,12 @@ private:
         ParticleVector *pvSrc, *pvIn, *pvOut;
     };
 
-    struct PvsCheckPointPrototype
-    {
-        ParticleVector *pv;
-        int checkpointEvery;
-    };
-    
     std::vector<InteractionPrototype>         interactionPrototypes;
     std::vector<WallPrototype>                wallPrototypes;
     std::vector<CheckWallPrototype>           checkWallPrototypes;
     std::vector<BouncerPrototype>             bouncerPrototypes;
     std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes;
     std::vector<SplitterPrototype>            splitterPrototypes;
-    std::vector<PvsCheckPointPrototype>       pvsCheckPointPrototype;
 
     std::vector<std::function<void(cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;

@@ -41,15 +41,15 @@ void exportMirheo(py::module& m)
         .def(py::init( [] (PyTypes::int3 nranks, PyTypes::float3 domain, float dt,
                            std::string log, int debuglvl, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long comm) {
-
+                           bool cudaMPI, bool noSplash, long comm)
+            {
                 auto checkpointMode = getCheckpointMode(checkpointModeStr);
-                if (comm == 0) return std::make_unique<Mirheo> (      nranks, domain, dt, log, debuglvl,
-                                                                     checkpointEvery, checkpointFolder, checkpointMode,
-                                                                     cudaMPI, noSplash);
+                CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
+                
+                if (comm == 0) return std::make_unique<Mirheo> (     nranks, domain, dt, log, debuglvl,
+                                                                     checkpointInfo, cudaMPI, noSplash);
                 else           return std::make_unique<Mirheo> (comm, nranks, domain, dt, log, debuglvl,
-                                                                     checkpointEvery, checkpointFolder, checkpointMode,
-                                                                     cudaMPI, noSplash);
+                                                                     checkpointInfo, cudaMPI, noSplash);
             } ),
             py::return_value_policy::take_ownership,
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
@@ -97,17 +97,12 @@ void exportMirheo(py::module& m)
         )")
         
         .def("registerParticleVector", &Mirheo::registerParticleVector,
-            "pv"_a, "ic"_a=nullptr, "checkpoint_every"_a=0, R"(
+            "pv"_a, "ic"_a=nullptr, R"(
             Register particle vector
             
             Args:
                 pv: :any:`ParticleVector`
                 ic: :class:`~libmirheo.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
-                checkpoint_every:
-                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
-                    (see :py:meth:`_mirheo.mirheo.__init__`). 
-                    The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
-                    Default value of 0 means no checkpoint.
         )")
         .def("registerIntegrator", &Mirheo::registerIntegrator,
              "integrator"_a, R"(
@@ -209,7 +204,7 @@ void exportMirheo(py::module& m)
         )")        
         
         .def("applyObjectBelongingChecker",    &Mirheo::applyObjectBelongingChecker,
-            "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", "checkpoint_every"_a=0, R"(
+            "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", R"(
                 Apply the **checker** to the given particle vector.
                 One and only one of the options **inside** or **outside** has to be specified.
                 
@@ -221,7 +216,6 @@ void exportMirheo(py::module& m)
                     correct_every: If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the checkpoint folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options

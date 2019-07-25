@@ -58,12 +58,10 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 }
 
 void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-                 int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI)
+                 CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     int nranks;
 
-    CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
-    
     initLogger(comm, logFileName, verbosity);   
 
     MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
@@ -77,7 +75,7 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
 
     if (rank == 0) sayHello();    
 
-    checkpointFolder = makePath(checkpointFolder);
+    checkpointInfo.folder = makePath(checkpointInfo.folder);
     
     if (noPostprocess) {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
@@ -123,7 +121,7 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
 
         MPI_Check( MPI_Comm_rank(ioComm, &rank) );
 
-        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointFolder);
+        post = std::make_unique<Postprocess> (ioComm, interComm, checkpointInfo.folder);
     }
 
     MPI_Check( MPI_Comm_free(&splitComm) );
@@ -137,8 +135,8 @@ void Mirheo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
 }
 
 Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
-             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
+             std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
+               bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     MPI_Init(nullptr, nullptr);
@@ -146,29 +144,29 @@ Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float d
     initializedMpi = true;
 
     init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
-          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+          checkpointInfo, gpuAwareMPI);
 }
 
 Mirheo::Mirheo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
-             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
+               std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
+               bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
     MPI_Comm comm = *((MPI_Comm*) commAdress);
     MPI_Comm_dup(comm, &this->comm);
     init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
-          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);    
+          checkpointInfo, gpuAwareMPI);    
 }
 
 Mirheo::Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, int checkpointEvery, std::string checkpointFolder,
-             CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI, bool noSplash) :
+             std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
+               bool gpuAwareMPI, bool noSplash) :
     noSplash(noSplash)
 {
     MPI_Comm_dup(comm, &this->comm);
     init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
-          checkpointEvery, checkpointFolder, checkpointMode, gpuAwareMPI);
+          checkpointInfo, gpuAwareMPI);
 }
 
 static void safeCommFree(MPI_Comm *comm)
@@ -194,12 +192,12 @@ Mirheo::~Mirheo()
         MPI_Finalize();
 }
 
-void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic, int checkpointEvery)
+void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic)
 {
     checkNotInitialized();
     
     if (isComputeTask())
-        sim->registerParticleVector(pv, ic, checkpointEvery);
+        sim->registerParticleVector(pv, ic);
 }
 
 void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
@@ -395,7 +393,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(density);
     
-    wallsim.registerParticleVector(pv, ic, 0);
+    wallsim.registerParticleVector(pv, ic);
     
     wallsim.registerIntegrator(integrator);
     
@@ -459,7 +457,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     {
         Simulation eqsim(sim->cartComm, MPI_COMM_NULL, getState());
     
-        eqsim.registerParticleVector(pv, ic, 0);
+        eqsim.registerParticleVector(pv, ic);
 
         eqsim.registerIntegrator(integrator);
         eqsim.setIntegrator (integrator->name,  pv->name);
@@ -475,8 +473,8 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
 
     Simulation freezesim(sim->cartComm, MPI_COMM_NULL, getState());
 
-    freezesim.registerParticleVector(pv, nullptr, 0);
-    freezesim.registerParticleVector(shape, icShape, 0);
+    freezesim.registerParticleVector(pv, nullptr);
+    freezesim.registerParticleVector(shape, icShape);
     freezesim.registerObjectBelongingChecker (checker);
     freezesim.setObjectBelongingChecker(checker->name, shape->name);
     freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
@@ -490,12 +488,11 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     return freezesim.getSharedPVbyName(insideName);
 }
 
-std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelongingChecker* checker,
-                                                                      ParticleVector* pv,
-                                                                      int checkEvery,
-                                                                      std::string inside,
-                                                                      std::string outside,
-                                                                      int checkpointEvery)
+std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelongingChecker *checker,
+                                                                    ParticleVector *pv,
+                                                                    int checkEvery,
+                                                                    std::string inside,
+                                                                    std::string outside)
 {
     checkNotInitialized();
     
@@ -518,7 +515,7 @@ std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelong
         newPVname = inside;
     }
         
-    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery, checkpointEvery);
+    sim->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
     return sim->getSharedPVbyName(newPVname);
 }
 

@@ -27,21 +27,15 @@ class Mirheo
 {
 public:
     Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/",
-          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
           bool gpuAwareMPI=false, bool noSplash=false);
 
     Mirheo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/",
-          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
           bool gpuAwareMPI=false, bool noSplash=false);
 
     Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, int checkpointEvery=0,
-          std::string checkpointFolder="restart/",
-          CheckpointIdAdvanceMode checkpointMode = CheckpointIdAdvanceMode::PingPong,
+          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
           bool gpuAwareMPI=false, bool noSplash=false);
 
     ~Mirheo();
@@ -56,7 +50,7 @@ public:
     void run(int niters);
     
     void registerParticleVector         (const std::shared_ptr<ParticleVector>& pv,
-                                         const std::shared_ptr<InitialConditions>& ic, int checkpointEvery);
+                                         const std::shared_ptr<InitialConditions>& ic);
     
     void registerInteraction            (const std::shared_ptr<Interaction>& interaction);
     void registerIntegrator             (const std::shared_ptr<Integrator>& integrator);
@@ -96,8 +90,7 @@ public:
                                                                 ParticleVector* pv,
                                                                 int checkEvery,
                                                                 std::string inside = "",
-                                                                std::string outside = "",
-                                                                int checkpointEvery=0);    
+                                                                std::string outside = "");    
     
 private:
     std::unique_ptr<Simulation> sim;
@@ -120,7 +113,7 @@ private:
     MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-              int checkpointEvery, std::string checkpointFolder, CheckpointIdAdvanceMode checkpointMode, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
     void sayHello();
     void setup();
