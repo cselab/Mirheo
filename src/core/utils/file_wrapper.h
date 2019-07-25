@@ -10,7 +10,7 @@ public:
     enum class SpecialStream {Cout, Cerr};
     enum class Status {Success, Failed};
     
-    FileWrapper() = default;
+    FileWrapper(bool forceFlushOnClose = false);
     ~FileWrapper();
 
     FileWrapper           (const FileWrapper&) = delete;
@@ -30,4 +30,5 @@ private:
     
     FILE *file {nullptr};
     bool needClose {false};
+    bool forceFlushOnClose;
 };

@@ -136,9 +136,19 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, LogInfo logI
 
 void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
 {
-    if      (logInfo.fileName == "stdout") logger.init(comm, stdout,                  logInfo.verbosityLvl);
-    else if (logInfo.fileName == "stderr") logger.init(comm, stderr,                  logInfo.verbosityLvl);
-    else                                   logger.init(comm, logInfo.fileName+".log", logInfo.verbosityLvl);
+    if (logInfo.fileName == "stdout" ||
+        logInfo.fileName == "stderr")
+    {
+        FileWrapper f(true);
+        f.open(logInfo.fileName == "stdout" ?
+               FileWrapper::SpecialStream::Cout :
+               FileWrapper::SpecialStream::Cerr);
+        logger.init(comm, std::move(f), logInfo.verbosityLvl);
+    }
+    else
+    {
+        logger.init(comm, logInfo.fileName+".log", logInfo.verbosityLvl);
+    }
 }
 
 Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,

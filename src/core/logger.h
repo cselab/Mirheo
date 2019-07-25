@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/utils/file_wrapper.h>
 #include <core/utils/folders.h>
 #include <core/utils/stacktrace_explicit.h>
 
@@ -48,20 +49,6 @@ class Logger
 {
 public:
 
-    /// Constructor doesn't do nothing
-    Logger() {}
-
-    /// Flush and close file
-    ~Logger()
-    {
-        if (fout != nullptr)
-        {
-            fflush(fout);
-            fclose(fout);
-        }
-    }
-
-
     /**
      * Set logger to write to files
      *
@@ -79,7 +66,7 @@ public:
         auto start = fname.substr(0, pos);
         auto end   = fname.substr(pos);
 
-        fout = fopen( (start+"_"+rankStr+end).c_str(), "w");
+        fout.open(start+"_"+rankStr+end, "w");
 
         setDebugLvl(debugLvl);
 
@@ -93,12 +80,13 @@ public:
      * @param fout file handler, must be opened, typically \e stdout or \e stderr
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, FILE *fout, int debugLvl = 3)
+    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3)
     {
         MPI_Comm_rank(comm, &rank);
-        this->fout = fout;
+        this->fout = std::move(fout);
 
         setDebugLvl(debugLvl);
+        lastFlushed = std::chrono::system_clock::now();
     }
 
   
@@ -134,7 +122,7 @@ public:
     {
         if (importance > runtimeDebugLvl) return;
 
-        if (fout == nullptr)
+        if (!fout.get())
         {
             fprintf(stderr, "Logger file is not set but tried to be used at %s : %d"
                     " with the following message:\n", fname, lnum);
@@ -144,7 +132,6 @@ public:
         }
 
         using namespace std::chrono;
-
         auto now   = system_clock::now();
         auto now_c = system_clock::to_time_t(now);
         auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
@@ -156,8 +143,7 @@ public:
         std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
             + fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
 
-        FILE *ftmp = (fout != nullptr) ? fout : stdout;
-        fprintf(ftmp, intro.c_str(), rank, key, args...);
+        fprintf(fout.get(), intro.c_str(), rank, key, args...);
 
         bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
                            COMPILE_DEBUG_LVL >= flushThreshold;
@@ -165,7 +151,7 @@ public:
 
         if (needToFlush)
         {
-            fflush(fout);
+            fflush(fout.get());
             lastFlushed = now;
         }
     }
@@ -201,11 +187,9 @@ public:
         // print stacktrace
         std::ostringstream strace;
         pretty_stacktrace(strace);
-        fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
+        fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout.get());
 
-        fflush(fout);
-        fclose(fout);
-        fout = nullptr;
+        fout.close();
 
         throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"
                                  "The error message follows, and more details can be found in the log\n"
@@ -262,15 +246,15 @@ public:
     }
 
 private:
-    int runtimeDebugLvl;  ///< debug level defined at runtime through setDebugLvl
+    int runtimeDebugLvl {0};  ///< debug level defined at runtime through setDebugLvl
     static constexpr int flushThreshold = 8; ///< value of debug level starting with which every
                                              ///< message will be flushed to disk immediately
 
     mutable std::chrono::system_clock::time_point lastFlushed;
     const std::chrono::seconds flushPeriod{2};
 
-    FILE *fout = nullptr;
-    int rank;
+    mutable FileWrapper fout {true};
+    int rank {-1};
 };
 
 /// Unconditionally print to log, debug level is not checked here

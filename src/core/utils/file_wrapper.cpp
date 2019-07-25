@@ -1,5 +1,9 @@
 #include "file_wrapper.h"
 
+FileWrapper::FileWrapper(bool forceFlushOnClose) :
+    forceFlushOnClose(forceFlushOnClose)
+{}
+
 FileWrapper::~FileWrapper()
 {
     close();
@@ -36,6 +40,7 @@ void FileWrapper::close()
 {
     if (needClose)
     {
+        if (forceFlushOnClose) fflush(file);
         fclose(file);
         needClose = false;
     }
