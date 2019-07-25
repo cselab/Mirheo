@@ -57,7 +57,7 @@ class mirheo:
         pass
 
     def applyObjectBelongingChecker():
-        r"""applyObjectBelongingChecker(checker: ObjectBelongingChecker, pv: ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '', checkpoint_every: int = 0) -> ParticleVector
+        r"""applyObjectBelongingChecker(checker: ObjectBelongingChecker, pv: ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '') -> ParticleVector
 
 
                 Apply the **checker** to the given particle vector.
@@ -71,7 +71,6 @@ class mirheo:
                     correct_every: If greater than zero, perform correction every this many time-steps.                        
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                    checkpoint_every: every that many timesteps the state of the newly created :any:`ParticleVector` (if any) will be saved to disk into the checkpoint folder. Default value of 0 means no checkpoint.
                             
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
@@ -242,7 +241,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerParticleVector():
-        r"""registerParticleVector(pv: ParticleVector, ic: InitialConditions = None, checkpoint_every: int = 0) -> None
+        r"""registerParticleVector(pv: ParticleVector, ic: InitialConditions = None) -> None
 
 
             Register particle vector
@@ -250,11 +249,6 @@ Returns ``True`` if the current rank is the root
             Args:
                 pv: :any:`ParticleVector`
                 ic: :class:`~InitialConditions.InitialConditions` that will generate the initial distibution of the particles
-                checkpoint_every:
-                    every that many timesteps the state of the Particle Vector across all the MPI processes will be saved to disk  into the checkpoint folder 
-                    (see :py:meth:`_mirheo.mirheo.__init__`). 
-                    The checkpoint files may be used to restart the whole simulation or only some individual PVs from the saved states. 
-                    Default value of 0 means no checkpoint.
         
 
         """

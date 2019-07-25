@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.1.0
 
 * **interface changes**:
   * no checkpointEvery in registerParticleVector or belongingChercker
