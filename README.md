@@ -14,10 +14,13 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ### unreleased
 
+* **interface changes**:
+  * no checkpointEvery in registerParticleVector or belongingChercker
 * **internal changes**:
   * refactoring of packers
   * add persistent channels support for rod bisegment data
   * allow silent log
+  * pack arguments: logInfo and checkpointInfo for better readability
 * add unit tests for packers:
   * redistribute (particles, objects, rods)
   * exchange (particles, objects)
