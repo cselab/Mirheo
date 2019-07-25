@@ -43,13 +43,14 @@ void exportMirheo(py::module& m)
                            std::string checkpointFolder, std::string checkpointModeStr,
                            bool cudaMPI, bool noSplash, long comm)
             {
+                LogInfo logInfo(log, debuglvl, noSplash);
                 auto checkpointMode = getCheckpointMode(checkpointModeStr);
                 CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
                 
-                if (comm == 0) return std::make_unique<Mirheo> (     nranks, domain, dt, log, debuglvl,
-                                                                     checkpointInfo, cudaMPI, noSplash);
-                else           return std::make_unique<Mirheo> (comm, nranks, domain, dt, log, debuglvl,
-                                                                     checkpointInfo, cudaMPI, noSplash);
+                if (comm == 0) return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
+                                                                      checkpointInfo, cudaMPI);
+                else           return std::make_unique<Mirheo> (comm, nranks, domain, dt, logInfo,
+                                                                      checkpointInfo, cudaMPI);
             } ),
             py::return_value_policy::take_ownership,
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,

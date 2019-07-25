@@ -23,6 +23,12 @@
 #include <memory>
 #include <mpi.h>
 
+LogInfo::LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash) :
+    fileName(fileName),
+    verbosityLvl(verbosityLvl),
+    noSplash(noSplash)
+{}
+
 static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)
 {
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
@@ -57,12 +63,12 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
     MPI_Check( MPI_Comm_free(&shmcomm) );
 }
 
-void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
-                 CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, LogInfo logInfo,
+                  CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     int nranks;
 
-    initLogger(comm, logFileName, verbosity);   
+    initLogger(comm, logInfo);   
 
     MPI_Comm_set_errhandler(comm, MPI_ERRORS_RETURN);
 
@@ -73,7 +79,8 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
     else if (nranks3D.x * nranks3D.y * nranks3D.z * 2 == nranks) noPostprocess = false;
     else die("Asked for %d x %d x %d processes, but provided %d", nranks3D.x, nranks3D.y, nranks3D.z, nranks);
 
-    if (rank == 0) sayHello();    
+    if (rank == 0 && !logInfo.noSplash)
+        sayHello();
 
     checkpointInfo.folder = makePath(checkpointInfo.folder);
     
@@ -127,45 +134,39 @@ void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, std::string 
     MPI_Check( MPI_Comm_free(&splitComm) );
 }
 
-void Mirheo::initLogger(MPI_Comm comm, std::string logFileName, int verbosity)
+void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
 {
-    if      (logFileName == "stdout")  logger.init(comm, stdout,             verbosity);
-    else if (logFileName == "stderr")  logger.init(comm, stderr,             verbosity);
-    else                               logger.init(comm, logFileName+".log", verbosity);
+    if      (logInfo.fileName == "stdout") logger.init(comm, stdout,                  logInfo.verbosityLvl);
+    else if (logInfo.fileName == "stderr") logger.init(comm, stderr,                  logInfo.verbosityLvl);
+    else                                   logger.init(comm, logInfo.fileName+".log", logInfo.verbosityLvl);
 }
 
 Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-               bool gpuAwareMPI, bool noSplash) :
-    noSplash(noSplash)
+               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     initializedMpi = true;
 
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
           checkpointInfo, gpuAwareMPI);
 }
 
 Mirheo::Mirheo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-               std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-               bool gpuAwareMPI, bool noSplash) :
-    noSplash(noSplash)
+               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
     MPI_Comm comm = *((MPI_Comm*) commAdress);
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
           checkpointInfo, gpuAwareMPI);    
 }
 
 Mirheo::Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-             std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-               bool gpuAwareMPI, bool noSplash) :
-    noSplash(noSplash)
+               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logFileName, verbosity,
+    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
           checkpointInfo, gpuAwareMPI);
 }
 
@@ -521,8 +522,6 @@ std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelong
 
 void Mirheo::sayHello()
 {
-    if (noSplash) return;
-    
     static const int max_length_version =  9;
     static const int max_length_sha1    = 46;
     std::string version = Version::mir_version;

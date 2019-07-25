@@ -23,20 +23,25 @@ class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
 
+struct LogInfo
+{
+    LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash = false);
+    std::string fileName;
+    int verbosityLvl;
+    bool noSplash;
+};
+
 class Mirheo
 {
 public:
     Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-          bool gpuAwareMPI=false, bool noSplash=false);
+          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     Mirheo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-          bool gpuAwareMPI=false, bool noSplash=false);
+          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          std::string logFileName, int verbosity, CheckpointInfo checkpointInfo,
-          bool gpuAwareMPI=false, bool noSplash=false);
+          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
     
@@ -100,7 +105,6 @@ private:
     int rank;
     int computeTask;
     bool noPostprocess;
-    bool noSplash;
     int pluginsTag {0}; ///< used to create unique tag per plugin
     
     bool initialized    = false;
@@ -112,9 +116,9 @@ private:
     MPI_Comm compComm  {MPI_COMM_NULL}; ///< simulation communicator
     MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
-    void init(int3 nranks3D, float3 globalDomainSize, float dt, std::string logFileName, int verbosity,
+    void init(int3 nranks3D, float3 globalDomainSize, float dt, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI);
-    void initLogger(MPI_Comm comm, std::string logFileName, int verbosity);
+    void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();
     void checkNotInitialized() const;
