@@ -133,11 +133,6 @@ AnchorParticlesStatsPlugin::AnchorParticlesStatsPlugin(std::string name, std::st
     path(makePath(path))
 {}
 
-AnchorParticlesStatsPlugin::~AnchorParticlesStatsPlugin()
-{
-    if (fout) fclose(fout);
-}
-
 void AnchorParticlesStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
@@ -154,7 +149,12 @@ void AnchorParticlesStatsPlugin::handshake()
     SimpleSerializer::deserialize(data, pvName);
 
     if (activated && rank == 0)
-        fout = fopen( (path + pvName + ".txt").c_str(), "w" );
+    {
+        std::string fname = path + pvName + ".txt";
+        auto status = fout.open( fname, "w" );
+        if (status != FileWrapper::Status::Success)
+            die("could not open file '%s'", fname.c_str());
+    }
 }
 
 void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
@@ -169,13 +169,13 @@ void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
 
     if (activated && rank == 0)
     {
-        fprintf(fout, "%f", currentTime);
+        fprintf(fout.get(), "%f", currentTime);
         for (auto& f : forces)
         {
             f /= nsamples;
-            fprintf(fout, " %f %f %f", f.x, f.y, f.z);
+            fprintf(fout.get(), " %f %f %f", f.x, f.y, f.z);
         }
-        fprintf(fout, "\n");
-        fflush(fout);
+        fprintf(fout.get(), "\n");
+        fflush(fout.get());
     }
 }

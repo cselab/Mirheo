@@ -233,12 +233,6 @@ ReportPinObjectPlugin::ReportPinObjectPlugin(std::string name, std::string path)
     path(makePath(path))
 {}
 
-ReportPinObjectPlugin::~ReportPinObjectPlugin()
-{
-    if (fout)
-        fclose(fout);
-}
-
 void ReportPinObjectPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
@@ -254,7 +248,12 @@ void ReportPinObjectPlugin::handshake()
     std::string ovName;
     SimpleSerializer::deserialize(data, ovName);
     if (activated && rank == 0)
-        fout = fopen( (path + ovName + ".txt").c_str(), "w" );
+    {
+        std::string fname = path + ovName + ".txt";
+        auto status = fout.open(fname, "w" );
+        if (status != FileWrapper::Status::Success)
+            die("could not open file '%s'", fname.c_str());
+    }
 }
 
 void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
@@ -270,21 +269,22 @@ void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 
     if (activated && rank == 0)
     {
-        for (int i=0; i < forces.size(); i++)
+        for (int i = 0; i < forces.size(); ++i)
         {
             forces[i] /= nsamples;
-            fprintf(fout, "%d  %f  %f %f %f", i, currentTime, forces[i].x, forces[i].y, forces[i].z);
+            fprintf(fout.get(), "%d  %f  %f %f %f",
+                    i, currentTime, forces[i].x, forces[i].y, forces[i].z);
 
             if (i < torques.size())
             {
                 torques[i] /= nsamples;
-                fprintf(fout, "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
+                fprintf(fout.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
             }
 
-            fprintf(fout, "\n");
+            fprintf(fout.get(), "\n");
         }
 
-        fflush(fout);
+        fflush(fout.get());
     }
 }
 

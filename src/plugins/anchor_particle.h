@@ -3,6 +3,7 @@
 #include "interface.h"
 
 #include <core/containers.h>
+#include <core/utils/file_wrapper.h>
 #include <core/utils/pytypes.h>
 
 #include <functional>
@@ -49,7 +50,6 @@ class AnchorParticlesStatsPlugin : public PostprocessPlugin
 {
 public:
     AnchorParticlesStatsPlugin(std::string name, std::string path);
-    ~AnchorParticlesStatsPlugin();
     
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -59,5 +59,5 @@ private:
     bool activated;
     std::string path;
 
-    FILE *fout {nullptr};
+    FileWrapper fout;
 };

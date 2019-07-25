@@ -5,6 +5,7 @@
 
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/file_wrapper.h>
 
 #include <vector>
 
@@ -54,10 +55,9 @@ class PostprocessVelocityControl : public PostprocessPlugin
 {
 public:
     PostprocessVelocityControl(std::string name, std::string filename);
-    ~PostprocessVelocityControl();
 
     void deserialize(MPI_Status& stat) override;
 
 private:
-    FILE *fdump;
+    FileWrapper fdump;
 };

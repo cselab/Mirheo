@@ -98,14 +98,9 @@ void WallForceCollectorPlugin::serializeAndSend(cudaStream_t stream)
 WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    fdump = fopen(filename.c_str(), "w");
-    if (!fdump)
+    auto status = fdump.open(filename, "w");
+    if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
-}
-
-WallForceDumperPlugin::~WallForceDumperPlugin()
-{
-    if (fdump != nullptr) fclose(fdump);
 }
 
 void WallForceDumperPlugin::deserialize(MPI_Status& stat)
@@ -124,10 +119,9 @@ void WallForceDumperPlugin::deserialize(MPI_Status& stat)
         totalForce[1] /= (double)nsamples;
         totalForce[2] /= (double)nsamples;
 
-        if (fdump != nullptr) {
-            fprintf(fdump, "%g %g %g %g\n", currentTime, totalForce[0], totalForce[1], totalForce[2]);
-            fflush(fdump);
-        }
+        fprintf(fdump.get(), "%g %g %g %g\n",
+                currentTime, totalForce[0], totalForce[1], totalForce[2]);
+        fflush(fdump.get());
     }
 }
 

@@ -2,6 +2,7 @@
 
 #include <core/containers.h>
 #include <core/field/from_function.h>
+#include <core/utils/file_wrapper.h>
 
 #include "interface.h"
 
@@ -48,8 +49,6 @@ class VirialPressureDumper : public PostprocessPlugin
 {
 public:
     VirialPressureDumper(std::string name, std::string path);
-
-    ~VirialPressureDumper();
     
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -60,5 +59,5 @@ private:
 
     bool activated = true;
     MPI_Datatype mpiReductionType;
-    FILE *fdump = nullptr;
+    FileWrapper fdump;
 };

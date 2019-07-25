@@ -295,14 +295,9 @@ void DensityControlPlugin::restart(MPI_Comm comm, std::string path)
 PostprocessDensityControl::PostprocessDensityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    fdump = fopen(filename.c_str(), "w");
-    if (!fdump)
+    auto status = fdump.open(filename, "w");
+    if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
-}
-
-PostprocessDensityControl::~PostprocessDensityControl()
-{
-    fclose(fdump);
 }
 
 void PostprocessDensityControl::deserialize(MPI_Status& stat)
@@ -314,11 +309,11 @@ void PostprocessDensityControl::deserialize(MPI_Status& stat)
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);
 
     if (rank == 0) {
-        fprintf(fdump, "%g %d ", currentTime, currentTimeStep);
-        for (auto d : densities) fprintf(fdump, "%g ", d);
-        for (auto f : forces)    fprintf(fdump, "%g ", f);
-        fprintf(fdump, "\n");
+        fprintf(fdump.get(), "%g %d ", currentTime, currentTimeStep);
+        for (auto d : densities) fprintf(fdump.get(), "%g ", d);
+        for (auto f : forces)    fprintf(fdump.get(), "%g ", f);
+        fprintf(fdump.get(), "\n");
         
-        fflush(fdump);
+        fflush(fdump.get());
     }
 }

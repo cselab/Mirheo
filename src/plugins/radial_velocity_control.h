@@ -5,6 +5,7 @@
 
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/file_wrapper.h>
 
 #include <vector>
 
@@ -53,12 +54,11 @@ private:
 
 class PostprocessRadialVelocityControl : public PostprocessPlugin
 {
-private:
-    FILE *fdump;
-
 public:
     PostprocessRadialVelocityControl(std::string name, std::string filename);
-    ~PostprocessRadialVelocityControl();
 
     void deserialize(MPI_Status& stat) override;
+
+private:
+    FileWrapper fdump;
 };

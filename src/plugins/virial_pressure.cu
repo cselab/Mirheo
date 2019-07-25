@@ -109,12 +109,6 @@ VirialPressureDumper::VirialPressureDumper(std::string name, std::string path) :
         die("Incompatible type");
 }
 
-VirialPressureDumper::~VirialPressureDumper()
-{
-    if (activated)
-        fclose(fdump);
-}
-
 void VirialPressureDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
@@ -133,9 +127,10 @@ void VirialPressureDumper::handshake()
     if (activated)
     {
         auto fname = path + pvName + ".txt";
-        fdump = fopen(fname.c_str(), "w");
-        if (!fdump) die("Could not open file '%s'", fname.c_str());
-        fprintf(fdump, "# time Pressure\n");
+        auto status = fdump.open(fname, "w");
+        if (status != FileWrapper::Status::Success)
+            die("Could not open file '%s'", fname.c_str());
+        fprintf(fdump.get(), "# time Pressure\n");
     }
 }
 
@@ -150,6 +145,6 @@ void VirialPressureDumper::deserialize(MPI_Status& stat)
 
     MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, mpiReductionType, MPI_SUM, 0, comm) );
 
-    fprintf(fdump, "%g %.6e\n", curTime, totalPressure);
+    fprintf(fdump.get(), "%g %.6e\n", curTime, totalPressure);
 }
 

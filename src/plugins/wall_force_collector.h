@@ -3,6 +3,7 @@
 #include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/file_wrapper.h>
 #include <core/utils/timer.h>
 
 class ParticleVector;
@@ -46,10 +47,9 @@ class WallForceDumperPlugin : public PostprocessPlugin
 {
 public:
     WallForceDumperPlugin(std::string name, std::string filename);
-    ~WallForceDumperPlugin();
 
     void deserialize(MPI_Status& stat) override;
 
 private:
-    FILE *fdump {nullptr};
+    FileWrapper fdump;
 };

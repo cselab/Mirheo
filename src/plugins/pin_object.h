@@ -1,14 +1,15 @@
 #pragma once
 
-#include <plugins/interface.h>
-#include <vector>
-#include <string>
-#include <core/containers.h>
+#include "interface.h"
 
+#include <core/containers.h>
+#include <core/utils/file_wrapper.h>
 #include <core/utils/folders.h>
 
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <string>
+#include <vector>
 
 class ObjectVector;
 class RigidObjectVector;
@@ -46,7 +47,6 @@ class ReportPinObjectPlugin : public PostprocessPlugin
 {
 public:
     ReportPinObjectPlugin(std::string name, std::string path);
-    ~ReportPinObjectPlugin();
     
     void deserialize(MPI_Status& stat) override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -56,6 +56,6 @@ private:
     bool activated;
     std::string path;
 
-    FILE *fout {nullptr};
+    FileWrapper fout;
     std::vector<float4> forces, torques;
 };

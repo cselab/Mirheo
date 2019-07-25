@@ -190,14 +190,10 @@ void SimulationRadialVelocityControl::restart(MPI_Comm comm, std::string path)
 PostprocessRadialVelocityControl::PostprocessRadialVelocityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    fdump = fopen(filename.c_str(), "w");
-    if (!fdump) die("Could not open file '%s'", filename.c_str());
-    fprintf(fdump, "# time time_step velocity*r force/r**3\n");
-}
-
-PostprocessRadialVelocityControl::~PostprocessRadialVelocityControl()
-{
-    fclose(fdump);
+    auto status = fdump.open(filename, "w");
+    if (status != FileWrapper::Status::Success)
+        die("Could not open file '%s'", filename.c_str());
+    fprintf(fdump.get(), "# time time_step velocity*r force/r**3\n");
 }
 
 void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
@@ -209,7 +205,7 @@ void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
     if (rank == 0) {
-        fprintf(fdump, "%g %d %g %g\n", currentTime, currentTimeStep, vel, force);        
-        fflush(fdump);
+        fprintf(fdump.get(), "%g %d %g %g\n", currentTime, currentTimeStep, vel, force);        
+        fflush(fdump.get());
     }
 }

@@ -175,14 +175,10 @@ void SimulationVelocityControl::restart(MPI_Comm comm, std::string path)
 PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    fdump = fopen(filename.c_str(), "w");
-    if (!fdump) die("Could not open file '%s'", filename.c_str());
-    fprintf(fdump, "# time time_step velocity force\n");
-}
-
-PostprocessVelocityControl::~PostprocessVelocityControl()
-{
-    fclose(fdump);
+    auto status = fdump.open(filename, "w");
+    if (status != FileWrapper::Status::Success)
+        die("Could not open file '%s'", filename.c_str());
+    fprintf(fdump.get(), "# time time_step velocity force\n");
 }
 
 void PostprocessVelocityControl::deserialize(MPI_Status& stat)
@@ -194,15 +190,14 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
     if (rank == 0) {
-        fprintf(fdump,
+        fprintf(fdump.get(),
                 "%g %d "
                 "%g %g %g "
                 "%g %g %g\n",
                 currentTime, currentTimeStep,
                 vel.x, vel.y, vel.z,
-                force.x, force.y, force.z
-                );
+                force.x, force.y, force.z);
         
-        fflush(fdump);
+        fflush(fdump.get());
     }
 }

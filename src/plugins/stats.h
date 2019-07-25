@@ -3,6 +3,7 @@
 #include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/file_wrapper.h>
 #include <core/utils/timer.h>
 
 class ParticleVector;
@@ -42,13 +43,12 @@ private:
 
 class PostprocessStats : public PostprocessPlugin
 {
-private:
-    MPI_Datatype mpiReductionType, mpiCountType;
-    FILE *fdump = nullptr;
-
 public:
     PostprocessStats(std::string name, std::string filename = "");
-    ~PostprocessStats();
 
     void deserialize(MPI_Status& stat) override;
+
+private:
+    MPI_Datatype mpiReductionType, mpiCountType;
+    FileWrapper fdump;
 };

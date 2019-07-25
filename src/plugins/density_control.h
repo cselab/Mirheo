@@ -5,6 +5,7 @@
 
 #include <core/containers.h>
 #include <core/datatypes.h>
+#include <core/utils/file_wrapper.h>
 
 #include <functional>
 #include <memory>
@@ -79,10 +80,9 @@ class PostprocessDensityControl : public PostprocessPlugin
 {
 public:
     PostprocessDensityControl(std::string name, std::string filename);
-    ~PostprocessDensityControl();
 
     void deserialize(MPI_Status& stat) override;
 
 private:
-    FILE *fdump;
+    FileWrapper fdump;
 };
