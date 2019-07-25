@@ -38,6 +38,18 @@ static const std::string rodTau_l      = "biseg_tau_l";
 // per entity (particles or objects)
 static const std::string globalIds   = "ids";
 
+
+namespace XDMF
+{
+namespace Motions
+{
+static const std::string quaternion = "quaternion";
+static const std::string velocity   = "velocity";
+static const std::string omega      = "omega";
+static const std::string force      = "force";
+static const std::string torque     = "torque";
+} // namespace Motions
+} // namespace XDMF
 } // namespace ChannelNames
 
 

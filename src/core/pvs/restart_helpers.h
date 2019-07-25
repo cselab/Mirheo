@@ -19,7 +19,7 @@ void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& p
 template<typename T>
 static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MPI_Request> &reqs, MPI_Comm comm)
 {
-    for (int i = 0; i < sendBufs.size(); i++) {
+    for (int i = 0; i < sendBufs.size(); ++i) {
         debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
         MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T), MPI_BYTE, i, tag, comm, &reqs[i]) );
     }

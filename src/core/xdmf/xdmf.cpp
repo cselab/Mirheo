@@ -181,28 +181,32 @@ static void gatherFromChannels(const std::vector<Channel>& channels, const std::
 
     for (auto& ch : channels)
     {
-        if      (ch.name == ChannelNames::globalIds)  ids_data       = reinterpret_cast<const int64_t*>    (ch.data);
-        else if (ch.name == "quaternion")             soa.quaternion = reinterpret_cast<const RigidReal4*> (ch.data); 
-        else if (ch.name == "velocity")               soa.vel        = reinterpret_cast<const RigidReal3*> (ch.data);
-        else if (ch.name == "omega")                  soa.omega      = reinterpret_cast<const RigidReal3*> (ch.data);
-        else if (ch.name == "force")                  soa.force      = reinterpret_cast<const RigidReal3*> (ch.data);
-        else if (ch.name == "torque")                 soa.torque     = reinterpret_cast<const RigidReal3*> (ch.data);
+        using namespace ChannelNames::XDMF::Motions;
+        
+        if      (ch.name == ChannelNames::globalIds) ids_data       = reinterpret_cast<const int64_t*>    (ch.data);
+        else if (ch.name == quaternion)              soa.quaternion = reinterpret_cast<const RigidReal4*> (ch.data); 
+        else if (ch.name == velocity)                soa.vel        = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == omega)                   soa.omega      = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == force)                   soa.force      = reinterpret_cast<const RigidReal3*> (ch.data);
+        else if (ch.name == torque)                  soa.torque     = reinterpret_cast<const RigidReal3*> (ch.data);
         else addPersistentExtraDataPerObject(n, ch, rov);
     }
 
     if (n > 0)
     {
+        using namespace ChannelNames::XDMF::Motions;
+        
         auto check = [&](std::string name, const void *ptr)
         {
             if (ptr == nullptr)
                 die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
         };
         check(ChannelNames::globalIds, ids_data);
-        check("quaternion",            soa.quaternion);
-        check("velocity",              soa.vel);
-        check("omega",                 soa.omega);
-        check("force",                 soa.force);
-        check("torque",                soa.torque);
+        check(quaternion,              soa.quaternion);
+        check(velocity,                soa.vel);
+        check(omega,                   soa.omega);
+        check(force,                   soa.force);
+        check(torque,                  soa.torque);
     }
 
     combineIntoRigidMotions(n, soa, motions->data());        
