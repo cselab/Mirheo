@@ -343,7 +343,7 @@ std::vector<int> ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std
     return map;
 }
 
-std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
+ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     
@@ -355,29 +355,22 @@ std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string
     return _redistributeParticleData(comm);
 }
 
-std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int chunkSize)
+ParticleVector::ExchMapSize ParticleVector::_redistributeParticleData(MPI_Comm comm, int chunkSize)
 {
     auto& pos = local()->positions();
-    auto& vel = local()->velocities();
-
     std::vector<float4> pos4(pos.begin(), pos.end());
-    std::vector<float4> vel4(vel.begin(), vel.end());
 
-    auto map = _getRestartExchangeMap(comm, pos4);
+    auto map     = _getRestartExchangeMap(comm, pos4);
+    auto newSize = RestartHelpers::getLocalNumElementsAfterExchange(comm, map);
+
+    DataManager newData(local()->dataPerParticle);
     
-    RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
-    RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
-    auto newSize = pos4.size();
+    newData.resize_anew(newSize * chunkSize);
 
     for (auto& ch : local()->dataPerParticle.getSortedChannels())
     {
         auto& name = ch.first;
         auto& desc = ch.second;
-
-        if (name == ChannelNames::positions                        ||
-            name == ChannelNames::velocities                       ||
-            desc->persistence == DataManager::PersistenceMode::None)
-            continue;
 
         mpark::visit([&](auto bufferPtr)
         {
@@ -388,25 +381,19 @@ std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int ch
             if (desc->needShift())
                 RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
 
-            bufferPtr->resize_anew(data.size());
-            std::copy(data.begin(), data.end(), bufferPtr->begin());
-            
-            bufferPtr->uploadToDevice(defaultStream);
+            auto *dstBuffer = newData.getData<T>(name);
+            std::copy(data.begin(), data.end(), dstBuffer->begin());
+            dstBuffer->uploadToDevice(defaultStream);
         }, desc->varDataPtr);
     }
 
-    RestartHelpers::copyShiftCoordinates(state->domain, pos4, vel4, local());
-
-    // resize the lpv only now because we use the pinned buffers before with old size
-    local()->resize(newSize, defaultStream);
+    swap(local()->dataPerParticle, newData);
     
-    pos.uploadToDevice(defaultStream);
-    vel.uploadToDevice(defaultStream);
     CUDA_Check( cudaDeviceSynchronize() );
 
     info("Successfully read %d particles", local()->size());
 
-    return map;
+    return {map, newSize};
 }
 
 
@@ -417,7 +404,8 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointI
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)
 {
-    _restartParticleData(comm, path);
+    auto ms = _restartParticleData(comm, path);
+    local()->resize(ms.newSize, defaultStream);
 }
 
 

@@ -35,7 +35,7 @@ protected:
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
     void _checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId) override;
-    void _restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map) override;
+    void _restartObjectData(MPI_Comm comm, std::string path, const ExchMapSize& ms) override;
 
 public:
     PinnedBuffer<float4> initialPositions;

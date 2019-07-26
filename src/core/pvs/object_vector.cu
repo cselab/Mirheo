@@ -189,7 +189,7 @@ std::vector<int> ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::
 }
 
 
-std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
+ParticleVector::ExchMapSize ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -201,7 +201,8 @@ std::vector<int> ObjectVector::_restartParticleData(MPI_Comm comm, std::string p
     return _redistributeParticleData(comm, objSize);
 }
 
-static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents, std::vector<float3>& pos)
+static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents,
+                     std::vector<float3>& pos)
 {
     int n = com_extents.size();
     pos.resize(n);
@@ -212,7 +213,8 @@ static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_ex
     }
 }
 
-void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
+void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels,
+                                                     const std::set<std::string>& blackList)
 {
     auto& extraData = local()->dataPerObject;
     _extractPersistentExtraData(extraData, channels, blackList);
@@ -223,7 +225,8 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointNameWithId(path, "OV", "", checkpointId);
-    info("Checkpoint for object vector '%s', writing to file %s", name.c_str(), filename.c_str());
+    info("Checkpoint for object vector '%s', writing to file %s",
+         name.c_str(), filename.c_str());
 
     auto coms_extents = local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents);
 
@@ -246,10 +249,14 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void ObjectVector::_redistributeObjectData(MPI_Comm comm, const std::vector<int>& map)
+void ObjectVector::_redistributeObjectData(MPI_Comm comm, const ObjectVector::ExchMapSize& ms)
 {
+    DataManager newData(local()->dataPerObject);
+    newData.resize_anew(ms.newSize);
+    
     for (auto& ch : local()->dataPerObject.getSortedChannels())
     {
+        auto& name = ch.first;
         auto& desc = ch.second;
 
         if (desc->persistence == DataManager::PersistenceMode::None)
@@ -259,21 +266,25 @@ void ObjectVector::_redistributeObjectData(MPI_Comm comm, const std::vector<int>
         {
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
-            RestartHelpers::exchangeData(comm, map, data, 1);
+            RestartHelpers::exchangeData(comm, ms.map, data, 1);
             bufferPtr->resize_anew(data.size());
 
             if (desc->needShift())
                 RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
 
-            std::copy(data.begin(), data.end(), bufferPtr->begin());
-            bufferPtr->uploadToDevice(defaultStream);
+            auto *dstBuffer = newData.getData<T>(name);
+            std::copy(data.begin(), data.end(), dstBuffer->begin());
+            dstBuffer->uploadToDevice(defaultStream);
         }, desc->varDataPtr);
     }
+
+    swap(local()->dataPerObject, newData);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
+void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
+                                      const ObjectVector::ExchMapSize& ms)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -282,7 +293,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std
 
     XDMF::readObjectData(filename, comm, this);
 
-    _redistributeObjectData(comm, map);
+    _redistributeObjectData(comm, ms);
     
     info("Successfully read object infos of '%s'", name.c_str());
 }
@@ -295,6 +306,8 @@ void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
 {
-    auto map = _restartParticleData(comm, path);
-    _restartObjectData(comm, path, map);
+    auto ms = _restartParticleData(comm, path);
+    _restartObjectData(comm, path, ms);
+    
+    local()->resize(ms.newSize * objSize, defaultStream);
 }

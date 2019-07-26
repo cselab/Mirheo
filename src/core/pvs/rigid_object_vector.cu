@@ -170,7 +170,8 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map)
+void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
+                                           const RigidObjectVector::ExchMapSize& ms)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -179,7 +180,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path, cons
 
     XDMF::readRigidObjectData(filename, comm, this);
 
-    _redistributeObjectData(comm, map);
+    _redistributeObjectData(comm, ms);
 
     info("Successfully read object infos of '%s'", name.c_str());
 }

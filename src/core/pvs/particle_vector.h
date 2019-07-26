@@ -10,6 +10,8 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <tuple>
+#include <vector>
 
 
 namespace XDMF {struct Channel;}
@@ -89,9 +91,16 @@ protected:
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
-    virtual std::vector<int> _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& parts);
-    std::vector<int> _redistributeParticleData(MPI_Comm comm, int chunkSize = 1);
-    
+    using ExchMap = std::vector<int>;
+    struct ExchMapSize
+    {
+        ExchMap map;
+        int newSize;
+    };
+
+    virtual ExchMap _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& parts);
+    ExchMapSize _redistributeParticleData(MPI_Comm comm, int chunkSize=1);
+
     void _extractPersistentExtraData(const DataManager& extraData,
                                      std::vector<XDMF::Channel>& channels,
                                      const std::set<std::string>& blackList) const;
@@ -99,7 +108,7 @@ protected:
                                              const std::set<std::string>& blackList = {}) const;
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
-    virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);
+    virtual ExchMapSize _restartParticleData(MPI_Comm comm, std::string path);
 
 private:
 

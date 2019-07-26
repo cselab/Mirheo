@@ -67,14 +67,16 @@ protected:
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
 
-    std::vector<int> _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos) override;
-    std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
-    void _redistributeObjectData(MPI_Comm comm, const std::vector<int>& map);
+    ExchMap _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos) override;
+    ExchMapSize _restartParticleData(MPI_Comm comm, std::string path) override;
+    
+    void _redistributeObjectData(MPI_Comm comm, const ExchMapSize& ms);
 
-    void _extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
+    void _extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels,
+                                           const std::set<std::string>& blackList = {});
     
     virtual void _checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId);
-    virtual void _restartObjectData(MPI_Comm comm, std::string path, const std::vector<int>& map);
+    virtual void _restartObjectData(MPI_Comm comm, std::string path, const ExchMapSize& ms);
     
 private:
     template<typename T>
