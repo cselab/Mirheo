@@ -20,23 +20,73 @@ splitAndShiftPosVel(const DomainInfo &domain,
                     const PinnedBuffer<float4>& pos4,
                     const PinnedBuffer<float4>& vel4);
 
+
+
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos,
                           const std::vector<float4>& vel, LocalParticleVector *local);
 
-template<typename T>
-static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MPI_Request> &reqs, MPI_Comm comm)
+
+static int getLocalNumElementsAfterExchange(MPI_Comm comm, const std::vector<int>& map)
 {
-    for (int i = 0; i < sendBufs.size(); ++i) {
-        debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
-        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T), MPI_BYTE, i, tag, comm, &reqs[i]) );
+    int numProcs, procId;
+    MPI_Check( MPI_Comm_rank(comm, &procId) );
+    MPI_Check( MPI_Comm_size(comm, &numProcs) );
+
+    std::vector<int> numElements(numProcs, 0);
+    for (auto pid : map)
+        numElements[pid]++;
+
+    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, numElements.data(), numElements.size(),
+                             MPI_INT, MPI_SUM, comm) );
+
+    return numElements[procId];
+}
+
+namespace details
+{
+template <typename T>
+static std::vector<std::vector<T>> splitData(const std::vector<int>& map, int chunkSize,
+                                             const std::vector<T>& data, int numProcs)
+{
+    std::vector<std::vector<T>> bufs(numProcs);
+    
+    for (int i = 0; i < map.size(); ++i)
+    {
+        int procId = map[i];
+
+        if (procId == InvalidProc) continue;
+
+        bufs[procId].insert(bufs[procId].end(),
+                            data.begin() +  i      * chunkSize,
+                            data.begin() + (i + 1) * chunkSize);
     }
+
+    return bufs;
+}
+
+template<typename T>
+static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& sendBufs,
+                                         MPI_Comm comm)
+{
+    std::vector<MPI_Request> reqs;
+    
+    for (int i = 0; i < sendBufs.size(); ++i)
+    {
+        MPI_Request req;
+        debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
+        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T),
+                             MPI_BYTE, i, tag, comm, &req) );
+        reqs.push_back(req);
+    }
+    return reqs;
 }
 
 template <typename T>
 static void recvData(int size, std::vector<T> &all, MPI_Comm comm)
 {
     all.resize(0);
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++)
+    {
         MPI_Status status;
         int sizeBytes, size;
         std::vector<T> recvBuf;
@@ -52,40 +102,26 @@ static void recvData(int size, std::vector<T> &all, MPI_Comm comm)
         recvBuf.resize(size);
 
         debug3("Receiving %d elements from %d", size, status.MPI_SOURCE);
-        MPI_Check( MPI_Recv(recvBuf.data(), sizeBytes, MPI_BYTE, status.MPI_SOURCE, tag, comm, MPI_STATUS_IGNORE) );
+        MPI_Check( MPI_Recv(recvBuf.data(), sizeBytes, MPI_BYTE,
+                            status.MPI_SOURCE, tag, comm, MPI_STATUS_IGNORE) );
 
         all.insert(all.end(), recvBuf.begin(), recvBuf.end());
     }
 }
-
-template <typename T>
-static void splitData(const std::vector<int>& map, int chunkSize, const std::vector<T>& data, std::vector<std::vector<T>>& buffs)
-{
-    for (int i = 0; i < map.size(); ++i) {
-        int procId = map[i];
-
-        if (procId == InvalidProc) continue;
-
-        buffs[procId].insert(buffs[procId].end(),
-                             data.begin() +  i      * chunkSize,
-                             data.begin() + (i + 1) * chunkSize);
-    }
-}
+} // namespace details
 
 template<typename T>
-static void exchangeData(MPI_Comm comm, const std::vector<int>& map, std::vector<T>& data, int chunkSize = 1)
+static void exchangeData(MPI_Comm comm, const std::vector<int>& map,
+                         std::vector<T>& data, int chunkSize = 1)
 {
-    int size;
-    MPI_Check( MPI_Comm_size(comm, &size) );
-    
-    std::vector<std::vector<T>> sendBufs(size);
-    std::vector<MPI_Request> reqs(size);
-        
-    splitData(map, chunkSize, data, sendBufs);
-    sendData(sendBufs, reqs, comm);
-    recvData(size, data, comm);
+    int numProcs;
+    MPI_Check( MPI_Comm_size(comm, &numProcs) );
+            
+    auto sendBufs = details::splitData(map, chunkSize, data, numProcs);
+    auto sendReqs = details::sendData(sendBufs, comm);
+    details::recvData(numProcs, data, comm);
 
-    MPI_Check( MPI_Waitall(reqs.size(), reqs.data(), MPI_STATUSES_IGNORE) );
+    MPI_Check( MPI_Waitall(sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
 }
 
 

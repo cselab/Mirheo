@@ -26,6 +26,7 @@ DataManager::DataManager(const DataManager& b)
 
 DataManager& DataManager::operator=(const DataManager& b)
 {
+    if (this == &b) return *this;
     DataManager tmp(b);
     swap(*this, tmp);
     return *this;
@@ -38,6 +39,7 @@ DataManager::DataManager(DataManager&& b)
 
 DataManager& DataManager::operator=(DataManager&& b)
 {
+    if (this == &b) return *this;
     swap(*this, b);
     return *this;
 }
