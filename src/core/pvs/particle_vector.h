@@ -56,6 +56,9 @@ public:
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }
 
+    const LocalParticleVector* local() const { return _local.get(); }
+    const LocalParticleVector* halo()  const { return  _halo.get(); }
+
     void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override;
     void restart(MPI_Comm comm, std::string path) override;
 
@@ -89,8 +92,11 @@ protected:
     virtual void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &parts, std::vector<int>& map);
     std::vector<int> _redistributeParticleData(MPI_Comm comm, int chunkSize = 1);
     
-    void _extractPersistentExtraData(DataManager& extraData, std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList);
-    void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList = {});
+    void _extractPersistentExtraData(const DataManager& extraData,
+                                     std::vector<XDMF::Channel>& channels,
+                                     const std::set<std::string>& blackList) const;
+    void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels,
+                                             const std::set<std::string>& blackList = {}) const;
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
     virtual std::vector<int> _restartParticleData(MPI_Comm comm, std::string path);

@@ -252,8 +252,9 @@ static void splitPV(DomainInfo domain, LocalParticleVector *local,
     }
 }
 
-void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::vector<XDMF::Channel>& channels,
-                                                 const std::set<std::string>& blackList)
+void ParticleVector::_extractPersistentExtraData(const DataManager& extraData,
+                                                 std::vector<XDMF::Channel>& channels,
+                                                 const std::set<std::string>& blackList) const
 {
     for (auto& namedChannelDesc : extraData.getSortedChannels())
     {        
@@ -277,12 +278,15 @@ void ParticleVector::_extractPersistentExtraData(DataManager& extraData, std::ve
             auto formtype   = XDMF::getDataForm<T>();
             auto numbertype = XDMF::getNumberType<T>();
             auto datatype   = DataTypeWrapper<T>();
-            channels.push_back(XDMF::Channel(channelName, bufferPtr->data(), formtype, numbertype, datatype )); \
+            channels.push_back(XDMF::Channel(channelName,
+                                             bufferPtr->data(),
+                                             formtype, numbertype, datatype));
         }, channelDesc->varDataPtr);
     }
 }
 
-void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels, const std::set<std::string>& blackList)
+void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels,
+                                                         const std::set<std::string>& blackList) const
 {
     _extractPersistentExtraData(local()->dataPerParticle, channels, blackList);
 }
@@ -292,7 +296,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointNameWithId(path, "PV", "", checkpointId);
-    info("Checkpoint for particle vector '%s', writing to file %s", name.c_str(), filename.c_str());
+    info("Checkpoint for particle vector '%s', writing to file %s",
+         name.c_str(), filename.c_str());
 
     local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
     local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
