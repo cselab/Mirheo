@@ -1,5 +1,53 @@
 #include "data_manager.h"
 
+DataManager::DataManager(const DataManager& b)
+{
+    for (const auto& entry : b.channelMap)
+    {
+        const auto& name = entry.first;
+        const auto& desc = entry.second;
+
+        auto& myDesc = channelMap[name];
+        myDesc.persistence = desc.persistence;
+        myDesc.shift       = desc.shift;
+            
+        mpark::visit([&](auto pinnedPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedPtr)>::type::value_type;
+            auto ptr = std::make_unique<PinnedBuffer<T>>(*pinnedPtr);
+            myDesc.varDataPtr = ptr.get();
+            myDesc.container  = std::move(ptr);
+        }, desc.varDataPtr);
+
+        sortedChannels.push_back({name, &channelMap[name]});
+    }
+    sortChannels();
+}
+
+DataManager& DataManager::operator=(const DataManager& b)
+{
+    DataManager tmp(b);
+    swap(*this, tmp);
+    return *this;
+}
+
+DataManager::DataManager(DataManager&& b)
+{
+    swap(*this, b);
+}
+
+DataManager& DataManager::operator=(DataManager&& b)
+{
+    swap(*this, b);
+    return *this;
+}
+
+void swap(DataManager& a, DataManager& b)
+{
+    std::swap(a.channelMap,     b.channelMap);
+    std::swap(a.sortedChannels, b.sortedChannels);
+}
+
 CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf)
 {
     CudaVarPtr ptr;
@@ -69,9 +117,14 @@ void DataManager::resize_anew(int n)
 
 void DataManager::sortChannels()
 {
-    std::sort(sortedChannels.begin(), sortedChannels.end(), [] (NamedChannelDesc ch1, NamedChannelDesc ch2) {
-            return ch1.second->container->datatype_size() > ch2.second->container->datatype_size();
-        });
+    std::sort(sortedChannels.begin(),
+              sortedChannels.end(),
+              [] (NamedChannelDesc ch1, NamedChannelDesc ch2)
+    {
+        auto size1 = ch1.second->container->datatype_size();
+        auto size2 = ch2.second->container->datatype_size();
+        return size1 > size2;
+    });
 }
 
 DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::string& name)

@@ -12,9 +12,6 @@
 #include <string>
 #include <vector>
 
-class ParticlePacker;
-class ObjectExtraPacker;
-
 using VarPinnedBufferPtr = mpark::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
     TYPE_TABLE_COMMA(MAKE_WRAPPER)
@@ -36,22 +33,16 @@ class DataManager
 {
 public:
 
-    enum class PersistenceMode
-    {
-        None, Active
-    };
-
-    enum class ShiftMode
-    {
-        None, Active
-    };
+    enum class PersistenceMode { None, Active };
+    enum class ShiftMode       { None, Active };
     
     struct ChannelDescription 
     {
         std::unique_ptr<GPUcontainer> container;
-        PersistenceMode persistence {PersistenceMode::None};
-        ShiftMode shift {ShiftMode::None};
         VarPinnedBufferPtr varDataPtr;
+        
+        PersistenceMode persistence {PersistenceMode::None};
+        ShiftMode       shift       {ShiftMode::None};
 
         inline bool needShift() const {return shift == ShiftMode::Active;}
     };
@@ -59,6 +50,18 @@ public:
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
 
 
+    DataManager() = default;
+
+    DataManager           (const DataManager& b);
+    DataManager& operator=(const DataManager& b);
+
+    DataManager           (DataManager&& b);
+    DataManager& operator=(DataManager&& b);
+
+    ~DataManager() = default;
+
+    friend void swap(DataManager& a, DataManager& b);
+    
     /**
      * Allocate a new \c PinnedBuffer of data
      *
@@ -76,7 +79,8 @@ public:
         if (checkChannelExists(name))
         {
             if (!mpark::holds_alternative< HeldType* >(channelMap[name].varDataPtr))
-                die("Tried to create channel with existing name '%s' but different type", name.c_str());
+                die("Tried to create channel with existing name '%s' but different type",
+                    name.c_str());
 
             debug("Channel '%s' has already been created", name.c_str());
             return;
@@ -84,7 +88,7 @@ public:
 
         info("Creating new channel '%s'", name.c_str());
 
-        auto ptr = std::make_unique< HeldType >(size);
+        auto ptr = std::make_unique<HeldType>(size);
         channelMap[name].varDataPtr = ptr.get();
         channelMap[name].container  = std::move(ptr);
 
@@ -165,7 +169,6 @@ public:
 
 private:    
 
-    /// Map of name --> data
     using ChannelMap = std::map< std::string, ChannelDescription >;
 
     /// Quick access to the channels by name
@@ -177,12 +180,7 @@ private:
      */
     std::vector<NamedChannelDesc> sortedChannels;
 
-    /// Helper buffer, used by packers
-    PinnedBuffer<CudaVarPtr> channelPtrs;
-
-    friend class DevicePacker;
-    friend class ParticlePacker;
-    friend class ObjectExtraPacker;    
-
+private:
+    
     void sortChannels();
 };
