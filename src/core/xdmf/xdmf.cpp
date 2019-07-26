@@ -112,7 +112,9 @@ static void addPersistentExtraDataPerParticle(int n, const Channel& channel, Par
     }, channel.type);
 }
     
-static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, ParticleVector *pv)
+static void gatherFromChannels(const std::vector<Channel>& channels,
+                               const std::vector<float3>& positions,
+                               ParticleVector *pv)
 {
     int n = positions.size();
     const float3 *vel = nullptr;
@@ -156,29 +158,26 @@ static void addPersistentExtraDataPerObject(int n, const Channel& channel, Objec
     }, channel.type);
 }
     
-static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, ObjectVector *ov)
+static void gatherFromChannels(const std::vector<Channel>& channels,
+                               const std::vector<float3>& positions,
+                               ObjectVector *ov)
 {
     int n = positions.size();
     const int64_t *ids_data = nullptr;
 
     auto ids = ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-
     ids->resize_anew(n);
 
     for (auto& ch : channels)
     {
-        if (ch.name == ChannelNames::globalIds) ids_data = (const int64_t*) ch.data;
+        if (ch.name == ChannelNames::globalIds) ids_data = reinterpret_cast<const int64_t*> (ch.data);
         else addPersistentExtraDataPerObject(n, ch, ov);
     }
 
     if (n > 0 && ids_data == nullptr)
         die("Channel '%s' is required to read XDMF into an object vector", ChannelNames::globalIds.c_str());
 
-    for (int i = 0; i < n; ++i)
-    {
-        (*ids)[i] = ids_data[i];
-    }
-
+    std::copy(ids_data, ids_data+n, ids->begin());
     ids->uploadToDevice(defaultStream);
 }
 
@@ -207,7 +206,9 @@ static void combineIntoRigidMotions(int n, const RigidMotionsSoA& soa, RigidMoti
     }
 }
     
-static void gatherFromChannels(const std::vector<Channel>& channels, const std::vector<float3>& positions, RigidObjectVector *rov)
+static void gatherFromChannels(const std::vector<Channel>& channels,
+                               const std::vector<float3>& positions,
+                               RigidObjectVector *rov)
 {
     int n = positions.size();
     const int64_t *ids_data {nullptr};
@@ -215,11 +216,11 @@ static void gatherFromChannels(const std::vector<Channel>& channels, const std::
 
     soa.pos = positions.data();
 
-    auto ids     = rov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-
-    ids    ->resize_anew(n);
-    motions->resize_anew(n);
+    auto& objectData = rov->local()->dataPerObject;
+    objectData.resize_anew(n);
+    
+    auto ids     = objectData.getData<int64_t>(ChannelNames::globalIds);
+    auto motions = objectData.getData<RigidMotion>(ChannelNames::motions);
 
     for (auto& ch : channels)
     {
@@ -241,7 +242,8 @@ static void gatherFromChannels(const std::vector<Channel>& channels, const std::
         auto check = [&](std::string name, const void *ptr)
         {
             if (ptr == nullptr)
-                die("Channel '%s' is required to read XDMF into an object vector", name.c_str());
+                die("Channel '%s' is required to read XDMF into a rigid object vector",
+                    name.c_str());
         };
         check(ChannelNames::globalIds, ids_data);
         check(quaternion,              soa.quaternion);
@@ -252,9 +254,7 @@ static void gatherFromChannels(const std::vector<Channel>& channels, const std::
     }
 
     combineIntoRigidMotions(n, soa, motions->data());        
-
-    for (int i = 0; i < n; ++i)
-        (*ids)[i] = ids_data[i];
+    std::copy(ids_data, ids_data+n, ids->begin());
 
     ids    ->uploadToDevice(defaultStream);
     motions->uploadToDevice(defaultStream);
