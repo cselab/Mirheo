@@ -6,7 +6,7 @@
 #include <core/utils/folders.h>
 #include <core/xdmf/xdmf.h>
 
-#include "restart_helpers.h"
+#include "restart/helpers.h"
 
 namespace ObjectVectorKernels
 {
