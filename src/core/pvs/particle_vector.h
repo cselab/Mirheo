@@ -8,13 +8,9 @@
 #include <core/mirheo_object.h>
 
 #include <memory>
-#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
-
-
-namespace XDMF {struct Channel;}
 
 class ParticleVector;
 
@@ -100,12 +96,6 @@ protected:
 
     virtual ExchMap _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& parts);
     ExchMapSize _redistributeParticleData(MPI_Comm comm, int chunkSize=1);
-
-    void _extractPersistentExtraData(const DataManager& extraData,
-                                     std::vector<XDMF::Channel>& channels,
-                                     const std::set<std::string>& blackList) const;
-    void _extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels,
-                                             const std::set<std::string>& blackList = {}) const;
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
     virtual ExchMapSize _restartParticleData(MPI_Comm comm, std::string path);

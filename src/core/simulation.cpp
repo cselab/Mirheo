@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cuda_profiler_api.h>
 #include <memory>
+#include <set>
 
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \

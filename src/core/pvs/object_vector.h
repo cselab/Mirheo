@@ -71,9 +71,6 @@ protected:
     ExchMapSize _restartParticleData(MPI_Comm comm, std::string path) override;
     
     void _redistributeObjectData(MPI_Comm comm, const ExchMapSize& ms);
-
-    void _extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels,
-                                           const std::set<std::string>& blackList = {});
     
     virtual void _checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId);
     virtual void _restartObjectData(MPI_Comm comm, std::string path, const ExchMapSize& ms);

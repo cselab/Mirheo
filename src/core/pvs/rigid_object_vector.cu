@@ -1,4 +1,5 @@
 #include "restart/helpers.h"
+#include "checkpoint/helpers.h"
 #include "rigid_object_vector.h"
 #include "views/rov.h"
 
@@ -148,20 +149,31 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
-    std::vector<XDMF::Channel> channels = {
-         { ChannelNames::XDMF::Motions::quaternion, quaternion .data(),
-           XDMF::Channel::DataForm::Quaternion, rigidType, DataTypeWrapper<RigidReal4>() },
-         { ChannelNames::XDMF::Motions::velocity,   vel        .data(),
-           XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
-         { ChannelNames::XDMF::Motions::omega,      omega      .data(),
-           XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
-         { ChannelNames::XDMF::Motions::force,      force      .data(),
-           XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() },
-         { ChannelNames::XDMF::Motions::torque,     torque     .data(),
-           XDMF::Channel::DataForm::Vector,     rigidType, DataTypeWrapper<RigidReal3>() }
-    };      
+    const std::set<std::string> blackList {ChannelNames::motions};
+    
+    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+                                                                  local()->dataPerObject,
+                                                                  blackList);
 
-    _extractPersistentExtraObjectData(channels, /* blacklist */ {ChannelNames::motions} );
+    channels.emplace_back(ChannelNames::XDMF::Motions::quaternion, quaternion .data(),
+                          XDMF::Channel::DataForm::Quaternion,
+                          rigidType, DataTypeWrapper<RigidReal4>());
+    
+    channels.emplace_back(ChannelNames::XDMF::Motions::velocity,   vel.data(),
+                          XDMF::Channel::DataForm::Vector,
+                          rigidType, DataTypeWrapper<RigidReal3>());
+
+    channels.emplace_back(ChannelNames::XDMF::Motions::omega,      omega.data(),
+                          XDMF::Channel::DataForm::Vector,
+                          rigidType, DataTypeWrapper<RigidReal3>());
+    
+    channels.emplace_back(ChannelNames::XDMF::Motions::force,      force.data(),
+                          XDMF::Channel::DataForm::Vector,
+                          rigidType, DataTypeWrapper<RigidReal3>());
+    
+    channels.emplace_back(ChannelNames::XDMF::Motions::torque,     torque.data(),
+                          XDMF::Channel::DataForm::Vector,
+                          rigidType, DataTypeWrapper<RigidReal3>());
     
     XDMF::write(filename, &grid, channels, comm);
 

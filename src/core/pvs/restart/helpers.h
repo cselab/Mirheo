@@ -124,15 +124,6 @@ static void exchangeData(MPI_Comm comm, const std::vector<int>& map,
     MPI_Check( MPI_Waitall(sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
 }
 
-
-
-template<typename Container>
-static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
-{
-    auto shift = domain.local2global({0.f, 0.f, 0.f});
-    for (auto& d : data) TypeShift::apply(d, shift);    
-}
-
 template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
 {

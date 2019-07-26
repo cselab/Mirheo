@@ -1,12 +1,13 @@
 #include "object_vector.h"
 #include "views/ov.h"
+#include "restart/helpers.h"
+#include "checkpoint/helpers.h"
 
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/folders.h>
 #include <core/xdmf/xdmf.h>
 
-#include "restart/helpers.h"
 
 namespace ObjectVectorKernels
 {
@@ -213,13 +214,6 @@ static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_ex
     }
 }
 
-void ObjectVector::_extractPersistentExtraObjectData(std::vector<XDMF::Channel>& channels,
-                                                     const std::set<std::string>& blackList)
-{
-    auto& extraData = local()->dataPerObject;
-    _extractPersistentExtraData(extraData, channels, blackList);
-}
-
 void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -238,9 +232,8 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
 
     XDMF::VertexGrid grid(positions, comm);
 
-    std::vector<XDMF::Channel> channels;
-
-    _extractPersistentExtraObjectData(channels);
+    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+                                                                  local()->dataPerObject);
     
     XDMF::write(filename, &grid, channels, comm);
 

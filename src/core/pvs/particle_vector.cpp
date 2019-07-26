@@ -1,4 +1,5 @@
 #include "particle_vector.h"
+#include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
 #include <core/utils/cuda_common.h>
@@ -232,45 +233,6 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-void ParticleVector::_extractPersistentExtraData(const DataManager& extraData,
-                                                 std::vector<XDMF::Channel>& channels,
-                                                 const std::set<std::string>& blackList) const
-{
-    for (auto& namedChannelDesc : extraData.getSortedChannels())
-    {        
-        auto channelName = namedChannelDesc.first;
-        auto channelDesc = namedChannelDesc.second;        
-        
-        if (channelDesc->persistence != DataManager::PersistenceMode::Active)
-            continue;
-
-        if (blackList.find(channelName) != blackList.end())
-            continue;
-
-        mpark::visit([&](auto bufferPtr)
-        {
-            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-            bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-
-            if (channelDesc->needShift())
-                RestartHelpers::shiftElementsLocal2Global(*bufferPtr, state->domain);
-            
-            auto formtype   = XDMF::getDataForm<T>();
-            auto numbertype = XDMF::getNumberType<T>();
-            auto datatype   = DataTypeWrapper<T>();
-            channels.push_back(XDMF::Channel(channelName,
-                                             bufferPtr->data(),
-                                             formtype, numbertype, datatype));
-        }, channelDesc->varDataPtr);
-    }
-}
-
-void ParticleVector::_extractPersistentExtraParticleData(std::vector<XDMF::Channel>& channels,
-                                                         const std::set<std::string>& blackList) const
-{
-    _extractPersistentExtraData(local()->dataPerParticle, channels, blackList);
-}
-
 void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -294,14 +256,23 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
 
     XDMF::VertexGrid grid(positions, comm);
 
-    std::vector<XDMF::Channel> channels = {
-         { "velocity",       velocities.data(), XDMF::Channel::DataForm::Vector, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>  () },
-         { ChannelNames::globalIds, ids.data(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>() }
-    };
-
     // do not dump velocities, they are already there
-    _extractPersistentExtraParticleData(channels, /*blacklist*/ {ChannelNames::velocities});
+    const std::set<std::string> blackList {{ChannelNames::velocities}};
+
+    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+                                                                  local()->dataPerParticle,
+                                                                  blackList);
+
+    channels.emplace_back("velocity", velocities.data(),
+                          XDMF::Channel::DataForm::Vector,
+                          XDMF::Channel::NumberType::Float,
+                          DataTypeWrapper<float>());
     
+    channels.emplace_back(ChannelNames::globalIds, ids.data(),
+                          XDMF::Channel::DataForm::Scalar,
+                          XDMF::Channel::NumberType::Int64,
+                          DataTypeWrapper<int64_t>());
+
     XDMF::write(filename, &grid, channels, comm);
 
     createCheckpointSymlink(comm, path, "PV", "xmf", checkpointId);
