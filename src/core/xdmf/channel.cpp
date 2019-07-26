@@ -68,7 +68,7 @@ std::string dataFormToDescription(Channel::DataForm dataForm)
     }
 }
         
-Channel::DataForm descriptionToDataForm(std::string str)
+Channel::DataForm descriptionToDataForm(const std::string& str)
 {
     if (str == "Scalar")      return Channel::DataForm::Scalar;
     if (str == "Vector")      return Channel::DataForm::Vector;

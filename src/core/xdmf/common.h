@@ -6,7 +6,7 @@
 #include <memory>
 
 template<typename T>
-std::string to_string(std::vector<T, std::allocator<T>> v)
+std::string to_string(const std::vector<T, std::allocator<T>>& v)
 {
     std::ostringstream stream;
     std::copy(v.begin(), v.end(), std::ostream_iterator<T>(stream, " "));

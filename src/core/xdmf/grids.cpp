@@ -226,8 +226,8 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
 void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
 {
     positions->resize(dims.nlocal);
-    Channel posCh(positionChannelName, (void*) positions->data(),
-                  Channel::DataForm::Vector, Channel::NumberType::Float, DataTypeWrapper<float>());
+    Channel posCh(positionChannelName, positions->data(), Channel::DataForm::Vector,
+                  Channel::NumberType::Float, DataTypeWrapper<float>());
         
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
