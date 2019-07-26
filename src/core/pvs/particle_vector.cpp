@@ -309,19 +309,21 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
-void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &pos, std::vector<int>& map)
+std::vector<int> ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &pos)
 {
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
-    map.resize(pos.size());
+    std::vector<int> map(pos.size());
     int numberInvalid = 0;
     
-    for (int i = 0; i < pos.size(); ++i) {
+    for (int i = 0; i < pos.size(); ++i)
+    {
         const auto& r = make_float3(pos[i]);
         int3 procId3 = make_int3(floorf(r / state->domain.localSize));
 
-        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
+        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
+        {
             map[i] = RestartHelpers::InvalidProc;
             ++ numberInvalid;
             continue;
@@ -337,6 +339,8 @@ void ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<flo
 
     if (numberInvalid)
         warn("Restart: skipped %d invalid particle positions", numberInvalid);
+
+    return map;
 }
 
 std::vector<int> ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
@@ -359,8 +363,7 @@ std::vector<int> ParticleVector::_redistributeParticleData(MPI_Comm comm, int ch
     std::vector<float4> pos4(pos.begin(), pos.end());
     std::vector<float4> vel4(vel.begin(), vel.end());
 
-    std::vector<int> map;
-    _getRestartExchangeMap(comm, pos4, map);
+    auto map = _getRestartExchangeMap(comm, pos4);
     
     RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
     RestartHelpers::exchangeData(comm, map, vel4, chunkSize);

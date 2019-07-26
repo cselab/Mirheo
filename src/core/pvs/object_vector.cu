@@ -158,13 +158,13 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             view );
 }
 
-void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map)
+std::vector<int> ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos)
 {
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
 
     int nObjs = pos.size() / objSize;
-    map.resize(nObjs);
+    std::vector<int> map(nObjs);
     
     for (int i = 0, k = 0; i < nObjs; ++i) {
         auto com = make_float3(0);
@@ -185,6 +185,7 @@ void ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float
         MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
         map[i] = procId;
     }
+    return map;
 }
 
 

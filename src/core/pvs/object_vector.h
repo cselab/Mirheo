@@ -67,7 +67,7 @@ protected:
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
 
-    void _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos, std::vector<int>& map) override;
+    std::vector<int> _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos) override;
     std::vector<int> _restartParticleData(MPI_Comm comm, std::string path) override;
     void _redistributeObjectData(MPI_Comm comm, const std::vector<int>& map);
 
