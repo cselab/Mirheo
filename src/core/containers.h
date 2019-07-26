@@ -27,6 +27,13 @@ enum class ContainersSynch
 class GPUcontainer
 {
 public:
+    GPUcontainer() = default;
+    GPUcontainer           (const GPUcontainer&) = delete;
+    GPUcontainer& operator=(const GPUcontainer&) = delete;
+    GPUcontainer           (GPUcontainer&&) = delete;
+    GPUcontainer& operator=(GPUcontainer&&) = delete;
+    virtual ~GPUcontainer() = default;
+    
     virtual int size() const = 0;                                      ///< @return number of stored elements
     virtual int datatype_size() const = 0;                             ///< @return sizeof( element )
 
@@ -40,8 +47,6 @@ public:
     virtual void clearDevice(cudaStream_t stream) = 0;
     
     virtual GPUcontainer* produce() const = 0;                         ///< Create a new instance of the concrete container implementation
-
-    virtual ~GPUcontainer() = default;
 };
 
 //==================================================================================================================
@@ -57,56 +62,26 @@ public:
 template<typename T>
 class DeviceBuffer : public GPUcontainer
 {
-private:
-    int capacity;  ///< Storage buffer size
-    int _size;     ///< Number of elements stored now
-    T* devptr;     ///< Device pointer to data
-
-    /**
-     * Set #_size = \p n. If n > #capacity, allocate more memory
-     * and copy the old data on CUDA stream \p stream (only if \c copy is true)
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param stream data will be copied on that CUDA stream
-     * @param copy if we need to copy old data
-     */
-    void _resize(const int n, cudaStream_t stream, bool copy)
-    {
-        T * dold = devptr;
-        int oldsize = _size;
-
-        if (n < 0) die("Requested negative size %d", n);
-        _size = n;
-        if (capacity >= n) return;
-
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
-        capacity = 128 * ((conservative_estimate + 127) / 128);
-
-        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
-
-        if (copy && dold != nullptr)
-            if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
-
-        CUDA_Check(cudaFree(dold));
-
-        debug4("Allocating DeviceBuffer<%s> from %d x %d  to %d x %d",
-                typeid(T).name(),
-                oldsize, datatype_size(),
-                _size,   datatype_size());
-    }
-
 public:
 
     using value_type = T;
     
-    DeviceBuffer(int n = 0) :
-        capacity(0), _size(0), devptr(nullptr)
+    DeviceBuffer(int n = 0)
     {
         resize_anew(n);
     }
 
+    DeviceBuffer           (const DeviceBuffer& b)
+    {
+        this->copy(b);
+    }
+    
+    DeviceBuffer& operator=(const DeviceBuffer& b)
+    {
+        this->copy(b);
+        return *this;
+    }
+    
     /// To enable \c std::swap()
     DeviceBuffer (DeviceBuffer&& b)
     {
@@ -116,15 +91,18 @@ public:
     /// To enable \c std::swap()
     DeviceBuffer& operator=(DeviceBuffer&& b)
     {
-        if (this!=&b)
+        if (this != &b)
         {
+            if (devptr)
+                CUDA_Check(cudaFree(devptr));
+
             capacity = b.capacity;
-            _size = b._size;
-            devptr = b.devptr;
+            _size    = b._size;
+            devptr   = b.devptr;
 
             b.capacity = 0;
-            b._size = 0;
-            b.devptr = nullptr;
+            b._size    = 0;
+            b.devptr   = nullptr;
         }
 
         return *this;
@@ -184,6 +162,14 @@ public:
         resize_anew(cont.size());
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
     }
+
+    // synchronous copy
+    auto copy(const DeviceBuffer<T>& cont)
+    {
+        resize_anew(cont.size());
+        if (_size > 0)
+            CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
+    }
     
     /**
      * Copy data from PinnedBuffer of the same template type
@@ -198,6 +184,46 @@ public:
     {
         resize_anew(cont.size());
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
+    }
+
+private:
+    int capacity   {0}; ///< Storage buffer size
+    int _size      {0}; ///< Number of elements stored now
+    T* devptr{nullptr}; ///< Device pointer to data
+
+    /**
+     * Set #_size = \p n. If n > #capacity, allocate more memory
+     * and copy the old data on CUDA stream \p stream (only if \c copy is true)
+     *
+     * If debug level is high enough, will report cases when the buffer had to grow
+     *
+     * @param n new size, must be >= 0
+     * @param stream data will be copied on that CUDA stream
+     * @param copy if we need to copy old data
+     */
+    void _resize(const int n, cudaStream_t stream, bool copy)
+    {
+        T * dold = devptr;
+        int oldsize = _size;
+
+        if (n < 0) die("Requested negative size %d", n);
+        _size = n;
+        if (capacity >= n) return;
+
+        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        capacity = 128 * ((conservative_estimate + 127) / 128);
+
+        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
+
+        if (copy && dold != nullptr)
+            if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+
+        CUDA_Check(cudaFree(dold));
+
+        debug4("Allocating DeviceBuffer<%s> from %d x %d  to %d x %d",
+                typeid(T).name(),
+                oldsize, datatype_size(),
+                _size,   datatype_size());
     }
 };
 
@@ -218,47 +244,19 @@ public:
 template<typename T>
 class HostBuffer
 {
-private:
-    int capacity;   ///< Storage buffer size
-    int _size;      ///< Number of elements stored now
-    T * hostptr;    ///< Host pointer to data
-
-    /**
-     * Set #_size = \e n. If \e n > #capacity, allocate more memory
-     * and copy the old data (only if \e copy is true)
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param copy if we need to copy old data
-     */
-    void _resize(const int n, bool copy)
-    {
-        T * hold = hostptr;
-        int oldsize = _size;
-
-        if (n < 0) die("Requested negative size %d", n);
-        _size = n;
-        if (capacity >= n) return;
-
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
-        capacity = 128 * ((conservative_estimate + 127) / 128);
-
-        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
-
-        if (copy && hold != nullptr)
-            if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
-
-        CUDA_Check(cudaFreeHost(hold));
-
-        debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
-                typeid(T).name(),
-                oldsize, datatype_size(),
-                _size,   datatype_size());
-    }
-
 public:
-    HostBuffer(int n = 0): capacity(0), _size(0), hostptr(nullptr) { resize_anew(n); }
+    HostBuffer(int n = 0) { resize_anew(n); }
+
+    HostBuffer           (const HostBuffer& b)
+    {
+        this->copy(b);
+    }
+    
+    HostBuffer& operator=(const HostBuffer& b)
+    {
+        this->copy(b);
+        return *this;
+    }
 
     /// To enable \c std::swap()
     HostBuffer(HostBuffer&& b)
@@ -269,15 +267,18 @@ public:
     /// To enable \c std::swap()
     HostBuffer& operator=(HostBuffer&& b)
     {
-        if (this!=&b)
+        if (this != &b)
         {
+            if (hostptr)
+                CUDA_Check(cudaFreeHost(hostptr));
+            
             capacity = b.capacity;
-            _size = b._size;
-            hostptr = b.hostptr;
+            _size    = b._size;
+            hostptr  = b.hostptr;
 
             b.capacity = 0;
-            b._size = 0;
-            b.hostptr = nullptr;
+            b._size    = 0;
+            b.hostptr  = nullptr;
         }
 
         return *this;
@@ -318,7 +319,9 @@ public:
     template<typename Cont>
     auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
     {
-        static_assert(std::is_same<decltype(hostptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
+        static_assert(std::is_same<decltype(hostptr),
+                      decltype(cont.hostPtr())>::value,
+                      "can't copy buffers of different types");
 
         resize(cont.size());
         memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
@@ -348,6 +351,45 @@ public:
         resize(cont->size() * typeSizeFactor);
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont->genericDevPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
     }
+    
+private:
+    int capacity     {0}; ///< Storage buffer size
+    int _size        {0}; ///< Number of elements stored now
+    T* hostptr {nullptr}; ///< Host pointer to data
+
+    /**
+     * Set #_size = \e n. If \e n > #capacity, allocate more memory
+     * and copy the old data (only if \e copy is true)
+     *
+     * If debug level is high enough, will report cases when the buffer had to grow
+     *
+     * @param n new size, must be >= 0
+     * @param copy if we need to copy old data
+     */
+    void _resize(const int n, bool copy)
+    {
+        T * hold = hostptr;
+        int oldsize = _size;
+
+        if (n < 0) die("Requested negative size %d", n);
+        _size = n;
+        if (capacity >= n) return;
+
+        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        capacity = 128 * ((conservative_estimate + 127) / 128);
+
+        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
+
+        if (copy && hold != nullptr)
+            if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
+
+        CUDA_Check(cudaFreeHost(hold));
+
+        debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
+                typeid(T).name(),
+                oldsize, datatype_size(),
+                _size,   datatype_size());
+    }
 };
 
 //==================================================================================================================
@@ -372,69 +414,24 @@ public:
 template<typename T>
 class PinnedBuffer : public GPUcontainer
 {
-private:
-    int capacity;   ///< Storage buffers size
-    int _size;      ///< Number of elements stored now
-    T * hostptr;    ///< Host pointer to data
-    T * devptr;     ///< Device pointer to data
-
-    /**
-     * Set #_size = \p n. If n > #capacity, allocate more memory
-     * and copy the old data on CUDA stream \p stream (only if \p copy is true)
-     * Copy both host and device data if \p copy is true
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param stream data will be copied on that CUDA stream
-     * @param copy if we need to copy old data
-     */
-    void _resize(const int n, cudaStream_t stream, bool copy)
-    {
-        T * hold = hostptr;
-        T * dold = devptr;
-        int oldsize = _size;
-
-        if (n < 0) die("Requested negative size %d", n);
-        _size = n;
-        if (capacity >= n) return;
-
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
-        capacity = 128 * ((conservative_estimate + 127) / 128);
-
-        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
-        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
-
-        if (copy && hold != nullptr && oldsize > 0)
-        {
-            memcpy(hostptr, hold, sizeof(T) * oldsize);
-            CUDA_Check( cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream) );
-            CUDA_Check( cudaStreamSynchronize(stream) );
-        }
-
-        CUDA_Check(cudaFreeHost(hold));
-        CUDA_Check(cudaFree(dold));
-
-        debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
-                typeid(T).name(),
-                oldsize, datatype_size(),
-                _size,   datatype_size());
-    }
-
 public:
 
     using value_type = T;
     
-    PinnedBuffer(int n = 0) :
-        capacity(0), _size(0), hostptr(nullptr), devptr(nullptr)
+    PinnedBuffer(int n = 0)
     {
         resize_anew(n);
     }
 
-    PinnedBuffer (const PinnedBuffer& b) :
-        capacity(0), _size(0), hostptr(nullptr), devptr(nullptr)
+    PinnedBuffer(const PinnedBuffer& b)
     {
         this->copy(b);
+    }
+
+    PinnedBuffer& operator=(const PinnedBuffer& b)
+    {
+        this->copy(b);
+        return *this;
     }
 
     /// To enable \c std::swap()
@@ -592,6 +589,55 @@ public:
             CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
             memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
         }
+    }
+
+private:
+    int capacity     {0}; ///< Storage buffers size
+    int _size        {0}; ///< Number of elements stored now
+    T* hostptr {nullptr}; ///< Host pointer to data
+    T* devptr  {nullptr}; ///< Device pointer to data
+
+    /**
+     * Set #_size = \p n. If n > #capacity, allocate more memory
+     * and copy the old data on CUDA stream \p stream (only if \p copy is true)
+     * Copy both host and device data if \p copy is true
+     *
+     * If debug level is high enough, will report cases when the buffer had to grow
+     *
+     * @param n new size, must be >= 0
+     * @param stream data will be copied on that CUDA stream
+     * @param copy if we need to copy old data
+     */
+    void _resize(const int n, cudaStream_t stream, bool copy)
+    {
+        T * hold = hostptr;
+        T * dold = devptr;
+        int oldsize = _size;
+
+        if (n < 0) die("Requested negative size %d", n);
+        _size = n;
+        if (capacity >= n) return;
+
+        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        capacity = 128 * ((conservative_estimate + 127) / 128);
+
+        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
+        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
+
+        if (copy && hold != nullptr && oldsize > 0)
+        {
+            memcpy(hostptr, hold, sizeof(T) * oldsize);
+            CUDA_Check( cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream) );
+            CUDA_Check( cudaStreamSynchronize(stream) );
+        }
+
+        CUDA_Check(cudaFreeHost(hold));
+        CUDA_Check(cudaFree(dold));
+
+        debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
+                typeid(T).name(),
+                oldsize, datatype_size(),
+                _size,   datatype_size());
     }
 };
 
