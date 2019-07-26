@@ -1,20 +1,27 @@
 #pragma once
 
-#include <mpi.h>
-#include <vector>
-
 #include <core/domain.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/type_shift.h>
 
+#include <mpi.h>
+#include <tuple>
+#include <vector>
 
 namespace RestartHelpers
 {
 constexpr int InvalidProc = -1;
 constexpr int tag = 4243;
 
-void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
-                          LocalParticleVector *local);
+std::tuple<std::vector<float3>,
+           std::vector<float3>,
+           std::vector<int64_t>>
+splitAndShiftPosVel(const DomainInfo &domain,
+                    const PinnedBuffer<float4>& pos4,
+                    const PinnedBuffer<float4>& vel4);
+
+void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos,
+                          const std::vector<float4>& vel, LocalParticleVector *local);
 
 template<typename T>
 static void sendData(const std::vector<std::vector<T>> &sendBufs, std::vector<MPI_Request> &reqs, MPI_Comm comm)

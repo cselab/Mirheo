@@ -232,26 +232,6 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-static void splitPV(DomainInfo domain, LocalParticleVector *local,
-                    std::vector<float3> &pos, std::vector<float3> &vel, std::vector<int64_t> &ids)
-{
-    int n = local->size();
-    pos.resize(n);
-    vel.resize(n);
-    ids.resize(n);
-
-    auto pos4 = local->positions();
-    auto vel4 = local->velocities();
-    
-    for (int i = 0; i < n; i++)
-    {
-        auto p = Particle(pos4[i], vel4[i]);
-        pos[i] = domain.local2global(p.r);
-        vel[i] = p.u;
-        ids[i] = p.getId();
-    }
-}
-
 void ParticleVector::_extractPersistentExtraData(const DataManager& extraData,
                                                  std::vector<XDMF::Channel>& channels,
                                                  const std::set<std::string>& blackList) const
@@ -299,13 +279,18 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     info("Checkpoint for particle vector '%s', writing to file %s",
          name.c_str(), filename.c_str());
 
-    local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);
-    local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
+    auto& pos4 = local()->positions ();
+    auto& vel4 = local()->velocities();
+    
+    pos4.downloadFromDevice(defaultStream, ContainersSynch::Asynch);
+    vel4.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     auto positions = std::make_shared<std::vector<float3>>();
     std::vector<float3> velocities;
     std::vector<int64_t> ids;
-    splitPV(state->domain, local(), *positions, velocities, ids);
+    
+    std::tie(*positions, velocities, ids) = RestartHelpers::splitAndShiftPosVel(state->domain,
+                                                                                pos4, vel4);
 
     XDMF::VertexGrid grid(positions, comm);
 
@@ -315,7 +300,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     };
 
     // do not dump velocities, they are already there
-    _extractPersistentExtraParticleData(channels, {ChannelNames::velocities});
+    _extractPersistentExtraParticleData(channels, /*blacklist*/ {ChannelNames::velocities});
     
     XDMF::write(filename, &grid, channels, comm);
 
