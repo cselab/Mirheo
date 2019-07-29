@@ -8,9 +8,9 @@
 #include <fstream>
 #include <random>
 
-void static readXYZ(std::string fname, PyTypes::VectorOfFloat3& positions)
+static PyTypes::VectorOfFloat3 readXYZ(std::string fname)
 {
-    enum {X=0, Y=1, Z=2};
+    PyTypes::VectorOfFloat3 positions;
     int n;
     float dummy;
     std::string line;
@@ -25,22 +25,26 @@ void static readXYZ(std::string fname, PyTypes::VectorOfFloat3& positions)
     std::getline(fin, line);
 
     positions.resize(n);
-    for (int i=0; i<n; i++)
-        fin >> dummy >> positions[i][X] >> positions[i][Y] >> positions[i][Z];
+    for (int i = 0; i < n; ++i)
+        fin >> dummy >> positions[i][0] >> positions[i][1] >> positions[i][2];
+    return positions;
 }
 
 RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
-    com_q(com_q)
-{
-    readXYZ(xyzfname, coords);
-}
-
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords) :
-    com_q(com_q), coords(coords)
+    RigidIC(com_q, readXYZ(xyzfname))
 {}
 
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords, const PyTypes::VectorOfFloat3& comVelocities) :
-    com_q(com_q), coords(coords), comVelocities(comVelocities)
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords) :
+    com_q(com_q),
+    coords(coords)
+{}
+
+RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q,
+                 const PyTypes::VectorOfFloat3& coords,
+                 const PyTypes::VectorOfFloat3& comVelocities) :
+    com_q(com_q),
+    coords(coords),
+    comVelocities(comVelocities)
 {
     if (com_q.size() != comVelocities.size())
         die("Incompatible sizes of initial positions and rotations");
@@ -49,24 +53,27 @@ RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& c
 RigidIC::~RigidIC() = default;
 
 
-static void copyToPinnedBuffer(const PyTypes::VectorOfFloat3& in, PinnedBuffer<float4>& out, cudaStream_t stream)
+static PinnedBuffer<float4> getPositions(const PyTypes::VectorOfFloat3& in, cudaStream_t stream)
 {
-    enum {X=0, Y=1, Z=2};
-    out.resize_anew(in.size());
-
+    PinnedBuffer<float4> out(in.size());
+    
     for (int i = 0; i < in.size(); ++i)
-        out[i] = make_float4(in[i][X], in[i][Y], in[i][Z], 0);
+        out[i] = make_float4(in[i][0], in[i][1], in[i][2], 0);
         
-    out.uploadToDevice(stream);    
+    out.uploadToDevice(stream);
+    return out;
 }
 
-void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
+void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     if (ov == nullptr)
         die("Can only generate rigid object vector");
 
-    copyToPinnedBuffer(coords, ov->initialPositions, stream);
+    ov->initialPositions = getPositions(coords, stream);
+
+    auto lov = ov->local();
+    
     if (ov->objSize != ov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
             ov->name.c_str(), ov->objSize, ov->initialPositions.size());
@@ -85,7 +92,8 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
         motion.q = make_rigidReal4( make_float4(entry[3], entry[4], entry[5], entry[6]) );
         motion.q = normalize(motion.q);
         
-        if (i < comVelocities.size()) motion.vel = {comVelocities[i][0], comVelocities[i][1], comVelocities[i][2]};
+        if (i < comVelocities.size())
+            motion.vel = {comVelocities[i][0], comVelocities[i][1], comVelocities[i][2]};
 
         if (ov->state->domain.inSubDomain(motion.r))
         {
@@ -96,21 +104,25 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream
         }
     }
 
-    ov->local()->resize_anew(nObjs * ov->objSize);
+    lov->resize_anew(nObjs * ov->objSize);
 
-    auto ovMotions = ov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-    ovMotions->copy(motions);
-    ovMotions->uploadToDevice(stream);
+    auto& ovMotions = *lov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    ovMotions.copy(motions);
+    ovMotions.uploadToDevice(stream);
 
-    ov->local()->positions().uploadToDevice(stream);
-    ov->local()->velocities().uploadToDevice(stream);
-    ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
+    auto& positions = lov->positions();
+    
+    positions.uploadToDevice(stream);
+    lov->velocities().uploadToDevice(stream);
+    lov->computeGlobalIds(comm, stream);
+
+    auto& oldPositions = *lov->dataPerParticle.getData<float4>(ChannelNames::oldPositions);
+    oldPositions.copy(positions, stream);
 
     info("Read %d %s objects", nObjs, ov->name.c_str());
 
     // Do the initial rotation
-    ov->local()->forces().clear(stream);
+    lov->forces().clear(stream);
     MirState dummyState(ov->state->domain, /* dt */ 0.f);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
     integrator.stage2(pv, stream);
