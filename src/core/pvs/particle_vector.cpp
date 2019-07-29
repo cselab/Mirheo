@@ -280,93 +280,65 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
-std::vector<int> ParticleVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4> &pos)
-{
-    int dims[3], periods[3], coords[3];
-    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
-
-    std::vector<int> map(pos.size());
-    int numberInvalid = 0;
-    
-    for (int i = 0; i < pos.size(); ++i)
-    {
-        const auto& r = make_float3(pos[i]);
-        int3 procId3 = make_int3(floorf(r / state->domain.localSize));
-
-        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2])
-        {
-            map[i] = RestartHelpers::InvalidProc;
-            ++ numberInvalid;
-            continue;
-        }
-        
-        int procId;
-        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
-        map[i] = procId;
-
-        int rank;
-        MPI_Comm_rank(comm, &rank);
-    }
-
-    if (numberInvalid)
-        warn("Restart: skipped %d invalid particle positions", numberInvalid);
-
-    return map;
-}
-
-ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, std::string path)
+ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, std::string path,
+                                                                 int chunkSize)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     
     auto filename = createCheckpointName(path, "PV", "xmf");
-    info("Restarting particle vector %s from file %s", name.c_str(), filename.c_str());
+    info("Restarting particle data from file %s", name.c_str(), filename.c_str());
 
-    XDMF::readParticleData(filename, comm, this);
+    auto listData = RestartHelpers::readData(filename, comm, chunkSize);
 
-    return _redistributeParticleData(comm);
-}
-
-ParticleVector::ExchMapSize ParticleVector::_redistributeParticleData(MPI_Comm comm, int chunkSize)
-{
-    auto& pos = local()->positions();
-    std::vector<float4> pos4(pos.begin(), pos.end());
-
-    auto map     = _getRestartExchangeMap(comm, pos4);
-    auto newSize = RestartHelpers::getLocalNumElementsAfterExchange(comm, map);
-
-    DataManager newData(local()->dataPerParticle);
+    auto pos = RestartHelpers::extractChannel<float3> (ChannelNames::XDMF::position, listData);
+    auto vel = RestartHelpers::extractChannel<float3> (ChannelNames::XDMF::velocity, listData);
+    auto ids = RestartHelpers::extractChannel<int64_t>(ChannelNames::XDMF::ids,      listData);
     
-    newData.resize_anew(newSize * chunkSize);
+    std::vector<float4> pos4, vel4;
+    std::tie(pos4, vel4) = RestartHelpers::combinePosVelIds(pos, vel, ids);
 
-    for (auto& ch : local()->dataPerParticle.getSortedChannels())
+    auto map = RestartHelpers::getExchangeMap(comm, state->domain, chunkSize, pos);
+
+    RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
+    RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
+    RestartHelpers::exchangeListData(comm, map, listData, chunkSize);
+
+    const int newSize = pos4.size() / chunkSize;
+
+    auto& dataPerParticle = local()->dataPerParticle;
+    dataPerParticle.resize_anew(newSize * chunkSize);
+
+    auto& positions  = local()->positions();
+    auto& velocities = local()->velocities();
+
+    RestartHelpers::shiftElementsGlobal2Local(pos4, state->domain);
+    
+    std::copy(pos4.begin(), pos4.end(), positions .begin());
+    std::copy(vel4.begin(), vel4.end(), velocities.begin());
+
+    positions .uploadToDevice(defaultStream);
+    velocities.uploadToDevice(defaultStream);
+
+    for (auto& entry : listData)
     {
-        auto& name = ch.first;
-        auto& desc = ch.second;
-
-        mpark::visit([&](auto bufferPtr)
+        auto channelDesc = &dataPerParticle.getChannelDescOrDie(entry.name);
+        
+        mpark::visit([&](const auto& data)
         {
-            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
-            RestartHelpers::exchangeData(comm, map, data, chunkSize);
+            using T = typename std::remove_reference<decltype(data)>::type::value_type;
+            auto dstPtr = dataPerParticle.getData<T>(entry.name);
 
-            if (desc->needShift())
+            if (channelDesc->needShift())
                 RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
 
-            auto *dstBuffer = newData.getData<T>(name);
-            std::copy(data.begin(), data.end(), dstBuffer->begin());
-            dstBuffer->uploadToDevice(defaultStream);
-        }, desc->varDataPtr);
+            std::copy(data.begin(), data.end(), dstPtr->begin());
+            dstPtr->uploadToDevice(defaultStream);
+            
+        }, entry.data);
     }
-
-    swap(local()->dataPerParticle, newData);
     
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    info("Successfully read %d particles", local()->size());
-
     return {map, newSize};
 }
-
 
 void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 {
@@ -375,7 +347,8 @@ void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointI
 
 void ParticleVector::restart(MPI_Comm comm, std::string path)
 {
-    auto ms = _restartParticleData(comm, path);
+    constexpr int particleChunkSize = 1;
+    auto ms = _restartParticleData(comm, path, particleChunkSize);
     local()->resize(ms.newSize, defaultStream);
 }
 

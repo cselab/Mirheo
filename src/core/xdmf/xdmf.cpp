@@ -49,8 +49,9 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
 
     std::string h5filename;
     VertexChannelsData vertexData;
-    
-    VertexGrid grid(vertexData.positions, comm);
+
+    auto positions = std::make_shared<std::vector<float3>>();
+    VertexGrid grid(positions, comm);
 
     mTimer timer;
     timer.start();
@@ -79,6 +80,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
     HDF5::read(h5filename, comm, &grid, vertexData.descriptions);
     info("Reading took %f ms", timer.elapsed());
 
+    vertexData.positions = std::move(*positions);
     return vertexData;
 }
 

@@ -159,49 +159,6 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             view );
 }
 
-std::vector<int> ObjectVector::_getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos)
-{
-    int dims[3], periods[3], coords[3];
-    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
-
-    int nObjs = pos.size() / objSize;
-    std::vector<int> map(nObjs);
-    
-    for (int i = 0, k = 0; i < nObjs; ++i) {
-        auto com = make_float3(0);
-
-        for (int j = 0; j < objSize; ++j, ++k)
-            com += make_float3(pos[k]);
-
-        com /= objSize;
-
-        int3 procId3 = make_int3(floorf(com / state->domain.localSize));
-
-        if (procId3.x >= dims[0] || procId3.y >= dims[1] || procId3.z >= dims[2]) {
-            map[i] = RestartHelpers::InvalidProc;
-            continue;
-        }
-        
-        int procId;
-        MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
-        map[i] = procId;
-    }
-    return map;
-}
-
-
-ParticleVector::ExchMapSize ObjectVector::_restartParticleData(MPI_Comm comm, std::string path)
-{
-    CUDA_Check( cudaDeviceSynchronize() );
-
-    auto filename = createCheckpointName(path, "PV", "xmf");
-    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
-
-    XDMF::readParticleData(filename, comm, this, objSize);
-
-    return _redistributeParticleData(comm, objSize);
-}
-
 static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents,
                      std::vector<float3>& pos)
 {
@@ -242,51 +199,41 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void ObjectVector::_redistributeObjectData(MPI_Comm comm, const ObjectVector::ExchMapSize& ms)
-{
-    DataManager newData(local()->dataPerObject);
-    newData.resize_anew(ms.newSize);
-    
-    for (auto& ch : local()->dataPerObject.getSortedChannels())
-    {
-        auto& name = ch.first;
-        auto& desc = ch.second;
-
-        if (desc->persistence == DataManager::PersistenceMode::None)
-            continue;
-        
-        mpark::visit([&](auto bufferPtr)
-        {
-            using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
-            std::vector<T> data(bufferPtr->begin(), bufferPtr->end());
-            RestartHelpers::exchangeData(comm, ms.map, data, 1);
-            bufferPtr->resize_anew(data.size());
-
-            if (desc->needShift())
-                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
-
-            auto *dstBuffer = newData.getData<T>(name);
-            std::copy(data.begin(), data.end(), dstBuffer->begin());
-            dstBuffer->uploadToDevice(defaultStream);
-        }, desc->varDataPtr);
-    }
-
-    swap(local()->dataPerObject, newData);
-
-    CUDA_Check( cudaDeviceSynchronize() );
-}
-
 void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
                                       const ObjectVector::ExchMapSize& ms)
 {
+    constexpr int objChunkSize = 1; // only one datum per object
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, "OV", "xmf");
     info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
-    XDMF::readObjectData(filename, comm, this);
+    auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
-    _redistributeObjectData(comm, ms);
+    // remove positions from the read data (artificial for non rov)
+    RestartHelpers::extractChannel<float3> (ChannelNames::XDMF::position, listData);
+
+    auto& dataPerObject = local()->dataPerObject;
+    dataPerObject.resize_anew(ms.newSize);
+
+    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
+
+    for (auto& entry : listData)
+    {
+        auto channelDesc = &dataPerObject.getChannelDescOrDie(entry.name);
+        
+        mpark::visit([&](const auto& data)
+        {
+            using T = typename std::remove_reference<decltype(data)>::type::value_type;
+            auto dstPtr = dataPerObject.getData<T>(entry.name);
+
+            if (channelDesc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            std::copy(data.begin(), data.end(), dstPtr->begin());
+            dstPtr->uploadToDevice(defaultStream);
+        }, entry.data);
+    }
     
     info("Successfully read object infos of '%s'", name.c_str());
 }
@@ -299,7 +246,7 @@ void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
 
 void ObjectVector::restart(MPI_Comm comm, std::string path)
 {
-    auto ms = _restartParticleData(comm, path);
+    auto ms = _restartParticleData(comm, path, objSize);
     _restartObjectData(comm, path, ms);
     
     local()->resize(ms.newSize * objSize, defaultStream);

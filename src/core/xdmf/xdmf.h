@@ -19,7 +19,7 @@ void write(const std::string& filename, const Grid *grid,
 
 struct VertexChannelsData
 {
-    std::shared_ptr<std::vector<float3>> positions;
+    std::vector<float3> positions;
     std::vector<Channel> descriptions;
     std::vector<std::vector<char>> data;    
 };

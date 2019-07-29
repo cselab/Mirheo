@@ -66,11 +66,6 @@ protected:
     ObjectVector(const MirState *state, std::string name, float mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
-
-    ExchMap _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& pos) override;
-    ExchMapSize _restartParticleData(MPI_Comm comm, std::string path) override;
-    
-    void _redistributeObjectData(MPI_Comm comm, const ExchMapSize& ms);
     
     virtual void _checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId);
     virtual void _restartObjectData(MPI_Comm comm, std::string path, const ExchMapSize& ms);

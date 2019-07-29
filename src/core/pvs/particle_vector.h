@@ -93,12 +93,9 @@ protected:
         ExchMap map;
         int newSize;
     };
-
-    virtual ExchMap _getRestartExchangeMap(MPI_Comm comm, const std::vector<float4>& parts);
-    ExchMapSize _redistributeParticleData(MPI_Comm comm, int chunkSize=1);
     
     virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
-    virtual ExchMapSize _restartParticleData(MPI_Comm comm, std::string path);
+    virtual ExchMapSize _restartParticleData(MPI_Comm comm, std::string path, int chunkSize);
 
 private:
 

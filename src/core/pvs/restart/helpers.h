@@ -31,18 +31,50 @@ using ExchMap  = std::vector<int>;
 
 ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize);
 
-ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
-                       const std::vector<float3>& positions);
+template<typename T>
+std::vector<T> extractChannel(const std::string& name, ListData& channels)
+{
+    using VecType = std::vector<T>;
 
-ExchMap getExchangeMapObjects(MPI_Comm comm, const DomainInfo domain,
-                              int objSize, const std::vector<float3>& positions);
+    for (auto it = channels.begin(); it != channels.end(); ++it)
+    {
+        if (it->name != name) continue;
+
+        if (mpark::holds_alternative<VecType>(it->data))
+        {
+            VecType v {std::move(mpark::get<VecType>(it->data))};
+            channels.erase(it);
+            return v;
+        }
+        else
+        {
+            mpark::visit([&](const auto& vec)
+            {
+                using VecType = typename std::remove_reference<decltype(vec)>::type::value_type;
+                die ("could not retrieve channel '%s' with given type: got %s instead of %s",
+                     name.c_str(), typeid(VecType).name(), typeid(T).name());
+            }, it->data);
+        }
+    }
+    die ("could not find channel '%s'", name.c_str());
+    return {};
+}
+
+ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
+                       int objSize, const std::vector<float3>& positions);
 
 std::tuple<std::vector<float4>, std::vector<float4>>
 combinePosVelIds(const std::vector<float3>& pos,
                  const std::vector<float3>& vel,
                  const std::vector<int64_t>& ids);
 
-
+std::vector<RigidMotion>
+combineMotions(const std::vector<float3>& pos,
+               const std::vector<RigidReal4>& quaternion,
+               const std::vector<RigidReal3>& vel,
+               const std::vector<RigidReal3>& omega,
+               const std::vector<RigidReal3>& force,
+               const std::vector<RigidReal3>& torque);
 
 void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos,
                           const std::vector<float4>& vel, LocalParticleVector *local);
@@ -132,6 +164,8 @@ static void exchangeData(MPI_Comm comm, const ExchMap& map,
 
     MPI_Check( MPI_Waitall(sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
 }
+
+void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int chunkSize = 1);
 
 template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)

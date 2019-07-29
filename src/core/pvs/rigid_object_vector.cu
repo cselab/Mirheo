@@ -133,7 +133,8 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointNameWithId(path, "ROV", "", checkpointId);
-    info("Checkpoint for rigid object vector '%s', writing to file %s", name.c_str(), filename.c_str());
+    info("Checkpoint for rigid object vector '%s', writing to file %s",
+         name.c_str(), filename.c_str());
 
     auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
@@ -185,14 +186,54 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
                                            const RigidObjectVector::ExchMapSize& ms)
 {
+    using namespace RestartHelpers;
+    constexpr int objChunkSize = 1; // only one datum per object
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, "ROV", "xmf");
     info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
-    XDMF::readRigidObjectData(filename, comm, this);
+    auto listData = readData(filename, comm, objChunkSize);
 
-    _redistributeObjectData(comm, ms);
+    namespace ChNames = ChannelNames::XDMF;
+    auto pos        = extractChannel<float3>     (ChNames::position,            listData);
+    auto quaternion = extractChannel<RigidReal4> (ChNames::Motions::quaternion, listData);
+    auto vel        = extractChannel<RigidReal3> (ChNames::Motions::velocity,   listData);
+    auto omega      = extractChannel<RigidReal3> (ChNames::Motions::omega,      listData);
+    auto force      = extractChannel<RigidReal3> (ChNames::Motions::force,      listData);
+    auto torque     = extractChannel<RigidReal3> (ChNames::Motions::torque,     listData);
 
+    auto motions = combineMotions(pos, quaternion, vel, omega, force, torque);
+    
+    auto& dataPerObject = local()->dataPerObject;
+    dataPerObject.resize_anew(ms.newSize);
+
+    exchangeData    (comm, ms.map, motions,  objChunkSize);
+    exchangeListData(comm, ms.map, listData, objChunkSize);
+
+    shiftElementsGlobal2Local(motions, state->domain);
+
+    auto& dstMotions = *dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+
+    std::copy(motions.begin(), motions.end(), dstMotions.begin());
+    dstMotions.uploadToDevice(defaultStream);
+    
+    for (auto& entry : listData)
+    {
+        auto channelDesc = &dataPerObject.getChannelDescOrDie(entry.name);
+        
+        mpark::visit([&](const auto& data)
+        {
+            using T = typename std::remove_reference<decltype(data)>::type::value_type;
+            auto dstPtr = dataPerObject.getData<T>(entry.name);
+
+            if (channelDesc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
+
+            std::copy(data.begin(), data.end(), dstPtr->begin());
+            dstPtr->uploadToDevice(defaultStream);
+        }, entry.data);
+    }
+    
     info("Successfully read object infos of '%s'", name.c_str());
 }
