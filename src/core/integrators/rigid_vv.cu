@@ -51,33 +51,53 @@ void IntegratorVVRigid::stage1(ParticleVector *pv, cudaStream_t stream)
 void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     float dt = state->dt;
-    auto ov = dynamic_cast<RigidObjectVector*> (pv);
+    auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
-          ov->local()->nObjects, ov->name.c_str(), ov->local()->size(), dt);
+          rov->local()->nObjects, rov->name.c_str(), rov->local()->size(), dt);
 
-    ROVviewWithOldMotion ovView(ov, ov->local());
+    ROVviewWithOldMotion rovView(rov, rov->local());
 
-    SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::collectRigidForces,
-        getNblocks(2*ovView.size, 128), 128, 0, stream,
-        ovView );
+    {
+        const int nthreads = 128;
+        const int nblocks = getNblocks(2*rovView.size, nthreads);
 
-    SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::integrateRigidMotion,
-        getNblocks(ovView.nObjects, 64), 64, 0, stream,
-        ovView, dt );
+        SAFE_KERNEL_LAUNCH(
+            RigidIntegrationKernels::collectRigidForces,
+            nblocks, nthreads, 0, stream,
+            rovView );
+    }
 
+    {
+        const int nthreads = 64;
+        const int nblocks = getNblocks(rovView.nObjects, nthreads);
+        
+        SAFE_KERNEL_LAUNCH(
+            RigidIntegrationKernels::integrateRigidMotion,
+            nblocks, nthreads, 0, stream,
+            rovView, dt );
+    }
+
+    {
+        const int nthreads = 128;
+        const int nblocks = getNblocks(rovView.size, nthreads);
+        
     SAFE_KERNEL_LAUNCH(
         RigidIntegrationKernels::applyRigidMotion
             <RigidIntegrationKernels::ApplyRigidMotion::PositionsAndVelocities>,
-        getNblocks(ovView.size, 128), 128, 0, stream,
-        ovView, ov->initialPositions.devPtr() );
+        nblocks, nthreads, 0, stream,
+        rovView, rov->initialPositions.devPtr() );
+    }
 
-    SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::clearRigidForces,
-        getNblocks(ovView.nObjects, 64), 64, 0, stream,
-        ovView );
+    {
+        const int nthreads = 64;
+        const int nblocks = getNblocks(rovView.nObjects, nthreads);
+
+        SAFE_KERNEL_LAUNCH(
+            RigidIntegrationKernels::clearRigidForces,
+            nblocks, nthreads, 0, stream,
+            rovView );
+    }
 
     invalidatePV(pv);
 }
