@@ -126,8 +126,8 @@ static void gatherFromChannels(const std::vector<Channel>& channels,
 
     for (auto& ch : channels)
     {
-        if      (ch.name == "velocity"              ) vel = (const float3*)  ch.data;            
-        else if (ch.name == ChannelNames::globalIds ) ids = (const int64_t*) ch.data;
+        if      (ch.name == ChannelNames::XDMF::velocity) vel = (const float3*)  ch.data;
+        else if (ch.name == ChannelNames::XDMF::ids)      ids = (const int64_t*) ch.data;
         else addPersistentExtraDataPerParticle(n, ch, pv);
     }
 

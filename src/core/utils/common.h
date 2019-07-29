@@ -41,6 +41,9 @@ static const std::string globalIds   = "ids";
 
 namespace XDMF
 {
+static const std::string position = "position";
+static const std::string velocity = "velocity";
+static const std::string ids      = "ids";
 namespace Motions
 {
 static const std::string quaternion = "quaternion";
