@@ -8,6 +8,26 @@
 
 namespace CheckpointHelpers
 {
+std::tuple<std::vector<float3>,
+           std::vector<float3>,
+           std::vector<int64_t>>
+splitAndShiftPosVel(const DomainInfo &domain,
+                    const PinnedBuffer<float4>& pos4,
+                    const PinnedBuffer<float4>& vel4)
+{
+    auto n = pos4.size();
+    std::vector<float3> pos(n), vel(n);
+    std::vector<int64_t> ids(n);
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        auto p = Particle(pos4[i], vel4[i]);
+        pos[i] = domain.local2global(p.r);
+        vel[i] = p.u;
+        ids[i] = p.getId();
+    }
+    return {pos, vel, ids};
+}
 
 template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)

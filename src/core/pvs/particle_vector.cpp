@@ -251,8 +251,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     std::vector<float3> velocities;
     std::vector<int64_t> ids;
     
-    std::tie(*positions, velocities, ids) = RestartHelpers::splitAndShiftPosVel(state->domain,
-                                                                                pos4, vel4);
+    std::tie(*positions, velocities, ids) = CheckpointHelpers::splitAndShiftPosVel(state->domain,
+                                                                                   pos4, vel4);
 
     XDMF::VertexGrid grid(positions, comm);
 
@@ -263,12 +263,12 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
                                                                   local()->dataPerParticle,
                                                                   blackList);
 
-    channels.emplace_back("velocity", velocities.data(),
+    channels.emplace_back(ChannelNames::XDMF::velocity, velocities.data(),
                           XDMF::Channel::DataForm::Vector,
                           XDMF::Channel::NumberType::Float,
                           DataTypeWrapper<float>());
     
-    channels.emplace_back(ChannelNames::globalIds, ids.data(),
+    channels.emplace_back(ChannelNames::XDMF::ids, ids.data(),
                           XDMF::Channel::DataForm::Scalar,
                           XDMF::Channel::NumberType::Int64,
                           DataTypeWrapper<int64_t>());
