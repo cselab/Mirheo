@@ -27,7 +27,4 @@ struct VertexChannelsData
 // chunkSize: smallest piece that processors can split
 VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, int chunkSize);
 
-void readParticleData    (std::string filename, MPI_Comm comm, ParticleVector *pv, int chunkSize = 1);
-void readObjectData      (std::string filename, MPI_Comm comm, ObjectVector *ov);
-void readRigidObjectData (std::string filename, MPI_Comm comm, RigidObjectVector *rov);
-}
+} // namespace XDMF
