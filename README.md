@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **internal changes**:
+  * refactored restart for particle vectors
+  * fix: test for ROV
 
 ### v1.1.0
 
