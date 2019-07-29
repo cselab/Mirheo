@@ -9,6 +9,7 @@
 #include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
 
+constexpr const char *RestartROVIdentifier = "ROV";
 
 LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, int nObjects) :
     LocalObjectVector(pv, objSize, nObjects)
@@ -109,7 +110,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "ROV", "", checkpointId);
+    auto filename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s",
          name.c_str(), filename.c_str());
 
@@ -156,7 +157,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "ROV", "xmf", checkpointId);
+    createCheckpointSymlink(comm, path, RestartROVIdentifier, "xmf", checkpointId);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -168,7 +169,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
     constexpr int objChunkSize = 1; // only one datum per object
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointName(path, "ROV", "xmf");
+    auto filename = createCheckpointName(path, RestartROVIdentifier, "xmf");
     info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
     auto listData = readData(filename, comm, objChunkSize);

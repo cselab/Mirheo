@@ -9,6 +9,8 @@
 
 #include <mpi.h>
 
+constexpr const char *RestartPVIdentifier = "PV";
+
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {
@@ -237,7 +239,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "PV", "", checkpointId);
+    auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s",
          name.c_str(), filename.c_str());
 
@@ -275,7 +277,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
 
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "PV", "xmf", checkpointId);
+    createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
     
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
@@ -285,7 +287,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
 {
     CUDA_Check( cudaDeviceSynchronize() );
     
-    auto filename = createCheckpointName(path, "PV", "xmf");
+    auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
     info("Restarting particle data from file %s", name.c_str(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, chunkSize);

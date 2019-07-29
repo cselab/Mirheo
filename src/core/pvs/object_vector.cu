@@ -8,6 +8,7 @@
 #include <core/utils/folders.h>
 #include <core/xdmf/xdmf.h>
 
+constexpr const char *RestartOVIdentifier = "OV";
 
 namespace ObjectVectorKernels
 {
@@ -177,7 +178,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, "OV", "", checkpointId);
+    auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s",
          name.c_str(), filename.c_str());
 
@@ -194,7 +195,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, "OV", "xmf", checkpointId);
+    createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
 
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
@@ -205,7 +206,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
     constexpr int objChunkSize = 1; // only one datum per object
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointName(path, "OV", "xmf");
+    auto filename = createCheckpointName(path, RestartOVIdentifier, "xmf");
     info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
