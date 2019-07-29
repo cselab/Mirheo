@@ -3,6 +3,8 @@
 #include <core/utils/cuda_common.h>
 #include <core/xdmf/xdmf.h>
 
+#include <numeric>
+
 namespace RestartHelpers
 {
 
@@ -63,6 +65,31 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
     return map;    
 }
 
+ExchMap getExchangeMapObjects(MPI_Comm comm, const DomainInfo domain,
+                              int objSize, const std::vector<float3>& positions)
+{
+    int nObjs = positions.size() / objSize;
+
+    if (positions.size() % objSize != 0)
+        die("expected a multiple of %d, got %d", objSize, (int)positions.size());
+
+    std::vector<float3> coms;
+    coms.reserve(nObjs);
+
+    constexpr float3 zero3 {0.f, 0.f, 0.f};
+    const float factor = 1.0 / nObjs;
+    
+    for (int i = 0; i < nObjs; ++i)
+    {
+        float3 com = factor * std::accumulate(positions.data() + (i + 0) * nObjs,
+                                              positions.data() + (i + 1) * nObjs,
+                                              zero3);
+        coms.push_back(com);
+    }
+
+    return getExchangeMap(comm, domain, coms);
+}
+
 std::tuple<std::vector<float4>, std::vector<float4>>
 combinePosVelIds(const std::vector<float3>& pos,
                  const std::vector<float3>& vel,
@@ -100,6 +127,22 @@ void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& p
         positions [i] = p.r2Float4();
         velocities[i] = p.u2Float4();
     }
+}
+
+int getLocalNumElementsAfterExchange(MPI_Comm comm, const ExchMap& map)
+{
+    int numProcs, procId;
+    MPI_Check( MPI_Comm_rank(comm, &procId) );
+    MPI_Check( MPI_Comm_size(comm, &numProcs) );
+
+    std::vector<int> numElements(numProcs, 0);
+    for (auto pid : map)
+        numElements[pid]++;
+
+    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, numElements.data(), numElements.size(),
+                             MPI_INT, MPI_SUM, comm) );
+
+    return numElements[procId];
 }
 
 } // namespace RestartHelpers

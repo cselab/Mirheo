@@ -34,6 +34,9 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize);
 ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
                        const std::vector<float3>& positions);
 
+ExchMap getExchangeMapObjects(MPI_Comm comm, const DomainInfo domain,
+                              int objSize, const std::vector<float3>& positions);
+
 std::tuple<std::vector<float4>, std::vector<float4>>
 combinePosVelIds(const std::vector<float3>& pos,
                  const std::vector<float3>& vel,
@@ -45,26 +48,12 @@ void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& p
                           const std::vector<float4>& vel, LocalParticleVector *local);
 
 
-static int getLocalNumElementsAfterExchange(MPI_Comm comm, const std::vector<int>& map)
-{
-    int numProcs, procId;
-    MPI_Check( MPI_Comm_rank(comm, &procId) );
-    MPI_Check( MPI_Comm_size(comm, &numProcs) );
-
-    std::vector<int> numElements(numProcs, 0);
-    for (auto pid : map)
-        numElements[pid]++;
-
-    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, numElements.data(), numElements.size(),
-                             MPI_INT, MPI_SUM, comm) );
-
-    return numElements[procId];
-}
+int getLocalNumElementsAfterExchange(MPI_Comm comm, const ExchMap& map);
 
 namespace details
 {
 template <typename T>
-static std::vector<std::vector<T>> splitData(const std::vector<int>& map, int chunkSize,
+static std::vector<std::vector<T>> splitData(const ExchMap& map, int chunkSize,
                                              const std::vector<T>& data, int numProcs)
 {
     std::vector<std::vector<T>> bufs(numProcs);
@@ -131,7 +120,7 @@ static std::vector<T> recvData(int size, MPI_Comm comm)
 } // namespace details
 
 template<typename T>
-static void exchangeData(MPI_Comm comm, const std::vector<int>& map,
+static void exchangeData(MPI_Comm comm, const ExchMap& map,
                          std::vector<T>& data, int chunkSize = 1)
 {
     int numProcs;
