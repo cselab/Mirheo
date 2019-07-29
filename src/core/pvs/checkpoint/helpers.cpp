@@ -29,6 +29,31 @@ splitAndShiftPosVel(const DomainInfo &domain,
     return {pos, vel, ids};
 }
 
+std::tuple<std::vector<float3>, std::vector<RigidReal4>,
+           std::vector<RigidReal3>, std::vector<RigidReal3>,
+           std::vector<RigidReal3>, std::vector<RigidReal3>>
+splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions)
+{
+    const int n = motions.size();
+    std::vector<float3> pos(n);
+    std::vector<RigidReal4> quaternion(n);
+    std::vector<RigidReal3> vel(n), omega(n), force(n), torque(n);
+
+    for (int i = 0; i < n; ++i)
+    {
+        auto m = motions[i];
+        pos[i] = domain.local2global(make_float3(m.r));
+        quaternion[i] = m.q;
+        vel[i] = m.vel;
+        omega[i] = m.omega;
+        force[i] = m.force;
+        torque[i] = m.torque;
+    }
+
+    return {pos, quaternion, vel, omega, force, torque};
+}
+
+
 template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
 {

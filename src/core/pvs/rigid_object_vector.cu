@@ -105,29 +105,6 @@ RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, fl
 
 RigidObjectVector::~RigidObjectVector() = default;
 
-// TODO refactor this
-
-static void splitMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions,
-                         std::vector<float3> &pos, std::vector<RigidReal4> &quaternion,
-                         std::vector<RigidReal3> &vel, std::vector<RigidReal3> &omega,
-                         std::vector<RigidReal3> &force, std::vector<RigidReal3> &torque)
-{
-    int n = motions.size();
-    pos  .resize(n); quaternion.resize(n);
-    vel  .resize(n);      omega.resize(n);
-    force.resize(n);     torque.resize(n);
-
-    for (int i = 0; i < n; ++i) {
-        auto m = motions[i];
-        pos[i] = domain.local2global(make_float3(m.r));
-        quaternion[i] = m.q;
-        vel[i] = m.vel;
-        omega[i] = m.omega;
-        force[i] = m.force;
-        torque[i] = m.torque;
-    }
-}
-
 void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -144,7 +121,8 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
     
-    splitMotions(state->domain, *motions, *positions, quaternion, vel, omega, force, torque);
+    std::tie(*positions, quaternion, vel, omega, force, torque)
+        = CheckpointHelpers::splitAndShiftMotions(state->domain, *motions);
 
     XDMF::VertexGrid grid(positions, comm);    
 
