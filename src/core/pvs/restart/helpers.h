@@ -101,10 +101,10 @@ static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& send
 }
 
 template <typename T>
-static void recvData(int size, std::vector<T> &all, MPI_Comm comm)
+static std::vector<T> recvData(int size, MPI_Comm comm)
 {
-    all.resize(0);
-    for (int i = 0; i < size; i++)
+    std::vector<T> allData;
+    for (int i = 0; i < size; ++i)
     {
         MPI_Status status;
         int sizeBytes, size;
@@ -124,8 +124,9 @@ static void recvData(int size, std::vector<T> &all, MPI_Comm comm)
         MPI_Check( MPI_Recv(recvBuf.data(), sizeBytes, MPI_BYTE,
                             status.MPI_SOURCE, tag, comm, MPI_STATUS_IGNORE) );
 
-        all.insert(all.end(), recvBuf.begin(), recvBuf.end());
+        allData.insert(allData.end(), recvBuf.begin(), recvBuf.end());
     }
+    return allData;
 }
 } // namespace details
 
@@ -138,7 +139,7 @@ static void exchangeData(MPI_Comm comm, const std::vector<int>& map,
             
     auto sendBufs = details::splitData(map, chunkSize, data, numProcs);
     auto sendReqs = details::sendData(sendBufs, comm);
-    details::recvData(numProcs, data, comm);
+    data          = details::recvData<T>(numProcs, comm);
 
     MPI_Check( MPI_Waitall(sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
 }
