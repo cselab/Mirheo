@@ -1,29 +1,87 @@
 #include "helpers.h"
 
 #include <core/utils/cuda_common.h>
+#include <core/xdmf/xdmf.h>
 
 namespace RestartHelpers
 {
 
-std::tuple<std::vector<float3>,
-           std::vector<float3>,
-           std::vector<int64_t>>
-splitAndShiftPosVel(const DomainInfo &domain,
-                    const PinnedBuffer<float4>& pos4,
-                    const PinnedBuffer<float4>& vel4)
+ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
 {
-    auto n = pos4.size();
-    std::vector<float3> pos(n), vel(n);
-    std::vector<int64_t> ids(n);
+    auto vertexData = XDMF::readVertexData(filename, comm, chunkSize);
+    const size_t n = vertexData.positions->size();
+
+    ListData listData {{ChannelNames::XDMF::position, *vertexData.positions}};
+
+    for (const auto& desc : vertexData.descriptions)
+    {
+        mpark::visit([&](auto typeWrapper)
+        {
+            using T = typename decltype(typeWrapper)::type;
+            auto dataPtr = reinterpret_cast<const T*>(desc.data);
+
+            NamedData nd {desc.name, std::vector<T>{dataPtr, dataPtr + n}};
+            listData.push_back(std::move(nd));
+        }, desc.type);
+    }
+    return listData;
+}
+
+ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
+                       const std::vector<float3>& positions)
+{
+    int dims[3], periods[3], coords[3];
+    MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
+
+    ExchMap map;
+    map.reserve(positions.size());
+    int numberInvalid = 0;
+    
+    for (auto r : positions)
+    {
+        int3 procId3 = make_int3(floorf(r / domain.localSize));
+
+        if (procId3.x >= dims[0] ||
+            procId3.y >= dims[1] ||
+            procId3.z >= dims[2])
+        {
+            map.push_back(InvalidProc);
+            ++ numberInvalid;
+            continue;
+        }
+        else
+        {
+            int procId;
+            MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+            map.push_back(procId);
+        }
+    }
+
+    if (numberInvalid)
+        warn("Restart: skipped %d invalid particle positions", numberInvalid);
+
+    return map;    
+}
+
+std::tuple<std::vector<float4>, std::vector<float4>>
+combinePosVelIds(const std::vector<float3>& pos,
+                 const std::vector<float3>& vel,
+                 const std::vector<int64_t>& ids)
+{
+    auto n = pos.size();
+    std::vector<float4> pos4(n), vel4(n);
 
     for (size_t i = 0; i < n; ++i)
     {
-        auto p = Particle(pos4[i], vel4[i]);
-        pos[i] = domain.local2global(p.r);
-        vel[i] = p.u;
-        ids[i] = p.getId();
+        Particle p;
+        p.r = pos[i];
+        p.u = pos[i];
+        p.setId(ids[i]);
+
+        pos4[i] = p.r2Float4();
+        vel4[i] = p.u2Float4();
     }
-    return {pos, vel, ids};
+    return {pos4, vel4};
 }
 
 

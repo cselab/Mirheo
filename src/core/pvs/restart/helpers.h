@@ -3,6 +3,7 @@
 #include <core/domain.h>
 #include <core/pvs/particle_vector.h>
 #include <core/utils/type_shift.h>
+#include <core/utils/type_map.h>
 
 #include <mpi.h>
 #include <tuple>
@@ -13,12 +14,30 @@ namespace RestartHelpers
 constexpr int InvalidProc = -1;
 constexpr int tag = 4243;
 
-std::tuple<std::vector<float3>,
-           std::vector<float3>,
-           std::vector<int64_t>>
-splitAndShiftPosVel(const DomainInfo &domain,
-                    const PinnedBuffer<float4>& pos4,
-                    const PinnedBuffer<float4>& vel4);
+using VarVector = mpark::variant<
+#define MAKE_WRAPPER(a) std::vector<a>
+    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+#undef MAKE_WRAPPER
+    >;
+
+struct NamedData
+{
+    std::string name;
+    VarVector data;
+};
+
+using ListData = std::vector<NamedData>;
+using ExchMap  = std::vector<int>;
+
+ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize);
+
+ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
+                       const std::vector<float3>& positions);
+
+std::tuple<std::vector<float4>, std::vector<float4>>
+combinePosVelIds(const std::vector<float3>& pos,
+                 const std::vector<float3>& vel,
+                 const std::vector<int64_t>& ids);
 
 
 
