@@ -19,8 +19,10 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     dataPerParticle.createData<Force>(ChannelNames::forces, n);
 
     // positions are treated specially, do not need to be persistent
-    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Active);
-    dataPerParticle.setShiftMode(ChannelNames::positions, DataManager::ShiftMode::Active);
+    dataPerParticle.setPersistenceMode(ChannelNames::velocities,
+                                       DataManager::PersistenceMode::Active);
+    dataPerParticle.setShiftMode(ChannelNames::positions,
+                                 DataManager::ShiftMode::Active);
     resize_anew(n);
 }
 
@@ -321,24 +323,8 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     positions .uploadToDevice(defaultStream);
     velocities.uploadToDevice(defaultStream);
 
-    for (auto& entry : listData)
-    {
-        auto channelDesc = &dataPerParticle.getChannelDescOrDie(entry.name);
-        
-        mpark::visit([&](const auto& data)
-        {
-            using T = typename std::remove_reference<decltype(data)>::type::value_type;
-            auto dstPtr = dataPerParticle.getData<T>(entry.name);
+    RestartHelpers::copyAndShiftListData(state->domain, listData, dataPerParticle);
 
-            if (channelDesc->needShift())
-                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
-
-            std::copy(data.begin(), data.end(), dstPtr->begin());
-            dstPtr->uploadToDevice(defaultStream);
-            
-        }, entry.data);
-    }
-    
     return {map, newSize};
 }
 

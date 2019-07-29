@@ -196,23 +196,8 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
 
     std::copy(motions.begin(), motions.end(), dstMotions.begin());
     dstMotions.uploadToDevice(defaultStream);
-    
-    for (auto& entry : listData)
-    {
-        auto channelDesc = &dataPerObject.getChannelDescOrDie(entry.name);
-        
-        mpark::visit([&](const auto& data)
-        {
-            using T = typename std::remove_reference<decltype(data)>::type::value_type;
-            auto dstPtr = dataPerObject.getData<T>(entry.name);
 
-            if (channelDesc->needShift())
-                RestartHelpers::shiftElementsGlobal2Local(data, state->domain);
-
-            std::copy(data.begin(), data.end(), dstPtr->begin());
-            dstPtr->uploadToDevice(defaultStream);
-        }, entry.data);
-    }
+    copyAndShiftListData(state->domain, listData, dataPerObject);
     
     info("Successfully read object infos of '%s'", name.c_str());
 }

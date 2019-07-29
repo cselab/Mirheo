@@ -168,4 +168,8 @@ static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
     for (auto& d : data) TypeShift::apply(d, shift);    
 }
 
+void copyAndShiftListData(const DomainInfo domain,
+                          const ListData& listData,
+                          DataManager& dataManager);
+
 } // namespace RestartHelpers

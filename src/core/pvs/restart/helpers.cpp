@@ -182,4 +182,27 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
     }
 }
 
+void copyAndShiftListData(const DomainInfo domain,
+                          const ListData& listData,
+                          DataManager& dataManager)
+{
+    for (const auto& entry : listData)
+    {
+        auto channelDesc = &dataManager.getChannelDescOrDie(entry.name);
+        
+        mpark::visit([&](const auto& srcData)
+        {
+            using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
+            auto& dstData = *dataManager.getData<T>(entry.name);
+
+            std::copy(srcData.begin(), srcData.end(), dstData.begin());
+            if (channelDesc->needShift())
+                RestartHelpers::shiftElementsGlobal2Local(dstData, domain);
+            
+            dstData.uploadToDevice(defaultStream);
+            
+        }, entry.data);
+    }
+}
+
 } // namespace RestartHelpers
