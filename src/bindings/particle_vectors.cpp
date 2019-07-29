@@ -143,14 +143,16 @@ void exportParticleVectors(py::module& m)
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
-    pyrov.def(py::init<const MirState*, std::string, float, PyTypes::float3, int, std::shared_ptr<Mesh>>(),
+    pyrov.def(py::init<const MirState*, std::string, float,
+              PyTypes::float3, int, std::shared_ptr<Mesh>>(),
               "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
-                Args:
-                    name: name of the created PV 
-                    mass: mass of a single particle
-                    inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
-                    object_size: number of frozen particles per object
-                    mesh: :any:`Mesh` object used for bounce back and dump
+
+            Args:
+                name: name of the created PV 
+                mass: mass of a single particle
+                inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
+                object_size: number of frozen particles per object
+                mesh: :any:`Mesh` object used for bounce back and dump
         )");
         
     py::handlers_class<RigidShapedObjectVector<Capsule>> (m, "RigidCapsuleVector", pyrov, R"(
@@ -159,21 +161,25 @@ void exportParticleVectors(py::module& m)
     )")
         .def(py::init(&ParticleVectorFactory::createCapsuleROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the capsule
-                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the capsule
+                length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+
+
         )")
         .def(py::init(&ParticleVectorFactory::createCapsuleROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, "mesh"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the capsule
-                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the capsule
+                length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
+
         )");
 
     py::handlers_class<RigidShapedObjectVector<Cylinder>> (m, "RigidCylinderVector", pyrov, R"(
@@ -182,22 +188,23 @@ void exportParticleVectors(py::module& m)
     )")
         .def(py::init(&ParticleVectorFactory::createCylinderROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the cylinder
-                    length: length of the cylinder
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                length: length of the cylinder
+
         )")
         .def(py::init(&ParticleVectorFactory::createCylinderROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, "mesh"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the cylinder
-                    length: length of the cylinder
-                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                length: length of the cylinder
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
         )");
 
     py::handlers_class<RigidShapedObjectVector<Ellipsoid>> (m, "RigidEllipsoidVector", pyrov, R"(
@@ -206,20 +213,24 @@ void exportParticleVectors(py::module& m)
     )")
         .def(py::init(&ParticleVectorFactory::createEllipsoidROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    semi_axes: ellipsoid principal semi-axes
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                semi_axes: ellipsoid principal semi-axes
         )")
         .def(py::init(&ParticleVectorFactory::createEllipsoidROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    radius: radius of the cylinder
-                    semi_axes: ellipsoid principal semi-axes
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                semi_axes: ellipsoid principal semi-axes
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
+
         )");
 
 
@@ -228,9 +239,10 @@ void exportParticleVectors(py::module& m)
     )")
         .def(py::init<const MirState*, std::string, float, int>(),
              "state"_a, "name"_a, "mass"_a, "num_segments"_a, R"(
-                Args:
-                    name: name of the created Rod Vector
-                    mass: mass of a single particle
-                    num_segments: number of elements to discretize the rod
+
+            Args:
+                name: name of the created Rod Vector
+                mass: mass of a single particle
+                num_segments: number of elements to discretize the rod
         )");
 }

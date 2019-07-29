@@ -412,12 +412,13 @@ class RigidObjectVector(ObjectVector):
         r"""__init__(name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
 
  
-                Args:
-                    name: name of the created PV 
-                    mass: mass of a single particle
-                    inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
-                    object_size: number of frozen particles per object
-                    mesh: :any:`Mesh` object used for bounce back and dump
+
+            Args:
+                name: name of the created PV 
+                mass: mass of a single particle
+                inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
+                object_size: number of frozen particles per object
+                mesh: :any:`Mesh` object used for bounce back and dump
         
 
         """
@@ -509,10 +510,11 @@ class RodVector(ObjectVector):
         r"""__init__(name: str, mass: float, num_segments: int) -> None
 
 
-                Args:
-                    name: name of the created Rod Vector
-                    mass: mass of a single particle
-                    num_segments: number of elements to discretize the rod
+
+            Args:
+                name: name of the created Rod Vector
+                mass: mass of a single particle
+                num_segments: number of elements to discretize the rod
         
 
         """
@@ -608,23 +610,27 @@ Overloaded function.
 1. __init__(name: str, mass: float, object_size: int, radius: float, length: float) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the capsule
-                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the capsule
+                length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+
+
         
 
 2. __init__(name: str, mass: float, object_size: int, radius: float, length: float, mesh: ParticleVectors.Mesh) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the capsule
-                    length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the capsule
+                length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
         
 
         """
@@ -720,24 +726,25 @@ Overloaded function.
 1. __init__(name: str, mass: float, object_size: int, radius: float, length: float) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the cylinder
-                    length: length of the cylinder
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                length: length of the cylinder
+
         
 
 2. __init__(name: str, mass: float, object_size: int, radius: float, length: float, mesh: ParticleVectors.Mesh) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of particles per membrane, must be the same as the number of vertices of the mesh
-                    radius: radius of the cylinder
-                    length: length of the cylinder
-                    mesh: :any:`Mesh` object representing the shape of the ellipsoid. This is used for dump only.
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                length: length of the cylinder
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
         
 
         """
@@ -833,22 +840,26 @@ Overloaded function.
 1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    semi_axes: ellipsoid principal semi-axes
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                semi_axes: ellipsoid principal semi-axes
         
 
 2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
 
 
-                Args:
-                    name: name of the created PV
-                    mass: mass of a single particle
-                    object_size: number of frozen particles per object
-                    radius: radius of the cylinder
-                    semi_axes: ellipsoid principal semi-axes
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                object_size: number of frozen particles per object
+                radius: radius of the cylinder
+                semi_axes: ellipsoid principal semi-axes
+                mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
+
         
 
         """
