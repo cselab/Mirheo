@@ -76,12 +76,6 @@ combineMotions(const std::vector<float3>& pos,
                const std::vector<RigidReal3>& force,
                const std::vector<RigidReal3>& torque);
 
-void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos,
-                          const std::vector<float4>& vel, LocalParticleVector *local);
-
-
-int getLocalNumElementsAfterExchange(MPI_Comm comm, const ExchMap& map);
-
 namespace details
 {
 template <typename T>

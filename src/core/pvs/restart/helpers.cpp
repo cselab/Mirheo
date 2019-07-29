@@ -171,23 +171,6 @@ combineMotions(const std::vector<float3>& pos,
     return motions;
 }
 
-void copyShiftCoordinates(const DomainInfo &domain, const std::vector<float4>& pos, const std::vector<float4>& vel,
-                          LocalParticleVector *local)
-{
-    auto& positions  = local->positions();
-    auto& velocities = local->velocities();
-
-    positions .resize(pos.size(), defaultStream);
-    velocities.resize(vel.size(), defaultStream);
-    
-    for (int i = 0; i < pos.size(); i++) {
-        auto p = Particle(pos[i], vel[i]);
-        p.r = domain.global2local(p.r);
-        positions [i] = p.r2Float4();
-        velocities[i] = p.u2Float4();
-    }
-}
-
 void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int chunkSize)
 {
     for (auto& entry : listData)
@@ -197,22 +180,6 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
             exchangeData(comm, map, data, chunkSize);
         }, entry.data);
     }
-}
-
-int getLocalNumElementsAfterExchange(MPI_Comm comm, const ExchMap& map)
-{
-    int numProcs, procId;
-    MPI_Check( MPI_Comm_rank(comm, &procId) );
-    MPI_Check( MPI_Comm_size(comm, &numProcs) );
-
-    std::vector<int> numElements(numProcs, 0);
-    for (auto pid : map)
-        numElements[pid]++;
-
-    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, numElements.data(), numElements.size(),
-                             MPI_INT, MPI_SUM, comm) );
-
-    return numElements[procId];
 }
 
 } // namespace RestartHelpers

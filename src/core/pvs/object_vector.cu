@@ -159,16 +159,18 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type
             view );
 }
 
-static void splitCom(DomainInfo domain, const PinnedBuffer<COMandExtent>& com_extents,
-                     std::vector<float3>& pos)
+static std::vector<float3> getCom(DomainInfo domain,
+                                  const PinnedBuffer<COMandExtent>& com_extents)
 {
     int n = com_extents.size();
-    pos.resize(n);
+    std::vector<float3> pos(n);
 
     for (int i = 0; i < n; ++i) {
         auto r = com_extents[i].com;
         pos[i] = domain.local2global(r);
     }
+
+    return pos;
 }
 
 void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
@@ -183,9 +185,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float3>>();
-
-    splitCom(state->domain, *coms_extents, *positions);
+    auto positions = std::make_shared<std::vector<float3>>(getCom(state->domain, *coms_extents));
 
     XDMF::VertexGrid grid(positions, comm);
 
