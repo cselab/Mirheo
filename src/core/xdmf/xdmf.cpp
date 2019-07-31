@@ -55,7 +55,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
 
     mTimer timer;
     timer.start();
-    XMF::read(filename, comm, h5filename, &grid, vertexData.descriptions);
+    std::tie(h5filename, vertexData.descriptions) = XMF::read(filename, comm, &grid);
     grid.splitReadAccess(comm, chunkSize);
 
     h5filename = makePath(parentPath(filename)) + h5filename;

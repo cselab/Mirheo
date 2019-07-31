@@ -7,7 +7,7 @@ namespace XDMF
 {
 namespace XMF
 {        
-void writeDataSet(pugi::xml_node node, std::string h5filename, const Grid* grid, const Channel& channel)
+void writeDataSet(pugi::xml_node node, const std::string& h5filename, const Grid *grid, const Channel& channel)
 {            
     auto attrNode = node.append_child("Attribute");
     attrNode.append_attribute("Name") = channel.name.c_str();
@@ -32,7 +32,7 @@ void writeDataSet(pugi::xml_node node, std::string h5filename, const Grid* grid,
     dataNode.text() = (h5filename + ":/" + channel.name).c_str();
 }
         
-void writeData(pugi::xml_node node, std::string h5filename, const Grid* grid, const std::vector<Channel>& channels)
+void writeData(pugi::xml_node node, const std::string& h5filename, const Grid *grid, const std::vector<Channel>& channels)
 {
     for (auto& channel : channels) 
         writeDataSet(node, h5filename, grid, channel);
@@ -45,7 +45,7 @@ static bool isMasterRank(MPI_Comm comm)
     return (rank == 0);
 }
         
-void write(std::string filename, std::string h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
+void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
 {
     if (isMasterRank(comm)) {
         pugi::xml_document doc;
@@ -92,10 +92,14 @@ static void readData(pugi::xml_node node, std::vector<Channel>& channels)
         if (std::string(attr.name()) == "Attribute")
             channels.push_back(readDataSet(attr));
 }
-        
-void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *grid, std::vector<Channel> &channels)
+
+std::tuple<std::string /*h5filename*/, std::vector<Channel>>
+read(const std::string& filename, MPI_Comm comm, Grid *grid)
 {
     debug2("Reading XMF header");
+
+    std::string h5filename;
+    std::vector<Channel> channels;
     
     pugi::xml_document doc;
     auto parseResult = doc.load_file(filename.c_str());
@@ -113,6 +117,8 @@ void read(std::string filename, MPI_Comm comm, std::string &h5filename, Grid *gr
     MPI_Check( MPI_Barrier(comm) );
 
     debug2("Done with the XMF header");
+
+    return {h5filename, channels};
 }
 
 } // namespace XMF
