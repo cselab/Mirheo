@@ -36,8 +36,10 @@ void UniformCartesianDumper::handshake()
     MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &cartComm) );
     grid = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm);
         
-    auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str) {
-        return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());
+    auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
+    {
+        return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float,
+                             DataTypeWrapper<float>(), XDMF::Channel::NeedShift::False);
     };
     
     // Density is a special channel which is always present

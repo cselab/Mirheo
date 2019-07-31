@@ -270,12 +270,14 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     channels.emplace_back(ChannelNames::XDMF::velocity, velocities.data(),
                           XDMF::Channel::DataForm::Vector,
                           XDMF::Channel::NumberType::Float,
-                          DataTypeWrapper<float>());
+                          DataTypeWrapper<float>(),
+                          XDMF::Channel::NeedShift::False);
     
     channels.emplace_back(ChannelNames::XDMF::ids, ids.data(),
                           XDMF::Channel::DataForm::Scalar,
                           XDMF::Channel::NumberType::Int64,
-                          DataTypeWrapper<int64_t>());
+                          DataTypeWrapper<int64_t>(),
+                          XDMF::Channel::NeedShift::False);
 
     XDMF::write(filename, &grid, channels, comm);
 

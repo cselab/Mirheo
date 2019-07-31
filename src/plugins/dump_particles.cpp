@@ -103,8 +103,11 @@ void ParticleDumperPlugin::handshake()
     SimpleSerializer::deserialize(data, sizes, names);
     
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, int sz, const std::string& str,
-                            XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float, TypeDescriptor datatype = DataTypeWrapper<float>()) {
-        return XDMF::Channel(str, nullptr, dataForm, numberType, datatype);
+                            XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float,
+                            TypeDescriptor datatype = DataTypeWrapper<float>(),
+                            XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
+    {
+        return XDMF::Channel(str, nullptr, dataForm, numberType, datatype, needShift);
     };
 
     // Velocity and id are special channels which are always present

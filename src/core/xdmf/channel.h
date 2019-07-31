@@ -11,15 +11,17 @@ struct Channel
 {
     enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, Other };
     enum class NumberType { Float, Double, Int, Int64 };
+    enum class NeedShift { True, False };
     
     std::string name;
     void *data;
     DataForm dataForm;
     NumberType numberType;
     TypeDescriptor type;
+    NeedShift needShift;
 
     Channel(std::string name, void *data, DataForm dataForm,
-            NumberType numberType, TypeDescriptor type);
+            NumberType numberType, TypeDescriptor type, NeedShift needShift);
 
     int nComponents() const;
     int precision() const;

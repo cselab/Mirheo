@@ -7,7 +7,8 @@ namespace XDMF
 {
 namespace XMF
 {        
-void writeDataSet(pugi::xml_node node, const std::string& h5filename, const Grid *grid, const Channel& channel)
+void writeDataSet(pugi::xml_node node, const std::string& h5filename,
+                  const Grid *grid, const Channel& channel)
 {            
     auto attrNode = node.append_child("Attribute");
     attrNode.append_attribute("Name") = channel.name.c_str();
@@ -19,6 +20,8 @@ void writeDataSet(pugi::xml_node node, const std::string& h5filename, const Grid
     infoNode.append_attribute("Name") = "Typeinfo";
     infoNode.append_attribute("Value") = dataFormToDescription(channel.dataForm).c_str();
     infoNode.append_attribute("Datatype") = typeDescriptorToString(channel.type).c_str();
+    infoNode.append_attribute("RequireShift") =
+        channel.needShift == Channel::NeedShift::True ? "True" : "False";
             
     // Add one more dimension: number of floats per data item
     auto globalSize = grid->getGridDims()->getGlobalSize();
@@ -64,6 +67,15 @@ void write(const std::string& filename, const std::string& h5filename, MPI_Comm 
     MPI_Check( MPI_Barrier(comm) );
 }
 
+inline Channel::NeedShift getNeedShiftValue(const std::string& str)
+{
+    if      (str == "True" ) return Channel::NeedShift::True;
+    else if (str == "False") return Channel::NeedShift::False;
+
+    die("Unrecognised needShift value: '%s'", str.c_str());
+    return Channel::NeedShift::False;
+}
+
 static Channel readDataSet(pugi::xml_node node)
 {
     auto infoNode = node.child("Information");
@@ -72,9 +84,11 @@ static Channel readDataSet(pugi::xml_node node)
     std::string name            = node.attribute("Name").value();
     std::string formDescription = infoNode.attribute("Value").value();
     std::string typeDescription = infoNode.attribute("Datatype").value();
+    std::string needShiftStr    = infoNode.attribute("RequireShift").value();
 
     auto dataForm = descriptionToDataForm(formDescription);
     auto dataType = stringToTypeDescriptor(typeDescription);
+    auto needShift = getNeedShiftValue(needShiftStr);
 
     std::string channelNumberType = dataNode.attribute("NumberType").value();
     int precision = dataNode.attribute("Precision").as_int();
@@ -83,7 +97,7 @@ static Channel readDataSet(pugi::xml_node node)
     if (dataForm == Channel::DataForm::Other)
         die("Unrecognised form %s", formDescription.c_str());
             
-    return Channel(name, nullptr, dataForm, numberType, dataType);
+    return Channel(name, nullptr, dataForm, numberType, dataType, needShift);
 }
         
 static void readData(pugi::xml_node node, std::vector<Channel>& channels)

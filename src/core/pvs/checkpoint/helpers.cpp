@@ -83,15 +83,20 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
+            auto needShift = XDMF::Channel::NeedShift::False;
+            
             if (channelDesc->needShift())
+            {
                 shiftElementsLocal2Global(*bufferPtr, domain);
+                needShift = XDMF::Channel::NeedShift::True;
+            }
             
             auto formtype   = XDMF::getDataForm<T>();
             auto numbertype = XDMF::getNumberType<T>();
             auto datatype   = DataTypeWrapper<T>();
-            channels.push_back(XDMF::Channel(channelName,
-                                             bufferPtr->data(),
-                                             formtype, numbertype, datatype));
+            
+            channels.push_back(XDMF::Channel(channelName, bufferPtr->data(),
+                                             formtype, numbertype, datatype, needShift));
         }, channelDesc->varDataPtr);
     }
 

@@ -191,8 +191,12 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH
         createFoldersCollective(cartComm, path);
     
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
-    XDMF::Channel sdfCh("sdf", (void*)sdfs_merged.hostPtr(), XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Float, DataTypeWrapper<float>());
-    XDMF::write(filename, &grid, std::vector<XDMF::Channel>{sdfCh}, cartComm);
+    XDMF::Channel sdfCh("sdf", sdfs_merged.hostPtr(),
+                        XDMF::Channel::DataForm::Scalar,
+                        XDMF::Channel::NumberType::Float,
+                        DataTypeWrapper<float>(),
+                        XDMF::Channel::NeedShift::False);
+    XDMF::write(filename, &grid, {sdfCh}, cartComm);
 }
 
 
