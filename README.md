@@ -14,9 +14,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ### unreleased
 
+* **interface changes**: new field `requireShift` in restart files. Newer versions will not be able to read older restart files.
 * **internal changes**:
   * refactored restart for particle vectors
   * fix: test for ROV
+  * fix: correctly assigns and shift data during restart IC
 
 ### v1.1.0
 
