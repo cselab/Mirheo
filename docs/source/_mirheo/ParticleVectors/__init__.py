@@ -610,7 +610,6 @@ Overloaded function.
 1. __init__(name: str, mass: float, object_size: int, radius: float, length: float) -> None
 
 
-
             Args:
                 name: name of the created PV
                 mass: mass of a single particle
@@ -631,6 +630,7 @@ Overloaded function.
                 radius: radius of the capsule
                 length: length of the capsule between the half balls. The total height is then "length + 2 * radius"
                 mesh: :any:`Mesh` object representing the shape of the object. This is used for dump only.
+
         
 
         """

@@ -52,7 +52,7 @@ class Membrane(InitialConditions):
 
 class Restart(InitialConditions):
     r"""
-        Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
+        Read the state of the particle vector from restart files.
     
     """
     def __init__():
@@ -61,7 +61,7 @@ class Restart(InitialConditions):
 
 
             Args:
-                path: folder where the restart files reside. The exact filename will be like this: <path>/<PV name>.chk
+                path: folder where the restart files reside.
         
 
         """

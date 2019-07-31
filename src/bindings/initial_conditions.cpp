@@ -53,12 +53,12 @@ void exportInitialConditions(py::module& m)
         )");
 
     py::handlers_class<RestartIC>(m, "Restart", pyic, R"(
-        Read the state (particle coordinates and velocities, other relevant data for objects is **not implemented yet**)
+        Read the state of the particle vector from restart files.
     )")
         .def(py::init<std::string>(),"path"_a = "restart/", R"(
 
             Args:
-                path: folder where the restart files reside. The exact filename will be like this: <path>/<PV name>.chk
+                path: folder where the restart files reside.
         )");
         
     py::handlers_class<RigidIC>(m, "Rigid", pyic, R"(
