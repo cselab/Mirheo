@@ -213,11 +213,13 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
 
     // remove positions from the read data (artificial for non rov)
     RestartHelpers::extractChannel<float3> (ChannelNames::XDMF::position, listData);
+    
+    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
+    RestartHelpers::requireExtraDataPerObject(listData, this);
 
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
 
-    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
     RestartHelpers::copyAndShiftListData(state->domain, listData, dataPerObject);
     
     info("Successfully read object infos of '%s'", name.c_str());

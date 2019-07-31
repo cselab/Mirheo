@@ -79,7 +79,6 @@ private:
         lov->dataPerObject.createData<T> (name, lov->nObjects);
         lov->dataPerObject.setPersistenceMode(name, persistence);
         lov->dataPerObject.setShiftMode(name, shift);
-
     }
 };
 

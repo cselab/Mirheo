@@ -1,13 +1,16 @@
 #pragma once
 
 #include <core/domain.h>
-#include <core/pvs/particle_vector.h>
 #include <core/utils/type_shift.h>
 #include <core/utils/type_map.h>
+#include <core/pvs/data_manager.h>
 
 #include <mpi.h>
 #include <tuple>
 #include <vector>
+
+class ParticleVector;
+class ObjectVector;
 
 namespace RestartHelpers
 {
@@ -24,6 +27,7 @@ struct NamedData
 {
     std::string name;
     VarVector data;
+    bool needShift;
 };
 
 using ListData = std::vector<NamedData>;
@@ -167,6 +171,9 @@ static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
     auto shift = domain.global2local({0.f, 0.f, 0.f});
     for (auto& d : data) TypeShift::apply(d, shift);    
 }
+
+void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv);
+void requireExtraDataPerObject  (const ListData& listData, ObjectVector   *ov);
 
 void copyAndShiftListData(const DomainInfo domain,
                           const ListData& listData,

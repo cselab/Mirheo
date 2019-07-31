@@ -46,18 +46,19 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     auto vertexData = XDMF::readVertexData(filename, comm, chunkSize);
     const size_t n = vertexData.positions.size();
 
-    ListData listData {{ChannelNames::XDMF::position, vertexData.positions}};
+    ListData listData {{ChannelNames::XDMF::position, vertexData.positions, true}};
 
     for (const auto& desc : vertexData.descriptions)
     {
-        int ncomp   = XDMF::dataFormToNcomponents(desc.dataForm);
+        const bool needShift = desc.needShift == XDMF::Channel::NeedShift::True;
+        const int ncomp      = XDMF::dataFormToNcomponents(desc.dataForm);
         auto varVec = mpark::visit(details::getVarTypeVisitor{ncomp}, desc.type);
         
         mpark::visit([&](auto& dstVec)
         {
             using T = typename std::remove_reference<decltype(dstVec)>::type::value_type;
             auto srcData = reinterpret_cast<const T*>(desc.data);
-            NamedData nd {desc.name, std::vector<T>{srcData, srcData + n}};
+            NamedData nd {desc.name, std::vector<T>{srcData, srcData + n}, needShift};
             listData.push_back(std::move(nd));
         }, varVec);
     }
@@ -178,6 +179,40 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
         mpark::visit([&](auto& data)
         {
             exchangeData(comm, map, data, chunkSize);
+        }, entry.data);
+    }
+}
+
+void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv)
+{
+    for (const auto& entry : listData)
+    {
+        auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
+        
+        mpark::visit([&](const auto& srcData)
+        {
+            using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
+            
+            pv->requireDataPerParticle<T>(entry.name,
+                                          DataManager::PersistenceMode::Active,
+                                          shiftMode);            
+        }, entry.data);
+    }
+}
+
+void requireExtraDataPerObject(const ListData& listData, ObjectVector *ov)
+{
+    for (const auto& entry : listData)
+    {
+        auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
+        
+        mpark::visit([&](const auto& srcData)
+        {
+            using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
+            
+            ov->requireDataPerObject<T>(entry.name,
+                                        DataManager::PersistenceMode::Active,
+                                        shiftMode);            
         }, entry.data);
     }
 }
