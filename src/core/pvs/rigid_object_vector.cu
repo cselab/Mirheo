@@ -10,6 +10,7 @@
 #include <core/xdmf/xdmf.h>
 
 constexpr const char *RestartROVIdentifier = "ROV";
+constexpr const char *RestartIPIdentifier = "ROV.TEMPLATE";
 
 LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, int nObjects) :
     LocalObjectVector(pv, objSize, nObjects)
@@ -106,6 +107,40 @@ RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, fl
 
 RigidObjectVector::~RigidObjectVector() = default;
 
+static void writeInitialPositions(MPI_Comm comm, const std::string& filename,
+                                  const PinnedBuffer<float4>& positions)
+{
+    int rank;
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+    if (rank != 0) return;
+
+    FileWrapper f;
+    f.open(filename, "wb");
+    fwrite(positions.data(), sizeof(positions[0]), positions.size(), f.get());
+}
+
+static PinnedBuffer<float4> readInitialPositions(MPI_Comm comm, const std::string& filename,
+                                                 int objSize)
+{
+    PinnedBuffer<float4> positions(objSize);
+    int rank;
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+    constexpr int root = 0;
+
+    if (rank == root)
+    {
+        FileWrapper f;
+        f.open(filename, "rb");
+        fread(positions.data(), sizeof(positions[0]), objSize, f.get());
+    }
+    MPI_Check(MPI_Bcast(positions.data(), objSize * sizeof(positions[0]),
+                        MPI_BYTE, root, comm));
+
+    positions.uploadToDevice(defaultStream);
+    return positions;
+}
+                                  
+
 void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -159,6 +194,10 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
 
     createCheckpointSymlink(comm, path, RestartROVIdentifier, "xmf", checkpointId);
 
+    filename = createCheckpointNameWithId(path, RestartIPIdentifier, "coords", checkpointId);
+    writeInitialPositions(comm, filename, initialPositions);
+    createCheckpointSymlink(comm, path, RestartIPIdentifier, "coords", checkpointId);
+
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
@@ -198,6 +237,10 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
     dstMotions.uploadToDevice(defaultStream);
 
     copyAndShiftListData(state->domain, listData, dataPerObject);
-    
+
+
+    filename = createCheckpointName(path, RestartIPIdentifier, "coords");
+    initialPositions = readInitialPositions(comm, filename, objSize);
+
     info("Successfully read object infos of '%s'", name.c_str());
 }
