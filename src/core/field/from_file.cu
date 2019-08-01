@@ -131,11 +131,37 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 }
 } // InterpolateKernels
 
-static void readHeader(const std::string fileName, const MPI_Comm& comm,
-                       int3& sdfResolution, float3& sdfExtent, int64_t& fullSdfSize_byte,
-                       int64_t& endHeader_byte, int rank)
+
+struct HeaderInfo
 {
-    if (rank == 0)
+    int3 resolution;
+    float3 extents;
+    int64_t fullSdfSize_byte;
+    int64_t endHeader_byte;
+};
+
+inline auto multiplyComps(int3 v) {return v.x * v.y * v.z;}
+
+inline int getRank(const MPI_Comm& comm)
+{
+    int rank;
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+    return rank;
+}
+
+inline int getNranks(const MPI_Comm& comm)
+{
+    int size;
+    MPI_Check( MPI_Comm_size(comm, &size) );
+    return size;
+}
+
+static HeaderInfo readHeader(const std::string& fileName, const MPI_Comm& comm)
+{
+    HeaderInfo info;
+    constexpr int root = 0;
+    
+    if (getRank(comm) == root)
     {
         std::ifstream file(fileName);
         if (!file.good())
@@ -143,37 +169,42 @@ static void readHeader(const std::string fileName, const MPI_Comm& comm,
 
         auto fstart = file.tellg();
 
-        file >> sdfExtent.x >> sdfExtent.y >> sdfExtent.z >>
-            sdfResolution.x >> sdfResolution.y >> sdfResolution.z;
-        fullSdfSize_byte = (int64_t)sdfResolution.x * sdfResolution.y * sdfResolution.z * sizeof(float);
+        file >> info.extents.x >> info.extents.y >> info.extents.z >>
+            info.resolution.x >> info.resolution.y >> info.resolution.z;
+        info.fullSdfSize_byte = (int64_t) multiplyComps(info.resolution) * sizeof(float);
 
-        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d", fileName.c_str(),
-                sdfExtent.x, sdfExtent.y, sdfExtent.z,
-                sdfResolution.x, sdfResolution.y, sdfResolution.z);
+        info("Using field file '%s' of size %.2fx%.2fx%.2f and resolution %dx%dx%d",
+             fileName.c_str(), info.extents.x, info.extents.y, info.extents.z,
+             info.resolution.x, info.resolution.y, info.resolution.z);
 
         file.seekg( 0, std::ios::end );
         auto fend = file.tellg();
 
-        endHeader_byte = (fend - fstart) - fullSdfSize_byte;
+        info.endHeader_byte = (fend - fstart) - info.fullSdfSize_byte;
 
         file.close();
     }
 
-    MPI_Check( MPI_Bcast(&sdfExtent,        3, MPI_FLOAT,     0, comm) );
-    MPI_Check( MPI_Bcast(&sdfResolution,    3, MPI_INT,       0, comm) );
-    MPI_Check( MPI_Bcast(&fullSdfSize_byte, 1, MPI_INT64_T,   0, comm) );
-    MPI_Check( MPI_Bcast(&endHeader_byte,   1, MPI_INT64_T,   0, comm) );
+    MPI_Check( MPI_Bcast(&info.extents,          3, MPI_FLOAT,     root, comm) );
+    MPI_Check( MPI_Bcast(&info.resolution,       3, MPI_INT,       root, comm) );
+    MPI_Check( MPI_Bcast(&info.fullSdfSize_byte, 1, MPI_INT64_T,   root, comm) );
+    MPI_Check( MPI_Bcast(&info.endHeader_byte,   1, MPI_INT64_T,   root, comm) );
+
+    return info;
 }
 
-static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fullSdfSize_byte, int64_t endHeader_byte, int nranks, int rank, std::vector<float>& fullSdfData)
+static std::vector<float> readSdf(const std::string& fileName, const MPI_Comm& comm, const HeaderInfo& info)
 {
+    const int rank   = getRank  (comm);
+    const int nranks = getNranks(comm);
+    
     // Read part and allgather
-    const int64_t readPerProc_byte = (fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
+    const int64_t readPerProc_byte = (info.fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
     std::vector<char> readBuffer(readPerProc_byte);
 
     // Limits in bytes
-    const int64_t readStart = readPerProc_byte * rank + endHeader_byte;
-    const int64_t readEnd   = std::min( readStart + readPerProc_byte, fullSdfSize_byte + endHeader_byte);
+    const int64_t readStart = readPerProc_byte * rank + info.endHeader_byte;
+    const int64_t readEnd   = std::min( readStart + readPerProc_byte, info.fullSdfSize_byte + info.endHeader_byte);
 
     MPI_File fh;
     MPI_Status status;
@@ -182,42 +213,55 @@ static void readSdf(const std::string fileName, const MPI_Comm& comm, int64_t fu
     // TODO: check that we read just what we asked
     // MPI_Get_count only return int though
 
-    fullSdfData.resize(readPerProc_byte * nranks / sizeof(float));  // May be bigger than fullSdfSize, to make gather easier
+    const size_t n = readPerProc_byte * nranks / sizeof(float); // May be bigger than fullSdfSize, to make gather easier
+    std::vector<float> fullSdfData(n);
     MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, comm) );
 
     MPI_Check( MPI_File_close(&fh) );
+
+    return fullSdfData;
 }
 
-static void prepareRelevantSdfPiece(const float* fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,
-                                    float3 initialSdfH, int3 initialSdfResolution,
-                                    int3& resolution, float3& offset, PinnedBuffer<float>& localSdfData)
+struct LocalSdfPiece
 {
+    PinnedBuffer<float> data;
+    float3 offset;
+    int3 resolution;
+};
+
+static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfData, float3 extendedDomainStart, float3 extendedDomainSize,
+                                             float3 initialSdfH, int3 initialSdfResolution)
+{
+    LocalSdfPiece sdfPiece;
     // Find your relevant chunk of data
     // We cannot send big sdf files directly, so we'll carve a piece now
 
-    const int margin = 3; // +2 from cubic interpolation, +1 from possible round-off errors
+    constexpr int margin = 3; // +2 from cubic interpolation, +1 from possible round-off errors
     const int3 startId = make_int3( floorf( extendedDomainStart                     / initialSdfH) ) - margin;
     const int3 endId   = make_int3( ceilf ((extendedDomainStart+extendedDomainSize) / initialSdfH) ) + margin;
 
-    float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*extendedDomainSize);
-    offset = -0.5*extendedDomainSize - startInLocalCoord;
+    const float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*extendedDomainSize);
 
-    resolution = endId - startId;
+    sdfPiece.offset = -0.5*extendedDomainSize - startInLocalCoord;
+    sdfPiece.resolution = endId - startId;
 
-    localSdfData.resize( resolution.x * resolution.y * resolution.z, 0 );
-    auto locSdfDataPtr = localSdfData.hostPtr();
+    sdfPiece.data.resize_anew( multiplyComps(sdfPiece.resolution) );
+    
+    auto locSdfDataPtr = sdfPiece.data.hostPtr();
 
-    for (int k = 0; k < resolution.z; k++)
-        for (int j = 0; j < resolution.y; j++)
-            for (int i = 0; i < resolution.x; i++)
+    for (int k = 0; k < sdfPiece.resolution.z; ++k)
+        for (int j = 0; j < sdfPiece.resolution.y; ++j)
+            for (int i = 0; i < sdfPiece.resolution.x; ++i)
             {
                 const int origIx = (i+startId.x + initialSdfResolution.x) % initialSdfResolution.x;
                 const int origIy = (j+startId.y + initialSdfResolution.y) % initialSdfResolution.y;
                 const int origIz = (k+startId.z + initialSdfResolution.z) % initialSdfResolution.z;
 
-                locSdfDataPtr[ (k*resolution.y + j)*resolution.x + i ] =
-                        fullSdfData[ (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx ];
+                const auto dstId = (k*sdfPiece.resolution.y + j)*sdfPiece.resolution.x + i;
+                const auto srcId = (origIz*initialSdfResolution.y + origIy)*initialSdfResolution.x + origIx;
+                locSdfDataPtr[ dstId ] = fullSdfData[ srcId ];
             }
+    return sdfPiece;
 }
 
 FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, float3 h) :
@@ -229,6 +273,11 @@ FieldFromFile::~FieldFromFile() = default;
 
 FieldFromFile::FieldFromFile(FieldFromFile&&) = default;
 
+inline bool componentsAreEqual(float3 v, float eps = 1e-5f)
+{
+    return fabs(v.x - v.y) < eps && fabs(v.x - v.z) < eps;
+}
+
 void FieldFromFile::setup(const MPI_Comm& comm)
 {
     info("Setting up field from %s", fieldFileName.c_str());
@@ -238,51 +287,39 @@ void FieldFromFile::setup(const MPI_Comm& comm)
     CUDA_Check( cudaDeviceSynchronize() );
 
     int nranks, rank;
-    int ranks[3], periods[3], coords[3];
     MPI_Check( MPI_Comm_size(comm, &nranks) );
     MPI_Check( MPI_Comm_rank(comm, &rank) );
-    MPI_Check( MPI_Cart_get (comm, 3, ranks, periods, coords) );
-
-    int3 initialSdfResolution;
-    float3 initialSdfExtent;
-
-    int64_t fullSdfSize_byte;
-    int64_t endHeader_byte;
 
     // Read header
-    readHeader(fieldFileName, comm, initialSdfResolution, initialSdfExtent, fullSdfSize_byte, endHeader_byte, rank);
-    float3 initialSdfH = domain.globalSize / make_float3(initialSdfResolution-1);
+    auto headerInfo = readHeader(fieldFileName, comm);
+    const float3 initialSdfH = domain.globalSize / make_float3(headerInfo.resolution-1);
 
     // Read heavy data
-    std::vector<float> fullSdfData;
-    readSdf(fieldFileName, comm, fullSdfSize_byte, endHeader_byte, nranks, rank, fullSdfData);
+    const auto fullSdfData = readSdf(fieldFileName, comm, headerInfo);
 
-    const float3 scale3 = domain.globalSize / initialSdfExtent;
-    if ( fabs(scale3.x - scale3.y) > 1e-5 || fabs(scale3.x - scale3.z) > 1e-5 )
+    const float3 scale3 = domain.globalSize / headerInfo.extents;
+    if ( !componentsAreEqual(scale3) )
         die("Sdf size and domain size mismatch");
     const float lenScalingFactor = (scale3.x + scale3.y + scale3.z) / 3;
 
-    int3 resolutionBeforeInterpolation;
-    float3 offset;
-    PinnedBuffer<float> localData;
-    prepareRelevantSdfPiece(fullSdfData.data(), domain.globalStart - margin3, extendedDomainSize,
-                            initialSdfH, initialSdfResolution,
-                            resolutionBeforeInterpolation, offset, localData);
+    auto sdfPiece = prepareRelevantSdfPiece(fullSdfData,
+                                            domain.globalStart - margin3, extendedDomainSize,
+                                            initialSdfH, headerInfo.resolution);
 
     // Interpolate
-    DeviceBuffer<float> fieldRawData (resolution.x * resolution.y * resolution.z);
+    DeviceBuffer<float> fieldRawData (multiplyComps(resolution));
 
     dim3 threads(8, 8, 8);
     dim3 blocks((resolution.x+threads.x-1) / threads.x,
                 (resolution.y+threads.y-1) / threads.y,
                 (resolution.z+threads.z-1) / threads.z);
 
-    localData.uploadToDevice(defaultStream);
+    sdfPiece.data.uploadToDevice(defaultStream);
     SAFE_KERNEL_LAUNCH(
             InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, defaultStream,
-            localData.devPtr(), resolutionBeforeInterpolation, initialSdfH,
-            fieldRawData.devPtr(), resolution, h, offset, lenScalingFactor );
+            sdfPiece.data.devPtr(), sdfPiece.resolution, initialSdfH,
+            fieldRawData.devPtr(), resolution, h, sdfPiece.offset, lenScalingFactor );
 
     setupArrayTexture(fieldRawData.devPtr());
 }
