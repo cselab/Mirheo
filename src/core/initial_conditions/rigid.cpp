@@ -122,47 +122,45 @@ static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
     return motions;
 }
 
+static void setParticlesFromMotions(RigidObjectVector *rov, cudaStream_t stream)
+{
+    // use rigid object integrator to set up the particles positions, velocities and old positions
+    rov->local()->forces().clear(stream);
+    const float dummyDt = 0.f;
+    const MirState dummyState(rov->state->domain, dummyDt);
+    IntegratorVVRigid integrator(&dummyState, "__dummy__");
+    integrator.stage2(rov, stream);
+}
+
 void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
-    if (ov == nullptr)
+    auto rov = dynamic_cast<RigidObjectVector*>(pv);
+    if (rov == nullptr)
         die("Can only generate rigid object vector");
 
-    const auto domain = ov->state->domain;
+    const auto domain = rov->state->domain;
 
-    ov->initialPositions = getInitialPositions(coords, stream);
-    checkInitialPositions(domain, ov->initialPositions);
+    rov->initialPositions = getInitialPositions(coords, stream);
+    checkInitialPositions(domain, rov->initialPositions);
 
-    auto lov = ov->local();
+    auto lrov = rov->local();
     
-    if (ov->objSize != ov->initialPositions.size())
+    if (rov->objSize != rov->initialPositions.size())
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
-            ov->name.c_str(), ov->objSize, ov->initialPositions.size());
+            rov->name.c_str(), rov->objSize, rov->initialPositions.size());
 
     const auto motions = createMotions(domain, com_q, comVelocities);
     const auto nObjs = motions.size();
     
-    lov->resize_anew(nObjs * ov->objSize);
+    lrov->resize_anew(nObjs * rov->objSize);
 
-    auto& ovMotions = *lov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-    std::copy(motions.begin(), motions.end(), ovMotions.begin());
-    ovMotions.uploadToDevice(stream);
+    auto& rovMotions = *lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    std::copy(motions.begin(), motions.end(), rovMotions.begin());
+    rovMotions.uploadToDevice(stream);
 
-    auto& positions = lov->positions();
-    
-    positions.uploadToDevice(stream);
-    lov->velocities().uploadToDevice(stream);
-    lov->computeGlobalIds(comm, stream);
+    setParticlesFromMotions(rov, stream);
+    lrov->computeGlobalIds(comm, stream);
 
-    auto& oldPositions = *lov->dataPerParticle.getData<float4>(ChannelNames::oldPositions);
-    oldPositions.copy(positions, stream);
-
-    info("Read %d %s objects", nObjs, ov->name.c_str());
-
-    // Do the initial rotation
-    lov->forces().clear(stream);
-    MirState dummyState(ov->state->domain, /* dt */ 0.f);
-    IntegratorVVRigid integrator(&dummyState, "__dummy__");
-    integrator.stage2(pv, stream);
+    info("Read %d %s objects", nObjs, rov->name.c_str());
 }
 
