@@ -123,7 +123,12 @@ void exportParticleVectors(py::module& m)
 
         
     py::handlers_class<ObjectVector> pyov(m, "ObjectVector", pypv, R"(
-        Basic Object Vector
+        Basic Object Vector. 
+        An Object Vector stores chunks of particles, each chunk belonging to the same object.
+
+        .. warning::
+            In case of interactions with other :any:`ParticleVector`, the extents of the objects must be smaller than a subdomain size. The code only issues a run time warning but it is the responsibility of the user to ensure this condition for correctness.
+
     )"); 
         
     py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
