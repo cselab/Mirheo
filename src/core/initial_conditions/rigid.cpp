@@ -30,6 +30,8 @@ static PyTypes::VectorOfFloat3 readXYZ(std::string fname)
     return positions;
 }
 
+
+
 RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
     RigidIC(com_q, readXYZ(xyzfname))
 {}
@@ -53,7 +55,8 @@ RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q,
 RigidIC::~RigidIC() = default;
 
 
-static PinnedBuffer<float4> getPositions(const PyTypes::VectorOfFloat3& in, cudaStream_t stream)
+static PinnedBuffer<float4> getInitialPositions(const PyTypes::VectorOfFloat3& in,
+                                                cudaStream_t stream)
 {
     PinnedBuffer<float4> out(in.size());
     
@@ -64,26 +67,41 @@ static PinnedBuffer<float4> getPositions(const PyTypes::VectorOfFloat3& in, cuda
     return out;
 }
 
-void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
+static void checkInitialPositions(const DomainInfo& domain,
+                                  const PinnedBuffer<float4>& positions)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
-    if (ov == nullptr)
-        die("Can only generate rigid object vector");
+    if (positions.size() < 1)
+        die("Expect at least one particle per rigid object");
 
-    ov->initialPositions = getPositions(coords, stream);
-
-    auto lov = ov->local();
+    const float3 r0 = make_float3(positions[0]);
     
-    if (ov->objSize != ov->initialPositions.size())
-        die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
-            ov->name.c_str(), ov->objSize, ov->initialPositions.size());
-
-    int nObjs = 0;
-    HostBuffer<RigidMotion> motions;
-
-    for (int i = 0; i < com_q.size(); i++)
+    float3 low {r0}, hig {r0};
+    for (auto r4 : positions)
     {
-        auto& entry = com_q[i];
+        const float3 r = make_float3(r4);
+        low = fminf(low, r);
+        hig = fmaxf(hig, r);
+    }
+
+    const auto L = domain.localSize;
+    const auto l = hig - low;
+
+    const auto Lmax = std::max(L.x, std::max(L.y, L.z));
+    const auto lmax = std::max(l.x, std::max(l.y, l.z));
+
+    if (lmax >= Lmax)
+        warn("Object dimensions are larger than the domain size");
+}
+
+static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
+                                              const PyTypes::VectorOfFloat7& com_q,
+                                              const PyTypes::VectorOfFloat3& comVelocities)
+{
+    std::vector<RigidMotion> motions;
+
+    for (size_t i = 0; i < com_q.size(); ++i)
+    {
+        const auto& entry = com_q[i];
         
         // Zero everything at first
         RigidMotion motion{};
@@ -95,19 +113,39 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
         if (i < comVelocities.size())
             motion.vel = {comVelocities[i][0], comVelocities[i][1], comVelocities[i][2]};
 
-        if (ov->state->domain.inSubDomain(motion.r))
+        if (domain.inSubDomain(motion.r))
         {
-            motion.r = make_rigidReal3( ov->state->domain.global2local(make_float3(motion.r)) );
-            motions.resize(nObjs + 1);
-            motions[nObjs] = motion;
-            nObjs++;
+            motion.r = make_rigidReal3( domain.global2local(make_float3(motion.r)) );
+            motions.push_back(motion);
         }
     }
+    return motions;
+}
 
+void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
+{
+    auto ov = dynamic_cast<RigidObjectVector*>(pv);
+    if (ov == nullptr)
+        die("Can only generate rigid object vector");
+
+    const auto domain = ov->state->domain;
+
+    ov->initialPositions = getInitialPositions(coords, stream);
+    checkInitialPositions(domain, ov->initialPositions);
+
+    auto lov = ov->local();
+    
+    if (ov->objSize != ov->initialPositions.size())
+        die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
+            ov->name.c_str(), ov->objSize, ov->initialPositions.size());
+
+    const auto motions = createMotions(domain, com_q, comVelocities);
+    const auto nObjs = motions.size();
+    
     lov->resize_anew(nObjs * ov->objSize);
 
     auto& ovMotions = *lov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
-    ovMotions.copy(motions);
+    std::copy(motions.begin(), motions.end(), ovMotions.begin());
     ovMotions.uploadToDevice(stream);
 
     auto& positions = lov->positions();
