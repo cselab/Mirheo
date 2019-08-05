@@ -26,7 +26,7 @@ splitAndShiftPosVel(const DomainInfo &domain,
         vel[i] = p.u;
         ids[i] = p.getId();
     }
-    return {pos, vel, ids};
+    return {std::move(pos), std::move(vel), std::move(ids)};
 }
 
 std::tuple<std::vector<float3>, std::vector<RigidReal4>,
@@ -50,7 +50,12 @@ splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions
         torque[i] = m.torque;
     }
 
-    return {pos, quaternion, vel, omega, force, torque};
+    return {std::move(pos),
+            std::move(quaternion),
+            std::move(vel),
+            std::move(omega),
+            std::move(force),
+            std::move(torque)};
 }
 
 

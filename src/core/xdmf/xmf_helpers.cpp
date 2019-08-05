@@ -132,7 +132,7 @@ read(const std::string& filename, MPI_Comm comm, Grid *grid)
 
     debug2("Done with the XMF header");
 
-    return {h5filename, channels};
+    return {std::move(h5filename), std::move(channels)};
 }
 
 } // namespace XMF
