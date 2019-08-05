@@ -29,29 +29,35 @@ std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
 {
     switch (dataForm)
     {
-    case Channel::DataForm::Scalar:     return "Scalar";
-    case Channel::DataForm::Vector:     return "Vector";
-    case Channel::DataForm::Tensor6:    return "Tensor6";
-    case Channel::DataForm::Tensor9:    return "Tensor";
-    case Channel::DataForm::Quaternion: return "Matrix";
-    case Channel::DataForm::Triangle:   return "Matrix";
-    case Channel::DataForm::Vector4:    return "Matrix";
-    case Channel::DataForm::Other:      return "Scalar";
+    case Channel::DataForm::Scalar:      return "Scalar";
+    case Channel::DataForm::Vector:      return "Vector";
+    case Channel::DataForm::Tensor6:     return "Tensor6";
+    case Channel::DataForm::Tensor9:     return "Tensor";
+    case Channel::DataForm::Quaternion:  return "Matrix";
+    case Channel::DataForm::Triangle:    return "Matrix";
+    case Channel::DataForm::Vector4:     return "Matrix";
+    case Channel::DataForm::RigidMotion: return "Matrix";
+    case Channel::DataForm::Other:       return "Scalar";
     }
 }
 
 int dataFormToNcomponents(Channel::DataForm dataForm)
 {
+    constexpr auto szRM = sizeof(RigidMotion);
+    constexpr auto szRMx = sizeof(RigidMotion::r.x);
+    static_assert(szRM % szRMx == 0, "RigidMotion components must be of same type");
+    
     switch (dataForm)
     {
-    case Channel::DataForm::Scalar:     return 1;
-    case Channel::DataForm::Vector:     return 3;
-    case Channel::DataForm::Tensor6:    return 6;
-    case Channel::DataForm::Tensor9:    return 9;
-    case Channel::DataForm::Quaternion: return 4;
-    case Channel::DataForm::Triangle:   return 3;
-    case Channel::DataForm::Vector4:    return 4;
-    case Channel::DataForm::Other:      return 1;
+    case Channel::DataForm::Scalar:      return 1;
+    case Channel::DataForm::Vector:      return 3;
+    case Channel::DataForm::Tensor6:     return 6;
+    case Channel::DataForm::Tensor9:     return 9;
+    case Channel::DataForm::Quaternion:  return 4;
+    case Channel::DataForm::Triangle:    return 3;
+    case Channel::DataForm::Vector4:     return 4;
+    case Channel::DataForm::RigidMotion: return szRM / szRMx;
+    case Channel::DataForm::Other:       return 1;
     }
 }
 
@@ -59,14 +65,15 @@ std::string dataFormToDescription(Channel::DataForm dataForm)
 {
     switch (dataForm)
     {
-    case Channel::DataForm::Scalar:     return "Scalar";
-    case Channel::DataForm::Vector:     return "Vector";
-    case Channel::DataForm::Tensor6:    return "Tensor6";
-    case Channel::DataForm::Tensor9:    return "Tensor";
-    case Channel::DataForm::Quaternion: return "Quaternion";
-    case Channel::DataForm::Triangle:   return "Triangle";
-    case Channel::DataForm::Vector4:    return "Vector4";
-    case Channel::DataForm::Other:      return "Other";
+    case Channel::DataForm::Scalar:      return "Scalar";
+    case Channel::DataForm::Vector:      return "Vector";
+    case Channel::DataForm::Tensor6:     return "Tensor6";
+    case Channel::DataForm::Tensor9:     return "Tensor";
+    case Channel::DataForm::Quaternion:  return "Quaternion";
+    case Channel::DataForm::Triangle:    return "Triangle";
+    case Channel::DataForm::Vector4:     return "Vector4";
+    case Channel::DataForm::RigidMotion: return "RigidMotion";
+    case Channel::DataForm::Other:       return "Other";
     }
 }
         
@@ -79,6 +86,7 @@ Channel::DataForm descriptionToDataForm(const std::string& str)
     if (str == "Quaternion")  return Channel::DataForm::Quaternion;
     if (str == "Trianle")     return Channel::DataForm::Triangle;
     if (str == "Vector4")     return Channel::DataForm::Vector4;
+    if (str == "RigidMotion") return Channel::DataForm::RigidMotion;
     warn("Unrecognised format '%s'", str.c_str());
     return Channel::DataForm::Other;
 }
@@ -116,7 +124,7 @@ int numberTypeToPrecision(Channel::NumberType dt)
     }
 }
     
-Channel::NumberType infoToNumberType(std::string str, int precision)
+Channel::NumberType infoToNumberType(const std::string& str, int precision)
 {
     if (precision == sizeof(float)   && str == "Float") return Channel::NumberType::Float;
     if (precision == sizeof(double)  && str == "Float") return Channel::NumberType::Double;

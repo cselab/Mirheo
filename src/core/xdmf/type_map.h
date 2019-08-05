@@ -24,6 +24,7 @@ IMPLEMENT_DATAFORM(float)
 IMPLEMENT_DATAFORM(double)
 
 template <> Channel::DataForm inline getDataForm<int64_t> () {return Channel::DataForm::Scalar;}
+template <> Channel::DataForm inline getDataForm<RigidMotion> () {return Channel::DataForm::RigidMotion;}
 
 #undef IMPLEMENT_DATAFORM
 

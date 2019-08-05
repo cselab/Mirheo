@@ -9,7 +9,7 @@ namespace XDMF
 {
 struct Channel
 {
-    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, Other };
+    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, RigidMotion, Other };
     enum class NumberType { Float, Double, Int, Int64 };
     enum class NeedShift { True, False };
     
@@ -38,6 +38,6 @@ decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType dt);
 std::string                 numberTypeToString    (Channel::NumberType dt);
 int                         numberTypeToPrecision (Channel::NumberType dt);
 
-Channel::NumberType infoToNumberType(std::string str, int precision);
+Channel::NumberType infoToNumberType(const std::string& str, int precision);
 
 } // namespace XDMF
