@@ -45,7 +45,7 @@ static hid_t createFileAccess(MPI_Comm comm)
     return plist_id_access;
 }
         
-hid_t create(std::string filename, MPI_Comm comm)
+hid_t create(const std::string& filename, MPI_Comm comm)
 {
     hid_t access_id = createFileAccess(comm);
     hid_t file_id   = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, access_id );
@@ -54,7 +54,7 @@ hid_t create(std::string filename, MPI_Comm comm)
     return file_id;
 }
 
-hid_t openReadOnly(std::string filename, MPI_Comm comm)
+hid_t openReadOnly(const std::string& filename, MPI_Comm comm)
 {
     hid_t access_id = createFileAccess(comm);
     hid_t file_id   = H5Fopen( filename.c_str(), H5F_ACC_RDONLY, access_id );
@@ -63,7 +63,7 @@ hid_t openReadOnly(std::string filename, MPI_Comm comm)
     return file_id;
 }
         
-void writeDataSet(hid_t file_id, const GridDims* gridDims, const Channel& channel)
+void writeDataSet(hid_t file_id, const GridDims *gridDims, const Channel& channel)
 {
     debug2("Writing channel '%s'", channel.name.c_str());
             
@@ -108,13 +108,13 @@ void writeDataSet(hid_t file_id, const GridDims* gridDims, const Channel& channe
     H5Dclose(dset_id);
 }
         
-void writeData(hid_t file_id, const GridDims* gridDims, const std::vector<Channel>& channels)
+void writeData(hid_t file_id, const GridDims *gridDims, const std::vector<Channel>& channels)
 {
     for (auto& channel : channels) 
         writeDataSet(file_id, gridDims, channel);
 }
         
-void readDataSet(hid_t file_id, const GridDims* gridDims, Channel& channel)
+void readDataSet(hid_t file_id, const GridDims *gridDims, Channel& channel)
 {
     debug2("Reading channel '%s'", channel.name.c_str());
 
@@ -151,7 +151,7 @@ void readDataSet(hid_t file_id, const GridDims* gridDims, Channel& channel)
     H5Dclose(dset_id);
 }
 
-void readData(hid_t file_id, const GridDims* gridDims, std::vector<Channel>& channels)
+void readData(hid_t file_id, const GridDims *gridDims, std::vector<Channel>& channels)
 {
     for (auto& channel : channels) 
         readDataSet(file_id, gridDims, channel);
@@ -162,7 +162,7 @@ void close(hid_t file_id)
     H5Fclose(file_id);
 }
         
-void write(std::string filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels)
+void write(const std::string& filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels)
 {
     auto file_id = create(filename, comm);
     if (file_id < 0)
@@ -177,7 +177,7 @@ void write(std::string filename, MPI_Comm comm, const Grid *grid, const std::vec
     close(file_id);
 }
 
-void read(std::string filename, MPI_Comm comm, Grid *grid, std::vector<Channel>& channels)
+void read(const std::string& filename, MPI_Comm comm, Grid *grid, std::vector<Channel>& channels)
 {
     auto file_id = openReadOnly(filename, comm);
     if (file_id < 0)
