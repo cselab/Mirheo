@@ -57,7 +57,8 @@ function (add_test_executable dirName)
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
   target_link_libraries(${EXEC_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../build/libmirheo_main.so")
   target_link_libraries(${EXEC_NAME} PRIVATE gtest)
-  add_test(${EXEC_NAME} ${EXEC_NAME})
+  add_test(NAME ${EXEC_NAME}
+           COMMAND mir.run --runargs "-n 1" ./${EXEC_NAME})
 endfunction()
 
 add_test_executable(celllists)
