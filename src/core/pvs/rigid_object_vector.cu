@@ -231,9 +231,10 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
     exchangeData    (comm, ms.map, motions,  objChunkSize);
     exchangeListData(comm, ms.map, listData, objChunkSize);
 
+    requireExtraDataPerObject(listData, this);
+
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
-
     copyAndShiftListData(state->domain, listData, dataPerObject);
     
     shiftElementsGlobal2Local(motions, state->domain);
@@ -242,8 +243,6 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
 
     std::copy(motions.begin(), motions.end(), dstMotions.begin());
     dstMotions.uploadToDevice(defaultStream);
-
-    requireExtraDataPerObject(listData, this);
 
 
     filename = createCheckpointName(path, RestartIPIdentifier, "coords");

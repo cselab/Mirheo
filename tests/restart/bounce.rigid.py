@@ -101,6 +101,6 @@ u.run(niters)
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
 # rm -rf pos*.txt vel*.txt
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# mir.run --runargs "-n 4" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 2 1 1 --vis
-# mir.run --runargs "-n 4" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 2 1 1 --vis --restart
+# mir.run --runargs "-n 8" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 4 1 1 --vis
+# mir.run --runargs "-n 8" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 4 1 1 --vis --restart
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt

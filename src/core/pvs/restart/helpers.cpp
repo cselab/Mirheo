@@ -176,6 +176,7 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
 {
     for (auto& entry : listData)
     {
+        debug2("exchange channel '%s'", entry.name.c_str());
         mpark::visit([&](auto& data)
         {
             exchangeData(comm, map, data, chunkSize);
@@ -193,9 +194,7 @@ void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
             
-            pv->requireDataPerParticle<T>(entry.name,
-                                          DataManager::PersistenceMode::Active,
-                                          shiftMode);            
+            pv->requireDataPerParticle<T>(entry.name, DataManager::PersistenceMode::Active, shiftMode);
         }, entry.data);
     }
 }
@@ -210,9 +209,7 @@ void requireExtraDataPerObject(const ListData& listData, ObjectVector *ov)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
             
-            ov->requireDataPerObject<T>(entry.name,
-                                        DataManager::PersistenceMode::Active,
-                                        shiftMode);            
+            ov->requireDataPerObject<T>(entry.name, DataManager::PersistenceMode::Active, shiftMode);
         }, entry.data);
     }
 }
