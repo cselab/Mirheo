@@ -12,13 +12,15 @@ Logger logger;
 const std::string restartPath = "./"; // no need to create folder
 
 constexpr int cartMaxdims = 3;
-const int cartDims[] = {2, 2, 1}; 
+const int cartDims[] = {2, 2, 1}; // assume 4 nodes for this test
+constexpr float mass = 1;
 
-
-static std::unique_ptr<ParticleVector> initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
+static std::unique_ptr<ParticleVector> initializeRandomPV(const MPI_Comm& comm,
+                                                          const std::string& pvName,
+                                                          const MirState *state,
+                                                          float density)
 {
-    float mass = 1;
-    auto pv = std::make_unique<ParticleVector> (state, "pv", mass);
+    auto pv = std::make_unique<ParticleVector> (state, pvName, mass);
     UniformIC ic(density);
     ic.exec(comm, pv.get(), defaultStream);
     return pv;
@@ -77,22 +79,23 @@ inline void compare(const DataManager& a, const DataManager& b)
 
 TEST (RESTART, pv)
 {
+    const std::string pvName = "pv";
     auto comm = createCart();
     float dt = 0.f;
     float L = 64.f;
     float density = 4.f;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
     MirState state(domain, dt);
-    auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
-    auto lpv = pv->local();
-
-    auto backupData = lpv->dataPerParticle;
+    auto pv0 = initializeRandomPV(comm, pvName, &state, density);
+    auto pv1 = std::make_unique<ParticleVector> (&state, pvName, mass);
+    
+    auto backupData = pv0->local()->dataPerParticle;
 
     constexpr int checkPointId = 0;
-    pv->checkpoint(comm, restartPath, checkPointId);
-    pv->restart   (comm, restartPath);
+    pv0->checkpoint(comm, restartPath, checkPointId);
+    pv1->restart   (comm, restartPath);
 
-    compare(backupData, lpv->dataPerParticle);
+    compare(backupData, pv1->local()->dataPerParticle);
 
     destroyCart(comm);
 }
@@ -107,7 +110,6 @@ inline int getRank(MPI_Comm comm)
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
-    // TODO cart topology
 
     logger.init(MPI_COMM_WORLD, "restart.log", 3);
 
