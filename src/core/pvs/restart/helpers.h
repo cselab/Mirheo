@@ -129,7 +129,7 @@ static std::vector<T> recvData(int numProcs, MPI_Comm comm)
         int sizeBytes;
         std::vector<T> recvBuf;
         
-        MPI_Check( MPI_Probe(MPI_ANY_SOURCE, tag, comm, &status) );
+        MPI_Check( MPI_Probe(i, tag, comm, &status) );
         MPI_Check( MPI_Get_count(&status, MPI_BYTE, &sizeBytes) );
 
         const int size = sizeBytes / sizeof(T);
