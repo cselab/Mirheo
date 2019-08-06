@@ -137,10 +137,20 @@ static auto generateObjectComQ(int n, float3 L, long seed=12345)
     std::uniform_real_distribution<float> dy(0.f, L.y);
     std::uniform_real_distribution<float> dz(0.f, L.z);
 
+    float3 com {0.f, 0.f, 0.f};
     for (int i = 0; i < n; ++i)
     {
         float3 r {dx(gen), dy(gen), dz(gen)};
+        com += r;
         com_q.push_back({r.x, r.y, r.z, 1.f, 0.f, 0.f, 0.f});
+    }
+    com *= 1.0 / n;
+
+    for (auto& r : com_q)
+    {
+        r[0] -= com.x;
+        r[1] -= com.y;
+        r[2] -= com.z;
     }
     
     return com_q;
@@ -209,8 +219,8 @@ int main(int argc, char **argv)
     auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
 
     // only root listens to gtest
-    if (getRank(MPI_COMM_WORLD) != 0)
-        delete listeners.Release(listeners.default_result_printer());
+    // if (getRank(MPI_COMM_WORLD) != 0)
+    //     delete listeners.Release(listeners.default_result_printer());
     
     auto retval = RUN_ALL_TESTS();
 
