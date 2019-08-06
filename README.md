@@ -15,6 +15,7 @@ For more information, please refer to the online documentation: http://mirheo.re
 ### unreleased
 
 * **interface changes**: new field `requireShift` in restart files. Newer versions will not be able to read older restart files.
+* add unit tests for restart
 * **internal changes**:
   * refactored restart for particle vectors
   * fix: test for ROV
