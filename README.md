@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.1.1
 
 * **interface changes**: new field `requireShift` in restart files. Newer versions will not be able to read older restart files.
 * add unit tests for restart
