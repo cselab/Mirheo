@@ -9,7 +9,7 @@
 #include <vector>
 
 Logger logger;
-const std::string restartPath = "restart/";
+const std::string restartPath = "./"; // no need to create folder
 
 constexpr int cartMaxdims = 3;
 const int cartDims[] = {2, 2, 1}; 
