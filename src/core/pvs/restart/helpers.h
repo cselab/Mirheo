@@ -120,22 +120,23 @@ static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& send
 }
 
 template <typename T>
-static std::vector<T> recvData(int size, MPI_Comm comm)
+static std::vector<T> recvData(int numProcs, MPI_Comm comm)
 {
     std::vector<T> allData;
-    for (int i = 0; i < size; ++i)
+    for (int i = 0; i < numProcs; ++i)
     {
         MPI_Status status;
-        int sizeBytes, size;
+        int sizeBytes;
         std::vector<T> recvBuf;
         
         MPI_Check( MPI_Probe(MPI_ANY_SOURCE, tag, comm, &status) );
         MPI_Check( MPI_Get_count(&status, MPI_BYTE, &sizeBytes) );
 
-        size = sizeBytes / sizeof(T);
+        const int size = sizeBytes / sizeof(T);
 
         if (size * sizeof(T) != sizeBytes)
-            die("unexpected received size");
+            die("unexpected received size: got %ld bytes, expected multiple of %ld",
+                static_cast<long>(sizeBytes), static_cast<long>(sizeof(T)));
         
         recvBuf.resize(size);
 
@@ -147,15 +148,22 @@ static std::vector<T> recvData(int size, MPI_Comm comm)
     }
     return allData;
 }
+
+inline int getNumProcs(MPI_Comm comm)
+{
+    int numProcs;
+    MPI_Check( MPI_Comm_size(comm, &numProcs) );
+    return numProcs;
+}
+
 } // namespace details
 
 template<typename T>
 static void exchangeData(MPI_Comm comm, const ExchMap& map,
                          std::vector<T>& data, int chunkSize = 1)
 {
-    int numProcs;
-    MPI_Check( MPI_Comm_size(comm, &numProcs) );
-            
+    const int numProcs = details::getNumProcs(comm);
+
     auto sendBufs = details::splitData(map, chunkSize, data, numProcs);
     auto sendReqs = details::sendData(sendBufs, comm);
     data          = details::recvData<T>(numProcs, comm);
