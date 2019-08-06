@@ -1,10 +1,15 @@
+#include <core/analytical_shapes/api.h>
+#include <core/initial_conditions/rigid.h>
 #include <core/initial_conditions/uniform.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
+#include <core/pvs/rigid_ashape_object_vector.h>
 #include <core/utils/cuda_common.h>
 
-#include <cstdio>
 #include <gtest/gtest.h>
+
+#include <cstdio>
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -96,6 +101,92 @@ TEST (RESTART, pv)
     pv1->restart   (comm, restartPath);
 
     compare(backupData, pv1->local()->dataPerParticle);
+
+    destroyCart(comm);
+}
+
+// rejection sampling for particles inside ellipsoid
+static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
+{
+    PyTypes::VectorOfFloat3 pos;
+    pos.reserve(n);
+
+    Ellipsoid ell(axes);
+    
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> dx(-axes.x, axes.x);
+    std::uniform_real_distribution<float> dy(-axes.y, axes.y);
+    std::uniform_real_distribution<float> dz(-axes.z, axes.z);
+    
+    while (pos.size() < n)
+    {
+        float3 r {dx(gen), dy(gen), dz(gen)};
+        if (ell.inOutFunction(r) < 0.f)
+            pos.push_back({r.x, r.y, r.z});
+    }
+    return pos;
+}
+
+static auto generateObjectComQ(int n, float3 L, long seed=12345)
+{
+    PyTypes::VectorOfFloat7 com_q;
+    com_q.reserve(n);
+
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> dx(0.f, L.x);
+    std::uniform_real_distribution<float> dy(0.f, L.y);
+    std::uniform_real_distribution<float> dz(0.f, L.z);
+
+    for (int i = 0; i < n; ++i)
+    {
+        float3 r {dx(gen), dy(gen), dz(gen)};
+        com_q.push_back({r.x, r.y, r.z, 1.f, 0.f, 0.f, 0.f});
+    }
+    
+    return com_q;
+}
+
+static std::unique_ptr<RigidShapedObjectVector<Ellipsoid>>
+initializeRandomREV(const MPI_Comm& comm, const std::string& ovName, const MirState *state, int nObjs, int objSize)
+{
+    float3 axes {1.f, 1.f, 1.f};
+    Ellipsoid ellipsoid(axes);
+
+    auto rev = std::make_unique<RigidShapedObjectVector<Ellipsoid>>
+        (state, ovName, mass, objSize, ellipsoid);
+
+    auto com_q  = generateObjectComQ(nObjs, state->domain.globalSize);
+    auto coords = generateUniformEllipsoid(objSize, axes);
+    
+    RigidIC ic(com_q, coords);
+    ic.exec(comm, rev.get(), defaultStream);
+
+    return rev;
+}
+
+TEST (RESTART, rov)
+{
+    const std::string rovName = "rov";
+    auto comm = createCart();
+    const float dt = 0.f;
+    const float L = 64.f;
+    const int nObjs = 512;
+    const int objSize = 666;
+    DomainInfo domain = createDomainInfo(comm, {L, L, L});
+    MirState state(domain, dt);
+
+    auto rov0 = initializeRandomREV(comm, rovName, &state, nObjs, objSize);
+    auto rov1 = std::make_unique<RigidShapedObjectVector<Ellipsoid>> (&state, rovName, mass, objSize, Ellipsoid{{1.f, 1.f, 1.f}});
+    
+    auto backupDataParticles = rov0->local()->dataPerParticle;
+    auto backupDataObjects   = rov0->local()->dataPerObject;
+
+    constexpr int checkPointId = 0;
+    rov0->checkpoint(comm, restartPath, checkPointId);
+    rov1->restart   (comm, restartPath);
+
+    compare(backupDataParticles, rov1->local()->dataPerParticle);
+    compare(backupDataObjects,   rov1->local()->dataPerObject  );
 
     destroyCart(comm);
 }
