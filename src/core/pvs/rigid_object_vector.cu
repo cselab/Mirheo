@@ -3,7 +3,7 @@
 #include "rigid_object_vector.h"
 #include "views/rov.h"
 
-#include <core/rigid_kernels/integration.h>
+#include <core/rigid_kernels/operations.h>
 #include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 #include <core/xdmf/type_map.h>
@@ -27,13 +27,8 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t strea
     fakeView.size      = mesh->getNvertices() * nObjects;
     fakeView.positions = meshVertices.devPtr();
 
-    const int nthreads = 128;
-    
-    SAFE_KERNEL_LAUNCH(
-            RigidIntegrationKernels::applyRigidMotion
-                <RigidIntegrationKernels::ApplyTo::PositionsOnly>,
-            getNblocks(fakeView.size, nthreads), nthreads, 0, stream,
-            fakeView, ov->mesh->vertexCoordinates.devPtr() );
+    RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
+                                      RigidOperations::ApplyTo::PositionsOnly, stream);
 
     return &meshVertices;
 }
@@ -52,13 +47,8 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t st
     fakeView.positions = meshOldVertices.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
-    const int nthreads = 128;
-    
-    SAFE_KERNEL_LAUNCH(
-            RigidIntegrationKernels::applyRigidMotion
-                <RigidIntegrationKernels::ApplyTo::PositionsOnly>,
-            getNblocks(fakeView.size, nthreads), nthreads, 0, stream,
-            fakeView, ov->mesh->vertexCoordinates.devPtr() );
+    RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
+                                      RigidOperations::ApplyTo::PositionsOnly, stream);
 
     return &meshOldVertices;
 }

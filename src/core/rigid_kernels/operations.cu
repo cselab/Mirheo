@@ -130,7 +130,7 @@ void applyRigidMotion(const ROVview& view, const PinnedBuffer<float4>& initialPo
     };
 }
 
-void clearRigidForces(ROVview view, cudaStream_t stream)
+void clearRigidForces(const ROVview& view, cudaStream_t stream)
 {
     constexpr int nthreads = 64;
     const int nblocks = getNblocks(view.nObjects, nthreads);

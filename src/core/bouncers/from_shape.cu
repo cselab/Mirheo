@@ -6,7 +6,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ashape_object_vector.h>
 #include <core/pvs/views/rsov.h>
-#include <core/rigid_kernels/integration.h>
+#include <core/rigid_kernels/operations.h>
 #include <core/utils/kernel_launch.h>
 
 template <class Shape>
@@ -64,12 +64,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
     const int nthreads = 256;
 
     if (!local)
-    {
-        SAFE_KERNEL_LAUNCH(
-                RigidIntegrationKernels::clearRigidForces,
-                getNblocks(ovView.nObjects, nthreads), nthreads, 0, stream,
-                ovView );
-    }
+        RigidOperations::clearRigidForces(ovView, stream);
 
     SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,

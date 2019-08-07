@@ -5,7 +5,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/ov.h>
-#include <core/rigid_kernels/integration.h>
+#include <core/rigid_kernels/operations.h>
 #include <core/utils/kernel_launch.h>
 
 /**
@@ -165,11 +165,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
         if (!local)
         {
             ROVview view(rov, rov->halo());
-
-            SAFE_KERNEL_LAUNCH(
-                RigidIntegrationKernels::clearRigidForces,
-                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view );
+            RigidOperations::clearRigidForces(view, stream);
         }
 
         // make a fake view with vertices instead of particles
@@ -179,9 +175,6 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
         view.positions = vertexView.vertices;
         view.forces    = vertexView.vertexForces;
 
-        SAFE_KERNEL_LAUNCH(
-                RigidIntegrationKernels::collectRigidForces,
-                getNblocks(view.size, nthreads), nthreads, 0, stream,
-                view );
+        RigidOperations::clearRigidForces(view, stream);
     }
 }
