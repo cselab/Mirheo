@@ -5,7 +5,6 @@
 #include <core/containers.h>
 #include <core/datatypes.h>
 #include <core/pvs/object_vector.h>
-#include <core/rigid_kernels/rigid_motion.h>
 
 #include <vector>
 

@@ -9,7 +9,8 @@
 #include <core/utils/helper_math.h>
 #include <core/utils/kernel_launch.h>
 
-namespace ObjStatsPluginKernels {
+namespace ObjStatsPluginKernels
+{
 
 __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
 {

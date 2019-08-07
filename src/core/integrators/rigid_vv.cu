@@ -1,14 +1,10 @@
 #include "rigid_vv.h"
 
-#include <core/utils/kernel_launch.h>
 #include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
-
-
 #include <core/rigid_kernels/integration.h>
+#include <core/utils/kernel_launch.h>
 
 IntegratorVVRigid::IntegratorVVRigid(const MirState *state, std::string name) :
     Integrator(state, name)
