@@ -2,6 +2,7 @@
 #include <core/logger.h>
 
 #include <gtest/gtest.h>
+#include <tuple>
 #include <vector>
 
 Logger logger;
@@ -24,7 +25,7 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirS
 }
 
 static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
-                    std::vector<Force>& forces, int nsteps, float dt, float mass)
+                    const std::vector<Force>& forces, int nsteps, float dt, float mass)
 {
     float dt_m = dt / mass;
     
@@ -45,12 +46,16 @@ static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
     }
 }
 
-static void initializeParticles(ParticleVector *pv, std::vector<float4>& hostPositions, std::vector<float4>& hostVelocities)
+static std::tuple<std::vector<float4>, std::vector<float4>>
+initializeParticles(ParticleVector *pv)
 {
+    std::vector<float4> hostPositions, hostVelocities;
+    
     auto& pos = pv->local()->positions();
     auto& vel = pv->local()->velocities();
     
-    for (int i = 0; i < pos.size(); ++i) {
+    for (int i = 0; i < pos.size(); ++i)
+    {
         pos[i].x = drand48();
         pos[i].y = drand48();
         pos[i].z = drand48();
@@ -66,22 +71,24 @@ static void initializeParticles(ParticleVector *pv, std::vector<float4>& hostPos
     hostVelocities.resize(vel.size());
     std::copy(pos.begin(), pos.end(), hostPositions .begin());
     std::copy(vel.begin(), vel.end(), hostVelocities.begin());
+
+    return {std::move(hostPositions), std::move(hostVelocities)};
 }
 
-static void initializeForces(ParticleVector *pv, std::vector<Force>& hostForces)
+static std::vector<Force> initializeForces(ParticleVector *pv)
 {
     auto &forces = pv->local()->forces();
-    hostForces.resize(forces.size());
 
-    for (auto& f : hostForces) {
+    for (auto& f : forces)
+    {
         f.f.x = drand48();
         f.f.y = drand48();
         f.f.z = drand48();
     }    
 
-    CUDA_Check( cudaMemcpyAsync(forces.devPtr(), hostForces.data(),
-                                forces.size() * sizeof(Force),
-                                cudaMemcpyHostToDevice, defaultStream) );
+    forces.uploadToDevice(defaultStream);
+    
+    return {forces.begin(), forces.end()};
 }
 
 static void computeError(int n,
@@ -129,10 +136,9 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     ParticleVector pv(&state, "pv", mass, nparticles);
 
     std::vector<float4> hostPositions, hostVelocities;
-    std::vector<Force> hostForces;
     
-    initializeParticles(&pv, hostPositions, hostVelocities);
-    initializeForces(&pv, hostForces);
+    std::tie(hostPositions, hostVelocities) = initializeParticles(&pv);
+    const auto hostForces = initializeForces(&pv);
     
     run_gpu(vv.get(), &pv, nsteps, &state);
     run_cpu(hostPositions, hostVelocities, hostForces, nsteps, dt, mass);
@@ -147,17 +153,17 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     ASSERT_LE(linf, tolerance);
 }
 
-TEST(Integration, velocityVerlet1)
+TEST(Integration_particles,velocityVerlet)
 {
     testVelocityVerlet(0.1, 1.0, 1000, 100, 5e-4);
 }
 
-TEST(Integration, velocityVerletSmallMass)
+TEST(Integration_particles, velocityVerletSmallMass)
 {
     testVelocityVerlet(0.1, 0.1, 1000, 100, 5e-3);
 }
 
-TEST(Integration, velocityVerletLargeMass)
+TEST(Integration_particles, velocityVerletLargeMass)
 {
     testVelocityVerlet(0.1, 10000.0, 1, 10000, 5e-5);
 }
