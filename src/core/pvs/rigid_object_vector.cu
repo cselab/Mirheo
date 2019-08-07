@@ -31,7 +31,7 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t strea
     
     SAFE_KERNEL_LAUNCH(
             RigidIntegrationKernels::applyRigidMotion
-                <RigidIntegrationKernels::ApplyRigidMotion::PositionsOnly>,
+                <RigidIntegrationKernels::ApplyTo::PositionsOnly>,
             getNblocks(fakeView.size, nthreads), nthreads, 0, stream,
             fakeView, ov->mesh->vertexCoordinates.devPtr() );
 
@@ -56,7 +56,7 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t st
     
     SAFE_KERNEL_LAUNCH(
             RigidIntegrationKernels::applyRigidMotion
-                <RigidIntegrationKernels::ApplyRigidMotion::PositionsOnly>,
+                <RigidIntegrationKernels::ApplyTo::PositionsOnly>,
             getNblocks(fakeView.size, nthreads), nthreads, 0, stream,
             fakeView, ov->mesh->vertexCoordinates.devPtr() );
 

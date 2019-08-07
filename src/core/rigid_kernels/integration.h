@@ -104,13 +104,13 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
 }
 
 
-enum class ApplyRigidMotion { PositionsOnly, PositionsAndVelocities };
+enum class ApplyTo { PositionsOnly, PositionsAndVelocities };
 
 /**
  * Rotates and translates the initial positions according to new position and orientation
  * compute also velocity if template parameter set to corresponding value
  */
-template <ApplyRigidMotion action>
+template <ApplyTo action>
 static __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPositions)
 {
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -127,7 +127,7 @@ static __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPos
     // Some explicit conversions for double precision
     p.r = motion.r + rotate( make_float3(initialPositions[locId]), motion.q );
 
-    if (action == ApplyRigidMotion::PositionsAndVelocities)
+    if (action == ApplyTo::PositionsAndVelocities)
     {
         ovView.readVelocity(p, pid);
         p.u = motion.vel + cross(motion.omega, p.r - motion.r);

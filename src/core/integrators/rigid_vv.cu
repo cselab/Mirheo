@@ -62,7 +62,7 @@ static void setRigidParticlesFromMotions(const ROVviewWithOldMotion& view, const
     const int nblocks = getNblocks(view.size, nthreads);
         
     SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::applyRigidMotion<RigidIntegrationKernels::ApplyRigidMotion::PositionsAndVelocities>,
+        RigidIntegrationKernels::applyRigidMotion<RigidIntegrationKernels::ApplyTo::PositionsAndVelocities>,
         nblocks, nthreads, 0, stream,
         view, initialPositions.devPtr() );
 }
