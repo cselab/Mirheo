@@ -31,14 +31,14 @@ static __global__ void collectRigidForces(ROVview ovView)
         const float3 frc = make_float3(ovView.forces[offset]);
         const float3 r   = make_float3(ovView.readPosition(offset)) - com;
 
-        force += frc;
+        force  += frc;
         torque += cross(r, frc);
     }
 
     force  = warpReduce( force,  [] (RigidReal a, RigidReal b) { return a+b; } );
     torque = warpReduce( torque, [] (RigidReal a, RigidReal b) { return a+b; } );
 
-    if ( __laneid() == 0 )
+    if ( tid % warpSize == 0 )
     {
         atomicAdd(&ovView.motions[objId].force,  force);
         atomicAdd(&ovView.motions[objId].torque, torque);

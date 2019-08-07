@@ -37,7 +37,7 @@ void IntegratorVVRigid::stage1(ParticleVector *pv, cudaStream_t stream)
 static void collectRigidForces(const ROVviewWithOldMotion& view, cudaStream_t stream)
 {
     const int nthreads = 128;
-    const int nblocks = getNblocks(2*view.size, nthreads);
+    const int nblocks = view.nObjects;
     
     SAFE_KERNEL_LAUNCH(
         RigidIntegrationKernels::collectRigidForces,
