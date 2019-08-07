@@ -3,8 +3,8 @@
 #include <core/logger.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
-#include <core/rigid_kernels/operations.h>
-#include <core/rigid_kernels/utils.h>
+#include <core/rigid/operations.h>
+#include <core/rigid/utils.h>
 #include <core/utils/kernel_launch.h>
 #include <core/utils/quaternion.h>
 

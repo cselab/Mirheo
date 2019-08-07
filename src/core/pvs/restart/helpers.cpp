@@ -1,6 +1,6 @@
 #include "helpers.h"
 
-#include <core/rigid_kernels/utils.h>
+#include <core/rigid/utils.h>
 #include <core/utils/cuda_common.h>
 #include <core/xdmf/xdmf.h>
 

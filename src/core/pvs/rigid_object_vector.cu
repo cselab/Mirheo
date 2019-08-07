@@ -3,7 +3,7 @@
 #include "rigid_object_vector.h"
 #include "views/rov.h"
 
-#include <core/rigid_kernels/operations.h>
+#include <core/rigid/operations.h>
 #include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 #include <core/xdmf/type_map.h>

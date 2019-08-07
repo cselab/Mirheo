@@ -1,10 +1,9 @@
 #include "obj_rod_binding.h"
 
-#include <core/pvs/views/ov.h>
 #include <core/pvs/views/rov.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/rod_vector.h>
-#include <core/rigid_kernels/utils.h>
+#include <core/rigid/utils.h>
 #include <core/utils/quaternion.h>
 #include <core/utils/kernel_launch.h>
 

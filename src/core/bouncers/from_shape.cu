@@ -3,10 +3,9 @@
 
 #include <core/analytical_shapes/api.h>
 #include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
 #include <core/pvs/rigid_ashape_object_vector.h>
 #include <core/pvs/views/rsov.h>
-#include <core/rigid_kernels/operations.h>
+#include <core/rigid/operations.h>
 #include <core/utils/kernel_launch.h>
 
 template <class Shape>

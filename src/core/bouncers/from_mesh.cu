@@ -5,7 +5,7 @@
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/ov.h>
-#include <core/rigid_kernels/operations.h>
+#include <core/rigid/operations.h>
 #include <core/utils/kernel_launch.h>
 
 /**
