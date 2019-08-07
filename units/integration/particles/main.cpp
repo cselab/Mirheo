@@ -91,13 +91,13 @@ static std::vector<Force> initializeForces(ParticleVector *pv)
     return {forces.begin(), forces.end()};
 }
 
-static void computeError(int n,
-                         const float4 *pos1, const float4 *vel1,
-                         const float4 *pos2, const float4 *vel2,
-                         double& l2, double& linf)
+static std::tuple<double, double>
+computeError(int n,
+             const float4 *pos1, const float4 *vel1,
+             const float4 *pos2, const float4 *vel2)
 {
-    l2 = 0;
-    linf = -1;
+    double l2 {0.};
+    double linf {-1.};
     double dx, dy, dz, du, dv, dw;
     
     for (int i = 0; i < n; ++i) {
@@ -124,6 +124,7 @@ static void computeError(int n,
         linf = std::max(linf, dw);
     }
     l2 = std::sqrt(l2);
+    return {l2, linf};
 }
 
 static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps, double tolerance)
@@ -143,11 +144,10 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     run_gpu(vv.get(), &pv, nsteps, &state);
     run_cpu(hostPositions, hostVelocities, hostForces, nsteps, dt, mass);
 
-    computeError(pv.local()->size(),
-                 pv.local()->positions ().data(),
-                 pv.local()->velocities().data(),
-                 hostPositions.data(), hostVelocities.data(),
-                 l2, linf);
+    std::tie(l2, linf) = computeError(pv.local()->size(),
+                                      pv.local()->positions ().data(),
+                                      pv.local()->velocities().data(),
+                                      hostPositions.data(), hostVelocities.data());
     
     ASSERT_LE(l2, tolerance);
     ASSERT_LE(linf, tolerance);
