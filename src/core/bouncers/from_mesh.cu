@@ -175,6 +175,6 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
         view.positions = vertexView.vertices;
         view.forces    = vertexView.vertexForces;
 
-        RigidOperations::clearRigidForces(view, stream);
+        RigidOperations::collectRigidForces(view, stream);
     }
 }
