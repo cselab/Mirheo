@@ -6,6 +6,69 @@
 #include <core/rigid_kernels/integration.h>
 #include <core/utils/kernel_launch.h>
 
+namespace RigidVVKernels
+{
+
+/**
+ * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
+ * Velocity-Verlet fused is used at the moment
+ */
+__global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const float dt)
+{
+    const int objId = threadIdx.x + blockDim.x * blockIdx.x;
+    if (objId >= ovView.nObjects) return;
+
+    auto motion = ovView.motions[objId];
+    ovView.old_motions[objId] = motion;
+
+    //**********************************************************************************
+    // Rotation
+    //**********************************************************************************
+    auto q = motion.q;
+
+    // Update angular velocity in the body frame
+    auto omega = rotate(motion.omega,  invQ(q));
+    auto tau   = rotate(motion.torque, invQ(q));
+
+    // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
+    // J is the diagonal inertia tensor in the body frame
+    auto dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
+    omega += dw_dt * dt;
+
+    // Only for output purposes
+    auto L = rotate(omega*ovView.J, motion.q);
+
+    omega = rotate(omega, motion.q);
+
+    // using OLD q and NEW w ?
+    // d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
+    auto dq_dt = compute_dq_dt(q, omega);
+    auto d2q_dt2 = 0.5f*(multiplyQ(f3toQ(dw_dt), q) + multiplyQ(f3toQ(omega), dq_dt));
+
+    dq_dt += d2q_dt2 * dt;
+    q     += dq_dt   * dt;
+
+    // Normalize q
+    q = normalize(q);
+
+    motion.omega = omega;
+    motion.q     = q;
+
+    //**********************************************************************************
+    // Translation
+    //**********************************************************************************
+    auto force = motion.force;
+    auto vel   = motion.vel;
+    vel += force*dt * ovView.invObjMass;
+
+    motion.vel = vel;
+    motion.r += vel*dt;
+
+    ovView.motions[objId] = motion;
+}
+
+} // namespace RigidVVKernels
+
 IntegratorVVRigid::IntegratorVVRigid(const MirState *state, std::string name) :
     Integrator(state, name)
 {}
@@ -32,8 +95,6 @@ void IntegratorVVRigid::stage1(ParticleVector *pv, cudaStream_t stream)
 {}
 
 
-
-
 static void collectRigidForces(const ROVviewWithOldMotion& view, cudaStream_t stream)
 {
     const int nthreads = 128;
@@ -51,7 +112,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, float dt, cu
     const int nblocks = getNblocks(view.nObjects, nthreads);
     
     SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::integrateRigidMotion,
+        RigidVVKernels::integrateRigidMotion,
         nblocks, nthreads, 0, stream,
         view, dt );
 }
