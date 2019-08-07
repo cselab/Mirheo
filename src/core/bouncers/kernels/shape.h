@@ -3,6 +3,7 @@
 #include <core/bounce_solver.h>
 #include <core/celllist.h>
 #include <core/pvs/views/rsov.h>
+#include <core/rigid_kernels/utils.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 #include <core/utils/quaternion.h>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils.h"
+
 #include <core/pvs/object_vector.h>
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/views/rov.h>
@@ -66,7 +68,7 @@ static __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const f
     auto omega = rotate(motion.omega,  invQ(q));
     auto tau   = rotate(motion.torque, invQ(q));
 
-    // tau = J dw/dt + w x Jw  =>  dw/dt = J'*tau - J'*(w x Jw)
+    // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
     // J is the diagonal inertia tensor in the body frame
     auto dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
     omega += dw_dt * dt;
