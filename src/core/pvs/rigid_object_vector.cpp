@@ -5,7 +5,6 @@
 
 #include <core/rigid/operations.h>
 #include <core/utils/folders.h>
-#include <core/utils/kernel_launch.h>
 #include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
 
