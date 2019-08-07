@@ -36,68 +36,67 @@ void IntegratorVVRigid::stage1(ParticleVector *pv, cudaStream_t stream)
 {}
 
 
-/**
- * The function steps are as follows:
- *
- * - Collect the forces from the particles to get total force and torque per object
- * - Integrate object's COM coordinate RigidMotion::r and quatertion orientation
- *   RigidMotion::q. Velocity-Verlet is used for both.
- * - Rotate and translate the objects. For higher precision we don't use incremental
- *   updates, but rather take the initial particle coordinates
- *   RigidObjectVector::initialPositions and perform the full transformation for each
- *   object.
- * - Clear RigidMotion::force and RigidMotion::torque for each object.
- */
+
+
+static void collectRigidForces(const ROVviewWithOldMotion& view, cudaStream_t stream)
+{
+    const int nthreads = 128;
+    const int nblocks = getNblocks(2*view.size, nthreads);
+    
+    SAFE_KERNEL_LAUNCH(
+        RigidIntegrationKernels::collectRigidForces,
+        nblocks, nthreads, 0, stream,
+        view );
+}
+
+static void integrateRigidMotions(const ROVviewWithOldMotion& view, float dt, cudaStream_t stream)
+{
+    const int nthreads = 64;
+    const int nblocks = getNblocks(view.nObjects, nthreads);
+    
+    SAFE_KERNEL_LAUNCH(
+        RigidIntegrationKernels::integrateRigidMotion,
+        nblocks, nthreads, 0, stream,
+        view, dt );
+}
+
+static void setRigidParticlesFromMotions(const ROVviewWithOldMotion& view, const PinnedBuffer<float4>& initialPositions, cudaStream_t stream)
+{
+    const int nthreads = 128;
+    const int nblocks = getNblocks(view.size, nthreads);
+        
+    SAFE_KERNEL_LAUNCH(
+        RigidIntegrationKernels::applyRigidMotion<RigidIntegrationKernels::ApplyRigidMotion::PositionsAndVelocities>,
+        nblocks, nthreads, 0, stream,
+        view, initialPositions.devPtr() );
+}
+
+static void clearRigidForces(const ROVviewWithOldMotion& view, cudaStream_t stream)
+{
+    const int nthreads = 64;
+    const int nblocks = getNblocks(view.nObjects, nthreads);
+
+    SAFE_KERNEL_LAUNCH(
+        RigidIntegrationKernels::clearRigidForces,
+        nblocks, nthreads, 0, stream,
+        view );
+}
+
+
 void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    float dt = state->dt;
+    const float dt = state->dt;
     auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
           rov->local()->nObjects, rov->name.c_str(), rov->local()->size(), dt);
 
-    ROVviewWithOldMotion rovView(rov, rov->local());
+    const ROVviewWithOldMotion rovView(rov, rov->local());
 
-    {
-        const int nthreads = 128;
-        const int nblocks = getNblocks(2*rovView.size, nthreads);
-
-        SAFE_KERNEL_LAUNCH(
-            RigidIntegrationKernels::collectRigidForces,
-            nblocks, nthreads, 0, stream,
-            rovView );
-    }
-
-    {
-        const int nthreads = 64;
-        const int nblocks = getNblocks(rovView.nObjects, nthreads);
-        
-        SAFE_KERNEL_LAUNCH(
-            RigidIntegrationKernels::integrateRigidMotion,
-            nblocks, nthreads, 0, stream,
-            rovView, dt );
-    }
-
-    {
-        const int nthreads = 128;
-        const int nblocks = getNblocks(rovView.size, nthreads);
-        
-    SAFE_KERNEL_LAUNCH(
-        RigidIntegrationKernels::applyRigidMotion
-            <RigidIntegrationKernels::ApplyRigidMotion::PositionsAndVelocities>,
-        nblocks, nthreads, 0, stream,
-        rovView, rov->initialPositions.devPtr() );
-    }
-
-    {
-        const int nthreads = 64;
-        const int nblocks = getNblocks(rovView.nObjects, nthreads);
-
-        SAFE_KERNEL_LAUNCH(
-            RigidIntegrationKernels::clearRigidForces,
-            nblocks, nthreads, 0, stream,
-            rovView );
-    }
+    collectRigidForces           (rovView,                        stream);
+    integrateRigidMotions        (rovView, dt,                    stream);    
+    setRigidParticlesFromMotions (rovView, rov->initialPositions, stream);
+    clearRigidForces             (rovView,                        stream);
 
     invalidatePV(pv);
 }
