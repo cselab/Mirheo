@@ -5,7 +5,8 @@
 #include <core/utils/helper_math.h>
 #include <core/utils/vec_traits.h>
 
-
+namespace Quaternion
+{
 // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
 // https://arxiv.org/pdf/0811.2889.pdf
 
@@ -46,7 +47,7 @@ __HD__ inline auto getQfrom(R3 u, R3 v)
 
 
 template<class R4>
-__HD__ inline R4 multiplyQ(const R4 q1, const R4 q2)
+__HD__ inline R4 multiply(const R4 q1, const R4 q2)
 {
     R4 res;
     res.x =  q1.x * q2.x - q1.y * q2.y - q1.z * q2.z - q1.w * q2.w;
@@ -68,7 +69,7 @@ __HD__ inline R3 rotate(const R3 x, const R4 q)
               (Qreal)x.y,
               (Qreal)x.z };
 
-    qX = multiplyQ(multiplyQ(q, qX), invQ(q));
+    qX = multiply(multiply(q, qX), invQ(q));
 
     return { (Vreal)qX.y,
              (Vreal)qX.z,
@@ -80,6 +81,7 @@ __HD__ inline R4 compute_dq_dt(const R4 q, const R3 omega)
 {
     using real = decltype(R4::x);
     constexpr real half = 0.5;
-    return half * multiplyQ(f3toQ(omega), q);
+    return half * multiply(f3toQ(omega), q);
 }
 
+} // namespace Quaternion

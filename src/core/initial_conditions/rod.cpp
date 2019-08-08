@@ -102,8 +102,8 @@ std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMate
             auto r2 = positions[5*(i + 2)];
             auto t1 = normalize(r2-r1);
 
-            auto q = getQfrom(t0, t1);
-            u = normalize(rotate(u, q));
+            auto q = Quaternion::getQfrom(t0, t1);
+            u = normalize(Quaternion::rotate(u, q));
 
             auto l = 0.5 * (length(r1-r0) + length(r2-r1));
             // use trapezoidal rule to integrate the angle
@@ -150,7 +150,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             
             for (int i = 0; i < objSize; i++)
             {
-                float3 r = rotate(positions[i], q) + com;
+                float3 r = Quaternion::rotate(positions[i], q) + com;
                 Particle p;
                 p.r = r;
                 p.u = make_float3(0);

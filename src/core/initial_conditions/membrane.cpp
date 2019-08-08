@@ -64,7 +64,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             
             for (int i = 0; i < ov->mesh->getNvertices(); i++)
             {
-                float3 r = rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+                float3 r = Quaternion::rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
                 Particle p;
                 p.r = r;
                 p.u = make_float3(0);

@@ -65,8 +65,8 @@ __device__ inline void bounceCellArray(
         auto rOld = pvView.readOldPosition(pid);
 
         // Go to the obj frame of reference
-        float3 coo    = rotate(p.r     - motion.r,     invQ(motion.q));
-        float3 oldCoo = rotate(rOld - old_motion.r, invQ(old_motion.q));
+        float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::invQ(    motion.q));
+        float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::invQ(old_motion.q));
         float3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
@@ -113,7 +113,7 @@ __device__ inline void bounceCellArray(
         }
         
         // Return to the original frame
-        newCoo = rotate(newCoo, motion.q) + motion.r;
+        newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
 
         // Change velocity's frame to the object frame, correct for rotation as well
         float3 vEll = motion.vel + cross( motion.omega, newCoo-motion.r );
@@ -135,17 +135,17 @@ __device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellList
     const float threshold = 0.5f;
 
     float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
-    const float4 invq = invQ(motion.q);
+    const float4 invq = Quaternion::invQ(motion.q);
 
-    float3 v001 = rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
-    float3 v010 = rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
-    float3 v011 = rotate( v000 + make_float3(        0, cinfo.h.y, cinfo.h.z), invq );
-    float3 v100 = rotate( v000 + make_float3(cinfo.h.x,         0,         0), invq );
-    float3 v101 = rotate( v000 + make_float3(cinfo.h.x,         0, cinfo.h.z), invq );
-    float3 v110 = rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y,         0), invq );
-    float3 v111 = rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
+    float3 v001 = Quaternion::rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
+    float3 v010 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
+    float3 v011 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y, cinfo.h.z), invq );
+    float3 v100 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0,         0), invq );
+    float3 v101 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0, cinfo.h.z), invq );
+    float3 v110 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y,         0), invq );
+    float3 v111 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
 
-    v000 = rotate( v000, invq );
+    v000 = Quaternion::rotate( v000, invq );
 
     return ( shape.inOutFunction(v000) < threshold ||
              shape.inOutFunction(v001) < threshold ||

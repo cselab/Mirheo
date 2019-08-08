@@ -16,7 +16,7 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 
     auto q = view.motions[gid].q;
 
-    M = rotate(M, q);
+    M = Quaternion::rotate(M, q);
 
     float3 T = cross(M, B);
     
