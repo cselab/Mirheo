@@ -77,7 +77,7 @@ __HD__ inline R3 rotate(const R3 x, const R4 q)
 }
 
 template<class R4, class R3>
-__HD__ inline R4 compute_dq_dt(const R4 q, const R3 omega)
+__HD__ inline R4 timeDerivative(const R4 q, const R3 omega)
 {
     using real = decltype(R4::x);
     constexpr real half = 0.5;
