@@ -13,7 +13,7 @@
 namespace PinObjectKernels
 {
 
-__global__ void restrictVelocities(OVview view, float3 targetVelocity, float4* totForces)
+__global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *totForces)
 {
     int objId = blockIdx.x;
     
@@ -94,12 +94,6 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelo
     VELOCITY_PER_DIM(z);
     
 #undef VELOCITY_PER_DIM
-    
-    
-    // https://stackoverflow.com/a/22401169/3535276
-    // looks like q.x, 0, 0, q.w is responsible for the X axis rotation etc.
-    // so to restrict rotation along ie. X, we need to preserve q.x
-    // and normalize of course
     
     // First filter out the invalid values
     auto adjustedTargetOmega = old_motion.omega;
