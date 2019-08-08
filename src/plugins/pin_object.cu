@@ -71,7 +71,7 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *t
     }
 }
 
-__global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelocity, float3 targetOmega, float dt, float4* totForces, float4* totTorques)
+__global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelocity, float3 targetOmega, float dt, float4 *totForces, float4 *totTorques)
 {
     int objId = blockIdx.x * blockDim.x + threadIdx.x;
     if (objId >= view.nObjects) return;

@@ -45,8 +45,8 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const float dt
     // using OLD q and NEW w ?
     // d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
     auto dq_dt = Quaternion::timeDerivative(q, omega);
-    auto d2q_dt2 = 0.5f*(Quaternion::multiply(Quaternion::f3toQ(dw_dt), q) +
-                         Quaternion::multiply(Quaternion::f3toQ(omega), dq_dt));
+    auto d2q_dt2 = 0.5 * (Quaternion::multiply(Quaternion::f3toQ(dw_dt), q) +
+                          Quaternion::multiply(Quaternion::f3toQ(omega), dq_dt));
 
     dq_dt += d2q_dt2 * dt;
     q     += dq_dt   * dt;
