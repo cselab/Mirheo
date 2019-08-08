@@ -10,11 +10,8 @@ struct ROVview : public OVview
 {
     RigidMotion *motions = nullptr;
 
-    float3 J   = {0,0,0};
-    float3 J_1 = {0,0,0};
-
-    // TODO: implement this
-    //float inertia[9];
+    float3 J   {0,0,0};
+    float3 J_1 {0,0,0};
 
     ROVview(RigidObjectVector *rov = nullptr, LocalRigidObjectVector *lrov = nullptr) :
         OVview(rov, lrov)
@@ -23,8 +20,7 @@ struct ROVview : public OVview
 
         motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions)->devPtr();
 
-        // More fields
-        J = rov->J;
+        J   = rov->J;
         J_1 = 1.0 / J;
     }
 };

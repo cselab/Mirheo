@@ -78,6 +78,8 @@ __HD__ inline R3 rotate(const R3 x, const R4 q)
 template<class R4, class R3>
 __HD__ inline R4 compute_dq_dt(const R4 q, const R3 omega)
 {
-    return 0.5f*multiplyQ(f3toQ(omega), q);
+    using real = decltype(R4::x);
+    constexpr real half = 0.5;
+    return half * multiplyQ(f3toQ(omega), q);
 }
 
