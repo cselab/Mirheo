@@ -44,13 +44,13 @@ static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFun
 
 static void getTransformation(real3 t0, real3 t1, real4& Q)
 {
-    Q = getQfrom(t0, t1);
+    Q = Quaternion::getQfrom(t0, t1);
     auto t0t1 = cross(t0, t1);
     if (length(t0t1) > 1e-6)
         t0t1 = normalize(t0t1);
 
-    real err_t0_t1   = length(t1 - rotate(t0, Q));
-    real err_t01_t01 = length(t0t1 - rotate(t0t1, Q));
+    real err_t0_t1   = length(t1 - Quaternion::rotate(t0, Q));
+    real err_t01_t01 = length(t0t1 - Quaternion::rotate(t0t1, Q));
 
     ASSERT_LE(err_t01_t01, 1e-6f);
     ASSERT_LE(err_t0_t1, 1e-6);
@@ -80,7 +80,7 @@ static void transportBishopFrame(const std::vector<real3>& positions, std::vecto
         real4 Q;
         getTransformation(t0, t1, Q);
         auto u0 = frames[2*(i-1) + 0];
-        auto u1 = rotate(u0, Q);
+        auto u1 = Quaternion::rotate(u0, Q);
         auto v1 = cross(t1, u1);
         frames[2*i + 0] = u1;
         frames[2*i + 1] = v1;
@@ -177,9 +177,9 @@ static real twistEnergy(const std::vector<real3>& positions, real kTwist, real t
         auto t0 = normalize(e0);
         auto t1 = normalize(e1); 
         
-        auto  Q = getQfrom(t0, t1);
+        auto  Q = Quaternion::getQfrom(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
-        auto u1 = normalize(rotate(u0, Q));
+        auto u1 = normalize(Quaternion::rotate(u0, Q));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
@@ -238,9 +238,9 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         real dp0Perpinv = 1.0 / length(dp0Perp);
         real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        auto  Q = getQfrom(t0, t1);
+        auto  Q = Quaternion::getQfrom(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
-        auto u1 = normalize(rotate(u0, Q));
+        auto u1 = normalize(Quaternion::rotate(u0, Q));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);

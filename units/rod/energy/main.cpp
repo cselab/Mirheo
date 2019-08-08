@@ -140,9 +140,9 @@ static std::vector<real> computeTwistEnergies(const float4 *positions, int nSegm
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
 
-        real4  Q = getQfrom(t0, t1);
+        real4  Q = Quaternion::getQfrom(t0, t1);
         real3 u0 = normalize(anyOrthogonal(t0));
-        real3 u1 = normalize(rotate(u0, Q));
+        real3 u1 = normalize(Quaternion::rotate(u0, Q));
 
         auto dp0 = pp0 - pm0;
         auto dp1 = pp1 - pm1;
