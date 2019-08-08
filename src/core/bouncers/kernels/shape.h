@@ -65,8 +65,8 @@ __device__ inline void bounceCellArray(
         auto rOld = pvView.readOldPosition(pid);
 
         // Go to the obj frame of reference
-        float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::invQ(    motion.q));
-        float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::invQ(old_motion.q));
+        float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
+        float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
         float3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
@@ -135,7 +135,7 @@ __device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellList
     const float threshold = 0.5f;
 
     float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
-    const float4 invq = Quaternion::invQ(motion.q);
+    const float4 invq = Quaternion::conjugate(motion.q);
 
     float3 v001 = Quaternion::rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
     float3 v010 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );

@@ -29,8 +29,8 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const float dt
     auto q = motion.q;
 
     // Update angular velocity in the body frame
-    auto omega = Quaternion::rotate(motion.omega,  Quaternion::invQ(q));
-    auto tau   = Quaternion::rotate(motion.torque, Quaternion::invQ(q));
+    auto omega = Quaternion::rotate(motion.omega,  Quaternion::conjugate(q));
+    auto tau   = Quaternion::rotate(motion.torque, Quaternion::conjugate(q));
 
     // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
     // J is the diagonal inertia tensor in the body frame

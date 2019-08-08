@@ -20,7 +20,7 @@ __HD__ inline auto f3toQ(const R3& vec)
 }
 
 template<class R4>
-__HD__ inline R4 invQ(const R4 q)
+__HD__ inline R4 conjugate(const R4 q)
 {
     return {q.x, -q.y, -q.z, -q.w};
 }
@@ -69,7 +69,7 @@ __HD__ inline R3 rotate(const R3 x, const R4 q)
               (Qreal)x.y,
               (Qreal)x.z };
 
-    qX = multiply(multiply(q, qX), invQ(q));
+    qX = multiply(multiply(q, qX), conjugate(q));
 
     return { (Vreal)qX.y,
              (Vreal)qX.z,

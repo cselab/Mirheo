@@ -41,7 +41,7 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
             const Particle p(pvView.readParticle(pid));
             auto motion = toSingleMotion(rsView.motions[objId]);
 
-            float3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::invQ(motion.q));
+            float3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
 
             float v = rsView.shape.inOutFunction(coo);
 
