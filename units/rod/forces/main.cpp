@@ -44,7 +44,7 @@ static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFun
 
 static void getTransformation(real3 t0, real3 t1, real4& Q)
 {
-    Q = Quaternion::getQfrom(t0, t1);
+    Q = Quaternion::getFromVectorPair(t0, t1);
     auto t0t1 = cross(t0, t1);
     if (length(t0t1) > 1e-6)
         t0t1 = normalize(t0t1);
@@ -177,7 +177,7 @@ static real twistEnergy(const std::vector<real3>& positions, real kTwist, real t
         auto t0 = normalize(e0);
         auto t1 = normalize(e1); 
         
-        auto  Q = Quaternion::getQfrom(t0, t1);
+        auto  Q = Quaternion::getFromVectorPair(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
         auto u1 = normalize(Quaternion::rotate(u0, Q));
 
@@ -238,7 +238,7 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         real dp0Perpinv = 1.0 / length(dp0Perp);
         real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        auto  Q = Quaternion::getQfrom(t0, t1);
+        auto  Q = Quaternion::getFromVectorPair(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
         auto u1 = normalize(Quaternion::rotate(u0, Q));
 

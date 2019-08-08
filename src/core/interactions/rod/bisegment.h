@@ -176,7 +176,7 @@ struct BiSegment
     __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
                                               real3& fr0, real3& fr2, real3& fpm0, real3& fpm1) const
     {
-        real4  Q = Quaternion::getQfrom(t0, t1);
+        real4  Q = Quaternion::getFromVectorPair(t0, t1);
         real3 u0 = normalize(anyOrthogonal(t0));
         real3 u1 = normalize(Quaternion::rotate(u0, Q));
         
@@ -240,7 +240,7 @@ struct BiSegment
 
     __device__ inline void computeTorsion(real& tau) const
     {
-        real4  Q = Quaternion::getQfrom(t0, t1);
+        real4  Q = Quaternion::getFromVectorPair(t0, t1);
         real3 u0 = normalize(anyOrthogonal(t0));
         real3 u1 = normalize(Quaternion::rotate(u0, Q));
 
@@ -334,7 +334,7 @@ struct BiSegment
     __device__ inline void computeTorsionGradients(real3& gradr0, real3& gradr2,
                                                    real3& gradpm0, real3& gradpm1) const
     {
-        real4  Q = Quaternion::getQfrom(t0, t1);
+        real4  Q = Quaternion::getFromVectorPair(t0, t1);
         real3 u0 = normalize(anyOrthogonal(t0));
         real3 u1 = normalize(Quaternion::rotate(u0, Q));
         

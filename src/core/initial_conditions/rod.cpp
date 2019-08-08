@@ -102,7 +102,7 @@ std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMate
             auto r2 = positions[5*(i + 2)];
             auto t1 = normalize(r2-r1);
 
-            auto q = Quaternion::getQfrom(t0, t1);
+            auto q = Quaternion::getFromVectorPair(t0, t1);
             u = normalize(Quaternion::rotate(u, q));
 
             auto l = 0.5 * (length(r1-r0) + length(r2-r1));

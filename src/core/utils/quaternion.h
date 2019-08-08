@@ -27,7 +27,7 @@ __HD__ inline R4 conjugate(const R4 q)
 
 // https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
 template <typename R3>
-__HD__ inline auto getQfrom(R3 u, R3 v)
+__HD__ inline auto getFromVectorPair(R3 u, R3 v)
 {
     using real  = decltype(u.x);
     using real4 = typename VecTraits::Vec<real, 4>::Type;
