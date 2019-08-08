@@ -304,6 +304,10 @@ inline __HD__ float4 operator-(const float4 &a)
 {
     return make_float4(-a.x, -a.y, -a.z, -a.w);
 }
+inline __HD__ double4 operator-(const double4 &a)
+{
+    return make_double4(-a.x, -a.y, -a.z, -a.w);
+}
 inline __HD__ int4 operator-(const int4 &a)
 {
     return make_int4(-a.x, -a.y, -a.z, -a.w);
@@ -829,6 +833,29 @@ inline __HD__ int4 operator-(int b, int4 a)
     return make_int4(b - a.x, b - a.y, b - a.z, b - a.w);
 }
 inline __HD__ void operator-=(int4 &a, int b)
+{
+    a.x -= b;
+    a.y -= b;
+    a.z -= b;
+    a.w -= b;
+}
+
+inline __HD__ double4 operator-(double4 a, double4 b)
+{
+    return {a.x - b.x, a.y - b.y, a.z - b.z,  a.w - b.w};
+}
+inline __HD__ void operator-=(double4 &a, double4 b)
+{
+    a.x -= b.x;
+    a.y -= b.y;
+    a.z -= b.z;
+    a.w -= b.w;
+}
+inline __HD__ double4 operator-(double4 a, double b)
+{
+    return {a.x - b, a.y - b, a.z - b,  a.w - b};
+}
+inline __HD__ void operator-=(double4 &a, double b)
 {
     a.x -= b;
     a.y -= b;
