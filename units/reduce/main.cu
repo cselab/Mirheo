@@ -62,9 +62,8 @@ PinnedBuffer<float> initData(int n, cudaStream_t stream, long seed=42)
     return data;
 }
 
-TEST (REDUCE, random)
+static void testReduceRandom(int n, double tolerance=1e-6)
 {
-    const int n = 2048;
     const auto data = initData(n, defaultStream);
 
     const auto resGPU = reduceGPU(data, defaultStream);
@@ -72,8 +71,24 @@ TEST (REDUCE, random)
 
     const double err = fabs(resCPU - resGPU) / fabs(resCPU);
     
-    ASSERT_LT(err, 1e-6) << "failed: " << resGPU << " != " << resCPU;
+    ASSERT_LT(err, tolerance) << "failed: " << resGPU << " != " << resCPU;
 }
+
+TEST (REDUCE, oneWarp)
+{
+    testReduceRandom(32);
+}
+
+TEST (REDUCE, medium)
+{
+    testReduceRandom(1000);
+}
+
+TEST (REDUCE, large)
+{
+    testReduceRandom(1<<20, 5e-6);
+}
+
 
 int main(int argc, char **argv)
 {
