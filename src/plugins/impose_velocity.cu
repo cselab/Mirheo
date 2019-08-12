@@ -52,7 +52,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
     }
     
     float3 u = warpReduce(p.u, [](float a, float b) { return a+b; });
-    if (__laneid() == 0 && dot(u, u) > 1e-8f)
+    if (laneId() == 0 && dot(u, u) > 1e-8f)
     {
         atomicAdd(&totVel->x, (double)u.x);
         atomicAdd(&totVel->y, (double)u.y);

@@ -68,7 +68,7 @@ __device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, con
     constexpr float3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
     int counters[nRays] = {0, 0, 0};
 
-    for (int i = __laneid(); i < mesh.ntriangles; i += warpSize)
+    for (int i = laneId(); i < mesh.ntriangles; i += warpSize)
     {
         int3 trid = mesh.triangles[i];
 
@@ -137,7 +137,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const float
             auto tag = oneParticleInsideMesh(pid, p.r, objId, ovView.comAndExtents[objId].com, mesh, vertices);
 
             // Only tag particles inside, default is outside anyways
-            if (__laneid() == 0 && tag != BelongingTags::Outside)
+            if (laneId() == 0 && tag != BelongingTags::Outside)
                 tags[pid] = tag;
         }
     }

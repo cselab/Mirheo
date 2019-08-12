@@ -79,7 +79,7 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 
     localForce = warpReduce(localForce, [](float a, float b){return a+b;});
     
-    if ((__laneid() == 0) && (length(localForce) > 1e-8f))
+    if ((laneId() == 0) && (length(localForce) > 1e-8f))
         atomicAdd(totalForce, make_double3(localForce));
 
 }

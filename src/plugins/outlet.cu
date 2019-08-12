@@ -39,7 +39,7 @@ __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo domain
 
     countInside = warpReduce(countInside, [](int a, int b) {return a+b;});
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(nInside, (AccumulatedIntType) countInside);
 }
 
@@ -59,7 +59,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
 
     countInside = warpReduce(countInside, [](int a, int b) {return a+b;});
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(nInside, countInside);
 }
 

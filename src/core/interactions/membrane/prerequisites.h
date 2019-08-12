@@ -73,7 +73,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
     
     lenTheta = warpReduce( lenTheta, [] (real a, real b) { return a+b; } );
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(&view.lenThetaTot[rbcId], (float) lenTheta);
 }
 } // namespace InteractionMembraneJuelicherKernels

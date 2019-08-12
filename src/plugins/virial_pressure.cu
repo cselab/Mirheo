@@ -30,7 +30,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
     
     P = warpReduce(P, [](VirialPressure::ReductionType a, VirialPressure::ReductionType b) { return a+b; });
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(pressure, P);
 }
 } // namespace VirialPressureKernels

@@ -33,7 +33,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
     
     myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return max(a, b); });
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
     {
         atomicAdd(momentum+0, (ReductionType)myMomentum.x);
         atomicAdd(momentum+1, (ReductionType)myMomentum.y);

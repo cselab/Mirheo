@@ -64,7 +64,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquar
     
     double urSum = warpReduce(ur, [](float a, float b) { return a+b; });
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(totVel, urSum);
 }
 

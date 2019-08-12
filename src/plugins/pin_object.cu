@@ -34,7 +34,7 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *t
     myf = warpReduce(myf, [] (float a, float b) { return a+b; });
     myv = warpReduce(myv, [] (float a, float b) { return a+b; });
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
     {
         atomicAdd(&objTotForce, myf);
         atomicAdd(&objVelocity, myv / view.objSize);  // Average, not simply sum

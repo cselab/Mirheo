@@ -34,7 +34,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 
     a_v = warpReduce( a_v, [] (float a, float b) { return a+b; } );
 
-    if (__laneid() == 0)
+    if (laneId() == 0)
         atomicAdd(&view.area_volumes[objId], a_v);
 }
 } // namespace InteractionMembraneKernels

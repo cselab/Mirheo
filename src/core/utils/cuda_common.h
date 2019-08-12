@@ -253,11 +253,16 @@ __device__ inline void writeNoCache(float4* addr, const float4 val)
     asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
 
+
+
 //=======================================================================================
 // Lane and warp id
 // https://stackoverflow.com/questions/28881491/how-can-i-find-out-which-thread-is-getting-executed-on-which-core-of-the-gpu
 //=======================================================================================
 
+__device__ inline auto laneId() {return threadIdx.x % warpSize;}
+
+// warning: warp id within one smx
 __device__ inline uint32_t __warpid()
 {
     uint32_t warpid;
@@ -265,6 +270,7 @@ __device__ inline uint32_t __warpid()
     return warpid;
 }
 
+// warning: slower than threadIdx % warpSize
 __device__ inline uint32_t __laneid()
 {
     uint32_t laneid;
