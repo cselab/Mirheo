@@ -17,6 +17,7 @@ For more information, please refer to the online documentation: http://mirheo.re
 * **internal changes**: 
   * enable and fix warnings
   * fix initialization bugs
+  * use forked [cselab/cuda_variant](https://github.com/cselab/cuda_variant)
 
 ### v1.1.1
 
