@@ -103,7 +103,7 @@ WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filen
         die("Could not open file '%s'", filename.c_str());
 }
 
-void WallForceDumperPlugin::deserialize(__UNUSED MPI_Status& stat)
+void WallForceDumperPlugin::deserialize()
 {
     MirState::TimeType currentTime;
     int nsamples;

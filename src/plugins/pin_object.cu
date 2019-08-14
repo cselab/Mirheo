@@ -250,7 +250,7 @@ void ReportPinObjectPlugin::handshake()
     }
 }
 
-void ReportPinObjectPlugin::deserialize(__UNUSED MPI_Status& stat)
+void ReportPinObjectPlugin::deserialize()
 {
     std::vector<float4> forces, torques;
     MirState::TimeType currentTime;

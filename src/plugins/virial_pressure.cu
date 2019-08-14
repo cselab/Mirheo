@@ -134,7 +134,7 @@ void VirialPressureDumper::handshake()
     }
 }
 
-void VirialPressureDumper::deserialize(__UNUSED MPI_Status& stat)
+void VirialPressureDumper::deserialize()
 {
     MirState::TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;

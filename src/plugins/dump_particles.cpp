@@ -167,7 +167,7 @@ void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::St
         channels[c++].data = cd.data();
 }
 
-void ParticleDumperPlugin::deserialize(__UNUSED MPI_Status& stat)
+void ParticleDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 

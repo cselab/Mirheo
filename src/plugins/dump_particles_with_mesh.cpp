@@ -78,7 +78,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
     }
 }
 
-void ParticleWithMeshDumperPlugin::deserialize(__UNUSED MPI_Status& stat)
+void ParticleWithMeshDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 

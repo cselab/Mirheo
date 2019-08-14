@@ -13,7 +13,7 @@ public:
     UniformCartesianDumper(std::string name, std::string path);
     ~UniformCartesianDumper();
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
     void handshake() override;
     
     XDMF::Channel getChannelOrDie(std::string chname) const;

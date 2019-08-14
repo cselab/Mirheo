@@ -74,7 +74,7 @@ static void convert(const std::vector<double> &src, std::vector<float> &dst)
         dst[i] = src[i];
 }
 
-void UniformCartesianDumper::deserialize(__UNUSED MPI_Status& stat)
+void UniformCartesianDumper::deserialize()
 {
     MirState::TimeType t;
     MirState::StepType timeStamp;

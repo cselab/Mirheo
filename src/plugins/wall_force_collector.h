@@ -48,7 +48,7 @@ class WallForceDumperPlugin : public PostprocessPlugin
 public:
     WallForceDumperPlugin(std::string name, std::string filename);
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
 
 private:
     FileWrapper fdump;

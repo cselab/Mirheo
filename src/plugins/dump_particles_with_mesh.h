@@ -21,7 +21,7 @@ public:
     ParticleWithMeshDumperPlugin(std::string name, std::string path);
 
     void handshake() override;
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
 
 protected:
     std::shared_ptr<std::vector<int3>> allTriangles;

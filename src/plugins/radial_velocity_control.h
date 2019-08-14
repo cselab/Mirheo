@@ -57,7 +57,7 @@ class PostprocessRadialVelocityControl : public PostprocessPlugin
 public:
     PostprocessRadialVelocityControl(std::string name, std::string filename);
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
 
 private:
     FileWrapper fdump;

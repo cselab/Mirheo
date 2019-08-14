@@ -73,7 +73,7 @@ public:
     MPI_Request waitData();
     void recv();
     
-    virtual void deserialize(MPI_Status& stat);
+    virtual void deserialize();
 
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);    
 

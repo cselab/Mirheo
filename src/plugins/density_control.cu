@@ -300,7 +300,7 @@ PostprocessDensityControl::PostprocessDensityControl(std::string name, std::stri
         die("Could not open file '%s'", filename.c_str());
 }
 
-void PostprocessDensityControl::deserialize(__UNUSED MPI_Status& stat)
+void PostprocessDensityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

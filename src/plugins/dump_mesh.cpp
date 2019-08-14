@@ -152,7 +152,7 @@ void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     activated = createFoldersCollective(comm, path);
 }
 
-void MeshDumper::deserialize(__UNUSED MPI_Status& stat)
+void MeshDumper::deserialize()
 {
     std::string ovName;
     int nvertices, ntriangles;

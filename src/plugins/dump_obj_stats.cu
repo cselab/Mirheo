@@ -235,7 +235,7 @@ void ObjStatsDumper::handshake()
 }
 
 
-void ObjStatsDumper::deserialize(__UNUSED MPI_Status& stat)
+void ObjStatsDumper::deserialize()
 {
     MirState::TimeType curTime;
     DomainInfo domain;

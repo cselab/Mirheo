@@ -196,7 +196,7 @@ PostprocessRadialVelocityControl::PostprocessRadialVelocityControl(std::string n
     fprintf(fdump.get(), "# time time_step velocity*r force/r**3\n");
 }
 
-void PostprocessRadialVelocityControl::deserialize(__UNUSED MPI_Status& stat)
+void PostprocessRadialVelocityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

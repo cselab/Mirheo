@@ -46,7 +46,7 @@ class PostprocessStats : public PostprocessPlugin
 public:
     PostprocessStats(std::string name, std::string filename = "");
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
 
 private:
     MPI_Datatype mpiReductionType, mpiCountType;

@@ -61,7 +61,7 @@ void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     activated = createFoldersCollective(comm, path);
 }
 
-void XYZDumper::deserialize(__UNUSED MPI_Status& stat)
+void XYZDumper::deserialize()
 {
     std::string pvName;
     MirState::StepType timeStamp;

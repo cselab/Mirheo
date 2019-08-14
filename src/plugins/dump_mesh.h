@@ -48,6 +48,6 @@ public:
     MeshDumper(std::string name, std::string path);
     ~MeshDumper();
     
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
 };

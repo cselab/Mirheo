@@ -181,7 +181,7 @@ PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::st
     fprintf(fdump.get(), "# time time_step velocity force\n");
 }
 
-void PostprocessVelocityControl::deserialize(__UNUSED MPI_Status& stat)
+void PostprocessVelocityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

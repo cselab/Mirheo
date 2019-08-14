@@ -125,7 +125,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     }
 }
 
-void PostprocessStats::deserialize(__UNUSED MPI_Status& stat)
+void PostprocessStats::deserialize()
 {
     MirState::TimeType currentTime;
     MirState::StepType currentTimeStep;

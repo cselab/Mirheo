@@ -52,7 +52,7 @@ class ParticleDumperPlugin : public PostprocessPlugin
 public:
     ParticleDumperPlugin(std::string name, std::string path);
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
     void handshake() override;
 
 protected:

@@ -110,7 +110,7 @@ void Postprocess::run()
             {
                 debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name.c_str());
                 plugins[index]->recv();
-                plugins[index]->deserialize(statuses[index]);
+                plugins[index]->deserialize();
                 requests[index] = plugins[index]->waitData();
             }
         }

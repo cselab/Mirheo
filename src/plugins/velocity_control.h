@@ -56,7 +56,7 @@ class PostprocessVelocityControl : public PostprocessPlugin
 public:
     PostprocessVelocityControl(std::string name, std::string filename);
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
 
 private:
     FileWrapper fdump;

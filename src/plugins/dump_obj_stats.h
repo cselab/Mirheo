@@ -45,7 +45,7 @@ public:
     ObjStatsDumper(std::string name, std::string path);
     ~ObjStatsDumper();
 
-    void deserialize(MPI_Status& stat) override;
+    void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
 
