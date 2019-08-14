@@ -89,7 +89,7 @@ add_test_executable(warpScan 1)
 
 # Setup nvcc flags
 set(WARNING_FLAGS "-Wall -Wextra -Wno-unknown-pragmas -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g ${WARNING_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g ${WARNING_FLAGS} -pedantic")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda  --compiler-options \"${WARNING_FLAGS}\"")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")

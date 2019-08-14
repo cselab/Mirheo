@@ -28,7 +28,7 @@ static Triangle genTriangle(long seed)
     t.c = gen3();
 
     return t;
-};
+}
 
 static void shuffle(Triangle& t)
 {
