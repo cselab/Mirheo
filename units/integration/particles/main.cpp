@@ -30,7 +30,7 @@ static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
     float dt_m = dt / mass;
     
     for (int step = 0; step < nsteps; ++step) {
-        for (int i = 0; i < pos.size(); ++i) {
+        for (size_t i = 0; i < pos.size(); ++i) {
             float4& r = pos[i];
             float4& v = vel[i];
             Force   f = forces[i];
@@ -54,7 +54,7 @@ initializeParticles(ParticleVector *pv)
     auto& pos = pv->local()->positions();
     auto& vel = pv->local()->velocities();
     
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         pos[i].x = drand48();
         pos[i].y = drand48();

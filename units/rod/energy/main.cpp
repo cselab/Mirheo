@@ -18,9 +18,9 @@ using real2 = double2;
 using real3 = double3;
 using real4 = double4;
 
-static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
-static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
-static real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+inline real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
+inline real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+inline real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 
 static float2 make_float2(real2 v) {return {(float) v.x, (float) v.y}; }
 
@@ -452,9 +452,9 @@ TEST (ROD, cpu_energies_bending)
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [](real s) -> real {return 0.0;};
+    auto torsion = [](__UNUSED real s) -> real {return 0.0;};
     
-    auto analyticEnergy = [&](real s) -> real
+    auto analyticEnergy = [&](__UNUSED real s) -> real
     {
         real2 Bo = symmetricMatMult(kBending, kappaEq);
         return 0.5 * dot(Bo, kappaEq);
@@ -488,9 +488,9 @@ TEST (ROD, cpu_energies_bending_circle)
         return {R * cos(t), R * sin(t), 0.0};
     };
 
-    auto torsion = [](real s) -> real {return 0.0;};
+    auto torsion = [](__UNUSED real s) -> real {return 0.0;};
     
-    auto analyticEnergy = [&](real s) -> real
+    auto analyticEnergy = [&](__UNUSED real s) -> real
     {
         real2 dOm = real2{1/R, 0.0} - kappaEq;
         real2 Bo = symmetricMatMult(kBending, dOm);
@@ -511,7 +511,7 @@ TEST (ROD, cpu_energies_bending_circle)
     // check convergence rate
     const real rateTh = 2;
 
-    for (int i = 0; i < nsegs.size() - 1; ++i)
+    for (int i = 0; i < static_cast<int>(nsegs.size()) - 1; ++i)
     {
         real e0 = errors[i], e1 = errors[i+1];
         int  n0 =  nsegs[i], n1 =  nsegs[i+1];
@@ -536,7 +536,7 @@ TEST (ROD, gpu_energies_bending_circle)
         return {R * cos(t), R * sin(t), 0.0};
     };
 
-    auto torsion = [](real s) -> real {return 0.0;};
+    auto torsion = [](__UNUSED real s) -> real {return 0.0;};
         
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
     // std::vector<int> nsegs = {32};
@@ -563,9 +563,9 @@ TEST (ROD, cpu_energies_twist)
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [&](real s) -> real {return tau0;};
+    auto torsion = [&](__UNUSED real s) -> real {return tau0;};
     
-    auto analyticEnergy = [&](real s) -> real
+    auto analyticEnergy = [&](__UNUSED real s) -> real
     {
         real dTau = tau0 - tauEq;
         return 0.5 * kTwist * dTau * dTau;
@@ -599,7 +599,7 @@ TEST (ROD, gpu_energies_twist)
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [&](real s) -> real {return tau0;};
+    auto torsion = [&](__UNUSED real s) -> real {return tau0;};
     
     
     std::vector<int> nsegs = {8, 16, 32, 64, 128};

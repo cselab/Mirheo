@@ -118,7 +118,7 @@ static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
     std::uniform_real_distribution<float> dy(-axes.y, axes.y);
     std::uniform_real_distribution<float> dz(-axes.z, axes.z);
     
-    while (pos.size() < n)
+    while (static_cast<int>(pos.size()) < n)
     {
         float3 r {dx(gen), dy(gen), dz(gen)};
         if (ell.inOutFunction(r) < 0.f)
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
 
     testing::InitGoogleTest(&argc, argv);
 
-    auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
+    // auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
 
     // only root listens to gtest
     // if (getRank(MPI_COMM_WORLD) != 0)

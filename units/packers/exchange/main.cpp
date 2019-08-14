@@ -26,7 +26,7 @@ Logger logger;
 // by copying corrected positions to velocities
 static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel)
 {
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
         vel[i] = pos[i];
     
     vel.uploadToDevice(defaultStream);
@@ -38,7 +38,7 @@ static void checkRef(const PinnedBuffer<float4>& pos,
                      float3 L)
 {
     constexpr float eps = 1e-6f;
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = make_float3(pos[i]);
         auto v = make_float3(vel[i]);
@@ -70,7 +70,7 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
     std::vector<float4> hposSorted(hpos.begin(), hpos.end());
     std::sort(hposSorted.begin(), hposSorted.end(), Comp());
 
-    for (int i = 0; i < lpos.size(); ++i)
+    for (size_t i = 0; i < lpos.size(); ++i)
     {
         const auto r0 = lpos[i];
 
@@ -142,8 +142,6 @@ TEST (PACKERS_EXCHANGE, particles)
 
     createRef(lpos, lvel);    
 
-    int n = lpv->size();
-
     auto cl = std::make_unique<PrimaryCellList>(pv.get(), rc, domain.localSize);
     cl->build(defaultStream);
     
@@ -191,7 +189,7 @@ inline bool isInside(float3 r, float3 L)
         (r.z >= - 0.5f * L.z && r.z < 0.5f * L.z);
 }
 
-inline Force getField(float3 r, float3 L)
+inline Force getField(float3 r)
 {
     Force f;
     f.f = length(r) * r;
@@ -206,7 +204,7 @@ static void applyFieldLocal(const PinnedBuffer<float4>& pos,
     {
         auto r = make_float3(pos[i]);
         if (isInside(r, L))
-            force[i] += getField(r, L);
+            force[i] += getField(r);
     }
 }
 
@@ -227,19 +225,19 @@ static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
                       r0.z + iz * L.z};
         
             if (isInside(r, L))
-                forces[i] += getField(r, L);
+                forces[i] += getField(r);
         }
     }
 }
 
 template <class ForceCont>
 static void applyFieldUnbounded(const PinnedBuffer<float4>& pos,
-                               ForceCont& forces, float3 L)
+                               ForceCont& forces)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
         const auto r = make_float3(pos[i]);
-        forces[i] += getField(r, L);
+        forces[i] += getField(r);
     }
 }
 
@@ -269,7 +267,7 @@ static void checkForces(const PinnedBuffer<float4>& pos,
             float3 r {r0.x + ix * L.x,
                       r0.y + iy * L.y,
                       r0.z + iz * L.z};
-            auto f = getField(r, L).f;
+            auto f = getField(r).f;
             
             err = std::min(err, linf(f0, f));
         }
@@ -312,11 +310,9 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     auto hrev = rev->halo();
 
     auto& lpos = lrev->positions();
-    auto& lvel = lrev->velocities();
     auto& lforces = lrev->forces();
 
     auto& hpos = hrev->positions();
-    auto& hvel = hrev->velocities();
     auto& hforces = hrev->forces();
 
     lpos.downloadFromDevice(defaultStream);
@@ -332,7 +328,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     auto engineExchange = std::make_unique<SingleNodeEngine>(std::move(exchanger));
 
     clearForces(lforces);
-    applyFieldUnbounded(lpos, lforces, domain.localSize);
+    applyFieldUnbounded(lpos, lforces);
     lforces.uploadToDevice(defaultStream);
 
     engineExchange->init(defaultStream);
@@ -363,11 +359,9 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     auto hrev = rev->halo();
 
     auto& lpos = lrev->positions();
-    auto& lvel = lrev->velocities();
     auto& lforces = lrev->forces();
 
     auto& hpos = hrev->positions();
-    auto& hvel = hrev->velocities();
     auto& hforces = hrev->forces();
 
     lpos.downloadFromDevice(defaultStream);
@@ -434,12 +428,9 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
                                        DataManager::ShiftMode::None);
 
     auto& lpos = lrev->positions();
-    auto& lvel = lrev->velocities();
     auto& lforces = lrev->forces();
     auto& lfield = *lrev->dataPerParticle.getData<float>(extraChannelName);
 
-    auto& hpos = hrev->positions();
-    auto& hvel = hrev->velocities();
     auto& hforces = hrev->forces();
     auto& hfield = *hrev->dataPerParticle.getData<float>(extraChannelName);
 
@@ -450,7 +441,7 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
 
     lpos.downloadFromDevice(defaultStream);
     clearForces(lforces);
-    applyFieldUnbounded(lpos, lforces, domain.localSize);
+    applyFieldUnbounded(lpos, lforces);
     std::transform(lforces.begin(), lforces.end(), lfield.begin(), fieldTransform);
                    
     lforces.uploadToDevice(defaultStream);

@@ -21,7 +21,6 @@ bool verbose = false;
 void test_domain(float3 length, float rc, float density, int nbuilds)
 {
     bool success = true;
-    float3 domainStart = -length / 2.0f;
     DomainInfo domain{length, {0,0,0}, length};
     float dt = 0; // dummy dt
     MirState state(domain, dt);
@@ -58,7 +57,7 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
         cellscount[i] = 0;
 
     int total = 0;
-    for (int pid = 0; pid < initialPos.size(); ++pid)
+    for (size_t pid = 0; pid < initialPos.size(); ++pid)
     {
         auto coo = make_float3(initialPos[pid]);
 

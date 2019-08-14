@@ -25,14 +25,14 @@ __global__ void exclusiveScan(int *data)
 
 static void inclusiveScan(std::vector<int>& data)
 {
-    for (int i = 1; i < data.size(); ++i)
+    for (size_t i = 1; i < data.size(); ++i)
         data[i] += data[i-1];
 }
 
 static void exclusiveScan(std::vector<int>& data)
 {
     int s = 0, tmp;
-    for (int i = 0; i < data.size(); ++i) {
+    for (size_t i = 0; i < data.size(); ++i) {
         tmp = data[i];
         data[i] = s;
         s += tmp;

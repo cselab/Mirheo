@@ -23,7 +23,7 @@ initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
 }
 
 // rejection sampling for particles inside ellipsoid
-static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
+static auto generateUniformEllipsoid(size_t n, float3 axes, long seed = 424242)
 {
     PyTypes::VectorOfFloat3 pos;
     pos.reserve(n);
@@ -94,7 +94,7 @@ initializeRandomRods(const MPI_Comm& comm, const MirState *state, int nObjs, int
         return {0.f, 0.f, L * (s-0.5f)};
     };
 
-    auto torsion = [](float s) {return 0.f;};
+    auto torsion = [](__UNUSED float s) {return 0.f;};
     
     auto rv = std::make_unique<RodVector>
         (state, "rv", mass, numSegments);

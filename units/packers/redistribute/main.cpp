@@ -46,7 +46,7 @@ static void moveObjects(float3 L, PinnedBuffer<float4>& pos,
 
     int objSize = pos.size() / mot.size();
 
-    for (int i = 0; i < mot.size(); ++i)
+    for (size_t i = 0; i < mot.size(); ++i)
     {
         float3 shift {dx(gen), dy(gen), dz(gen)};
         mot[i].r += shift;
@@ -102,7 +102,7 @@ inline void backToDomain(float& x, float L)
 static void createRefParticles(const PinnedBuffer<float4>& pos,
                                PinnedBuffer<float4>& vel, float3 L)
 {
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         auto v = pos[i];
         backToDomain(v.x, L.x);
@@ -229,7 +229,7 @@ static void checkInsideParticles(const PinnedBuffer<float4>& pos, float3 L)
 static void checkRefParticles(const PinnedBuffer<float4>& pos,
                                   const PinnedBuffer<float4>& vel)
 {
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = pos[i];
         auto v = vel[i];
@@ -270,7 +270,7 @@ static void checkInsideObjects(int objSize, const PinnedBuffer<float4>& pos, flo
 static void checkRefObjects(const PinnedBuffer<float4>& pos,
                             const PinnedBuffer<float4>& vel)
 {
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = pos[i];
         auto v = vel[i];
@@ -288,7 +288,7 @@ static void checkRefRods(int numBiSegments, int objSize,
 {
     int nObjs = data.size() / numBiSegments;
     
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = pos[i];
         auto v = vel[i];
@@ -327,8 +327,6 @@ TEST (PACKERS_REDISTRIBUTE, particles)
 
     moveParticles(rc, pos);
     createRefParticles(pos, vel, domain.localSize);    
-
-    int n = lpv->size();
 
     auto cl = std::make_unique<PrimaryCellList>(pv.get(), rc, domain.localSize);
     cl->build(defaultStream);

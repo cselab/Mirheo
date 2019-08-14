@@ -106,7 +106,7 @@ void execute(MPI_Comm comm, float3 length)
     std::vector<float4> initialPos(np), initialVel(np), rearrangedPos(np), rearrangedVel(np);
     for (int i = 0; i < np; i++)
     {
-        bool from1 = i < pos1.size();
+        bool from1 = i < static_cast<int>(pos1.size());
         
         initialPos[i] = from1 ? pos1[i] : pos2[i-pos1.size()];
         initialVel[i] = from1 ? vel1[i] : vel2[i-vel1.size()];

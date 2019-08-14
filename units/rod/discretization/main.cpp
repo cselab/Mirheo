@@ -16,9 +16,9 @@ using real2 = double2;
 using real3 = double3;
 using real4 = double4;
 
-static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
-static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
-static real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+inline real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
+inline real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+inline real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
 
 using CenterLineFunc = std::function<real3(real)>;
 using CurvatureFunc  = std::function<real(real)>;
@@ -40,9 +40,6 @@ static std::vector<real> computeCurvatures(const float4 *positions, int nSegment
 
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
-
-        auto t0 = normalize(e0);
-        auto t1 = normalize(e1);
 
         real le0 = length(e0);
         real le1 = length(e1);
@@ -125,7 +122,7 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
         return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](__UNUSED float s)
     {
         return 0.f;
     };
@@ -221,7 +218,7 @@ TEST (ROD, curvature_straight)
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto analyticCurv = [&](real s) -> real
+    auto analyticCurv = [&](__UNUSED real s) -> real
     {
         return 0.;
     };
@@ -246,7 +243,7 @@ TEST (ROD, curvature_circle)
         return {radius * coss, radius * sins, 0.};
     };
 
-    auto analyticCurv = [&](real s) -> real
+    auto analyticCurv = [&](__UNUSED real s) -> real
     {
         return 1 / radius;
     };
@@ -259,7 +256,7 @@ TEST (ROD, curvature_circle)
     // check convergence rate
     const real rateTh = 2;
 
-    for (int i = 0; i < nsegs.size() - 1; ++i)
+    for (int i = 0; i < static_cast<int>(nsegs.size()) - 1; ++i)
     {
         real e0 = errors[i], e1 = errors[i+1];
         int  n0 =  nsegs[i], n1 =  nsegs[i+1];
@@ -281,7 +278,7 @@ TEST (ROD, curvature_helix)
         return {a * cos(t), a * sin(t), b * t};
     };
 
-    auto analyticCurv = [&](real s) -> real
+    auto analyticCurv = [&](__UNUSED real s) -> real
     {
         return fabs(a) / (a*a + b*b);
     };
@@ -294,7 +291,7 @@ TEST (ROD, curvature_helix)
     // check convergence rate
     const real rateTh = 2;
 
-    for (int i = 0; i < nsegs.size() - 1; ++i)
+    for (int i = 0; i < static_cast<int>(nsegs.size()) - 1; ++i)
     {
         real e0 = errors[i], e1 = errors[i+1];
         int  n0 =  nsegs[i], n1 =  nsegs[i+1];
@@ -316,7 +313,7 @@ TEST (ROD, torsion_straight_const)
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [&](real s)
+    auto torsion = [&](__UNUSED real s)
     {
         return tau;
     };
@@ -391,7 +388,7 @@ TEST (ROD, torsion_helix)
         return {a * cos(t), a * sin(t), b * t};
     };
 
-    auto torsion = [&](real s)
+    auto torsion = [&](__UNUSED real s)
     {
         return b / (a*a + b*b);
     };

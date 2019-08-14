@@ -7,11 +7,13 @@
 
 Logger logger;
 
-static void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
+inline void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
 {
     FILE *f = fopen("mesh.off", "w");
 
-    fprintf(f, "%d %d\n", triangles.size() * 3, triangles.size());
+    fprintf(f, "%d %d\n",
+            static_cast<int>(triangles.size() * 3),
+            static_cast<int>(triangles.size()));
     
     for (const auto& t : triangles) {
         fprintf(f, "%g %g %g\n", t.a.x, t.a.y, t.a.z);
@@ -19,11 +21,11 @@ static void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
         fprintf(f, "%g %g %g\n", t.c.x, t.c.y, t.c.z);
     }
 
-    for (int i = 0; i < triangles.size(); ++i)
+    for (size_t i = 0; i < triangles.size(); ++i)
         fprintf(f, "3 %d %d %d\n",
-                i * 3 + 0,
-                i * 3 + 1,
-                i * 3 + 2);
+                static_cast<int>(i * 3 + 0),
+                static_cast<int>(i * 3 + 1),
+                static_cast<int>(i * 3 + 2));
     
     fclose(f);
 }

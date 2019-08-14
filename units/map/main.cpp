@@ -12,12 +12,9 @@ TEST (MAP, Entry_backAndForth)
     
     for (int i = 0; i < ntries; ++i)
     {
-        int bufId = rand() % 27;
-        int id = rand() % (1<<(32-5));
-        MapEntry m;
-        
-        m.setId(id);
-        m.setBufId(bufId);
+        const int bufId = rand() % 27;
+        const int id = rand() % (1<<(32-5));
+        const MapEntry m (id, bufId);
         
         ASSERT_EQ(id,    m.getId());
         ASSERT_EQ(bufId, m.getBufId());

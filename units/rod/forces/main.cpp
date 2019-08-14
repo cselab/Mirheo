@@ -111,12 +111,6 @@ static real bendingEnergy(const std::vector<real3>& positions, const float2 B[2]
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
         
-        auto m10 = normalize(dp0Perp);
-        auto m20 = cross(t0, m10);
-
-        auto m11 = normalize(dp1Perp);
-        auto m21 = cross(t1, m11);
-        
         real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
         
@@ -226,12 +220,6 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
         
-        auto m10 = normalize(dp0Perp);
-        auto m20 = cross(t0, m10);
-
-        auto m11 = normalize(dp1Perp);
-        auto m21 = cross(t1, m11);
-        
         real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
         
@@ -273,11 +261,11 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         auto dtau   = taus  [i] - taus  [i-1];
         auto domega = omegas[i] - omegas[i-1];            
         
-        // auto E = 0.5 * kSmoothing * l * (domega.x * domega.x +
-        //                                  domega.y * domega.y +
-        //                                  dtau     * dtau);
+        auto E = 0.5 * kSmoothing * l * (domega.x * domega.x +
+                                         domega.y * domega.y +
+                                         dtau     * dtau);
 
-        auto E = 0.5 * kSmoothing * l * (dtau     * dtau);
+        // auto E = 0.5 * kSmoothing * l * (dtau     * dtau);
 
         Etot += E;
     }
@@ -329,7 +317,7 @@ static void twistForces(real h, float kt, float tau0,
     });
 }
 
-static void smoothingForces(real h, float kbi,
+inline void smoothingForces(real h, float kbi,
                             const std::vector<real3>& positions,
                             std::vector<real3>& forces)
 {
@@ -377,7 +365,7 @@ static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
     auto& pos = rod.local()->positions ();
     auto& vel = rod.local()->velocities();
 
-    for (int i = 0; i < positions.size(); ++i)
+    for (size_t i = 0; i < positions.size(); ++i)
     {
         Particle p;
         p.r = make_float3(positions[i]);
@@ -395,7 +383,7 @@ static void checkMomentum(const PinnedBuffer<float4>& pos, const HostBuffer<Forc
     double3 totForce  {0., 0., 0.};
     double3 totTorque {0., 0., 0.};
 
-    for (int i = 0; i < forces.size(); ++i)
+    for (size_t i = 0; i < forces.size(); ++i)
     {
         auto r4 = pos[i];
         auto f4 = forces[i].f;
@@ -449,7 +437,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
     CUDA_Check( cudaDeviceSynchronize() );
 
     double Linfty = 0;
-    for (int i = 0; i < refForces.size(); ++i)
+    for (size_t i = 0; i < refForces.size(); ++i)
     {
         real3 a = refForces[i];
         real3 b = make_real3(forces[i].f);
@@ -509,7 +497,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
     CUDA_Check( cudaDeviceSynchronize() );
 
     double Linfty = 0;
-    for (int i = 0; i < refForces.size(); ++i)
+    for (size_t i = 0; i < refForces.size(); ++i)
     {
         real3 a = refForces[i];
         real3 b = make_real3(forces[i].f);

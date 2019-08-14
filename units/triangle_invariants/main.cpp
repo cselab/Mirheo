@@ -30,14 +30,6 @@ static Triangle genTriangle(long seed)
     return t;
 };
 
-static void print(Triangle t)
-{
-    printf("%g %g %g  %g %g %g  %g %g %g\n",
-           t.a.x, t.a.y, t.a.z,
-           t.b.x, t.b.y, t.b.z,
-           t.c.x, t.c.y, t.c.z);
-}
-
 static void shuffle(Triangle& t)
 {
     auto tmp = t.a;
@@ -64,40 +56,6 @@ inline real safeSqrt(real a)
     return a > 0.0 ? sqrt(a) : 0.0;
 }
 
-// old version of beta, unstable for phi ~ pi/2 (not used anymore)
-static real beta(Triangle t, Triangle tref)
-{
-    real3 v12 = t.b - t.a;
-    real3 v13 = t.c - t.a;
-
-    real3 v12ref = tref.b - tref.a;
-    real3 v13ref = tref.c - tref.a;
-
-    real area_inv  = 1.0 / area(t);
-    real area0_inv = 1.0 / area(tref);
-
-    real e0sq_A = dot(v12, v12) * area_inv;
-    real e1sq_A = dot(v13, v13) * area_inv;
-
-    real e0sq_A0 = dot(v12ref, v12ref) * area0_inv;
-    real e1sq_A0 = dot(v13ref, v13ref) * area0_inv;
-
-    // 
-    real v12v13 = dot(v12, v13);
-    real v12v13ref = dot(v12ref, v13ref);
-    real sign = (v12v13ref * v12v13) > 0.0 ? 1.0 : -1.0;
-    // this sign is introduced because of the angle which can be > pi/2
-    
-    real beta = 0.125 * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A
-                         - 2. * sign *  sqrt((e0sq_A0 * e1sq_A0 - 4.) * (e0sq_A * e1sq_A - 4.))
-                         - 8.);
-    // print(t);
-    // print(tref);
-    // printf("beta = %g\n", beta);
-    return beta;
-}
-
-// more stable version of beta
 static real beta_stable(Triangle t, Triangle tref)
 {
     real3 v12 = t.b - t.a;

@@ -52,8 +52,9 @@ class GenFromTime
 public:
     float generate(const MirState *state)
     {
-        float t = state->currentTime;
-        int v = *((int*)&t);
+        const float t = state->currentTime;
+        const float *pt = &t;
+        const int v = *reinterpret_cast<const int*>(pt);
         std::mt19937 gen(v);
         std::uniform_real_distribution<float> udistr(0.001, 1);
         return udistr(gen);

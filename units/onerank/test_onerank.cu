@@ -57,8 +57,8 @@ void makeCells(float4*& pos, float4*& vel,
     std::swap(vel, velBuffer);
 }
 
-void integrate(float4* pos, float4 *vel, Force* accs,
-               int np, float dt, CellListInfo cinfo, DomainInfo dinfo)
+void integrate(float4* pos, float4 *vel, Force *accs,
+               int np, float dt, DomainInfo dinfo)
 {
     float3 dstart = dinfo.globalStart;
     float3 dlength = dinfo.localSize;
@@ -326,7 +326,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
         forces(positions.data(), velocities.data(),
                accs.data(), cellsStartSize.data(), cellsSize.data(), cells.cellInfo(), domainInfo);
 
-        integrate(positions.data(), velocities.data(), accs.data(), np, dt, cells.cellInfo(), domainInfo);
+        integrate(positions.data(), velocities.data(), accs.data(), np, dt, domainInfo);
     }
 
     printf("\nDone, checking\n");

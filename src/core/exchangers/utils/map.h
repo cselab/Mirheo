@@ -13,9 +13,9 @@ struct __align__(4) MapEntry
     static constexpr uint32_t maskId  = (maskAll << bufWidth) >> bufWidth;
     static constexpr uint32_t maskBuf = ~maskId;
     
-    uint32_t i;
+    uint32_t i {0};
 
-    __HD__ MapEntry() {}
+    __HD__ MapEntry() = delete;
     __HD__ MapEntry(uint32_t id, uint32_t bufId) :
         i((maskId & id) | (bufId << bufShift))
     {}

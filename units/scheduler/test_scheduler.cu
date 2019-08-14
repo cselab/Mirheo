@@ -25,13 +25,15 @@ void verifyDep(const std::string& before, const std::string& after,
 
 TEST(Scheduler, Order)
 {
-    //  A1,A2 - B -----------
-    //              \        \
-    //                D1,D2 - E
-    //          C - /
-    //              \ F
-    //                        G
-
+    /*
+      A1,A2 - B -----------
+                  \        \
+                    D1,D2 - E
+              C - /
+                  \ F
+                            G
+    */
+    
     TaskScheduler scheduler;
     std::vector<std::string> messages;
 
@@ -45,15 +47,15 @@ TEST(Scheduler, Order)
     auto F  = scheduler.createTask("F");
     auto G  = scheduler.createTask("G");
 
-    scheduler.addTask(A1, [&](cudaStream_t s){ messages.push_back("a1"); });
-    scheduler.addTask(A2, [&](cudaStream_t s){ messages.push_back("a2"); });
-    scheduler.addTask(B , [&](cudaStream_t s){ messages.push_back("b" ); });
-    scheduler.addTask(C , [&](cudaStream_t s){ messages.push_back("c" ); });
-    scheduler.addTask(D1, [&](cudaStream_t s){ messages.push_back("d1"); });
-    scheduler.addTask(D2, [&](cudaStream_t s){ messages.push_back("d2"); });
-    scheduler.addTask(E , [&](cudaStream_t s){ messages.push_back("e" ); });
-    scheduler.addTask(F , [&](cudaStream_t s){ messages.push_back("f" ); });
-    scheduler.addTask(G , [&](cudaStream_t s){ messages.push_back("g" ); });
+    scheduler.addTask(A1, [&](__UNUSED cudaStream_t s){ messages.push_back("a1"); });
+    scheduler.addTask(A2, [&](__UNUSED cudaStream_t s){ messages.push_back("a2"); });
+    scheduler.addTask(B , [&](__UNUSED cudaStream_t s){ messages.push_back("b" ); });
+    scheduler.addTask(C , [&](__UNUSED cudaStream_t s){ messages.push_back("c" ); });
+    scheduler.addTask(D1, [&](__UNUSED cudaStream_t s){ messages.push_back("d1"); });
+    scheduler.addTask(D2, [&](__UNUSED cudaStream_t s){ messages.push_back("d2"); });
+    scheduler.addTask(E , [&](__UNUSED cudaStream_t s){ messages.push_back("e" ); });
+    scheduler.addTask(F , [&](__UNUSED cudaStream_t s){ messages.push_back("f" ); });
+    scheduler.addTask(G , [&](__UNUSED cudaStream_t s){ messages.push_back("g" ); });
                 
     scheduler.addDependency(B, {}, {A1, A2});
     scheduler.addDependency(D1, {}, {B, C});
@@ -99,15 +101,15 @@ TEST(Scheduler, Benchmark)
     auto F  = scheduler.createTask("F");
     auto G  = scheduler.createTask("G");
         
-    scheduler.addTask(C,  [&](cudaStream_t s){ c++; });
-    scheduler.addTask(G,  [&](cudaStream_t s){ g--; });
-    scheduler.addTask(D1, [&](cudaStream_t s){ d+=2; });
-    scheduler.addTask(A1, [&](cudaStream_t s){ a-=3; });
-    scheduler.addTask(E,  [&](cudaStream_t s){ e*=1.001; });
-    scheduler.addTask(A2, [&](cudaStream_t s){ a*=0.9999; });
-    scheduler.addTask(B,  [&](cudaStream_t s){ b+=5; });
-    scheduler.addTask(D2, [&](cudaStream_t s){ d-=42; });
-    scheduler.addTask(F,  [&](cudaStream_t s){ f*=2; });
+    scheduler.addTask(C,  [&](__UNUSED cudaStream_t s){ c++; });
+    scheduler.addTask(G,  [&](__UNUSED cudaStream_t s){ g--; });
+    scheduler.addTask(D1, [&](__UNUSED cudaStream_t s){ d+=2; });
+    scheduler.addTask(A1, [&](__UNUSED cudaStream_t s){ a-=3; });
+    scheduler.addTask(E,  [&](__UNUSED cudaStream_t s){ e*=1.001; });
+    scheduler.addTask(A2, [&](__UNUSED cudaStream_t s){ a*=0.9999; });
+    scheduler.addTask(B,  [&](__UNUSED cudaStream_t s){ b+=5; });
+    scheduler.addTask(D2, [&](__UNUSED cudaStream_t s){ d-=42; });
+    scheduler.addTask(F,  [&](__UNUSED cudaStream_t s){ f*=2; });
 
     scheduler.addDependency(B, {}, {A1, A2});
     scheduler.addDependency(D1, {}, {B, C});

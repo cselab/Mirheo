@@ -31,7 +31,7 @@ void test(Vec vals, Cmp cmp)
     
     {
         Cont src(vals.size());
-        for (int i=0; i<vals.size(); i++)
+        for (size_t i = 0; i < vals.size(); ++i)
             src[i] = vals[i];
         
         SimpleSerializer::serialize(buf, src);
@@ -39,7 +39,7 @@ void test(Vec vals, Cmp cmp)
     
     SimpleSerializer::deserialize(buf, dst);
     
-    for (int i=0; i<vals.size(); i++)
+    for (size_t i = 0; i < vals.size(); ++i)
         myassert(cmp(dst[i], vals[i]), "mismatch on " + std::to_string(i));
 }
 
@@ -82,10 +82,10 @@ TEST(Serializer, Mixed)
     myassert(s2==d2, "mismatch on 2");
     myassert(s3==d3, "mismatch on 3");
 
-    for (int i = 0; i < s4.size(); i++)
+    for (size_t i = 0; i < s4.size(); i++)
         myassert(s4[i] == d4[i], "mismatch on 4[" + std::to_string(i) + "]"); 
     
-    for (int i = 0; i < s5.size(); i++)
+    for (size_t i = 0; i < s5.size(); i++)
         myassert(s5[i] == d5[i], "mismatch on 5[" + std::to_string(i) + "]");
 
 }
