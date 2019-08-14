@@ -72,7 +72,7 @@ struct SimulationTasks
 {
 #define DECLARE(NAME, DESC) TaskScheduler::TaskID NAME ;
 
-    TASK_LIST(DECLARE);
+    TASK_LIST(DECLARE)
 
 #undef DECLARE    
 };

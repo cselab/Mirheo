@@ -128,7 +128,7 @@ void PostprocessPlugin::recv()
     debug3("Plugin '%s' has received the data (%d bytes)", name.c_str(), count);
 }
 
-void PostprocessPlugin::deserialize() {};
+void PostprocessPlugin::deserialize() {}
 
 void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {

@@ -17,7 +17,7 @@ inline float make_perioidc(float x, float L)
     if (x <  0) x += L;
     if (x >= L) x -= L;
     return x;
-};
+}
 
 inline float3 make_periodic(float3 r, float3 L)
 {
