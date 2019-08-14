@@ -399,6 +399,10 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName, float m
         die("No such wall: %s", wallName.c_str());
     auto wall = wallMap[wallName].get();
 
+    if (auto ov = dynamic_cast<ObjectVector*>(pv))
+        die("Object Vectors can not be bounced from walls in the current implementaion. "
+            "Invalid combination: wall '%s' and OV '%s'", wall->name.c_str(), ov->name.c_str());
+
     wall->setPrerequisites(pv);
     wallPrototypes.push_back( {wall, pv, maximumPartTravel} );
 }
