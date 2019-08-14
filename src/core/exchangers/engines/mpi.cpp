@@ -8,12 +8,12 @@
 
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
-    nActiveNeighbours(FragmentMapping::numFragments - 1),
-    gpuAwareMPI(gpuAwareMPI),
     exchanger(std::move(exchanger)),
     dir2rank   (FragmentMapping::numFragments),
     dir2sendTag(FragmentMapping::numFragments),
-    dir2recvTag(FragmentMapping::numFragments)
+    dir2recvTag(FragmentMapping::numFragments),
+    nActiveNeighbours(FragmentMapping::numFragments - 1),
+    gpuAwareMPI(gpuAwareMPI)
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm) );
 
@@ -47,34 +47,34 @@ void MPIExchangeEngine::init(cudaStream_t stream)
 {
     auto& helpers = exchanger->helpers;
     
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (!exchanger->needExchange(i)) debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
     
     // Post irecv for sizes
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) postRecvSize(helpers[i].get());
 
     // Derived class determines what to send
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) exchanger->prepareSizes(i, stream);
 
     // Send sizes
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) sendSizes(helpers[i].get());
 
     // Derived class determines what to send
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) exchanger->prepareData(i, stream);
 
     // Post big data irecv (after prepereData cause it waits for the sizes)
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) postRecv(helpers[i].get());
 
     // CUDA-aware MPI will work in a separate stream, need to synchro
     if (gpuAwareMPI) cudaStreamSynchronize(stream);
 
     // Send
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) send(helpers[i].get(), stream);
 }
 
@@ -83,18 +83,18 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
     auto& helpers = exchanger->helpers;
 
     // Wait for the irecvs to finish
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) wait(helpers[i].get(), stream);
 
     // Wait for completion of the previous sends
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i))
             MPI_Check( MPI_Waitall(helpers[i]->send.requests.size(),
                                    helpers[i]->send.requests.data(),
                                    MPI_STATUSES_IGNORE) );
 
     // Derived class unpack implementation
-    for (int i = 0; i < helpers.size(); i++)
+    for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i)) exchanger->combineAndUploadData(i, stream);
 }
 
@@ -245,7 +245,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
     else
     {
         // Wait and upload one by one
-        for (int i = 0; i < helper->recv.requests.size(); i++)
+        for (size_t i = 0; i < helper->recv.requests.size(); ++i)
         {
             int idx;
             tm.start();

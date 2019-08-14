@@ -25,8 +25,8 @@ private:
     MirState subState;
     
     int substeps; /* number of substeps */
-    DeviceBuffer<Force> slowForces;
-    DeviceBuffer<float4> previousPositions;
+    DeviceBuffer<Force> slowForces {};
+    DeviceBuffer<float4> previousPositions {};
 
     void updateSubState();
 };

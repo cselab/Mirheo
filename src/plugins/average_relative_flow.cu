@@ -122,7 +122,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
     motions->downloadFromDevice(stream, ContainersSynch::Synch);
 
-    for (int i = 0; i < ids->size(); i++)
+    for (size_t i = 0; i < ids->size(); i++)
     {
         if ((*ids)[i] == relativeID)
         {

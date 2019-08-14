@@ -46,7 +46,7 @@ void UniformCartesianDumper::handshake()
     std::string allNames = "density";
     channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "density"));
     
-    for (int i = 0; i < sizes.size(); i++)
+    for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
@@ -70,7 +70,7 @@ void UniformCartesianDumper::handshake()
 static void convert(const std::vector<double> &src, std::vector<float> &dst)
 {
     dst.resize(src.size());
-    for (int i = 0; i < src.size(); ++i)
+    for (size_t i = 0; i < src.size(); ++i)
         dst[i] = src[i];
 }
 
@@ -88,7 +88,8 @@ void UniformCartesianDumper::deserialize(MPI_Status& stat)
 
     containers.resize(recv_containers.size());
     
-    for (int i = 0; i < recv_containers.size(); i++) {
+    for (size_t i = 0; i < recv_containers.size(); ++i)
+    {
         convert(recv_containers[i], containers[i]);
         channels[i+1].data = containers[i].data();
     }

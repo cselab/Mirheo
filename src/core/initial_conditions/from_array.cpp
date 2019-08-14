@@ -16,7 +16,7 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     std::vector<float4> positions, velocities;
     auto domain = pv->state->domain;
 
-    for (int i = 0; i < pos.size(); ++i) {
+    for (size_t i = 0; i < pos.size(); ++i) {
         auto r_ = pos[i];
         auto u_ = vel[i];
 

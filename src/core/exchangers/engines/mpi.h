@@ -42,10 +42,11 @@ private:
     std::vector<int> dir2recvTag;    
     int nActiveNeighbours;
 
+    bool gpuAwareMPI;
+    
     int myrank;
     MPI_Comm haloComm;
-    bool gpuAwareMPI;
-    int singleCopyThreshold = 4000000;
+    static constexpr int singleCopyThreshold = 4000000;
 
     void postRecvSize(ExchangeHelper *helper);
     void sendSizes(ExchangeHelper *helper);

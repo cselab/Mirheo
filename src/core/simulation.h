@@ -110,7 +110,7 @@ private:
         Anew, RestartTolerant, RestartStrict
     };
     RestartStatus restartStatus{RestartStatus::Anew};
-    std::string restartFolder;
+    std::string restartFolder {};
 
     int checkpointId {0};
     CheckpointInfo checkpointInfo;

@@ -88,9 +88,9 @@ static std::vector<std::vector<T>> splitData(const ExchMap& map, int chunkSize,
 {
     std::vector<std::vector<T>> bufs(numProcs);
     
-    for (int i = 0; i < map.size(); ++i)
+    for (size_t i = 0; i < map.size(); ++i)
     {
-        int procId = map[i];
+        const int procId = map[i];
 
         if (procId == InvalidProc) continue;
 
@@ -108,7 +108,7 @@ static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& send
 {
     std::vector<MPI_Request> reqs;
     
-    for (int i = 0; i < sendBufs.size(); ++i)
+    for (size_t i = 0; i < sendBufs.size(); ++i)
     {
         MPI_Request req;
         debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
@@ -134,7 +134,7 @@ static std::vector<T> recvData(int numProcs, MPI_Comm comm)
 
         const int size = sizeBytes / sizeof(T);
 
-        if (size * sizeof(T) != sizeBytes)
+        if (static_cast<int>(size * sizeof(T)) != sizeBytes)
             die("unexpected received size: got %ld bytes, expected multiple of %ld",
                 static_cast<long>(sizeBytes), static_cast<long>(sizeof(T)));
         

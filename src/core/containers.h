@@ -34,8 +34,8 @@ public:
     GPUcontainer& operator=(GPUcontainer&&) = delete;
     virtual ~GPUcontainer() = default;
     
-    virtual int size() const = 0;                                      ///< @return number of stored elements
-    virtual int datatype_size() const = 0;                             ///< @return sizeof( element )
+    virtual size_t size() const = 0;                                   ///< @return number of stored elements
+    virtual size_t datatype_size() const = 0;                          ///< @return sizeof( element )
 
     virtual void* genericDevPtr() const = 0;                           ///< @return device pointer to the data
 
@@ -118,8 +118,8 @@ public:
         }
     }
 
-    inline int datatype_size() const final { return sizeof(T); }
-    inline int size()          const final { return _size; }
+    inline size_t datatype_size() const final { return sizeof(T); }
+    inline size_t size()          const final { return _size; }
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
@@ -291,8 +291,8 @@ public:
         debug4("Destroying HostBuffer<%s>", typeid(T).name());
     }
 
-    inline int datatype_size() const { return sizeof(T); }
-    inline int size()          const { return _size; }
+    inline size_t datatype_size() const { return sizeof(T); }
+    inline size_t size()          const { return _size; }
 
     inline T* hostPtr() const { return hostptr; }
     inline T* data()    const { return hostptr; } /// For uniformity with std::vector
@@ -470,8 +470,8 @@ public:
         }
     }
 
-    inline int datatype_size() const final { return sizeof(T); }
-    inline int size()          const final { return _size; }
+    inline size_t datatype_size() const final { return sizeof(T); }
+    inline size_t size()          const final { return _size; }
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 

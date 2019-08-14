@@ -37,7 +37,7 @@ GenericPackerHandler& GenericPacker::handler()
 void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
                                     bool& needUpload, cudaStream_t stream)
 {
-    if (channelData.size() <= nChannels)
+    if (static_cast<int>(channelData.size()) <= nChannels)
     {
         channelData  .resize(nChannels+1, stream);
         needShiftData.resize(nChannels+1, stream);

@@ -62,6 +62,11 @@ TaskScheduler::TaskID TaskScheduler::getTaskIdOrDie(const std::string& label)
     return id;
 }
 
+void TaskScheduler::checkTaskExistsOrDie(TaskID id) const
+{
+    if (id >= static_cast<TaskID>(tasks.size()) || id < 0)
+        die("No such task with id %d", id);
+}
 
 TaskScheduler::Node* TaskScheduler::getNode(TaskID id)
 {
@@ -83,11 +88,10 @@ TaskScheduler::Node* TaskScheduler::getNodeOrDie(TaskID id)
 
 void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
 {
-    if (id >= tasks.size() || id < 0)
-        die("No such task with id %d", id);
+    checkTaskExistsOrDie(id);
 
     if (every <= 0)
-        die("What the fuck is this value %d???", every);
+        die("'every' must be non negative: got %d???", every);
 
     tasks[id].funcs.push_back({task, every});
 }
@@ -95,26 +99,20 @@ void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
 
 void TaskScheduler::addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after)
 {
-    if (id >= tasks.size() || id < 0)
-        die("No such task with id %d", id);
-
+    checkTaskExistsOrDie(id);
     tasks[id].before.insert(tasks[id].before.end(), before.begin(), before.end());
     tasks[id].after .insert(tasks[id].after .end(), after .begin(), after .end());
 }
 
 void TaskScheduler::setHighPriority(TaskID id)
 {
-    if (id >= tasks.size() || id < 0)
-        die("No such task with id %d", id);
-
+    checkTaskExistsOrDie(id);
     tasks[id].priority = cudaPriorityHigh;
 }
 
 void TaskScheduler::forceExec(TaskID id, cudaStream_t stream)
 {
-    if (id >= tasks.size() || id < 0)
-        die("No such task with id %d", id);
-
+    checkTaskExistsOrDie(id);
     debug("Forced execution of group %s", tasks[id].label.c_str());
 
     for (auto& func_every : tasks[id].funcs)
@@ -185,8 +183,8 @@ void TaskScheduler::removeEmptyNodes()
             debug("Task '%s' is empty and will be removed from execution", tasks[checkedNode->id].label.c_str());
             for (auto& n : nodes)
             {
-                int toSize = n->to.size();
-                int from_backupSize = n->from_backup.size();
+                const auto toSize = n->to.size();
+                const auto from_backupSize = n->from_backup.size();
 
                 // Others cannot have dependencies with the removed
                 n->to.remove(checkedNode);

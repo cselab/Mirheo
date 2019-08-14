@@ -78,6 +78,7 @@ private:
 
     std::unordered_map<std::string, TaskID> label2taskId;
 
+    void checkTaskExistsOrDie(TaskID id) const;
     Node* getNode     (TaskID id);
     Node* getNodeOrDie(TaskID id);
 

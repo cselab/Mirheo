@@ -7,8 +7,8 @@
 class RigidIC : public InitialConditions
 {
 private:
-    PyTypes::VectorOfFloat3 coords;
     PyTypes::VectorOfFloat7 com_q;
+    PyTypes::VectorOfFloat3 coords;
     PyTypes::VectorOfFloat3 comVelocities;
 
 public:

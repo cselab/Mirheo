@@ -60,7 +60,7 @@ static PinnedBuffer<float4> getInitialPositions(const PyTypes::VectorOfFloat3& i
 {
     PinnedBuffer<float4> out(in.size());
     
-    for (int i = 0; i < in.size(); ++i)
+    for (size_t i = 0; i < in.size(); ++i)
         out[i] = make_float4(in[i][0], in[i][1], in[i][2], 0);
         
     out.uploadToDevice(stream);
@@ -145,7 +145,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
 
     auto lrov = rov->local();
     
-    if (rov->objSize != rov->initialPositions.size())
+    if (rov->objSize != static_cast<int>(rov->initialPositions.size()))
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
             rov->name.c_str(), rov->objSize, rov->initialPositions.size());
 

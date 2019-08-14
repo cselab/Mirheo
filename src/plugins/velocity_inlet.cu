@@ -154,14 +154,18 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     surfaceTriangles.resize_anew(nTriangles * 3);
     surfaceVelocity .resize_anew(nTriangles * 3);
 
-    int i = 0;
-    for (const auto& t : triangles) {
-        surfaceTriangles[i++] = t.a;
-        surfaceTriangles[i++] = t.b;
-        surfaceTriangles[i++] = t.c;
+    {
+        size_t i = 0;
+        for (const auto& t : triangles)
+        {
+            surfaceTriangles[i++] = t.a;
+            surfaceTriangles[i++] = t.b;
+            surfaceTriangles[i++] = t.c;
+        }
     }
 
-    for (i = 0; i < surfaceTriangles.size(); ++i) {
+    for (size_t i = 0; i < surfaceTriangles.size(); ++i)
+    {
         float3 r = state->domain.local2global(surfaceTriangles[i]);
         surfaceVelocity[i] = velocityField(r);
     }

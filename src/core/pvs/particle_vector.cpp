@@ -71,7 +71,7 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     vel.downloadFromDevice(stream);
 
     int64_t id = rankStart;
-    for (int i = 0; i < pos.size(); ++i)
+    for (size_t i = 0; i < pos.size(); ++i)
     {
         Particle p(pos[i], vel[i]);
         p.setId(id++);
@@ -132,7 +132,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getCoordinates_vector()
     pos.downloadFromDevice(defaultStream);
     
     PyTypes::VectorOfFloat3 res(pos.size());
-    for (int i = 0; i < pos.size(); i++)
+    for (size_t i = 0; i < pos.size(); i++)
     {
         float3 r = make_float3(pos[i]);
         r = state->domain.local2global(r);
@@ -148,7 +148,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getVelocities_vector()
     vel.downloadFromDevice(defaultStream);
     
     PyTypes::VectorOfFloat3 res(vel.size());
-    for (int i = 0; i < vel.size(); i++)
+    for (size_t i = 0; i < vel.size(); i++)
     {
         float3 u = make_float3(vel[i]);
         res[i] = { u.x, u.y, u.z };
@@ -163,7 +163,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getForces_vector()
     forces.copy(local()->forces(), defaultStream);
     
     PyTypes::VectorOfFloat3 res(forces.size());
-    for (int i = 0; i < forces.size(); i++)
+    for (size_t i = 0; i < forces.size(); i++)
     {
         float3 f = forces[i].f;
         res[i] = { f.x, f.y, f.z };
@@ -180,13 +180,14 @@ void ParticleVector::setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cud
 void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
 {
     auto& pos = local()->positions();
+    const size_t n = local()->size();
     
-    if (coordinates.size() != local()->size())
+    if (coordinates.size() != n)
         throw std::invalid_argument("Wrong number of particles passed, "
-            "expected: " + std::to_string(local()->size()) +
+            "expected: " + std::to_string(n) +
             ", got: " + std::to_string(coordinates.size()) );
     
-    for (int i = 0; i < coordinates.size(); i++)
+    for (size_t i = 0; i < coordinates.size(); i++)
     {
         auto& r_ = coordinates[i];
         float3 r = state->domain.global2local( { r_[0], r_[1], r_[2] } );
@@ -201,13 +202,14 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
 void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
 {
     auto& vel = local()->velocities();
+    const size_t n = local()->size();
     
-    if (velocities.size() != local()->size())
+    if (velocities.size() != n)
         throw std::invalid_argument("Wrong number of particles passed, "
-        "expected: " + std::to_string(local()->size()) +
+        "expected: " + std::to_string(n) +
         ", got: " + std::to_string(velocities.size()) );
     
-    for (int i = 0; i < velocities.size(); i++)
+    for (size_t i = 0; i < velocities.size(); i++)
     {
         auto& u = velocities[i];
         vel[i].x = u[0];
@@ -221,13 +223,13 @@ void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
 void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
 {
     HostBuffer<Force> myforces(local()->size());
-    
-    if (forces.size() != local()->size())
+    const size_t n = local()->size();
+    if (forces.size() != n)
         throw std::invalid_argument("Wrong number of particles passed, "
-        "expected: " + std::to_string(local()->size()) +
+        "expected: " + std::to_string(n) +
         ", got: " + std::to_string(forces.size()) );
     
-    for (int i = 0; i < forces.size(); i++)
+    for (size_t i = 0; i < forces.size(); i++)
     {
         auto& f = forces[i];
         myforces[i].f = { f[0], f[1], f[2] };

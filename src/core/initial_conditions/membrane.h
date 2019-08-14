@@ -19,6 +19,6 @@ public:
     ~MembraneIC();
 
 private:
-    float globalScale;
     PyTypes::VectorOfFloat7 com_q;
+    float globalScale;
 };

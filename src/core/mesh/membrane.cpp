@@ -23,7 +23,8 @@ static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>
     if (facesA.size() != facesB.size())
         return false;
     
-    for (int i = 0; i < facesA.size(); ++i) {
+    for (size_t i = 0; i < facesA.size(); ++i)
+    {
         int3 a = facesA[i];
         int3 b = facesB[i];
 
@@ -104,9 +105,9 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
         
         // Add all the vertices on the adjacent edges one by one.
         myadjacent[0] = l.begin()->first;
-        for (int i = 1; i < l.size(); ++i)
+        for (size_t i = 1; i < l.size(); ++i)
         {
-            int current = myadjacent[i-1];
+            const int current = myadjacent[i-1];
             
             assert(l.find(current) != l.end());
             myadjacent[i] =  l.find(current)->second;
@@ -116,15 +117,17 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
 
 void MembraneMesh::findAdjacent()
 {
-    // For every vertex: map from neigbouring vertex to a neigbour of both of vertices
-    //
-    //  all of such edges:
-    //     V
-    //
-    //  <=====> 
-    //   \   /
-    //    \ /
-    //     *
+    /*
+     For every vertex: map from neigbouring vertex to a neigbour of both of vertices
+    
+      all of such edges:
+         V
+    
+      <=====> 
+       \   /
+        \ /
+         *
+    */
     EdgeMapPerVertex adjacentPairs(nvertices);
 
     for (const auto& t : triangles) {

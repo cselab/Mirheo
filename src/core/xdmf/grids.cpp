@@ -133,8 +133,8 @@ VertexGrid::VertexGridDims::VertexGridDims(long nlocal, MPI_Comm comm) :
 }
 
 VertexGrid::VertexGrid(std::shared_ptr<std::vector<float3>> positions, MPI_Comm comm) :
-    positions(positions),
-    dims(positions->size(), comm)
+    dims(positions->size(), comm),
+    positions(positions)
 {}
 
 std::vector<hsize_t> VertexGrid::VertexGridDims::getLocalSize()  const {return {nlocal};}
@@ -208,7 +208,7 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
     MPI_Check( MPI_Comm_size(comm, &size) );
 
     int64_t nchunksGlobal = dims.nglobal / chunkSize;
-    if (nchunksGlobal * chunkSize != dims.nglobal)
+    if (nchunksGlobal * chunkSize != static_cast<int64_t>(dims.nglobal))
         die("incompatible chunk size");
 
     int64_t nchunksLocal = (nchunksGlobal + size - 1) / size;
@@ -249,8 +249,8 @@ TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float3>> position
                                    std::shared_ptr<std::vector<int3>> triangles,
                                    MPI_Comm comm) :
     VertexGrid(positions, comm),
-    triangles(triangles),
-    dimsTriangles(triangles->size(), comm)
+    dimsTriangles(triangles->size(), comm),
+    triangles(triangles)
 {}
 
 void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const

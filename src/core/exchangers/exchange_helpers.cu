@@ -80,7 +80,7 @@ static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
 
 static void computeSizesBytes(const ParticlePacker *packer, const PinnedBuffer<int>& sz, PinnedBuffer<size_t>& szBytes)
 {
-    for (int i = 0; i < sz.size(); ++i)
+    for (size_t i = 0; i < sz.size(); ++i)
         szBytes[i] = packer->getSizeBytes(sz[i]);
 }
 

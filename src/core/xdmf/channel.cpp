@@ -39,6 +39,7 @@ std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
     case Channel::DataForm::RigidMotion: return "Matrix";
     case Channel::DataForm::Other:       return "Scalar";
     }
+    return "Scalar";
 }
 
 int dataFormToNcomponents(Channel::DataForm dataForm)
@@ -59,6 +60,7 @@ int dataFormToNcomponents(Channel::DataForm dataForm)
     case Channel::DataForm::RigidMotion: return szRM / szRMx;
     case Channel::DataForm::Other:       return 1;
     }
+    return 1;
 }
 
 std::string dataFormToDescription(Channel::DataForm dataForm)
@@ -75,8 +77,9 @@ std::string dataFormToDescription(Channel::DataForm dataForm)
     case Channel::DataForm::RigidMotion: return "RigidMotion";
     case Channel::DataForm::Other:       return "Other";
     }
+    return "Other";
 }
-        
+
 Channel::DataForm descriptionToDataForm(const std::string& str)
 {
     if (str == "Scalar")      return Channel::DataForm::Scalar;
@@ -90,7 +93,7 @@ Channel::DataForm descriptionToDataForm(const std::string& str)
     warn("Unrecognised format '%s'", str.c_str());
     return Channel::DataForm::Other;
 }
-    
+
 decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType nt)
 {
     switch (nt)
@@ -100,8 +103,9 @@ decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType nt)
     case Channel::NumberType::Int    : return H5T_NATIVE_INT;
     case Channel::NumberType::Int64  : return H5T_NATIVE_INT64;
     }
+    return H5T_NATIVE_FLOAT;
 }
-    
+
 std::string numberTypeToString(Channel::NumberType dt)
 {
     switch (dt)
@@ -111,6 +115,7 @@ std::string numberTypeToString(Channel::NumberType dt)
     case Channel::NumberType::Int    : return "Int";
     case Channel::NumberType::Int64  : return "Int";
     }
+    return "Invalid";
 }
 
 int numberTypeToPrecision(Channel::NumberType dt)
@@ -122,6 +127,7 @@ int numberTypeToPrecision(Channel::NumberType dt)
     case Channel::NumberType::Int    : return sizeof(int);
     case Channel::NumberType::Int64  : return sizeof(int64_t);
     }
+    return sizeof(float);
 }
     
 Channel::NumberType infoToNumberType(const std::string& str, int precision)
@@ -131,6 +137,7 @@ Channel::NumberType infoToNumberType(const std::string& str, int precision)
     if (precision == sizeof(int)     && str == "Int")   return Channel::NumberType::Int;
     if (precision == sizeof(int64_t) && str == "Int")   return Channel::NumberType::Int64;
     die("NumberType '%s' with precision %d is not supported for reading", str.c_str(), precision);
+    return Channel::NumberType::Float;
 }
 
 } // namespace XDMF

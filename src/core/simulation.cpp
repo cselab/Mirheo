@@ -80,15 +80,14 @@ struct SimulationTasks
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
                        CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
     MirObject("simulation"),
-    nranks3D(nranks3D),
     cartComm(cartComm),
     interComm(interComm),
     state(state),
     checkpointInfo(checkpointInfo),
-    gpuAwareMPI(gpuAwareMPI),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),
-    interactionManager(std::make_unique<InteractionManager>())
+    interactionManager(std::make_unique<InteractionManager>()),
+    gpuAwareMPI(gpuAwareMPI)
 {
     int nranks[3], periods[3], coords[3];
     int topology;

@@ -12,10 +12,10 @@
 
 IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name),
-    substeps(substeps),
-    subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
     fastForces(fastForces),
-    subState(*state)
+    subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
+    subState(*state),
+    substeps(substeps)
 {
     if (!fastForces->isSelfObjectInteraction())
         die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",

@@ -7,7 +7,7 @@
 std::string getStrZeroPadded(int i, int zeroPadding)
 {
     auto s = std::to_string(i);
-    if (zeroPadding < s.size())
+    if (zeroPadding < static_cast<int>(s.size()))
         die("Could not create padding for i = %d", i);
     return std::string(zeroPadding - s.length(), '0') + s;
 }

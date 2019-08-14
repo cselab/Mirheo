@@ -46,7 +46,7 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, mask.data(), mask.size(), MPI_INT, MPI_MAX, comm) );
 
     std::vector<int> ids;
-    for (int i = 0; i < mask.size(); ++i)
+    for (size_t i = 0; i < mask.size(); ++i)
         if (mask[i] > 0)
         {
             ids.push_back(i);

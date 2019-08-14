@@ -15,8 +15,8 @@ RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFun
     com_q(com_q),
     centerLine(centerLine),
     torsion(torsion),
-    a(a),
-    initialMaterialFrame(make_float3(initialMaterialFrame))
+    initialMaterialFrame(make_float3(initialMaterialFrame)),
+    a(a)
 {}
 
 RodIC::~RodIC() = default;
@@ -151,9 +151,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             for (int i = 0; i < objSize; i++)
             {
                 float3 r = Quaternion::rotate(positions[i], q) + com;
-                Particle p;
-                p.r = r;
-                p.u = make_float3(0);
+                Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
 
                 pos[oldSize + i] = p.r2Float4();
                 vel[oldSize + i] = p.u2Float4();

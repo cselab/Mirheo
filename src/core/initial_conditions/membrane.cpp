@@ -8,7 +8,8 @@
 #include <random>
 
 MembraneIC::MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale) :
-    com_q(com_q), globalScale(globalScale)
+    com_q(com_q),
+    globalScale(globalScale)
 {}
 
 MembraneIC::~MembraneIC() = default;
@@ -65,9 +66,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             for (int i = 0; i < ov->mesh->getNvertices(); i++)
             {
                 float3 r = Quaternion::rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
-                Particle p;
-                p.r = r;
-                p.u = make_float3(0);
+                Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
 
                 pos[oldSize + i] = p.r2Float4();
                 vel[oldSize + i] = p.u2Float4();

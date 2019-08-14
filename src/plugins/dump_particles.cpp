@@ -56,7 +56,8 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
     positions .genericCopy(&pv->local()->positions() , stream);
     velocities.genericCopy(&pv->local()->velocities(), stream);
 
-    for (int i = 0; i < channelNames.size(); ++i) {
+    for (size_t i = 0; i < channelNames.size(); ++i)
+    {
         auto name = channelNames[i];
         auto srcContainer = pv->local()->dataPerParticle.getGenericData(name);
         channelData[i].genericCopy(srcContainer, stream); 
@@ -115,7 +116,7 @@ void ParticleDumperPlugin::handshake()
     channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<float>()));
     channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
-    for (int i = 0; i<sizes.size(); i++)
+    for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
@@ -162,8 +163,8 @@ void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::St
     channels[c++].data = velocities.data();
     channels[c++].data = ids.data();
     
-    for (int i = 0; i < channelData.size(); i++)
-        channels[c++].data = channelData[i].data();
+    for (auto& cd : channelData)
+        channels[c++].data = cd.data();
 }
 
 void ParticleDumperPlugin::deserialize(MPI_Status& stat)
