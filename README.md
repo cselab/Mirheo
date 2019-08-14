@@ -12,7 +12,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* **internal changes**: 
+  * enable and fix warnings
+  * fix initialization bugs
 
 ### v1.1.1
 
