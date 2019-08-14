@@ -175,6 +175,7 @@ void exportMirheo(py::module& m)
         .def("setWall",        &Mirheo::setWallBounce,
              "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25f, R"(
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
+                The current implementation does not support :any:`ObjectVector`.
 
                 Args:
                     wall: the :any:`Wall` surface which will bounce the particles

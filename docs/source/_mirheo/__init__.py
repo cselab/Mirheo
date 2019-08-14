@@ -375,6 +375,7 @@ Register Plugins
 
 
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
+                The current implementation does not support :any:`ObjectVector`.
 
                 Args:
                     wall: the :any:`Wall` surface which will bounce the particles
