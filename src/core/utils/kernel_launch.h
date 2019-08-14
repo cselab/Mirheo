@@ -1,28 +1,13 @@
 #pragma once
 
-#if 1
 #include <core/logger.h>
-#else
 
-#define debug4(...)
-
-struct Logger
-{
-    int getDebugLvl() { return 10 };
-} logger;
-
-#endif
-
-
-template<class T>
-static inline bool isValid_nBlocks(T blocks);
-
-template <> bool isValid_nBlocks<int>(int blocks)
+inline bool isValid_nBlocks(int blocks)
 {
     return blocks > 0;
 }
 
-template <> bool isValid_nBlocks<dim3>(dim3 blocks)
+inline bool isValid_nBlocks(dim3 blocks)
 {
     return blocks.x > 0 && blocks.y > 0 && blocks.z > 0;
 }
