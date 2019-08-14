@@ -33,7 +33,7 @@ public:
         }
     }
 
-    void setup(ParticleVector* pv, float t)
+    void setup(ParticleVector* pv, __UNUSED float t)
     {
         domain = pv->state->domain;
     }

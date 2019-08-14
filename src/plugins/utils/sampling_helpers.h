@@ -6,7 +6,7 @@
 #include <core/pvs/particle_vector.h>
 
 template <typename T>
-inline bool checkType(const Average3D::ChannelType& channelType) { return false;}
+inline bool checkType(__UNUSED const Average3D::ChannelType& channelType) { return false;}
 
 template <> inline bool checkType<float> (const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
 template <> inline bool checkType<float3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float3;}

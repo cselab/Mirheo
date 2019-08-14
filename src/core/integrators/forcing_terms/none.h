@@ -11,9 +11,9 @@ class Forcing_None
 {
 public:
     Forcing_None() {}
-    void setup(ParticleVector* pv, float t) {}
+    void setup(__UNUSED ParticleVector* pv, __UNUSED float t) {}
 
-    __D__ inline float3 operator()(float3 original, Particle p) const
+    __D__ inline float3 operator()(float3 original, __UNUSED Particle p) const
     {
         return original;
     }

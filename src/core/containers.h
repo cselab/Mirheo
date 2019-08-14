@@ -71,7 +71,8 @@ public:
         resize_anew(n);
     }
 
-    DeviceBuffer           (const DeviceBuffer& b)
+    DeviceBuffer(const DeviceBuffer& b) :
+        GPUcontainer{}
     {
         this->copy(b);
     }
@@ -423,7 +424,8 @@ public:
         resize_anew(n);
     }
 
-    PinnedBuffer(const PinnedBuffer& b)
+    PinnedBuffer(const PinnedBuffer& b) :
+        GPUcontainer{}
     {
         this->copy(b);
     }

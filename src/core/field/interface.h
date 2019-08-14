@@ -11,9 +11,10 @@
 
 #ifndef __NVCC__
 template<typename T>
-T tex3D(cudaTextureObject_t t, float x, float y, float z)
+T tex3D(__UNUSED cudaTextureObject_t t,
+        __UNUSED float x, __UNUSED float y, __UNUSED float z)
 {
-    return 0.0f;
+    return T();
 }
 #endif
 

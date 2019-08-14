@@ -144,7 +144,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
     accumulatedTotVel = {0,0,0};
 }
 
-void SimulationVelocityControl::serializeAndSend(cudaStream_t stream)
+void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -162,7 +162,7 @@ void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, int 
     createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
 }
 
-void SimulationVelocityControl::restart(MPI_Comm comm, std::string path)
+void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, std::string path)
 {
     auto filename = createCheckpointName(path, "plugin." + name, "txt");
     auto good = TextIO::read(filename, pid);
@@ -181,7 +181,7 @@ PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::st
     fprintf(fdump.get(), "# time time_step velocity force\n");
 }
 
-void PostprocessVelocityControl::deserialize(MPI_Status& stat)
+void PostprocessVelocityControl::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

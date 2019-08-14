@@ -46,7 +46,8 @@ public:
         return (const HandlerType&) (*this);
     }
     
-    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2,
+               __UNUSED CellList *cl1, __UNUSED CellList *cl2, __UNUSED const MirState *state) override
     {
         auto rv1 = dynamic_cast<RodVector*>(lpv1->pv);
         auto rv2 = dynamic_cast<RodVector*>(lpv2->pv);

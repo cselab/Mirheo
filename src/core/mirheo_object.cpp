@@ -9,8 +9,8 @@ MirObject::MirObject(std::string name) :
 
 MirObject::~MirObject() = default;
 
-void MirObject::checkpoint(MPI_Comm comm, std::string path, int checkpointId) {}
-void MirObject::restart   (MPI_Comm comm, std::string path) {}
+void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED std::string path, __UNUSED int checkpointId) {}
+void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED std::string path) {}
 
 
 static void appendIfNonEmpty(std::string& base, const std::string& toAppend)

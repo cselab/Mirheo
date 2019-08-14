@@ -65,7 +65,7 @@ private:
     }
 
     template<typename Arg>
-    static int sizeOfOne(const Arg& arg)
+    static int sizeOfOne(__UNUSED const Arg& arg)
     {
         return sizeof(Arg);
     }

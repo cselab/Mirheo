@@ -163,7 +163,7 @@ bool CellList::_checkNeedBuild() const
     return true;
 }
 
-void CellList::_updateExtraDataChannels(cudaStream_t stream)
+void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
 {
     auto& pvManager        = pv->local()->dataPerParticle;
     auto& containerManager = particlesDataContainer->dataPerParticle;
@@ -295,10 +295,10 @@ void CellList::build(cudaStream_t stream)
     _build(stream);
 }
 
-static void accumulateIfHasAddOperator(GPUcontainer *src,
-                                       GPUcontainer *dst,
-                                       int n, CellListInfo cinfo,
-                                       cudaStream_t stream)
+static void accumulateIfHasAddOperator(__UNUSED GPUcontainer *src,
+                                       __UNUSED GPUcontainer *dst,
+                                       __UNUSED int n, __UNUSED CellListInfo cinfo,
+                                       __UNUSED cudaStream_t stream)
 {
     die("Cannot accumulate entries: operator+ not supported for this type");
 }
@@ -429,10 +429,10 @@ void PrimaryCellList::build(cudaStream_t stream)
     pv->local()->resize(newSize, stream);
 }
 
-void PrimaryCellList::accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
+void PrimaryCellList::accumulateChannels(__UNUSED const std::vector<std::string>& channelNames, __UNUSED cudaStream_t stream)
 {}
 
-void PrimaryCellList::gatherChannels(const std::vector<std::string>& channelNames, cudaStream_t stream)
+void PrimaryCellList::gatherChannels(const std::vector<std::string>& channelNames, __UNUSED cudaStream_t stream)
 {
     // do not need to reorder data, but still invalidate halo
     if (!channelNames.empty())

@@ -33,7 +33,7 @@ void MeshPlugin::beforeForces(cudaStream_t stream)
     srcVerts->downloadFromDevice(stream);
 }
 
-void MeshPlugin::serializeAndSend(cudaStream_t stream)
+void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -152,7 +152,7 @@ void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     activated = createFoldersCollective(comm, path);
 }
 
-void MeshDumper::deserialize(MPI_Status& stat)
+void MeshDumper::deserialize(__UNUSED MPI_Status& stat)
 {
     std::string ovName;
     int nvertices, ntriangles;

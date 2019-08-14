@@ -101,7 +101,7 @@ public:
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
     }
     
-    void restart(MPI_Comm comm, std::string path) override
+    void restart(__UNUSED MPI_Comm comm, std::string path) override
     {
         auto fname = createCheckpointName(path, "ParirwiseInt", "txt");
         std::ifstream fin(fname);

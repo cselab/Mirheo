@@ -31,7 +31,7 @@ __D__ inline void _addVect(T3 *addr, T3 s, float eps)
 
 
 template <typename T>
-__D__ inline void apply(T *addr, T s, const float eps = 0.f) {}
+__D__ inline void apply(__UNUSED T *addr, __UNUSED T s, __UNUSED const float eps = 0.f) {}
 
 __D__ inline void apply(float  *addr, float  s, float eps = 0.f) {_add(addr, s, eps);}
 __D__ inline void apply(double *addr, double s, float eps = 0.f) {_add(addr, s, eps);}

@@ -15,7 +15,7 @@ public:
         center(center), radius(radius), inside(inside)
     {    }
 
-    void setup(MPI_Comm& comm,     DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm,     DomainInfo domain) { this->domain = domain; }
 
     const StationaryWall_Sphere& handler() const { return *this; }
 

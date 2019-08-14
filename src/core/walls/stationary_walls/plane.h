@@ -17,7 +17,7 @@ public:
         normal = normalize(normal);
     }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
 
     const StationaryWall_Plane& handler() const { return *this; }
 

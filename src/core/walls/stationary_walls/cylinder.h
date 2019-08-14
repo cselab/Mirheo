@@ -24,7 +24,7 @@ public:
         }
     }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
 
     const StationaryWall_Cylinder& handler() const { return *this; }
 

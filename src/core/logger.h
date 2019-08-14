@@ -2,6 +2,7 @@
 
 #include <core/utils/file_wrapper.h>
 #include <core/utils/folders.h>
+#include <core/utils/macros.h>
 #include <core/utils/stacktrace_explicit.h>
 
 #include <algorithm>
@@ -167,7 +168,8 @@ public:
      *
      */
     template<class ... Args>
-    std::string makeSimpleErrString(const char* fname, const int lnum, const char* pattern, Args... args) const
+    std::string makeSimpleErrString(__UNUSED const char* fname, __UNUSED const int lnum,
+                                    const char* pattern, Args... args) const
     {
         constexpr int maxSize = 10000;
         char buffer[maxSize];

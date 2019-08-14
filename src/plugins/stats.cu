@@ -88,7 +88,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
     needToDump = true;
 }
 
-void SimulationStats::serializeAndSend(cudaStream_t stream)
+void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump)
     {
@@ -125,7 +125,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     }
 }
 
-void PostprocessStats::deserialize(MPI_Status& stat)
+void PostprocessStats::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::TimeType currentTime;
     MirState::StepType currentTimeStep;

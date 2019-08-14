@@ -11,7 +11,7 @@ const FieldDeviceHandler& StationaryWall_SDF::handler() const
     return impl->handler();
 }
 
-void StationaryWall_SDF::setup(MPI_Comm& comm, DomainInfo domain)
+void StationaryWall_SDF::setup(MPI_Comm& comm, __UNUSED DomainInfo domain)
 {
     return impl->setup(comm);
 }

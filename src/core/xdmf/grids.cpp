@@ -46,10 +46,10 @@ std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return
 std::string UniformGrid::getCentering() const                        { return "Cell"; }
 const UniformGrid::UniformGridDims* UniformGrid::getGridDims() const { return &dims; }
     
-void UniformGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
+void UniformGrid::writeToHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm) const
 {}
     
-pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, std::string h5filename) const
+pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string h5filename) const
 {
     auto gridNode = node.append_child("Grid");
     gridNode.append_attribute("Name") = "mesh";
@@ -96,19 +96,19 @@ pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, std::string h5filena
     return gridNode;
 }
 
-void UniformGrid::readFromXMF(const pugi::xml_node &node, std::string &h5filename)
+void UniformGrid::readFromXMF(__UNUSED const pugi::xml_node &node, __UNUSED std::string &h5filename)
 {
     // TODO
     die("not implemented");
 }
 
-void UniformGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
+void UniformGrid::splitReadAccess(__UNUSED MPI_Comm comm, __UNUSED int chunkSize)
 {
     // TODO
     die("not implemented");
 }
 
-void UniformGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
+void UniformGrid::readFromHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm)
 {
     // TODO
     die("not implemented");
@@ -144,7 +144,7 @@ std::vector<hsize_t> VertexGrid::VertexGridDims::getOffsets()    const {return {
 const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const    { return &dims; }    
 std::string VertexGrid::getCentering() const                         { return "Node"; }    
 
-void VertexGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
+void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
     Channel posCh(positionChannelName, (void*) positions->data(),
                   Channel::DataForm::Vector, Channel::NumberType::Float,
@@ -224,7 +224,7 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
     dims.offset = chunksOffset * chunkSize;
 }
 
-void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
+void VertexGrid::readFromHDF5(hid_t file_id, __UNUSED MPI_Comm comm)
 {
     positions->resize(dims.nlocal);
     Channel posCh(positionChannelName, positions->data(), Channel::DataForm::Vector,
@@ -233,7 +233,7 @@ void VertexGrid::readFromHDF5(hid_t file_id, MPI_Comm comm)
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
 
-void VertexGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5filename) const
+void VertexGrid::_writeTopology(pugi::xml_node& topoNode, __UNUSED std::string h5filename) const
 {
     topoNode.append_attribute("TopologyType") = "Polyvertex";
     topoNode.append_attribute("NumberOfElements") = std::to_string(dims.nglobal).c_str();    

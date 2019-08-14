@@ -28,7 +28,7 @@ void XYZPlugin::beforeForces(cudaStream_t stream)
     positions.copy(pv->local()->positions(), stream);
 }
 
-void XYZPlugin::serializeAndSend(cudaStream_t stream)
+void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -61,7 +61,7 @@ void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     activated = createFoldersCollective(comm, path);
 }
 
-void XYZDumper::deserialize(MPI_Status& stat)
+void XYZDumper::deserialize(__UNUSED MPI_Status& stat)
 {
     std::string pvName;
     MirState::StepType timeStamp;

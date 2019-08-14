@@ -15,7 +15,7 @@ public:
         lo(lo), hi(hi), inside(inside)
     {    }
 
-    void setup(MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
 
     const StationaryWall_Box& handler() const { return *this; }
 

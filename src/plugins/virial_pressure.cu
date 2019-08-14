@@ -82,7 +82,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     needToSend = true;
 }
 
-void VirialPressurePlugin::serializeAndSend(cudaStream_t stream)
+void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!needToSend) return;
 
@@ -134,7 +134,7 @@ void VirialPressureDumper::handshake()
     }
 }
 
-void VirialPressureDumper::deserialize(MPI_Status& stat)
+void VirialPressureDumper::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;

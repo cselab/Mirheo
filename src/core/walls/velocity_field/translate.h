@@ -15,11 +15,11 @@ public:
         vel(vel)
     {}
 
-    void setup(float t, DomainInfo domain) { }
+    void setup(__UNUSED float t, __UNUSED DomainInfo domain) {}
 
     const VelocityField_Translate& handler() const { return *this; }
 
-    __D__ inline float3 operator()(float3 coo) const
+    __D__ inline float3 operator()(__UNUSED float3 coo) const
     {
         return vel;
     }

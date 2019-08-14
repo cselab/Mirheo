@@ -18,14 +18,14 @@ public:
             die("Oscillating period should be strictly positive");
     }
 
-    void setup(float t, DomainInfo domain)
+    void setup(float t, __UNUSED DomainInfo domain)
     {
         cosOmega = cos(2*M_PI * t / period);
     }
 
     const VelocityField_Oscillate& handler() const { return *this; }
 
-    __D__ inline float3 operator()(float3 coo) const
+    __D__ inline float3 operator()(__UNUSED float3 coo) const
     {
         return vel * cosOmega;
     }

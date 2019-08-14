@@ -64,7 +64,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
     }
 }
 
-void ParticleSenderPlugin::serializeAndSend(cudaStream_t stream)
+void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -103,7 +103,7 @@ void ParticleDumperPlugin::handshake()
     std::vector<std::string> names;
     SimpleSerializer::deserialize(data, sizes, names);
     
-    auto init_channel = [] (XDMF::Channel::DataForm dataForm, int sz, const std::string& str,
+    auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str,
                             XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float,
                             TypeDescriptor datatype = DataTypeWrapper<float>(),
                             XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
@@ -113,17 +113,17 @@ void ParticleDumperPlugin::handshake()
 
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, 3, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<float>()));
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, 1, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<float>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
         {
-            case 1: channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  sizes[i], names[i])); break;
-            case 3: channels.push_back(init_channel(XDMF::Channel::DataForm::Vector,  sizes[i], names[i])); break;
-            case 6: channels.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, sizes[i], names[i])); break;
+            case 1: channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  names[i])); break;
+            case 3: channels.push_back(init_channel(XDMF::Channel::DataForm::Vector,  names[i])); break;
+            case 6: channels.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, names[i])); break;
 
             default:
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());
@@ -167,7 +167,7 @@ void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::St
         channels[c++].data = cd.data();
 }
 
-void ParticleDumperPlugin::deserialize(MPI_Status& stat)
+void ParticleDumperPlugin::deserialize(__UNUSED MPI_Status& stat)
 {
     debug2("Plugin '%s' will dump right now", name.c_str());
 

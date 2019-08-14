@@ -116,10 +116,15 @@ ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, 
 
 ObjectRodBindingInteraction::~ObjectRodBindingInteraction() = default;
 
-void ObjectRodBindingInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void ObjectRodBindingInteraction::setPrerequisites(__UNUSED ParticleVector *pv1,
+                                                   __UNUSED ParticleVector *pv2,
+                                                   __UNUSED CellList *cl1,
+                                                   __UNUSED CellList *cl2)
 {}
 
-void ObjectRodBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void ObjectRodBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2,
+                                        __UNUSED CellList *cl1, __UNUSED CellList *cl2,
+                                        cudaStream_t stream)
 {
     auto rov1 = dynamic_cast<RigidObjectVector*>(pv1);
     auto rv1  = dynamic_cast<RodVector*>(pv1);
@@ -133,7 +138,8 @@ void ObjectRodBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2
     die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", name.c_str());
 }
 
-void ObjectRodBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void ObjectRodBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2,
+                                       __UNUSED CellList *cl1, __UNUSED CellList *cl2, cudaStream_t stream)
 {
     auto rov1 = dynamic_cast<RigidObjectVector*>(pv1);
     auto rv1  = dynamic_cast<RodVector*>(pv1);

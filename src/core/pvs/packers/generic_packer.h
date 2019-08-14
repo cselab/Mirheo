@@ -78,7 +78,7 @@ private:
     struct TransformNone
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, const T& val, int channelId) const
+        inline __D__ void operator()(T *addr, const T& val, __UNUSED int channelId) const
         {
             *addr = val;
         }
@@ -101,7 +101,7 @@ private:
     struct TransformAtomicAdd
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, T val, int channelId) const
+        inline __D__ void operator()(T *addr, T val, __UNUSED int channelId) const
         {
             TypeAtomicAdd::apply(addr, val, eps);
         }

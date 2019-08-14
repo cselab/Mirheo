@@ -798,7 +798,7 @@ void Simulation::createTasks()
 
     if (checkpointInfo.every > 0)
         scheduler->addTask(tasks->checkpoint,
-                           [this](cudaStream_t stream) { this->checkpoint(); },
+                           [this](__UNUSED cudaStream_t stream) { this->checkpoint(); },
                            checkpointInfo.every);
 
     for (auto& clVec : cellListMap)

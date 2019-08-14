@@ -158,7 +158,7 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
     applyForces(stream);
 }
 
-void DensityControlPlugin::serializeAndSend(cudaStream_t stream)
+void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
@@ -279,7 +279,7 @@ void DensityControlPlugin::checkpoint(MPI_Comm comm, std::string path, int check
     createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
 }
 
-void DensityControlPlugin::restart(MPI_Comm comm, std::string path)
+void DensityControlPlugin::restart(__UNUSED MPI_Comm comm, std::string path)
 {
     auto filename = createCheckpointName(path, "plugin." + name, "txt");
 
@@ -300,7 +300,7 @@ PostprocessDensityControl::PostprocessDensityControl(std::string name, std::stri
         die("Could not open file '%s'", filename.c_str());
 }
 
-void PostprocessDensityControl::deserialize(MPI_Status& stat)
+void PostprocessDensityControl::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

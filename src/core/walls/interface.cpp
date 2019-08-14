@@ -6,7 +6,7 @@ Wall::Wall(const MirState *state, std::string name) :
 
 Wall::~Wall() = default;
 
-void Wall::setPrerequisites(ParticleVector *pv)
+void Wall::setPrerequisites(__UNUSED ParticleVector *pv)
 {}
 
 SDF_basedWall::~SDF_basedWall() = default;

@@ -157,7 +157,7 @@ void AnchorParticlesStatsPlugin::handshake()
     }
 }
 
-void AnchorParticlesStatsPlugin::deserialize(MPI_Status& stat)
+void AnchorParticlesStatsPlugin::deserialize(__UNUSED MPI_Status& stat)
 {
     std::vector<double3> forces;
     MirState::TimeType currentTime;

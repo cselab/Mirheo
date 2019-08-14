@@ -7,7 +7,7 @@ RestartIC::RestartIC(std::string path) :
 
 RestartIC::~RestartIC() = default;
 
-void RestartIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
+void RestartIC::exec(const MPI_Comm& comm, ParticleVector *pv, __UNUSED cudaStream_t stream)
 {
     pv->restart(comm, path);
 }

@@ -8,7 +8,7 @@ Integrator::Integrator(const MirState *state, std::string name) :
 
 Integrator::~Integrator() = default;
 
-void Integrator::setPrerequisites(ParticleVector *pv)
+void Integrator::setPrerequisites(__UNUSED ParticleVector *pv)
 {}
 
 void Integrator::invalidatePV(ParticleVector *pv)

@@ -82,7 +82,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
     needToDump = (isTimeEvery(state, dumpEvery) && nsamples > 0);
 }
 
-void WallForceCollectorPlugin::serializeAndSend(cudaStream_t stream)
+void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump)
     {
@@ -103,7 +103,7 @@ WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filen
         die("Could not open file '%s'", filename.c_str());
 }
 
-void WallForceDumperPlugin::deserialize(MPI_Status& stat)
+void WallForceDumperPlugin::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::TimeType currentTime;
     int nsamples;

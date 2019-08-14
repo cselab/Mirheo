@@ -48,16 +48,16 @@ SimulationPlugin::SimulationPlugin(const MirState *state, std::string name) :
 
 SimulationPlugin::~SimulationPlugin() = default;
 
-void SimulationPlugin::beforeCellLists            (cudaStream_t stream) {}
-void SimulationPlugin::beforeForces               (cudaStream_t stream) {}
-void SimulationPlugin::beforeIntegration          (cudaStream_t stream) {}
-void SimulationPlugin::afterIntegration           (cudaStream_t stream) {}
-void SimulationPlugin::beforeParticleDistribution (cudaStream_t stream) {}
+void SimulationPlugin::beforeCellLists            (__UNUSED cudaStream_t stream) {}
+void SimulationPlugin::beforeForces               (__UNUSED cudaStream_t stream) {}
+void SimulationPlugin::beforeIntegration          (__UNUSED cudaStream_t stream) {}
+void SimulationPlugin::afterIntegration           (__UNUSED cudaStream_t stream) {}
+void SimulationPlugin::beforeParticleDistribution (__UNUSED cudaStream_t stream) {}
 
-void SimulationPlugin::serializeAndSend (cudaStream_t stream) {}
+void SimulationPlugin::serializeAndSend (__UNUSED cudaStream_t stream) {}
 
 
-void SimulationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void SimulationPlugin::setup(__UNUSED Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", name.c_str(), _sizeTag(), _dataTag());
     _setup(comm, interComm);
@@ -128,7 +128,7 @@ void PostprocessPlugin::recv()
     debug3("Plugin '%s' has received the data (%d bytes)", name.c_str(), count);
 }
 
-void PostprocessPlugin::deserialize(MPI_Status& stat) {};
+void PostprocessPlugin::deserialize(__UNUSED MPI_Status& stat) {};
 
 void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {

@@ -172,7 +172,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getForces_vector()
     return res;
 }
 
-void ParticleVector::setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cudaStream_t stream)
+void ParticleVector::setCoosVels_globally(__UNUSED PyTypes::VectorOfFloat6& coosvels, __UNUSED cudaStream_t stream)
 {
     error("Not implemented yet");
 }

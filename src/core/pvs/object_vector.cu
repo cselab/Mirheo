@@ -95,17 +95,17 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     ids.uploadToDevice(stream);
 }
 
-PinnedBuffer<float4>* LocalObjectVector::getMeshVertices(cudaStream_t stream)
+PinnedBuffer<float4>* LocalObjectVector::getMeshVertices(__UNUSED cudaStream_t stream)
 {
     return &positions();
 }
 
-PinnedBuffer<float4>* LocalObjectVector::getOldMeshVertices(cudaStream_t stream)
+PinnedBuffer<float4>* LocalObjectVector::getOldMeshVertices(__UNUSED cudaStream_t stream)
 {
     return dataPerParticle.getData<float4>(ChannelNames::oldPositions);
 }
 
-PinnedBuffer<Force>* LocalObjectVector::getMeshForces(cudaStream_t stream)
+PinnedBuffer<Force>* LocalObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
     return &forces();
 }

@@ -1,12 +1,14 @@
 #include "interface.h"
 
+#include <core/utils/macros.h>
+
 Bouncer::Bouncer(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
 
 Bouncer::~Bouncer() = default;
 
-void Bouncer::setPrerequisites(ParticleVector *pv)
+void Bouncer::setPrerequisites(__UNUSED ParticleVector *pv)
 {}
 
 void Bouncer::setup(ObjectVector *ov)

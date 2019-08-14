@@ -80,7 +80,11 @@ public:
 
     ~InteractionMembraneImpl() = default;
     
-    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
+    void local (ParticleVector *pv1,
+                __UNUSED ParticleVector *pv2,
+                __UNUSED CellList *cl1,
+                __UNUSED CellList *cl2,
+                cudaStream_t stream) override
     {
         this->precomputeQuantities(pv1, stream);
         
@@ -118,7 +122,12 @@ public:
 
     }
 
-    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override {}
+    void halo(__UNUSED ParticleVector *pv1,
+              __UNUSED ParticleVector *pv2,
+              __UNUSED CellList *cl1,
+              __UNUSED CellList *cl2,
+              __UNUSED cudaStream_t stream) override
+    {}
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
@@ -139,7 +148,7 @@ public:
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
-    void restart(MPI_Comm comm, std::string path) override
+    void restart(__UNUSED MPI_Comm comm, std::string path) override
     {
         auto fname = createCheckpointName(path, "MembraneInt", "txt");
         auto good = TextIO::read(fname, stepGen);

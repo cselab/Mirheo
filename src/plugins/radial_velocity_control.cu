@@ -158,7 +158,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
     accumulatedSamples = 0;
 }
 
-void SimulationRadialVelocityControl::serializeAndSend(cudaStream_t stream)
+void SimulationRadialVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery))
         return;
@@ -177,7 +177,7 @@ void SimulationRadialVelocityControl::checkpoint(MPI_Comm comm, std::string path
     createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
 }
 
-void SimulationRadialVelocityControl::restart(MPI_Comm comm, std::string path)
+void SimulationRadialVelocityControl::restart(__UNUSED MPI_Comm comm, std::string path)
 {
     auto filename = createCheckpointName(path, "plugin." + name, "txt");
     auto good = TextIO::read(filename, pid);
@@ -196,7 +196,7 @@ PostprocessRadialVelocityControl::PostprocessRadialVelocityControl(std::string n
     fprintf(fdump.get(), "# time time_step velocity*r force/r**3\n");
 }
 
-void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
+void PostprocessRadialVelocityControl::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;

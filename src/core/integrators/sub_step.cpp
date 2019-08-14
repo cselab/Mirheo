@@ -31,7 +31,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, in
 
 IntegratorSubStep::~IntegratorSubStep() = default;
 
-void IntegratorSubStep::stage1(ParticleVector *pv, cudaStream_t stream)
+void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
 {}
 
 void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)

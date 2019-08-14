@@ -106,12 +106,12 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
          ov->name.c_str(), allChannelNames.c_str());
 }
 
-bool ObjectReverseExchanger::needExchange(int id)
+bool ObjectReverseExchanger::needExchange(__UNUSED int id)
 {
     return true;
 }
 
-void ObjectReverseExchanger::prepareSizes(int id, cudaStream_t stream)
+void ObjectReverseExchanger::prepareSizes(int id, __UNUSED cudaStream_t stream)
 {
     auto  helper  = helpers[id].get();
     auto& offsets = entangledHaloExchanger->getRecvOffsets(id);

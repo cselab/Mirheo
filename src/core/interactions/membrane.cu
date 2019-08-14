@@ -91,7 +91,11 @@ void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellLi
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionMembrane::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void InteractionMembrane::halo(ParticleVector *pv1,
+                               __UNUSED ParticleVector *pv2,
+                               __UNUSED CellList *cl1,
+                               __UNUSED CellList *cl2,
+                               __UNUSED cudaStream_t stream)
 {
     debug("Not computing internal membrane forces between local and halo membranes of '%s'",
           pv1->name.c_str());

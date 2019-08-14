@@ -8,7 +8,7 @@
 #include <memory>
 
 BasicInteractionSDPDWithStress::BasicInteractionSDPDWithStress(const MirState *state, std::string name, float rc,
-                                                               float viscosity, float kBT, float stressPeriod) :
+                                                               float viscosity, float kBT) :
     BasicInteractionSDPD(state, name, rc, viscosity, kBT)
 {}
 
@@ -21,7 +21,7 @@ InteractionSDPDWithStress<PressureEOS, DensityKernel>::
 InteractionSDPDWithStress(const MirState *state, std::string name, float rc,
                           PressureEOS pressure, DensityKernel densityKernel,
                           float viscosity, float kBT, float stressPeriod) :
-    BasicInteractionSDPDWithStress(state, name, rc, viscosity, kBT, stressPeriod)
+    BasicInteractionSDPDWithStress(state, name, rc, viscosity, kBT)
 {
     using pairwiseType = PairwiseSDPD<PressureEOS, DensityKernel>;
     pairwiseType sdpd(rc, pressure, densityKernel, viscosity, kBT, state->dt);

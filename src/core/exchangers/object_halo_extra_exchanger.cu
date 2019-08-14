@@ -64,7 +64,7 @@ ObjectExtraExchanger::ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExc
 
 ObjectExtraExchanger::~ObjectExtraExchanger() = default;
 
-bool ObjectExtraExchanger::needExchange(int id)
+bool ObjectExtraExchanger::needExchange(__UNUSED int id)
 {
     return true;
 }

@@ -10,7 +10,7 @@ public:
 protected:
     
     BasicInteractionSDPDWithStress(const MirState *state, std::string name, float rc,
-                                   float viscosity, float kBT, float stressPeriod);
+                                   float viscosity, float kBT);
 };
 
 template <class PressureEOS, class DensityKernel>

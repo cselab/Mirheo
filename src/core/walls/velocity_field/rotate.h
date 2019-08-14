@@ -15,7 +15,7 @@ public:
         omega(omega), center(center)
     {}
 
-    void setup(float t, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED float t, DomainInfo domain) { this->domain = domain; }
 
     const VelocityField_Rotate& handler() const { return *this; }
 

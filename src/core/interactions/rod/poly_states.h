@@ -11,9 +11,10 @@
 #include <core/utils/kernel_launch.h>
 
 template <int Nstates>
-static void updateStatesAndApplyForces(RodVector *rv,
-                                       const GPU_RodBiSegmentParameters<Nstates> devParams,
-                                       StatesParametersNone& stateParams, cudaStream_t stream)
+static void updateStatesAndApplyForces(__UNUSED RodVector *rv,
+                                       __UNUSED const GPU_RodBiSegmentParameters<Nstates> devParams,
+                                       __UNUSED StatesParametersNone& stateParams,
+                                       __UNUSED cudaStream_t stream)
 {}
 
 

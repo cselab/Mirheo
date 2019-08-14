@@ -112,7 +112,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
     needToSend = true;
 }
 
-void ObjStatsPlugin::serializeAndSend(cudaStream_t stream)
+void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!needToSend) return;
 
@@ -235,7 +235,7 @@ void ObjStatsDumper::handshake()
 }
 
 
-void ObjStatsDumper::deserialize(MPI_Status& stat)
+void ObjStatsDumper::deserialize(__UNUSED MPI_Status& stat)
 {
     MirState::TimeType curTime;
     DomainInfo domain;

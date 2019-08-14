@@ -53,7 +53,10 @@ public:
 
     ~InteractionRodImpl() = default;
 
-    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
+    void setPrerequisites(ParticleVector *pv1,
+                          __UNUSED ParticleVector *pv2,
+                          __UNUSED CellList *cl1,
+                          __UNUSED CellList *cl2) override
     {
         auto rv1 = dynamic_cast<RodVector *> (pv1);
 
@@ -67,7 +70,11 @@ public:
         }
     }
     
-    void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
+    void local(ParticleVector *pv1,
+               __UNUSED ParticleVector *pv2,
+               __UNUSED CellList *cl1,
+               __UNUSED CellList *cl2,
+               cudaStream_t stream) override
     {
         auto rv = dynamic_cast<RodVector *>(pv1);
 
@@ -79,7 +86,11 @@ public:
         computeElasticForces                  (rv, stream);
     }
 
-    void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+    void halo(__UNUSED ParticleVector *pv1,
+              __UNUSED ParticleVector *pv2,
+              __UNUSED CellList *cl1,
+              __UNUSED CellList *cl2,
+              __UNUSED cudaStream_t stream)
     {}
     
 protected:

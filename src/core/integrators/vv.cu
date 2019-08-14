@@ -18,7 +18,7 @@ IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 
 template<class ForcingTerm>
-void IntegratorVV<ForcingTerm>::stage1(ParticleVector *pv, cudaStream_t stream)
+void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
 {}
 
 /**

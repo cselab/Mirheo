@@ -1,6 +1,7 @@
 #include "interface.h"
 
 #include <core/utils/common.h>
+#include <core/utils/macros.h>
 
 Interaction::Interaction(const MirState *state, std::string name, float rc) :
     MirSimulationObject(state, name),
@@ -9,7 +10,10 @@ Interaction::Interaction(const MirState *state, std::string name, float rc) :
 
 Interaction::~Interaction() = default;
 
-void Interaction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void Interaction::setPrerequisites(__UNUSED ParticleVector *pv1,
+                                   __UNUSED ParticleVector *pv2,
+                                   __UNUSED CellList *cl1,
+                                   __UNUSED CellList *cl2)
 {}
 
 std::vector<Interaction::InteractionChannel> Interaction::getIntermediateOutputChannels() const
