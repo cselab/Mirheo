@@ -23,21 +23,21 @@ class CellList;
 
 namespace WallFactory
 {
-static std::shared_ptr<SimpleStationaryWall<StationaryWall_Sphere>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Sphere>>
 createSphereWall(const MirState *state, std::string name, PyTypes::float3 center, float radius, bool inside)
 {
     StationaryWall_Sphere sphere(make_float3(center), radius, inside);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Sphere>> (name, state, std::move(sphere));
 }
 
-static std::shared_ptr<SimpleStationaryWall<StationaryWall_Box>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Box>>
 createBoxWall(const MirState *state, std::string name, PyTypes::float3 low, PyTypes::float3 high, bool inside)
 {
     StationaryWall_Box box(make_float3(low), make_float3(high), inside);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Box>> (name, state, std::move(box));
 }
 
-static std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
 createCylinderWall(const MirState *state, std::string name, PyTypes::float2 center, float radius, std::string axis, bool inside)
 {
     StationaryWall_Cylinder::Direction dir;
@@ -49,14 +49,14 @@ createCylinderWall(const MirState *state, std::string name, PyTypes::float2 cent
     return std::make_shared<SimpleStationaryWall<StationaryWall_Cylinder>> (name, state, std::move(cylinder));
 }
 
-static std::shared_ptr<SimpleStationaryWall<StationaryWall_Plane>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Plane>>
 createPlaneWall(const MirState *state, std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough)
 {
     StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
     return std::make_shared<SimpleStationaryWall<StationaryWall_Plane>> (name, state, std::move(plane));
 }
 
-static std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
 createSDFWall(const MirState *state, std::string name, std::string sdfFilename, PyTypes::float3 h)
 {
     StationaryWall_SDF sdf(state, sdfFilename, make_float3(h));
@@ -65,7 +65,7 @@ createSDFWall(const MirState *state, std::string name, std::string sdfFilename, 
 
 // Moving walls
 
-static std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
 createMovingCylinderWall(const MirState *state, std::string name, PyTypes::float2 _center, float radius, std::string axis, float omega, bool inside)
 {
     float2 center = make_float2(_center);
@@ -99,7 +99,7 @@ createMovingCylinderWall(const MirState *state, std::string name, PyTypes::float
     return std::make_shared<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>> (name, state, std::move(cylinder), std::move(rotate));
 }
 
-static std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>>
 createMovingPlaneWall(const MirState *state, std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity)
 {
     StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
@@ -107,7 +107,7 @@ createMovingPlaneWall(const MirState *state, std::string name, PyTypes::float3 n
     return std::make_shared<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>> (name, state, std::move(plane), std::move(translate));
 }
 
-static std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>>
 createOscillatingPlaneWall(const MirState *state, std::string name, PyTypes::float3 normal, PyTypes::float3 pointThrough, PyTypes::float3 velocity, float period)
 {
     StationaryWall_Plane plane(normalize(make_float3(normal)), make_float3(pointThrough));
