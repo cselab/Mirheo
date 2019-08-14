@@ -16,3 +16,6 @@
 [submodule "src/extern/variant"]
 	path = src/extern/variant
 	url = https://github.com/mpark/variant.git
+[submodule "src/extern/cuda_variant"]
+	path = src/extern/cuda_variant
+	url = git@github.com:cselab/cuda_variant.git
