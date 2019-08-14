@@ -161,11 +161,6 @@ if (ROD_DOUBLE)
   message("compiling with ROD_DOUBLE ON")
 endif()
 
-# Silence deprecation warnings for CUDA >= 9
-if (CUDA_VERSION_MAJOR GREATER_EQUAL 9)
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --Wno-deprecated-declarations")
-endif()
-
 # Auto-detect compute capability if not provided
 if (NOT DEFINED CUDA_ARCH_NAME)
   set(CUDA_ARCH_NAME Auto)
