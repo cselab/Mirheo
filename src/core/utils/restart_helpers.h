@@ -3,13 +3,13 @@
 #include <string>
 #include <fstream>
 
-static std::ostream& operator<<(std::ostream& s, const float3& v)
+inline std::ostream& operator<<(std::ostream& s, const float3& v)
 {
     s << v.x << " " << v.y << " " << v.z;
     return s;
 }
 
-static std::ifstream& operator>>(std::ifstream& s, float3& v)
+inline std::ifstream& operator>>(std::ifstream& s, float3& v)
 {
     s >> v.x >> v.y >> v.z;
     return s;

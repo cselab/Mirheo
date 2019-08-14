@@ -407,7 +407,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 
     bounceForce.clear(stream);
     
-    for (int i = 0; i < particleVectors.size(); i++)
+    for (size_t i = 0; i < particleVectors.size(); ++i)
     {
         auto  pv = particleVectors[i];
         auto  cl = cellLists[i];
@@ -434,28 +434,26 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 {
-    const int nthreads = 128;
-    for (int i=0; i<particleVectors.size(); i++)
+    constexpr int nthreads = 128;
+    for (auto pv : particleVectors)
     {
-        auto pv = particleVectors[i];
-        {
-            nInside.clearDevice(stream);
-            PVview view(pv, pv->local());
-            SAFE_KERNEL_LAUNCH(
-                StationaryWallsKernels::checkInside,
-                getNblocks(view.size, nthreads), nthreads, 0, stream,
-                view, nInside.devPtr(), insideWallChecker.handler() );
+        nInside.clearDevice(stream);
+        const PVview view(pv, pv->local());
 
-            nInside.downloadFromDevice(stream);
+        SAFE_KERNEL_LAUNCH(
+            StationaryWallsKernels::checkInside,
+            getNblocks(view.size, nthreads), nthreads, 0, stream,
+            view, nInside.devPtr(), insideWallChecker.handler() );
 
-            info("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
-        }
+        nInside.downloadFromDevice(stream);
+
+        info("%d particles of %s are inside the wall %s", nInside[0], pv->name.c_str(), name.c_str());
     }
 }
 
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv,
-        GPUcontainer* sdfs, GPUcontainer* gradients, float gradientThreshold, cudaStream_t stream)
+        GPUcontainer *sdfs, GPUcontainer* gradients, float gradientThreshold, cudaStream_t stream)
 {
     const int nthreads = 128;
     const int np = lpv->size();

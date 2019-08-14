@@ -57,7 +57,7 @@ void ParticleWithRodQuantitiesSenderPlugin::beforeForces(cudaStream_t stream)
     auto& partManager  = pv->local()->dataPerParticle;
     auto& bisegManager = rv->local()->dataPerBisegment;
 
-    for (int i = 0; i < channelNames.size(); ++i)
+    for (size_t i = 0; i < channelNames.size(); ++i)
     {
         auto name = channelNames[i];
         if (partManager.checkChannelExists(name))

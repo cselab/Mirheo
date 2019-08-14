@@ -87,7 +87,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     velField.setup(t, this->state->domain);
     this->bounceForce.clear(stream);
 
-    for (int i=0; i < this->particleVectors.size(); i++)
+    for (size_t i = 0; i < this->particleVectors.size(); ++i)
     {
         auto  pv = this->particleVectors[i];
         auto  cl = this->cellLists[i];

@@ -39,13 +39,13 @@ AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string 
     velocities(velocities),
     reportEvery(reportEvery)
 {
-    auto n = pids.size();
+    const size_t n = pids.size();
     
     this->pids.resize_anew(n);
     
-    for (int i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i)
     {
-        int pid = pids[i];
+        const auto pid = pids[i];
         if (pid < 0)
             die("invalid particle id %d\n", pid);
         this->pids[i] = pid;

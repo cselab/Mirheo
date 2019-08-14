@@ -191,7 +191,7 @@ void PostprocessVelocityControl::deserialize(MPI_Status& stat)
 
     if (rank == 0) {
         fprintf(fdump.get(),
-                "%g %d "
+                "%g %lld "
                 "%g %g %g "
                 "%g %g %g\n",
                 currentTime, currentTimeStep,

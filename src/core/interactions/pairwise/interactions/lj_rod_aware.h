@@ -61,8 +61,8 @@ public:
 
 protected:
 
-    bool self;
+    bool self {false};
 
-    int objSize, minSegmentsDist;
+    int objSize {0}, minSegmentsDist;
 };
 

@@ -263,10 +263,10 @@ void ReportPinObjectPlugin::deserialize(MPI_Status& stat)
 
     if (activated && rank == 0)
     {
-        for (int i = 0; i < forces.size(); ++i)
+        for (size_t i = 0; i < forces.size(); ++i)
         {
             forces[i] /= nsamples;
-            fprintf(fout.get(), "%d  %f  %f %f %f",
+            fprintf(fout.get(), "%lu  %f  %f %f %f",
                     i, currentTime, forces[i].x, forces[i].y, forces[i].z);
 
             if (i < torques.size())

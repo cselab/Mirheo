@@ -198,14 +198,15 @@ PostprocessRadialVelocityControl::PostprocessRadialVelocityControl(std::string n
 
 void PostprocessRadialVelocityControl::deserialize(MPI_Status& stat)
 {
-    MirState::TimeType currentTimeStep;
+    MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;
     float vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
-    if (rank == 0) {
-        fprintf(fdump.get(), "%g %d %g %g\n", currentTime, currentTimeStep, vel, force);        
+    if (rank == 0)
+    {
+        fprintf(fdump.get(), "%g %lld %g %g\n", currentTime, currentTimeStep, vel, force);        
         fflush(fdump.get());
     }
 }

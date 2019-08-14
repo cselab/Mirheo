@@ -127,13 +127,15 @@ __device__ inline real3 dihedralForce(int locId, int rbcId,
     auto v1 = dihedralInteraction.fetchVertex(view, idv1);
     auto v2 = dihedralInteraction.fetchVertex(view, idv2);
 
-    //       v3
-    //     /   \
-    //   v2 --> v0
-    //     \   /
-    //       V
-    //       v1
-
+    /*
+           v3
+         /   \
+       v2 --> v0
+         \   /
+           V
+           v1
+    */
+    
     real3 f0 = make_real3(0.0_r);
 
     dihedralInteraction.computeCommon(view, rbcId);

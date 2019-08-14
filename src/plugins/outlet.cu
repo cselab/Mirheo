@@ -158,7 +158,7 @@ __global__ void killParticles(PVview view, FieldDeviceHandler field, const int *
 } // namespace DensityOutletPluginKernels
 
 DensityOutletPlugin::DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                         float rate, RegionFunc region, float3 resolution) :
+                                         float numberDensity, RegionFunc region, float3 resolution) :
     RegionOutletPlugin(state, name, pvNames, region, resolution),
     numberDensity(numberDensity)
 {}

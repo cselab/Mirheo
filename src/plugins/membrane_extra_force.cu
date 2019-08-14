@@ -27,9 +27,10 @@ MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::s
 {
     HostBuffer<Force> hostForces(forces.size());
 
-    for (int i = 0; i < forces.size(); ++i) {
+    for (size_t i = 0; i < forces.size(); ++i)
+    {
         auto f = forces[i];
-        hostForces.hostPtr()[i].f = make_float3(f[0], f[1], f[2]);
+        hostForces[i].f = make_float3(f[0], f[1], f[2]);
     }
     
     this->forces.copy(hostForces, 0);

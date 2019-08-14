@@ -23,15 +23,17 @@ __D__ inline real triangleSignedVolume(real3 v0, real3 v1, real3 v2)
 
 __D__ inline real supplementaryDihedralAngle(real3 v0, real3 v1, real3 v2, real3 v3)
 {
-    //       v3
-    //     /   \
-    //   v2 --- v0
-    //     \   /
-    //       V
-    //       v1
+    /*
+           v3
+         /   \
+       v2 --- v0
+         \   /
+           V
+           v1
 
-    // dihedral: 0123    
-
+     dihedral: 0123    
+    */
+    
     real3 n, k, nk;
     n  = cross(v1 - v0, v2 - v0);
     k  = cross(v2 - v0, v3 - v0);

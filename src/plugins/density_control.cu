@@ -229,18 +229,18 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides.hostPtr(), nInsides.size(),
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm) );
 
-    for (int i = 0; i < volumes.size(); ++i)
+    for (size_t i = 0; i < volumes.size(); ++i)
     {
-        double denom = volumes[i] * nSamples;
+        const double denom = volumes[i] * nSamples;
 
         densities[i] = (denom > 1e-6) ? 
             nInsides[i] / denom :
             0.0;
     }       
 
-    for (int i = 0; i < densities.size(); ++i)
+    for (size_t i = 0; i < densities.size(); ++i)
     {
-        float error = densities[i] - targetDensity;        
+        const float error = densities[i] - targetDensity;        
         forces[i] = controllers[i].update(error);
     }
 
@@ -302,14 +302,15 @@ PostprocessDensityControl::PostprocessDensityControl(std::string name, std::stri
 
 void PostprocessDensityControl::deserialize(MPI_Status& stat)
 {
-    MirState::TimeType currentTimeStep;
+    MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;
     std::vector<float> densities, forces;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);
 
-    if (rank == 0) {
-        fprintf(fdump.get(), "%g %d ", currentTime, currentTimeStep);
+    if (rank == 0)
+    {
+        fprintf(fdump.get(), "%g %lld ", currentTime, currentTimeStep);
         for (auto d : densities) fprintf(fdump.get(), "%g ", d);
         for (auto f : forces)    fprintf(fdump.get(), "%g ", f);
         fprintf(fdump.get(), "\n");

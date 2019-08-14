@@ -55,8 +55,8 @@ public:
 
 protected:
 
-    bool self;
+    bool self {false};
 
-    int objSize;
+    int objSize {0};
 };
 
