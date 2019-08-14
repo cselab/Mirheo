@@ -32,7 +32,7 @@ struct __align__(16) Float3_int
         *((float4*)this) = *((float4*)&x);
     }
 
-    __HD__ inline Float3_int& operator=(Float3_int x)
+    __HD__ inline Float3_int& operator=(const Float3_int& x)
     {
         *((float4*)this) = *((float4*)&x);
         return *this;
