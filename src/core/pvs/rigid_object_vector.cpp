@@ -130,7 +130,7 @@ static PinnedBuffer<float4> readInitialPositions(MPI_Comm comm, const std::strin
 }
                                   
 
-void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
+void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -195,7 +195,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, i
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void RigidObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
+void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
                                            const RigidObjectVector::ExchMapSize& ms)
 {
     using namespace RestartHelpers;

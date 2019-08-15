@@ -36,13 +36,13 @@ bool Interaction::isSelfObjectInteraction() const
     return false;
 }
 
-void Interaction::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
+void Interaction::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     if (!impl) return;
     impl->checkpoint(comm, path, checkpointId);
 }
 
-void Interaction::restart(MPI_Comm comm, std::string path)
+void Interaction::restart(MPI_Comm comm, const std::string& path)
 {
     if (!impl) return;
     impl->restart(comm, path);

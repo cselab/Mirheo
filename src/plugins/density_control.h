@@ -40,8 +40,8 @@ public:
         float lo, hi, space;
     };
 
-    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override;
-    void restart(MPI_Comm comm, std::string path) override;
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
+    void restart   (MPI_Comm comm, const std::string& path) override;
     
 private:
 

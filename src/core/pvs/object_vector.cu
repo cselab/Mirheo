@@ -174,7 +174,7 @@ static std::vector<float3> getCom(DomainInfo domain,
     return pos;
 }
 
-void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int checkpointId)
+void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -200,7 +200,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, std::string path, int ch
     debug("Checkpoint for object vector '%s' successfully written", name.c_str());
 }
 
-void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
+void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
                                       const ObjectVector::ExchMapSize& ms)
 {
     constexpr int objChunkSize = 1; // only one datum per object
@@ -225,13 +225,13 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, std::string path,
     info("Successfully read object infos of '%s'", name.c_str());
 }
 
-void ObjectVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
+void ObjectVector::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     _checkpointParticleData(comm, path, checkpointId);
     _checkpointObjectData  (comm, path, checkpointId);
 }
 
-void ObjectVector::restart(MPI_Comm comm, std::string path)
+void ObjectVector::restart(MPI_Comm comm, const std::string& path)
 {
     auto ms = _restartParticleData(comm, path, objSize);
     _restartObjectData(comm, path, ms);

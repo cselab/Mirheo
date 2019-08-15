@@ -18,12 +18,12 @@ public:
     MirObject(std::string name);
     virtual ~MirObject();
 
-    virtual void checkpoint(MPI_Comm comm, std::string path, int checkPointId);  /// Save handler state
-    virtual void restart   (MPI_Comm comm, std::string path);  /// Restore handler state
+    virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
+    virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
 
-    std::string createCheckpointName(std::string path, std::string identifier, std::string extension) const;
-    std::string createCheckpointNameWithId(std::string path, std::string identifier, std::string extension, int checkpointId) const;
-    void createCheckpointSymlink(MPI_Comm comm, std::string path, std::string identifier, std::string extension, int checkpointId) const;
+    std::string createCheckpointName      (const std::string& path, const std::string& identifier, const std::string& extension) const;
+    std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
+    void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
 
 public:
     const std::string name;
@@ -36,7 +36,7 @@ public:
 class MirSimulationObject : public MirObject
 {
 public:
-    MirSimulationObject(const MirState *state, std::string name);
+    MirSimulationObject(const MirState *state, const std::string& name);
     ~MirSimulationObject();
 
 public:

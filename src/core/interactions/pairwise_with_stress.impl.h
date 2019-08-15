@@ -85,13 +85,13 @@ public:
                 {ChannelNames::stresses, activePredicateStress}};
     }
 
-    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         interaction          .checkpoint(comm, path, checkpointId);
         interactionWithStress.checkpoint(comm, path, checkpointId);
     }
     
-    void restart(MPI_Comm comm, std::string path) override
+    void restart(MPI_Comm comm, const std::string& path) override
     {
         interaction          .restart(comm, path);
         interactionWithStress.restart(comm, path);

@@ -239,7 +239,7 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId)
+void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -288,7 +288,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, std::string path, in
     debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
 }
 
-ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, std::string path,
+ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, const std::string& path,
                                                                  int chunkSize)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -333,12 +333,12 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     return {map, newSize};
 }
 
-void ParticleVector::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
+void ParticleVector::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     _checkpointParticleData(comm, path, checkpointId);
 }
 
-void ParticleVector::restart(MPI_Comm comm, std::string path)
+void ParticleVector::restart(MPI_Comm comm, const std::string& path)
 {
     constexpr int particleChunkSize = 1;
     auto ms = _restartParticleData(comm, path, particleChunkSize);

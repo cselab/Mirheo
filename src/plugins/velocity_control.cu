@@ -153,19 +153,19 @@ void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
     send(sendBuffer);
 }
 
-void SimulationVelocityControl::checkpoint(MPI_Comm comm, std::string path, int checkpointId)
+void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
-    auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt", checkpointId);
+    const auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt", checkpointId);
 
     TextIO::write(filename, pid);
     
     createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
 }
 
-void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, std::string path)
+void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::string& path)
 {
-    auto filename = createCheckpointName(path, "plugin." + name, "txt");
-    auto good = TextIO::read(filename, pid);
+    const auto filename = createCheckpointName(path, "plugin." + name, "txt");
+    const bool good = TextIO::read(filename, pid);
     if (!good) die("failed to read '%s'\n", filename.c_str());
 }
 

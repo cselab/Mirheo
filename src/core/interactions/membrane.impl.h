@@ -141,17 +141,17 @@ public:
         precomputeQuantitiesPerEnergy(triangleParams, pv1, stream);
     }
     
-    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
-        auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
+        const auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
         TextIO::write(fname, stepGen);
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
-    void restart(__UNUSED MPI_Comm comm, std::string path) override
+    void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
-        auto fname = createCheckpointName(path, "MembraneInt", "txt");
-        auto good = TextIO::read(fname, stepGen);
+        const auto fname = createCheckpointName(path, "MembraneInt", "txt");
+        const bool good = TextIO::read(fname, stepGen);
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 

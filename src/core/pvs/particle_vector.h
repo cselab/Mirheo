@@ -57,8 +57,8 @@ public:
     const LocalParticleVector* local() const { return _local.get(); }
     const LocalParticleVector* halo()  const { return  _halo.get(); }
 
-    void checkpoint(MPI_Comm comm, std::string path, int checkpointId) override;
-    void restart(MPI_Comm comm, std::string path) override;
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
+    void restart   (MPI_Comm comm, const std::string& path) override;
 
     
     // Python getters / setters
@@ -75,7 +75,7 @@ public:
     void setForces_vector(PyTypes::VectorOfFloat3& forces);    
     
     template<typename T>
-    void requireDataPerParticle(std::string name, DataManager::PersistenceMode persistence,
+    void requireDataPerParticle(const std::string& name, DataManager::PersistenceMode persistence,
                                 DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
         requireDataPerParticle<T>(local(), name, persistence, shift);
@@ -94,13 +94,13 @@ protected:
         int newSize;
     };
     
-    virtual void _checkpointParticleData(MPI_Comm comm, std::string path, int checkpointId);
-    virtual ExchMapSize _restartParticleData(MPI_Comm comm, std::string path, int chunkSize);
+    virtual void     _checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId);
+    virtual ExchMapSize _restartParticleData(MPI_Comm comm, const std::string& path, int chunkSize);
 
 private:
 
     template<typename T>
-    void requireDataPerParticle(LocalParticleVector *lpv, std::string name,
+    void requireDataPerParticle(LocalParticleVector *lpv, const std::string& name,
                                 DataManager::PersistenceMode persistence,
                                 DataManager::ShiftMode shift)
     {
