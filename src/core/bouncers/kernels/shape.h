@@ -93,7 +93,7 @@ __device__ inline void bounceCellArray(
         else
         {
             // This is intersection point
-            float alpha = solveLinSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
+            const float alpha = RootFinder::linearSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
             newCoo = oldCoo + dr*max(alpha, 0.0f);
 
             // Push out a little bit

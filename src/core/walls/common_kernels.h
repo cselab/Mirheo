@@ -58,9 +58,10 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             auto rOld = view.readOldPosition(pid);
             float3 dr = p.r - rOld;
 
-            const float alpha = solveLinSearch([=] (float lambda) {
-                                                   return checker(rOld + dr*lambda) + insideTolerance;
-                                               });
+            const float alpha = RootFinder::linearSearch([=] (float lambda)
+            {
+                return checker(rOld + dr*lambda) + insideTolerance;
+            });
 
             float3 candidate = (alpha >= 0.0f) ? rOld + alpha * dr : rOld;
             candidate = rescue(candidate, dt, insideTolerance, p.i1, checker);

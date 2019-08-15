@@ -72,7 +72,7 @@ float collision(const float radius,
     if (F(1.f) > 0.f) return NoCollision;
 
     constexpr float tol = 1e-6f;
-    float alpha = solveLinSearch(F, 0.0f, 1.0f, tol);
+    const float alpha = RootFinder::linearSearch(F, 0.0f, 1.0f, tol);
 
     if (alpha >= 0.0f && alpha <= 1.0f)
         return alpha;

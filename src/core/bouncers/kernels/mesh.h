@@ -258,8 +258,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     };
 
     float2 roots[3];
-    roots[0] = solveNewton(F, F_prime, 0.0f);
-    roots[2] = solveNewton(F, F_prime, 1.0f);
+    roots[0] = RootFinder::newton(F, F_prime, 0.0f);
+    roots[2] = RootFinder::newton(F, F_prime, 1.0f);
 
 
     float left, right;
@@ -301,7 +301,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         }
     }
 
-    roots[1] = solveLinSearch_verbose(F, left, right);
+    roots[1] = RootFinder::linearSearchVerbose(F, left, right);
 
     sort3(roots);
 
