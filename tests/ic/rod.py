@@ -52,14 +52,14 @@ if rv:
     
 del u
 
-# TEST: ic.rod
+# nTEST: ic.rod
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./rod.py
-# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
+# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort  | uscale 1000 > ic.out.txt
 
-# TEST: ic.rod.initial_frame
+# nTEST: ic.rod.initial_frame
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./rod.py --initial_frame 1 0 0
-# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
+# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort | uscale 1000 > ic.out.txt
