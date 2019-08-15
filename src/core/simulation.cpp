@@ -149,19 +149,19 @@ std::vector<ParticleVector*> Simulation::getParticleVectors() const
     return res;
 }
 
-ParticleVector* Simulation::getPVbyName(std::string name) const
+ParticleVector* Simulation::getPVbyName(const std::string& name) const
 {
     auto pvIt = pvIdMap.find(name);
     return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second].get() : nullptr;
 }
 
-std::shared_ptr<ParticleVector> Simulation::getSharedPVbyName(std::string name) const
+std::shared_ptr<ParticleVector> Simulation::getSharedPVbyName(const std::string& name) const
 {
     auto pvIt = pvIdMap.find(name);
     return (pvIt != pvIdMap.end()) ? particleVectors[pvIt->second] : std::shared_ptr<ParticleVector>(nullptr);
 }
 
-ParticleVector* Simulation::getPVbyNameOrDie(std::string name) const
+ParticleVector* Simulation::getPVbyNameOrDie(const std::string& name) const
 {
     auto pv = getPVbyName(name);
     if (pv == nullptr)
@@ -169,7 +169,7 @@ ParticleVector* Simulation::getPVbyNameOrDie(std::string name) const
     return pv;
 }
 
-ObjectVector* Simulation::getOVbyNameOrDie(std::string name) const
+ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
 {
     auto pv = getPVbyName(name);
     auto ov = dynamic_cast<ObjectVector*>(pv);
@@ -178,7 +178,7 @@ ObjectVector* Simulation::getOVbyNameOrDie(std::string name) const
     return ov;
 }
 
-Wall* Simulation::getWallByNameOrDie(std::string name) const
+Wall* Simulation::getWallByNameOrDie(const std::string& name) const
 {
     if (wallMap.find(name) == wallMap.end())
         die("No such wall: %s", name.c_str());

@@ -78,14 +78,14 @@ public:
 
     std::vector<ParticleVector*> getParticleVectors() const;
 
-    ParticleVector* getPVbyName     (std::string name) const;
-    ParticleVector* getPVbyNameOrDie(std::string name) const;
-    ObjectVector*   getOVbyNameOrDie(std::string name) const;
+    ParticleVector* getPVbyName     (const std::string& name) const;
+    ParticleVector* getPVbyNameOrDie(const std::string& name) const;
+    ObjectVector*   getOVbyNameOrDie(const std::string& name) const;
     
     /// Assume co-ownership
-    std::shared_ptr<ParticleVector> getSharedPVbyName(std::string name) const;
+    std::shared_ptr<ParticleVector> getSharedPVbyName(const std::string& name) const;
 
-    Wall* getWallByNameOrDie(std::string name) const;
+    Wall* getWallByNameOrDie(const std::string& name) const;
 
     CellList* gelCellList(ParticleVector* pv) const;
 
