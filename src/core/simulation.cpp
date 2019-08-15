@@ -171,11 +171,18 @@ ParticleVector* Simulation::getPVbyNameOrDie(const std::string& name) const
 
 ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
 {
-    auto pv = getPVbyName(name);
-    auto ov = dynamic_cast<ObjectVector*>(pv);
-    if (pv == nullptr)
-        die("No such particle vector: %s", name.c_str());
-    return ov;
+    if (auto pv = getPVbyName(name))
+    {
+        if (auto ov = dynamic_cast<ObjectVector*>(pv))
+            return ov;
+        else
+            die("'%s' is not an object vector", name.c_str());
+    }
+    else
+    {
+        die("No such object vector: %s", name.c_str());
+    }
+    return nullptr;
 }
 
 Wall* Simulation::getWallByNameOrDie(const std::string& name) const
@@ -235,7 +242,7 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic)
 {
-    std::string name = pv->name;
+    const std::string name = pv->name;
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
@@ -249,14 +256,16 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (ic)
         ic->exec(cartComm, pv.get(), 0);
 
-    auto ov = dynamic_cast<ObjectVector*>(pv.get());
-    if(ov != nullptr)
+    if (auto ov = dynamic_cast<ObjectVector*>(pv.get()))
     {
-        info("Registered object vector '%s', %d objects, %d particles", name.c_str(), ov->local()->nObjects, ov->local()->size());
+        info("Registered object vector '%s', %d objects, %d particles",
+             name.c_str(), ov->local()->nObjects, ov->local()->size());
         objectVectors.push_back(ov);
     }
     else
+    {
         info("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
+    }
 
     particleVectors.push_back(std::move(pv));
     pvIdMap[name] = particleVectors.size() - 1;
@@ -264,7 +273,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    std::string name = wall->name;
+    const std::string name = wall->name;
 
     if (wallMap.find(name) != wallMap.end())
         die("More than one wall is called %s", name.c_str());
@@ -281,7 +290,8 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    std::string name = interaction->name;
+    const std::string name = interaction->name;
+
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
@@ -290,7 +300,8 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    std::string name = integrator->name;
+    const std::string name = integrator->name;
+
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
     
@@ -299,7 +310,8 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    std::string name = bouncer->name;
+    const std::string name = bouncer->name;
+
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
@@ -308,7 +320,8 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 
 void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
-    std::string name = checker->name;
+    const std::string name = checker->name;
+
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
@@ -317,7 +330,7 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int tag)
 {
-    std::string name = plugin->name;
+    const std::string name = plugin->name;
 
     bool found = false;
     for (auto& pl : plugins)
@@ -376,10 +389,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
 void Simulation::setBouncer(std::string bouncerName, std::string objName, std::string pvName)
 {
     auto pv = getPVbyNameOrDie(pvName);
-
-    auto ov = dynamic_cast<ObjectVector*> (getPVbyName(objName));
-    if (ov == nullptr)
-        die("No such object vector: %s", objName.c_str());
+    auto ov = getOVbyNameOrDie(objName);
 
     if (bouncerMap.find(bouncerName) == bouncerMap.end())
         die("No such bouncer: %s", bouncerName.c_str());
@@ -408,21 +418,17 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName, float m
 
 void Simulation::setObjectBelongingChecker(std::string checkerName, std::string objName)
 {
-    auto ov = dynamic_cast<ObjectVector*>(getPVbyNameOrDie(objName));
-    if (ov == nullptr)
-        die("No such object vector %s", objName.c_str());
-
     if (belongingCheckerMap.find(checkerName) == belongingCheckerMap.end())
         die("No such belonging checker: %s", checkerName.c_str());
     auto checker = belongingCheckerMap[checkerName].get();
 
-    // TODO: do this normal'no blyat!
-    checker->setup(ov);
+    if (auto ov = dynamic_cast<ObjectVector*>(getPVbyNameOrDie(objName)))
+        checker->setup(ov);
+    else
+        die("'%s' is not an object vector: can not set to belonging '%s'",
+            objName.c_str(), checkerName.c_str());        
 }
 
-//
-//
-//
 
 void Simulation::applyObjectBelongingChecker(std::string checkerName,
             std::string source, std::string inside, std::string outside,
@@ -508,7 +514,7 @@ void Simulation::prepareCellLists()
         bool primary = true;
 
         // Don't use primary cell-lists with ObjectVectors
-        if (dynamic_cast<ObjectVector*>(pv) != nullptr)
+        if (dynamic_cast<ObjectVector*>(pv))
             primary = false;
 
         for (auto rc : cutoffs)
@@ -529,7 +535,7 @@ void Simulation::prepareCellLists()
             bool primary = true;
 
             // Don't use primary cell-lists with ObjectVectors
-            if (dynamic_cast<ObjectVector*>(pvptr) != nullptr)
+            if (dynamic_cast<ObjectVector*>(pvptr))
                 primary = false;
 
             cellListMap[pvptr].push_back
@@ -727,18 +733,9 @@ void Simulation::prepareEngines()
         auto extraOut = interactionManager->getExtraFinalChannels(pvPtr);
 
         auto cl = cellListVec[0].get();
-        auto ov = dynamic_cast<ObjectVector*>(pvPtr);
         
-        if (ov == nullptr) {
-            partRedistImp->attach(pvPtr, cl);
-            
-            if (clInt != nullptr)
-                partHaloIntermediateImp->attach(pvPtr, clInt, {});
-
-            if (clOut != nullptr)
-                partHaloFinalImp->attach(pvPtr, clOut, extraInt);
-        }
-        else {
+        if (auto ov = dynamic_cast<ObjectVector*>(pvPtr))
+        {
             objRedistImp->attach(ov);
 
             auto extraToExchange = getExtraDataToExchange(ov);
@@ -749,6 +746,16 @@ void Simulation::prepareEngines()
 
             objHaloIntermediateImp->attach(ov, extraInt);
             objHaloReverseIntermediateImp->attach(ov, reverseExchange);
+        }
+        else
+        {
+            partRedistImp->attach(pvPtr, cl);
+            
+            if (clInt != nullptr)
+                partHaloIntermediateImp->attach(pvPtr, clInt, {});
+
+            if (clOut != nullptr)
+                partHaloFinalImp->attach(pvPtr, clOut, extraInt);
         }
     }
     
