@@ -21,7 +21,7 @@ public:
     using TaskID = int;
     using Function = std::function<void(cudaStream_t)>;
     
-    static const TaskID invalidTaskId = (TaskID) -1;
+    static constexpr TaskID invalidTaskId {static_cast<TaskID>(-1)};
 
     TaskScheduler();
     ~TaskScheduler();
