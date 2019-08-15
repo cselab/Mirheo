@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/bounce_solver.h>
 #include <core/celllist.h>
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/root_finder.h>
 
 namespace BounceKernels
 {

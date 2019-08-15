@@ -2,11 +2,11 @@
 
 #include "common.h"
 
-#include <core/bounce_solver.h>
 #include <core/celllist.h>
 #include <core/pvs/views/ov.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
+#include <core/utils/root_finder.h>
 
 namespace MeshBounceKernels
 {

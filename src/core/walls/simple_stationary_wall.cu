@@ -8,7 +8,6 @@
 #include "stationary_walls/sphere.h"
 #include "velocity_field/none.h"
 
-#include <core/bounce_solver.h>
 #include <core/celllist.h>
 #include <core/field/utils.h>
 #include <core/logger.h>
@@ -18,6 +17,7 @@
 #include <core/pvs/views/ov.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/root_finder.h>
 
 #include <cassert>
 #include <cmath>

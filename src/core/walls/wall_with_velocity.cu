@@ -10,7 +10,6 @@
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
 
-#include <core/bounce_solver.h>
 #include <core/celllist.h>
 #include <core/logger.h>
 #include <core/pvs/object_vector.h>
@@ -18,6 +17,7 @@
 #include <core/pvs/views/pv.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/root_finder.h>
 
 #include <cassert>
 #include <cmath>
