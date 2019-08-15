@@ -34,20 +34,13 @@ struct SimulationTasks;
 class Simulation : protected MirObject
 {
 public:
-    const int3 nranks3D;
-    const int3 rank3D;
-
-    MPI_Comm cartComm;
-    MPI_Comm interComm;
-
-    MirState *state;
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
                CheckpointInfo checkpointInfo = {}, bool gpuAwareMPI = false);
 
     ~Simulation();
     
-    void restart(std::string folder);
+    void restart(const std::string& folder);
     void checkpoint();
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
@@ -101,16 +94,17 @@ public:
     
     void saveDependencyGraph_GraphML(std::string fname, bool current) const;
 
+public:
+    const int3 nranks3D;
+    const int3 rank3D;
+
+    MPI_Comm cartComm;
+    MPI_Comm interComm;
+
+    MirState *state;
 
 private:    
     static constexpr float rcTolerance = 1e-5;
-
-    enum class RestartStatus
-    {
-        Anew, RestartTolerant, RestartStrict
-    };
-    RestartStatus restartStatus{RestartStatus::Anew};
-    std::string restartFolder {};
 
     int checkpointId {0};
     const CheckpointInfo checkpointInfo;

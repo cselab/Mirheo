@@ -246,13 +246,8 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (pvIdMap.find(name) != pvIdMap.end())
         die("More than one particle vector is called %s", name.c_str());
 
-    if (restartStatus != RestartStatus::Anew)
-        pv->restart(cartComm, restartFolder);
-    else
-    {
-        if (ic != nullptr)
-            ic->exec(cartComm, pv.get(), 0);
-    }
+    if (ic)
+        ic->exec(cartComm, pv.get(), 0);
 
     auto ov = dynamic_cast<ObjectVector*>(pv.get());
     if(ov != nullptr)
@@ -278,8 +273,6 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
     // Let the wall know the particle vector associated with it
     wall->setup(cartComm);
-    if (restartStatus != RestartStatus::Anew)
-        wall->restart(cartComm, restartFolder);
 
     info("Registered wall '%s'", name.c_str());
 
@@ -292,9 +285,6 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
     if (interactionMap.find(name) != interactionMap.end())
         die("More than one interaction is called %s", name.c_str());
 
-    if (restartStatus != RestartStatus::Anew)
-        interaction->restart(cartComm, restartFolder);
-
     interactionMap[name] = std::move(interaction);
 }
 
@@ -303,9 +293,6 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
     std::string name = integrator->name;
     if (integratorMap.find(name) != integratorMap.end())
         die("More than one integrator is called %s", name.c_str());
-
-    if (restartStatus != RestartStatus::Anew)
-        integrator->restart(cartComm, restartFolder);
     
     integratorMap[name] = std::move(integrator);
 }
@@ -316,9 +303,6 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
     if (bouncerMap.find(name) != bouncerMap.end())
         die("More than one bouncer is called %s", name.c_str());
 
-    if (restartStatus != RestartStatus::Anew)
-        bouncer->restart(cartComm, restartFolder);
-    
     bouncerMap[name] = std::move(bouncer);
 }
 
@@ -328,9 +312,6 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
         die("More than one splitter is called %s", name.c_str());
 
-    if (restartStatus != RestartStatus::Anew)
-        checker->restart(cartComm, restartFolder);
-    
     belongingCheckerMap[name] = std::move(checker);
 }
 
@@ -347,8 +328,6 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int ta
 
     plugin->setTag(tag);
     
-    if (restartStatus != RestartStatus::Anew)
-        plugin->restart(cartComm, restartFolder);
     plugins.push_back(std::move(plugin));
 }
 
@@ -1241,36 +1220,34 @@ static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
         ++checkpointId;
 }
 
-void Simulation::restart(std::string folder)
+void Simulation::restart(const std::string& folder)
 {
-    restartFolder = folder;
-
-    this->restartState(restartFolder);
+    this->restartState(folder);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    info("Reading simulation state, from folder %s", restartFolder.c_str());
+    info("Reading simulation state, from folder %s", folder.c_str());
 
     for (auto& pv : particleVectors)
-        pv->restart(cartComm, restartFolder);
+        pv->restart(cartComm, folder);
 
     for (auto& handler : bouncerMap)
-        handler.second->restart(cartComm, restartFolder);
+        handler.second->restart(cartComm, folder);
 
     for (auto& handler : integratorMap)
-        handler.second->restart(cartComm, restartFolder);
+        handler.second->restart(cartComm, folder);
 
     for (auto& handler : interactionMap)
-        handler.second->restart(cartComm, restartFolder);
+        handler.second->restart(cartComm, folder);
 
     for (auto& handler : wallMap)
-        handler.second->restart(cartComm, restartFolder);
+        handler.second->restart(cartComm, folder);
 
     for (auto& handler : belongingCheckerMap)
-        handler.second->restart(cartComm, restartFolder);
+        handler.second->restart(cartComm, folder);
 
     for (auto& handler : plugins)
-        handler->restart(cartComm, restartFolder);
+        handler->restart(cartComm, folder);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
