@@ -79,7 +79,7 @@ __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPositions)
     }
 }
 
-__global__ void clearRigidForces(ROVview ovView)
+__global__ void clearRigidForcesFromMotions(ROVview ovView)
 {
     const int objId = threadIdx.x + blockDim.x * blockIdx.x;
     if (objId >= ovView.nObjects) return;
@@ -130,13 +130,13 @@ void applyRigidMotion(const ROVview& view, const PinnedBuffer<float4>& initialPo
     };
 }
 
-void clearRigidForces(const ROVview& view, cudaStream_t stream)
+void clearRigidForcesFromMotions(const ROVview& view, cudaStream_t stream)
 {
     constexpr int nthreads = 64;
     const int nblocks = getNblocks(view.nObjects, nthreads);
 
     SAFE_KERNEL_LAUNCH(
-        RigidOperationsKernels::clearRigidForces,
+        RigidOperationsKernels::clearRigidForcesFromMotions,
         nblocks, nthreads, 0, stream,
         view );
 }

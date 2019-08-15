@@ -63,7 +63,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
     const int nthreads = 256;
 
     if (!local)
-        RigidOperations::clearRigidForces(ovView, stream);
+        RigidOperations::clearRigidForcesFromMotions(ovView, stream);
 
     SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,

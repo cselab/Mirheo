@@ -126,7 +126,7 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     RigidOperations::applyRigidMotion(rovView, rov->initialPositions,
                                       RigidOperations::ApplyTo::PositionsAndVelocities, stream);
 
-    RigidOperations::clearRigidForces(rovView, stream);
+    RigidOperations::clearRigidForcesFromMotions(rovView, stream);
 
     invalidatePV(pv);
 }

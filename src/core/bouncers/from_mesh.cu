@@ -167,7 +167,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
         if (!local)
         {
             ROVview view(rov, rov->halo());
-            RigidOperations::clearRigidForces(view, stream);
+            RigidOperations::clearRigidForcesFromMotions(view, stream);
         }
 
         // make a fake view with vertices instead of particles
