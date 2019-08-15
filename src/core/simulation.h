@@ -34,8 +34,8 @@ struct SimulationTasks;
 class Simulation : protected MirObject
 {
 public:
-    int3 nranks3D;
-    int3 rank3D;
+    const int3 nranks3D;
+    const int3 rank3D;
 
     MPI_Comm cartComm;
     MPI_Comm interComm;
@@ -103,7 +103,7 @@ public:
 
 
 private:    
-    const float rcTolerance = 1e-5;
+    static constexpr float rcTolerance = 1e-5;
 
     enum class RestartStatus
     {
@@ -113,15 +113,15 @@ private:
     std::string restartFolder {};
 
     int checkpointId {0};
-    CheckpointInfo checkpointInfo;
-    int rank;
+    const CheckpointInfo checkpointInfo;
+    const int rank;
 
     std::unique_ptr<TaskScheduler> scheduler;
     std::unique_ptr<SimulationTasks> tasks;
 
     std::unique_ptr<InteractionManager> interactionManager;
 
-    bool gpuAwareMPI;
+    const bool gpuAwareMPI;
 
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 

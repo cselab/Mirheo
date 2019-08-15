@@ -77,31 +77,52 @@ struct SimulationTasks
 #undef DECLARE    
 };
 
-Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
-    MirObject("simulation"),
-    cartComm(cartComm),
-    interComm(interComm),
-    state(state),
-    checkpointInfo(checkpointInfo),
-    scheduler(std::make_unique<TaskScheduler>()),
-    tasks(std::make_unique<SimulationTasks>()),
-    interactionManager(std::make_unique<InteractionManager>()),
-    gpuAwareMPI(gpuAwareMPI)
+static void checkCartesianTopology(const MPI_Comm& cartComm)
 {
-    int nranks[3], periods[3], coords[3];
     int topology;
     MPI_Check( MPI_Topo_test(cartComm, &topology) );
 
     if (topology != MPI_CART)
         die("Simulation expects a cartesian communicator");
+}
+
+struct Rank3DInfos
+{
+    int3 nranks3D, rank3D;
+};
+
+static Rank3DInfos getRank3DInfos(const MPI_Comm& cartComm)
+{
+    int nranks[3], periods[3], coords[3];
+    checkCartesianTopology(cartComm);
     
     MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, coords) );
-    MPI_Check( MPI_Comm_rank(cartComm, &rank) );
+    return {{nranks[0], nranks[1], nranks[2]},
+            {coords[0], coords[1], coords[2]}};
+}
 
-    nranks3D = {nranks[0], nranks[1], nranks[2]};
-    rank3D   = {coords[0], coords[1], coords[2]};
+static int getRank(const MPI_Comm& comm)
+{
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+    return rank;
+}
 
+Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
+                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
+    MirObject("simulation"),
+    nranks3D(getRank3DInfos(cartComm).nranks3D),
+    rank3D  (getRank3DInfos(cartComm).rank3D  ),
+    cartComm(cartComm),
+    interComm(interComm),
+    state(state),
+    checkpointInfo(checkpointInfo),
+    rank(getRank(cartComm)),
+    scheduler(std::make_unique<TaskScheduler>()),
+    tasks(std::make_unique<SimulationTasks>()),
+    interactionManager(std::make_unique<InteractionManager>()),
+    gpuAwareMPI(gpuAwareMPI)
+{
     createFoldersCollective(cartComm, checkpointInfo.folder);
 
     state->reinitTime();
