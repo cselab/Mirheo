@@ -128,11 +128,9 @@ MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
     return req;
 }
 
-void Postprocess::restart(std::string folder)
+void Postprocess::restart(const std::string& folder)
 {
-    restartFolder = folder;
-
-    info("Reading postprocess state, from folder %s", restartFolder.c_str());
+    info("Reading postprocess state, from folder %s", folder.c_str());
     
     for (auto& pl : plugins)
         pl->restart(comm, folder);    

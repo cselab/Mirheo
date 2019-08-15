@@ -16,7 +16,7 @@ public:
     void run();
     void init();
 
-    void restart   (std::string folder);
+    void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
 
 private:
@@ -31,5 +31,5 @@ private:
     
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins;
 
-    std::string restartFolder, checkpointFolder;
+    std::string checkpointFolder;
 };

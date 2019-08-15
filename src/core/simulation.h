@@ -14,7 +14,6 @@
 #include <tuple>
 #include <vector>
 
-// Some forward declarations
 class MirState;
 class ParticleVector;
 class ObjectVector;
