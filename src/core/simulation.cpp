@@ -936,10 +936,12 @@ void Simulation::createTasks()
         scheduler->addTask(tasks->objClearLocalForces, [this, ov] (cudaStream_t stream) {
             interactionManager->clearFinalPV(ov, ov->local(), stream);
             interactionManager->clearFinal(ov, stream);
+            ov->local()->getMeshForces(stream)->clear(stream);
         });
 
         scheduler->addTask(tasks->objClearHaloForces, [this, ov] (cudaStream_t stream) {
             interactionManager->clearFinalPV(ov, ov->halo(), stream);
+            ov->halo()->getMeshForces(stream)->clear(stream);
         });
     }
 
@@ -1146,20 +1148,17 @@ void Simulation::init()
     
     createTasks();
     buildDependencies(scheduler.get(), tasks.get());
-    
+}
+
+void Simulation::run(int nsteps)
+{
     // Initial preparation
     scheduler->forceExec( tasks->objHaloFinalInit,     defaultStream );
     scheduler->forceExec( tasks->objHaloFinalFinalize, defaultStream );
     scheduler->forceExec( tasks->objClearHaloForces,   defaultStream );
     scheduler->forceExec( tasks->objClearLocalForces,  defaultStream );
-
     execSplitters();
-}
 
-
-
-void Simulation::run(int nsteps)
-{
     MirState::TimeType begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
