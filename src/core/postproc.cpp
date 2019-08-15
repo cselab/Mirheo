@@ -85,9 +85,9 @@ void Postprocess::run()
     info("Postprocess is listening to messages now");
     while (true)
     {
-        auto readyIds = findGloballyReady(requests, statuses, comm);
+        const auto readyIds = findGloballyReady(requests, statuses, comm);
 
-        for (auto index : readyIds)
+        for (const auto& index : readyIds)
         {
             if (index == stoppingReqIndex)
             {
