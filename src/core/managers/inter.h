@@ -38,8 +38,16 @@ private:
         Interaction::ActivePredicate active;
     };
 
+    struct InteractionPrototype
+    {
+        Interaction *interaction;
+        ParticleVector *pv1, *pv2;
+        CellList *cl1, *cl2;
+    };
+
     using ChannelList = std::vector<Channel>;
 
+    std::vector<InteractionPrototype> interactions;
     std::map<CellList*, ChannelList> inputChannels, outputChannels;
     std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
 

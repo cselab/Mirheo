@@ -7,9 +7,12 @@
 namespace NewInterface
 {
 
-void InteractionManager::add(__UNUSED Interaction *interaction, __UNUSED ParticleVector *pv1, __UNUSED ParticleVector *pv2, __UNUSED CellList *cl1, __UNUSED CellList *cl2)
+void InteractionManager::add(Interaction *interaction,
+                             ParticleVector *pv1, ParticleVector *pv2,
+                             CellList *cl1, CellList *cl2)
 {
     
+    interactions.push_back({interaction, pv1, pv2, cl1, cl2});
 }
 
 CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
@@ -84,16 +87,17 @@ void InteractionManager::gatherInputToCells(cudaStream_t stream)
     }
 }
 
-void InteractionManager::executeLocal(__UNUSED cudaStream_t stream)
+void InteractionManager::executeLocal(cudaStream_t stream)
 {
-
+    for (auto& p : interactions)
+        p.interaction->local(p.pv1, p.pv2, p.cl1, p.cl2, stream);
 }
 
-void InteractionManager::executeHalo (__UNUSED cudaStream_t stream)
+void InteractionManager::executeHalo (cudaStream_t stream)
 {
-
+    for (auto& p : interactions)
+        p.interaction->halo(p.pv1, p.pv2, p.cl1, p.cl2, stream);
 }
-
 
 
 std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const
