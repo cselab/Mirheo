@@ -107,6 +107,12 @@ private:
     template <class T>
     using MapShared = std::map< std::string, std::shared_ptr<T> >;
 
+    struct IntegratorPrototype
+    {
+        ParticleVector *pv;
+        Integrator *integrator;
+    };
+
     struct InteractionPrototype
     {
         float rc;
@@ -181,6 +187,7 @@ private:
 
     std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
+    std::vector<IntegratorPrototype>          integratorPrototypes;
     std::vector<InteractionPrototype>         interactionPrototypes;
     std::vector<WallPrototype>                wallPrototypes;
     std::vector<CheckWallPrototype>           checkWallPrototypes;
@@ -188,7 +195,6 @@ private:
     std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes;
     std::vector<SplitterPrototype>            splitterPrototypes;
 
-    std::vector<std::function<void(cudaStream_t)>> integratorsStage1, integratorsStage2;
     std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;
 
     std::map<std::string, std::string> pvsIntegratorMap;

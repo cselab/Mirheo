@@ -363,13 +363,7 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
     
     integrator->setPrerequisites(pv);
 
-    integratorsStage1.push_back([integrator, pv] (cudaStream_t stream) {
-        integrator->stage1(pv, stream);
-    });
-
-    integratorsStage2.push_back([integrator, pv] (cudaStream_t stream) {
-        integrator->stage2(pv, stream);
-    });
+    integratorPrototypes.push_back({pv, integrator});
 }
 
 void Simulation::setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name)
@@ -920,10 +914,16 @@ void Simulation::createTasks()
                        });
 
 
-    for (auto& integrator : integratorsStage2)
-        scheduler->addTask(tasks->integration, [integrator, this] (cudaStream_t stream) {
-            integrator(stream);
+    for (const auto& prototype : integratorPrototypes)
+    {
+        auto pv         = prototype.pv;
+        auto integrator = prototype.integrator;
+        scheduler->addTask(tasks->integration, [integrator, pv] (cudaStream_t stream)
+        {
+            integrator->stage1(pv, stream);
+            integrator->stage2(pv, stream);
         });
+    }
 
 
     // As there are no primary cell-lists for objects
