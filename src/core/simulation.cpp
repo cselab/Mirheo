@@ -139,7 +139,6 @@ Simulation::~Simulation() = default;
 // Access for plugins
 //================================================================================================
 
-
 std::vector<ParticleVector*> Simulation::getParticleVectors() const
 {
     std::vector<ParticleVector*> res;

@@ -100,46 +100,12 @@ public:
     MPI_Comm cartComm;
     MPI_Comm interComm;
 
-    MirState *state;
-
-private:    
-    static constexpr float rcTolerance = 1e-5;
-
-    int checkpointId {0};
-    const CheckpointInfo checkpointInfo;
-    const int rank;
-
-    std::unique_ptr<TaskScheduler> scheduler;
-    std::unique_ptr<SimulationTasks> tasks;
-
-    std::unique_ptr<InteractionManager> interactionManager;
-
-    const bool gpuAwareMPI;
+private:
 
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
-    ExchangeEngineUniquePtr partRedistributor, objRedistibutor;
-    ExchangeEngineUniquePtr partHaloIntermediate, partHaloFinal;
-    ExchangeEngineUniquePtr objHaloIntermediate, objHaloReverseIntermediate;
-    ExchangeEngineUniquePtr objHaloFinal, objHaloReverseFinal;
-
-    std::map<std::string, int> pvIdMap;
-    std::vector< std::shared_ptr<ParticleVector> > particleVectors;
-    std::vector< ObjectVector* >   objectVectors;
-
     template <class T>
     using MapShared = std::map< std::string, std::shared_ptr<T> >;
-
-    MapShared <Bouncer>                bouncerMap;
-    MapShared <Integrator>             integratorMap;
-    MapShared <Interaction>            interactionMap;
-    MapShared <Wall>                   wallMap;
-    MapShared <ObjectBelongingChecker> belongingCheckerMap;
-    
-    std::vector< std::shared_ptr<SimulationPlugin> > plugins;
-
-
-    std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
     struct InteractionPrototype
     {
@@ -179,6 +145,41 @@ private:
         ObjectBelongingChecker *checker;
         ParticleVector *pvSrc, *pvIn, *pvOut;
     };
+
+    
+    MirState *state;
+    
+    static constexpr float rcTolerance = 1e-5;
+
+    int checkpointId {0};
+    const CheckpointInfo checkpointInfo;
+    const int rank;
+
+    std::unique_ptr<TaskScheduler> scheduler;
+    std::unique_ptr<SimulationTasks> tasks;
+
+    std::unique_ptr<InteractionManager> interactionManager;
+
+    const bool gpuAwareMPI;
+
+    ExchangeEngineUniquePtr partRedistributor, objRedistibutor;
+    ExchangeEngineUniquePtr partHaloIntermediate, partHaloFinal;
+    ExchangeEngineUniquePtr objHaloIntermediate, objHaloReverseIntermediate;
+    ExchangeEngineUniquePtr objHaloFinal, objHaloReverseFinal;
+
+    std::map<std::string, int> pvIdMap;
+    std::vector< std::shared_ptr<ParticleVector> > particleVectors;
+    std::vector< ObjectVector* >   objectVectors;
+
+    MapShared <Bouncer>                bouncerMap;
+    MapShared <Integrator>             integratorMap;
+    MapShared <Interaction>            interactionMap;
+    MapShared <Wall>                   wallMap;
+    MapShared <ObjectBelongingChecker> belongingCheckerMap;
+    
+    std::vector< std::shared_ptr<SimulationPlugin> > plugins;
+
+    std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
 
     std::vector<InteractionPrototype>         interactionPrototypes;
     std::vector<WallPrototype>                wallPrototypes;
