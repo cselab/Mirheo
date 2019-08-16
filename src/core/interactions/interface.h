@@ -22,6 +22,20 @@ class ParticleVector;
 class Interaction : public MirSimulationObject
 {
 public:
+    /// monitor activity of a channel
+    using ActivePredicate = std::function<bool()>;
+
+    /**
+     * describe the activity of a channel in an interaction
+     */
+    struct InteractionChannel
+    {
+        std::string name;
+        ActivePredicate active;
+    };
+
+    enum class Stage {Intermediate, Final};
+    
     Interaction(const MirState *state, std::string name, float rc);
 
     virtual ~Interaction();
@@ -67,19 +81,9 @@ public:
      * that interaction
      */
     virtual bool isSelfObjectInteraction() const;
+
+    virtual Stage getStage() const {return Stage::Final;}
     
-    /// monitor activity of a channel
-    using ActivePredicate = std::function<bool()>;
-
-    /**
-     * describe the activity of a channel in an interaction
-     */
-    struct InteractionChannel
-    {
-        std::string name;
-        ActivePredicate active;
-    };
-
     /**
      * describe which channels are required as input
      * default: nothing
