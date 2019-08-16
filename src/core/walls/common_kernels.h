@@ -17,7 +17,7 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, int seed,
 
     for (int i = 0; i < maxIters; i++)
     {
-        float v = checker(candidate);
+        const float v = checker(candidate);
         if (v < -tol) break;
 
         float3 rndShift;
@@ -55,8 +55,8 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             Particle p(view.readParticle(pid));
             if (checker(p.r) <= -insideTolerance) continue;
 
-            auto rOld = view.readOldPosition(pid);
-            float3 dr = p.r - rOld;
+            const auto rOld = view.readOldPosition(pid);
+            const float3 dr = p.r - rOld;
 
             constexpr RootFinder::Bounds limits {0.f, 1.f};
             const float alpha = RootFinder::linearSearch([=] (float lambda)
@@ -67,8 +67,8 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             float3 candidate = (alpha >= limits.lo) ? rOld + alpha * dr : rOld;
             candidate = rescue(candidate, dt, insideTolerance, p.i1, checker);
 
-            float3 uWall = velField(p.r);
-            float3 unew = 2*uWall - p.u;
+            const float3 uWall = velField(p.r);
+            const float3 unew = 2*uWall - p.u;
 
             localForce += (p.u - unew) * (view.mass / dt); // force exerted by the particle on the wall
 
