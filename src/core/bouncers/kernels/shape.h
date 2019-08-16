@@ -19,7 +19,7 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, const Sha
 
     for (int i = 0; i < maxIters; i++)
     {
-        float v = shape.inOutFunction(candidate);
+        const float v = shape.inOutFunction(candidate);
         if (v > tol) break;
 
         float3 rndShift;
@@ -41,33 +41,32 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, const Sha
 template <class Shape>
 __device__ inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
-        int objId,
-        int *validCells, int nCells,
+        int objId, int *validCells, int nCells,
         CellListInfo cinfo, const float dt)
 {
     const float threshold = 2e-5f;
 
     const Shape& shape = ovView.shape;
     
-    auto motion     = toSingleMotion( ovView.motions[objId] );
-    auto old_motion = toSingleMotion( ovView.old_motions[objId] );
+    const auto motion     = toSingleMotion( ovView.motions[objId] );
+    const auto old_motion = toSingleMotion( ovView.old_motions[objId] );
 
     if (threadIdx.x >= nCells) return;
 
-    int cid = validCells[threadIdx.x];
-    int pstart = cinfo.cellStarts[cid];
-    int pend   = cinfo.cellStarts[cid+1];
+    const int cid = validCells[threadIdx.x];
+    const int pstart = cinfo.cellStarts[cid];
+    const int pend   = cinfo.cellStarts[cid+1];
 
     // XXX: changing reading layout may improve performance here
     for (int pid = pstart; pid < pend; pid++)
     {
         Particle p (pvView.readParticle   (pid));
-        auto rOld = pvView.readOldPosition(pid);
+        const auto rOld = pvView.readOldPosition(pid);
 
         // Go to the obj frame of reference
-        float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
-        float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
-        float3 dr = coo - oldCoo;
+        const float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
+        const float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
+        const float3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
         if (shape.inOutFunction(coo) > 0.0f) continue;
@@ -117,8 +116,8 @@ __device__ inline void bounceCellArray(
         newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
 
         // Change velocity's frame to the object frame, correct for rotation as well
-        float3 vEll = motion.vel + cross( motion.omega, newCoo-motion.r );
-        float3 newU = vEll - (p.u - vEll);
+        const float3 vEll = motion.vel + cross( motion.omega, newCoo-motion.r );
+        const float3 newU = vEll - (p.u - vEll);
 
         const float3 frc = -pvView.mass * (newU - p.u) / dt;
         atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));
@@ -133,18 +132,18 @@ __device__ inline void bounceCellArray(
 template <class Shape>
 __device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, const Shape& shape)
 {
-    const float threshold = 0.5f;
+    constexpr float threshold = 0.5f;
 
     float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
     const float4 invq = Quaternion::conjugate(motion.q);
 
-    float3 v001 = Quaternion::rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
-    float3 v010 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
-    float3 v011 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y, cinfo.h.z), invq );
-    float3 v100 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0,         0), invq );
-    float3 v101 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0, cinfo.h.z), invq );
-    float3 v110 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y,         0), invq );
-    float3 v111 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
+    const float3 v001 = Quaternion::rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
+    const float3 v010 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
+    const float3 v011 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y, cinfo.h.z), invq );
+    const float3 v100 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0,         0), invq );
+    const float3 v101 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0, cinfo.h.z), invq );
+    const float3 v110 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y,         0), invq );
+    const float3 v111 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
 
     v000 = Quaternion::rotate( v000, invq );
 
@@ -172,10 +171,11 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     if (objId >= ovView.nObjects) return;
 
     // Preparation step. Filter out all the cells that don't intersect the surface
-    __shared__ volatile int nCells;
+    __shared__ int nCells;
     extern __shared__ int validCells[];
 
-    nCells = 0;
+    if (tid == 0)
+        nCells = 0;
     __syncthreads();
 
     const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - tol);
@@ -184,7 +184,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;
 
-    for (int i=tid; i-tid < totCells; i+=blockDim.x)
+    for (int i = tid; i-tid < totCells; i += blockDim.x)
     {
         const int3 cid3 = make_int3( i % span.x, (i/span.x) % span.y, i / (span.x*span.y) ) + cidLow;
         const int cid = cinfo.encode(cid3);
@@ -193,7 +193,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
              cid < cinfo.totcells &&
              isValidCell(cid3, toSingleMotion(ovView.motions[objId]), cinfo, ovView.shape) )
         {
-            int id = atomicAggInc((int*)&nCells);
+            const int id = atomicAggInc(static_cast<int*>(&nCells));
             validCells[id] = cid;
         }
 
