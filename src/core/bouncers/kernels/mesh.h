@@ -203,8 +203,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
                              float3 xNew, float3 xOld,
                              float3& intPoint,
                              Triangle& intTriangle,
-                             float& intSign,
-                             int trid = -1)
+                             float& intSign)
 {
     constexpr float tol        {2e-6f};
     constexpr float leftLimit  {0.0f};
