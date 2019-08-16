@@ -7,10 +7,48 @@
 namespace NewInterface
 {
 
+static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1, Interaction::ActivePredicate p2)
+{
+    return [p1, p2]() {return p1() || p2();};
+}
+
 void InteractionManager::add(Interaction *interaction,
                              ParticleVector *pv1, ParticleVector *pv2,
                              CellList *cl1, CellList *cl2)
 {
+    const auto input  = interaction->getIntermediateOutputChannels(); //TODO
+    const auto output = interaction->getIntermediateOutputChannels(); //TODO
+    
+    auto insertChannels = [&](CellList *cl)
+    {
+        auto _insertChannels = [&](const std::vector<Interaction::InteractionChannel>& channels,
+                                   std::map<CellList*, ChannelList>& dst)
+        {
+            if (channels.empty())
+                return; // otherwise will create an empty entry at cl because of operator[]
+
+            for (const auto& srcEntry : channels)
+            {
+                auto it = dst[cl].begin();
+
+                for (; it != dst[cl].end(); ++it)
+                    if (it->name == srcEntry.name)
+                        break;
+
+                if (it != dst[cl].end())
+                    it->active = predicateOr(it->active, srcEntry.active);
+                else
+                    dst[cl].push_back( srcEntry );
+            }
+        };
+
+        _insertChannels( input,  inputChannels);
+        _insertChannels(output, outputChannels); 
+    };
+
+    insertChannels(cl1);
+    if (cl1 != cl2)
+        insertChannels(cl2);
     
     interactions.push_back({interaction, pv1, pv2, cl1, cl2});
 }

@@ -32,12 +32,8 @@ public:
     
 private:
 
-    struct Channel
-    {
-        std::string name;
-        Interaction::ActivePredicate active;
-    };
-
+    using Channel = Interaction::InteractionChannel;
+    
     struct InteractionPrototype
     {
         Interaction *interaction;
