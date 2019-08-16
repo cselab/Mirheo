@@ -18,9 +18,7 @@ struct Triangle
 
 using TriangleTable = CollisionTable<int2>;
 
-
-__device__ inline
-Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
+__device__ inline Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
 {
     auto addr = vertices + startId;
     return {
@@ -31,9 +29,7 @@ Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
 
 
 
-__device__ inline
-bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld,
-                               float3 xNew, float3 xOld)
+__device__ inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld, float3 xNew, float3 xOld)
 {
     const float3 v0 = trOld.v0;
     const float3 v1 = trOld.v1;
@@ -86,12 +82,10 @@ bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld,
     return true;
 }
 
-__device__ inline
-void findBouncesInCell(int pstart, int pend, int globTrid,
-                       Triangle tr, Triangle trOld,
-                       PVviewWithOldParticles pvView,
-                       MeshView mesh,
-                       TriangleTable triangleTable)
+__device__ inline void findBouncesInCell(int pstart, int pend, int globTrid,
+                                         Triangle tr, Triangle trOld,
+                                         PVviewWithOldParticles pvView,
+                                         MeshView mesh, TriangleTable triangleTable)
 {
 
 #pragma unroll 2
@@ -106,13 +100,10 @@ void findBouncesInCell(int pstart, int pend, int globTrid,
     }
 }
 
-//__launch_bounds__(128, 6)
-static __global__
-void findBouncesInMesh(OVviewWithNewOldVertices objView,
-                       PVviewWithOldParticles pvView,
-                       MeshView mesh,
-                       CellListInfo cinfo,
-                       TriangleTable triangleTable)
+__global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
+                                  PVviewWithOldParticles pvView,
+                                  MeshView mesh, CellListInfo cinfo,
+                                  TriangleTable triangleTable)
 {
     // About maximum distance a particle can cover in one step
     const float tol = 0.2f;
@@ -193,23 +184,27 @@ __device__ inline void sort3(RootFinder::RootInfo v[3])
     if (v[1].x > v[2].x) swap(v[1], v[2]);
 }
 
-static constexpr float NoCollision = -1.f;
+static constexpr float noCollision {-1.f};
 
-// find "time" (0.0 to 1.0) of the segment - moving triangle intersection
-// returns NoCollision is no intersection
-// sets intPoint and intTriangle if intersection found
-__device__ inline float
+struct IntersectionInfo
+{
+    float alpha; // "time" (0.0 to 1.0) of the segment - moving triangle intersection
+    float3 point;
+    Triangle triangle;
+    float sign;    
+};
+
+__device__ inline IntersectionInfo
 intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
-                             float3 xNew, float3 xOld,
-                             float3& intPoint,
-                             Triangle& intTriangle,
-                             float& intSign)
+                             float3 xNew, float3 xOld)
 {
     constexpr float tol        {2e-6f};
     constexpr float leftLimit  {0.0f};
     constexpr float rightLimit {1.0f};
     constexpr float epsilon    {1e-5f};
 
+    IntersectionInfo info;
+    
     const float3 v0 = trOld.v0;
     const float3 v1 = trOld.v1;
     const float3 v2 = trOld.v2;
@@ -251,15 +246,15 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     // Has side-effects!!
     auto checkIfInside = [&] (float alpha)
     {
-        intPoint = xOld + alpha*dx;
+        info.point = xOld + alpha*dx;
 
-        intTriangle.v0 = v0 + alpha*dv0;
-        intTriangle.v1 = v1 + alpha*dv1;
-        intTriangle.v2 = v2 + alpha*dv2;
+        info.triangle.v0 = v0 + alpha*dv0;
+        info.triangle.v1 = v1 + alpha*dv1;
+        info.triangle.v2 = v2 + alpha*dv2;
 
-        intSign = -F_prime(alpha);
+        info.sign = -F_prime(alpha);
 
-        return isInside(intTriangle, intPoint);
+        return isInside(info.triangle, info.point);
     };
 
     RootFinder::RootInfo roots[3];
@@ -317,11 +312,12 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
     sort3(roots);
 
-    if (validRoot(roots[0]) && checkIfInside(roots[0].x)) return roots[0].x;
-    if (validRoot(roots[1]) && checkIfInside(roots[1].x)) return roots[1].x;
-    if (validRoot(roots[2]) && checkIfInside(roots[2].x)) return roots[2].x;
-
-    return NoCollision;
+    if      (validRoot(roots[0]) && checkIfInside(roots[0].x)) info.alpha = roots[0].x;
+    else if (validRoot(roots[1]) && checkIfInside(roots[1].x)) info.alpha = roots[1].x;
+    else if (validRoot(roots[2]) && checkIfInside(roots[2].x)) info.alpha = roots[2].x;
+    else                                                       info.alpha = noCollision;
+    
+    return info;
 }
 
 static __global__
@@ -348,14 +344,11 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
     Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
-    float3 intPoint;
-    Triangle intTriangle;
-    float intSign;
-    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, rOld, intPoint, intTriangle, intSign);
+    const auto info = intersectSegmentWithTriangle(tr, trOld, p.r, rOld);
 
-    if (alpha == NoCollision) return;
+    if (info.alpha == noCollision) return;
 
-    atomicMax(collisionTimes+pid, __float_as_int(1.0f - alpha));
+    atomicMax(collisionTimes+pid, __float_as_int(1.0f - info.alpha));
     fineTable.push_back(pid_trid);
 }
 
@@ -489,7 +482,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
                              const float dt,
                              float kbT, float seed1, float seed2)
 {
-    const float eps = 5e-5f;
+    constexpr float eps = 5e-5f;
 
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= nCollisions) return;
@@ -497,32 +490,26 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const int2 pid_trid = collisionTable[gid];
     int pid = pid_trid.x;
 
-    Particle p (pvView.readParticle   (pid));
-    auto rOld = pvView.readOldPosition(pid);
-    Particle corrP = p;
+    const Particle p (pvView.readParticle   (pid));
 
-    float3 f0, f1, f2;
-
+    const auto rOld = pvView.readOldPosition(pid);
     const int trid  = pid_trid.y % mesh.ntriangles;
     const int objId = pid_trid.y / mesh.ntriangles;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
+    const Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    const Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
-    float3 intPoint;
-    Triangle intTriangle;
-    float intSign;
-    float alpha = intersectSegmentWithTriangle(tr, trOld, p.r, rOld, intPoint, intTriangle, intSign);
+    const auto info = intersectSegmentWithTriangle(tr, trOld, p.r, rOld);
 
-    int minTime = collisionTimes[pid];
+    const int minTime = collisionTimes[pid];
 
-    if (1.0f - alpha != __int_as_float(minTime)) return;
+    if (1.0f - info.alpha != __int_as_float(minTime)) return;
 
-    float3 barycentricCoo = barycentric(intTriangle, intPoint);
+    const float3 barycentricCoo = barycentric(info.triangle, info.point);
 
     const float dt_1 = 1.0f / dt;
-    Triangle trVel = { (tr.v0-trOld.v0)*dt_1, (tr.v1-trOld.v1)*dt_1, (tr.v2-trOld.v2)*dt_1 };
+    const Triangle trVel = { (tr.v0-trOld.v0)*dt_1, (tr.v1-trOld.v1)*dt_1, (tr.v2-trOld.v2)*dt_1 };
 
     // Position is based on INTERMEDIATE barycentric collision coordinates and FINAL triangle
     const float3 vtri = barycentricCoo.x*trVel.v0 + barycentricCoo.y*trVel.v1 + barycentricCoo.z*trVel.v2;
@@ -531,15 +518,16 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 
     // new velocity relative to the triangle speed
-    float3 newV = reflectVelocity( (intSign > 0) ? n : -n, kbT, pvView.mass, seed1, seed2 );
+    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kbT, pvView.mass, seed1, seed2 );
 
+    float3 f0, f1, f2;
     triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);
 
-    corrP.r = coo + eps * ((intSign > 0) ? n : -n);
+    Particle corrP {p};
+    corrP.r = coo + eps * ((info.sign > 0) ? n : -n);
     corrP.u = newV + vtri;
 
-    float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
-
+    const float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
 
     pvView.writeParticle(pid, corrP);
 
