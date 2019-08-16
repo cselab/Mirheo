@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+class LocalParticleVector;
+
 namespace NewInterface
 {
 
@@ -23,6 +25,7 @@ public:
     std::vector<std::string> getOutputChannels(ParticleVector *pv) const;
 
     void clearOutput(ParticleVector *pv, cudaStream_t stream);
+    void clearOutputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const;
 
     void accumulateOutput  (cudaStream_t stream);
     void gatherInputToCells(cudaStream_t stream);
@@ -51,6 +54,7 @@ private:
 
     std::vector<std::string> _getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const;
     std::vector<std::string> _getActiveChannels(const ChannelList& channelList) const;
+    std::vector<std::string> _getActiveOutputChannels(ParticleVector *pv) const;
 };
 
 } // namespace NewInterface

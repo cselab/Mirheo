@@ -1,6 +1,7 @@
 #include "inter.h"
 
 #include <core/celllist.h>
+#include <core/pvs/particle_vector.h>
 
 #include <set>
 
@@ -105,6 +106,14 @@ void InteractionManager::clearOutput(ParticleVector *pv, cudaStream_t stream)
     }
 }
 
+void InteractionManager::clearOutputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
+{
+    auto activeChannels = _getActiveOutputChannels(pv);
+    
+    for (const auto& channelName : activeChannels)
+        lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
+}
+
 void InteractionManager::accumulateOutput(cudaStream_t stream)
 {
     for (const auto& entry : outputChannels)
@@ -169,6 +178,29 @@ std::vector<std::string> InteractionManager::_getActiveChannels(const ChannelLis
             activeChannels.push_back(channel.name);
     
     return activeChannels;
+}
+
+std::vector<std::string> InteractionManager::_getActiveOutputChannels(ParticleVector *pv) const
+{
+    auto itCMap = cellListMap.find(pv);
+    if (itCMap == cellListMap.end())
+        return {};
+
+    std::set<std::string> channels;
+    
+    for (const auto& cl : itCMap->second)
+    {
+        auto it = outputChannels.find(cl);
+        if (it == outputChannels.end())
+            continue;
+        
+        for (const auto& entry : it->second)
+        {
+            if (entry.active())
+                channels.insert(entry.name);
+        }
+    }
+    return {channels.begin(), channels.end()};
 }
 
 } // namespace NewInterface
