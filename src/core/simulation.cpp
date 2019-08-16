@@ -347,7 +347,7 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int ta
 // Applying something to something else
 //================================================================================================
 
-void Simulation::setIntegrator(std::string integratorName, std::string pvName)
+void Simulation::setIntegrator(const std::string& integratorName, const std::string& pvName)
 {
     if (integratorMap.find(integratorName) == integratorMap.end())
         die("No such integrator: %s", integratorName.c_str());
@@ -366,7 +366,7 @@ void Simulation::setIntegrator(std::string integratorName, std::string pvName)
     integratorPrototypes.push_back({pv, integrator});
 }
 
-void Simulation::setInteraction(std::string interactionName, std::string pv1Name, std::string pv2Name)
+void Simulation::setInteraction(const std::string& interactionName, const std::string& pv1Name, const std::string& pv2Name)
 {
     auto pv1 = getPVbyNameOrDie(pv1Name);
     auto pv2 = getPVbyNameOrDie(pv2Name);
@@ -379,7 +379,7 @@ void Simulation::setInteraction(std::string interactionName, std::string pv1Name
     interactionPrototypes.push_back({rc, pv1, pv2, interaction});
 }
 
-void Simulation::setBouncer(std::string bouncerName, std::string objName, std::string pvName)
+void Simulation::setBouncer(const std::string& bouncerName, const std::string& objName, const std::string& pvName)
 {
     auto pv = getPVbyNameOrDie(pvName);
     auto ov = getOVbyNameOrDie(objName);
@@ -393,7 +393,7 @@ void Simulation::setBouncer(std::string bouncerName, std::string objName, std::s
     bouncerPrototypes.push_back({bouncer, pv});
 }
 
-void Simulation::setWallBounce(std::string wallName, std::string pvName, float maximumPartTravel)
+void Simulation::setWallBounce(const std::string& wallName, const std::string& pvName, float maximumPartTravel)
 {
     auto pv = getPVbyNameOrDie(pvName);
 
@@ -409,7 +409,7 @@ void Simulation::setWallBounce(std::string wallName, std::string pvName, float m
     wallPrototypes.push_back( {wall, pv, maximumPartTravel} );
 }
 
-void Simulation::setObjectBelongingChecker(std::string checkerName, std::string objName)
+void Simulation::setObjectBelongingChecker(const std::string& checkerName, const std::string& objName)
 {
     if (belongingCheckerMap.find(checkerName) == belongingCheckerMap.end())
         die("No such belonging checker: %s", checkerName.c_str());
@@ -423,8 +423,8 @@ void Simulation::setObjectBelongingChecker(std::string checkerName, std::string 
 }
 
 
-void Simulation::applyObjectBelongingChecker(std::string checkerName,
-            std::string source, std::string inside, std::string outside,
+void Simulation::applyObjectBelongingChecker(const std::string& checkerName,
+            const std::string& source, const std::string& inside, const std::string& outside,
             int checkEvery)
 {
     auto pvSource = getPVbyNameOrDie(source);
@@ -1201,7 +1201,7 @@ void Simulation::notifyPostProcess(int tag, int msg) const
     }
 }
 
-void Simulation::restartState(std::string folder)
+void Simulation::restartState(const std::string& folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
     auto good = TextIO::read(filename, state->currentTime, state->currentStep, checkpointId);
@@ -1297,7 +1297,7 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-void Simulation::saveDependencyGraph_GraphML(std::string fname, bool current) const
+void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool current) const
 {
     if (rank != 0) return;
 

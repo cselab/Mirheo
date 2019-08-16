@@ -11,7 +11,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 class MirState;
@@ -51,16 +50,16 @@ public:
     void registerObjectBelongingChecker (std::shared_ptr<ObjectBelongingChecker> checker);
 
 
-    void setIntegrator             (std::string integratorName,  std::string pvName);
-    void setInteraction            (std::string interactionName, std::string pv1Name, std::string pv2Name);
-    void setBouncer                (std::string bouncerName,     std::string objName, std::string pvName);
-    void setWallBounce             (std::string wallName,        std::string pvName, float maximumPartTravel);
-    void setObjectBelongingChecker (std::string checkerName,     std::string objName);
+    void setIntegrator             (const std::string& integratorName,  const std::string& pvName);
+    void setInteraction            (const std::string& interactionName, const std::string& pv1Name, const std::string& pv2Name);
+    void setBouncer                (const std::string& bouncerName,     const std::string& objName, const std::string& pvName);
+    void setWallBounce             (const std::string& wallName,        const std::string& pvName, float maximumPartTravel);
+    void setObjectBelongingChecker (const std::string& checkerName,     const std::string& objName);
 
 
-    void applyObjectBelongingChecker(std::string checkerName,
-            std::string source, std::string inside, std::string outside,
-            int checkEvery);
+    void applyObjectBelongingChecker(const std::string& checkerName,
+                                     const std::string& source, const std::string& inside, const std::string& outside,
+                                     int checkEvery);
 
 
     void init();
@@ -91,7 +90,7 @@ public:
 
     float getMaxEffectiveCutoff() const;
     
-    void saveDependencyGraph_GraphML(std::string fname, bool current) const;
+    void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
 public:
     const int3 nranks3D;
@@ -219,7 +218,7 @@ private:
     using MirObject::restart;
     using MirObject::checkpoint;
 
-    void restartState(std::string folder);
+    void restartState(const std::string& folder);
     void checkpointState();
 };
 
