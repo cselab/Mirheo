@@ -58,12 +58,13 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             auto rOld = view.readOldPosition(pid);
             float3 dr = p.r - rOld;
 
+            constexpr RootFinder::Bounds limits {0.f, 1.f};
             const float alpha = RootFinder::linearSearch([=] (float lambda)
             {
                 return checker(rOld + dr*lambda) + insideTolerance;
-            });
+            }, limits);
 
-            float3 candidate = (alpha >= 0.0f) ? rOld + alpha * dr : rOld;
+            float3 candidate = (alpha >= limits.lo) ? rOld + alpha * dr : rOld;
             candidate = rescue(candidate, dt, insideTolerance, p.i1, checker);
 
             float3 uWall = velField(p.r);

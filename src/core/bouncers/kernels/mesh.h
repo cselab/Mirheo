@@ -308,7 +308,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         }
     }
 
-    roots[1] = RootFinder::linearSearchVerbose(F, left, right);
+    roots[1] = RootFinder::linearSearchVerbose(F, RootFinder::Bounds{left, right});
 
     sort3(roots);
 

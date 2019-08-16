@@ -59,10 +59,9 @@ TEST (ROOTS, LinearSearch_sqrt)
     {
         auto f = [&](float x) {return x*x - a;};
 
-        const float leftBound = 0.f;
-        const float rightBound = a;
+        const RootFinder::Bounds limits{0.f, a};
         
-        const auto root = RootFinder::linearSearchVerbose(f, leftBound, rightBound);
+        const auto root = RootFinder::linearSearchVerbose(f, limits);
         return root.x;
     };
                                

@@ -69,12 +69,14 @@ float collision(const float radius,
         return dsq - radius*radius;
     };
 
-    if (F(1.f) > 0.f) return NoCollision;
+    constexpr RootFinder::Bounds limits {0.f, 1.f};
+    
+    if (F(limits.up) > 0.f) return NoCollision;
 
     constexpr float tol = 1e-6f;
-    const float alpha = RootFinder::linearSearch(F, 0.0f, 1.0f, tol);
+    const float alpha = RootFinder::linearSearch(F, limits, tol);
 
-    if (alpha >= 0.0f && alpha <= 1.0f)
+    if (alpha >= limits.lo && alpha <= limits.up)
         return alpha;
 
     return NoCollision;

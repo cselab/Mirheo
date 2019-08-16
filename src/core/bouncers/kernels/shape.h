@@ -93,8 +93,9 @@ __device__ inline void bounceCellArray(
         else
         {
             // This is intersection point
-            const float alpha = RootFinder::linearSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);} );
-            newCoo = oldCoo + dr*max(alpha, 0.0f);
+            constexpr RootFinder::Bounds limits {0.f, 1.f};
+            const float alpha = RootFinder::linearSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
+            newCoo = oldCoo + dr*max(alpha, limits.lo);
 
             // Push out a little bit
             auto normal = shape.normal(newCoo);

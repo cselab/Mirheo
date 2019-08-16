@@ -11,6 +11,11 @@ struct RootInfo
     float val;
 };
 
+struct Bounds
+{
+    float lo, up;
+};
+
 constexpr RootInfo invalidRoot {-666.f, -666.f};
 
 __D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
@@ -22,7 +27,7 @@ __D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
 template <typename Equation>
-__D__ inline RootInfo linearSearchVerbose(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
+__D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, float tolerance = 1e-6f)
 {
     // F is one dimensional equation
     // It returns value signed + or - depending on whether
@@ -30,6 +35,9 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, float a = 0.0f, float b = 
     // Sign mapping to inside/outside is irrelevant
 
     constexpr int maxNIters = 20;
+
+    float a {limits.lo};
+    float b {limits.up};
 
     float va = F(a);
     float vb = F(b);
@@ -64,9 +72,9 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, float a = 0.0f, float b = 
 }
 
 template <typename Equation>
-__D__ inline float linearSearch(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
+__D__ inline float linearSearch(Equation F, const Bounds& limits, float tolerance = 1e-6f)
 {
-    const RootInfo ri = linearSearchVerbose(F, a, b, tolerance);
+    const RootInfo ri = linearSearchVerbose(F, limits, tolerance);
     return ri.x;
 }
 
