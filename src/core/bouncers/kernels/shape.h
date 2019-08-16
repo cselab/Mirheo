@@ -116,8 +116,8 @@ __device__ inline void bounceCellArray(
         newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
 
         // Change velocity's frame to the object frame, correct for rotation as well
-        const float3 vEll = motion.vel + cross( motion.omega, newCoo-motion.r );
-        const float3 newU = vEll - (p.u - vEll);
+        const float3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
+        const float3 newU = vObj - (p.u - vObj);
 
         const float3 frc = -pvView.mass * (newU - p.u) / dt;
         atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));

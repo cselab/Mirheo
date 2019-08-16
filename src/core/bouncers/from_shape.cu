@@ -60,14 +60,16 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
     RSOVviewWithOldMotion<Shape> ovView(rsov, local ? rsov->local() : rsov->halo());
     PVviewWithOldParticles pvView(pv, pv->local());
 
-    const int nthreads = 256;
+    constexpr int nthreads = 256;
+    const int nblocks = ovView.nObjects;
+    const size_t smem = 2 * nthreads * sizeof(int);
 
     if (!local)
         RigidOperations::clearRigidForcesFromMotions(ovView, stream);
 
     SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,
-            ovView.nObjects, nthreads, 2*nthreads*sizeof(int), stream,
+            nblocks, nthreads, smem, stream,
             ovView, pvView, cl->cellInfo(), state->dt );
 }
 
