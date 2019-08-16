@@ -262,14 +262,17 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     roots[0] = RootFinder::newton(F, F_prime, 0.0f);
     roots[2] = RootFinder::newton(F, F_prime, 1.0f);
 
+    auto validRoot = [&](RootFinder::RootInfo root)
+    {
+        return root.x >= 0.0f && root.x <= 1.0f && fabsf(root.val) < tol;
+    };
 
     float left, right;
 
     if (F(0.0f)*F(1.0f) < 0.0f)
     {
         // Three roots
-        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].val) < tol &&
-            roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].val) < tol)
+        if (validRoot(roots[0]) && validRoot(roots[2]))
         {
             left  = roots[0].x + 1e-5f/fabsf(F_prime(roots[0].x));
             right = roots[2].x - 1e-5f/fabsf(F_prime(roots[2].x));
@@ -284,11 +287,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     {
         RootFinder::RootInfo newtonRoot;
 
-        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].val) < tol)
-            newtonRoot = roots[0];
-
-        if (roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].val) < tol)
-            newtonRoot = roots[2];
+        if (validRoot(roots[0])) newtonRoot = roots[0];
+        if (validRoot(roots[2])) newtonRoot = roots[2];
 
         if (F(0.0f) * F_prime(newtonRoot.x) > 0.0f)
         {
@@ -306,14 +306,9 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
     sort3(roots);
 
-    if ( fabs(roots[0].val) < tol && roots[0].x >= 0.0f && roots[0].x <= 1.0f )
-        if (checkIfInside(roots[0].x)) return roots[0].x;
-
-    if ( fabs(roots[1].val) < tol && roots[1].x >= 0.0f && roots[1].x <= 1.0f )
-        if (checkIfInside(roots[1].x)) return roots[1].x;
-
-    if ( fabs(roots[2].val) < tol && roots[2].x >= 0.0f && roots[2].x <= 1.0f )
-        if (checkIfInside(roots[2].x)) return roots[2].x;
+    if (validRoot(roots[0]) && checkIfInside(roots[0].x)) return roots[0].x;
+    if (validRoot(roots[1]) && checkIfInside(roots[1].x)) return roots[1].x;
+    if (validRoot(roots[2]) && checkIfInside(roots[2].x)) return roots[2].x;
 
     return NoCollision;
 }
