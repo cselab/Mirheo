@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <core/utils/cpu_gpu_defines.h>
 
 namespace RootFinder
@@ -41,7 +42,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, float a = 0.0f, float b = 
 
     for (int iter = 0; iter < maxNIters; ++iter)
     {
-        const float lambda = min( max(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
+        const float lambda = fminf( fmaxf(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
         mid = a *lambda + b *(1.0f - lambda);
         vmid = F(mid);
 
