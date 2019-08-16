@@ -81,6 +81,21 @@ public:
     };
 
     /**
+     * describe which channels are required as input
+     * default: nothing
+     */
+    virtual std::vector<InteractionChannel> getInputChannels() const;
+
+    /**
+     * describe which channels are output
+     * default: forces, always active
+     */
+    virtual std::vector<InteractionChannel> getOutputChannels() const;
+
+
+
+    
+    /**
      * describe what channels are produced as intermediate output for another interaction
      * default: nothing
      */

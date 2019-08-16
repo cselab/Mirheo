@@ -16,8 +16,8 @@ void InteractionManager::add(Interaction *interaction,
                              ParticleVector *pv1, ParticleVector *pv2,
                              CellList *cl1, CellList *cl2)
 {
-    const auto input  = interaction->getIntermediateOutputChannels(); //TODO
-    const auto output = interaction->getIntermediateOutputChannels(); //TODO
+    const auto input  = interaction->getInputChannels();
+    const auto output = interaction->getOutputChannels();
     
     auto insertChannels = [&](CellList *cl)
     {

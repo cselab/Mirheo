@@ -12,6 +12,8 @@ public:
     
     std::vector<InteractionChannel> getIntermediateOutputChannels() const override;
     std::vector<InteractionChannel> getFinalOutputChannels() const override;
+
+    std::vector<InteractionChannel> getOutputChannels() const override;
     
     void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
     void halo  (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;

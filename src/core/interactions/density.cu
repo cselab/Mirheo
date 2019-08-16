@@ -36,6 +36,11 @@ std::vector<Interaction::InteractionChannel> BasicInteractionDensity::getFinalOu
     return {};
 }
 
+std::vector<Interaction::InteractionChannel> BasicInteractionDensity::getOutputChannels() const
+{
+    return {{ChannelNames::densities, Interaction::alwaysActive}};
+}
+
 void BasicInteractionDensity::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     impl->local(pv1, pv2, cl1, cl2, stream);

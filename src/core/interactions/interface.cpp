@@ -16,6 +16,16 @@ void Interaction::setPrerequisites(__UNUSED ParticleVector *pv1,
                                    __UNUSED CellList *cl2)
 {}
 
+std::vector<Interaction::InteractionChannel> Interaction::getInputChannels() const
+{
+    return {};
+}
+
+std::vector<Interaction::InteractionChannel> Interaction::getOutputChannels() const
+{
+    return {{ChannelNames::forces, alwaysActive}};
+}
+
 std::vector<Interaction::InteractionChannel> Interaction::getIntermediateOutputChannels() const
 {
     return {};

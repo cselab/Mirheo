@@ -50,6 +50,11 @@ std::vector<Interaction::InteractionChannel> InteractionLJ::getFinalOutputChanne
     return impl->getFinalOutputChannels();
 }
 
+std::vector<Interaction::InteractionChannel> InteractionLJ::getOutputChannels() const
+{
+    return impl->getOutputChannels();
+}
+
 void InteractionLJ::local(ParticleVector *pv1, ParticleVector *pv2,
                           CellList *cl1, CellList *cl2,
                           cudaStream_t stream)

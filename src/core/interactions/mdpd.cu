@@ -47,6 +47,17 @@ std::vector<Interaction::InteractionChannel> InteractionMDPD::getFinalOutputChan
     return impl->getFinalOutputChannels();
 }
 
+std::vector<Interaction::InteractionChannel> InteractionMDPD::getInputChannels() const
+{
+    return {{ChannelNames::densities, Interaction::alwaysActive}};
+}
+
+std::vector<Interaction::InteractionChannel> InteractionMDPD::getOutputChannels() const
+{
+    return impl->getOutputChannels();
+}
+
+
 void InteractionMDPD::local(ParticleVector *pv1, ParticleVector *pv2,
                             CellList *cl1, CellList *cl2,
                             cudaStream_t stream)

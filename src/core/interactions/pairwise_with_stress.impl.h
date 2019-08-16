@@ -85,6 +85,17 @@ public:
                 {ChannelNames::stresses, activePredicateStress}};
     }
 
+    std::vector<InteractionChannel> getOutputChannels() const override
+    {
+        auto activePredicateStress = [this]() {
+            float t = state->currentTime;
+            return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
+        };
+
+        return {{ChannelNames::forces, Interaction::alwaysActive},
+                {ChannelNames::stresses, activePredicateStress}};
+    }
+
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         interaction          .checkpoint(comm, path, checkpointId);
