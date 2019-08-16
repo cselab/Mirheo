@@ -12,6 +12,11 @@ struct RootInfo
 
 constexpr RootInfo invalidRoot {-666.f, -666.f};
 
+__D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
+{
+    return lhs.x == rhs.x && lhs.val == rhs.val;
+}
+
 /**
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
