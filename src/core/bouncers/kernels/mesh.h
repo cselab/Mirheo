@@ -206,7 +206,10 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
                              float& intSign,
                              int trid = -1)
 {
-    const float tol = 2e-6f;
+    constexpr float tol        {2e-6f};
+    constexpr float leftLimit  {0.0f};
+    constexpr float rightLimit {1.0f};
+    constexpr float epsilon    {1e-5f};
 
     const float3 v0 = trOld.v0;
     const float3 v1 = trOld.v1;
@@ -234,7 +237,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     };
 
     // d / dt (Distance)
-    auto F_prime = [=] (float t) {
+    auto F_prime = [=] (float t)
+    {
         float3 v0t = v0 + t*dv0;
         float3 v1t = v1 + t*dv1;
         float3 v2t = v2 + t*dv2;
@@ -246,7 +250,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     };
 
     // Has side-effects!!
-    auto checkIfInside = [&] (float alpha) {
+    auto checkIfInside = [&] (float alpha)
+    {
         intPoint = xOld + alpha*dx;
 
         intTriangle.v0 = v0 + alpha*dv0;
@@ -259,17 +264,19 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     };
 
     RootFinder::RootInfo roots[3];
-    roots[0] = RootFinder::newton(F, F_prime, 0.0f);
-    roots[2] = RootFinder::newton(F, F_prime, 1.0f);
+    roots[0] = RootFinder::newton(F, F_prime, leftLimit);
+    roots[2] = RootFinder::newton(F, F_prime, rightLimit);
 
-    auto validRoot = [&](RootFinder::RootInfo root)
+    auto validRoot = [](RootFinder::RootInfo root)
     {
-        return root.x >= 0.0f && root.x <= 1.0f && fabsf(root.val) < tol;
+        return root.x >= leftLimit
+            && root.x <= rightLimit
+            && fabsf(root.val) < tol;
     };
 
     float left, right;
 
-    if (F(0.0f)*F(1.0f) < 0.0f)
+    if (F(leftLimit) * F(rightLimit) < 0.0f)
     {
         // Three roots
         if (validRoot(roots[0]) && validRoot(roots[2]))
@@ -279,8 +286,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         }
         else // One root
         {
-            left  = 0.0f;
-            right = 1.0f;
+            left  = leftLimit;
+            right = rightLimit;
         }
     }
     else  // Maybe two roots
@@ -292,13 +299,13 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
         if (F(0.0f) * F_prime(newtonRoot.x) > 0.0f)
         {
-            left  = 0.0f;
-            right = newtonRoot.x - 1e-5f/fabsf(F_prime(newtonRoot.x));
+            left  = leftLimit;
+            right = newtonRoot.x - epsilon/fabsf(F_prime(newtonRoot.x));
         }
         else
         {
-            left  = newtonRoot.x + 1e-5f/fabsf(F_prime(newtonRoot.x));
-            right = 1.0f;
+            left  = newtonRoot.x + epsilon/fabsf(F_prime(newtonRoot.x));
+            right = rightLimit;
         }
     }
 
