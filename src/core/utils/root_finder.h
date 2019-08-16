@@ -4,11 +4,19 @@
 
 namespace RootFinder
 {
+struct RootInfo
+{
+    float x;
+    float val;
+};
+
+constexpr RootInfo invalidRoot {-666.f, -666.f};
+
 /**
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
 template <typename Equation>
-__D__ inline float2 linearSearchVerbose(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
+__D__ inline RootInfo linearSearchVerbose(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
 {
     // F is one dimensional equation
     // It returns value signed + or - depending on whether
@@ -23,7 +31,8 @@ __D__ inline float2 linearSearchVerbose(Equation F, float a = 0.0f, float b = 1.
     float mid, vmid;
 
     // Check if the collision is there in the first place
-    if (va*vb > 0.0f) return make_float2(-1.0f);
+    if (va*vb > 0.0f)
+        return invalidRoot;
 
     for (int iter = 0; iter < maxNIters; ++iter)
     {
@@ -51,12 +60,12 @@ __D__ inline float2 linearSearchVerbose(Equation F, float a = 0.0f, float b = 1.
 template <typename Equation>
 __D__ inline float linearSearch(Equation F, float a = 0.0f, float b = 1.0f, float tolerance = 1e-6f)
 {
-    const float2 res = linearSearchVerbose(F, a, b, tolerance);
-    return res.x;
+    const RootInfo ri = linearSearchVerbose(F, a, b, tolerance);
+    return ri.x;
 }
 
-template<typename F, typename F_prime>
-__D__ inline float2 newton(F f, F_prime f_prime, float x0, float tolerance = 1e-6f)
+template <typename F, typename F_prime>
+__D__ inline RootInfo newton(F f, F_prime f_prime, float x0, float tolerance = 1e-6f)
 {
     constexpr int maxNIters = 10;
 
@@ -65,7 +74,8 @@ __D__ inline float2 newton(F f, F_prime f_prime, float x0, float tolerance = 1e-
     for (int iter = 0; iter < maxNIters; ++iter)
     {
         val = f(x);
-        if (fabsf(val) < tolerance) return {x, val};
+        if (fabsf(val) < tolerance)
+            return {x, val};
         x = x - val / f_prime(x);
     }
 

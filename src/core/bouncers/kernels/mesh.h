@@ -179,10 +179,11 @@ __device__ inline bool isInside(Triangle tr, float3 p)
 }
 
 
-__device__ inline void sort3(float2* v)
+__device__ inline void sort3(RootFinder::RootInfo v[3])
 {
-    auto swap = [] (float2& a, float2& b) {
-        float2 tmp = a;
+    auto swap = [] (RootFinder::RootInfo& a, RootFinder::RootInfo& b)
+    {
+        const auto tmp = a;
         a = b;
         b = tmp;
     };
@@ -257,7 +258,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         return isInside(intTriangle, intPoint);
     };
 
-    float2 roots[3];
+    RootFinder::RootInfo roots[3];
     roots[0] = RootFinder::newton(F, F_prime, 0.0f);
     roots[2] = RootFinder::newton(F, F_prime, 1.0f);
 
@@ -267,8 +268,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     if (F(0.0f)*F(1.0f) < 0.0f)
     {
         // Three roots
-        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].y) < tol &&
-            roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].y) < tol)
+        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].val) < tol &&
+            roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].val) < tol)
         {
             left  = roots[0].x + 1e-5f/fabsf(F_prime(roots[0].x));
             right = roots[2].x - 1e-5f/fabsf(F_prime(roots[2].x));
@@ -281,12 +282,12 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     }
     else  // Maybe two roots
     {
-        float2 newtonRoot;
+        RootFinder::RootInfo newtonRoot;
 
-        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].y) < tol)
+        if (roots[0].x >= 0.0f && roots[0].x <= 1.0f && fabsf(roots[0].val) < tol)
             newtonRoot = roots[0];
 
-        if (roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].y) < tol)
+        if (roots[2].x >= 0.0f && roots[2].x <= 1.0f && fabsf(roots[2].val) < tol)
             newtonRoot = roots[2];
 
         if (F(0.0f) * F_prime(newtonRoot.x) > 0.0f)
@@ -305,13 +306,13 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
     sort3(roots);
 
-    if ( fabs(roots[0].y) < tol && roots[0].x >= 0.0f && roots[0].x <= 1.0f )
+    if ( fabs(roots[0].val) < tol && roots[0].x >= 0.0f && roots[0].x <= 1.0f )
         if (checkIfInside(roots[0].x)) return roots[0].x;
 
-    if ( fabs(roots[1].y) < tol && roots[1].x >= 0.0f && roots[1].x <= 1.0f )
+    if ( fabs(roots[1].val) < tol && roots[1].x >= 0.0f && roots[1].x <= 1.0f )
         if (checkIfInside(roots[1].x)) return roots[1].x;
 
-    if ( fabs(roots[2].y) < tol && roots[2].x >= 0.0f && roots[2].x <= 1.0f )
+    if ( fabs(roots[2].val) < tol && roots[2].x >= 0.0f && roots[2].x <= 1.0f )
         if (checkIfInside(roots[2].x)) return roots[2].x;
 
     return NoCollision;
