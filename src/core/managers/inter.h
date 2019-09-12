@@ -20,6 +20,7 @@ public:
     void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
     CellList* getLargestCellList(ParticleVector *pv) const;
+    float getLargestCutoff() const;
 
     std::vector<std::string> getInputChannels(ParticleVector *pv) const;
     std::vector<std::string> getOutputChannels(ParticleVector *pv) const;

@@ -13,6 +13,14 @@ static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredic
     return [p1, p2]() {return p1() || p2();};
 }
 
+static void insertClist(CellList *cl, std::vector<CellList*>& clists)
+{
+    auto it = std::find(clists.begin(), clists.end(), cl);
+
+    if (it == clists.end())
+        clists.push_back(cl);
+}
+
 void InteractionManager::add(Interaction *interaction,
                              ParticleVector *pv1, ParticleVector *pv2,
                              CellList *cl1, CellList *cl2)
@@ -50,7 +58,10 @@ void InteractionManager::add(Interaction *interaction,
     insertChannels(cl1);
     if (cl1 != cl2)
         insertChannels(cl2);
-    
+
+    insertClist(cl1, cellListMap[pv1]);
+    insertClist(cl2, cellListMap[pv2]);
+
     interactions.push_back({interaction, pv1, pv2, cl1, cl2});
 }
 
@@ -58,7 +69,7 @@ CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
 {
     const auto it = cellListMap.find(pv);
     if (it == cellListMap.end())
-        die("pv not found in map: %s", pv->name.c_str());
+        return nullptr;
 
     auto& cellLists = it->second;
 
@@ -74,6 +85,19 @@ CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
     }
     
     return clMax;
+}
+
+float InteractionManager::getLargestCutoff() const
+{
+    float rc = 0.f;
+    for (const auto& prototype : interactions)
+    {
+        if (!prototype.cl1)
+            continue;
+        rc = std::max(rc, prototype.cl1->rc);
+    }
+    return rc;
+
 }
 
 std::vector<std::string> InteractionManager::getInputChannels(ParticleVector *pv) const
