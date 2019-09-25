@@ -941,7 +941,8 @@ void Simulation::createTasks()
     // we need to separately clear real obj forces and forces in the cell-lists
     for (auto ov : objectVectors)
     {
-        scheduler->addTask(tasks->objClearLocalIntermediate, [this, ov] (cudaStream_t stream) {
+        scheduler->addTask(tasks->objClearLocalIntermediate, [this, ov] (cudaStream_t stream)
+        {
             interactionsIntermediate->clearOutput(ov, stream);
             interactionsIntermediate->clearOutputLocalPV(ov, ov->local(), stream);
 
@@ -949,32 +950,47 @@ void Simulation::createTasks()
             interactionsFinal->clearInputLocalPV(ov, ov->local(), stream);
         });
 
-        scheduler->addTask(tasks->objClearHaloIntermediate, [this, ov] (cudaStream_t stream) {
+        scheduler->addTask(tasks->objClearHaloIntermediate, [this, ov] (cudaStream_t stream)
+        {
             interactionsIntermediate->clearOutputLocalPV(ov, ov->halo(), stream);
             interactionsFinal       ->clearInputLocalPV(ov, ov->halo(), stream);
         });
 
-        scheduler->addTask(tasks->objClearLocalForces, [this, ov] (cudaStream_t stream) {
-            interactionsFinal->clearOutputLocalPV(ov, ov->local(), stream);
+        scheduler->addTask(tasks->objClearLocalForces, [this, ov] (cudaStream_t stream)
+        {
+            auto lov = ov->local();
+            interactionsFinal->clearOutputLocalPV(ov, lov, stream);
             interactionsFinal->clearOutput(ov, stream);
-            ov->local()->getMeshForces(stream)->clear(stream);
+            lov->getMeshForces(stream)->clear(stream);
+
+            // force clear forces in case there is no interactions but bounce back
+            if (interactionsFinal->empty())
+                lov->forces().clearDevice(stream);
         });
 
-        scheduler->addTask(tasks->objClearHaloForces, [this, ov] (cudaStream_t stream) {
-            interactionsFinal->clearOutputLocalPV(ov, ov->halo(), stream);
-            ov->halo()->getMeshForces(stream)->clear(stream);
+        scheduler->addTask(tasks->objClearHaloForces, [this, ov] (cudaStream_t stream)
+        {
+            auto lov = ov->halo();
+            interactionsFinal->clearOutputLocalPV(ov, lov, stream);
+            lov->getMeshForces(stream)->clear(stream);
+
+            // force clear forces in case there is no interactions but bounce back
+            if (interactionsFinal->empty())
+                lov->forces().clearDevice(stream);
         });
     }
 
     for (auto& bouncer : regularBouncers)
-        scheduler->addTask(tasks->objLocalBounce, [bouncer, this] (cudaStream_t stream) {
+        scheduler->addTask(tasks->objLocalBounce, [bouncer, this] (cudaStream_t stream)
+        {
             bouncer(stream);
-    });
+        });
 
     for (auto& bouncer : haloBouncers)
-        scheduler->addTask(tasks->objHaloBounce, [bouncer, this] (cudaStream_t stream) {
+        scheduler->addTask(tasks->objHaloBounce, [bouncer, this] (cudaStream_t stream)
+        {
             bouncer(stream);
-    });
+        });
 
     for (auto& prototype : belongingCorrectionPrototypes)
     {

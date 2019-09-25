@@ -65,6 +65,11 @@ void InteractionManager::add(Interaction *interaction,
     interactions.push_back({interaction, pv1, pv2, cl1, cl2});
 }
 
+bool InteractionManager::empty() const
+{
+    return interactions.empty();
+}
+
 CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
 {
     const auto it = cellListMap.find(pv);

@@ -19,6 +19,8 @@ public:
 
     void add(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2);
 
+    bool empty() const;
+    
     CellList* getLargestCellList(ParticleVector *pv) const;
     float getLargestCutoff() const;
 
