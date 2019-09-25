@@ -5,8 +5,8 @@
 
 #include <set>
 
-namespace NewInterface
-{
+// namespace NewInterface
+// {
 
 static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1, Interaction::ActivePredicate p2)
 {
@@ -97,7 +97,6 @@ float InteractionManager::getLargestCutoff() const
         rc = std::max(rc, prototype.cl1->rc);
     }
     return rc;
-
 }
 
 std::vector<std::string> InteractionManager::getInputChannels(ParticleVector *pv) const
@@ -110,6 +109,31 @@ std::vector<std::string> InteractionManager::getOutputChannels(ParticleVector *p
     return _getExtraChannels(pv, outputChannels);
 }
 
+void InteractionManager::clearInput(ParticleVector *pv, cudaStream_t stream)
+{
+    auto clListIt = cellListMap.find(pv);
+
+    if (clListIt == cellListMap.end())
+        return;
+
+    for (auto cl : clListIt->second)
+    {
+        auto it = inputChannels.find(cl);
+        
+        if (it != inputChannels.end()) {
+            auto activeChannels = _getActiveChannels(it->second);
+            cl->clearChannels(activeChannels, stream);
+        }
+    }
+}
+
+void InteractionManager::clearInputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
+{
+    auto activeChannels = _getActiveChannelsFrom(pv, inputChannels);
+    
+    for (const auto& channelName : activeChannels)
+        lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
+}
 
 
 void InteractionManager::clearOutput(ParticleVector *pv, cudaStream_t stream)
@@ -132,7 +156,7 @@ void InteractionManager::clearOutput(ParticleVector *pv, cudaStream_t stream)
 
 void InteractionManager::clearOutputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
 {
-    auto activeChannels = _getActiveOutputChannels(pv);
+    auto activeChannels = _getActiveChannelsFrom(pv, outputChannels);
     
     for (const auto& channelName : activeChannels)
         lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
@@ -204,7 +228,7 @@ std::vector<std::string> InteractionManager::_getActiveChannels(const ChannelLis
     return activeChannels;
 }
 
-std::vector<std::string> InteractionManager::_getActiveOutputChannels(ParticleVector *pv) const
+std::vector<std::string> InteractionManager::_getActiveChannelsFrom(ParticleVector *pv, const std::map<CellList*, ChannelList>& srcChannels) const
 {
     auto itCMap = cellListMap.find(pv);
     if (itCMap == cellListMap.end())
@@ -214,8 +238,8 @@ std::vector<std::string> InteractionManager::_getActiveOutputChannels(ParticleVe
     
     for (const auto& cl : itCMap->second)
     {
-        auto it = outputChannels.find(cl);
-        if (it == outputChannels.end())
+        auto it = srcChannels.find(cl);
+        if (it == srcChannels.end())
             continue;
         
         for (const auto& entry : it->second)
@@ -227,4 +251,4 @@ std::vector<std::string> InteractionManager::_getActiveOutputChannels(ParticleVe
     return {channels.begin(), channels.end()};
 }
 
-} // namespace NewInterface
+// } // namespace NewInterface

@@ -8,8 +8,8 @@
 
 class LocalParticleVector;
 
-namespace NewInterface
-{
+// namespace NewInterface
+// {
 
 class InteractionManager
 {
@@ -24,6 +24,9 @@ public:
 
     std::vector<std::string> getInputChannels(ParticleVector *pv) const;
     std::vector<std::string> getOutputChannels(ParticleVector *pv) const;
+
+    void clearInput(ParticleVector *pv, cudaStream_t stream);
+    void clearInputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const;
 
     void clearOutput(ParticleVector *pv, cudaStream_t stream);
     void clearOutputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const;
@@ -55,7 +58,7 @@ private:
 
     std::vector<std::string> _getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const;
     std::vector<std::string> _getActiveChannels(const ChannelList& channelList) const;
-    std::vector<std::string> _getActiveOutputChannels(ParticleVector *pv) const;
+    std::vector<std::string> _getActiveChannelsFrom(ParticleVector *pv, const std::map<CellList*, ChannelList>& srcChannels) const;
 };
 
-} // namespace NewInterface
+// } // namespace NewInterface
