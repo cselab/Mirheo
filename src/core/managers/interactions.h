@@ -8,9 +8,6 @@
 
 class LocalParticleVector;
 
-// namespace NewInterface
-// {
-
 class InteractionManager
 {
 public:
@@ -64,5 +61,3 @@ private:
     std::vector<std::string> _getActiveChannels(const ChannelList& channelList) const;
     std::vector<std::string> _getActiveChannelsFrom(ParticleVector *pv, const std::map<CellList*, ChannelList>& srcChannels) const;
 };
-
-// } // namespace NewInterface
