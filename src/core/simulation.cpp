@@ -5,7 +5,7 @@
 #include <core/initial_conditions/interface.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
-#include <core/managers/interactions.h>
+#include <core/managers/inter.h>
 #include <core/exchangers/api.h>
 #include <core/object_belonging/interface.h>
 #include <core/pvs/object_vector.h>
@@ -120,7 +120,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     rank(getRank(cartComm)),
     scheduler(std::make_unique<TaskScheduler>()),
     tasks(std::make_unique<SimulationTasks>()),
-    interactionManager(std::make_unique<InteractionManager>()),
+    interactionsIntermediate(std::make_unique<InteractionManager>()),
+    interactionsFinal(std::make_unique<InteractionManager>()),
     gpuAwareMPI(gpuAwareMPI)
 {
     createFoldersCollective(cartComm, checkpointInfo.folder);
@@ -222,7 +223,9 @@ float Simulation::getCurrentTime() const
 
 float Simulation::getMaxEffectiveCutoff() const
 {
-    return interactionManager->getMaxEffectiveCutoff();
+    const auto rcIntermediate = interactionsIntermediate->getLargestCutoff();
+    const auto rcFinal        = interactionsFinal       ->getLargestCutoff();
+    return rcIntermediate + rcFinal;
 }
 
 void Simulation::startProfiler() const
@@ -577,7 +580,10 @@ void Simulation::prepareInteractions()
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
-        interactionManager->add(inter, pv1, pv2, cl1, cl2);
+        if (inter->getStage() == Interaction::Stage::Intermediate)
+            interactionsIntermediate->add(inter, pv1, pv2, cl1, cl2);
+        else
+            interactionsFinal       ->add(inter, pv1, pv2, cl1, cl2);
     }
 }
 
@@ -719,11 +725,11 @@ void Simulation::prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = interactionManager->getLargestCellListNeededForIntermediate(pvPtr);
-        CellList *clOut = interactionManager->getLargestCellListNeededForFinal(pvPtr);
+        CellList *clInt = interactionsIntermediate ->getLargestCellList(pvPtr);
+        CellList *clOut = interactionsFinal        ->getLargestCellList(pvPtr);
 
-        auto extraInt = interactionManager->getExtraIntermediateChannels(pvPtr);
-        auto extraOut = interactionManager->getExtraFinalChannels(pvPtr);
+        auto extraInt = interactionsIntermediate->getOutputChannels(pvPtr);
+        auto extraOut = interactionsFinal       ->getOutputChannels(pvPtr);
 
         auto cl = cellListVec[0].get();
         
@@ -813,9 +819,14 @@ void Simulation::createTasks()
     {
         auto pvPtr = pv.get();
         scheduler->addTask(tasks->partClearIntermediate,
-                           [this, pvPtr] (cudaStream_t stream) { interactionManager->clearIntermediates(pvPtr, stream); } );
+                           [this, pvPtr] (cudaStream_t stream)
+        {
+            interactionsIntermediate->clearOutput(pvPtr, stream);
+            interactionsFinal       ->clearInput (pvPtr, stream);
+        } );
+
         scheduler->addTask(tasks->partClearFinal,
-                           [this, pvPtr] (cudaStream_t stream) { interactionManager->clearFinal(pvPtr, stream); } );
+                           [this, pvPtr] (cudaStream_t stream) { interactionsFinal->clearOutput(pvPtr, stream); } );
     }
 
     for (auto& pl : plugins)
@@ -879,38 +890,38 @@ void Simulation::createTasks()
 
     scheduler->addTask(tasks->localIntermediate,
                        [this] (cudaStream_t stream) {
-                           interactionManager->executeLocalIntermediate(stream);
+                           interactionsIntermediate->executeLocal(stream);
                        });
 
     scheduler->addTask(tasks->haloIntermediate,
                        [this] (cudaStream_t stream) {
-                           interactionManager->executeHaloIntermediate(stream);
+                           interactionsIntermediate->executeHalo(stream);
                        });
 
     scheduler->addTask(tasks->localForces,
                        [this] (cudaStream_t stream) {
-                           interactionManager->executeLocalFinal(stream);
+                           interactionsFinal->executeLocal(stream);
                        });
 
     scheduler->addTask(tasks->haloForces,
                        [this] (cudaStream_t stream) {
-                           interactionManager->executeHaloFinal(stream);
+                           interactionsFinal->executeHalo(stream);
                        });
     
 
     scheduler->addTask(tasks->gatherInteractionIntermediate,
                        [this] (cudaStream_t stream) {
-                           interactionManager->gatherIntermediate(stream);
+                           interactionsFinal->gatherInputToCells(stream);
                        });
 
     scheduler->addTask(tasks->accumulateInteractionIntermediate,
                        [this] (cudaStream_t stream) {
-                           interactionManager->accumulateIntermediates(stream);
+                           interactionsIntermediate->accumulateOutput(stream);
                        });
             
     scheduler->addTask(tasks->accumulateInteractionFinal,
                        [this] (cudaStream_t stream) {
-                           interactionManager->accumulateFinal(stream);
+                           interactionsFinal->accumulateOutput(stream);
                        });
 
 
@@ -931,22 +942,26 @@ void Simulation::createTasks()
     for (auto ov : objectVectors)
     {
         scheduler->addTask(tasks->objClearLocalIntermediate, [this, ov] (cudaStream_t stream) {
-            interactionManager->clearIntermediates(ov, stream);
-            interactionManager->clearIntermediatesPV(ov, ov->local(), stream);
+            interactionsIntermediate->clearOutput(ov, stream);
+            interactionsIntermediate->clearOutputLocalPV(ov, ov->local(), stream);
+
+            interactionsFinal->clearInput(ov, stream);
+            interactionsFinal->clearInputLocalPV(ov, ov->local(), stream);
         });
 
         scheduler->addTask(tasks->objClearHaloIntermediate, [this, ov] (cudaStream_t stream) {
-            interactionManager->clearIntermediatesPV(ov, ov->halo(), stream);
+            interactionsIntermediate->clearOutputLocalPV(ov, ov->halo(), stream);
+            interactionsFinal       ->clearInputLocalPV(ov, ov->halo(), stream);
         });
 
         scheduler->addTask(tasks->objClearLocalForces, [this, ov] (cudaStream_t stream) {
-            interactionManager->clearFinalPV(ov, ov->local(), stream);
-            interactionManager->clearFinal(ov, stream);
+            interactionsFinal->clearOutputLocalPV(ov, ov->local(), stream);
+            interactionsFinal->clearOutput(ov, stream);
             ov->local()->getMeshForces(stream)->clear(stream);
         });
 
         scheduler->addTask(tasks->objClearHaloForces, [this, ov] (cudaStream_t stream) {
-            interactionManager->clearFinalPV(ov, ov->halo(), stream);
+            interactionsFinal->clearOutputLocalPV(ov, ov->halo(), stream);
             ov->halo()->getMeshForces(stream)->clear(stream);
         });
     }
@@ -1143,7 +1158,8 @@ void Simulation::init()
     prepareBouncers();
     prepareWalls();
 
-    interactionManager->check();
+    // TODO
+    // interactionManager->check();
 
     CUDA_Check( cudaDeviceSynchronize() );
 

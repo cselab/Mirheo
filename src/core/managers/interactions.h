@@ -10,6 +10,9 @@ class ParticleVector;
 class LocalParticleVector;
 class CellList;
 
+namespace oldInterface
+{
+
 /**
  * Interaction manager.
  *
@@ -99,3 +102,5 @@ private:
     void _accumulateChannels(                    const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
     void _gatherChannels    (                    const std::map<CellList*, ChannelActivityList>& cellChannels, cudaStream_t stream) const;
 };
+
+} // namespace oldInterface

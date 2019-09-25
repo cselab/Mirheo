@@ -163,7 +163,7 @@ private:
     std::unique_ptr<TaskScheduler> scheduler;
     std::unique_ptr<SimulationTasks> tasks;
 
-    std::unique_ptr<InteractionManager> interactionManager;
+    std::unique_ptr<InteractionManager> interactionsIntermediate, interactionsFinal;
 
     const bool gpuAwareMPI;
 

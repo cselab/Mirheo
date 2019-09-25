@@ -4,6 +4,9 @@
 
 #include <set>
 
+namespace oldInterface
+{
+
 static void insertClist(CellList *cl, std::vector<CellList*>& clists)
 {
     auto it = std::find(clists.begin(), clists.end(), cl);
@@ -349,3 +352,5 @@ void InteractionManager::_gatherChannels(const std::map<CellList*, ChannelActivi
         cl->gatherChannels(activeChannels, stream);
     }
 }
+
+} // namespace oldInterface
