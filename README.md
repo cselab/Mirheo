@@ -18,6 +18,7 @@ For more information, please refer to the online documentation: http://mirheo.re
   * enable and fix warnings
   * fix initialization bugs
   * use forked [cselab/cuda_variant](https://github.com/cselab/cuda_variant)
+  * refactor interaction manager: one for each interaction stage
 
 ### v1.1.1
 
