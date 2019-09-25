@@ -38,6 +38,8 @@ public:
 
     void executeLocal(cudaStream_t stream);
     void executeHalo (cudaStream_t stream);
+
+    void checkCompatibleWith(const InteractionManager& next) const;
     
 private:
 

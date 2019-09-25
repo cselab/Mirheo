@@ -1174,8 +1174,7 @@ void Simulation::init()
     prepareBouncers();
     prepareWalls();
 
-    // TODO
-    // interactionManager->check();
+    interactionsIntermediate->checkCompatibleWith(*interactionsFinal);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
