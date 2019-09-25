@@ -27,15 +27,6 @@ void BasicInteractionDensity::setPrerequisites(ParticleVector *pv1, ParticleVect
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
 
-std::vector<Interaction::InteractionChannel> BasicInteractionDensity::getIntermediateOutputChannels() const
-{
-    return {{ChannelNames::densities, Interaction::alwaysActive}};
-}
-std::vector<Interaction::InteractionChannel> BasicInteractionDensity::getFinalOutputChannels() const
-{
-    return {};
-}
-
 std::vector<Interaction::InteractionChannel> BasicInteractionDensity::getOutputChannels() const
 {
     return {{ChannelNames::densities, Interaction::alwaysActive}};

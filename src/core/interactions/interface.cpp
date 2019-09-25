@@ -26,21 +26,6 @@ std::vector<Interaction::InteractionChannel> Interaction::getOutputChannels() co
     return {{ChannelNames::forces, alwaysActive}};
 }
 
-std::vector<Interaction::InteractionChannel> Interaction::getIntermediateOutputChannels() const
-{
-    return {};
-}
-
-std::vector<Interaction::InteractionChannel> Interaction::getIntermediateInputChannels() const
-{
-    return {};
-}
-
-std::vector<Interaction::InteractionChannel> Interaction::getFinalOutputChannels() const
-{
-    return {{ChannelNames::forces, alwaysActive}};
-}
-
 bool Interaction::isSelfObjectInteraction() const
 {
     return false;

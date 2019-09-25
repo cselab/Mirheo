@@ -97,26 +97,6 @@ public:
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
 
-
-    
-    /**
-     * describe what channels are produced as intermediate output for another interaction
-     * default: nothing
-     */
-    virtual std::vector<InteractionChannel> getIntermediateOutputChannels() const;
-
-    /**
-     * describe what channels are needed as intermediate input fror another interaction
-     * default: nothing
-     */
-    virtual std::vector<InteractionChannel> getIntermediateInputChannels() const;
-    
-    /**
-     * describe what channels are produced by the interaction 
-     * default: forces, always active
-     */
-    virtual std::vector<InteractionChannel> getFinalOutputChannels() const;
-
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
     

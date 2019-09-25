@@ -28,11 +28,6 @@ void InteractionDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, 
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
-std::vector<Interaction::InteractionChannel> InteractionDPD::getFinalOutputChannels() const
-{
-    return impl->getFinalOutputChannels();
-}
-
 std::vector<Interaction::InteractionChannel> InteractionDPD::getOutputChannels() const
 {
     return impl->getOutputChannels();

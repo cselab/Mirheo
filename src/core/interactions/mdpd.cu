@@ -37,16 +37,6 @@ void InteractionMDPD::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2,
     cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
 }
 
-std::vector<Interaction::InteractionChannel> InteractionMDPD::getIntermediateInputChannels() const
-{
-    return {{ChannelNames::densities, Interaction::alwaysActive}};
-}
-
-std::vector<Interaction::InteractionChannel> InteractionMDPD::getFinalOutputChannels() const
-{
-    return impl->getFinalOutputChannels();
-}
-
 std::vector<Interaction::InteractionChannel> InteractionMDPD::getInputChannels() const
 {
     return {{ChannelNames::densities, Interaction::alwaysActive}};

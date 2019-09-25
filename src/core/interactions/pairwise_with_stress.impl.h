@@ -74,17 +74,6 @@ public:
         interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));
     }
 
-    std::vector<InteractionChannel> getFinalOutputChannels() const override
-    {
-        auto activePredicateStress = [this]() {
-            float t = state->currentTime;
-            return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
-        };
-
-        return {{ChannelNames::forces, Interaction::alwaysActive},
-                {ChannelNames::stresses, activePredicateStress}};
-    }
-
     std::vector<InteractionChannel> getOutputChannels() const override
     {
         auto activePredicateStress = [this]() {
