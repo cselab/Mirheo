@@ -1,4 +1,4 @@
-#include "inter.h"
+#include "interactions.h"
 
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>

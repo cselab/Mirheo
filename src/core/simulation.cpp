@@ -5,7 +5,7 @@
 #include <core/initial_conditions/interface.h>
 #include <core/integrators/interface.h>
 #include <core/interactions/interface.h>
-#include <core/managers/inter.h>
+#include <core/managers/interactions.h>
 #include <core/exchangers/api.h>
 #include <core/object_belonging/interface.h>
 #include <core/pvs/object_vector.h>
