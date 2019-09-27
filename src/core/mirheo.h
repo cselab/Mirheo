@@ -96,6 +96,8 @@ public:
                                                                 int checkEvery,
                                                                 std::string inside = "",
                                                                 std::string outside = "");    
+
+    static void printCompileOptions();
     
 private:
     std::unique_ptr<Simulation> sim;

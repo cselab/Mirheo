@@ -617,3 +617,35 @@ void Mirheo::run(int nsteps)
 }
 
 
+void printCompileOptions()
+{
+    const std::string useNvtxOption = 
+#ifdef USE_NVTX
+        "ON"
+#else
+        "OFF"
+#endif
+        ;
+
+    const std::string membraneDoubleOption = 
+#ifdef MEMBRANE_DOUBLE
+        "ON"
+#else
+        "OFF"
+#endif
+        ;
+    
+    const std::string rodDoubleOption = 
+#ifdef ROD_DOUBLE
+        "ON"
+#else
+        "OFF"
+#endif
+        ;
+    
+    
+    info("compile time options:");
+    info("USE_NVTX        : %s", useNvtxOption       .c_str());
+    info("MEMBRANE_DOUBLE : %s", membraneDoubleOption.c_str());
+    info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
+}
