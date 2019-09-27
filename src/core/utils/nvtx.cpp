@@ -16,7 +16,7 @@ NvtxTracer::NvtxTracer(const std::string& name)
     int color_id = nameHash(name);
     color_id = color_id % NvtxHelpers::num_colors;
     
-    nvtxEventAttributes_t event = {0};
+    nvtxEventAttributes_t event = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     event.version       = NVTX_VERSION;
     event.size          = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
     event.colorType     = NVTX_COLOR_ARGB;
