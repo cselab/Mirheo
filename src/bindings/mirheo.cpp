@@ -302,5 +302,9 @@ void exportMirheo(py::module& m)
 
              Args:
                  niters: number of time steps to advance
+        )")
+        .def("log_compile_options", &Mirheo::logCompileOptions,
+             R"(
+             output compile times options in the log
         )");
 }

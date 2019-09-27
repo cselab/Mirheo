@@ -617,7 +617,7 @@ void Mirheo::run(int nsteps)
 }
 
 
-void printCompileOptions()
+void Mirheo::logCompileOptions() const
 {
     const std::string useNvtxOption = 
 #ifdef USE_NVTX

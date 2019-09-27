@@ -97,7 +97,7 @@ public:
                                                                 std::string inside = "",
                                                                 std::string outside = "");    
 
-    static void printCompileOptions();
+    void logCompileOptions() const;
     
 private:
     std::unique_ptr<Simulation> sim;
