@@ -12,7 +12,10 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* add function to log compile time options; this can be useful to make sure what was run exactly
+
 
 ### v1.1.2
 
