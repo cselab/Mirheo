@@ -134,6 +134,16 @@ Returns ``True`` if the current rank is the root
         """
         pass
 
+    def log_compile_options():
+        r"""log_compile_options(self: mirheo) -> None
+
+
+             output compile times options in the log
+        
+
+        """
+        pass
+
     def makeFrozenRigidParticles():
         r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interactions: List[Interaction], integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
 

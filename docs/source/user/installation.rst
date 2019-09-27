@@ -178,6 +178,13 @@ mir.make
 Wrapper used to compile Mirheo.
 It calls the ``make`` command and additionally loads the correct modules and pass optional CMake flags.
 The arguments are the same as the ``make`` command.
+The compilation options shown previously, or any cmake flag, can be passed through the ``CMAKE_FLAGS`` variable, e.g.:
+
+    .. code-block:: console
+
+       $ CMAKE_FLAGS="-DUSE_NVTX=ON"  mir.make
+
+
 
 mir.run
 ~~~~~~~
