@@ -11,14 +11,14 @@ namespace MagneticOrientationPluginKernels
 {
 __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.nObjects) return;
 
-    auto q = view.motions[gid].q;
+    const auto q = view.motions[gid].q;
 
     M = Quaternion::rotate(M, q);
 
-    float3 T = cross(M, B);
+    const float3 T = cross(M, B);
     
     view.motions[gid].torque += T;
 }
@@ -47,8 +47,8 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
     ROVview view(rov, rov->local());
     const int nthreads = 128;
 
-    auto t = state->currentTime;
-    float3 B = magneticFunction(t);
+    const auto t = state->currentTime;
+    const auto B = magneticFunction(t);
     
     SAFE_KERNEL_LAUNCH(
             MagneticOrientationPluginKernels::applyMagneticField,
