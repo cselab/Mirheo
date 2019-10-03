@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parameters.h"
+#include "kernels/parameters.h"
 
 #include <core/pvs/membrane_vector.h>
 #include <core/celllist.h>

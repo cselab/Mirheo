@@ -1,8 +1,8 @@
 #pragma once
 
 #include "interface.h"
-#include "membrane/forces_kernels.h"
-#include "membrane/parameters.h"
+#include "membrane/drivers.h"
+#include "membrane/kernels/parameters.h"
 #include "membrane/prerequisites.h"
 #include "utils/step_random_gen.h"
 

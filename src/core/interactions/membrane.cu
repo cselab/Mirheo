@@ -1,10 +1,10 @@
 #include "membrane.h"
 
-#include "membrane/common.h"
-#include "membrane/dihedral/kantor.h"
-#include "membrane/dihedral/juelicher.h"
-#include "membrane/triangle/lim.h"
-#include "membrane/triangle/wlc.h"
+#include "membrane/kernels/common.h"
+#include "membrane/kernels/dihedral/kantor.h"
+#include "membrane/kernels/dihedral/juelicher.h"
+#include "membrane/kernels/triangle/lim.h"
+#include "membrane/kernels/triangle/wlc.h"
 #include "membrane.impl.h"
 
 #include <core/pvs/membrane_vector.h>

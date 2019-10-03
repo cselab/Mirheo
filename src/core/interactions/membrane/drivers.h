@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "kernels/common.h"
 
 namespace MembraneForcesKernels
 {

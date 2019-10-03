@@ -1,7 +1,7 @@
 #pragma once
 
 #include "interface.h"
-#include "membrane/parameters.h"
+#include "membrane/kernels/parameters.h"
 
 #include <extern/variant/include/mpark/variant.hpp>
 
