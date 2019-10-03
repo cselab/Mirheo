@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include "pairwise/kernels.h"
+#include "pairwise/drivers.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>

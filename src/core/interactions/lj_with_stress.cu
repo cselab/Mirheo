@@ -1,7 +1,7 @@
 #include "lj_with_stress.h"
-#include "pairwise/interactions/lj.h"
-#include "pairwise/interactions/lj_object_aware.h"
-#include "pairwise/interactions/lj_rod_aware.h"
+#include "pairwise/kernels/lj.h"
+#include "pairwise/kernels/lj_object_aware.h"
+#include "pairwise/kernels/lj_rod_aware.h"
 #include "pairwise_with_stress.impl.h"
 
 #include <core/pvs/particle_vector.h>

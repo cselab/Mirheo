@@ -1,6 +1,6 @@
 #include "dpd.h"
 #include "pairwise.impl.h"
-#include "pairwise/interactions/dpd.h"
+#include "pairwise/kernels/dpd.h"
 
 #include <core/celllist.h>
 #include <core/pvs/particle_vector.h>

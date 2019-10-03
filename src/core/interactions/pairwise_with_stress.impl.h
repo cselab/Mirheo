@@ -2,7 +2,7 @@
 
 #include "interface.h"
 #include "pairwise.impl.h"
-#include "pairwise/interactions/stress_wrapper.h"
+#include "pairwise/kernels/stress_wrapper.h"
 
 #include <core/datatypes.h>
 #include <map>
