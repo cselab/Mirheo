@@ -6,7 +6,7 @@
 #include <core/logger.h>
 #include <core/containers.h>
 #include <core/interactions/pairwise.impl.h>
-#include <core/interactions/pairwise/interactions/norandom_dpd.h>
+#include <core/interactions/pairwise/kernels/norandom_dpd.h>
 #include <core/initial_conditions/uniform.h>
 
 #include <gtest/gtest.h>
