@@ -65,44 +65,44 @@ public:
     
     __D__ inline real3 operator()(real3 v1, real3 v2, real3 v3, EquilibriumTriangleDesc eq) const
     {
-        real3 x12 = v2 - v1;
-        real3 x13 = v3 - v1;
-        real3 x32 = v2 - v3;
+        const real3 x12 = v2 - v1;
+        const real3 x13 = v3 - v1;
+        const real3 x32 = v2 - v3;
 
-        real3 normalArea2 = cross(x12, x13);
-        real area = 0.5_r * length(normalArea2);
-        real area_inv = 1.0_r / area;
-        real area0_inv = 1.0_r / eq.a;
+        const real3 normalArea2 = cross(x12, x13);
+        const real area = 0.5_r * length(normalArea2);
+        const real area_inv = 1.0_r / area;
+        const real area0_inv = 1.0_r / eq.a;
 
-        real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x32);
+        const real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x32);
 
-        real alpha = area * area0_inv - 1;
-        real coeffAlpha = 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
+        const real alpha = area * area0_inv - 1;
+        const real coeffAlpha = 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
-        real3 fArea = coeffAlpha * derArea;
+        const real3 fArea = coeffAlpha * derArea;
         
-        real e0sq_A = dot(x12, x12) * area_inv;
-        real e1sq_A = dot(x13, x13) * area_inv;
+        const real e0sq_A = dot(x12, x12) * area_inv;
+        const real e1sq_A = dot(x13, x13) * area_inv;
 
-        real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
-        real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
+        const real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
+        const real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
-        real dotp = dot(x12, x13);
+        const real dotp = dot(x12, x13);
 
-        real dot_4A = 0.25_r * eq.dotp * area0_inv;
-        real mixed_v = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A);
-        real beta = mixed_v - dot_4A * dotp * area_inv - 1.0_r;
+        const real dot_4A = 0.25_r * eq.dotp * area0_inv;
+        const real mixed_v = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A);
+        const real beta = mixed_v - dot_4A * dotp * area_inv - 1.0_r;
 
-        real3 derBeta = area_inv * ((0.25_r * e1sq_A0 - dot_4A) * x12 +
-                                    (0.25_r * e0sq_A0 - dot_4A) * x13 +
-                                    (dot_4A * dotp * area_inv - mixed_v) * derArea);
+        const real3 derBeta = area_inv * ((0.25_r * e1sq_A0 - dot_4A) * x12 +
+                                          (0.25_r * e0sq_A0 - dot_4A) * x13 +
+                                          (dot_4A * dotp * area_inv - mixed_v) * derArea);
         
-        real3 derAlpha = area0_inv * derArea;
+        const real3 derAlpha = area0_inv * derArea;
             
-        real coefAlpha = eq.a * mu * b1 * beta;
-        real coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
+        const real coefAlpha = eq.a * mu * b1 * beta;
+        const real coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
-        real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
+        const real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
 
         return fArea + fShear;
     }
