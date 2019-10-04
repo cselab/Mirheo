@@ -1,9 +1,11 @@
 #pragma once
 
 #include "interface.h"
+
+#include <core/utils/pytypes.h>
+
 #include <memory>
 #include <limits>
-#include <core/utils/pytypes.h>
 
 class BasicInteractionSDPD : public Interaction
 {
