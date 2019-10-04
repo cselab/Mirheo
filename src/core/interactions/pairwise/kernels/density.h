@@ -19,18 +19,18 @@ public:
     
     PairwiseDensity(float rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),
-        densityKernel(densityKernel)
-    {
-        invrc = 1.0 / rc;
-    }
+        densityKernel(densityKernel),
+        invrc(1.0 / rc)
+    {}
 
     __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
-        float3 dr = dst.r - src.r;
-        float rij2 = dot(dr, dr);
-        if (rij2 > rc2) return 0.0f;
+        const float3 dr = dst.r - src.r;
+        const float rij2 = dot(dr, dr);
+        if (rij2 > rc2)
+            return 0.0f;
 
-        float rij = sqrtf(rij2);
+        const float rij = sqrtf(rij2);
 
         return densityKernel(rij, invrc);
     }
