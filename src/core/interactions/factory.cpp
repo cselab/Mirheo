@@ -82,7 +82,7 @@ private:
 
     float2 read(const std::string& key, Identity<float2>)
     {
-        auto v = read<std::vector<float>>(key);
+        const auto v = read<std::vector<float>>(key);
         if (v.size() != 2)
             die("%s must have 2 components", key.c_str());
         return {v[0], v[1]};
@@ -90,7 +90,7 @@ private:
 
     float3 read(const std::string& key, Identity<float3>)
     {
-        auto v = read<std::vector<float>>(key);
+        const auto v = read<std::vector<float>>(key);
         if (v.size() != 3)
             die("%s must have 3 components", key.c_str());
         return {v[0], v[1], v[2]};
@@ -300,14 +300,14 @@ InteractionFactory::createPairwiseDensity(const MirState *state, std::string nam
 {
     if (isSimpleMDPDDensity(density))
     {
-        SimpleMDPDDensityKernel densityKernel;
+        const SimpleMDPDDensityKernel densityKernel{};
         return std::make_shared<InteractionDensity<SimpleMDPDDensityKernel>>
                                 (state, name, rc, densityKernel);
     }
     
     if (isWendlandC2Density(density))
     {
-        WendlandC2DensityKernel densityKernel;
+        const WendlandC2DensityKernel densityKernel{};
         return std::make_shared<InteractionDensity<WendlandC2DensityKernel>>
                                 (state, name, rc, densityKernel);
     }
@@ -319,15 +319,15 @@ InteractionFactory::createPairwiseDensity(const MirState *state, std::string nam
 
 static LinearPressureEOS readLinearPressureEOS(ParametersWrap& desc)
 {
-    float c = desc.read<float>("sound_speed");
-    float r = desc.read<float>("rho_0");
+    const float c = desc.read<float>("sound_speed");
+    const float r = desc.read<float>("rho_0");
     return LinearPressureEOS(c, r);
 }
 
 static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(ParametersWrap& desc)
 {
-    float p0   = desc.read<float>("p0");
-    float rhor = desc.read<float>("rho_r");
+    const float p0   = desc.read<float>("p0");
+    const float rhor = desc.read<float>("rho_r");
     
     return QuasiIncompressiblePressureEOS(p0, rhor);
 }
@@ -406,7 +406,7 @@ InteractionFactory::createPairwiseDPD(const MirState *state, std::string name, f
     
     if (stress)
     {
-        float stressPeriod = readStressPeriod(desc);
+        const float stressPeriod = readStressPeriod(desc);
         desc.checkAllRead();
         return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
     }
@@ -423,7 +423,7 @@ InteractionFactory::createPairwiseMDPD(const MirState *state, std::string name, 
     
     if (stress)
     {
-        float stressPeriod = readStressPeriod(desc);
+        const float stressPeriod = readStressPeriod(desc);
         return std::make_shared<InteractionMDPDWithStress>(state, name, rc, rd, a, b, gamma, kbt, power, stressPeriod);
     }
 
@@ -445,11 +445,11 @@ InteractionFactory::createPairwiseLJ(const MirState *state, std::string name, fl
     else die("Invalid aware mode parameter '%s' in interaction '%s'", awareMode.c_str(), name.c_str());
 
     if (aMode == InteractionLJ::AwareMode::Rod)
-        minSegmentsDist = (int) desc.read<float>("min_segments_distance");
+        minSegmentsDist = static_cast<int>(desc.read<float>("min_segments_distance"));
     
     if (stress)
     {
-        float stressPeriod = readStressPeriod(desc);
+        const float stressPeriod = readStressPeriod(desc);
         desc.checkAllRead();
         return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
     }
