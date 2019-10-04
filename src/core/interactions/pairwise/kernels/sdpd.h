@@ -26,43 +26,44 @@ public:
     
     PairwiseSDPDHandler(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float kBT, float dt) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
+        inv_rc(1.0 / rc),
         pressure(pressure),
         densityKernel(densityKernel),
         fRfact(sqrt(2 * zeta * viscosity * kBT / dt)),
         fDfact(viscosity * zeta)
-    {
-        inv_rc = 1.0 / rc;
-    }
+    {}
 
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
-        float3 dr = dst.p.r - src.p.r;
-        float rij2 = dot(dr, dr);
-        if (rij2 > rc2) return make_float3(0.0f);
+        const float3 dr = dst.p.r - src.p.r;
+        const float rij2 = dot(dr, dr);
+
+        if (rij2 > rc2)
+            return make_float3(0.0f);
         
-        float di = dst.d;
-        float dj = src.d;
+        const float di = dst.d;
+        const float dj = src.d;
         
-        float pi = pressure(di * dst.m);
-        float pj = pressure(dj * src.m);
+        const float pi = pressure(di * dst.m);
+        const float pj = pressure(dj * src.m);
 
-        float inv_disq = 1.f / (di * di);
-        float inv_djsq = 1.f / (dj * dj);
+        const float inv_disq = 1.f / (di * di);
+        const float inv_djsq = 1.f / (dj * dj);
 
-        float inv_rij = rsqrtf(rij2);
-        float rij = rij2 * inv_rij;
-        float dWdr = densityKernel.derivative(rij, inv_rc);
+        const float inv_rij = rsqrtf(rij2);
+        const float rij = rij2 * inv_rij;
+        const float dWdr = densityKernel.derivative(rij, inv_rc);
 
-        float3 er = dr * inv_rij;
-        float3 du = dst.p.u - src.p.u;
-        float erdotdu = dot(er, du);
+        const float3 er = dr * inv_rij;
+        const float3 du = dst.p.u - src.p.u;
+        const float erdotdu = dot(er, du);
 
-        float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
+        const float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
 
-        float Aij = (inv_disq + inv_djsq) * dWdr;
-        float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
-        float fD = fDfact *        Aij * inv_rij  * erdotdu;
-        float fR = fRfact * sqrtf(-Aij * inv_rij) * myrandnr;
+        const float Aij = (inv_disq + inv_djsq) * dWdr;
+        const float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
+        const float fD = fDfact *        Aij * inv_rij  * erdotdu;
+        const float fR = fRfact * sqrtf(-Aij * inv_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
@@ -74,7 +75,7 @@ protected:
     static constexpr float zeta = 3 + 2;
 
     float inv_rc;
-    float seed;
+    float seed {0.f};
     PressureEOS pressure;
     DensityKernel densityKernel;
     float fDfact, fRfact;

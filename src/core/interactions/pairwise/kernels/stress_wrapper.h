@@ -26,8 +26,8 @@ public:
     
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
-        float3 dr = getPosition(dst) - getPosition(src);
-        float3 f  = BasicPairwiseForceHandler::operator()(dst, dstId, src, srcId);
+        const float3 dr = getPosition(dst) - getPosition(src);
+        const float3 f  = BasicPairwiseForceHandler::operator()(dst, dstId, src, srcId);
         Stress s;
         
         s.xx = 0.5f * dr.x * f.x;
@@ -35,7 +35,7 @@ public:
         s.xz = 0.5f * dr.x * f.z;
         s.yy = 0.5f * dr.y * f.y;
         s.yz = 0.5f * dr.y * f.z;
-        s.zz = 0.5f * dr.z * f.z;        
+        s.zz = 0.5f * dr.z * f.z;
 
         return {f, s};
     }

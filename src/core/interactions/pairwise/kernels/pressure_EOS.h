@@ -32,9 +32,9 @@ public:
 
     __D__ inline float operator()(float rho) const
     {
-        float r = rho / rhor;
-        float r3 = r*r*r;
-        float r7 = r3*r3*r;
+        const float r = rho / rhor;
+        const float r3 = r*r*r;
+        const float r7 = r3*r3*r;
         return p0 * (r7 - 1.f);
     }
 

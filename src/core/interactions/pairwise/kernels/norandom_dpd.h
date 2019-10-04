@@ -24,11 +24,10 @@ public:
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
-        power(power)
-    {
-        sigma = sqrt(2 * gamma * kBT / dt);
-        invrc = 1.0 / rc;
-    }
+        sigma(sqrt(2 * gamma * kBT / dt)),
+        power(power),
+        invrc(1.0 / rc)
+    {}
 
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {

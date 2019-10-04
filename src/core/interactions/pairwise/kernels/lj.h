@@ -22,11 +22,9 @@ public:
         ParticleFetcher(rc),
         epsilon(epsilon),
         sigma(sigma),
-        maxForce(maxForce)
-    {
-        epsx24_sigma = 24.0*epsilon/sigma;
-        rc2 = rc*rc;
-    }
+        maxForce(maxForce),
+        epsx24_sigma(24.0 * epsilon / sigma)
+    {}
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {

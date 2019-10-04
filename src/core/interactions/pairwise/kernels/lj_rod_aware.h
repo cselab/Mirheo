@@ -25,13 +25,13 @@ public:
     {
         if (self)
         {
-            int dstObjId = dst.i1 / objSize;
-            int srcObjId = src.i1 / objSize;
+            const int dstObjId = dst.i1 / objSize;
+            const int srcObjId = src.i1 / objSize;
 
             if (dstObjId == srcObjId)
             {
-                int srcSegId = (dst.i1 % objSize) / 5;
-                int dstSegId = (src.i1 % objSize) / 5;
+                const int srcSegId = (dst.i1 % objSize) / 5;
+                const int dstSegId = (src.i1 % objSize) / 5;
 
                 if (abs(srcSegId - dstSegId) <= minSegmentsDist)
                     return make_float3(0.0f);
