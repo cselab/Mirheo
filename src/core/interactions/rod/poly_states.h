@@ -1,8 +1,8 @@
 #pragma once
 
-#include "parameters.h"
-#include "forces_kernels.h"
-#include "states_kernels.h"
+#include "kernels/parameters.h"
+#include "drivers_forces.h"
+#include "drivers_states.h"
 
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/views/rv.h>

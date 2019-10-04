@@ -1,9 +1,9 @@
 #pragma once
 
 #include "interface.h"
-#include "rod/forces_kernels.h"
-#include "rod/states_kernels.h"
-#include "rod/parameters.h"
+#include "rod/drivers_forces.h"
+#include "rod/drivers_states.h"
+#include "rod/kernels/parameters.h"
 #include "rod/poly_states.h"
 
 #include <core/pvs/rod_vector.h>

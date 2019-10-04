@@ -1,7 +1,7 @@
 #pragma once
 
 #include "interface.h"
-#include "rod/parameters.h"
+#include "rod/kernels/parameters.h"
 
 #include <extern/variant/include/mpark/variant.hpp>
 

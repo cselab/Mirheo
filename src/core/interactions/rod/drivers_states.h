@@ -1,7 +1,7 @@
 #pragma once
 
-#include "real.h"
-#include "bisegment.h"
+#include "kernels/real.h"
+#include "kernels/bisegment.h"
 
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/views/rv.h>
