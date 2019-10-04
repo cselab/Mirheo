@@ -326,10 +326,12 @@ void exportPlugins(py::module& m)
         
         .. math::
         
-            \mathbf{F} = \mathbf{\nabla}_{sdf} \cdot \begin{cases}
-                0, & sdf < -h\\
-                \min(F_{max}, C (sdf + h)), & sdf \geqslant -h\\
+            \mathbf{F}(\mathbf{r}) = \mathbf{\nabla}S(\mathbf{r}) \cdot \begin{cases}
+                0, & S(\mathbf{r}) < -h,\\
+                \min(F_\text{max}, C (S(\mathbf{r}) + h)), & S(\mathbf{r}) \geqslant -h,\\
             \end{cases}
+
+        where :math:`S` is the SDF of the wall, :math:`C`, :math:`F_\text{max}` and :math:`h` are parameters.
     )");
 
     
