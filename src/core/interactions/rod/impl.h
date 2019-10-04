@@ -1,11 +1,11 @@
 #pragma once
 
-#include "interface.h"
-#include "rod/drivers_forces.h"
-#include "rod/drivers_states.h"
-#include "rod/kernels/parameters.h"
-#include "rod/poly_states.h"
+#include "drivers_forces.h"
+#include "drivers_states.h"
+#include "kernels/parameters.h"
+#include "poly_states.h"
 
+#include <core/interactions/interface.h>
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/views/rv.h>
 #include <core/utils/cpu_gpu_defines.h>
