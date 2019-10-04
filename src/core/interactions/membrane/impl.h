@@ -1,11 +1,12 @@
 #pragma once
 
-#include "interface.h"
-#include "membrane/drivers.h"
-#include "membrane/kernels/parameters.h"
-#include "membrane/prerequisites.h"
-#include "utils/step_random_gen.h"
 
+#include "drivers.h"
+#include "kernels/parameters.h"
+#include "prerequisites.h"
+
+#include <core/interactions/interface.h>
+#include <core/interactions/utils/step_random_gen.h>
 #include <core/pvs/membrane_vector.h>
 #include <core/pvs/views/ov.h>
 #include <core/utils/cuda_common.h>
