@@ -22,11 +22,11 @@ public:
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensity;
     
-    PairwiseMDPDHandler(float rc, float rd, float a, float b, float gamma, float kbT, float dt, float power) :
+    PairwiseMDPDHandler(float rc, float rd, float a, float b, float gamma, float kBT, float dt, float power) :
         ParticleFetcherWithVelocityAndDensity(rc),
         rd(rd), a(a), b(b), gamma(gamma), power(power)
     {
-        sigma = sqrt(2 * gamma * kbT / dt);
+        sigma = sqrt(2 * gamma * kBT / dt);
         invrc = 1.0 / rc;
         invrd = 1.0 / rd;
     }
@@ -70,8 +70,8 @@ public:
 
     using HandlerType = PairwiseMDPDHandler;
     
-    PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kbT, float dt, float power, long seed = 42424242) :
-        PairwiseMDPDHandler(rc, rd, a, b, gamma, kbT, dt, power),
+    PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kBT, float dt, float power, long seed = 42424242) :
+        PairwiseMDPDHandler(rc, rd, a, b, gamma, kBT, dt, power),
         stepGen(seed)
     {}
 

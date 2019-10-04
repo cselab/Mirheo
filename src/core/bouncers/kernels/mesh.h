@@ -386,7 +386,7 @@ float3 barycentric(Triangle tr, float3 p)
  * Reflect the velocity, in the triangle's reference frame
  */
 __device__ inline
-float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2)
+float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2)
 {
     const int maxTries = 50;
     // reflection with random scattering
@@ -403,7 +403,7 @@ float3 reflectVelocity(float3 n, float kbT, float mass, float seed1, float seed2
         float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
         r = make_float3(rand3.x, rand3.y, rand4.x);
     }
-    r = normalize(r) * sqrtf(kbT / mass);
+    r = normalize(r) * sqrtf(kBT / mass);
 
     return r;
 }
@@ -480,7 +480,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
                              MeshView mesh,
                              int nCollisions, int2 *collisionTable, int *collisionTimes,
                              const float dt,
-                             float kbT, float seed1, float seed2)
+                             float kBT, float seed1, float seed2)
 {
     constexpr float eps = 5e-5f;
 
@@ -518,7 +518,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 
     // new velocity relative to the triangle speed
-    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kbT, pvView.mass, seed1, seed2 );
+    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kBT, pvView.mass, seed1, seed2 );
 
     float3 f0, f1, f2;
     triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);

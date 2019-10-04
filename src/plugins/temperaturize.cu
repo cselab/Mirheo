@@ -7,7 +7,7 @@
 #include <core/utils/cuda_rng.h>
 #include <core/utils/kernel_launch.h>
 
-__global__ void applyTemperature(PVview view, float kbT, float seed1, float seed2, bool keepVelocity)
+__global__ void applyTemperature(PVview view, float kBT, float seed1, float seed2, bool keepVelocity)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
@@ -15,7 +15,7 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
     float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
     float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
-    float3 vel = sqrtf(kbT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
+    float3 vel = sqrtf(kBT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
 
     Float3_int u(view.readVelocity(gid));
     if (keepVelocity) u.v += vel;
@@ -24,10 +24,10 @@ __global__ void applyTemperature(PVview view, float kbT, float seed1, float seed
     view.writeVelocity(gid, u.toFloat4());
 }
 
-TemperaturizePlugin::TemperaturizePlugin(const MirState *state, std::string name, std::string pvName, float kbT, bool keepVelocity) :
+TemperaturizePlugin::TemperaturizePlugin(const MirState *state, std::string name, std::string pvName, float kBT, bool keepVelocity) :
     SimulationPlugin(state, name),
     pvName(pvName),
-    kbT(kbT),
+    kBT(kBT),
     keepVelocity(keepVelocity)
 {}
 
@@ -47,6 +47,6 @@ void TemperaturizePlugin::beforeForces(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             applyTemperature,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, kbT, drand48(), drand48(), keepVelocity );
+            view, kBT, drand48(), drand48(), keepVelocity );
 }
 

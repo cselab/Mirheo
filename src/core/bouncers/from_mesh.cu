@@ -11,12 +11,12 @@
 /**
  * Create the bouncer
  * @param name unique bouncer name
- * @param kbT temperature which will be used to create a particle
+ * @param kBT temperature which will be used to create a particle
  * velocity after the bounce, @see performBouncing()
  */
-BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kbT) :
+BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kBT) :
     Bouncer(state, name),
-    kbT(kbT)
+    kBT(kBT)
 {}
 
 BounceFromMesh::~BounceFromMesh() = default;
@@ -160,7 +160,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-            state->dt, kbT, drand48(), drand48() );
+            state->dt, kBT, drand48(), drand48() );
 
     if (rov != nullptr)
     {

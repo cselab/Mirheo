@@ -20,15 +20,14 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    PairwiseDPDHandler(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseDPDHandler(float rc, float a, float gamma, float kBT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
-        power(power)
-    {
-        sigma = sqrt(2 * gamma * kbT / dt);
-        invrc = 1.0 / rc;
-    }
+        sigma(sqrt(2.0 * gamma * kBT / dt)),
+        power(power),
+        invrc(1.0 / rc)
+    {}
     
     __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
@@ -67,8 +66,8 @@ public:
 
     using HandlerType = PairwiseDPDHandler;
     
-    PairwiseDPD(float rc, float a, float gamma, float kbT, float dt, float power, long seed=42424242) :
-        PairwiseDPDHandler(rc, a, gamma, kbT, dt, power),
+    PairwiseDPD(float rc, float a, float gamma, float kBT, float dt, float power, long seed=42424242) :
+        PairwiseDPDHandler(rc, a, gamma, kBT, dt, power),
         stepGen(seed)
     {}
 

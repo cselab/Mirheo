@@ -15,7 +15,7 @@ class BounceFromMesh : public Bouncer
 {
 public:
 
-    BounceFromMesh(const MirState *state, std::string name, float kbT);
+    BounceFromMesh(const MirState *state, std::string name, float kBT);
     ~BounceFromMesh();
 
     void setPrerequisites(ParticleVector *pv) override;
@@ -43,7 +43,7 @@ private:
     // note that times are always positive, thus guarantees ordering
     DeviceBuffer<int> collisionTimes;
 
-    float kbT;
+    float kBT;
 
     RigidObjectVector *rov;
 

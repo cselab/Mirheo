@@ -18,7 +18,7 @@ __global__ void applyProfile(
         const int* relevantCells, const int nRelevantCells,
         float3 low, float3 high,
         float3 targetVel,
-        float kbT, float invMass, float seed1, float seed2)
+        float kBT, float invMass, float seed1, float seed2)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= nRelevantCells) return;
@@ -36,7 +36,7 @@ __global__ void applyProfile(
             float2 rand1 = Saru::normal2(seed1 + pid, threadIdx.x, blockIdx.x);
             float2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
 
-            p.u = targetVel + sqrtf(kbT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
+            p.u = targetVel + sqrtf(kBT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
             view.writeParticle(pid, p);
         }
     }
@@ -66,8 +66,8 @@ __global__ void getRelevantCells(
 }
 
 ImposeProfilePlugin::ImposeProfilePlugin(const MirState *state, std::string name, std::string pvName,
-                                         float3 low, float3 high, float3 targetVel, float kbT) :
-    SimulationPlugin(state, name), pvName(pvName), low(low), high(high), targetVel(targetVel), kbT(kbT)
+                                         float3 low, float3 high, float3 targetVel, float kBT) :
+    SimulationPlugin(state, name), pvName(pvName), low(low), high(high), targetVel(targetVel), kBT(kBT)
 {}
 
 void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -82,7 +82,7 @@ void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 
     debug("Setting up pluging '%s' to impose uniform profile with velocity [%f %f %f]"
           " and temperature %f in a box [%.2f %.2f %.2f] - [%.2f %.2f %.2f] for PV '%s'",
-          name.c_str(), targetVel.x, targetVel.y, targetVel.z, kbT,
+          name.c_str(), targetVel.x, targetVel.y, targetVel.z, kBT,
           low.x, low.y, low.z, high.x, high.y, high.z, pv->name.c_str());
 
     low  = state->domain.global2local(low);
@@ -118,7 +118,7 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
             getNblocks(nRelevantCells[0], nthreads), nthreads, 0, stream,
 
             cl->cellInfo(), cl->getView<PVview>(), relevantCells.devPtr(), nRelevantCells[0], low, high, targetVel,
-            kbT, 1.0f / pv->mass, drand48(), drand48() );
+            kBT, 1.0f / pv->mass, drand48(), drand48() );
 }
 
 

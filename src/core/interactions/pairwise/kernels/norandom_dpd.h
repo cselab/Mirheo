@@ -20,13 +20,13 @@ public:
     using ParticleType = Particle;
     using HandlerType  = PairwiseNorandomDPD;
     
-    PairwiseNorandomDPD(float rc, float a, float gamma, float kbT, float dt, float power) :
+    PairwiseNorandomDPD(float rc, float a, float gamma, float kBT, float dt, float power) :
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
         power(power)
     {
-        sigma = sqrt(2 * gamma * kbT / dt);
+        sigma = sqrt(2 * gamma * kBT / dt);
         invrc = 1.0 / rc;
     }
 

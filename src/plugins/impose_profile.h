@@ -14,7 +14,7 @@ class ImposeProfilePlugin : public SimulationPlugin
 {
 public:
     ImposeProfilePlugin(const MirState *state, std::string name, std::string pvName,
-                        float3 low, float3 high, float3 targetVel, float kbT);
+                        float3 low, float3 high, float3 targetVel, float kBT);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
@@ -28,7 +28,7 @@ private:
 
     float3 high, low;
     float3 targetVel;
-    float kbT;
+    float kBT;
 
     PinnedBuffer<int> nRelevantCells{1};
     DeviceBuffer<int> relevantCells;
