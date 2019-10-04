@@ -1,6 +1,6 @@
 #include "density.h"
 
-#include "pairwise.impl.h"
+#include "pairwise/impl.h"
 #include "pairwise/kernels/density.h"
 
 #include <core/celllist.h>

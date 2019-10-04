@@ -1,5 +1,5 @@
 #include "dpd_with_stress.h"
-#include "pairwise_with_stress.impl.h"
+#include "pairwise/impl.stress.h"
 #include "pairwise/kernels/dpd.h"
 
 #include <core/pvs/particle_vector.h>

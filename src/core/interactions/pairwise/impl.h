@@ -1,10 +1,9 @@
 #pragma once
 
-#include "interface.h"
-
-#include "pairwise/drivers.h"
+#include "drivers.h"
 
 #include <core/celllist.h>
+#include <core/interactions/interface.h>
 #include <core/pvs/object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>

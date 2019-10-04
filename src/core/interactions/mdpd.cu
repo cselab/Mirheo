@@ -1,6 +1,6 @@
 #include "mdpd.h"
 
-#include "pairwise.impl.h"
+#include "pairwise/impl.h"
 #include "pairwise/kernels/mdpd.h"
 
 #include <core/celllist.h>

@@ -1,6 +1,6 @@
 #include "sdpd.h"
 
-#include "pairwise.impl.h"
+#include "pairwise/impl.h"
 #include "pairwise/kernels/density.h"
 #include "pairwise/kernels/sdpd.h"
 

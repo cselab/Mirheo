@@ -1,5 +1,5 @@
 #include "dpd.h"
-#include "pairwise.impl.h"
+#include "pairwise/impl.h"
 #include "pairwise/kernels/dpd.h"
 
 #include <core/celllist.h>

@@ -1,5 +1,5 @@
 #include "lj.h"
-#include "pairwise.impl.h"
+#include "pairwise/impl.h"
 #include "pairwise/kernels/lj.h"
 #include "pairwise/kernels/lj_object_aware.h"
 #include "pairwise/kernels/lj_rod_aware.h"

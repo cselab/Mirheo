@@ -1,10 +1,11 @@
 #pragma once
 
-#include "interface.h"
-#include "pairwise.impl.h"
-#include "pairwise/kernels/stress_wrapper.h"
+#include "impl.h"
+#include "kernels/stress_wrapper.h"
 
 #include <core/datatypes.h>
+#include <core/interactions/interface.h>
+
 #include <map>
 
 template<class PairwiseInteraction>
