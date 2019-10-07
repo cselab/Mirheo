@@ -3,6 +3,7 @@
 #include "accumulators/force.h"
 #include "fetchers.h"
 #include "interface.h"
+#include "parameters.h"
 
 #include <core/mirheo_state.h>
 #include <core/pvs/object_vector.h>
@@ -11,6 +12,8 @@
 struct LJAwarenessNone
 {
     LJAwarenessNone() = default;
+    LJAwarenessNone(__UNUSED const LJAwarenessParamsNone& params) {}
+    
     void setup(__UNUSED LocalParticleVector *lpv1, __UNUSED LocalParticleVector *lpv2) {}
     __D__ inline bool interact(__UNUSED int srcId, __UNUSED int dstId) const {return true;}
 };
@@ -18,6 +21,7 @@ struct LJAwarenessNone
 struct LJAwarenessObject
 {
     LJAwarenessObject() = default;
+    LJAwarenessObject(__UNUSED const LJAwarenessParamsObject& params) {}
     
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
@@ -53,6 +57,10 @@ struct LJAwarenessRod
 {
     LJAwarenessRod(int minSegmentsDist) :
         minSegmentsDist(minSegmentsDist)
+    {}
+
+    LJAwarenessRod(const LJAwarenessParamsRod& params) :
+        LJAwarenessRod(params.minSegmentsDist)
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
