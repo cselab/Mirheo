@@ -1,7 +1,8 @@
 #pragma once
 
+#include "parameters_wrap.h"
+
 #include <core/mirheo_state.h>
-#include <core/utils/pytypes.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 #include <map>
