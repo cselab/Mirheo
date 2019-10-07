@@ -57,3 +57,11 @@ struct requiresDensity<PairwiseSDPD<T0, T1>>
     static constexpr bool value = true;
 };
 
+
+
+template <class T>
+struct isFinal
+{
+    static constexpr bool value = outputsForce<T>::value;
+};
+
