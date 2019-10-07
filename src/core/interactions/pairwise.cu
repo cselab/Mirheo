@@ -106,4 +106,43 @@ PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::strin
 
 PairwiseInteraction::~PairwiseInteraction() = default;
 
+void PairwiseInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+{
+    impl->setPrerequisites(pv1, pv2, cl1, cl2);
+}
+    
+void PairwiseInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+{
+    impl->local(pv1, pv2, cl1, cl2, stream);
+}
 
+void PairwiseInteraction::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+{
+    impl->halo(pv1, pv2, cl1, cl2, stream);
+}
+
+
+Interaction::Stage PairwiseInteraction::getStage() const
+{
+    return impl->getStage();
+}
+
+std::vector<Interaction::InteractionChannel> PairwiseInteraction::getInputChannels() const
+{
+    return impl->getInputChannels();
+}
+
+std::vector<Interaction::InteractionChannel> PairwiseInteraction::getOutputChannels() const
+{
+    return impl->getOutputChannels();
+}
+
+void PairwiseInteraction::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    return impl->checkpoint(comm, path, checkpointId);
+}
+
+void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
+{
+    return impl->restart(comm, path);
+}
