@@ -1,8 +1,6 @@
 #include "lj.h"
 #include "pairwise/impl.h"
 #include "pairwise/kernels/lj.h"
-#include "pairwise/kernels/lj_object_aware.h"
-#include "pairwise/kernels/lj_rod_aware.h"
 
 #include <core/celllist.h>
 
@@ -18,18 +16,18 @@ InteractionLJ::InteractionLJ(const MirState *state, std::string name, float rc, 
 
     if (awareness == AwareMode::None)
     {
-        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<PairwiseLJ>> (state, name, rc, lj);
+        PairwiseLJ<LJAwarenessNone> lj(rc, epsilon, sigma, maxForce, {});
+        impl = std::make_unique<InteractionPair<PairwiseLJ<LJAwarenessNone>>> (state, name, rc, lj);
     }
     else if (awareness == AwareMode::Object)
     {
-        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
-        impl = std::make_unique<InteractionPair<PairwiseLJObjectAware>> (state, name, rc, lj);
+        PairwiseLJ<LJAwarenessObject> lj(rc, epsilon, sigma, maxForce, {});
+        impl = std::make_unique<InteractionPair<PairwiseLJ<LJAwarenessObject>>> (state, name, rc, lj);
     }
     else 
     {
-        PairwiseLJRodAware lj(rc, epsilon, sigma, maxForce, minSegmentsDist);
-        impl = std::make_unique<InteractionPair<PairwiseLJRodAware>> (state, name, rc, lj);
+        PairwiseLJ<LJAwarenessRod> lj(rc, epsilon, sigma, maxForce, {minSegmentsDist});
+        impl = std::make_unique<InteractionPair<PairwiseLJ<LJAwarenessRod>>> (state, name, rc, lj);
     }
 }
 
@@ -69,20 +67,20 @@ void InteractionLJ::setSpecificPair(ParticleVector* pv1, ParticleVector* pv2,
 {
     if (awareness == AwareMode::None)
     {
-        PairwiseLJ lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair<PairwiseLJ>* >(impl.get());
+        PairwiseLJ<LJAwarenessNone> lj(rc, epsilon, sigma, maxForce, {});
+        auto ptr = static_cast< InteractionPair<PairwiseLJ<LJAwarenessNone>>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
     else if (awareness == AwareMode::Object)
     {
-        PairwiseLJObjectAware lj(rc, epsilon, sigma, maxForce);
-        auto ptr = static_cast< InteractionPair<PairwiseLJObjectAware>* >(impl.get());
+        PairwiseLJ<LJAwarenessObject> lj(rc, epsilon, sigma, maxForce, {});
+        auto ptr = static_cast< InteractionPair<PairwiseLJ<LJAwarenessObject>>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
     else
     {
-        PairwiseLJRodAware lj(rc, epsilon, sigma, maxForce, minSegmentsDist);
-        auto ptr = static_cast< InteractionPair<PairwiseLJRodAware>* >(impl.get());
+        PairwiseLJ<LJAwarenessRod> lj(rc, epsilon, sigma, maxForce, {minSegmentsDist});
+        auto ptr = static_cast< InteractionPair<PairwiseLJ<LJAwarenessRod>>* >(impl.get());
         ptr->setSpecificPair(pv1->name, pv2->name, lj);
     }
 }
