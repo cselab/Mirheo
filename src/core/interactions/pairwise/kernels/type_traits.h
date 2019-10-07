@@ -4,12 +4,26 @@
 
 template <typename T>
 struct needSelfInteraction
-{ static const bool value = false; };
+{ static constexpr bool value = false; };
 
 template <>
 struct needSelfInteraction<WendlandC2DensityKernel>
-{ static const bool value = true; };
+{ static constexpr bool value = true; };
 
 template <typename T>
 struct needSelfInteraction<PairwiseDensity<T>>
-{ static const bool value = needSelfInteraction<T>::value; };
+{ static constexpr bool value = needSelfInteraction<T>::value; };
+
+
+
+template <class T>
+struct outputsForce
+{
+    static constexpr bool value = true;
+};
+
+template <class T>
+struct outputsForce<PairwiseDensity<T>>
+{
+    static constexpr bool value = false;
+};
