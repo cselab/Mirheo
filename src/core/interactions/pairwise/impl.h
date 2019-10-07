@@ -16,18 +16,31 @@
 /**
  * Implementation of short-range symmetric pairwise interactions
  */
-template<class PairwiseInteraction>
+template<class PairwiseKernel>
 class InteractionPair : public Interaction
 {
 public:
     
-    InteractionPair(const MirState *state, std::string name, float rc, PairwiseInteraction pair) :
+    InteractionPair(const MirState *state, std::string name, float rc, PairwiseKernel pair) :
         Interaction(state, name, rc),
         defaultPair(pair)
     {}
     
     ~InteractionPair() = default;
 
+    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
+    {
+        if (outputsDensity <PairwiseKernel>::value ||
+            requiresDensity<PairwiseKernel>::value   )
+        {
+            pv1->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
+            pv2->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
+            
+            cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
+            cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
+        }
+    }
+    
     /**
      * Interface to computeLocal().
      */
@@ -81,8 +94,39 @@ public:
         if (pv1 != pv2)
             computeHalo(pv2, pv1, cl2, cl1, stream);
     }
+
+    Stage getStage() const override
+    {
+        if (isFinal<PairwiseKernel>::value)
+            return Stage::Final;
+        else
+            return Stage::Intermediate;
+    }
+
+    std::vector<InteractionChannel> getInputChannels() const override
+    {
+        std::vector<InteractionChannel> channels;
+        
+        if (requiresDensity<PairwiseKernel>::value)
+            channels.push_back({ChannelNames::densities, Interaction::alwaysActive});
+
+        return channels;
+    }
+
+    std::vector<InteractionChannel> getOutputChannels() const override
+    {
+        std::vector<InteractionChannel> channels;
+        
+        if (outputsDensity<PairwiseKernel>::value)
+            channels.push_back({ChannelNames::densities, Interaction::alwaysActive});
+
+        if (outputsForce<PairwiseKernel>::value)
+            channels.push_back({ChannelNames::forces, Interaction::alwaysActive});
+
+        return channels;
+    }
     
-    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
+    void setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
     {
         intMap.insert({{pv1name, pv2name}, pair});
         intMap.insert({{pv2name, pv1name}, pair});
@@ -118,8 +162,8 @@ public:
 
 private:
 
-    PairwiseInteraction defaultPair;
-    std::map< std::pair<std::string, std::string>, PairwiseInteraction > intMap;
+    PairwiseKernel defaultPair;
+    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap;
 
 private:
 
@@ -167,8 +211,8 @@ private:
      */
     void computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
     {
-        auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
-        using ViewType = typename PairwiseInteraction::ViewType;
+        auto& pair = getPairwiseKernel(pv1->name, pv2->name);
+        using ViewType = typename PairwiseKernel::ViewType;
 
         pair.setup(pv1->local(), pv2->local(), cl1, cl2, state);
 
@@ -207,8 +251,8 @@ private:
      */
     void computeHalo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
-        auto& pair = getPairwiseInteraction(pv1->name, pv2->name);
-        using ViewType = typename PairwiseInteraction::ViewType;
+        auto& pair = getPairwiseKernel(pv1->name, pv2->name);
+        using ViewType = typename PairwiseKernel::ViewType;
 
         pair.setup(pv1->halo(), pv2->local(), cl1, cl2, state);
 
@@ -227,14 +271,16 @@ private:
                 CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair.handler() );
     }
 
-    PairwiseInteraction& getPairwiseInteraction(std::string pv1name, std::string pv2name)
+    PairwiseKernel& getPairwiseKernel(const std::string& pv1name, const std::string& pv2name)
     {
         auto it = intMap.find({pv1name, pv2name});
-        if (it != intMap.end()) {
+        if (it != intMap.end())
+        {
             debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
             return it->second;
         }
-        else {
+        else
+        {
             debug("Using default parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
             return defaultPair;
         }

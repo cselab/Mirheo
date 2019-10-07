@@ -8,26 +8,23 @@
 
 #include <map>
 
-template<class PairwiseInteraction>
+template<class PairwiseKernel>
 class InteractionPair_withStress : public Interaction
 {
 public:
-    enum class InteractionType { Regular, Halo };
-
-    InteractionPair_withStress(const MirState *state, std::string name, float rc, float stressPeriod, PairwiseInteraction pair) :
+    InteractionPair_withStress(const MirState *state, std::string name, float rc, float stressPeriod, PairwiseKernel pair) :
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
-        interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseInteraction>(pair))
+        interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseKernel>(pair))
     {}
 
     ~InteractionPair_withStress() = default;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        info("Interaction '%s' requires channel '%s' from PVs '%s' and '%s'",
-              name.c_str(), ChannelNames::stresses.c_str(), pv1->name.c_str(), pv2->name.c_str());
-
+        interaction.setPrerequisites(pv1, pv2, cl1, cl2);
+        
         pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
         pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
 
@@ -35,9 +32,9 @@ public:
         cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
     }
 
-    void local (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
+    void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        float t = state->currentTime;
+        const float t = state->currentTime;
         
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -54,7 +51,7 @@ public:
     
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        float t = state->currentTime;
+        const float t = state->currentTime;
     
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -69,21 +66,30 @@ public:
         }
     }
 
-    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseInteraction pair)
+    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseKernel pair)
     {
         interaction.          setSpecificPair(pv1name, pv2name, pair);
-        interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseInteraction>(pair));
+        interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseKernel>(pair));
     }
 
+    std::vector<InteractionChannel> getInputChannels() const override
+    {
+        return interaction.getInputChannels();
+    }
+    
     std::vector<InteractionChannel> getOutputChannels() const override
     {
-        auto activePredicateStress = [this]() {
-            float t = state->currentTime;
+        auto channels = interaction.getOutputChannels();
+        
+        auto activePredicateStress = [this]()
+        {
+            const float t = state->currentTime;
             return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
         };
 
-        return {{ChannelNames::forces, Interaction::alwaysActive},
-                {ChannelNames::stresses, activePredicateStress}};
+        channels.push_back({ChannelNames::stresses, activePredicateStress});
+
+        return channels;
     }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
@@ -103,6 +109,6 @@ private:
     float stressPeriod;
     float lastStressTime{-1e6};
 
-    InteractionPair<PairwiseInteraction> interaction;
-    InteractionPair<PairwiseStressWrapper<PairwiseInteraction>> interactionWithStress;
+    InteractionPair<PairwiseKernel> interaction;
+    InteractionPair<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;
 };
