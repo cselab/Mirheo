@@ -26,12 +26,13 @@ class PairwiseSDPD;
 
 struct DPDParams
 {
+    using KernelType = PairwiseDPD;
     float a, gamma, kBT, power, dt;
 };
 
-struct LJAwarenessParamsNone   {};
-struct LJAwarenessParamsObject {};
-struct LJAwarenessParamsRod   {};
+struct LJAwarenessParamsNone   {using KernelType = PairwiseLJ;};
+struct LJAwarenessParamsObject {using KernelType = PairwiseLJObjectAware;};
+struct LJAwarenessParamsRod    {using KernelType = PairwiseLJRodAware;};
 
 using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
                                             LJAwarenessParamsObject,
@@ -45,12 +46,13 @@ struct LJParams
 
 struct MDPDParams
 {
+    using KernelType = PairwiseMDPD;
     float rd, a, b, gamma, kBT, power, dt;
 };
 
 
-struct SimpleMDPDDensityKernelParams {};
-struct WendlandC2DensityKernelParams {};
+struct SimpleMDPDDensityKernelParams {using KernelType = SimpleMDPDDensityKernel;};
+struct WendlandC2DensityKernelParams {using KernelType = WendlandC2DensityKernel;};
 
 using VarDensityKernelParams = mpark::variant<SimpleMDPDDensityKernelParams,
                                               WendlandC2DensityKernelParams>;
@@ -64,11 +66,13 @@ struct DensityParams
 
 struct LinearPressureEOSParams
 {
+    using KernelType = LinearPressureEOS;
     float soundSpeed, rho0;
 };
 
 struct QuasiIncompressiblePressureEOSParams
 {
+    using KernelType = QuasiIncompressiblePressureEOS;
     float p0, rhor;
 };
 
