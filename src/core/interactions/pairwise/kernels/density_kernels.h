@@ -13,14 +13,6 @@ public:
 
         return normalization * rm * rm * invrc;
     }
-
-    __D__ inline float derivative(float r, float invrc) const
-    {
-        const float rm = 1.f - r * invrc;
-        const float invrc2 = invrc  * invrc;
-        const float invrc4 = invrc2 * invrc2;
-        return 2.0f * normalization * rm * invrc4;
-    }
 };
 
 class WendlandC2DensityKernel

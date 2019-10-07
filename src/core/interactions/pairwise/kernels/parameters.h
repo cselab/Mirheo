@@ -89,12 +89,13 @@ using VarEOSParams = mpark::variant<LinearPressureEOSParams,
                                     QuasiIncompressiblePressureEOSParams>;
 
 
+using VarSDPDDensityKernelParams = mpark::variant<WendlandC2DensityKernelParams>;
 
 struct SDPDParams
 {
     float viscosity, kBT, dt;
     VarEOSParams varEOSParams;
-    VarDensityKernelParams varDensityKernelParams;    
+    VarSDPDDensityKernelParams varDensityKernelParams;
 };
 
 
