@@ -5,9 +5,14 @@
 // forward declaration of pairwise kernels
 
 class PairwiseDPD;
+
+struct LJAwarenessNone;
+struct LJAwarenessObject;
+struct LJAwarenessRod;
+
+template <class Awareness>
 class PairwiseLJ;
-class PairwiseLJObjectAware;
-class PairwiseLJRodAware;
+
 class PairwiseMDPD;
 
 class SimpleMDPDDensityKernel;
@@ -30,9 +35,13 @@ struct DPDParams
     float a, gamma, kBT, power, dt;
 };
 
-struct LJAwarenessParamsNone   {using KernelType = PairwiseLJ;};
-struct LJAwarenessParamsObject {using KernelType = PairwiseLJObjectAware;};
-struct LJAwarenessParamsRod    {using KernelType = PairwiseLJRodAware;};
+struct LJAwarenessParamsNone   {using KernelType = LJAwarenessNone;};
+struct LJAwarenessParamsObject {using KernelType = LJAwarenessObject;};
+struct LJAwarenessParamsRod
+{
+    using KernelType = LJAwarenessRod;
+    int minSegmentsDist;
+};
 
 using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
                                             LJAwarenessParamsObject,
