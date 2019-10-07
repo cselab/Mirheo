@@ -12,7 +12,7 @@ template<class PairwiseKernel>
 class InteractionPair_withStress : public Interaction
 {
 public:
-    InteractionPair_withStress(const MirState *state, std::string name, float rc, float stressPeriod, PairwiseKernel pair) :
+    InteractionPair_withStress(const MirState *state, const std::string& name, float rc, float stressPeriod, PairwiseKernel pair) :
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
@@ -66,7 +66,7 @@ public:
         }
     }
 
-    void setSpecificPair(std::string pv1name, std::string pv2name, PairwiseKernel pair)
+    void setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
     {
         interaction.          setSpecificPair(pv1name, pv2name, pair);
         interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseKernel>(pair));
