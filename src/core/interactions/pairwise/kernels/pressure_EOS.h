@@ -1,5 +1,7 @@
 #pragma once
 
+#include "parameters.h"
+
 #include <core/utils/cpu_gpu_defines.h>
 
 class LinearPressureEOS
@@ -9,6 +11,10 @@ public:
     LinearPressureEOS(float soundSpeed, float rho0) :
         cSq(soundSpeed * soundSpeed),
         rho0(rho0)
+    {}
+
+    LinearPressureEOS(const LinearPressureEOSParams& p) :
+        LinearPressureEOS(p.soundSpeed, p.rho0)
     {}
     
     __D__ inline float operator()(float rho) const
@@ -30,6 +36,10 @@ public:
         rhor(rhor)
     {}
 
+    QuasiIncompressiblePressureEOS(const QuasiIncompressiblePressureEOSParams& p) :
+        QuasiIncompressiblePressureEOS(p.p0, p.rhor)
+    {}
+    
     __D__ inline float operator()(float rho) const
     {
         const float r = rho / rhor;

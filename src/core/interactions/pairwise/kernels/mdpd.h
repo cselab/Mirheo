@@ -3,6 +3,7 @@
 #include "accumulators/force.h"
 #include "fetchers.h"
 #include "interface.h"
+#include "parameters.h"
 
 #include <core/interactions/utils/step_random_gen.h>
 #include <core/utils/cuda_common.h>
@@ -77,6 +78,10 @@ public:
     PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kBT, float dt, float power, long seed = 42424242) :
         PairwiseMDPDHandler(rc, rd, a, b, gamma, kBT, dt, power),
         stepGen(seed)
+    {}
+
+    PairwiseMDPD(float rc, const MDPDParams& p, long seed = 42424242) :
+        PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, p.dt, p.power, seed)
     {}
 
     const HandlerType& handler() const
