@@ -67,32 +67,31 @@ public:
      */
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        auto isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
-        auto isov2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
+        const bool isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
+        const bool isov2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
 
-        // Two object vectors. Compute just one interaction, doesn't matter which
-        if (isov1 && isov2) {
+        if (isov1 && isov2)
+        {
+             // Two object vectors. Compute just one interaction, doesn't matter which
             computeHalo(pv1, pv2, cl1, cl2, stream);
-            return;
         }
-
-        // One object vector. Compute just one interaction, with OV as the first
-        // argument
-        if (isov1) {
+        else if (isov1)
+        {
+            // One object vector. Compute just one interaction, with OV as the first argument
             computeHalo(pv1, pv2, cl1, cl2, stream);
-            return;
         }
-
-        if (isov2) {
+        else if (isov2)
+        {
+            // One object vector. Compute just one interaction, with OV as the first argument
             computeHalo(pv2, pv1, cl2, cl1, stream);
-            return;
         }
-
-        // Both are particle vectors. Compute one interaction if pv1 == pv2 and two
-        // otherwise
-        computeHalo(pv1, pv2, cl1, cl2, stream);
-        if (pv1 != pv2)
-            computeHalo(pv2, pv1, cl2, cl1, stream);
+        else
+        {
+            // Both are particle vectors. Compute one interaction if pv1 == pv2 and two otherwise
+            computeHalo(pv1, pv2, cl1, cl2, stream);
+            if (pv1 != pv2)
+                computeHalo(pv2, pv1, cl2, cl1, stream);
+        }
     }
 
     Stage getStage() const override
