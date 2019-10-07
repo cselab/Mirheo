@@ -19,36 +19,43 @@ template <class KernelType>
 static std::unique_ptr<Interaction>
 createPairwiseFromKernel(const MirState *state, const std::string& name, float rc,
                          const typename std::enable_if<outputsForce<KernelType>::value, KernelType>::type& kernel,
-                         bool stress, float stressPeriod)
+                         const VarStressParams& varStressParams)
 {
-    if (stress)
-        return std::make_unique<InteractionPair_withStress<KernelType>>(state, name, rc, stressPeriod, kernel);
+    if (mpark::holds_alternative<StressActiveParams>(varStressParams))
+    {
+        const auto stressParams = mpark::get<StressActiveParams>(varStressParams);
+        return std::make_unique<InteractionPair_withStress<KernelType>>(state, name, rc, stressParams.period, kernel);
+    }
     else
+    {
         return std::make_unique<InteractionPair<KernelType>>(state, name, rc, kernel);
+    }
 }
 
 template <class KernelType>
 static std::unique_ptr<Interaction>
-createPairwiseFromKernel(const MirState *state, const std::string& name, float rc, const KernelType& kernel,
-                         __UNUSED bool stress, __UNUSED float stressPeriod)
+createPairwiseFromKernel(const MirState *state, const std::string& name, float rc, const KernelType& kernel, const VarStressParams& varStressParams)
 {
+    if (mpark::holds_alternative<StressActiveParams>(varStressParams))
+        die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
+    
     return std::make_unique<InteractionPair<KernelType>>(state, name, rc, kernel);
 }
 
 
 template <class Parameters>
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const Parameters& params, bool stress, float stressPeriod)
+createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const Parameters& params, const VarStressParams& varStressParams)
 {
     using KernelType = typename Parameters::KernelType;
     KernelType kernel(rc, params);
 
-    return createPairwiseFromKernel(state, name, rc, kernel, stress, stressPeriod);
+    return createPairwiseFromKernel(state, name, rc, kernel, varStressParams);
 }
 
 
 std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const LJParams& params, bool stress, float stressPeriod)
+createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const LJParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& awareParams)
     {
@@ -57,12 +64,12 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
         AwareType awareness(awareParams);
         PairwiseLJ<AwareType> lj(rc, params.epsilon, params.sigma, params.maxForce, awareness);
 
-        return createPairwiseFromKernel(state, name, rc, lj, stress, stressPeriod);
+        return createPairwiseFromKernel(state, name, rc, lj, varStressParams);
     }, params.varLJAwarenessParams);
 }
 
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const DensityParams& params, bool stress, float stressPeriod)
+createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const DensityParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& densityKernelParams)
     {
@@ -71,12 +78,12 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
         DensityKernelType densityKernel;
         PairwiseDensity<DensityKernelType> density(rc, densityKernel);
 
-        return createPairwiseFromKernel(state, name, rc, density, stress, stressPeriod);
+        return createPairwiseFromKernel(state, name, rc, density, varStressParams);
     }, params.varDensityKernelParams);
 }
 
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const SDPDParams& params, bool stress, float stressPeriod)
+createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const SDPDParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& densityKernelParams, auto& EOSParams)
     {
@@ -88,19 +95,19 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 
         PairwiseSDPD<EOSKernelType, DensityKernelType> sdpd(rc, pressure, density, params.viscosity, params.kBT, params.dt);
         
-        return createPairwiseFromKernel(state, name, rc, sdpd, stress, stressPeriod);
+        return createPairwiseFromKernel(state, name, rc, sdpd, varStressParams);
     }, params.varDensityKernelParams, params.varEOSParams);
 }
 
 
 PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, float rc,
-                                         VarPairwiseParams varParams, bool stress, float stressPeriod) :
+                                         VarPairwiseParams varParams, VarStressParams varStressParams) :
     Interaction(state, name, rc),
     varParams(varParams)
 {
     impl = mpark::visit([&](const auto& params)
     {
-        return createPairwiseFromParams(state, name, rc, params, stress, stressPeriod);
+        return createPairwiseFromParams(state, name, rc, params, varStressParams);
     }, varParams);
 }
 

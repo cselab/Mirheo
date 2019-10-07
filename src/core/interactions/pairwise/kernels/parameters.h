@@ -104,3 +104,13 @@ using VarPairwiseParams = mpark::variant<DPDParams,
                                          MDPDParams,
                                          DensityParams,
                                          SDPDParams>;
+
+
+struct StressNoneParams {};
+
+struct StressActiveParams
+{
+    float period; // compute stresses every this time in time units
+};
+
+using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;

@@ -8,7 +8,7 @@ class PairwiseInteraction : public Interaction
 public:
     
     PairwiseInteraction(const MirState *state, const std::string& name, float rc,
-                        VarPairwiseParams varParams, bool stress, float stressPeriod);
+                        VarPairwiseParams varParams, VarStressParams varStressParams);
     ~PairwiseInteraction();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
