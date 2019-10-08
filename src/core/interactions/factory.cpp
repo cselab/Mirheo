@@ -1,19 +1,10 @@
 #include "factory.h"
 
-#include "density.h"
-#include "dpd.h"
-#include "dpd_with_stress.h"
-#include "lj.h"
-#include "lj_with_stress.h"
-#include "mdpd.h"
-#include "mdpd_with_stress.h"
 #include "membrane.h"
 #include "obj_rod_binding.h"
-#include "pairwise/kernels/density_kernels.h"
-#include "pairwise/kernels/pressure_EOS.h"
+#include "pairwise.h"
+#include "pairwise/factory_helper.h"
 #include "rod.h"
-#include "sdpd.h"
-#include "sdpd_with_stress.h"
 
 #include <core/logger.h>
 
@@ -198,180 +189,29 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
     return std::make_shared<InteractionRod>(state, name, params, spinParams, saveEnergies);
 }
 
-
-static bool isSimpleMDPDDensity(const std::string& desc)
+std::shared_ptr<PairwiseInteraction>
+InteractionFactory::createPairwiseInteraction(const MirState *state, std::string name, float rc, const std::string type, const MapParams& parameters)
 {
-    return desc == "MDPD";
-}
-
-
-static bool isWendlandC2Density(const std::string& desc)
-{
-    return desc == "WendlandC2";
-}
-
-std::shared_ptr<BasicInteractionDensity>
-InteractionFactory::createPairwiseDensity(const MirState *state, std::string name, float rc,
-                                          const std::string& density)
-{
-    if (isSimpleMDPDDensity(density))
-    {
-        const SimpleMDPDDensityKernel densityKernel{};
-        return std::make_shared<InteractionDensity<SimpleMDPDDensityKernel>>
-                                (state, name, rc, densityKernel);
-    }
+    ParametersWrap desc {parameters};
+    VarPairwiseParams varParams;
     
-    if (isWendlandC2Density(density))
-    {
-        const WendlandC2DensityKernel densityKernel{};
-        return std::make_shared<InteractionDensity<WendlandC2DensityKernel>>
-                                (state, name, rc, densityKernel);
-    }
-
-    die("Invalid density '%s'", density.c_str());
-    return nullptr;
-}
-
-
-static LinearPressureEOS readLinearPressureEOS(ParametersWrap& desc)
-{
-    const float c = desc.read<float>("sound_speed");
-    const float r = desc.read<float>("rho_0");
-    return LinearPressureEOS(c, r);
-}
-
-static QuasiIncompressiblePressureEOS readQuasiIncompressiblePressureEOS(ParametersWrap& desc)
-{
-    const float p0   = desc.read<float>("p0");
-    const float rhor = desc.read<float>("rho_r");
-    
-    return QuasiIncompressiblePressureEOS(p0, rhor);
-}
-
-static bool isLinearEOS(const std::string& desc)
-{
-    return desc == "Linear";
-}
-
-static bool isQuasiIncompressibleEOS(const std::string& desc)
-{
-    return desc == "QuasiIncompressible";
-}
-
-
-static float readStressPeriod(ParametersWrap& desc)
-{
-    return desc.read<float>("stress_period");
-}
-
-template <typename PressureKernel, typename DensityKernel>
-static std::shared_ptr<BasicInteractionSDPD>
-allocatePairwiseSDPD(const MirState *state, std::string name, float rc,
-                     PressureKernel pressure, DensityKernel density,
-                     float viscosity, float kBT,
-                     bool stress, float stressPeriod)
-{
-    if (stress)
-        return std::make_shared<InteractionSDPDWithStress<PressureKernel, DensityKernel>>
-            (state, name, rc, pressure, density, viscosity, kBT, stressPeriod);
+    if (type == "DPD")
+        varParams = FactoryHelper::readDPDParams(desc);
+    else if (type == "MDPD")
+        varParams = FactoryHelper::readMDPDParams(desc);
+    else if (type == "SDPD")
+        varParams = FactoryHelper::readSDPDParams(desc);
+    else if (type == "RepulsiveLJ")
+        varParams = FactoryHelper::readLJParams(desc);
+    else if (type == "Density")
+        varParams = FactoryHelper::readDensityParams(desc);
     else
-        return std::make_shared<InteractionSDPD<PressureKernel, DensityKernel>>
-            (state, name, rc, pressure, density, viscosity, kBT);
-}
+        die("Unrecognized pairwise interaction type '%s'", type.c_str());
 
-std::shared_ptr<BasicInteractionSDPD>
-InteractionFactory::createPairwiseSDPD(const MirState *state, std::string name, float rc, float viscosity, float kBT,
-                                       const std::string& EOS, const std::string& density, bool stress,
-                                       const MapParams& parameters)
-{
-    float stressPeriod = 0.f;
-    ParametersWrap desc {parameters};
-
-    if (stress)
-        stressPeriod = readStressPeriod(desc);
-    
-    if (!isWendlandC2Density(density))
-        die("Invalid density '%s'", density.c_str());
-
-    WendlandC2DensityKernel densityKernel;
-    
-    if (isLinearEOS(EOS))
-    {
-        auto pressure = readLinearPressureEOS(desc);
-        desc.checkAllRead();
-        return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
-    }
-
-    if (isQuasiIncompressibleEOS(EOS))
-    {
-        auto pressure = readQuasiIncompressiblePressureEOS(desc);
-        desc.checkAllRead();
-        return allocatePairwiseSDPD(state, name, rc, pressure, densityKernel, viscosity, kBT, stress, stressPeriod);
-    }
+    const auto varStressParams = FactoryHelper::readStressParams(desc);
 
     desc.checkAllRead();
-    die("Invalid pressure parameter: '%s'", EOS.c_str());
-    return nullptr;
-}
-
-std::shared_ptr<InteractionDPD>
-InteractionFactory::createPairwiseDPD(const MirState *state, std::string name, float rc, float a, float gamma, float kBT, float power,
-                                      bool stress, const MapParams& parameters)
-{
-    ParametersWrap desc {parameters};
-    
-    if (stress)
-    {
-        const float stressPeriod = readStressPeriod(desc);
-        desc.checkAllRead();
-        return std::make_shared<InteractionDPDWithStress>(state, name, rc, a, gamma, kBT, power, stressPeriod);
-    }
-
-    desc.checkAllRead();
-    return std::make_shared<InteractionDPD>(state, name, rc, a, gamma, kBT, power);
-}
-
-std::shared_ptr<InteractionMDPD>
-InteractionFactory::createPairwiseMDPD(const MirState *state, std::string name, float rc, float rd, float a, float b, float gamma, float kbt,
-                                       float power, bool stress, const MapParams& parameters)
-{
-    ParametersWrap desc {parameters};
-    
-    if (stress)
-    {
-        const float stressPeriod = readStressPeriod(desc);
-        return std::make_shared<InteractionMDPDWithStress>(state, name, rc, rd, a, b, gamma, kbt, power, stressPeriod);
-    }
-
-    return std::make_shared<InteractionMDPD>(state, name, rc, rd, a, b, gamma, kbt, power);
-}
-
-std::shared_ptr<InteractionLJ>
-InteractionFactory::createPairwiseLJ(const MirState *state, std::string name, float rc, float epsilon, float sigma, float maxForce,
-                                     std::string awareMode, bool stress, const MapParams& parameters)
-{
-    int minSegmentsDist = 0;
-    ParametersWrap desc {parameters};
-    
-    InteractionLJ::AwareMode aMode;
-
-    if      (awareMode == "None")   aMode = InteractionLJ::AwareMode::None;
-    else if (awareMode == "Object") aMode = InteractionLJ::AwareMode::Object;
-    else if (awareMode == "Rod")    aMode = InteractionLJ::AwareMode::Rod;
-    else die("Invalid aware mode parameter '%s' in interaction '%s'", awareMode.c_str(), name.c_str());
-
-    if (aMode == InteractionLJ::AwareMode::Rod)
-        minSegmentsDist = static_cast<int>(desc.read<float>("min_segments_distance"));
-    
-    if (stress)
-    {
-        const float stressPeriod = readStressPeriod(desc);
-        desc.checkAllRead();
-        return std::make_shared<InteractionLJWithStress>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist, stressPeriod);
-    }
-
-    desc.checkAllRead();
-    return std::make_shared<InteractionLJ>(state, name, rc, epsilon, sigma, maxForce, aMode, minSegmentsDist);
+    return std::make_shared<PairwiseInteraction>(state, name, rc, varParams, varStressParams);
 }
 
 std::shared_ptr<ObjectRodBindingInteraction>
