@@ -32,7 +32,7 @@ class PairwiseSDPD;
 struct DPDParams
 {
     using KernelType = PairwiseDPD;
-    float a, gamma, kBT, power, dt;
+    float a, gamma, kBT, power;
 };
 
 struct LJAwarenessParamsNone   {using KernelType = LJAwarenessNone;};
@@ -56,7 +56,7 @@ struct LJParams
 struct MDPDParams
 {
     using KernelType = PairwiseMDPD;
-    float rd, a, b, gamma, kBT, power, dt;
+    float rd, a, b, gamma, kBT, power;
 };
 
 
@@ -93,7 +93,7 @@ using VarSDPDDensityKernelParams = mpark::variant<WendlandC2DensityKernelParams>
 
 struct SDPDParams
 {
-    float viscosity, kBT, dt;
+    float viscosity, kBT;
     VarEOSParams varEOSParams;
     VarSDPDDensityKernelParams varDensityKernelParams;
 };

@@ -72,8 +72,8 @@ public:
         stepGen(seed)
     {}
 
-    PairwiseDPD(float rc, const DPDParams& p, long seed=42424242) :
-        PairwiseDPD(rc, p.a, p.gamma, p.kBT, p.dt, p.power, seed)
+    PairwiseDPD(float rc, const DPDParams& p, float dt, long seed=42424242) :
+        PairwiseDPD(rc, p.a, p.gamma, p.kBT, dt, p.power, seed)
     {}
 
     const HandlerType& handler() const

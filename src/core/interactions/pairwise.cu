@@ -1,17 +1,15 @@
 #include "pairwise.h"
+#include "pairwise/factory_helper.h"
 #include "pairwise/impl.h"
 #include "pairwise/impl.stress.h"
-
-#include "pairwise/kernels/dpd.h"
 #include "pairwise/kernels/density.h"
 #include "pairwise/kernels/density_kernels.h"
+#include "pairwise/kernels/dpd.h"
 #include "pairwise/kernels/lj.h"
 #include "pairwise/kernels/mdpd.h"
 #include "pairwise/kernels/pressure_EOS.h"
 #include "pairwise/kernels/sdpd.h"
-
 #include "pairwise/kernels/type_traits.h"
-
 
 #include <memory>
 
@@ -48,7 +46,7 @@ static std::unique_ptr<Interaction>
 createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const Parameters& params, const VarStressParams& varStressParams)
 {
     using KernelType = typename Parameters::KernelType;
-    KernelType kernel(rc, params);
+    KernelType kernel(rc, params, state->dt);
 
     return createPairwiseFromKernel(state, name, rc, kernel, varStressParams);
 }
@@ -93,7 +91,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
         DensityKernelType density;
         EOSKernelType pressure(EOSParams);
 
-        PairwiseSDPD<EOSKernelType, DensityKernelType> sdpd(rc, pressure, density, params.viscosity, params.kBT, params.dt);
+        PairwiseSDPD<EOSKernelType, DensityKernelType> sdpd(rc, pressure, density, params.viscosity, params.kBT, state->dt);
         
         return createPairwiseFromKernel(state, name, rc, sdpd, varStressParams);
     }, params.varDensityKernelParams, params.varEOSParams);

@@ -2,18 +2,19 @@
 
 #include "kernels/parameters.h"
 
+#include <core/interactions/parameters_wrap.h>
+
 #include <limits>
 
 constexpr auto defaultFloat = std::numeric_limits<float>::infinity();
 
-DPDParams readDPDParams(const MirState *state, ParametersWrap& desc)
+DPDParams readDPDParams(ParametersWrap& desc)
 {
     DPDParams p;
     p.a     = desc.read<float>("a");
     p.gamma = desc.read<float>("gamma");
     p.kBT   = desc.read<float>("kbt");
     p.power = desc.read<float>("power");
-    p.dt    = state->dt;
     return p;
 }
 
@@ -54,7 +55,7 @@ LJParams readLJParams(ParametersWrap& desc)
 }
 
 
-MDPDParams readMDPDParams(const MirState *state, ParametersWrap& desc)
+MDPDParams readMDPDParams(ParametersWrap& desc)
 {
     MDPDParams p;
     p.rd    = desc.read<float>("rd");
@@ -63,18 +64,17 @@ MDPDParams readMDPDParams(const MirState *state, ParametersWrap& desc)
     p.gamma = desc.read<float>("gamma");
     p.kBT   = desc.read<float>("kbt");
     p.power = desc.read<float>("power");
-    p.dt    = state->dt;
     return p;
 }
 
-DensityParams readMDPDParams(ParametersWrap& desc)
+DensityParams readDensityParams(ParametersWrap& desc)
 {
     DensityParams p;
     const auto kernel = desc.read<std::string>("kernel");
     if (kernel == "MDPD")
         p.varDensityKernelParams = SimpleMDPDDensityKernelParams {};
     else if (kernel == "WendlandC2")
-        p.varDensityKernelParams = WendlandC2DensityKernelParams;
+        p.varDensityKernelParams = WendlandC2DensityKernelParams {};
     else
         die("unrecognized density kernel '%d'", kernel.c_str());
     return p;
@@ -85,7 +85,7 @@ VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& desc)
     VarSDPDDensityKernelParams p;
     const auto kernel = desc.read<std::string>("density_kernel");
     if (kernel == "WendlandC2")
-        p = WendlandC2DensityKernelParams;
+        p = WendlandC2DensityKernelParams {};
     else
         die("unrecognized density kernel '%d'", kernel.c_str());
     return p;
@@ -115,7 +115,7 @@ VarEOSParams readEOSParams(ParametersWrap& desc)
     return varEOS;
 }
 
-SDPDParams readSDPDParams(const MirState *state, ParametersWrap& desc)
+SDPDParams readSDPDParams(ParametersWrap& desc)
 {
     SDPDParams p;
 
@@ -124,8 +124,6 @@ SDPDParams readSDPDParams(const MirState *state, ParametersWrap& desc)
 
     p.varEOSParams           = readEOSParams(desc);
     p.varDensityKernelParams = readSDPDDensityKernelParams(desc);
-
-    p.dt = state->dt;
 
     return p;
 }

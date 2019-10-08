@@ -80,8 +80,8 @@ public:
         stepGen(seed)
     {}
 
-    PairwiseMDPD(float rc, const MDPDParams& p, long seed = 42424242) :
-        PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, p.dt, p.power, seed)
+    PairwiseMDPD(float rc, const MDPDParams& p, float dt, long seed = 42424242) :
+        PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, dt, p.power, seed)
     {}
 
     const HandlerType& handler() const
