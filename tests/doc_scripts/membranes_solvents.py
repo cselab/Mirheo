@@ -62,7 +62,7 @@ prms_rbc = {
 }
 
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prms_rbc)
-int_dpd = mir.Interactions.DPD('dpd', rc, a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+int_dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
 
 u.registerInteraction(int_rbc)
 u.registerInteraction(int_dpd)

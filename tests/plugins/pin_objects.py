@@ -35,7 +35,7 @@ if args.solvent:
     pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
     u.registerParticleVector(pv, mir.InitialConditions.Uniform(density=8))
     
-    dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
+    dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kbt=0.001, power=0.5)
     u.registerInteraction(dpd)
     u.setInteraction(dpd, pv, pv)
     u.setInteraction(dpd, pv_ell, pv)

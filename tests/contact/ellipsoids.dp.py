@@ -24,8 +24,8 @@ u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(density)
 
-dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5)
-cnt = mir.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.8, max_force=400.0)
+dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kbt=0.01, power=0.5)
+cnt = mir.Interactions.Pairwise('cnt', rc=1.0, kind="RepulsiveLJ", epsilon=0.35, sigma=0.8, max_force=400.0)
 vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=a, direction="x")
 
 com_q = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],

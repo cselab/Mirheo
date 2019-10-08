@@ -38,8 +38,8 @@ ic_pos_rot = [[2.0, 5.0, 5.0,   1.0, np.pi/2, np.pi/3, 0.0],
 ic_rbc   = mir.InitialConditions.Membrane(ic_pos_rot)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
-dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.001, power=0.5)
-cnt = mir.Interactions.LJ('cnt', 1.0, epsilon=0.35, sigma=0.4, max_force=400.0)
+dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kbt=0.001, power=0.5)
+cnt = mir.Interactions.Pairwise('cnt', rc=1.0, kind="RepulsiveLJ"epsilon=0.35, sigma=0.4, max_force=400.0)
 
 prm_rbc = lina_parameters(1.0)
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)

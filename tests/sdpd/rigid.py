@@ -28,8 +28,8 @@ ic_sol = mir.InitialConditions.Uniform(density)
 
 density_kernel="WendlandC2"
 
-den  = mir.Interactions.Density('density', rc, density_kernel)
-sdpd = mir.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=0.01, EOS="Linear", density_kernel=density_kernel, sound_speed=10.0, rho_0=0.0)
+den  = mir.Interactions.Pairwise('density', rc, kind="Density", density_kernel=density_kernel)
+sdpd = mir.Interactions.Pairwise('sdpd', rc, kind="SDPD", viscosity=10.0, kBT=0.01, EOS="Linear", density_kernel=density_kernel, sound_speed=10.0, rho_0=0.0)
 
 vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=dp_force, direction="x")
 

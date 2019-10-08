@@ -18,7 +18,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=4)
 u.registerParticleVector(pv=pv, ic=ic)
 
-dpd = mir.Interactions.DPD('dpd', 1.0, a=10.0, gamma=10.0, kbt=0.01, power=0.5, stress=True, stress_period=sample_every*dt)
+dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kbt=0.01, power=0.5, stress=True, stress_period=sample_every*dt)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 

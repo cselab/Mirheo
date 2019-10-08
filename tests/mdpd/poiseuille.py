@@ -24,8 +24,8 @@ plate_hi = mir.Walls.Plane("plate_hi", (0, 0,  1), (0, 0,  domain[2] - 1))
 u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
-den = mir.Interactions.Density('density', rd, kernel="MDPD")
-mdpd = mir.Interactions.MDPD('mdpd', rc, rd, a=10.0, b=10.0, gamma=50.0, kbt=0.1, power=0.25)
+den  = mir.Interactions.Pairwise('density', rd, kind="Density", density_kernel="MDPD")
+mdpd = mir.Interactions.Pairwise('mdpd', rc, kind="MDPD", rd=rd, a=10.0, b=10.0, gamma=50.0, kbt=0.1, power=0.25)
 
 vv = mir.Integrators.VelocityVerlet("vv")
 frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[den, mdpd], integrator=vv, density=density, nsteps=1000)

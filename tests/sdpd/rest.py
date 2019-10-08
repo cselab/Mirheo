@@ -37,8 +37,8 @@ elif EOS == "QuasiIncompressible":
         "rho_r" : 10.0
     }
 
-den  = mir.Interactions.Density('den', rc, kernel=density_kernel)
-sdpd = mir.Interactions.SDPD('sdpd', rc, viscosity=10.0, kBT=1.0, EOS=EOS, density_kernel=density_kernel, **EOS_params)
+den  = mir.Interactions.Pairwise('den' , rc, kind="Density", density_kernel=density_kernel)
+sdpd = mir.Interactions.Pairwise('sdpd', rc, kind="SDPD", viscosity=10.0, kBT=1.0, EOS=EOS, density_kernel=density_kernel, **EOS_params)
 u.registerInteraction(den)
 u.registerInteraction(sdpd)
 u.setInteraction(den, pv, pv)

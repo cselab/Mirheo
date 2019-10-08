@@ -16,7 +16,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = mir.Interactions.DPD('dpd', rc=1.0, a=10.0, gamma=50.0, kbt=0.1, power=0.25)
+dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=50.0, kbt=0.1, power=0.25)
 u.registerInteraction(dpd)
 
 plate_lo = mir.Walls.Plane("plate_lo", (0, 0, -1), (0, 0,              1))

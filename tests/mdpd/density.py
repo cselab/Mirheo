@@ -16,8 +16,8 @@ u.registerParticleVector(pv=pv, ic=ic)
 rc = 1.0
 rd = 0.75
 
-den  = mir.Interactions.Density('den', rd, kernel="MDPD")
-mdpd = mir.Interactions.MDPD('mdpd', rc, rd, a=10.0, b=20.0, gamma=10.0, kbt=0.1, power=0.5)
+den  = mir.Interactions.Pairwise('den', rd, kind="Density", density_kernel="MDPD")
+mdpd = mir.Interactions.Pairwise('mdpd', rc, kind="MDPD", rd=rd, a=10.0, b=20.0, gamma=10.0, kbt=0.1, power=0.5)
 u.registerInteraction(den)
 u.registerInteraction(mdpd)
 u.setInteraction(den, pv, pv)
