@@ -38,10 +38,12 @@ struct ParamsReader
 
 template <class Params> void readParams(Params& p, ParametersWrap& desc, ParamsReader reader);
 
-DPDParams     readDPDParams     (ParametersWrap& desc);
-LJParams      readLJParams      (ParametersWrap& desc);
-MDPDParams    readMDPDParams    (ParametersWrap& desc);
-DensityParams readDensityParams (ParametersWrap& desc);
-SDPDParams    readSDPDParams    (ParametersWrap& desc);
+DPDParams       readDPDParams     (ParametersWrap& desc);
+LJParams        readLJParams      (ParametersWrap& desc);
+MDPDParams      readMDPDParams    (ParametersWrap& desc);
+DensityParams   readDensityParams (ParametersWrap& desc);
+SDPDParams      readSDPDParams    (ParametersWrap& desc);
+
+VarStressParams readStressParams  (ParametersWrap& desc);
 
 } // FactoryHelper

@@ -222,4 +222,25 @@ SDPDParams readSDPDParams(ParametersWrap& desc)
     return p;
 }
 
+
+
+VarStressParams readStressParams(ParametersWrap& desc)
+{
+    VarStressParams varParams;
+    bool stress {false};
+
+    if (desc.exists<bool>("stress"))
+        stress = desc.read<bool>("stress");
+
+    if (stress)
+    {
+        const auto period = desc.read<float>("stress_period");
+        return StressActiveParams {period};
+    }
+    else
+    {
+        return StressNoneParams {};
+    }
+}
+
 } // namespace FactoryHelper

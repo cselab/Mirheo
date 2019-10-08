@@ -120,8 +120,8 @@ void exportInteractions(py::module& m)
         auto params = castToMap(kwargs, self->name);
         self->setSpecificPair(pv1, pv2, params);
     }, "pv1"_a, "pv2"_a, R"(
-        Set specific parameters to a given interaction given two instances of :any:`ParticleVector`.
-        This is useful when interactions only slightly differ for different pairs of :any:`ParticleVector`.
+        Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.
+        This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
         The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
         Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
         
