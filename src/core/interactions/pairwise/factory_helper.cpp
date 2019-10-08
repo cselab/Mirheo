@@ -6,34 +6,51 @@ template <> float ParamsReader::makeDefault<float>() const {return defaultFloat;
 
 template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.a     = reader.read<float>(desc, "a");
-    p.gamma = reader.read<float>(desc, "gamma");
-    p.kBT   = reader.read<float>(desc, "kbt");
-    p.power = reader.read<float>(desc, "power");
+    const auto a     = reader.read<float>(desc, "a");
+    const auto gamma = reader.read<float>(desc, "gamma");
+    const auto kBT   = reader.read<float>(desc, "kbt");
+    const auto power = reader.read<float>(desc, "power");
+    
+    if (a     != defaultFloat) p.a     = a;
+    if (gamma != defaultFloat) p.gamma = gamma;
+    if (kBT   != defaultFloat) p.kBT   = kBT;
+    if (power != defaultFloat) p.power = power;
 }
 
 template <> void readParams<LJAwarenessParamsNone  >(__UNUSED LJAwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
 template <> void readParams<LJAwarenessParamsObject>(__UNUSED LJAwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
 template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.minSegmentsDist = static_cast<int>(reader.read<float>(desc, "min_segments_distance"));
+    const auto minSegmentsDist = reader.read<float>(desc, "min_segments_distance");
+    if (minSegmentsDist != defaultFloat) p.minSegmentsDist = static_cast<int>(minSegmentsDist);
 }
 
 template <> void readParams<LJParams>(LJParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.epsilon  = reader.read<float>(desc, "epsilon");
-    p.sigma    = reader.read<float>(desc, "sigma");
-    p.maxForce = reader.read<float>(desc, "max_force");
+    const auto epsilon  = reader.read<float>(desc, "epsilon");
+    const auto sigma    = reader.read<float>(desc, "sigma");
+    const auto maxForce = reader.read<float>(desc, "max_force");
+
+    if (epsilon  != defaultFloat) p.epsilon  = epsilon;
+    if (sigma    != defaultFloat) p.sigma    = sigma;
+    if (maxForce != defaultFloat) p.maxForce = maxForce;
 }
 
 template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.rd    = reader.read<float>(desc, "rd");
-    p.a     = reader.read<float>(desc, "a");
-    p.b     = reader.read<float>(desc, "b");
-    p.gamma = reader.read<float>(desc, "gamma");
-    p.kBT   = reader.read<float>(desc, "kbt");
-    p.power = reader.read<float>(desc, "power");
+    const auto rd    = reader.read<float>(desc, "rd");
+    const auto a     = reader.read<float>(desc, "a");
+    const auto b     = reader.read<float>(desc, "b");
+    const auto gamma = reader.read<float>(desc, "gamma");
+    const auto kBT   = reader.read<float>(desc, "kbt");
+    const auto power = reader.read<float>(desc, "power");
+    
+    if (rd     != defaultFloat) p.rd    = rd;
+    if (a      != defaultFloat) p.a     = a;
+    if (b      != defaultFloat) p.b     = b;
+    if (gamma  != defaultFloat) p.gamma = gamma;
+    if (kBT    != defaultFloat) p.kBT   = kBT;
+    if (power  != defaultFloat) p.power = power;
 }
 
 template <> void readParams<SimpleMDPDDensityKernelParams>(__UNUSED SimpleMDPDDensityKernelParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
@@ -41,20 +58,29 @@ template <> void readParams<WendlandC2DensityKernelParams>(__UNUSED WendlandC2De
 
 template <> void readParams<LinearPressureEOSParams>(LinearPressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.soundSpeed = reader.read<float>(desc, "sound_speed");
-    p.rho0       = reader.read<float>(desc, "rho_0");
+    const auto soundSpeed = reader.read<float>(desc, "sound_speed");
+    const auto rho0       = reader.read<float>(desc, "rho_0");
+
+    if (soundSpeed != defaultFloat) p.soundSpeed = soundSpeed;
+    if (rho0       != defaultFloat) p.rho0       = rho0;
 }
 
 template <> void readParams<QuasiIncompressiblePressureEOSParams>(QuasiIncompressiblePressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.p0   = reader.read<float>(desc, "p0");
-    p.rhor = reader.read<float>(desc, "rho_r");
+    const auto p0   = reader.read<float>(desc, "p0");
+    const auto rhor = reader.read<float>(desc, "rho_r");
+
+    if (p0   != defaultFloat) p.p0   = p0;
+    if (rhor != defaultFloat) p.rhor = rhor;
 }
 
 template <> void readParams<SDPDParams>(SDPDParams& p, ParametersWrap& desc, ParamsReader reader)
 {
-    p.viscosity = reader.read<float>(desc, "viscosity");
-    p.kBT       = reader.read<float>(desc, "kBT");
+    const auto viscosity = reader.read<float>(desc, "viscosity");
+    const auto kBT       = reader.read<float>(desc, "kBT");
+
+    if (viscosity != defaultFloat) p.viscosity = viscosity;
+    if (kBT       != defaultFloat) p.kBT       = kBT;
 }
 
 
