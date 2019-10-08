@@ -8,49 +8,135 @@
 
 constexpr auto defaultFloat = std::numeric_limits<float>::infinity();
 
+struct ParamsReader
+{
+    enum Mode {FailIfNotFound, DefaultIfNotFound};
+    
+    template <typename T>
+    T read(ParametersWrap& desc, const std::string& key) const
+    {
+        if (mode == Mode::FailIfNotFound)
+        {
+            return desc.read<T>(key);
+        }
+        else
+        {
+            if (desc.exists<T>(key))
+                return desc.read<T>(key);
+            else
+                return makeDefault<T>();
+        }
+    }
+
+    Mode mode {Mode::FailIfNotFound};
+
+    template <class T> T makeDefault() const;
+};
+
+template <> float ParamsReader::makeDefault<float>() const {return defaultFloat;}
+
+
+
+template <class Params> void readParams(Params& p, ParametersWrap& desc, ParamsReader reader);
+
+template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.a     = reader.read<float>(desc, "a");
+    p.gamma = reader.read<float>(desc, "gamma");
+    p.kBT   = reader.read<float>(desc, "kbt");
+    p.power = reader.read<float>(desc, "power");
+}
+
+template <> void readParams<LJAwarenessParamsNone  >(__UNUSED LJAwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+template <> void readParams<LJAwarenessParamsObject>(__UNUSED LJAwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.minSegmentsDist = static_cast<int>(reader.read<float>(desc, "min_segments_distance"));
+}
+
+template <> void readParams<LJParams>(LJParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.epsilon  = reader.read<float>(desc, "epsilon");
+    p.sigma    = reader.read<float>(desc, "sigma");
+    p.maxForce = reader.read<float>(desc, "max_force");
+}
+
+template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.rd    = reader.read<float>(desc, "rd");
+    p.a     = reader.read<float>(desc, "a");
+    p.b     = reader.read<float>(desc, "b");
+    p.gamma = reader.read<float>(desc, "gamma");
+    p.kBT   = reader.read<float>(desc, "kbt");
+    p.power = reader.read<float>(desc, "power");
+}
+
+template <> void readParams<SimpleMDPDDensityKernelParams>(__UNUSED SimpleMDPDDensityKernelParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+template <> void readParams<WendlandC2DensityKernelParams>(__UNUSED WendlandC2DensityKernelParams& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+
+template <> void readParams<LinearPressureEOSParams>(LinearPressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.soundSpeed = reader.read<float>(desc, "sound_speed");
+    p.rho0       = reader.read<float>(desc, "rho_0");
+}
+
+template <> void readParams<QuasiIncompressiblePressureEOSParams>(QuasiIncompressiblePressureEOSParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.p0   = reader.read<float>(desc, "p0");
+    p.rhor = reader.read<float>(desc, "rho_r");
+}
+
+template <> void readParams<SDPDParams>(SDPDParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    p.viscosity = reader.read<float>(desc, "viscosity");
+    p.kBT       = reader.read<float>(desc, "kBT");
+}
+
+
 DPDParams readDPDParams(ParametersWrap& desc)
 {
     DPDParams p;
-    p.a     = desc.read<float>("a");
-    p.gamma = desc.read<float>("gamma");
-    p.kBT   = desc.read<float>("kbt");
-    p.power = desc.read<float>("power");
+    readParams(p, desc, {ParamsReader::Mode::FailIfNotFound});
     return p;
 }
 
-VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc)
+VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsReader reader)
 {
-    VarLJAwarenessParams p;
+    VarLJAwarenessParams varP;
     const auto awareMode = desc.read<std::string>("aware_mode");
 
     if (awareMode == "None")
     {
-        p = LJAwarenessParamsNone {};
+        LJAwarenessParamsNone p;
+        readParams(p, desc, reader);
+        varP = p;
     }
     else if (awareMode == "Object")
     {
-        p = LJAwarenessParamsObject {};
+        LJAwarenessParamsObject p;
+        readParams(p, desc, reader);
+        varP = p;
     }
     else if (awareMode == "Rod")
     {
-        const auto minSegmentsDist = static_cast<int>(desc.read<float>("min_segments_distance"));
-        LJAwarenessParamsRod {minSegmentsDist};
+        LJAwarenessParamsRod p;
+        readParams(p, desc, reader);
+        varP = p;
     }
     else
     {
         die("Unrecognized aware mode '%s'", awareMode.c_str());
     }
     
-    return p;
+    return varP;
 }
 
 LJParams readLJParams(ParametersWrap& desc)
 {
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     LJParams p;
-    p.epsilon  = desc.read<float>("epsilon");
-    p.sigma    = desc.read<float>("sigma");
-    p.maxForce = desc.read<float>("max_force");
-    p.varLJAwarenessParams = readLJAwarenessParams(desc);
+    readParams(p, desc, reader);
+    p.varLJAwarenessParams = readLJAwarenessParams(desc, reader);
     return p;
 }
 
@@ -58,12 +144,7 @@ LJParams readLJParams(ParametersWrap& desc)
 MDPDParams readMDPDParams(ParametersWrap& desc)
 {
     MDPDParams p;
-    p.rd    = desc.read<float>("rd");
-    p.a     = desc.read<float>("a");
-    p.b     = desc.read<float>("b");
-    p.gamma = desc.read<float>("gamma");
-    p.kBT   = desc.read<float>("kbt");
-    p.power = desc.read<float>("power");
+    readParams(p, desc, {ParamsReader::Mode::FailIfNotFound});
     return p;
 }
 
@@ -71,42 +152,61 @@ DensityParams readDensityParams(ParametersWrap& desc)
 {
     DensityParams p;
     const auto kernel = desc.read<std::string>("kernel");
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
+
     if (kernel == "MDPD")
-        p.varDensityKernelParams = SimpleMDPDDensityKernelParams {};
+    {
+        SimpleMDPDDensityKernelParams density;
+        readParams(density, desc, reader);
+        p.varDensityKernelParams = density;
+    }
     else if (kernel == "WendlandC2")
-        p.varDensityKernelParams = WendlandC2DensityKernelParams {};
+    {
+        WendlandC2DensityKernelParams density;
+        readParams(density, desc, reader);
+        p.varDensityKernelParams = density;
+    }
     else
+    {
         die("unrecognized density kernel '%d'", kernel.c_str());
+    }
     return p;
 }
 
-VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& desc)
+VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& desc, ParamsReader reader)
 {
     VarSDPDDensityKernelParams p;
     const auto kernel = desc.read<std::string>("density_kernel");
+    
     if (kernel == "WendlandC2")
-        p = WendlandC2DensityKernelParams {};
+    {
+        WendlandC2DensityKernelParams density;
+        readParams(density, desc, reader);
+        p = density;
+    }
     else
+    {
         die("unrecognized density kernel '%d'", kernel.c_str());
+    }
     return p;
 }
 
-VarEOSParams readEOSParams(ParametersWrap& desc)
+VarEOSParams readEOSParams(ParametersWrap& desc, ParamsReader reader)
 {
     VarEOSParams varEOS;
     const auto eos = desc.read<std::string>("EOS");
-
+    
     if (eos == "Linear")
     {
-        const auto soundSpeed = desc.read<float>("sound_speed");
-        const auto rho0       = desc.read<float>("rho_0");
-        varEOS = LinearPressureEOSParams {soundSpeed, rho0};
+        LinearPressureEOSParams p;
+        readParams(p, desc, reader);
+        varEOS = p;
     }
     else if (eos == "QuasiIncompressible")
     {
-        const auto p0   = desc.read<float>("p0");
-        const auto rhor = desc.read<float>("rho_r");
-        varEOS = LinearPressureEOSParams {p0, rhor};
+        QuasiIncompressiblePressureEOSParams p;
+        readParams(p, desc, reader);
+        varEOS = p;
     }
     else
     {
@@ -117,13 +217,13 @@ VarEOSParams readEOSParams(ParametersWrap& desc)
 
 SDPDParams readSDPDParams(ParametersWrap& desc)
 {
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     SDPDParams p;
 
-    p.viscosity = desc.read<float>("viscosity");
-    p.kBT       = desc.read<float>("kBT");
+    readParams(p, desc, reader);
 
-    p.varEOSParams           = readEOSParams(desc);
-    p.varDensityKernelParams = readSDPDDensityKernelParams(desc);
+    p.varEOSParams           = readEOSParams(desc, reader);
+    p.varDensityKernelParams = readSDPDDensityKernelParams(desc, reader);
 
     return p;
 }
