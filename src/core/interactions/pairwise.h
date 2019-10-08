@@ -8,7 +8,7 @@ class PairwiseInteraction : public Interaction
 public:
     
     PairwiseInteraction(const MirState *state, const std::string& name, float rc,
-                        VarPairwiseParams varParams, VarStressParams varStressParams);
+                        const VarPairwiseParams& varParams, const VarStressParams& varStressParams);
     ~PairwiseInteraction();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
@@ -24,6 +24,9 @@ public:
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
 
+    void setSpecificPair(const VarPairwiseParams& varParamsSpecific);
+
 private:
     VarPairwiseParams varParams;
+    VarStressParams varStressParams;
 };

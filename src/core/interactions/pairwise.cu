@@ -101,9 +101,10 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 
 
 PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, float rc,
-                                         VarPairwiseParams varParams, VarStressParams varStressParams) :
+                                         const VarPairwiseParams& varParams, const VarStressParams& varStressParams) :
     Interaction(state, name, rc),
-    varParams(varParams)
+    varParams(varParams),
+    varStressParams(varStressParams)
 {
     impl = mpark::visit([&](const auto& params)
     {
@@ -152,4 +153,9 @@ void PairwiseInteraction::checkpoint(MPI_Comm comm, const std::string& path, int
 void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
 {
     return impl->restart(comm, path);
+}
+
+void PairwiseInteraction::setSpecificPair(__UNUSED const VarPairwiseParams& varParamsSpecific)
+{
+    
 }

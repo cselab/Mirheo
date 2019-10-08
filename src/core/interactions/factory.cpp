@@ -17,8 +17,6 @@
 
 #include <core/logger.h>
 
-using MapParams = ParametersWrap::MapParams;
-
 static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
 {
     CommonMembraneParameters p;
