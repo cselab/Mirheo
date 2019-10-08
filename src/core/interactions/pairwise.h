@@ -2,6 +2,7 @@
 
 #include "interface.h"
 #include "pairwise/kernels/parameters.h"
+#include "parameters_wrap.h"
 
 class PairwiseInteraction : public Interaction
 {
@@ -24,7 +25,7 @@ public:
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
 
-    void setSpecificPair(const VarPairwiseParams& varParamsSpecific);
+    void setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, const ParametersWrap::MapParams& desc);
 
 private:
     VarPairwiseParams varParams;
