@@ -2,6 +2,7 @@
 
 #include <core/interactions/density.h>
 #include <core/interactions/dpd.h>
+#include <core/interactions/pairwise.h>
 #include <core/interactions/dpd_with_stress.h>
 #include <core/interactions/factory.h>
 #include <core/interactions/interface.h>
@@ -20,7 +21,7 @@
 using namespace pybind11::literals;
 
 static std::map<std::string, InteractionFactory::VarParam>
-castToMap(const py::kwargs& kwargs, const std::string intName)
+castToMap(const py::kwargs& kwargs, const std::string& intName)
 {
     std::map<std::string, InteractionFactory::VarParam> parameters;
     
@@ -108,6 +109,27 @@ void exportInteractions(py::module& m)
 {
     py::handlers_class<Interaction> pyInt(m, "Interaction", "Base interaction class");
 
+    py::handlers_class<PairwiseInteraction> pyIntPairwise(m, "Pairwise", pyInt, R"(
+        Generic pairwise interaction class. 
+        Can be applied between any kind of :any:`ParticleVector` classes.
+
+    )");
+
+    pyIntPairwise.def("setSpecificPair", [](PairwiseInteraction *self, ParticleVector *pv1, ParticleVector *pv2, py::kwargs kwargs)
+    {
+        auto params = castToMap(kwargs, self->name);
+        self->setSpecificPair(pv1, pv2, params);
+    }, "pv1"_a, "pv2"_a, R"(
+        Set specific parameters to a given interaction given two instances of :any:`ParticleVector`.
+        This is useful when interactions only slightly differ for different pairs of :any:`ParticleVector`.
+        The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
+        Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
+        
+        Args:
+            pv1: first :any:`ParticleVector`
+            pv2: second :any:`ParticleVector`
+    )");
+    
     py::handlers_class<InteractionDPD> pyIntDPD(m, "DPD", pyInt, R"(
         Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
     
