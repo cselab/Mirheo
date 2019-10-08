@@ -13,7 +13,7 @@ class ParametersWrap
 {
 public:
 
-    using VarParam = mpark::variant<float, std::vector<float>, std::vector<PyTypes::float2>, std::string>;
+    using VarParam = mpark::variant<float, std::vector<float>, std::vector<PyTypes::float2>, std::string, bool>;
     using MapParams = std::map<std::string, VarParam>;
     
     ParametersWrap(const MapParams& params) :
