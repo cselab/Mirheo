@@ -1,18 +1,11 @@
 #include <core/pvs/particle_vector.h>
 
-#include <core/interactions/density.h>
-#include <core/interactions/dpd.h>
 #include <core/interactions/pairwise.h>
-#include <core/interactions/dpd_with_stress.h>
 #include <core/interactions/factory.h>
 #include <core/interactions/interface.h>
-#include <core/interactions/lj.h>
-#include <core/interactions/mdpd.h>
-#include <core/interactions/mdpd_with_stress.h>
 #include <core/interactions/membrane.h>
 #include <core/interactions/obj_rod_binding.h>
 #include <core/interactions/rod.h>
-#include <core/interactions/sdpd.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
