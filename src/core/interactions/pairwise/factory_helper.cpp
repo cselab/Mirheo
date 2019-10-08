@@ -96,7 +96,11 @@ DPDParams readDPDParams(ParametersWrap& desc)
 
 static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsReader reader)
 {
+    if (!desc.exists<std::string>("aware_mode"))
+        return LJAwarenessParamsNone {};
+    
     VarLJAwarenessParams varP;
+
     const auto awareMode = desc.read<std::string>("aware_mode");
 
     if (awareMode == "None")
@@ -145,7 +149,7 @@ MDPDParams readMDPDParams(ParametersWrap& desc)
 DensityParams readDensityParams(ParametersWrap& desc)
 {
     DensityParams p;
-    const auto kernel = desc.read<std::string>("kernel");
+    const auto kernel = desc.read<std::string>("density_kernel");
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
 
     if (kernel == "MDPD")
