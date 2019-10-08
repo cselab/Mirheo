@@ -7,7 +7,7 @@
 #include <core/domain.h>
 #include <core/exchangers/api.h>
 #include <core/integrators/factory.h>
-#include <core/interactions/dpd.h>
+#include <core/interactions/pairwise.h>
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
@@ -260,7 +260,8 @@ void execute(float3 length, int niters, double& l2, double& linf)
     redistributor->attach(&pv, &cells);
     SingleNodeEngine redistEngine(std::move(redistributor));
 
-    InteractionDPD dpd(&state, "dpd", rc, adpd, gammadpd, kBT, powerdpd);
+    const DPDParams dpdParams{adpd, gammadpd, kBT, powerdpd};
+    PairwiseInteraction dpd(&state, "dpd", rc, dpdParams, StressNoneParams{});
 
     auto integrator = IntegratorFactory::createVV(&state, "vv");
     
