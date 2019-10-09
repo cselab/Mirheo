@@ -11,7 +11,7 @@
 #include <vector>
 
 class MembraneInteraction;
-class InteractionRod;
+class RodInteraction;
 class PairwiseInteraction;
 class ObjectRodBindingInteraction;
 
@@ -30,7 +30,7 @@ createInteractionMembrane(const MirState *state, std::string name,
                           const MapParams& parameters,
                           bool stressFree, float growUntil);
 
-std::shared_ptr<InteractionRod>
+std::shared_ptr<RodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
                      bool saveEnergies, const MapParams& parameters);
 

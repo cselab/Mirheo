@@ -167,7 +167,7 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 }
 
 
-std::shared_ptr<InteractionRod>
+std::shared_ptr<RodInteraction>
 InteractionFactory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
                                          bool saveEnergies, const MapParams& parameters)
 {
@@ -186,7 +186,7 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
         die("unrecognised state update method: '%s'", stateUpdate.c_str());
     
     desc.checkAllRead();
-    return std::make_shared<InteractionRod>(state, name, params, spinParams, saveEnergies);
+    return std::make_shared<RodInteraction>(state, name, params, spinParams, saveEnergies);
 }
 
 std::shared_ptr<PairwiseInteraction>

@@ -41,17 +41,17 @@ static auto getBiSegmentParams(const RodParameters& p)
 }
 
 template <int Nstates, class StateParameters>
-class InteractionRodImpl : public Interaction
+class RodInteractionImpl : public Interaction
 {
 public:
-    InteractionRodImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
+    RodInteractionImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
         Interaction(state, name, /* rc */ 1.0f),
         parameters(parameters),
         stateParameters(stateParameters),
         saveEnergies(saveEnergies)
     {}
 
-    ~InteractionRodImpl() = default;
+    ~RodInteractionImpl() = default;
 
     void setPrerequisites(ParticleVector *pv1,
                           __UNUSED ParticleVector *pv2,

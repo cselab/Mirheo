@@ -10,14 +10,14 @@ auto instantiateImpl(const MirState *state, std::string name, RodParameters para
     {
         using SpinParamsType = decltype(spinParams);
         
-        impl = std::make_unique<InteractionRodImpl<Nstates, SpinParamsType>>
+        impl = std::make_unique<RodInteractionImpl<Nstates, SpinParamsType>>
             (state, name, parameters, spinParams, saveEnergies);
     }, varSpinParams);
 
     return impl;
 }
 
-InteractionRod::InteractionRod(const MirState *state, std::string name, RodParameters parameters,
+RodInteraction::RodInteraction(const MirState *state, std::string name, RodParameters parameters,
                                VarSpinParams varSpinParams, bool saveEnergies) :
     Interaction(state, name, /*rc*/ 1.f)
 {
@@ -28,7 +28,7 @@ InteractionRod::InteractionRod(const MirState *state, std::string name, RodParam
         if (nstates != 1)
             die("only one state supported for state_update = 'none' (while creating %s)", name.c_str());
 
-        impl = std::make_unique<InteractionRodImpl<1, StatesParametersNone>>
+        impl = std::make_unique<RodInteractionImpl<1, StatesParametersNone>>
             (state, name, parameters, mpark::get<StatesParametersNone>(varSpinParams), saveEnergies);
     }
     else
@@ -51,9 +51,9 @@ InteractionRod::InteractionRod(const MirState *state, std::string name, RodParam
     }
 }
 
-InteractionRod::~InteractionRod() = default;
+RodInteraction::~RodInteraction() = default;
 
-void InteractionRod::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void RodInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
         die("Internal rod forces can't be computed between two different particle vectors");
@@ -65,7 +65,7 @@ void InteractionRod::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, 
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
-void InteractionRod::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void RodInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     if (impl.get() == nullptr)
         die("%s needs a concrete implementation, none was provided", name.c_str());
@@ -73,7 +73,7 @@ void InteractionRod::local(ParticleVector *pv1, ParticleVector *pv2, CellList *c
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionRod::halo(ParticleVector *pv1,
+void RodInteraction::halo(ParticleVector *pv1,
                           __UNUSED ParticleVector *pv2,
                           __UNUSED CellList *cl1,
                           __UNUSED CellList *cl2,
@@ -82,7 +82,7 @@ void InteractionRod::halo(ParticleVector *pv1,
     debug("Not computing internal rod forces between local and halo rods of '%s'", pv1->name.c_str());
 }
 
-bool InteractionRod::isSelfObjectInteraction() const
+bool RodInteraction::isSelfObjectInteraction() const
 {
     return true;
 }

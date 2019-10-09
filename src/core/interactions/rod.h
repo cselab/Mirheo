@@ -9,12 +9,12 @@ using VarSpinParams = mpark::variant<StatesParametersNone,
                                      StatesSmoothingParameters,
                                      StatesSpinParameters>;
 
-class InteractionRod : public Interaction
+class RodInteraction : public Interaction
 {
 public:
-    InteractionRod(const MirState *state, std::string name,
+    RodInteraction(const MirState *state, std::string name,
                    RodParameters params, VarSpinParams spinParams, bool saveEnergies);
-    virtual ~InteractionRod();
+    ~RodInteraction();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
     

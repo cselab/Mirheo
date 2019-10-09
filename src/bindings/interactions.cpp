@@ -47,7 +47,7 @@ createInteractionMembrane(const MirState *state, std::string name,
         (state, name, shearDesc, bendingDesc, parameters, stressFree, growUntil);
 }
 
-static std::shared_ptr<InteractionRod>
+static std::shared_ptr<RodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -405,7 +405,7 @@ void exportInteractions(py::module& m)
     )");
 
 
-    py::handlers_class<InteractionRod> pyRodForces(m, "RodForces", pyInt, R"(
+    py::handlers_class<RodInteraction> pyRodForces(m, "RodForces", pyInt, R"(
         Forces acting on an elastic rod.
 
         The rod interactions are composed of forces comming from:
