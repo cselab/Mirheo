@@ -11,7 +11,7 @@ struct LJAwarenessObject;
 struct LJAwarenessRod;
 
 template <class Awareness>
-class PairwiseLJ;
+class PairwiseRepulsiveLJ;
 
 class PairwiseMDPD;
 

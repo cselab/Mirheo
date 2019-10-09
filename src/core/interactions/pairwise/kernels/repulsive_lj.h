@@ -100,15 +100,15 @@ struct LJAwarenessRod
 };
 
 template <class Awareness>
-class PairwiseLJ : public PairwiseKernel, public ParticleFetcher
+class PairwiseRepulsiveLJ : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
     using ViewType     = PVview;
     using ParticleType = Particle;
-    using HandlerType  = PairwiseLJ;
+    using HandlerType  = PairwiseRepulsiveLJ;
     
-    PairwiseLJ(float rc, float epsilon, float sigma, float maxForce, Awareness awareness) :
+    PairwiseRepulsiveLJ(float rc, float epsilon, float sigma, float maxForce, Awareness awareness) :
         ParticleFetcher(rc),
         epsilon(epsilon),
         sigma(sigma),

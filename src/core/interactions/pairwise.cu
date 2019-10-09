@@ -5,9 +5,9 @@
 #include "pairwise/kernels/density.h"
 #include "pairwise/kernels/density_kernels.h"
 #include "pairwise/kernels/dpd.h"
-#include "pairwise/kernels/lj.h"
 #include "pairwise/kernels/mdpd.h"
 #include "pairwise/kernels/pressure_EOS.h"
+#include "pairwise/kernels/repulsive_lj.h"
 #include "pairwise/kernels/sdpd.h"
 #include "pairwise/kernels/type_traits.h"
 
@@ -64,7 +64,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
         using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
         
         AwareType awareness(awareParams);
-        PairwiseLJ<AwareType> lj(rc, params.epsilon, params.sigma, params.maxForce, awareness);
+        PairwiseRepulsiveLJ<AwareType> lj(rc, params.epsilon, params.sigma, params.maxForce, awareness);
 
         return createPairwiseFromKernel(state, name, rc, lj, varStressParams);
     }, params.varLJAwarenessParams);
@@ -279,7 +279,7 @@ static void setSpecificFromParams(__UNUSED const MirState *state, float rc, cons
         using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
         
         AwareType awareness(awareParams);
-        PairwiseLJ<AwareType> lj(rc, params.epsilon, params.sigma, params.maxForce, awareness);
+        PairwiseRepulsiveLJ<AwareType> lj(rc, params.epsilon, params.sigma, params.maxForce, awareness);
 
         setSpecificFromKernel(lj, varStressParams, info);
     }, params.varLJAwarenessParams);
