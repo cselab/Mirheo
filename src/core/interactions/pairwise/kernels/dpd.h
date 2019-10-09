@@ -21,11 +21,11 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    PairwiseDPDHandler(float rc, float a, float gamma, float kBT, float dt, float power) :
+    PairwiseDPDHandler(float rc, float a, float gamma, float sigma, float power) :
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
-        sigma(sqrt(2.0 * gamma * kBT / dt)),
+        sigma(sigma),
         power(power),
         invrc(1.0 / rc)
     {}
@@ -68,8 +68,9 @@ public:
     using HandlerType = PairwiseDPDHandler;
     
     PairwiseDPD(float rc, float a, float gamma, float kBT, float dt, float power, long seed=42424242) :
-        PairwiseDPDHandler(rc, a, gamma, kBT, dt, power),
-        stepGen(seed)
+        PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
+        stepGen(seed),
+        kBT(kBT)
     {}
 
     PairwiseDPD(float rc, const DPDParams& p, float dt, long seed=42424242) :
@@ -88,6 +89,7 @@ public:
                const MirState *state) override
     {
         this->seed = stepGen.generate(state);
+        sigma = computeSigma(gamma, kBT, state->dt);
     }
 
     void writeState(std::ofstream& fout) override
@@ -103,5 +105,11 @@ public:
 
 protected:
 
+    static float computeSigma(float gamma, float kBT, float dt)
+    {
+        return sqrt(2.0 * gamma * kBT / dt);
+    }
+    
     StepRandomGen stepGen;
+    float kBT;
 };

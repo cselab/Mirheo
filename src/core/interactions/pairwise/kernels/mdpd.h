@@ -23,11 +23,11 @@ public:
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensity;
     
-    PairwiseMDPDHandler(float rc, float rd, float a, float b, float gamma, float kBT, float dt, float power) :
+    PairwiseMDPDHandler(float rc, float rd, float a, float b, float gamma, float sigma, float power) :
         ParticleFetcherWithVelocityAndDensity(rc),
         a(a), b(b),
         gamma(gamma),
-        sigma(sqrt(2 * gamma * kBT / dt)),
+        sigma(sigma),
         power(power),
         rd(rd),
         invrc(1.0 / rc),
@@ -76,8 +76,9 @@ public:
     using HandlerType = PairwiseMDPDHandler;
     
     PairwiseMDPD(float rc, float rd, float a, float b, float gamma, float kBT, float dt, float power, long seed = 42424242) :
-        PairwiseMDPDHandler(rc, rd, a, b, gamma, kBT, dt, power),
-        stepGen(seed)
+        PairwiseMDPDHandler(rc, rd, a, b, gamma, computeSigma(gamma, kBT, dt), power),
+        stepGen(seed),
+        kBT(kBT)
     {}
 
     PairwiseMDPD(float rc, const MDPDParams& p, float dt, long seed = 42424242) :
@@ -96,6 +97,7 @@ public:
                const MirState *state) override
     {
         seed = stepGen.generate(state);
+        sigma = computeSigma(gamma, kBT, state->dt);
     }
 
     void writeState(std::ofstream& fout) override
@@ -110,5 +112,11 @@ public:
 
 protected:
 
+    static float computeSigma(float gamma, float kBT, float dt)
+    {
+        return sqrt(2.0 * gamma * kBT / dt);
+    }
+
     StepRandomGen stepGen;
+    float kBT;
 };

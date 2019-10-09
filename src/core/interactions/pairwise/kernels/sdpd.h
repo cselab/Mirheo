@@ -24,12 +24,12 @@ public:
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensityAndMass;
     
-    PairwiseSDPDHandler(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float kBT, float dt) :
+    PairwiseSDPDHandler(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float fRfact) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
         inv_rc(1.0 / rc),
         pressure(pressure),
         densityKernel(densityKernel),
-        fRfact(sqrt(2 * zeta * viscosity * kBT / dt)),
+        fRfact(fRfact),
         fDfact(viscosity * zeta)
     {}
 
@@ -89,8 +89,10 @@ public:
     using HandlerType = PairwiseSDPDHandler<PressureEOS, DensityKernel>;
     
     PairwiseSDPD(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float kBT, float dt, long seed = 42424242) :
-        PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, kBT, dt),
-        stepGen(seed)
+        PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
+        stepGen(seed),
+        viscosity(viscosity),
+        kBT(kBT)
     {}
 
     const HandlerType& handler() const
@@ -104,6 +106,7 @@ public:
                __UNUSED CellList *cl2, const MirState *state) override
     {
         this->seed = stepGen.generate(state);
+        this->fRfact = computeFRfact(this->viscosity, this->kBT, state->dt);
     }
 
     void writeState(std::ofstream& fout) override
@@ -119,5 +122,12 @@ public:
     
 protected:
 
-    StepRandomGen stepGen;    
+    static float computeFRfact(float viscosity, float kBT, float dt)
+    {
+        return sqrt(2 * HandlerType::zeta * viscosity * kBT / dt);
+    }
+    
+    StepRandomGen stepGen;
+    float viscosity;
+    float kBT;
 };
