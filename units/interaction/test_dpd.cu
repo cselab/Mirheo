@@ -120,7 +120,7 @@ void execute(MPI_Comm comm, float3 length)
     const float adpd = 50;
 
     PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-    std::unique_ptr<Interaction> inter = std::make_unique<InteractionPair<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdInt);
+    std::unique_ptr<Interaction> inter = std::make_unique<PairwiseInteractionImpl<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdInt);
 
     PinnedBuffer<int> counter(1);
 
