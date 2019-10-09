@@ -33,7 +33,7 @@ public:
     
     QuasiIncompressiblePressureEOS(float p0, float rhor) :
         p0(p0),
-        rhor(rhor)
+        invRhor(1.0/rhor)
     {}
 
     QuasiIncompressiblePressureEOS(const QuasiIncompressiblePressureEOSParams& p) :
@@ -42,7 +42,7 @@ public:
     
     __D__ inline float operator()(float rho) const
     {
-        const float r = rho / rhor;
+        const float r = rho * invRhor;
         const float r3 = r*r*r;
         const float r7 = r3*r3*r;
         return p0 * (r7 - 1.f);
@@ -50,5 +50,5 @@ public:
 
 private:
 
-    float p0, rhor;
+    float p0, invRhor;
 };
