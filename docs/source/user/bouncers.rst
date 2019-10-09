@@ -10,7 +10,7 @@ Assuming that the objects never come too close to each other or the walls, this 
 In practice maintaining separation of at least :math:`10^{-3}` units between walls and objects is sufficient.
 Note that particle velocities are also altered, which means that objects experience extra force from the collisions.
 
-See also :any:`mirheo.registerBouncer` and :any:`mirheo.setBouncer`.
+See also :any:`Mirheo.registerBouncer` and :any:`Mirheo.setBouncer`.
 
 Summary
 ========

@@ -39,7 +39,7 @@ The setup script usually starts with importing the module, e.g.:
     Otherwise single failed MPI process will not trigger shutdown, and a deadlock will happen.
 
     
-The coordinator class, :any:`mirheo`, and several submodules will be available after that:
+The coordinator class, :any:`Mirheo`, and several submodules will be available after that:
 
 * :ref:`ParticleVectors <user-pv>`.
     Consists of classes that store the collections of particles or objects
@@ -92,7 +92,7 @@ Mirheo is intended to be executed within MPI environments, e.g.:
 
     mpirun -np 2 python3 script.py
 
-The code employs simple domain decomposition strategy (see :any:`mirheo`) with the work
+The code employs simple domain decomposition strategy (see :any:`Mirheo`) with the work
 mapping fixed in the beginning of the simulation.
 
 .. warning:: 
@@ -110,6 +110,6 @@ mapping fixed in the beginning of the simulation.
     the postprocessing will be disabled. All the plugins that use the postprocessing will not work
     (all the plugins that write anything, for example). This execution mode is mainly aimed at debugging.
 
-The running code will produce several log files (one per MPI task): see :any:`mirheo`.
+The running code will produce several log files (one per MPI task): see :any:`Mirheo`.
 Most errors in the simulation setup (like setting a negative particle mass) will be reported to the log.
 In case the code finishes unexpectedly, the user is advised to take a look at the log.

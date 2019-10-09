@@ -24,7 +24,7 @@ We start with a very minimal script running |mir|.
    :caption: `hello.py`
 
 The time step of the simulation and the domain size are common to all objects in the simulation,
-hence it has to be passed to the coordinator (see its :py:meth:`constructor <_mirheo.mirheo.__init__>`).
+hence it has to be passed to the coordinator (see its :py:meth:`constructor <_mirheo.Mirheo.__init__>`).
 We do not add anything more before running the simulation (last line).
 
 .. note::
@@ -46,7 +46,7 @@ Depending on the ``debug_level`` variable, the log files will provide informatio
 DPD solvent at rest
 *******************
 
-We will now run a simulation of particles in a periodic box interacting with :any:`DPD` forces.
+We will now run a simulation of particles in a periodic box interacting with :any:`Pairwise` forces of type "DPD".
 We use a :any:`VelocityVerlet` integrator to advance particles in time.
 The initial conditions are :any:`Uniform` randomly placed particles in the domain with a given density.
 
@@ -56,10 +56,10 @@ The initial conditions are :any:`Uniform` randomly placed particles in the domai
 
 This example demonstrates how to build a simulation:
 
-#. **Create** the :py:class:`coordinator <_mirheo.mirheo>`
+#. **Create** the :py:class:`coordinator <_mirheo.Mirheo>`
 #. **Create** the simulation objects (particle vectors, initial conditions...)
-#. **Register** the above objects into the :py:class:`coordinator <_mirheo.mirheo>` (see ``register*`` functions)
-#. **link** the registered objects together in the :py:class:`coordinator <_mirheo.mirheo>` (see ``set*`` functions)
+#. **Register** the above objects into the :py:class:`coordinator <_mirheo.Mirheo>` (see ``register*`` functions)
+#. **link** the registered objects together in the :py:class:`coordinator <_mirheo.Mirheo>` (see ``set*`` functions)
 
 The above script can be run as:
 
@@ -115,8 +115,8 @@ This example demonstrates how to construct walls:
 
 #. **Create** :py:mod:`Walls <_mirheo.Walls>` representation
 #. **Create** :py:mod:`Interactions <_mirheo.Interactions>` and an :py:mod:`Integrator <_mirheo.Integrators>` to equilibrate frozen particles
-#. **Create** the frozen particles with :py:meth:`_mirheo.mirheo.makeFrozenWallParticles`
-#. **Set** walls to given PVs with :py:meth:`_mirheo.mirheo.setWall`
+#. **Create** the frozen particles with :py:meth:`_mirheo.Mirheo.makeFrozenWallParticles`
+#. **Set** walls to given PVs with :py:meth:`_mirheo.Mirheo.setWall`
 #. **Set** interactions with the frozen particles as normal PVs
    
 The execution of :ref:`walls-py` should output the `stats.txt` file as well as information output in the console.

@@ -13,7 +13,7 @@ Object belonging checkers serve two purpooses:
        reference :any:`ObjectVector` will be moved to the outer PV (and viceversa).
        If one of the PVs was specified as "none", the erroneous particles will be deleted from the simulation.
 
-See also :any:`mirheo.registerObjectBelongingChecker` and :any:`mirheo.applyObjectBelongingChecker`.
+See also :any:`Mirheo.registerObjectBelongingChecker` and :any:`Mirheo.applyObjectBelongingChecker`.
        
 Summary
 ========

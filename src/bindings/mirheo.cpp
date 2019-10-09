@@ -294,7 +294,7 @@ void exportMirheo(py::module& m)
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
              
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_mirheo.mirheo.run`.
+                 if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          )")
         .def("run", &Mirheo::run,
              "niters"_a, R"(

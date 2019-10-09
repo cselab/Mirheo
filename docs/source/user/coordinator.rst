@@ -20,14 +20,14 @@ One and only one instance of this class should be created in the beginning of an
         from mpi4py import MPI
 
         
-.. autoclass:: _mirheo.mirheo
+.. autoclass:: _mirheo.Mirheo
    :members:
    :undoc-members:
    :special-members: __init__
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _mirheo.mirheo
+    .. autoautosummary:: _mirheo.Mirheo
         :methods:
 
  
