@@ -6,191 +6,6 @@ class Interaction:
         """
         pass
 
-class DPD(Interaction):
-    r"""
-        Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
-    
-        .. math::
-        
-            \mathbf{F}_{ij} &= \mathbf{F}^C(\mathbf{r}_{ij}) + \mathbf{F}^D(\mathbf{r}_{ij}, \mathbf{u}_{ij}) + \mathbf{F}^R(\mathbf{r}_{ij}) \\
-            \mathbf{F}^C(\mathbf{r}) &= \begin{cases} a(1-\frac{r}{r_c}) \mathbf{\hat r}, & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
-            \mathbf{F}^D(\mathbf{r}, \mathbf{u}) &= \gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \mathbf{\hat r} \\
-            \mathbf{F}^R(\mathbf{r}) &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \, \mathbf{\hat r}
-        
-        where bold symbol means a vector, its regular counterpart means vector length: 
-        :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
-        :math:`\mathbf{\hat x} = \mathbf{x} / \left\lVert \mathbf{x} \right\rVert`. Moreover, :math:`\theta` is the random variable with zero mean
-        and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces 
-        are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma \, k_B T`; and :math:`w(r)` is the weight function
-        that we define as follows:
-        
-        .. math::
-            
-            w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
-            
-        .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
-            Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
-            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, a: float, gamma: float, kbt: float, power: float, stress: bool = False, **kwargs) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                a: :math:`a`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
-    
-
-        """
-        pass
-
-    def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, a: float = inf, gamma: float = inf, kbt: float = inf, power: float = inf) -> None
-
-
-            Override some of the interaction parameters for a specific pair of Particle Vectors
-         
-
-        """
-        pass
-
-class Density(Interaction):
-    r"""
-        Compute density of particles with a given kernel. 
-    
-        .. math::
-        
-            \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
-
-        where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`.
-        The implemented densities are listed below:
-
-
-        kernel "MDPD":
-            
-            see [Warren2003]_
-            
-            .. math::
-            
-                w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
-        
-        kernel "WendlandC2":
-        
-            .. math::
-
-                w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, kernel: str) -> None
-
-  
-        Args:
-            name: name of the interaction
-            rc: interaction cut-off
-            kernel: the density kernel to be used. possible choices are:
-            
-                * MDPD
-                * WendlandC2            
-    
-
-        """
-        pass
-
-class LJ(Interaction):
-    r"""
-        Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
-        The force however is truncated such that it is *always repulsive*.
-        
-        .. math::
-        
-            \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
-   
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, epsilon: float, sigma: float, max_force: float = 1000.0, aware_mode: str = 'None', stress: bool = False, **kwargs) -> None
-
-
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                epsilon: :math:`\varepsilon`
-                sigma: :math:`\sigma`
-                max_force: force magnitude will be capped to not exceed **max_force**
-                aware_mode:
-                    * if "None", all particles interact with each other.
-                    * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
-                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
-                    * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
-                      (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
-                stress: 
-                    if **True**, will enable stress computations every **stress_period** time units (specified as kwargs parameter).
-                   
-    
-
-        """
-        pass
-
-    def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, epsilon: float, sigma: float, max_force: float) -> None
-
-
-            Override some of the interaction parameters for a specific pair of Particle Vectors
-        
-
-        """
-        pass
-
-class MDPD(Interaction):
-    r"""
-        Compute MDPD interaction as described in [Warren2003].
-        Must be used together with :any:`Density` interaction with kernel "MDPD".
-
-        The interaction forces are the same as described in :any:`DPD` with the modified conservative term
-
-        .. math::
-
-            F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
- 
-        where :math:`\rho_i` is computed from :any:`Density` and
-
-        .. math::
-
-            w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
-            w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}
-
-
-        .. [Warren2003] Warren, P. B. 
-           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
-           Physical Review E 68.6 (2003): 066702.`_
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, rd: float, a: float, b: float, gamma: float, kbt: float, power: float, stress: bool = False, **kwargs) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                rd: density cutoff, assumed rd <= rc
-                a: :math:`a`
-                b: :math:`b`
-                gamma: :math:`\gamma`
-                kbt: :math:`k_B T`
-                power: :math:`p` in the weight function
-                stress: if **True**, activates virial stress computation every **stress_period** time units (given in kwars) 
-    
-
-        """
-        pass
-
 class MembraneForces(Interaction):
     r"""
         Abstract class for membrane interactions.
@@ -337,6 +152,215 @@ class ObjRodBinding(Interaction):
         """
         pass
 
+class Pairwise(Interaction):
+    r"""
+        Generic pairwise interaction class. 
+        Can be applied between any kind of :any:`ParticleVector` classes.
+        The following interactions are currently implemented:
+
+
+        * **DPD**: 
+            Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
+    
+            .. math::
+            
+                \mathbf{F}_{ij} &= \mathbf{F}^C(\mathbf{r}_{ij}) + \mathbf{F}^D(\mathbf{r}_{ij}, \mathbf{u}_{ij}) + \mathbf{F}^R(\mathbf{r}_{ij}) \\
+                \mathbf{F}^C(\mathbf{r}) &= \begin{cases} a(1-\frac{r}{r_c}) \mathbf{\hat r}, & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+                \mathbf{F}^D(\mathbf{r}, \mathbf{u}) &= \gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \mathbf{\hat r} \\
+                \mathbf{F}^R(\mathbf{r}) &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \, \mathbf{\hat r}
+        
+            where bold symbol means a vector, its regular counterpart means vector length: 
+            :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
+            :math:`\mathbf{\hat x} = \mathbf{x} / \left\lVert \mathbf{x} \right\rVert`. Moreover, :math:`\theta` is the random variable with zero mean
+            and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces 
+            are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma \, k_B T`; and :math:`w(r)` is the weight function
+            that we define as follows:
+        
+            .. math::
+            
+                w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
+
+
+        * **MDPD**: 
+            Compute MDPD interaction as described in [Warren2003].
+            Must be used together with "Density" interaction with kernel "MDPD".
+
+            The interaction forces are the same as described in "DPD" with the modified conservative term
+
+            .. math::
+    
+                F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
+ 
+            where :math:`\rho_i` is computed from "Density" and
+
+            .. math::
+
+                w_c(r) = \begin{cases} (1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+                w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+
+
+        * **SDPD**: 
+            Compute SDPD interaction with angular momentum conservation.
+            Must be used together with "Density" interaction with the same density kernel.
+    
+            The available density kernels are listed in "Density".
+            The available equations of state (EOS) are:
+
+            Linear equation of state:
+
+                .. math::
+
+                    p(\rho) = c_S^2 \left(\rho - \rho_0 \right)
+ 
+                where :math:`c_S` is the speed of sound and :math:`\rho_0` is a parameter.
+
+            Quasi incompressible EOS:
+
+                .. math::
+
+                    p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
+
+                where :math:`p_0`, :math:`\rho_r` and :math:`\gamma = 7` are parameters to be fitted to the desired fluid.
+
+
+        * **RepulsiveLJ**: 
+            Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
+            The force however is truncated such that it is *always repulsive*.
+        
+            .. math::
+            
+                \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+
+            Note that in the implementation, the force is bounded for stability at larger time steps.
+
+        * **Density**: 
+            Compute density of particles with a given kernel. 
+    
+            .. math::
+            
+                \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
+
+            where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`.
+            The implemented densities are listed below:
+
+
+            * kernel "MDPD":
+            
+                see [Warren2003]_
+            
+                .. math::
+            
+                    w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
+        
+            * kernel "WendlandC2":
+            
+                .. math::
+    
+                    w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
+
+            
+        .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
+            Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
+            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
+
+        .. [Warren2003] Warren, P. B. 
+           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+           Physical Review E 68.6 (2003): 066702.`_
+
+
+    
+    """
+    def __init__():
+        r"""__init__(name: str, rc: float, kind: str, **kwargs) -> None
+
+  
+            Args:
+                name: name of the interaction
+                rc: interaction cut-off (no forces between particles further than **rc** apart)
+                kind: interaction kind (e.g. DPD). See below for all possibilities.
+
+            Create one pairwise interaction handler of kind **kind**.
+            When applicable, stress computation is activated by passing **stress = True**.
+            This activates virial stress computation every **stress_period** time units (also passed in **kwars**) 
+
+            * **kind** = "DPD"
+
+                * **a**: :math:`a`
+                * **gamma**: :math:`\gamma`
+                * **kbt**: :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+                
+            * **kind** = "MDPD"
+
+                * **rd**: :math:`r_d`
+                * **a**: :math:`a`
+                * **b**: :math:`b`
+                * **gamma**: :math:`\gamma`
+                * **kbt**: temperature :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+
+
+            * **kind** = "SDPD"
+
+                * **viscosity**: fluid viscosity
+                * **kbt**: temperature :math:`k_B T`
+                * **EOS**: the desired equation of state (see below) 
+                * **density_kernel**: the desired density kernel (see below)
+
+
+            * **kind** = "RepulsiveLJ"
+
+                * **epsilon**: :math:`\varepsilon`
+                * **sigma**: :math:`\sigma`
+                * **max_force**: force magnitude will be capped to not exceed **max_force**
+                * **aware_mode**:
+                    * if "None", all particles interact with each other.
+                    * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
+                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                    * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
+                      (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+
+
+            * **kind** = "Density"
+
+                * **density_kernel**: the desired density kernel (see below)
+
+            The available density kernels are "MDPD" and "WendlandC2". Note that "MDPD" can not be used with SDPD interactions.
+            MDPD interactions can use only "MDPD" density kernel.
+
+            For SDPD, the available equation of states are given below:
+
+            * **EOS** = "Linear" parameters:
+
+                * **sound_speed**: the speed of sound
+                * **rho_0**: background pressure in :math:`c_S` units
+
+            * **EOS** = "QuasiIncompressible" parameters:
+
+                * **p0**: :math:`p_0`
+                * **rho_r**: :math:`\rho_r`
+    
+
+        """
+        pass
+
+    def setSpecificPair():
+        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, **kwargs) -> None
+
+
+        Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.
+        This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
+        The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
+        Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
+        
+        Args:
+            pv1: first :any:`ParticleVector`
+            pv2: second :any:`ParticleVector`
+    
+
+        """
+        pass
+
 class RodForces(Interaction):
     r"""
         Forces acting on an elastic rod.
@@ -407,58 +431,6 @@ class RodForces(Interaction):
              The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.
              Only lists of 1, 2 and 11 states are supported.
-    
-
-        """
-        pass
-
-class SDPD(Interaction):
-    r"""
-        Compute SDPD interaction with angular momentum conservation.
-        Must be used together with :any:`Density` interaction with the same density kernel.
-
-        The available density kernels are listed in :any:`Density`.
-        The available equations of state (EOS) are:
-
-        Linear equation of state:
-
-            .. math::
-
-                p(\rho) = c_S^2 \left(\rho - \rho_0 \right)
- 
-            where :math:`c_S` is the speed of sound and :math:`\rho_0` is a parameter.
-
-        Quasi incompressible EOS:
-
-            .. math::
-
-                p(\rho) = p_0 \left[ \left( \frac {\rho}{\rho_r} \right)^\gamma - 1 \right],
-
-            where :math:`p_0`, :math:`\rho_r` and :math:`\gamma = 7` are parameters to be fitted to the desired fluid.
-    
-    """
-    def __init__():
-        r"""__init__(name: str, rc: float, viscosity: float, kBT: float, EOS: str, density_kernel: str, stress: bool = False, **kwargs) -> None
-
-  
-            Args:
-                name: name of the interaction
-                rc: interaction cut-off (no forces between particles further than **rc** apart)
-                viscosity: solvent viscosity
-                kBT: temperature (in :math:`k_B` units)
-                EOS: the desired equation of state 
-                density_kernel: the desired density kernel
-                stress: compute stresses if set to True (default: False); need the additional parameter **stress_period** if active.
-
-            **EOS = "Linear" parameters:**
-
-                * **sound_speed**: the speed of sound
-                * **rho_0**: background pressure in :math:`c_S` units
-
-            **EOS = "QuasiIncompressible" parameters:**
-
-                * **p0**: :math:`p_0`
-                * **rho_r**: :math:`\rho_r`
     
 
         """

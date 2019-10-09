@@ -72,7 +72,9 @@ void exportInteractions(py::module& m)
         Can be applied between any kind of :any:`ParticleVector` classes.
         The following interactions are currently implemented:
 
-        * **DPD**: Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
+
+        * **DPD**: 
+            Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
     
             .. math::
             
@@ -93,16 +95,17 @@ void exportInteractions(py::module& m)
                 w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
 
 
-        * **MDPD**: Compute MDPD interaction as described in [Warren2003].
-            Must be used together with :any:`Density` interaction with kernel "MDPD".
+        * **MDPD**: 
+            Compute MDPD interaction as described in [Warren2003].
+            Must be used together with "Density" interaction with kernel "MDPD".
 
-            The interaction forces are the same as described in :any:`DPD` with the modified conservative term
+            The interaction forces are the same as described in "DPD" with the modified conservative term
 
             .. math::
     
                 F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
  
-            where :math:`\rho_i` is computed from :any:`Density` and
+            where :math:`\rho_i` is computed from "Density" and
 
             .. math::
 
@@ -110,10 +113,11 @@ void exportInteractions(py::module& m)
                 w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}
 
 
-        * **SDPD**: Compute SDPD interaction with angular momentum conservation.
-            Must be used together with :any:`Density` interaction with the same density kernel.
+        * **SDPD**: 
+            Compute SDPD interaction with angular momentum conservation.
+            Must be used together with "Density" interaction with the same density kernel.
     
-            The available density kernels are listed in :any:`Density`.
+            The available density kernels are listed in "Density".
             The available equations of state (EOS) are:
 
             Linear equation of state:
@@ -133,15 +137,18 @@ void exportInteractions(py::module& m)
                 where :math:`p_0`, :math:`\rho_r` and :math:`\gamma = 7` are parameters to be fitted to the desired fluid.
 
 
-        * **RepulsiveLJ**: Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
+        * **RepulsiveLJ**: 
+            Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
             The force however is truncated such that it is *always repulsive*.
         
             .. math::
             
                 \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
 
+            Note that in the implementation, the force is bounded for stability at larger time steps.
 
-        * **Density**: Compute density of particles with a given kernel. 
+        * **Density**: 
+            Compute density of particles with a given kernel. 
     
             .. math::
             
@@ -151,7 +158,7 @@ void exportInteractions(py::module& m)
             The implemented densities are listed below:
 
 
-            kernel "MDPD":
+            * kernel "MDPD":
             
                 see [Warren2003]_
             
@@ -159,7 +166,7 @@ void exportInteractions(py::module& m)
             
                     w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
         
-            kernel "WendlandC2":
+            * kernel "WendlandC2":
             
                 .. math::
     
@@ -188,14 +195,14 @@ void exportInteractions(py::module& m)
             When applicable, stress computation is activated by passing **stress = True**.
             This activates virial stress computation every **stress_period** time units (also passed in **kwars**) 
 
-            **kind = "DPD"**
+            * **kind** = "DPD"
 
                 * **a**: :math:`a`
                 * **gamma**: :math:`\gamma`
                 * **kbt**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
                 
-            **kind = "MDPD"**
+            * **kind** = "MDPD"
 
                 * **rd**: :math:`r_d`
                 * **a**: :math:`a`
@@ -205,7 +212,7 @@ void exportInteractions(py::module& m)
                 * **power**: :math:`p` in the weight function
 
 
-            **kind = "SDPD"**
+            * **kind** = "SDPD"
 
                 * **viscosity**: fluid viscosity
                 * **kbt**: temperature :math:`k_B T`
@@ -213,12 +220,12 @@ void exportInteractions(py::module& m)
                 * **density_kernel**: the desired density kernel (see below)
 
 
-            **kind = "RepulsiveLJ"**
+            * **kind** = "RepulsiveLJ"
 
                 * **epsilon**: :math:`\varepsilon`
                 * **sigma**: :math:`\sigma`
                 * **max_force**: force magnitude will be capped to not exceed **max_force**
-                * **aware_mode:
+                * **aware_mode**:
                     * if "None", all particles interact with each other.
                     * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
                       That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
@@ -226,7 +233,7 @@ void exportInteractions(py::module& m)
                       (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
 
 
-            **kind = "Density"**
+            * **kind** = "Density"
 
                 * **density_kernel**: the desired density kernel (see below)
 
@@ -235,12 +242,12 @@ void exportInteractions(py::module& m)
 
             For SDPD, the available equation of states are given below:
 
-            **EOS = "Linear" parameters:**
+            * **EOS** = "Linear" parameters:
 
                 * **sound_speed**: the speed of sound
                 * **rho_0**: background pressure in :math:`c_S` units
 
-            **EOS = "QuasiIncompressible" parameters:**
+            * **EOS** = "QuasiIncompressible" parameters:
 
                 * **p0**: :math:`p_0`
                 * **rho_r**: :math:`\rho_r`
