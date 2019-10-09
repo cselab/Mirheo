@@ -178,11 +178,11 @@ class Uniform(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(density: float) -> None
+        r"""__init__(number_density: float) -> None
 
 
             Args:
-                density: target density
+                number_density: target number density
         
 
         """
@@ -195,11 +195,11 @@ class UniformFiltered(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(density: float, filter: Callable[[Tuple[float, float, float]], bool]) -> None
+        r"""__init__(number_density: float, filter: Callable[[Tuple[float, float, float]], bool]) -> None
 
 
             Args:
-                density: target density
+                number_density: target number density
                 filter: given position, returns True if the particle should be kept 
         
 
@@ -214,11 +214,11 @@ class UniformSphere(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(density: float, center: Tuple[float, float, float], radius: float, inside: bool) -> None
+        r"""__init__(number_density: float, center: Tuple[float, float, float], radius: float, inside: bool) -> None
 
 
             Args:
-                density: target density
+                number_density: target number density
                 center: center of the sphere
                 radius: radius of the sphere
                 inside: whether the particles should be inside or outside the sphere

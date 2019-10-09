@@ -3,7 +3,7 @@ class MirState:
         state of the simulation shared by all simulation objects.
     
     """
-class mirheo:
+class Mirheo:
     r"""
         Main coordination class, should only be one instance at a time
     
@@ -111,7 +111,7 @@ class mirheo:
         pass
 
     def getState():
-        r"""getState(self: mirheo) -> MirState
+        r"""getState(self: Mirheo) -> MirState
 
 Return mirheo state
 
@@ -119,7 +119,7 @@ Return mirheo state
         pass
 
     def isComputeTask():
-        r"""isComputeTask(self: mirheo) -> bool
+        r"""isComputeTask(self: Mirheo) -> bool
 
 Returns ``True`` if the current rank is a simulation task and ``False`` if it is a postrprocess task
 
@@ -127,7 +127,7 @@ Returns ``True`` if the current rank is a simulation task and ``False`` if it is
         pass
 
     def isMasterTask():
-        r"""isMasterTask(self: mirheo) -> bool
+        r"""isMasterTask(self: Mirheo) -> bool
 
 Returns ``True`` if the current rank is the root
 
@@ -135,7 +135,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def log_compile_options():
-        r"""log_compile_options(self: mirheo) -> None
+        r"""log_compile_options(self: Mirheo) -> None
 
 
              output compile times options in the log
@@ -145,7 +145,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interactions: List[Interaction], integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interactions: List[Interaction], integrator: Integrator, number_density: float, nsteps: int = 1000) -> ParticleVector
 
 
                 Create particles frozen inside object.
@@ -160,7 +160,7 @@ Returns ``True`` if the current rank is the root
                     icShape: initial conditions for shape
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
-                    density: target particle density
+                    number_density: target particle number density
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
@@ -172,7 +172,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interactions: List[Interaction], integrator: Integrator, density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interactions: List[Interaction], integrator: Integrator, number_density: float, nsteps: int = 1000) -> ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -186,7 +186,7 @@ Returns ``True`` if the current rank is the root
                     walls: array of instances of :any:`Wall` for which the frozen particles will be generated
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
-                    density: target particle density
+                    number_density: target particle number density
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
@@ -329,7 +329,7 @@ Register Plugins
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
              
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_mirheo.mirheo.run`.
+                 if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          
 
         """
@@ -398,7 +398,7 @@ Register Plugins
         pass
 
     def start_profiler():
-        r"""start_profiler(self: mirheo) -> None
+        r"""start_profiler(self: Mirheo) -> None
 
 Tells nvprof to start recording timeline
 
@@ -406,7 +406,7 @@ Tells nvprof to start recording timeline
         pass
 
     def stop_profiler():
-        r"""stop_profiler(self: mirheo) -> None
+        r"""stop_profiler(self: Mirheo) -> None
 
 Tells nvprof to stop recording timeline
 

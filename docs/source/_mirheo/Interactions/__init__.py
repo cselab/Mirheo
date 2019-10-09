@@ -287,7 +287,7 @@ class Pairwise(Interaction):
 
                 * **a**: :math:`a`
                 * **gamma**: :math:`\gamma`
-                * **kbt**: :math:`k_B T`
+                * **kBT**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
                 
             * **kind** = "MDPD"
@@ -296,14 +296,14 @@ class Pairwise(Interaction):
                 * **a**: :math:`a`
                 * **b**: :math:`b`
                 * **gamma**: :math:`\gamma`
-                * **kbt**: temperature :math:`k_B T`
+                * **kBT**: temperature :math:`k_B T`
                 * **power**: :math:`p` in the weight function
 
 
             * **kind** = "SDPD"
 
                 * **viscosity**: fluid viscosity
-                * **kbt**: temperature :math:`k_B T`
+                * **kBT**: temperature :math:`k_B T`
                 * **EOS**: the desired equation of state (see below) 
                 * **density_kernel**: the desired density kernel (see below)
 

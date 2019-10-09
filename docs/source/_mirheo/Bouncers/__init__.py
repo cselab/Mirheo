@@ -79,12 +79,12 @@ class Mesh(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kbt: float = 0.5) -> None
+        r"""__init__(name: str, kBT: float = 0.5) -> None
 
 
             Args:
                 name: name of the bouncer
-                kbt:  Maxwell distribution temperature defining post-collision velocity
+                kBT:  Maxwell distribution temperature defining post-collision velocity
         
 
         """

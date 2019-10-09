@@ -679,7 +679,7 @@ def createForceSaver():
     pass
 
 def createImposeProfile():
-    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kbt: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
+    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kBT: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeProfile` plugin
@@ -690,7 +690,7 @@ def createImposeProfile():
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
-            kbt: temperature in the domain (appropriate Maxwell distribution will be used)
+            kBT: temperature in the domain (appropriate Maxwell distribution will be used)
     
 
     """
@@ -898,7 +898,7 @@ def createStats():
     pass
 
 def createTemperaturize():
-    r"""createTemperaturize(state: MirState, name: str, pv: ParticleVectors.ParticleVector, kbt: float, keepVelocity: bool) -> Tuple[Plugins.Temperaturize, Plugins.PostprocessPlugin]
+    r"""createTemperaturize(state: MirState, name: str, pv: ParticleVectors.ParticleVector, kBT: float, keepVelocity: bool) -> Tuple[Plugins.Temperaturize, Plugins.PostprocessPlugin]
 
 
         Create :any:`Temperaturize` plugin
@@ -906,7 +906,7 @@ def createTemperaturize():
         Args:
             name: name of the plugin
             pv: the concerned :any:`ParticleVector`
-            kbt: the target temperature
+            kBT: the target temperature
             keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     
 
