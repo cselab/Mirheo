@@ -36,7 +36,7 @@ castToMap(const py::kwargs& kwargs, const std::string& intName)
     return parameters;
 }
 
-static std::shared_ptr<InteractionMembrane>
+static std::shared_ptr<MembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           bool stressFree, float growUntil, py::kwargs kwargs)
@@ -268,7 +268,7 @@ void exportInteractions(py::module& m)
             pv2: second :any:`ParticleVector`
     )");
     
-    py::handlers_class<InteractionMembrane> pyMembraneForces(m, "MembraneForces", pyInt, R"(
+    py::handlers_class<MembraneInteraction> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 

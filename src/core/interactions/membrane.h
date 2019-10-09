@@ -14,13 +14,13 @@ using VarShearParams   = mpark::variant<WLCParameters, LimParameters>;
  * membrane interactions
  * forces depend on the passed variant parameters
  */
-class InteractionMembrane : public Interaction
+class MembraneInteraction : public Interaction
 {
 public:
 
-    InteractionMembrane(const MirState *state, std::string name, CommonMembraneParameters commonParams,
+    MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                         VarBendingParams bendingParams, VarShearParams shearParams, bool stressFree, float growUntil);
-    ~InteractionMembrane();
+    ~MembraneInteraction();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 

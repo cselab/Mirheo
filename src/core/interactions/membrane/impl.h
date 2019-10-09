@@ -63,11 +63,11 @@ static void rescaleParameters(CommonMembraneParameters& p, float scale)
  * Generic mplementation of RBC membrane forces
  */
 template <class TriangleInteraction, class DihedralInteraction>
-class InteractionMembraneImpl : public Interaction
+class MembraneInteractionImpl : public Interaction
 {
 public:
 
-    InteractionMembraneImpl(const MirState *state, std::string name, CommonMembraneParameters parameters,
+    MembraneInteractionImpl(const MirState *state, std::string name, CommonMembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
                             float growUntil, long seed = 42424242) :
@@ -79,7 +79,7 @@ public:
         stepGen(seed)
     {}
 
-    ~InteractionMembraneImpl() = default;
+    ~MembraneInteractionImpl() = default;
     
     void local (ParticleVector *pv1,
                 __UNUSED ParticleVector *pv2,

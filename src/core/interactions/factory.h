@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-class InteractionMembrane;
+class MembraneInteraction;
 class InteractionRod;
 class PairwiseInteraction;
 class ObjectRodBindingInteraction;
@@ -24,7 +24,7 @@ std::shared_ptr<PairwiseInteraction>
 createPairwiseInteraction(const MirState *state, std::string name, float rc, const std::string type, const MapParams& parameters);
 
 
-std::shared_ptr<InteractionMembrane>
+std::shared_ptr<MembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           const MapParams& parameters,

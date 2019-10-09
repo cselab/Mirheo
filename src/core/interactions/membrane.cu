@@ -13,7 +13,7 @@
 #include <core/utils/kernel_launch.h>
 
 
-namespace InteractionMembraneKernels
+namespace MembraneInteractionKernels
 {
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
@@ -37,9 +37,9 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     if (laneId() == 0)
         atomicAdd(&view.area_volumes[objId], a_v);
 }
-} // namespace InteractionMembraneKernels
+} // namespace MembraneInteractionKernels
 
-InteractionMembrane::InteractionMembrane(const MirState *state, std::string name, CommonMembraneParameters commonParams,
+MembraneInteraction::MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                                          VarBendingParams bendingParams, VarShearParams shearParams,
                                          bool stressFree, float growUntil) :
     Interaction(state, name, /* default cutoff rc */ 1.0)
@@ -52,23 +52,23 @@ InteractionMembrane::InteractionMembrane(const MirState *state, std::string name
         {
             using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
             
-            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce>>
                 (state, name, commonParams, shPrms, bePrms, growUntil);
         }
         else                         
         {
             using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
             
-            impl = std::make_unique<InteractionMembraneImpl<TriangleForce, DihedralForce>>
+            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce>>
                 (state, name, commonParams, shPrms, bePrms, growUntil);
         }
         
     }, bendingParams, shearParams);
 }
 
-InteractionMembrane::~InteractionMembrane() = default;
+MembraneInteraction::~MembraneInteraction() = default;
 
-void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
+void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     if (pv1 != pv2)
         die("Internal membrane forces can't be computed between two different particle vectors");
@@ -82,7 +82,7 @@ void InteractionMembrane::setPrerequisites(ParticleVector *pv1, ParticleVector *
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
 }
 
-void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void MembraneInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     if (impl.get() == nullptr)
         die("%s needs a concrete implementation, none was provided", name.c_str());
@@ -91,7 +91,7 @@ void InteractionMembrane::local(ParticleVector *pv1, ParticleVector *pv2, CellLi
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
 
-void InteractionMembrane::halo(ParticleVector *pv1,
+void MembraneInteraction::halo(ParticleVector *pv1,
                                __UNUSED ParticleVector *pv2,
                                __UNUSED CellList *cl1,
                                __UNUSED CellList *cl2,
@@ -101,12 +101,12 @@ void InteractionMembrane::halo(ParticleVector *pv1,
           pv1->name.c_str());
 }
 
-bool InteractionMembrane::isSelfObjectInteraction() const
+bool MembraneInteraction::isSelfObjectInteraction() const
 {
     return true;
 }
 
-void InteractionMembrane::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+void MembraneInteraction::precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
@@ -126,7 +126,7 @@ void InteractionMembrane::precomputeQuantities(ParticleVector *pv1, cudaStream_t
         ->clearDevice(stream);
     
     const int nthreads = 128;
-    SAFE_KERNEL_LAUNCH(InteractionMembraneKernels::computeAreaAndVolume,
+    SAFE_KERNEL_LAUNCH(MembraneInteractionKernels::computeAreaAndVolume,
                        view.nObjects, nthreads, 0, stream,
                        view, mesh);
 }

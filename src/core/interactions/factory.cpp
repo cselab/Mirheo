@@ -81,7 +81,7 @@ static JuelicherBendingParameters readJuelicherParameters(ParametersWrap& desc)
     return p;
 }
 
-std::shared_ptr<InteractionMembrane>
+std::shared_ptr<MembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               const MapParams& parameters,
@@ -102,7 +102,7 @@ InteractionFactory::createInteractionMembrane(const MirState *state, std::string
     else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
     desc.checkAllRead();
-    return std::make_shared<InteractionMembrane>
+    return std::make_shared<MembraneInteraction>
         (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
 }
 
