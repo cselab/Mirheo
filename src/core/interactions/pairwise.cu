@@ -16,8 +16,9 @@
 template <class KernelType>
 static std::unique_ptr<Interaction>
 createPairwiseFromKernel(const MirState *state, const std::string& name, float rc,
-                         const typename std::enable_if<outputsForce<KernelType>::value, KernelType>::type& kernel,
-                         const VarStressParams& varStressParams)
+                         const KernelType& kernel,
+                         const VarStressParams& varStressParams,
+                         __UNUSED typename std::enable_if<outputsForce<KernelType>::value, int>::type enabler = 0)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
@@ -32,7 +33,10 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, float r
 
 template <class KernelType>
 static std::unique_ptr<Interaction>
-createPairwiseFromKernel(const MirState *state, const std::string& name, float rc, const KernelType& kernel, const VarStressParams& varStressParams)
+createPairwiseFromKernel(const MirState *state, const std::string& name, float rc,
+                         const KernelType& kernel,
+                         const VarStressParams& varStressParams,
+                         __UNUSED typename std::enable_if<!outputsForce<KernelType>::value, int>::type enabler = 0)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
@@ -212,8 +216,8 @@ struct SpecificPairInfo
 };
 
 template <class KernelType>
-static void setSpecificFromKernel(const typename std::enable_if<outputsForce<KernelType>::value, KernelType>::type& kernel,
-                                  const VarStressParams& varStressParams, SpecificPairInfo info)
+static void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info,
+                                  __UNUSED typename std::enable_if<outputsForce<KernelType>::value, int>::type enabler = 0)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
@@ -240,7 +244,8 @@ static void setSpecificFromKernel(const typename std::enable_if<outputsForce<Ker
 }
 
 template <class KernelType>
-static  void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info)
+static  void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info,
+                                   __UNUSED typename std::enable_if<!outputsForce<KernelType>::value, int>::type enabler = 0)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: can not output stresses.");
