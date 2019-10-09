@@ -147,9 +147,9 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
     )")
-        .def(py::init<float>(), "density"_a, R"(
+        .def(py::init<float>(), "number_density"_a, R"(
             Args:
-                density: target density
+                number_density: target number density
         )");
 
     py::handlers_class<UniformFilteredIC>(m, "UniformFiltered", pyic, R"(
@@ -157,9 +157,9 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.            
     )")
         .def(py::init<float, std::function<bool(PyTypes::float3)>>(),
-             "density"_a, "filter"_a, R"(
+             "number_density"_a, "filter"_a, R"(
             Args:
-                density: target density
+                number_density: target number density
                 filter: given position, returns True if the particle should be kept 
         )");
 
@@ -169,9 +169,9 @@ void exportInitialConditions(py::module& m)
             
     )")
         .def(py::init<float, PyTypes::float3, float, bool>(),
-             "density"_a, "center"_a, "radius"_a, "inside"_a, R"(
+             "number_density"_a, "center"_a, "radius"_a, "inside"_a, R"(
             Args:
-                density: target density
+                number_density: target number density
                 center: center of the sphere
                 radius: radius of the sphere
                 inside: whether the particles should be inside or outside the sphere
