@@ -25,14 +25,17 @@ public:
         const float r_ = r * invrc;
         const float rm = 1.0f - r_;
         const float rm2 = rm * rm;
+        const float invrc3 = invrc * invrc * invrc;
         
-        return normalization * rm2 * rm2 * (1.0f + 4.0f * r_);
+        return normalization * invrc3 * rm2 * rm2 * (1.0f + 4.0f * r_);
     }
 
     __D__ inline float derivative(float r, float invrc) const
     {
         const float r_ = r * invrc;
         const float rm = r_ - 1.f;
-        return 20.0f * normalization * r_ * rm*rm*rm * invrc;
+        const float invrc3 = invrc * invrc * invrc;
+        return 20.0f * invrc3 * normalization * r_ * rm*rm*rm * invrc;
     }
 };
+
