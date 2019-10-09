@@ -17,16 +17,16 @@
  * Implementation of short-range symmetric pairwise interactions
  */
 template<class PairwiseKernel>
-class InteractionPair : public Interaction
+class PairwiseInteractionImpl : public Interaction
 {
 public:
     
-    InteractionPair(const MirState *state, const std::string& name, float rc, PairwiseKernel pair) :
+    PairwiseInteractionImpl(const MirState *state, const std::string& name, float rc, PairwiseKernel pair) :
         Interaction(state, name, rc),
         defaultPair(pair)
     {}
     
-    ~InteractionPair() = default;
+    ~PairwiseInteractionImpl() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {

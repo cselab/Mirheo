@@ -23,11 +23,11 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, float r
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
         const auto stressParams = mpark::get<StressActiveParams>(varStressParams);
-        return std::make_unique<InteractionPair_withStress<KernelType>>(state, name, rc, stressParams.period, kernel);
+        return std::make_unique<PairwiseInteractionWithStressImpl<KernelType>>(state, name, rc, stressParams.period, kernel);
     }
     else
     {
-        return std::make_unique<InteractionPair<KernelType>>(state, name, rc, kernel);
+        return std::make_unique<PairwiseInteractionImpl<KernelType>>(state, name, rc, kernel);
     }
 }
 
@@ -41,7 +41,7 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, float r
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
     
-    return std::make_unique<InteractionPair<KernelType>>(state, name, rc, kernel);
+    return std::make_unique<PairwiseInteractionImpl<KernelType>>(state, name, rc, kernel);
 }
 
 
@@ -221,7 +221,7 @@ static void setSpecificFromKernel(const KernelType& kernel, const VarStressParam
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
-        if (auto ptr = dynamic_cast<InteractionPair_withStress<KernelType>*>(info.impl))
+        if (auto ptr = dynamic_cast<PairwiseInteractionWithStressImpl<KernelType>*>(info.impl))
         {
             ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
         }
@@ -232,7 +232,7 @@ static void setSpecificFromKernel(const KernelType& kernel, const VarStressParam
     }
     else
     {
-        if (auto ptr = dynamic_cast<InteractionPair<KernelType>*>(info.impl))
+        if (auto ptr = dynamic_cast<PairwiseInteractionImpl<KernelType>*>(info.impl))
         {
             ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
         }
@@ -250,7 +250,7 @@ static  void setSpecificFromKernel(const KernelType& kernel, const VarStressPara
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: can not output stresses.");
 
-    if (auto ptr = dynamic_cast<InteractionPair<KernelType>*>(info.impl))
+    if (auto ptr = dynamic_cast<PairwiseInteractionImpl<KernelType>*>(info.impl))
     {
         ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
     }

@@ -9,17 +9,17 @@
 #include <map>
 
 template<class PairwiseKernel>
-class InteractionPair_withStress : public Interaction
+class PairwiseInteractionWithStressImpl : public Interaction
 {
 public:
-    InteractionPair_withStress(const MirState *state, const std::string& name, float rc, float stressPeriod, PairwiseKernel pair) :
+    PairwiseInteractionWithStressImpl(const MirState *state, const std::string& name, float rc, float stressPeriod, PairwiseKernel pair) :
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
         interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseKernel>(pair))
     {}
 
-    ~InteractionPair_withStress() = default;
+    ~PairwiseInteractionWithStressImpl() = default;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
@@ -109,6 +109,6 @@ private:
     float stressPeriod;
     float lastStressTime{-1e6};
 
-    InteractionPair<PairwiseKernel> interaction;
-    InteractionPair<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;
+    PairwiseInteractionImpl<PairwiseKernel> interaction;
+    PairwiseInteractionImpl<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;
 };
