@@ -145,10 +145,10 @@ def __init__():
                     
 
     # Wrap initialization of the mirheo coordinator
-    mirheo.__init__ = decorate_coordinator(mirheo.__init__)
+    Mirheo.__init__ = decorate_coordinator(Mirheo.__init__)
     
     # Wrap registration of the plugins
-    mirheo.registerPlugins = decorate_register_plugins(mirheo.registerPlugins)
+    Mirheo.registerPlugins = decorate_register_plugins(Mirheo.registerPlugins)
 
 
 __init__()

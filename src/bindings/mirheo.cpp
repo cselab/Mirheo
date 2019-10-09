@@ -35,7 +35,7 @@ void exportMirheo(py::module& m)
         state of the simulation shared by all simulation objects.
     )");
     
-    py::class_<Mirheo>(m, "mirheo", R"(
+    py::class_<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (PyTypes::int3 nranks, PyTypes::float3 domain, float dt,
