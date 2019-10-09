@@ -29,7 +29,7 @@ domain = (12, 8, 10)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
-ic_sol = mir.InitialConditions.Uniform(density=args.density)
+ic_sol = mir.InitialConditions.Uniform(number_density=args.density)
 u.registerParticleVector(pv=pv_sol, ic=ic_sol)
 
 

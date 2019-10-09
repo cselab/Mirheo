@@ -18,7 +18,7 @@ def ic_filter(r):
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.UniformFiltered(density, ic_filter)
-u.registerParticleVector(pv=pv, ic=ic)
+u.registerParticleVector(pv, ic)
 
 rc = 1.0
 rd = 0.75

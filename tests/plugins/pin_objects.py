@@ -33,7 +33,7 @@ u.setIntegrator(vv_ell, pv_ell)
 
 if args.solvent:
     pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-    u.registerParticleVector(pv, mir.InitialConditions.Uniform(density=8))
+    u.registerParticleVector(pv, mir.InitialConditions.Uniform(number_density=8))
     
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.001, power=0.5)
     u.registerInteraction(dpd)

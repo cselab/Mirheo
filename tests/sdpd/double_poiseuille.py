@@ -12,7 +12,7 @@ rc = 1.0
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
-ic = mir.InitialConditions.Uniform(density=10)
+ic = mir.InitialConditions.Uniform(number_density=10)
 u.registerParticleVector(pv=pv, ic=ic)
 
 den  = mir.Interactions.Pairwise('den' , rc, kind="Density", density_kernel="WendlandC2")

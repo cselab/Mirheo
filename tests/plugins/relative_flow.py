@@ -15,7 +15,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 com_q = [[domain[0]/2.0, domain[1]/2.0, domain[2]/2.0,  1., 0, 0, 0]]
 coords = np.loadtxt('sphere123.txt').tolist()
 pv_ell = mir.ParticleVectors.RigidEllipsoidVector('object', mass=1, object_size=len(coords), semi_axes=axes)
-ic_ell = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+ic_ell = mir.InitialConditions.Rigid(com_q, coords)
 vv_ell = mir.Integrators.RigidVelocityVerlet("ellvv")
 
 u.registerParticleVector(pv_ell, ic_ell)
@@ -23,7 +23,7 @@ u.registerIntegrator(vv_ell)
 u.setIntegrator(vv_ell, pv_ell)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-u.registerParticleVector(pv, mir.InitialConditions.Uniform(density=8))
+u.registerParticleVector(pv, mir.InitialConditions.Uniform(number_density=8))
 
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=2.0, gamma=10.0, kBT=0.1, power=0.5)
 u.registerInteraction(dpd)

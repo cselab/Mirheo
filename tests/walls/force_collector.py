@@ -20,8 +20,8 @@ gdpd = 11.0
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
-ic = mir.InitialConditions.Uniform(density=density)
-u.registerParticleVector(pv=pv, ic=ic)
+ic = mir.InitialConditions.Uniform(number_density=density)
+u.registerParticleVector(pv, ic)
     
 dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=12.0, gamma=gdpd, kBT=0.4, power=0.125)
 u.registerInteraction(dpd)

@@ -13,7 +13,7 @@ domain = (8, 16, 4)
 u = mir.Mirheo(args.ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = mir.InitialConditions.Uniform(density=3)
+ic = mir.InitialConditions.Uniform(number_density=3)
 u.registerParticleVector(pv, ic)
 
 sample_every = 1

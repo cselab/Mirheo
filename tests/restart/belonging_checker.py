@@ -16,7 +16,7 @@ u = mir.Mirheo(ranks, domain, dt=0, debug_level=3,
               checkpoint_every = (0 if args.restart else 5))
     
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-u.registerParticleVector(pv=pv, ic=mir.InitialConditions.Uniform(density=8))
+u.registerParticleVector(pv=pv, ic=mir.InitialConditions.Uniform(number_density=8))
 
 coords = [[-1, -1, -1], [1, 1, 1]]
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]

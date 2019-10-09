@@ -16,7 +16,7 @@ domain = (32, 32, 32)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-u.registerParticleVector(pv, mir.InitialConditions.Uniform(density=8))
+u.registerParticleVector(pv, mir.InitialConditions.Uniform(number_density=8))
 
 vv = mir.Integrators.Translate('translate', (10.0, 0.0, 0.0))
 u.registerIntegrator(vv)

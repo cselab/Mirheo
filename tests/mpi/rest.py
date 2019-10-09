@@ -12,7 +12,7 @@ def run(niter, statsFname, comm_address):
     u = mir.Mirheo(ranks, domain, dt, debug_level=8, log_filename='log', comm_ptr=comm_address)
     
     pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-    ic = mir.InitialConditions.Uniform(density=2)
+    ic = mir.InitialConditions.Uniform(number_density=2)
     u.registerParticleVector(pv=pv, ic=ic)
 
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)

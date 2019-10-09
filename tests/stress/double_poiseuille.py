@@ -15,8 +15,8 @@ bin_size     = (1., 1., 1.)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = mir.InitialConditions.Uniform(density=4)
-u.registerParticleVector(pv=pv, ic=ic)
+ic = mir.InitialConditions.Uniform(number_density=4)
+u.registerParticleVector(pv, ic)
 
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.01, power=0.5, stress=True, stress_period=sample_every*dt)
 u.registerInteraction(dpd)

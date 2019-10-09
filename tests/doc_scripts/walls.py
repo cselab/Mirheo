@@ -3,7 +3,7 @@
 import mirheo as mir
 
 rc = 1.0      # cutoff radius
-density = 8.0 # number density
+number_density = 8.0 
 dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
@@ -11,7 +11,7 @@ domain = (16.0, 16.0, 16.0)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv  = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
-ic  = mir.InitialConditions.Uniform(density)
+ic  = mir.InitialConditions.Uniform(number_density)
 dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 vv  = mir.Integrators.VelocityVerlet('vv')
 
@@ -33,7 +33,7 @@ u.registerWall(wall) # register the wall in the coordinator
 # the following command is running a simulation of a solvent with given density equilibrating with dpd interactions and vv integrator
 # for 1000 steps.
 # It then selects the frozen particles according to the walls geometry, register and returns the newly created particle vector.
-pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, density=density)
+pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, density=number_density)
 
 # set the wall for pv
 # this is required for non-penetrability of the solvent thanks to bounce-back

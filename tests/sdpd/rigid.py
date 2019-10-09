@@ -38,7 +38,7 @@ com_q = [[args.xpos * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0
 coords = np.loadtxt(args.coords).tolist()
 
 pv_ell = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=len(coords), semi_axes=axes)
-ic_ell = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
+ic_ell = mir.InitialConditions.Rigid(com_q, coords)
 vv_ell = mir.Integrators.RigidVelocityVerlet("ellvv")
 
 u.registerParticleVector(pv_sol, ic_sol)

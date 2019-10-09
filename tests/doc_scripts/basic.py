@@ -17,7 +17,7 @@ f = 1
 u = mir.Mirheo(ranks, domain, dt, debug_level=2, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
-ic = mir.InitialConditions.Uniform(density=8)             # Specify uniform random initial conditions
+ic = mir.InitialConditions.Uniform(number_density=8)      # Specify uniform random initial conditions
 u.registerParticleVector(pv=pv, ic=ic)                    # Register the PV and initialize its particles
 
 # Create and register DPD interaction with specific parameters

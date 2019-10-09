@@ -4,7 +4,7 @@ import mirheo as mir
 
 dt = 0.001
 rc = 1.0      # cutoff radius
-density = 8.0 # number density
+number_density = 8.0
 
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
@@ -12,7 +12,7 @@ domain = (16.0, 16.0, 16.0)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0) # Create a simple Particle Vector (PV) named 'pv'
-ic = mir.InitialConditions.Uniform(density)               # Specify uniform random initial conditions
+ic = mir.InitialConditions.Uniform(number_density)        # Specify uniform random initial conditions
 u.registerParticleVector(pv, ic)                          # Register the PV and initialize its particles
 
 # Create and register DPD interaction with specific parameters and cutoff radius

@@ -13,7 +13,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 
 pv1 = mir.ParticleVectors.ParticleVector('pv1', mass = 1)
 pv2 = mir.ParticleVectors.ParticleVector('pv2', mass = 1)
-ic = mir.InitialConditions.Uniform(density=density/2)
+ic = mir.InitialConditions.Uniform(number_density=density/2)
 u.registerParticleVector(pv1, ic)
 u.registerParticleVector(pv2, ic)
     

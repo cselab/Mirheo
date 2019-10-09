@@ -19,7 +19,7 @@ density = 4
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = mir.InitialConditions.Uniform(density=density)
+ic = mir.InitialConditions.Uniform(number_density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=50.0, kBT=0.01, power=0.5)

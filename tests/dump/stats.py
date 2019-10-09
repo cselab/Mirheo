@@ -10,7 +10,7 @@ domain = (8, 8, 8)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = mir.InitialConditions.Uniform(density=10)
+ic = mir.InitialConditions.Uniform(number_density=10)
 u.registerParticleVector(pv, ic)
 
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)

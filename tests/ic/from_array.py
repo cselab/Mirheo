@@ -14,7 +14,7 @@ pos = [[a*domain[0], a*domain[1], a*domain[2]] for a in [0.1, 0.5, 0.8, 1.5]] # 
 v=[1., 2., 3.]
 vel = [[a*v[0], a*v[1], a*v[2]] for a in [0.1, 0.5, 0.8, 1.5]]
 
-ic = mir.InitialConditions.FromArray(pos=pos, vel=vel)
+ic = mir.InitialConditions.FromArray(pos, vel)
 u.registerParticleVector(pv, ic)
 
 u.run(2)

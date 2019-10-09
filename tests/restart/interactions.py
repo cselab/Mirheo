@@ -21,7 +21,7 @@ else:
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
     
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
-ic = mir.InitialConditions.Uniform(density=2)
+ic = mir.InitialConditions.Uniform(number_density=2)
 u.registerParticleVector(pv, ic)
 
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)

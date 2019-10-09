@@ -4,7 +4,7 @@ import mirheo as mir
 
 dt = 0.001
 rc = 1.0
-density = 8.0
+number_density = 8.0
 
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
@@ -27,7 +27,7 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 
 # create particleVector for outer solvent
 pv_outer = mir.ParticleVectors.ParticleVector('pv_outer', mass = 1.0)
-ic_outer = mir.InitialConditions.Uniform(density)
+ic_outer = mir.InitialConditions.Uniform(number_density)
 u.registerParticleVector(pv_outer, ic_outer)
 
 # To create the inner solvent, we split the outer solvent (which originally occupies

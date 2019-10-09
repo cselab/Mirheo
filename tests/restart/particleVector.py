@@ -26,7 +26,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 if args.restart:
     ic = mir.InitialConditions.Restart("restart/")
 else:
-    ic = mir.InitialConditions.Uniform(density=2)
+    ic = mir.InitialConditions.Uniform(number_density=2)
 
 u.registerParticleVector(pv, ic)
 

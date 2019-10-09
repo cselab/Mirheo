@@ -7,7 +7,7 @@ import trimesh
 dt = 0.001
 rc = 1.0
 mass = 1.0
-density = 10
+number_density = 10
 
 m = trimesh.load("sphere_mesh.off");
 inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
@@ -18,7 +18,7 @@ domain = (16, 8, 8)
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_solvent = mir.ParticleVectors.ParticleVector('solvent', mass)
-ic_solvent = mir.InitialConditions.Uniform(density)
+ic_solvent = mir.InitialConditions.Uniform(number_density)
 
 dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.01, power=0.5)
 # repulsive LJ to avoid overlap between spheres
