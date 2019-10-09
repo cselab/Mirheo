@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (8, 16, 8)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 plate_lo = mir.Walls.Plane("plate_lo", normal=(0, 0, -1), pointThrough=(0, 0,              args.D))
 plate_hi = mir.Walls.Plane("plate_hi", normal=(0, 0,  1), pointThrough=(0, 0,  domain[2] - args.D))

@@ -12,7 +12,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 1.)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=4)

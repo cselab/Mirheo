@@ -9,7 +9,7 @@ domain = (16, 16, 16)
 ext_force = 1.0
 rc = 1.0
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = mir.InitialConditions.Uniform(density=10)

@@ -15,7 +15,7 @@ inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_solvent = mir.ParticleVectors.ParticleVector('solvent', mass)
 ic_solvent = mir.InitialConditions.Uniform(density)

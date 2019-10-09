@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=density)

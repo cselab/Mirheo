@@ -10,7 +10,7 @@ axes = (1.0, 2.0, 3.0)
 fact = 3
 domain = (fact*axes[0], fact*axes[1], fact*axes[2])
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 coords = [[-axes[0], -axes[1], -axes[2]],
           [ axes[0],  axes[1],  axes[2]]]

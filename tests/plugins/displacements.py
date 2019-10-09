@@ -9,7 +9,7 @@ domain = (8, 8, 8)
 
 dt = 0.01
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 n = 20
 np.random.seed(42)

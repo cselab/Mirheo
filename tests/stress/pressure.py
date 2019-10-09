@@ -15,7 +15,7 @@ domain = (32, 32, 32)
 tdump_every = 0.001
 dump_every = int(tdump_every / dt)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv_name="pv"
 path="pressure"

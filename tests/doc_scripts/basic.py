@@ -14,7 +14,7 @@ domain = (8, 16, 30)
 f = 1
 
 # Create the coordinator, this should precede any other setup from mirheo package
-u = mir.mirheo(ranks, domain, dt, debug_level=2, log_filename='log')
+u = mir.Mirheo(ranks, domain, dt, debug_level=2, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
 ic = mir.InitialConditions.Uniform(density=8)             # Specify uniform random initial conditions

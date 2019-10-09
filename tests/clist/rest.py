@@ -15,7 +15,7 @@ domain = (6, 6, 6)
 rc_fake = 1.0
 rc = 0.75
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=4)

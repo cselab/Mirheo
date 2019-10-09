@@ -10,7 +10,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 32, 24)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv1 = mir.ParticleVectors.ParticleVector('pv1', mass = 1)
 u.registerParticleVector(pv1, mir.InitialConditions.Uniform(density=4))

@@ -16,7 +16,7 @@ domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 pos = np.random.normal(loc   = [0.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],

@@ -6,7 +6,7 @@ import argparse
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pos = [[1., 0.25, 0.5],
        [1., 0.50, 0.5],

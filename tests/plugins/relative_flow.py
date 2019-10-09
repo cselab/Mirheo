@@ -10,7 +10,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 16, 24)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[domain[0]/2.0, domain[1]/2.0, domain[2]/2.0,  1., 0, 0, 0]]
 coords = np.loadtxt('sphere123.txt').tolist()

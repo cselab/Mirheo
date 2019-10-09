@@ -14,7 +14,7 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 dt = 0.0
 
-u = mir.mirheo(ranks, domain, dt, debug_level=9,
+u = mir.Mirheo(ranks, domain, dt, debug_level=9,
               log_filename='log', no_splash=True,
               checkpoint_every = (0 if args.restart else 5))
 

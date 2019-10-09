@@ -7,7 +7,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 12, 12)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 # we need to first create a mesh before initializing the membrane vector
 mesh_rbc = mir.ParticleVectors.MembraneMesh("rbc_mesh.off")

@@ -7,7 +7,7 @@ ranks  = (1, 1, 1)
 domain = [4., 2., 3.]
 density = 8
 
-u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)

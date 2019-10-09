@@ -20,7 +20,7 @@ t_end = 2.5 + dt # time for one restart batch
 ranks  = args.ranks
 domain = (8, 8, 8)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log',
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log',
               checkpoint_every = int(0.5/dt), no_splash=True)
 
 nparts = 1000

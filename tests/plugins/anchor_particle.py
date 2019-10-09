@@ -6,7 +6,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = [8, 8, 8]
 
-u = mir.mirheo(ranks, tuple(domain), dt=0.01, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt=0.01, debug_level=3, log_filename='log', no_splash=True)
 
 center = (domain[0]/2, domain[1]/2, domain[2]/2)
 

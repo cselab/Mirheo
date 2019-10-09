@@ -23,7 +23,7 @@ inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
     
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
 vv  = mir.Integrators.VelocityVerlet('vv')

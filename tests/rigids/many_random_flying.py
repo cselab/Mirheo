@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = tuple(args.nranks)
 domain = (31, 18, 59)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 np.random.seed(84)
 com_q = np.random.rand(args.nobjects, 7)

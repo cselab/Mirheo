@@ -13,7 +13,7 @@ domain = (12, 8, 10)
 
 rc=1.0
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
 mesh = mir.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())

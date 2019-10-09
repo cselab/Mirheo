@@ -5,7 +5,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = (8, 8, 16)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 axes = (1.0, 2.0, 3.0)
 

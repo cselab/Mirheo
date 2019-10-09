@@ -17,7 +17,7 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 dt = 0
 
-u = mir.mirheo(ranks, domain, dt, comm_ptr=MPI._addressof(comm),
+u = mir.Mirheo(ranks, domain, dt, comm_ptr=MPI._addressof(comm),
               debug_level=3, log_filename='log', no_splash=True,
               checkpoint_every = (0 if args.restart else 5))
     

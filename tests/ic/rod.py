@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = [16, 16, 16]
 
-u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 1., 0., 0.,    1.0, 0.0, 0.0, 0.0],
          [ 5., 0., 0.,    1.0, 2.0, 0.0, 0.0],

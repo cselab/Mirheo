@@ -18,7 +18,7 @@ if args.restart:
 else:
     restart_folder="restart/"
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
     
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=2)

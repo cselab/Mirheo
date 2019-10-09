@@ -12,7 +12,7 @@ L = 3.0
 fact = 3
 domain = (fact*R, fact*R, fact*L/2)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 coords = [[-R, -R, -L/2],
           [ R,  R,  L/2]]

@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 domain = (8, 16, 4)
 
-u = mir.mirheo(args.ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(args.ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=3)

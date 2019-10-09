@@ -11,7 +11,7 @@ length = 5.0
 radius = 1.0
 domain = (8.0, 8.0, 2*length)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 def center_line(s): return (0., 0., (s-0.5) * length)
 def torsion(s): return 0.0

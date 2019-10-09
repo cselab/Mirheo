@@ -16,7 +16,7 @@ off    = "rbc_mesh.off"
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 if args.readFrom == "off":
     mesh = mir.ParticleVectors.MembraneMesh(off)

@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (4, 6, 8)
 
-u = mir.mirheo(ranks, domain, dt=0, debug_level=3,
+u = mir.Mirheo(ranks, domain, dt=0, debug_level=3,
               log_filename='log', no_splash=True,
               checkpoint_every = (0 if args.restart else 5))
     

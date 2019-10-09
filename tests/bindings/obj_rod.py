@@ -21,7 +21,7 @@ L = 14.0
 num_segments = 10
 mass = 1.0
 
-u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 # rod
 

@@ -15,7 +15,7 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 a = 1
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 def upHalf(r):
     return r[1] > domain[1] * args.fraction

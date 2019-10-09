@@ -8,7 +8,7 @@ domain = [4.0, 5.0, 6.0]
 
 dt = 100.0 # large dt to force the particles to go too far
 
-u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 

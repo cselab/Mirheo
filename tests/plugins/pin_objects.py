@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 16, 24)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[1, 2, 3,   1., 0, 0, 0],
          [5, 10, 15, 1,  1, 1, 1]]

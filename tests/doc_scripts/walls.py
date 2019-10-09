@@ -8,7 +8,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv  = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic  = mir.InitialConditions.Uniform(density)

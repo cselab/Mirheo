@@ -25,7 +25,7 @@ def create_from_mesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
     vv = mir.Integrators.VelocityVerlet('vv')

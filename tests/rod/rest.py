@@ -22,7 +22,7 @@ L = 50.0
 num_segments = 200
 sub_steps = args.sub_steps
 
-u = mir.mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 

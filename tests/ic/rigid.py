@@ -6,7 +6,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = mir.mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
 
 a=(0.1, 0.2, 0.3)
 
