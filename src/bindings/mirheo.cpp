@@ -225,7 +225,7 @@ void exportMirheo(py::module& m)
         )")
         
         .def("makeFrozenWallParticles", &Mirheo::makeFrozenWallParticles,
-             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
                 
                 .. note::
@@ -237,7 +237,7 @@ void exportMirheo(py::module& m)
                     walls: array of instances of :any:`Wall` for which the frozen particles will be generated
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
-                    density: target particle density
+                    number_density: target particle number density
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
@@ -246,7 +246,7 @@ void exportMirheo(py::module& m)
         )")
 
         .def("makeFrozenRigidParticles", &Mirheo::makeFrozenRigidParticles,
-             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "density"_a, "nsteps"_a=1000, R"(
+             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
                 
                 .. note::
@@ -259,7 +259,7 @@ void exportMirheo(py::module& m)
                     icShape: initial conditions for shape
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
-                    density: target particle density
+                    number_density: target particle number density
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
