@@ -18,6 +18,8 @@ For more information, please refer to the online documentation: http://mirheo.re
   * add function to log compile time options; this can be useful to make sure what was run exactly
   * generic Pairwise forces; removed all old pairwise classes from the interface
   * use `kBT` everywhere instead of `kbt`
+  * use `number_density` instead of `density`
+  * rename `mirheo` class coordinator to `Mirheo`
 
 * **internal changes** 
   * refactored pairwise interaction drivers
