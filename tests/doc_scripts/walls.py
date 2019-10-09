@@ -33,7 +33,7 @@ u.registerWall(wall) # register the wall in the coordinator
 # the following command is running a simulation of a solvent with given density equilibrating with dpd interactions and vv integrator
 # for 1000 steps.
 # It then selects the frozen particles according to the walls geometry, register and returns the newly created particle vector.
-pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, density=number_density)
+pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=number_density)
 
 # set the wall for pv
 # this is required for non-penetrability of the solvent thanks to bounce-back

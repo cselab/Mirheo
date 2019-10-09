@@ -34,8 +34,8 @@ u.registerWall(plate_lo, 1000)
 u.registerWall(plate_hi, 1000)
 
 vv = mir.Integrators.VelocityVerlet("vv", )
-frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, density=density)
-frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, density=density)
+frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density)
+frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)

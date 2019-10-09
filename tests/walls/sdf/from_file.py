@@ -33,7 +33,7 @@ u.dumpWalls2XDMF([wall], (0.5, 0.5, 0.5), filename='h5/wall')
 
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interactions=[dpd], integrator=vv, density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interactions=[dpd], integrator=vv, number_density=density)
 
 u.setWall(wall, pv)
 

@@ -31,8 +31,8 @@ u.registerWall(cylinder_in,  1000)
 u.registerWall(cylinder_out, 1000)
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_in  = u.makeFrozenWallParticles(pvName="cyl_in",  walls=[cylinder_in],  interactions=[dpd], integrator=vv, density=density)
-frozen_out = u.makeFrozenWallParticles(pvName="cyl_out", walls=[cylinder_out], interactions=[dpd], integrator=vv, density=density)
+frozen_in  = u.makeFrozenWallParticles(pvName="cyl_in",  walls=[cylinder_in],  interactions=[dpd], integrator=vv, number_density=density)
+frozen_out = u.makeFrozenWallParticles(pvName="cyl_out", walls=[cylinder_out], interactions=[dpd], integrator=vv, number_density=density)
 
 u.setWall(cylinder_in,  pv)
 u.setWall(cylinder_out, pv)

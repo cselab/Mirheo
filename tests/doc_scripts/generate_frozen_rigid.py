@@ -9,7 +9,7 @@ def recenter(coords, com):
 dt = 0.001
 rc = 1.0
 mass = 1.0
-density = 10
+number_density = 10.0
 niter = 1000
 
 # the triangle mesh used to create the object
@@ -46,7 +46,7 @@ fake_ic = mir.InitialConditions.Rigid(com_q, coords)
 belonging_checker = mir.BelongingCheckers.Mesh("mesh_checker")
 
 # similarly to wall creation, we freeze particles inside a rigid object
-pv_rigid = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, niter)
+pv_rigid = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, number_density, niter)
 
 if u.isMasterTask():
     coords = pv_rigid.getCoordinates()

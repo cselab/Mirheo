@@ -36,7 +36,7 @@ elif args.type == "sphere":
 u.registerWall(wall, 0)
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=density)
 
 u.setWall(wall, pv)
 
