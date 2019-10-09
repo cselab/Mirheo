@@ -14,7 +14,14 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ### unreleased
 
-* add function to log compile time options; this can be useful to make sure what was run exactly
+* **Interface changes**:
+  * add function to log compile time options; this can be useful to make sure what was run exactly
+  * generic Pairwise forces; removed all old pairwise classes from the interface
+  * use `kBT` everywhere instead of `kbt`
+
+* **internal changes** 
+  * refactored pairwise interaction drivers
+  * more consistent naming
 
 
 ### v1.1.2
