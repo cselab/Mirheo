@@ -54,7 +54,7 @@ u.registerParticleVector(pv_rig, ic_rig)
 u.registerIntegrator(vv_rig)
 u.setIntegrator(vv_rig, pv_rig)
 
-bb = mir.Bouncers.Mesh("bounce_rig", kbt=0.0)
+bb = mir.Bouncers.Mesh("bounce_rig", kBT=0.0)
 u.registerBouncer(bb)
 u.setBouncer(bb, pv_rig, pv_sol)
 

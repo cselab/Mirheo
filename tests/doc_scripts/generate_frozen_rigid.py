@@ -25,7 +25,7 @@ domain = (16, 16, 16)
     
 u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
 vv  = mir.Integrators.VelocityVerlet('vv')
 
 # we create here a fake rigid object in the center of the domain with only 2 particles

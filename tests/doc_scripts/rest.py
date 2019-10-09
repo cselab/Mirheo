@@ -16,7 +16,7 @@ ic = mir.InitialConditions.Uniform(density)               # Specify uniform rand
 u.registerParticleVector(pv, ic)                          # Register the PV and initialize its particles
 
 # Create and register DPD interaction with specific parameters and cutoff radius
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 u.registerInteraction(dpd)
 
 # Tell the simulation that the particles of pv interact with dpd interaction

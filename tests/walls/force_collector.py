@@ -23,7 +23,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = mir.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=12.0, gamma=gdpd, kbt=0.4, power=0.125)
+dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=12.0, gamma=gdpd, kBT=0.4, power=0.125)
 u.registerInteraction(dpd)
 
 vx = gdot*(domain[2] - 2*rc)

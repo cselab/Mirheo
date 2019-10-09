@@ -26,7 +26,7 @@ if args.non_primary:
     u.registerInteraction(null_lj)
     u.setInteraction(null_lj, pv, pv)
 
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 

@@ -16,7 +16,7 @@ def create_ellipsoid(density, axes, niter):
     
     u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
     
-    dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kbt=0.5, power=0.5)
+    dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
     vv = mir.Integrators.VelocityVerlet('vv')
     
     coords = [[-axes[0], -axes[1], -axes[2]],

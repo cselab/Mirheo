@@ -16,7 +16,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)
 u.registerParticleVector(pv, ic)
 
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 u.registerInteraction(dpd)
 u.setInteraction(dpd, pv, pv)
 

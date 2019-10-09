@@ -62,7 +62,7 @@ prms_rbc = {
 }
 
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prms_rbc)
-int_dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+int_dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 
 u.registerInteraction(int_rbc)
 u.registerInteraction(int_dpd)
@@ -101,7 +101,7 @@ u.setIntegrator(vv, pv_rbc)
 
 # The solvent must not go through the membrane
 # we can enforce this by setting a bouncer
-bouncer = mir.Bouncers.Mesh("membrane_bounce", kbt=0.5)
+bouncer = mir.Bouncers.Mesh("membrane_bounce", kBT=0.5)
 
 # we register the bouncer object as any other object
 u.registerBouncer(bouncer)

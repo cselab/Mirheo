@@ -20,7 +20,7 @@ u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 pv_solvent = mir.ParticleVectors.ParticleVector('solvent', mass)
 ic_solvent = mir.InitialConditions.Uniform(density)
 
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=0.01, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.01, power=0.5)
 # repulsive LJ to avoid overlap between spheres
 cnt = mir.Interactions.Pairwise('cnt', rc, kind="RepulsiveLJ", epsilon=0.35, sigma=0.8, max_force=400.0)
 

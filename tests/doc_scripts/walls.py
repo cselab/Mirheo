@@ -12,7 +12,7 @@ u = mir.mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
 
 pv  = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic  = mir.InitialConditions.Uniform(density)
-dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kbt=1.0, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
 vv  = mir.Integrators.VelocityVerlet('vv')
 
 u.registerInteraction(dpd)

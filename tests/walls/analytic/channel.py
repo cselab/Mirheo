@@ -23,7 +23,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=10.0, gamma=50.0, kbt=0.01, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=10.0, gamma=50.0, kBT=0.01, power=0.5)
 u.registerInteraction(dpd)
 
 if   args.type == "cylinderPipe":

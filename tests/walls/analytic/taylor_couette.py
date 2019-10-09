@@ -20,7 +20,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density=density)
 u.registerParticleVector(pv=pv, ic=ic)
     
-dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=10.0, gamma=20.0, kbt=0.5, power=0.5)
+dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=10.0, gamma=20.0, kBT=0.5, power=0.5)
 u.registerInteraction(dpd)
 
 center = (domain[0]*0.5, domain[1]*0.5)
