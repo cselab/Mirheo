@@ -324,10 +324,10 @@ createForceSaverPlugin(bool computeTask,  const MirState *state, std::string nam
 
 inline pair_shared< ImposeProfilePlugin, PostprocessPlugin >
 createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv, 
-                          PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kbt)
+                          PyTypes::float3 low, PyTypes::float3 high, PyTypes::float3 velocity, float kBT)
 {
     auto simPl = computeTask ?
-        std::make_shared<ImposeProfilePlugin> (state, name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kbt) :
+        std::make_shared<ImposeProfilePlugin> (state, name, pv->name, make_float3(low), make_float3(high), make_float3(velocity), kBT) :
         nullptr;
             
     return { simPl, nullptr };
@@ -481,9 +481,9 @@ createStatsPlugin(bool computeTask, const MirState *state, std::string name, std
 }
 
 inline pair_shared< TemperaturizePlugin, PostprocessPlugin >
-createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, float kbt, bool keepVelocity)
+createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, float kBT, bool keepVelocity)
 {
-    auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->name, kbt, keepVelocity) : nullptr;
+    auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->name, kBT, keepVelocity) : nullptr;
     return { simPl, nullptr };
 }
 

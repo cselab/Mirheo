@@ -27,10 +27,10 @@ void exportBouncers(py::module& m)
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
             and added to the velocity of the mesh triangle at the collision point.
     )")
-        .def(py::init<const MirState*, std::string, float>(), "state"_a, "name"_a, "kbt"_a=0.5, R"(
+        .def(py::init<const MirState*, std::string, float>(), "state"_a, "name"_a, "kBT"_a=0.5, R"(
             Args:
                 name: name of the bouncer
-                kbt:  Maxwell distribution temperature defining post-collision velocity
+                kBT:  Maxwell distribution temperature defining post-collision velocity
         )");
         
     py::handlers_class<BounceFromRigidShape<Capsule>>(m, "Capsule", pybounce, R"(

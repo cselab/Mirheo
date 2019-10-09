@@ -615,7 +615,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kbt"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kBT"_a, R"(
         Create :any:`ImposeProfile` plugin
         
         Args:
@@ -624,7 +624,7 @@ void exportPlugins(py::module& m)
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
-            kbt: temperature in the domain (appropriate Maxwell distribution will be used)
+            kBT: temperature in the domain (appropriate Maxwell distribution will be used)
     )");
 
     m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
@@ -757,13 +757,13 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin,
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "kbt"_a, "keepVelocity"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "kBT"_a, "keepVelocity"_a, R"(
         Create :any:`Temperaturize` plugin
 
         Args:
             name: name of the plugin
             pv: the concerned :any:`ParticleVector`
-            kbt: the target temperature
+            kBT: the target temperature
             keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     )");
 

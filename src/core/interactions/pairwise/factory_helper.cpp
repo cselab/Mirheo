@@ -8,7 +8,7 @@ template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, Param
 {
     const auto a     = reader.read<float>(desc, "a");
     const auto gamma = reader.read<float>(desc, "gamma");
-    const auto kBT   = reader.read<float>(desc, "kbt");
+    const auto kBT   = reader.read<float>(desc, "kBT");
     const auto power = reader.read<float>(desc, "power");
     
     if (a     != defaultFloat) p.a     = a;
@@ -42,7 +42,7 @@ template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, Par
     const auto a     = reader.read<float>(desc, "a");
     const auto b     = reader.read<float>(desc, "b");
     const auto gamma = reader.read<float>(desc, "gamma");
-    const auto kBT   = reader.read<float>(desc, "kbt");
+    const auto kBT   = reader.read<float>(desc, "kBT");
     const auto power = reader.read<float>(desc, "power");
     
     if (rd     != defaultFloat) p.rd    = rd;
