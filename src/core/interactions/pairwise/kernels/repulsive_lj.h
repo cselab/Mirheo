@@ -119,13 +119,15 @@ public:
 
     __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
+        constexpr float tolerance = 1e-6f;
         if (!awareness.interact(src.i1, dst.i1))
             return make_float3(0.0f);
         
         const float3 dr = dst.r - src.r;
         const float rij2 = dot(dr, dr);
 
-        if (rij2 > rc2) return make_float3(0.0f);
+        if (rij2 > rc2 || rij2 < tolerance)
+            return make_float3(0.0f);
 
         const float rs2 = sigma*sigma / rij2;
         const float rs4 = rs2*rs2;
