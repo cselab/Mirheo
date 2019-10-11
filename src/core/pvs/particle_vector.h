@@ -24,6 +24,10 @@ class LocalParticleVector
 public:
     LocalParticleVector(ParticleVector *pv, int n = 0);
     virtual ~LocalParticleVector();
+
+    friend void swap(LocalParticleVector &, LocalParticleVector &);
+    template <typename T>
+    friend void swap(LocalParticleVector &, T &) = delete;  // Disallow implicit upcasts.
     
     int size() { return np; }
     virtual void resize(int n, cudaStream_t stream);

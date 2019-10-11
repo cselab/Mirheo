@@ -161,11 +161,11 @@ Mirheo::Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
 }
 
-Mirheo::Mirheo(long commAdress, int3 nranks3D, float3 globalDomainSize, float dt,
+Mirheo::Mirheo(long commAddress, int3 nranks3D, float3 globalDomainSize, float dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
-    MPI_Comm comm = *((MPI_Comm*) commAdress);
+    MPI_Comm comm = *((MPI_Comm*) commAddress);
     MPI_Comm_dup(comm, &this->comm);
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);    
 }

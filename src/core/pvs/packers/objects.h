@@ -43,6 +43,33 @@ struct ObjectPackerHandler : public ParticlePackerHandler
          return blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
     }
 
+    inline __device__ size_t blockUnpackShift(int numElements, const char *buffer,
+                                              int srcObjId, int dstObjId, float3 shift) const
+    {
+        return blockApply<UnpackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
+    }
+
+    inline __device__ void blockCopyParticlesTo(ParticlePackerHandler &dst, int srcObjId, int dstPartIdOffset) const
+    {
+        const int tid = threadIdx.x;
+        for (int pid = tid; pid < objSize; pid += blockDim.x)
+        {
+            const int srcPid = srcObjId * objSize + pid;
+            const int dstPid = dstPartIdOffset + pid;
+
+            particles.copyTo(dst.particles, srcPid, dstPid);
+        }
+    }
+
+    inline __device__ void blockCopyTo(ObjectPackerHandler &dst, int srcObjId, int dstObjId) const
+    {
+        blockCopyParticlesTo(static_cast<ParticlePackerHandler &>(dst), srcObjId, dstObjId * objSize);
+
+        const int tid = threadIdx.x;
+        if (tid == 0)
+            objects.copyTo(dst.objects, srcObjId, dstObjId);
+    }
+
 
 protected:
 
@@ -83,6 +110,17 @@ protected:
                                           int numElements)
         {
             return gpacker.unpackAtomicAddNonZero(srcId, dstId, buffer, numElements, eps);
+        }
+    };
+
+    struct UnpackShiftOp
+    {
+        float3 shift;
+        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                          int srcId, int dstId, const char *buffer,
+                                          int numElements)
+        {
+            return gpacker.unpackShift(srcId, dstId, buffer, numElements, shift);
         }
     };
 

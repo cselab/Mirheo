@@ -44,6 +44,39 @@ DataManager& DataManager::operator=(DataManager&& b)
     return *this;
 }
 
+void DataManager::copyChannelMap(const DataManager &other)
+{
+    for (const auto &pair : other.channelMap) {
+        auto it = channelMap.find(pair.first);
+        mpark::visit([&pair, it, this](const auto *pinnedBuffer)
+        {
+            using Buffer = std::decay_t<decltype(*pinnedBuffer)>;
+            using T = typename Buffer::value_type;
+
+            if (it == channelMap.end()) {
+                createData<T>(pair.first);
+            } else if (!mpark::holds_alternative<Buffer*>(it->second.varDataPtr)) {
+                deleteChannel(pair.first);
+                createData<T>(pair.first);
+            }
+            setPersistenceMode(pair.first, pair.second.persistence);
+            setShiftMode      (pair.first, pair.second.shift);
+        }, pair.second.varDataPtr);
+    }
+
+    if (channelMap.size() != other.channelMap.size()) {
+        static_assert(
+                std::is_same<decltype(channelMap), std::map<std::string, ChannelDescription>>::value,
+                "Not anymore using a std::map? Check if it's allowed to delete elements while iterating.");
+        // We have too many channels, delete the surplus.
+        for (const auto &pair : channelMap)
+            if (other.channelMap.find(pair.first) == other.channelMap.end())
+                deleteChannel(pair.first);
+    }
+
+    sortChannels();
+}
+
 void swap(DataManager& a, DataManager& b)
 {
     std::swap(a.channelMap,     b.channelMap);
@@ -125,7 +158,7 @@ void DataManager::sortChannels()
     {
         auto size1 = ch1.second->container->datatype_size();
         auto size2 = ch2.second->container->datatype_size();
-        return size1 > size2;
+        return size1 != size2 ? size1 > size2 : ch1.first < ch2.first;
     });
 }
 
@@ -145,4 +178,19 @@ const DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const st
         die("No such channel: '%s'", name.c_str());
 
     return it->second;
+}
+
+
+void DataManager::deleteChannel(const std::string& name)
+{
+    if (!channelMap.erase(name)) {
+        die("Channel '%s' not found.", name.c_str());
+        return;
+    }
+    for (auto it = sortedChannels.begin(); it != sortedChannels.end(); ++it) {
+        if (it->first == name) {
+            sortedChannels.erase(it);
+            return;
+        }
+    }
 }

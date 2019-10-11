@@ -25,7 +25,10 @@ struct Getter {
     __HD__ inline T operator()(T in) const {return in;}
 
     template <typename X>
-    __HD__ inline T operator()(X) const {return *static_cast<T*>(nullptr);}
+    __HD__ inline T operator()(X) const {
+        assert(false);
+        return *static_cast<T*>(nullptr);
+    }
 };
 } // namespace details
 

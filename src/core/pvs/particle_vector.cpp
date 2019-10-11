@@ -28,6 +28,13 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
 
 LocalParticleVector::~LocalParticleVector() = default;
 
+void swap(LocalParticleVector& a, LocalParticleVector &b)
+{
+    std::swap(a.pv, b.pv);
+    swap(a.dataPerParticle, b.dataPerParticle);
+    std::swap(a.np, b.np);
+}
+
 void LocalParticleVector::resize(int n, cudaStream_t stream)
 {
     if (n < 0) die("Tried to resize PV to %d < 0 particles", n);

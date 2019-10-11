@@ -14,7 +14,43 @@ class ParticleVector;
 class CellList;
 class Field;
 
-class RegionOutletPlugin : public SimulationPlugin
+class OutletPlugin : public SimulationPlugin
+{
+public:
+    OutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames);
+    ~OutletPlugin();
+
+    void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+
+    bool needPostproc() override { return false; }
+
+protected:
+
+    std::vector<std::string> pvNames;
+    std::vector<ParticleVector*> pvs;
+
+    DeviceBuffer<int> nParticlesInside {1};
+
+    std::mt19937 gen {42};
+    std::uniform_real_distribution<float> udistr {0.f, 1.f};
+};
+
+
+class PlaneOutletPlugin : public OutletPlugin
+{
+public:
+    PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvName, float4 plane);
+
+    ~PlaneOutletPlugin();
+
+    void beforeCellLists(cudaStream_t stream) override;
+
+private:
+    float4 plane;
+};
+
+
+class RegionOutletPlugin : public OutletPlugin
 {
 public:
     using RegionFunc = std::function<float(float3)>;
@@ -35,9 +71,6 @@ protected:
     
 protected:
     
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
-    
     double volume;
 
     std::unique_ptr<Field> outletRegion;
@@ -47,6 +80,7 @@ protected:
     std::mt19937 gen {42};
     std::uniform_real_distribution<float> udistr {0.f, 1.f};
 };
+
 
 class DensityOutletPlugin : public RegionOutletPlugin
 {
@@ -58,13 +92,12 @@ public:
     ~DensityOutletPlugin();
 
     void beforeCellLists(cudaStream_t stream) override;
-
-    bool needPostproc() override { return false; }
     
 protected:
     
     float numberDensity;
 };
+
 
 class RateOutletPlugin : public RegionOutletPlugin
 {
@@ -76,8 +109,6 @@ public:
     ~RateOutletPlugin();
 
     void beforeCellLists(cudaStream_t stream) override;
-
-    bool needPostproc() override { return false; }
     
 protected:
     

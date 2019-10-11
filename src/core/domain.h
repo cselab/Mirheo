@@ -20,6 +20,12 @@ struct DomainInfo
         return x - globalStart - 0.5f * localSize;
     }
 
+    inline __HD__ float4 global2localPlane(float4 plane) const noexcept {
+        // v * x_global + d == v * x_local + (v * delta_{local -> global} + d)
+        float3 v = make_float3(plane);
+        return make_float4(v, dot(v, local2global(float3{0, 0, 0})) + plane.w);
+    }
+
     template <typename real3>
     inline __HD__ bool inSubDomain(real3 xg) const
     {

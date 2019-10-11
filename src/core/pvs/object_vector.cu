@@ -58,6 +58,14 @@ LocalObjectVector::LocalObjectVector(ParticleVector *pv, int objSize, int nObjec
 
 LocalObjectVector::~LocalObjectVector() = default;
 
+void swap(LocalObjectVector& a, LocalObjectVector& b)
+{
+    swap(static_cast<LocalParticleVector &>(a), static_cast<LocalParticleVector &>(b));
+    std::swap(a.nObjects, b.nObjects);
+    std::swap(a.objSize,  b.objSize);
+    swap(a.dataPerObject, b.dataPerObject);
+}
+
 void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
     nObjects = getNobjects(np);

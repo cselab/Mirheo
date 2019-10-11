@@ -94,6 +94,10 @@ void exportPlugins(py::module& m)
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
     )");
 
+    py::handlers_class<PlaneOutletPlugin>(m, "PlaneOutletPlugin", pysim, R"(
+        This plugin removes all particles from a set of :any:`ParticleVector` that are on the non-negative side of a given plane.
+    )");
+
     py::handlers_class<RateOutletPlugin>(m, "RateOutletPlugin", pysim, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region at a given mass rate.
     )");
@@ -175,6 +179,18 @@ void exportPlugins(py::module& m)
         Responsible for performing the I/O.
     )");
 
+    py::handlers_class<ObjectPortalDestination>(m, "ObjectPortalDestination", pysim, R"(
+        This plugin receives object vector content from external code.
+    )");
+
+    py::handlers_class<ObjectPortalSource>(m, "ObjectPortalSource", pysim, R"(
+        This plugin sends object vector content to external code.
+    )");
+
+    py::handlers_class<ObjectToParticlesPlugin>(m, "ObjectToParticlesPlugin", pysim, R"(
+        This plugin transforms objects to particles when they cross a given plane.
+    )");
+
     py::handlers_class<ParticleChannelSaverPlugin>(m, "ParticleChannelSaver", pysim, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
@@ -188,6 +204,15 @@ void exportPlugins(py::module& m)
     py::handlers_class<ParticleDragPlugin>(m, "ParticleDrag", pysim, R"(
         This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
     )");
+
+    py::handlers_class<ParticlePortalDestination>(m, "ParticlePortalDestination", pysim, R"(
+        This plugin receives particle vector content from external code.
+    )");
+
+    py::handlers_class<ParticlePortalSource>(m, "ParticlePortalSource", pysim, R"(
+        This plugin sends particle vector content to external code.
+    )");
+
     
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
@@ -436,6 +461,16 @@ void exportPlugins(py::module& m)
         
     )");
 
+    m.def("__createPlaneOutlet", &PluginFactory::createPlaneOutletPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "plane"_a, R"(
+        Create :any:`PlaneOutletPlugin`
+
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            plane: Tuple (a, b, c, d). Particles are removed if `ax + by + cz + d >= 0`.
+    )");
+
     m.def("__createRateOutlet", &PluginFactory::createRateOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "mass_rate"_a,
           "region"_a, "resolution"_a, R"(
@@ -605,6 +640,7 @@ void exportPlugins(py::module& m)
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 
+
     m.def("__createForceSaver", &PluginFactory::createForceSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, R"(
         Create :any:`ForceSaver` plugin
@@ -661,6 +697,40 @@ void exportPlugins(py::module& m)
             forces: array of forces, one force (3 floats) per vertex in a single mesh
     )");
 
+    m.def("__createObjectPortalDestination", &PluginFactory::createObjectPortalDestination,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
+        Create :any:`ObjectPortalDestination` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
+    )");
+
+    m.def("__createObjectPortalSource", &PluginFactory::createObjectPortalSource,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "plane"_a, "tag"_a, "interCommPtr"_a, R"(
+        Create :any:`ObjectPortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
+    )");
+
+    m.def("__createObjectToParticlesPlugin", &PluginFactory::createObjectToParticlesPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "pv"_a, "plane"_a, R"(
+        Create :any:`ObjectPortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ov: source object vector
+            pv: target particle vector
+            plane: plane `(a, b, c, d)` defined as `a*x + b*y + c*z + d == 0`
+    )");
+
+
     m.def("__createParticleChannelSaver", &PluginFactory::createParticleChannelSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
         Create :any:`ParticleChannelSaver` plugin
@@ -699,6 +769,28 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             drag: drag coefficient
+    )");
+
+    m.def("__createParticlePortalDestination", &PluginFactory::createParticlePortalDestination,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
+        Create :any:`ParticlePortalDestination` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
+    )");
+
+    m.def("__createParticlePortalSource", &PluginFactory::createParticlePortalSource,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
+        Create :any:`ParticlePortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
     )");
 
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 

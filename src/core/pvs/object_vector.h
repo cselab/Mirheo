@@ -13,6 +13,11 @@ public:
     LocalObjectVector(ParticleVector *pv, int objSize, int nObjects = 0);
     virtual ~LocalObjectVector();
 
+    // friend void compare(LocalObjectVector &, LocalObjectVector &);
+    friend void swap(LocalObjectVector &, LocalObjectVector &);
+    template <typename T>
+    friend void swap(LocalObjectVector &, T &) = delete;  // Disallow implicit upcasts.
+
     void resize(int np, cudaStream_t stream) override;
     void resize_anew(int np) override;
 

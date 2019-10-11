@@ -187,6 +187,24 @@ __device__ inline T warpExclusiveScan(T val) {
 // Atomic functions
 //=======================================================================================
 
+// For `int64_t` which apparently maps to `long`.
+__device__ inline long atomicAdd(long* address, long val)
+{
+    // Replacing with a supported function:
+    // https://docs.nvidia.com/cuda/cuda-c-programming-guide/#atomicadd
+    using ull = unsigned long long;
+    static_assert(sizeof(long) == sizeof(ull) || sizeof(long) == sizeof(int),
+                  "No replacement found for `long atomicAdd(long*, long)`?!");
+
+    if (sizeof(long) == sizeof(unsigned long long)) {
+        return (long)atomicAdd((ull*)address, (ull)val);
+    } else if (sizeof(long) == sizeof(int)) {
+        return (long)atomicAdd((int*)address, (int)val);
+    } else {
+        return val;  // Unreachable.
+    }
+}
+
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 __device__ inline double atomicAdd(double* address, double val)

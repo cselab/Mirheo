@@ -41,7 +41,13 @@ struct GenericPackerHandler
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId)
+    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, float3 shift) const
+    {
+        TransformShift t {shift, needShift};
+        return unpack(t, srcId, dstId, srcBuffer, numElements);
+    }
+
+    inline __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
     {
         assert (nChannels == dst.nChannels);
         

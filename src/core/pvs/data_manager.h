@@ -61,6 +61,10 @@ public:
     ~DataManager() = default;
 
     friend void swap(DataManager& a, DataManager& b);
+
+    /// Copy channel names and their types of a given DataManager.
+    /// Does not copy data or resize buffers. New buffers are empty.
+    void copyChannelMap(const DataManager &);
     
     /**
      * Allocate a new \c PinnedBuffer of data
@@ -88,9 +92,10 @@ public:
 
         info("Creating new channel '%s'", name.c_str());
 
+        auto &desc = channelMap[name];
         auto ptr = std::make_unique<HeldType>(size);
-        channelMap[name].varDataPtr = ptr.get();
-        channelMap[name].container  = std::move(ptr);
+        desc.varDataPtr = ptr.get();
+        desc.container  = std::move(ptr);
 
         sortedChannels.push_back({name, &channelMap[name]});
         sortChannels();
@@ -167,7 +172,9 @@ public:
     /// Get constant entry from channelMap or die if it is not found
     const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
 
-private:    
+public:
+    /// Delete the channel with the given name.
+    void deleteChannel(const std::string &name);
 
     using ChannelMap = std::map< std::string, ChannelDescription >;
 
