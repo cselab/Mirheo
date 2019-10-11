@@ -7,8 +7,9 @@ import weakref
 import re
 
 from libmirheo import *
+from libmirheo import __file__ as _libmirheo_file  # For `make make_and_copy`.
 
-__all__ = ["version", "tools"]
+__all__ = ["version", "tools", "_libmirheo_file"]
 
 # Global variable for the mirheo coordination class
 # Used in decorators to access compute task status
