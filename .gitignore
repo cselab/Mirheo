@@ -21,6 +21,8 @@ data/
 .cproject
 .project
 __pycache__/
+*.pyc
+*.swp
 *.kdev4
 build/
 .tramp_history
