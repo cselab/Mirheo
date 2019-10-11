@@ -18,6 +18,7 @@ dt   = 0.001
 u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
+np.random.seed(42)
 pos = np.random.normal(loc   = [0.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))
@@ -76,7 +77,7 @@ u.run(5000)
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./mesh.py --file $f
-# cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/rigid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.mesh.exchange
 # set -eu
@@ -85,4 +86,4 @@ u.run(5000)
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./mesh.py --file $f --xorigin 4.1
-# cat stats/rigid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/rigid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt

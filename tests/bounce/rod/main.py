@@ -22,6 +22,7 @@ mass_rod = 100.0
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 1000
+np.random.seed(42)
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 0.5, 0.5 * domain[2]],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))

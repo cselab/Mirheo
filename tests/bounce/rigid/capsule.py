@@ -20,6 +20,7 @@ dt   = 0.001
 u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
+np.random.seed(42)
 pos = np.random.normal(loc   = [0.5, 0.5 * domain[1] + 1.0, 0.5 * domain[2] + 1.5],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))
@@ -80,4 +81,4 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/capsule_coords_${rho}_${R}_${L}.txt $f
 # mir.run --runargs "-n 2" ./capsule.py --coords $f
-# cat stats/capsule.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/capsule.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt

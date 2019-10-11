@@ -19,6 +19,7 @@ dt   = 0.001
 u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
+np.random.seed(42)
 pos = np.random.normal(loc   = [0.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))
@@ -82,7 +83,7 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.ellipsoid.exchange
 # set -eu
@@ -93,4 +94,4 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f --xorigin 4.1
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
