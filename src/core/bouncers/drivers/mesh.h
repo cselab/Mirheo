@@ -517,19 +517,18 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const float3 vtri = barycentricCoo.x*trVel.v0 + barycentricCoo.y*trVel.v1 + barycentricCoo.z*trVel.v2;
     const float3 coo  = barycentricCoo.x*tr.v0    + barycentricCoo.y*tr.v1    + barycentricCoo.z*tr.v2;
 
-    const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
+    float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
+    n = (info.sign > 0) ? n : -n;
 
     // new velocity relative to the triangle speed
-    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kBT, pvView.mass, seed1, seed2 ) + vtri;
+    const float3 newV = reflectVelocity(n, kBT, pvView.mass, seed1, seed2 ) + vtri;
 
     float3 f0, f1, f2;
     triangleForces(tr, objView.mass, barycentricCoo, p.u, newV, pvView.mass, dt, f0, f1, f2);
 
     Particle corrP {p};
-    corrP.r = coo + eps * ((info.sign > 0) ? n : -n);
+    corrP.r = coo + eps * n;
     corrP.u = newV;
-
-    const float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
 
     pvView.writeParticle(pid, corrP);
 
