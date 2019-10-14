@@ -37,14 +37,24 @@ Segment readMatFrame(const float4 *rodPos, int segmentId)
 
 static constexpr float NoCollision = -1.f;
 
-__device__ static inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
+__device__ static inline float squaredDistanceToSegment(const Segment& s, const float3& x)
 {
-    const float3 dr = r1 - r0;
-    float alpha = dot(x - r0, dr) / dot(dr, dr);
+    const float3 dr = s.r1 - s.r0;
+    float alpha = dot(x - s.r0, dr) / dot(dr, dr);
     alpha = min(1.f, max(0.f, alpha));
-    const float3 p = r0 + alpha * dr;
+    const float3 p = s.r0 + alpha * dr;
     const float3 dx = x - p;
     return dot(dx, dx);
+}
+
+__device__ static inline float3 segmentNormal(const Segment& s, const float3& x)
+{
+    const float3 dr = s.r1 - s.r0;
+    float alpha = dot(x - s.r0, dr) / dot(dr, dr);
+    alpha = min(1.f, max(0.f, alpha));
+    const float3 p = s.r0 + alpha * dr;
+    const float3 dx = x - p;
+    return normalize(dx);
 }
 
 // find "time" (0.0 to 1.0) of the segment - moving triangle intersection
@@ -60,12 +70,13 @@ float collision(const float radius,
     const auto dr1 = segNew.r1 - segOld.r1;
 
     // Signed distance to a segment of given radius
-    auto F = [=] (float t) {
-        const float3 r0t = segOld.r0 + t * dr0;
-        const float3 r1t = segOld.r1 + t * dr1;
-        const float3  xt = xOld +      t * dx;
+    auto F = [=] (float t)
+    {
+        const Segment st = {segOld.r0 + t * dr0,
+                            segOld.r1 + t * dr1};
+        const float3  xt =  xOld +      t * dx;
 
-        const float dsq = squaredDistanceToSegment(r0t, r1t, xt);
+        const float dsq = squaredDistanceToSegment(st, xt);
         return dsq - radius*radius;
     };
 
@@ -263,18 +274,18 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     const int rodId = globSegId / rvView.nSegments;
     const int segId = globSegId % rvView.nSegments;
 
-    auto segNew = readSegment(rvView.positions    + rodId * rvView.objSize, segId);
-    auto segOld = readSegment(rvView.oldPositions + rodId * rvView.objSize, segId);
+    const Segment segNew = readSegment(rvView.positions    + rodId * rvView.objSize, segId);
+    const Segment segOld = readSegment(rvView.oldPositions + rodId * rvView.objSize, segId);
 
-    auto matNew = readMatFrame(rvView.positions    + rodId * rvView.objSize, segId);
-    auto matOld = readMatFrame(rvView.oldPositions + rodId * rvView.objSize, segId);
+    const Segment matNew = readMatFrame(rvView.positions    + rodId * rvView.objSize, segId);
+    const Segment matOld = readMatFrame(rvView.oldPositions + rodId * rvView.objSize, segId);
 
     Particle p (pvView.readParticle(pid));
     
-    const auto rNew = p.r;
-    const auto rOld = pvView.readOldPosition(pid);
+    const float3 rNew = p.r;
+    const float3 rOld = pvView.readOldPosition(pid);
 
-    const auto alpha = collision(radius, segNew, segOld, rNew, rOld);
+    const float alpha = collision(radius, segNew, segOld, rNew, rOld);
 
     // perform the collision only with the first rod encountered
     const int minTime = collisionTimes[pid];
@@ -286,8 +297,7 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     const float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
     const float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
-    // TODO: compute normal
-    const float3 normal {0.f, 0.f, 0.f};
+    const float3 normal = segmentNormal(segNew, colPosNew);
     const float3 newVel = bounceKernel.newVelocity(p.u, colVel, normal);
 
     const auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
