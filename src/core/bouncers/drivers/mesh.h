@@ -42,32 +42,32 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
 
     // Distance to the triangle plane
     auto F = [=] (float t) {
-        float3 v0t = v0 + t*dv0;
-        float3 v1t = v1 + t*dv1;
-        float3 v2t = v2 + t*dv2;
+        const float3 v0t = v0 + t*dv0;
+        const float3 v1t = v1 + t*dv1;
+        const float3 v2t = v2 + t*dv2;
 
-        float3 nt = normalize(cross(v1t-v0t, v2t-v0t));
-        float3 xt = xOld + t*dx;
+        const float3 nt = normalize(cross(v1t-v0t, v2t-v0t));
+        const float3 xt = xOld + t*dx;
         return  dot( xt - v0t, nt );
     };
 
     // d / dt (non normalized Distance)
     auto F_prime = [=] (float t) {
-        float3 v0t = v0 + t*dv0;
-        float3 v1t = v1 + t*dv1;
-        float3 v2t = v2 + t*dv2;
+        const float3 v0t = v0 + t*dv0;
+        const float3 v1t = v1 + t*dv1;
+        const float3 v2t = v2 + t*dv2;
 
-        float3 nt = cross(v1t-v0t, v2t-v0t);
+        const float3 nt = cross(v1t-v0t, v2t-v0t);
 
-        float3 xt = xOld + t*dx;
+        const float3 xt = xOld + t*dx;
         return dot(dx-dv0, nt) + dot(xt-v0t, cross(dv1-dv0, v2t-v0t) + cross(v1t-v0t, dv2-dv0));
     };
 
-    auto F0 = F(0.0f);
-    auto F1 = F(1.0f);
+    const auto F0 = F(0.0f);
+    const auto F1 = F(1.0f);
 
     // assume that particles don t move more than this distance every time step
-    const float tolDistance = 0.1;
+    constexpr float tolDistance = 0.1;
     
     if (fabs(F0) > tolDistance && fabs(F1) > tolDistance)
         return false;
@@ -83,9 +83,9 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
 }
 
 __device__ static inline void findBouncesInCell(int pstart, int pend, int globTrid,
-                                         Triangle tr, Triangle trOld,
-                                         PVviewWithOldParticles pvView,
-                                         MeshView mesh, TriangleTable triangleTable)
+                                                Triangle tr, Triangle trOld,
+                                                PVviewWithOldParticles pvView,
+                                                MeshView mesh, TriangleTable triangleTable)
 {
 
 #pragma unroll 2
@@ -93,7 +93,7 @@ __device__ static inline void findBouncesInCell(int pstart, int pend, int globTr
     {
         Particle p;
         pvView.readPosition   (p,    pid);
-        auto rOld = pvView.readOldPosition(pid);
+        const auto rOld = pvView.readOldPosition(pid);
 
         if (segmentTriangleQuickCheck(tr, trOld, p.r, rOld))
             triangleTable.push_back({pid, globTrid});
@@ -106,7 +106,7 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
                                   TriangleTable triangleTable)
 {
     // About maximum distance a particle can cover in one step
-    const float tol = 0.2f;
+    constexpr float tol = 0.2f;
 
     // One THREAD per triangle
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -115,8 +115,8 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
     if (objId >= objView.nObjects) return;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
+    const Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    const Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
     const float3 lo = fmin_vec(trOld.v0, trOld.v1, trOld.v2, tr.v0, tr.v1, tr.v2);
     const float3 hi = fmax_vec(trOld.v0, trOld.v1, trOld.v2, tr.v0, tr.v1, tr.v2);
@@ -130,13 +130,13 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
         for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; cid3.y++)
             {
                 cid3.x = cidLow.x;
-                int cidLo = max(cinfo.encode(cid3), 0);
+                const int cidLo = max(cinfo.encode(cid3), 0);
 
                 cid3.x = cidHigh.x;
-                int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
+                const int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
 
-                int pstart = cinfo.cellStarts[cidLo];
-                int pend   = cinfo.cellStarts[cidHi];
+                const int pstart = cinfo.cellStarts[cidLo];
+                const int pend   = cinfo.cellStarts[cidHi];
 
                 findBouncesInCell(pstart, pend, gid, tr, trOld, pvView, mesh, triangleTable);
             }
@@ -152,18 +152,18 @@ __device__ static inline bool isInside(Triangle tr, float3 p)
     const float edgeTolerance = 1e-18f;
 
     auto signedArea2 = [] (float3 a, float3 b, float3 c, float3 direction) {
-        auto n = cross(a-b, a-c);
-        auto sign = dot(n, direction);
+        const auto n = cross(a-b, a-c);
+        const auto sign = dot(n, direction);
 
-        auto S2 = dot(n, n);
+        const auto S2 = dot(n, n);
         return (sign >= 0.0f) ? S2 : -S2;
     };
 
-    float3 n = cross(tr.v1-tr.v0, tr.v2-tr.v0);
+    const float3 n = cross(tr.v1-tr.v0, tr.v2-tr.v0);
 
-    float s0 = signedArea2(tr.v0, tr.v1, p, n);
-    float s1 = signedArea2(tr.v1, tr.v2, p, n);
-    float s2 = signedArea2(tr.v2, tr.v0, p, n);
+    const float s0 = signedArea2(tr.v0, tr.v1, p, n);
+    const float s1 = signedArea2(tr.v1, tr.v2, p, n);
+    const float s2 = signedArea2(tr.v2, tr.v0, p, n);
 
 
     return (s0 > -edgeTolerance && s1 > -edgeTolerance && s2 > -edgeTolerance);
@@ -218,28 +218,28 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     // precompute scaling factor
     auto n = cross(trNew.v1-trNew.v0,
                    trNew.v2-trNew.v0);
-    float n_1 = rsqrtf(dot(n, n));
+    const float n_1 = rsqrtf(dot(n, n));
 
     // Distance to a triangle
     auto F = [=] (float t) {
-        float3 v0t = v0 + t*dv0;
-        float3 v1t = v1 + t*dv1;
-        float3 v2t = v2 + t*dv2;
+        const float3 v0t = v0 + t*dv0;
+        const float3 v1t = v1 + t*dv1;
+        const float3 v2t = v2 + t*dv2;
 
-        float3 xt = xOld + t*dx;
+        const float3 xt = xOld + t*dx;
         return  n_1 * dot( xt - v0t, cross(v1t-v0t, v2t-v0t) );
     };
 
     // d / dt (Distance)
     auto F_prime = [=] (float t)
     {
-        float3 v0t = v0 + t*dv0;
-        float3 v1t = v1 + t*dv1;
-        float3 v2t = v2 + t*dv2;
+        const float3 v0t = v0 + t*dv0;
+        const float3 v1t = v1 + t*dv1;
+        const float3 v2t = v2 + t*dv2;
 
-        float3 nt = cross(v1t-v0t, v2t-v0t);
+        const float3 nt = cross(v1t-v0t, v2t-v0t);
 
-        float3 xt = xOld + t*dx;
+        const float3 xt = xOld + t*dx;
         return  n_1 * ( dot(dx-dv0, nt) + dot(xt-v0t, cross(dv1-dv0, v2t-v0t) + cross(v1t-v0t, dv2-dv0)) );
     };
 
@@ -332,17 +332,17 @@ void refineCollisions(OVviewWithNewOldVertices objView,
     if (gid >= nCoarseCollisions) return;
 
     const int2 pid_trid = coarseTable[gid];
-    int pid = pid_trid.x;
+    const int pid = pid_trid.x;
 
-    Particle p (pvView.readParticle   (pid));
-    auto rOld = pvView.readOldPosition(pid);
+    const Particle p (pvView.readParticle   (pid));
+    const auto rOld = pvView.readOldPosition(pid);
 
     const int trid  = pid_trid.y % mesh.ntriangles;
     const int objId = pid_trid.y / mesh.ntriangles;
 
     const int3 triangle = mesh.triangles[trid];
-    Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
-    Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
+    const Triangle tr =    readTriangle(objView.vertices    , mesh.nvertices*objId, triangle);
+    const Triangle trOld = readTriangle(objView.old_vertices, mesh.nvertices*objId, triangle);
 
     const auto info = intersectSegmentWithTriangle(tr, trOld, p.r, rOld);
 
@@ -365,19 +365,19 @@ __device__ static inline
 float3 barycentric(Triangle tr, float3 p)
 {
     auto signedArea = [] (float3 a, float3 b, float3 c, float3 direction) {
-        auto n = cross(a-b, a-c);
-        auto sign = dot(n, direction);
+        const auto n = cross(a-b, a-c);
+        const auto sign = dot(n, direction);
 
-        auto S = length(n);
+        const auto S = length(n);
         return (sign >= 0.0f) ? S : -S;
     };
 
-    auto n = cross(tr.v0-tr.v1, tr.v0-tr.v2);
-    auto s0_1 = rsqrtf(dot(n, n));
+    const auto n = cross(tr.v0-tr.v1, tr.v0-tr.v2);
+    const auto s0_1 = rsqrtf(dot(n, n));
 
-    auto s1 = signedArea(tr.v0, tr.v1, p, n);
-    auto s2 = signedArea(tr.v1, tr.v2, p, n);
-    auto s3 = signedArea(tr.v2, tr.v0, p, n);
+    const auto s1 = signedArea(tr.v0, tr.v1, p, n);
+    const auto s2 = signedArea(tr.v1, tr.v2, p, n);
+    const auto s3 = signedArea(tr.v2, tr.v0, p, n);
 
     return make_float3(s2, s3, s1) * s0_1;
 }
@@ -391,21 +391,22 @@ float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2
     const int maxTries = 50;
     // reflection with random scattering
     // according to Maxwell distr
-    float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
-    float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
+    const float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
+    const float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
-    float3 r = make_float3(rand1.x, rand1.y, rand2.x);
-    for (int i=0; i<maxTries; i++)
+    float3 v = make_float3(rand1.x, rand1.y, rand2.x);
+
+    for (int i = 0; i < maxTries; ++i)
     {
-        if (dot(r, n) > 0) break;
+        if (dot(v, n) > 0) break;
 
-        float2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
-        float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
-        r = make_float3(rand3.x, rand3.y, rand4.x);
+        const float2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
+        const float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
+        v = make_float3(rand3.x, rand3.y, rand4.x);
     }
-    r = normalize(r) * sqrtf(kBT / mass);
+    v = normalize(v) * sqrtf(kBT / mass);
 
-    return r;
+    return v;
 }
 
 
@@ -488,7 +489,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     if (gid >= nCollisions) return;
 
     const int2 pid_trid = collisionTable[gid];
-    int pid = pid_trid.x;
+    const int pid = pid_trid.x;
 
     const Particle p (pvView.readParticle   (pid));
 

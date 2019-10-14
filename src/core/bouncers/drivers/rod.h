@@ -209,34 +209,34 @@ __device__ static inline Forces transferMomentumToSegment(float dt, float partMa
                                                           const Segment& seg, const Segment& mat)
 {
     Forces out;
-    float3 rc = 0.5f * (seg.r0 + seg.r1);
-    float3 dx = pos - rc;
+    const float3 rc = 0.5f * (seg.r0 + seg.r1);
+    const float3 dx = pos - rc;
     
-    float3 F = (partMass / dt) * dV;
-    float3 T = cross(dx, F);
+    const float3 F = (partMass / dt) * dV;
+    const float3 T = cross(dx, F);
 
     // linear momentum equaly to everyone
     out.fr0 = out.fr1 = out.fu0 = out.fu1 = -0.25f * F;
 
-    float3 dr = seg.r1 - seg.r0;
-    auto t = normalize(dr);
-    float3 du = mat.r1 - mat.r0;
+    const float3 dr = seg.r1 - seg.r0;
+    const auto t = normalize(dr);
+    const float3 du = mat.r1 - mat.r0;
 
-    float3 Tpara = dot(T, t) * t;
+    const float3 Tpara = dot(T, t) * t;
     float3 Tperp = T - Tpara;
 
-    float tdu = dot(du, t);
-    float3 du_ = du - tdu * t;
+    const float tdu = dot(du, t);
+    const float3 du_ = du - tdu * t;
 
-    float paraFactor = 1.f / (dot(du, du) + tdu*tdu);
+    const float paraFactor = 1.f / (dot(du, du) + tdu*tdu);
     
-    float3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
+    const float3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
 
     // the above force gives extra torque in Tperp direction
     // compensate that here
     Tperp -= (paraFactor * tdu*tdu * length(Tpara)) * du_;
     
-    float3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
+    const float3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
 
     out.fr0 -= fTperp;
     out.fr1 += fTperp;
@@ -252,12 +252,12 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
                                 const int2 *collisionInfos, const int *collisionTimes,
                                 float dt)
 {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    const int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= nCollisions) return;
 
-    auto collisionInfo = collisionInfos[i];
-    int pid       = collisionInfo.x;
-    int globSegId = collisionInfo.y;
+    const auto collisionInfo = collisionInfos[i];
+    const int pid       = collisionInfo.x;
+    const int globSegId = collisionInfo.y;
 
     const int rodId = globSegId / rvView.nSegments;
     const int segId = globSegId % rvView.nSegments;
@@ -270,25 +270,25 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
 
     Particle p (pvView.readParticle(pid));
     
-    auto rNew = p.r;
-    auto rOld = pvView.readOldPosition(pid);
+    const auto rNew = p.r;
+    const auto rOld = pvView.readOldPosition(pid);
 
-    auto alpha = collision(radius, segNew, segOld, rNew, rOld);
+    const auto alpha = collision(radius, segNew, segOld, rNew, rOld);
 
     // perform the collision only with the first rod encountered
-    int minTime = collisionTimes[pid];
+    const int minTime = collisionTimes[pid];
     if (1.0f - alpha != __int_as_float(minTime)) return;
 
-    auto localCoords = getLocalCoords(rNew, rOld, segNew, segOld, matNew, matOld, alpha);
+    const auto localCoords = getLocalCoords(rNew, rOld, segNew, segOld, matNew, matOld, alpha);
 
-    float3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
-    float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
-    float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
+    const float3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
+    const float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
+    const float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
     // bounce back velocity
-    float3 newVel = 2 * colVel - p.u;
+    const float3 newVel = 2 * colVel - p.u;
 
-    auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
+    const auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
     
     p.r = colPosNew;
     p.u = newVel;
