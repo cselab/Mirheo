@@ -382,34 +382,6 @@ float3 barycentric(Triangle tr, float3 p)
     return make_float3(s2, s3, s1) * s0_1;
 }
 
-/**
- * Reflect the velocity, in the triangle's reference frame
- */
-__device__ static inline
-float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2)
-{
-    const int maxTries = 50;
-    // reflection with random scattering
-    // according to Maxwell distr
-    const float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
-    const float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
-
-    float3 v = make_float3(rand1.x, rand1.y, rand2.x);
-
-    for (int i = 0; i < maxTries; ++i)
-    {
-        if (dot(v, n) > 0) break;
-
-        const float2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
-        const float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
-        v = make_float3(rand3.x, rand3.y, rand4.x);
-    }
-    v = normalize(v) * sqrtf(kBT / mass);
-
-    return v;
-}
-
-
 // Particle with mass M and velocity U0 hits triangle tr (v0, v1, v2)
 // into point O. Its new velocity is Unew.
 // Vertex masses are m. Treated as rigid and stationary,

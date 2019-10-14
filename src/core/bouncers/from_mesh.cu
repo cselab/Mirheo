@@ -154,14 +154,15 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             "something may be broken or you need to increase the estimate",
             fineTable.nCollisions[0], maxFineCollisions);
 
+    const BounceMaxwell bouncer(kBT, pvView.mass, drand48(), drand48());
 
-    // Step 3, resolve the collisions
+    // Step 3, resolve the collisions    
     SAFE_KERNEL_LAUNCH(
             MeshBounceKernels::performBouncingTriangle,
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-            state->dt, BounceMaxwell(kBT, pvView.mass, drand48(), drand48()) );
+            state->dt, bouncer );
 
     if (rov != nullptr)
     {
