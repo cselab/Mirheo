@@ -1,5 +1,5 @@
 #include "from_mesh.h"
-#include "kernels/mesh.h"
+#include "drivers/mesh.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>

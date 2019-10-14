@@ -1,5 +1,5 @@
 #include "from_shape.h"
-#include "kernels/shape.h"
+#include "drivers/shape.h"
 
 #include <core/analytical_shapes/api.h>
 #include <core/celllist.h>

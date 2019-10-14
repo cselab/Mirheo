@@ -1,5 +1,5 @@
 #include "from_rod.h"
-#include "kernels/rod.h"
+#include "drivers/rod.h"
 
 #include <core/celllist.h>
 #include <core/pvs/rod_vector.h>
