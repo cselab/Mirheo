@@ -247,10 +247,11 @@ __device__ static inline Forces transferMomentumToSegment(float dt, float partMa
     return out;
 }
 
+template <class BounceKernel>
 __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
                                 PVviewWithOldParticles pvView, int nCollisions,
                                 const int2 *collisionInfos, const int *collisionTimes,
-                                float dt)
+                                float dt, const BounceKernel bounceKernel)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= nCollisions) return;
@@ -285,8 +286,9 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     const float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
     const float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
-    // bounce back velocity
-    const float3 newVel = 2 * colVel - p.u;
+    // TODO: compute normal
+    const float3 normal {0.f, 0.f, 0.f};
+    const float3 newVel = bounceKernel.newVelocity(p.u, colVel, normal);
 
     const auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
     
