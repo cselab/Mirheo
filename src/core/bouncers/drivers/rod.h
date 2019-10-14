@@ -39,11 +39,11 @@ static constexpr float NoCollision = -1.f;
 
 __device__ static inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
 {
-    float3 dr = r1 - r0;
+    const float3 dr = r1 - r0;
     float alpha = dot(x - r0, dr) / dot(dr, dr);
     alpha = min(1.f, max(0.f, alpha));
-    float3 p = r0 + alpha * dr;
-    float3 dx = x - p;
+    const float3 p = r0 + alpha * dr;
+    const float3 dx = x - p;
     return dot(dx, dx);
 }
 
@@ -61,11 +61,11 @@ float collision(const float radius,
 
     // Signed distance to a segment of given radius
     auto F = [=] (float t) {
-        float3 r0t = segOld.r0 + t * dr0;
-        float3 r1t = segOld.r1 + t * dr1;
-        float3  xt = xOld +      t * dx;
+        const float3 r0t = segOld.r0 + t * dr0;
+        const float3 r1t = segOld.r1 + t * dr1;
+        const float3  xt = xOld +      t * dx;
 
-        float dsq = squaredDistanceToSegment(r0t, r1t, xt);
+        const float dsq = squaredDistanceToSegment(r0t, r1t, xt);
         return dsq - radius*radius;
     };
 
@@ -92,10 +92,10 @@ void findBouncesInCell(int pstart, int pend, int globSegId,
     #pragma unroll 2
     for (int pid = pstart; pid < pend; ++pid)
     {
-        auto rNew = make_float3(pvView.readPosition(pid));
-        auto rOld = pvView.readOldPosition(pid);
+        const float3 rNew = make_float3(pvView.readPosition(pid));
+        const float3 rOld = pvView.readOldPosition(pid);
 
-        auto alpha = collision(radius, segNew, segOld, rNew, rOld);
+        const auto alpha = collision(radius, segNew, segOld, rNew, rOld);
 
         if (alpha == NoCollision) continue;
 
@@ -109,7 +109,7 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
                             SegmentTable segmentTable, int *collisionTimes)
 {
     // About maximum distance a particle can cover in one step
-    const float tol = 0.25f;
+    constexpr float tol = 0.25f;
 
     // One thread per segment
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -134,13 +134,13 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
         for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; ++cid3.y)
         {
             cid3.x = cidLow.x;
-            int cidLo = max(cinfo.encode(cid3), 0);
+            const int cidLo = max(cinfo.encode(cid3), 0);
             
             cid3.x = cidHigh.x;
-            int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
+            const int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
             
-            int pstart = cinfo.cellStarts[cidLo];
-            int pend   = cinfo.cellStarts[cidHi];
+            const int pstart = cinfo.cellStarts[cidLo];
+            const int pend   = cinfo.cellStarts[cidHi];
             
             findBouncesInCell(pstart, pend, gid, radius,
                               segNew, segOld, pvView,
@@ -183,20 +183,20 @@ __device__ static inline float3 getLocalCoords(const float3& xNew, const float3&
                                                const Segment& matNew, const Segment& matOld,
                                                float alpha)
 {
-    auto colPoint = interpolate(xOld, xNew, alpha);
-    auto colSeg = interpolate(segOld, segNew, alpha);
-    auto colMat = interpolate(matOld, matNew, alpha);
+    const auto colPoint = interpolate(xOld, xNew, alpha);
+    const auto colSeg = interpolate(segOld, segNew, alpha);
+    const auto colMat = interpolate(matOld, matNew, alpha);
     return getLocalCoords(colPoint, colSeg, colMat); 
 }
 
 __device__ static inline float3 localToCartesianCoords(const float3& local, const Segment& seg, const Segment& mat)
 {
-    auto t = normalize(seg.r1 - seg.r0);
-    auto u = mat.r1 - mat.r0;
+    const float3 t = normalize(seg.r1 - seg.r0);
+    float3 u = mat.r1 - mat.r0;
     u = normalize(u - dot(u, t) * t);
-    auto v = cross(t, u);
+    const float3 v = cross(t, u);
 
-    float3 x = local.x * t + local.y * u + local.z * v;
+    const float3 x = local.x * t + local.y * u + local.z * v;
     return seg.r0 + x;
 }
 
