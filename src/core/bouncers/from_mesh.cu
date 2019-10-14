@@ -1,5 +1,6 @@
 #include "from_mesh.h"
 #include "drivers/mesh.h"
+#include "kernels/bounce_maxwell.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -160,7 +161,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-            state->dt, kBT, drand48(), drand48() );
+            state->dt, BounceMaxwell(kBT, pvView.mass, drand48(), drand48()) );
 
     if (rov != nullptr)
     {

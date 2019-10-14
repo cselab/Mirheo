@@ -476,13 +476,13 @@ void triangleForces(Triangle tr, float m,
 }
 
 
-static __global__
-void performBouncingTriangle(OVviewWithNewOldVertices objView,
-                             PVviewWithOldParticles pvView,
-                             MeshView mesh,
-                             int nCollisions, int2 *collisionTable, int *collisionTimes,
-                             const float dt,
-                             float kBT, float seed1, float seed2)
+template <class BounceKernel>
+__global__ void performBouncingTriangle(OVviewWithNewOldVertices objView,
+                                        PVviewWithOldParticles pvView,
+                                        MeshView mesh,
+                                        int nCollisions, int2 *collisionTable, int *collisionTimes,
+                                        const float dt,
+                                        const BounceKernel bounceKernel)
 {
     constexpr float eps = 5e-5f;
 
@@ -521,7 +521,7 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     n = (info.sign > 0) ? n : -n;
 
     // new velocity relative to the triangle speed
-    const float3 newV = reflectVelocity(n, kBT, pvView.mass, seed1, seed2 ) + vtri;
+    const float3 newV = bounceKernel.newVelocity(p.u, vtri, n);
 
     float3 f0, f1, f2;
     triangleForces(tr, objView.mass, barycentricCoo, p.u, newV, pvView.mass, dt, f0, f1, f2);
