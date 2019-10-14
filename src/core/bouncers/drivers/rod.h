@@ -37,23 +37,25 @@ Segment readMatFrame(const float4 *rodPos, int segmentId)
 
 static constexpr float NoCollision = -1.f;
 
-__device__ static inline float squaredDistanceToSegment(const Segment& s, const float3& x)
+__device__ static inline float3 projectionPointOnSegment(const Segment& s, const float3& x)
 {
     const float3 dr = s.r1 - s.r0;
     float alpha = dot(x - s.r0, dr) / dot(dr, dr);
     alpha = min(1.f, max(0.f, alpha));
     const float3 p = s.r0 + alpha * dr;
-    const float3 dx = x - p;
+    return p;
+}
+
+
+__device__ static inline float squaredDistanceToSegment(const Segment& s, const float3& x)
+{
+    const float3 dx = x - projectionPointOnSegment(s, x);
     return dot(dx, dx);
 }
 
 __device__ static inline float3 segmentNormal(const Segment& s, const float3& x)
 {
-    const float3 dr = s.r1 - s.r0;
-    float alpha = dot(x - s.r0, dr) / dot(dr, dr);
-    alpha = min(1.f, max(0.f, alpha));
-    const float3 p = s.r0 + alpha * dr;
-    const float3 dx = x - p;
+    const float3 dx = x - projectionPointOnSegment(s, x);
     return normalize(dx);
 }
 
