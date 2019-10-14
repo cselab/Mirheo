@@ -416,11 +416,12 @@ float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2
 // what are the vertex forces induced by the collision?
 __device__ static inline
 void triangleForces(Triangle tr, float m,
-                    float3 O_barycentric, float3 U0, float3 Unew, float M,
+                    float3 O_barycentric, float3 Uold, float3 Unew, float M,
                     float dt,
                     float3& f0, float3& f1, float3& f2)
 {
-    const float tol = 1e-5f;
+    constexpr float tol = 1e-5f;
+    constexpr float oneThrird = 1.0 / 3.0;
 
     auto len2 = [] (float3 x) {
         return dot(x, x);
@@ -428,7 +429,7 @@ void triangleForces(Triangle tr, float m,
 
     const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 
-    const float3 dU = U0 - Unew;
+    const float3 dU = Uold - Unew;
     const float IU_ortI = dot(dU, n);
     const float3 U_par = dU - IU_ortI * n;
 
@@ -437,8 +438,8 @@ void triangleForces(Triangle tr, float m,
     const float v1_ort = O_barycentric.y * a;
     const float v2_ort = O_barycentric.z * a;
 
-    const float3 C = 0.333333333f * (tr.v0+tr.v1+tr.v2);
-    const float3 Vc = 0.333333333f * M * U_par;
+    const float3 C  = oneThrird * (tr.v0+tr.v1+tr.v2);
+    const float3 Vc = oneThrird * M * U_par;
 
     const float3 O = O_barycentric.x * tr.v0 + O_barycentric.y * tr.v1 + O_barycentric.z * tr.v2;
     const float3 L = M * cross(C-O, U_par);
@@ -519,14 +520,14 @@ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     const float3 n = normalize(cross(tr.v1-tr.v0, tr.v2-tr.v0));
 
     // new velocity relative to the triangle speed
-    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kBT, pvView.mass, seed1, seed2 );
+    const float3 newV = reflectVelocity( (info.sign > 0) ? n : -n, kBT, pvView.mass, seed1, seed2 ) + vtri;
 
     float3 f0, f1, f2;
-    triangleForces(tr, objView.mass, barycentricCoo, p.u - vtri, newV, pvView.mass, dt, f0, f1, f2);
+    triangleForces(tr, objView.mass, barycentricCoo, p.u, newV, pvView.mass, dt, f0, f1, f2);
 
     Particle corrP {p};
     corrP.r = coo + eps * ((info.sign > 0) ? n : -n);
-    corrP.u = newV + vtri;
+    corrP.u = newV;
 
     const float sign = dot( corrP.r-tr.v0, cross(tr.v1-tr.v0, tr.v2-tr.v0) );
 
