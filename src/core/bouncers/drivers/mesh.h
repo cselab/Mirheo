@@ -18,7 +18,7 @@ struct Triangle
 
 using TriangleTable = CollisionTable<int2>;
 
-__device__ inline Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
+__device__ static inline Triangle readTriangle(const float4 *vertices, int startId, int3 trid)
 {
     auto addr = vertices + startId;
     return {
@@ -29,7 +29,7 @@ __device__ inline Triangle readTriangle(const float4 *vertices, int startId, int
 
 
 
-__device__ inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld, float3 xNew, float3 xOld)
+__device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld, float3 xNew, float3 xOld)
 {
     const float3 v0 = trOld.v0;
     const float3 v1 = trOld.v1;
@@ -82,7 +82,7 @@ __device__ inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle trOld,
     return true;
 }
 
-__device__ inline void findBouncesInCell(int pstart, int pend, int globTrid,
+__device__ static inline void findBouncesInCell(int pstart, int pend, int globTrid,
                                          Triangle tr, Triangle trOld,
                                          PVviewWithOldParticles pvView,
                                          MeshView mesh, TriangleTable triangleTable)
@@ -147,7 +147,7 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
 //=================================================================================================================
 
 
-__device__ inline bool isInside(Triangle tr, float3 p)
+__device__ static inline bool isInside(Triangle tr, float3 p)
 {
     const float edgeTolerance = 1e-18f;
 
@@ -170,7 +170,7 @@ __device__ inline bool isInside(Triangle tr, float3 p)
 }
 
 
-__device__ inline void sort3(RootFinder::RootInfo v[3])
+__device__ static inline void sort3(RootFinder::RootInfo v[3])
 {
     auto swap = [] (RootFinder::RootInfo& a, RootFinder::RootInfo& b)
     {
@@ -194,7 +194,7 @@ struct IntersectionInfo
     float sign;    
 };
 
-__device__ inline IntersectionInfo
+__device__ static inline IntersectionInfo
 intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
                              float3 xNew, float3 xOld)
 {
@@ -320,7 +320,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     return info;
 }
 
-static __global__
+__global__
 void refineCollisions(OVviewWithNewOldVertices objView,
                       PVviewWithOldParticles pvView,
                       MeshView mesh,
@@ -361,7 +361,7 @@ void refineCollisions(OVviewWithNewOldVertices objView,
 
 // p is assumed to be in the a-b-c plane
 // a lot more precise method that the one solving a linear system
-__device__ inline
+__device__ static inline
 float3 barycentric(Triangle tr, float3 p)
 {
     auto signedArea = [] (float3 a, float3 b, float3 c, float3 direction) {
@@ -385,7 +385,7 @@ float3 barycentric(Triangle tr, float3 p)
 /**
  * Reflect the velocity, in the triangle's reference frame
  */
-__device__ inline
+__device__ static inline
 float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2)
 {
     const int maxTries = 50;
@@ -413,7 +413,7 @@ float3 reflectVelocity(float3 n, float kBT, float mass, float seed1, float seed2
 // into point O. Its new velocity is Unew.
 // Vertex masses are m. Treated as rigid and stationary,
 // what are the vertex forces induced by the collision?
-__device__ inline
+__device__ static inline
 void triangleForces(Triangle tr, float m,
                     float3 O_barycentric, float3 U0, float3 Unew, float M,
                     float dt,

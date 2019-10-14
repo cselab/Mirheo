@@ -12,7 +12,7 @@ namespace ShapeBounceKernels
 {
 
 template <class Shape>
-__device__ inline float3 rescue(float3 candidate, float dt, float tol, const Shape& shape)
+__device__ static inline float3 rescue(float3 candidate, float dt, float tol, const Shape& shape)
 {
     const int maxIters = 100;
     const float factor = 50.0f * dt;
@@ -39,7 +39,7 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, const Sha
 }
 
 template <class Shape>
-__device__ inline void bounceCellArray(
+__device__ static inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
         int objId, int *validCells, int nCells,
         CellListInfo cinfo, const float dt)
@@ -130,7 +130,7 @@ __device__ inline void bounceCellArray(
 }
 
 template <class Shape>
-__device__ inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, const Shape& shape)
+__device__ static inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, const Shape& shape)
 {
     constexpr float threshold = 0.5f;
 

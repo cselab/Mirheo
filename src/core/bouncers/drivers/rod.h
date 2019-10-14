@@ -19,14 +19,14 @@ struct Segment
 using SegmentTable = CollisionTable<int2>;
 
 
-__device__ inline
+__device__ static inline
 Segment readSegment(const float4 *rodPos, int segmentId)
 {
     return {make_float3( rodPos[5*(segmentId + 0)] ),
             make_float3( rodPos[5*(segmentId + 1)] )};
 }
 
-__device__ inline
+__device__ static inline
 Segment readMatFrame(const float4 *rodPos, int segmentId)
 {
     return {make_float3( rodPos[5*segmentId + 1] ),
@@ -37,7 +37,7 @@ Segment readMatFrame(const float4 *rodPos, int segmentId)
 
 static constexpr float NoCollision = -1.f;
 
-__device__ inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
+__device__ static inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
 {
     float3 dr = r1 - r0;
     float alpha = dot(x - r0, dr) / dot(dr, dr);
@@ -50,7 +50,7 @@ __device__ inline float squaredDistanceToSegment(const float3& r0, const float3&
 // find "time" (0.0 to 1.0) of the segment - moving triangle intersection
 // returns NoCollision is no intersection
 // sets intPoint and intSegment if intersection found
-__device__ inline
+__device__ static inline
 float collision(const float radius,
                 const Segment& segNew, const Segment& segOld,
                 float3 xNew, float3 xOld)
@@ -82,7 +82,7 @@ float collision(const float radius,
     return NoCollision;
 }
 
-__device__ inline
+__device__ static inline
 void findBouncesInCell(int pstart, int pend, int globSegId,
                        const float radius,
                        const Segment& segNew, const Segment& segOld,
@@ -151,12 +151,12 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
 
 
 
-__device__ inline auto interpolate(const float3& r0, const float3& r1, float a)
+__device__ static inline auto interpolate(const float3& r0, const float3& r1, float a)
 {
     return a * r0 + (1.f-a) * r1;
 }
 
-__device__ inline Segment interpolate(const Segment& s0, const Segment& s1, float a)
+__device__ static inline Segment interpolate(const Segment& s0, const Segment& s1, float a)
 {
     return {interpolate(s0.r0, s1.r0, a),
             interpolate(s0.r1, s1.r1, a)};
@@ -166,7 +166,7 @@ __device__ inline Segment interpolate(const Segment& s0, const Segment& s1, floa
 // compute coordinates of a point in a rod with material frame
 // coords are in directions of (rod segment, material frame, cross product of the first 2)
 // origin is at rod start (r0)
-__device__ inline float3 getLocalCoords(float3 x, const Segment& seg, const Segment& mat)
+__device__ static inline float3 getLocalCoords(float3 x, const Segment& seg, const Segment& mat)
 {
     auto t = normalize(seg.r1 - seg.r0);
     auto u = mat.r1 - mat.r0;
@@ -178,10 +178,10 @@ __device__ inline float3 getLocalCoords(float3 x, const Segment& seg, const Segm
 }
 
 
-__device__ inline float3 getLocalCoords(const float3& xNew, const float3& xOld,
-                                        const Segment& segNew, const Segment& segOld,
-                                        const Segment& matNew, const Segment& matOld,
-                                        float alpha)
+__device__ static inline float3 getLocalCoords(const float3& xNew, const float3& xOld,
+                                               const Segment& segNew, const Segment& segOld,
+                                               const Segment& matNew, const Segment& matOld,
+                                               float alpha)
 {
     auto colPoint = interpolate(xOld, xNew, alpha);
     auto colSeg = interpolate(segOld, segNew, alpha);
@@ -189,7 +189,7 @@ __device__ inline float3 getLocalCoords(const float3& xNew, const float3& xOld,
     return getLocalCoords(colPoint, colSeg, colMat); 
 }
 
-__device__ inline float3 localToCartesianCoords(const float3& local, const Segment& seg, const Segment& mat)
+__device__ static inline float3 localToCartesianCoords(const float3& local, const Segment& seg, const Segment& mat)
 {
     auto t = normalize(seg.r1 - seg.r0);
     auto u = mat.r1 - mat.r0;
@@ -205,8 +205,8 @@ struct Forces
     float3 fr0, fr1, fu0, fu1;
 };
 
-__device__ inline Forces transferMomentumToSegment(float dt, float partMass, const float3& pos, const float3& dV,
-                                                   const Segment& seg, const Segment& mat)
+__device__ static inline Forces transferMomentumToSegment(float dt, float partMass, const float3& pos, const float3& dV,
+                                                          const Segment& seg, const Segment& mat)
 {
     Forces out;
     float3 rc = 0.5f * (seg.r0 + seg.r1);

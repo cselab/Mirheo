@@ -16,25 +16,25 @@ struct CollisionTable
 
 
 template<typename T>
-__device__ inline T fmin_vec(T v)
+__device__ static inline T fmin_vec(T v)
 {
     return v;
 }
 
 template<typename T, typename... Args>
-__device__ inline T fmin_vec(T v, Args... args)
+__device__ static inline T fmin_vec(T v, Args... args)
 {
     return fminf(v, fmin_vec(args...));
 }
 
 template<typename T>
-__device__ inline T fmax_vec(T v)
+__device__ static inline T fmax_vec(T v)
 {
     return v;
 }
 
 template<typename T, typename... Args>
-__device__ inline T fmax_vec(T v, Args... args)
+__device__ static inline T fmax_vec(T v, Args... args)
 {
     return fmaxf(v, fmax_vec(args...));
 }
