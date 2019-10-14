@@ -1,5 +1,6 @@
 #include "from_shape.h"
 #include "drivers/shape.h"
+#include "kernels/bounce_back.h"
 
 #include <core/analytical_shapes/api.h>
 #include <core/celllist.h>
@@ -67,10 +68,14 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
     if (!local)
         RigidOperations::clearRigidForcesFromMotions(ovView, stream);
 
+    // const BounceMaxwell bouncer(kBT, pvView.mass, drand48(), drand48());
+    const BounceBack bounceKernel{};
+    
     SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,
             nblocks, nthreads, smem, stream,
-            ovView, pvView, cl->cellInfo(), state->dt );
+            ovView, pvView, cl->cellInfo(), state->dt,
+            bounceKernel);
 }
 
 #define INSTANTIATE(Shape) template class BounceFromRigidShape<Shape>;

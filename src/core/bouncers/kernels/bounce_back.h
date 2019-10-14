@@ -10,6 +10,6 @@ public:
     
     __D__  float3 newVelocity(float3 uOld, float3 uWall, __UNUSED float3 n) const
     {
-        return uwall - (uold - uwall);
+        return uWall - (uOld - uWall);
     }
 };

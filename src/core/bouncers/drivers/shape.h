@@ -38,11 +38,11 @@ __device__ static inline float3 rescue(float3 candidate, float dt, float tol, co
     return candidate;
 }
 
-template <class Shape>
+template <class Shape, class BounceKernel>
 __device__ static inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
         int objId, int *validCells, int nCells,
-        CellListInfo cinfo, const float dt)
+        CellListInfo cinfo, const float dt, const BounceKernel& bounceKernel)
 {
     const float threshold = 2e-5f;
 
@@ -97,7 +97,7 @@ __device__ static inline void bounceCellArray(
             newCoo = oldCoo + dr*max(alpha, limits.lo);
 
             // Push out a little bit
-            auto normal = shape.normal(newCoo);
+            const float3 normal = shape.normal(newCoo);
             newCoo += threshold * normal;
 
             // If smth went notoriously bad
@@ -111,13 +111,16 @@ __device__ static inline void bounceCellArray(
                 newCoo = oldCoo;
             }
         }
+
+        float3 normal = shape.normal(newCoo);
         
         // Return to the original frame
         newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
+        normal = Quaternion::rotate(normal, motion.q);
 
         // Change velocity's frame to the object frame, correct for rotation as well
         const float3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
-        const float3 newU = vObj - (p.u - vObj);
+        const float3 newU = bounceKernel.newVelocity(p.u, vObj, normal);
 
         const float3 frc = -pvView.mass * (newU - p.u) / dt;
         atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));
@@ -157,9 +160,9 @@ __device__ static inline bool isValidCell(int3 cid3, SingleRigidMotion motion, C
              shape.inOutFunction(v111) < threshold );
 }
 
-template <class Shape>
+template <class Shape, class BounceKernel>
 __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticles pvView,
-                       CellListInfo cinfo, const float dt)
+                       CellListInfo cinfo, const float dt, const BounceKernel bounceKernel)
 {
     // About max travel distance per step + safety
     // Safety comes from the fact that bounce works with the analytical shape,
@@ -202,7 +205,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
         // If we have enough cells ready - process them
         if (nCells >= blockDim.x)
         {
-            bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cinfo, dt);
+            bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cinfo, dt, bounceKernel);
 
             __syncthreads();
 
@@ -216,7 +219,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     __syncthreads();
 
     // Process remaining
-    bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt);
+    bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt, bounceKernel);
 }
 
 
