@@ -188,7 +188,7 @@ public:
      * @param args forwarded to log()
      */
     template<class ... Args>
-    inline void _die(Args ... args)
+    inline void _die [[noreturn]] (Args ... args)
     {
         log<0>("", args...);
         
