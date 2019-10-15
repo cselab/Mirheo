@@ -1,6 +1,13 @@
 class Bouncer:
     r"""
-        Base class for bouncing particles off the objects
+        Base class for bouncing particles off the objects.
+        Take bounce kernel as argument:
+        
+        * **kernel** = "bounce_back":
+            bounces back the particle.
+
+        * **kernel** = "bounce_maxwell":
+            reinsert particle at the collision point with a velocity drawn from a maxwellian distribution.
     
     """
     def __init__():
@@ -16,11 +23,12 @@ class Capsule(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str) -> None
+        r"""__init__(name: str, kernel: str, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
+                kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
             
         
 
@@ -35,11 +43,12 @@ class Cylinder(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str) -> None
+        r"""__init__(name: str, kernel: str, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
+                kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
             
         
 
@@ -54,11 +63,12 @@ class Ellipsoid(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str) -> None
+        r"""__init__(name: str, kernel: str, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
+                kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
             
         
 
@@ -79,12 +89,12 @@ class Mesh(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kBT: float = 0.5) -> None
+        r"""__init__(name: str, kernel: str, **kwargs) -> None
 
 
             Args:
                 name: name of the bouncer
-                kBT:  Maxwell distribution temperature defining post-collision velocity
+                kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
         
 
         """
@@ -97,12 +107,13 @@ class Rod(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, radius: float) -> None
+        r"""__init__(name: str, radius: float, kernel: str, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
                 radius: radius of the segments
+                kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
             
         
 

@@ -12,7 +12,14 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* support for different bounce kinds: every bouncer can be used with:
+  * bounce back
+  * bounce maxwell
+
+* **Interface changes**:
+  * need bounce kernel parameter for every bouncer
 
 ### v1.2.0
 
