@@ -120,7 +120,7 @@ __device__ static inline void bounceCellArray(
 
         // Change velocity's frame to the object frame, correct for rotation as well
         const float3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
-        const float3 newU = bounceKernel.newVelocity(p.u, vObj, normal);
+        const float3 newU = bounceKernel.newVelocity(p.u, vObj, normal, pvView.mass);
 
         const float3 frc = -pvView.mass * (newU - p.u) / dt;
         atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));

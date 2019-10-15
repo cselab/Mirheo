@@ -300,7 +300,7 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
     const float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
     const float3 normal = segmentNormal(segNew, colPosNew);
-    const float3 newVel = bounceKernel.newVelocity(p.u, colVel, normal);
+    const float3 newVel = bounceKernel.newVelocity(p.u, colVel, normal, pvView.mass);
 
     const auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
     

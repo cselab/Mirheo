@@ -1,6 +1,6 @@
 #include "from_mesh.h"
 #include "drivers/mesh.h"
-#include "kernels/bounce_maxwell.h"
+#include "kernels/api.h"
 
 #include <core/celllist.h>
 #include <core/pvs/object_vector.h>
@@ -17,7 +17,8 @@
  */
 BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kBT) :
     Bouncer(state, name),
-    kBT(kBT)
+    kBT(kBT),
+    bounceKernel(kBT)
 {}
 
 BounceFromMesh::~BounceFromMesh() = default;
@@ -154,7 +155,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             "something may be broken or you need to increase the estimate",
             fineTable.nCollisions[0], maxFineCollisions);
 
-    const BounceMaxwell bouncer(kBT, pvView.mass, drand48(), drand48());
+    bounceKernel.update(rng);
 
     // Step 3, resolve the collisions    
     SAFE_KERNEL_LAUNCH(
@@ -162,7 +163,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
-            state->dt, bouncer );
+            state->dt, bounceKernel );
 
     if (rov != nullptr)
     {

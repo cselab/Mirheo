@@ -1,8 +1,11 @@
 #pragma once
 
 #include "interface.h"
+#include "kernels/api.h"
 
 #include <core/containers.h>
+
+#include <random>
 
 class RigidObjectVector;
 
@@ -44,6 +47,8 @@ private:
     DeviceBuffer<int> collisionTimes;
 
     float kBT;
+    BounceMaxwell bounceKernel;
+    std::mt19937 rng {42L};
 
     RigidObjectVector *rov;
 

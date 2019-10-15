@@ -1,6 +1,9 @@
 #pragma once
 
 #include "interface.h"
+#include "kernels/api.h"
+
+#include <random>
 
 /**
  * Implements bounce-back from analytical shapes
@@ -22,4 +25,7 @@ public:
 protected:
 
     void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;
+
+    BounceBack bounceKernel;
+    std::mt19937 rng {42L};
 };

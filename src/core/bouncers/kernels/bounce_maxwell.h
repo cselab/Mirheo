@@ -5,18 +5,26 @@
 #include <core/utils/macros.h>
 #include <core/utils/helper_math.h>
 
+#include <random>
+
 // reflection with random scattering
 // according to Maxwell distr
 class BounceMaxwell
 {
 public:
-    BounceMaxwell(float kBT, float mass, float seed1, float seed2) :
-        seed1(seed1),
-        seed2(seed2),
-        kBT_mass(kBT / mass)
+    BounceMaxwell(float kBT) :
+        kBT(kBT)
     {}
-    
-    __D__ float3 newVelocity(__UNUSED float3 uOld, float3 uWall, float3 n) const
+
+    void update(std::mt19937& rng)
+    {
+        std::uniform_real_distribution<float> dis(0.f, 1.f);
+        seed1 = dis(rng);
+        seed2 = dis(rng);
+    }
+
+#ifdef __NVCC__
+    __device__ float3 newVelocity(__UNUSED float3 uOld, float3 uWall, float3 n, float mass) const
     {
         constexpr int maxTries = 50;
         const float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
@@ -32,13 +40,15 @@ public:
             const float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
             v = make_float3(rand3.x, rand3.y, rand4.x);
         }
-        v = normalize(v) * sqrtf(kBT_mass);
+        v = normalize(v) * sqrtf(kBT / mass);
 
         return uWall + v;
     }
+#endif
 
 private:
 
-    const float seed1, seed2;
-    const float kBT_mass;
+    float seed1{0.f};
+    float seed2{0.f};
+    const float kBT;
 };

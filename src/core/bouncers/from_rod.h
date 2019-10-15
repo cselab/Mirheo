@@ -1,8 +1,11 @@
 #pragma once
 
 #include "interface.h"
+#include "kernels/api.h"
 
 #include <core/containers.h>
+
+#include <random>
 
 class RodVector;
 
@@ -44,6 +47,9 @@ private:
 
     RodVector *rv;
 
+    BounceBack bounceKernel{};
+    std::mt19937 rng {42L};
+    
     void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;
 };

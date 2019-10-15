@@ -1,6 +1,5 @@
 #include "from_rod.h"
 #include "drivers/rod.h"
-#include "kernels/bounce_back.h"
 
 #include <core/celllist.h>
 #include <core/pvs/rod_vector.h>
@@ -92,7 +91,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStrea
         die("Found too many rod collisions (%d),"
             "something may be broken or you need to increase the estimate", nCollisions);
 
-    const BounceBack bounceKernel{};
+    bounceKernel.update(rng);
     
     // Step 2, resolve the collisions
     SAFE_KERNEL_LAUNCH(
