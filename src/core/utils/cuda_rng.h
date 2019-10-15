@@ -69,8 +69,6 @@ struct KISS {
     }
 };
 
-#ifdef __CUDACC__
-
 /************************* Branch generator **********************
  * Make one random number per pair of particles per timestep
  * Based on the Logistic map on interval [-1,1]
@@ -261,8 +259,8 @@ inline __D__ float2 normal2( float seed, uint i, uint j )
 
 inline __D__ float uniform01( float seed, uint i, uint j )
 {
-    float t = seed;
-    unsigned int tag = *( int * )&t;
+    auto t = reinterpret_cast<unsigned int*>(&seed);
+    unsigned int tag = *t;
 
     return saru( tag, i, j );
 }
@@ -286,5 +284,4 @@ struct mean0var1_flops_counter {
     const static unsigned long long FLOPS = 2ULL;
 };
 
-#endif
 } // namespace Saru
