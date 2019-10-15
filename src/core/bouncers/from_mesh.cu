@@ -17,8 +17,7 @@
  */
 BounceFromMesh::BounceFromMesh(const MirState *state, std::string name, float kBT) :
     Bouncer(state, name),
-    kBT(kBT),
-    bounceKernel(kBT)
+    varBounceKernel(BounceMaxwell(kBT))
 {}
 
 BounceFromMesh::~BounceFromMesh() = default;
@@ -155,15 +154,19 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
             "something may be broken or you need to increase the estimate",
             fineTable.nCollisions[0], maxFineCollisions);
 
-    bounceKernel.update(rng);
-
     // Step 3, resolve the collisions    
-    SAFE_KERNEL_LAUNCH(
+    mpark::visit([&](auto& bounceKernel)
+    {
+        bounceKernel.update(rng);
+        
+        SAFE_KERNEL_LAUNCH(
             MeshBounceKernels::performBouncingTriangle,
             getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov->mesh.get(),
             fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
             state->dt, bounceKernel );
+
+    }, varBounceKernel);
 
     if (rov != nullptr)
     {

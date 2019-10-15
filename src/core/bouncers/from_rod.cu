@@ -8,7 +8,8 @@
 
 BounceFromRod::BounceFromRod(const MirState *state, std::string name, float radius) :
     Bouncer(state, name),
-    radius(radius)
+    radius(radius),
+    varBounceKernel(BounceBack{})
 {}
 
 BounceFromRod::~BounceFromRod() = default;
@@ -91,12 +92,16 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStrea
         die("Found too many rod collisions (%d),"
             "something may be broken or you need to increase the estimate", nCollisions);
 
-    bounceKernel.update(rng);
-    
     // Step 2, resolve the collisions
-    SAFE_KERNEL_LAUNCH(
+    mpark::visit([&](auto& bounceKernel)
+    {
+        bounceKernel.update(rng);
+    
+        SAFE_KERNEL_LAUNCH(
             RodBounceKernels::performBouncing,
             getNblocks(nCollisions, nthreads), nthreads, 0, stream,
             rvView, radius, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
             state->dt, bounceKernel);
+
+    }, varBounceKernel);
 }

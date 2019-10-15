@@ -47,7 +47,7 @@ private:
 
     RodVector *rv;
 
-    BounceBack bounceKernel{};
+    VarBounceKernel varBounceKernel;
     std::mt19937 rng {42L};
     
     void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;

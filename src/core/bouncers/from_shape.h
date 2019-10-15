@@ -26,6 +26,6 @@ protected:
 
     void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;
 
-    BounceBack bounceKernel;
+    VarBounceKernel varBounceKernel;
     std::mt19937 rng {42L};
 };

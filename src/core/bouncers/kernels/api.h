@@ -5,5 +5,5 @@
 
 #include <extern/variant/include/mpark/variant.hpp>
 
-using varBounceKernel = mpark::variant<BounceBack,
+using VarBounceKernel = mpark::variant<BounceBack,
                                        BounceMaxwell>;

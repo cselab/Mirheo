@@ -46,8 +46,7 @@ private:
     // note that times are always positive, thus guarantees ordering
     DeviceBuffer<int> collisionTimes;
 
-    float kBT;
-    BounceMaxwell bounceKernel;
+    VarBounceKernel varBounceKernel;
     std::mt19937 rng {42L};
 
     RigidObjectVector *rov;

@@ -11,7 +11,8 @@
 
 template <class Shape>
 BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state, std::string name) :
-    Bouncer(state, name)
+    Bouncer(state, name),
+    varBounceKernel(BounceBack{})
 {}
 
 template <class Shape>
@@ -61,20 +62,24 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
     RSOVviewWithOldMotion<Shape> ovView(rsov, local ? rsov->local() : rsov->halo());
     PVviewWithOldParticles pvView(pv, pv->local());
 
-    constexpr int nthreads = 256;
-    const int nblocks = ovView.nObjects;
-    const size_t smem = 2 * nthreads * sizeof(int);
-
     if (!local)
         RigidOperations::clearRigidForcesFromMotions(ovView, stream);
 
-    bounceKernel.update(rng);
+    mpark::visit([&](auto& bounceKernel)
+    {
+        constexpr int nthreads = 256;
+        const int nblocks = ovView.nObjects;
+        const size_t smem = 2 * nthreads * sizeof(int);
+
+        bounceKernel.update(rng);
     
-    SAFE_KERNEL_LAUNCH(
+        SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,
             nblocks, nthreads, smem, stream,
             ovView, pvView, cl->cellInfo(), state->dt,
             bounceKernel);
+        
+    }, varBounceKernel);
 }
 
 #define INSTANTIATE(Shape) template class BounceFromRigidShape<Shape>;
