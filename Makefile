@@ -15,7 +15,7 @@ install: build
 # This only compiles and overwrites the already installed `.so` file. It skips
 # the `cmake` step and shortens the long `pip install . --upgrade` step. This
 # won't detect new files or any changes to `.py` files.
-make_and_copy:
+compile_and_copy:
 	(cd build && make -j 12)
 	cp $(shell python -c "import os, mirheo; p = mirheo._libmirheo_file; print(os.path.join('build', os.path.basename(p)), p)")
 
