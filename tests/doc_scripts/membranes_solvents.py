@@ -101,7 +101,7 @@ u.setIntegrator(vv, pv_rbc)
 
 # The solvent must not go through the membrane
 # we can enforce this by setting a bouncer
-bouncer = mir.Bouncers.Mesh("membrane_bounce", kBT=0.5)
+bouncer = mir.Bouncers.Mesh("membrane_bounce", "bounce_maxwell", kBT=0.5)
 
 # we register the bouncer object as any other object
 u.registerBouncer(bouncer)

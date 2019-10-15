@@ -60,7 +60,7 @@ u.registerIntegrator(vv_rig)
 u.setIntegrator(vv_rig, pv_rig)
 
 
-bb = mir.Bouncers.Ellipsoid("bouncer")
+bb = mir.Bouncers.Ellipsoid("bouncer", "bounce_back")
 u.registerBouncer(bb)
 u.setBouncer(bb, pv_rig, pv_sol)
 

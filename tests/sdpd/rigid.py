@@ -66,7 +66,7 @@ u.registerObjectBelongingChecker(belonging_checker, pv_ell)
 u.applyObjectBelongingChecker(belonging_checker, pv=pv_sol, correct_every=0, inside="none", outside="")
 
 if args.bounce_back:
-    bb = mir.Bouncers.Ellipsoid("bounceEllipsoid")
+    bb = mir.Bouncers.Ellipsoid("bounceEllipsoid", "bounce_back")
     u.registerBouncer(bb)
     u.setBouncer(bb, pv_ell, pv_sol)
 

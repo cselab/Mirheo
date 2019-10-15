@@ -57,7 +57,7 @@ u.registerIntegrator(vv_rig)
 u.setIntegrator(vv_rig, ov_rig)
 
 
-bb = mir.Bouncers.Capsule("bouncer")
+bb = mir.Bouncers.Capsule("bouncer", "bounce_back")
 u.registerBouncer(bb)
 u.setBouncer(bb, ov_rig, pv_sol)
 

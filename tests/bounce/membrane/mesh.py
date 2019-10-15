@@ -66,7 +66,7 @@ else:
     u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
 
-bb = mir.Bouncers.Mesh("bounce_rbc", kBT=0.0)
+bb = mir.Bouncers.Mesh("bounce_rbc", "bounce_maxwell", kBT=0.0)
 u.registerBouncer(bb)
 u.setBouncer(bb, pv_rbc, pv_sol)
 

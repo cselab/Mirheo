@@ -53,7 +53,7 @@ u.registerParticleVector(pv_rod, ic_rod)
 
 u.setIntegrator(vv, pv_rod)
 
-bb = mir.Bouncers.Rod("bouncer", radius = R)
+bb = mir.Bouncers.Rod("bouncer", radius = R, kernel="bounce_back")
 u.registerBouncer(bb)
 u.setBouncer(bb, pv_rod, pv_solvent)
 

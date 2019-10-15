@@ -58,8 +58,8 @@ belonging_checker = mir.BelongingCheckers.Mesh("mesh checker")
 u.registerObjectBelongingChecker(belonging_checker, pv_rigid)
 u.applyObjectBelongingChecker(belonging_checker, pv_solvent, correct_every=0, inside="none", outside="")
 
-# apply bounce back
-bb = mir.Bouncers.Mesh("bounce_rigid")
+# apply bounce
+bb = mir.Bouncers.Mesh("bounce_rigid", "bounce_maxwell", kBT=0.01)
 u.registerBouncer(bb)
 u.setBouncer(bb, pv_rigid, pv_solvent)
 
