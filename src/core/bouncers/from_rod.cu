@@ -6,10 +6,13 @@
 #include <core/pvs/views/rv.h>
 #include <core/utils/kernel_launch.h>
 
-BounceFromRod::BounceFromRod(const MirState *state, std::string name, float radius) :
+BounceFromRod::BounceFromRod(const MirState *state,
+                             const std::string& name,
+                             float radius,
+                             VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
     radius(radius),
-    varBounceKernel(BounceBack{})
+    varBounceKernel(varBounceKernel)
 {}
 
 BounceFromRod::~BounceFromRod() = default;

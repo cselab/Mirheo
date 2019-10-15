@@ -16,7 +16,7 @@ class BounceFromRod : public Bouncer
 {
 public:
 
-    BounceFromRod(const MirState *state, std::string name, float radius);
+    BounceFromRod(const MirState *state, const std::string& name, float radius, VarBounceKernel varBounceKernel);
     ~BounceFromRod();
 
     void setPrerequisites(ParticleVector *pv) override;

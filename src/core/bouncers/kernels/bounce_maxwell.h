@@ -50,5 +50,5 @@ private:
 
     float seed1{0.f};
     float seed2{0.f};
-    const float kBT;
+    float kBT;
 };
