@@ -4,10 +4,25 @@ class Bouncer:
         Take bounce kernel as argument:
         
         * **kernel** = "bounce_back":
-            bounces back the particle.
+            Bounces back the particle.
+            The new velocity of the particle is given by:
+
+            .. math::
+
+                \mathbf{u}_\text{new} = \mathbf{u}_\text{wall} - \left( \mathbf{u}_\text{old} - \mathbf{u}_\text{wall} \right).
 
         * **kernel** = "bounce_maxwell":
-            reinsert particle at the collision point with a velocity drawn from a maxwellian distribution.
+            Reinsert particle at the collision point with a velocity drawn from a maxwellian distribution.
+            Need the additional parameter **kBT (float)**.
+            The new velocity of the particle is given by:
+
+            .. math::
+
+                \mathbf{u}_\text{new} = \mathbf{u}_\text{wall} + \sqrt{\frac {k_BT} {m}} \xi,
+
+            where :math:`\xi \sim \mathcal{N}\left(0, 1\right)`.
+
+
     
     """
     def __init__():
