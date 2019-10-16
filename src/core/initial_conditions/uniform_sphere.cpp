@@ -10,10 +10,6 @@ UniformSphereIC::UniformSphereIC(float density, float3 center, float radius, boo
     inside(inside)
 {}
 
-UniformSphereIC::UniformSphereIC(float density, PyTypes::float3 center, float radius, bool inside) :
-    UniformSphereIC(density, make_float3(center), radius, inside)
-{}
-
 UniformSphereIC::~UniformSphereIC() = default;
     
 void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)

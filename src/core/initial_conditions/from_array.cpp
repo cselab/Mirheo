@@ -4,8 +4,9 @@
 
 #include "from_array.h"
 
-FromArrayIC::FromArrayIC(const PyTypes::VectorOfFloat3 &pos, const PyTypes::VectorOfFloat3 &vel) :
-    pos(pos), vel(vel)
+FromArrayIC::FromArrayIC(const std::vector<float3>& pos, const std::vector<float3>& vel) :
+    pos(pos),
+    vel(vel)
 {
     if (pos.size() != vel.size())
         die("pos and vel arrays must have the same size");
@@ -16,12 +17,14 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     std::vector<float4> positions, velocities;
     auto domain = pv->state->domain;
 
-    for (size_t i = 0; i < pos.size(); ++i) {
-        auto r_ = pos[i];
-        auto u_ = vel[i];
-
-        auto r = make_float3(r_[0], r_[1], r_[2]);
-        auto u = make_float3(u_[0], u_[1], u_[2]);
+    const size_t n = pos.size();
+    positions .reserve(n);
+    velocities.reserve(n);
+    
+    for (size_t i = 0; i < n; ++i)
+    {
+        float3 r = pos[i];
+        const float3 u = vel[i];
 
         if (domain.inSubDomain(r)) {
 

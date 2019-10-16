@@ -316,7 +316,7 @@ std::shared_ptr<MirState> Mirheo::getMirState()
     return state;
 }
 
-void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename)
+void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, float3 h, const std::string& filename)
 {
     if (!isComputeTask()) return;
 
@@ -335,7 +335,7 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::f
         sim->getWallByNameOrDie(wall->name);
     }
     
-    WallHelpers::dumpWalls2XDMF(sdfWalls, make_float3(h), state->domain, filename, sim->cartComm);
+    WallHelpers::dumpWalls2XDMF(sdfWalls, h, state->domain, filename, sim->cartComm);
 }
 
 double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)

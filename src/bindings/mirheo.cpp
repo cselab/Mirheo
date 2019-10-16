@@ -1,20 +1,19 @@
-#include <string>
-
-#include <pybind11/stl.h>
-
-#include <core/mirheo.h>
-#include <core/integrators/interface.h>
-#include <core/interactions/interface.h>
-#include <core/walls/interface.h>
-#include <core/bouncers/interface.h>
-#include <core/object_belonging/interface.h>
-#include <plugins/interface.h>
-#include <core/initial_conditions/interface.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/object_vector.h>
-
 #include "bindings.h"
 #include "class_wrapper.h"
+
+#include <core/bouncers/interface.h>
+#include <core/initial_conditions/interface.h>
+#include <core/integrators/interface.h>
+#include <core/interactions/interface.h>
+#include <core/mirheo.h>
+#include <core/object_belonging/interface.h>
+#include <core/pvs/object_vector.h>
+#include <core/pvs/particle_vector.h>
+#include <core/walls/interface.h>
+#include <plugins/interface.h>
+
+#include <pybind11/stl.h>
+#include <string>
 
 using namespace pybind11::literals;
 
@@ -31,40 +30,6 @@ CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
 
 void exportMirheo(py::module& m)
 {
-    py::class_<float3>(m, "float3")
-        .def(py::init([](py::tuple t)
-        {
-            if (py::len(t) != 3)
-                throw std::runtime_error("Should have length 3.");
-            return float3{t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>()};
-        }))
-        .def(py::init([](py::list t)
-        {
-            if (py::len(t) != 3)
-                throw std::runtime_error("Should have length 3.");
-            return float3{t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>()};
-        }));
-
-    py::implicitly_convertible<py::tuple, float3>();
-    py::implicitly_convertible<py::list, float3>();
-
-    py::class_<int3>(m, "int3")
-        .def(py::init([](py::tuple t)
-        {
-            if (py::len(t) != 3)
-                throw std::runtime_error("Should have length 3.");
-            return int3{t[0].cast<int>(), t[1].cast<int>(), t[2].cast<int>()};
-        }))
-        .def(py::init([](py::list t)
-        {
-            if (py::len(t) != 3)
-                throw std::runtime_error("Should have length 3.");
-            return int3{t[0].cast<int>(), t[1].cast<int>(), t[2].cast<int>()};
-        }));
-
-    py::implicitly_convertible<py::tuple, int3>();
-    py::implicitly_convertible<py::list, int3>();
-
     py::handlers_class<MirState>(m, "MirState", R"(
         state of the simulation shared by all simulation objects.
     )");

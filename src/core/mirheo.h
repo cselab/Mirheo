@@ -2,10 +2,10 @@
 
 #include <core/logger.h>
 #include <core/utils/common.h>
-#include <core/utils/pytypes.h>
 
 #include <memory>
 #include <mpi.h>
+#include <vector_types.h>
 
 class MirState;
 
@@ -75,7 +75,7 @@ public:
     const MirState* getState() const;
     std::shared_ptr<MirState> getMirState();
 
-    void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, PyTypes::float3 h, std::string filename);
+    void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, float3 h, const std::string& filename);
     double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
     
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,

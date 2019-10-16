@@ -6,6 +6,7 @@ Logger logger;
 
 PYBIND11_MODULE(libmirheo, m)
 {
+    exportVectorTypes(m);
     exportMirheo(m);
     
     auto ic = m.def_submodule("InitialConditions");

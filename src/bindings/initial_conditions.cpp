@@ -1,5 +1,5 @@
-#include <pybind11/stl.h>
-#include <pybind11/functional.h>
+#include "bindings.h"
+#include "class_wrapper.h"
 
 #include <core/initial_conditions/from_array.h>
 #include <core/initial_conditions/interface.h>
@@ -10,11 +10,10 @@
 #include <core/initial_conditions/uniform.h>
 #include <core/initial_conditions/uniform_filtered.h>
 #include <core/initial_conditions/uniform_sphere.h>
-
 #include <core/utils/pytypes.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
+#include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 using namespace pybind11::literals;
 
@@ -29,7 +28,8 @@ void exportInitialConditions(py::module& m)
     py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
         Set particles according to given position and velocity arrays.
     )")
-        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&>(), "pos"_a, "vel"_a, R"(
+        .def(py::init<const std::vector<float3>&, const std::vector<float3>&>(),
+             "pos"_a, "vel"_a, R"(
             Args:
                 pos: array of positions
                 vel: array of velocities
@@ -156,7 +156,7 @@ void exportInitialConditions(py::module& m)
         The particles will be generated with the desired number density uniformly at random in all the domain and then filtered out by the given filter.
         These IC may be used with any Particle Vector, but only make sense for regular PV.            
     )")
-        .def(py::init<float, std::function<bool(PyTypes::float3)>>(),
+        .def(py::init<float, std::function<bool(float3)>>(),
              "number_density"_a, "filter"_a, R"(
             Args:
                 number_density: target number density
@@ -168,7 +168,7 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
     )")
-        .def(py::init<float, PyTypes::float3, float, bool>(),
+        .def(py::init<float, float3, float, bool>(),
              "number_density"_a, "center"_a, "radius"_a, "inside"_a, R"(
             Args:
                 number_density: target number density
