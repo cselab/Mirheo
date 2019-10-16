@@ -12,7 +12,17 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+<!-- ### unreleased
+
+* add `PlaneOutletPlugin` for removing particles that cross a given plane
+* add `ParticlePortal` plugin that transfers standalone particles from one Mirheo instance to another
+* add `ObjectDeleter` helper class for removing marked objects
+
+Work in progress:
+* adding `ObjectPortal` plugin that transfers objects from one Mirheo instance to another
+* adding `ObjectsToParticles` plugin that destroys objects and transforms them into standalone particles once a condition is met
+
+-->
 
 ### v1.2.1
 
