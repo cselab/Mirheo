@@ -155,6 +155,30 @@ class ObjStatsDumper(PostprocessPlugin):
         Responsible for performing the I/O.
     
     """
+class ObjectPortalDestination(SimulationPlugin):
+    r"""
+        This plugin receives object vector content from another Mirheo instance.
+        Currently works only for single rank simulations.
+    
+    """
+class ObjectPortalSource(SimulationPlugin):
+    r"""
+        This plugin sends object vector content to another Mirheo instance.
+        Currently works only for single rank simulations.
+
+        Sends to destination all objects that touch the portal box. The
+        destination tracks portal-assigned IDs to differentiate between objects
+        that have already arrived and that are new to the destination side. To
+        treat objects as new when they cross the periodic boundary, a marker
+        plane must be given. Objects are considered then new as soon as their
+        center of mass crosses the plane.
+    
+    """
+class ObjectToParticlesPlugin(SimulationPlugin):
+    r"""
+        This plugin transforms objects to particles when they cross a given plane.
+    
+    """
 class ParticleChannelSaver(SimulationPlugin):
     r"""
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
@@ -182,6 +206,18 @@ class ParticleDumperPlugin(PostprocessPlugin):
     r"""
         Postprocess side plugin of :any:`ParticleSenderPlugin`.
         Responsible for performing the I/O.
+    
+    """
+class ParticlePortalDestination(SimulationPlugin):
+    r"""
+        This plugin receives particle vector content from another Mirheo instance.
+        Currently works only for single rank simulations.
+    
+    """
+class ParticlePortalSource(SimulationPlugin):
+    r"""
+        This plugin sends particle vector content to another Mirheo instance.
+        Currently works only for single rank simulations.
     
     """
 class ParticleSenderPlugin(SimulationPlugin):
@@ -229,6 +265,11 @@ class PinRodExtremity(SimulationPlugin):
 
         where :math:`\theta` is the angle between the material frame and a given direction (projected on the concerned segment).
         Note that the force is applied only on the material frame and not on the center line.
+    
+    """
+class PlaneOutletPlugin(SimulationPlugin):
+    r"""
+        This plugin removes all particles from a set of :any:`ParticleVector` that are on the non-negative side of a given plane.
     
     """
 class PostprocessDensityControl(PostprocessPlugin):
@@ -473,7 +514,7 @@ def createDensityOutlet():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7fa471ddcb90>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7f4d89537ca8>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
 
 
         Create :any:`Average3D` plugin
@@ -506,7 +547,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7fa471ddcc00>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7f4d89537d18>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
 
 
               
@@ -745,6 +786,62 @@ def createMembraneExtraForce():
     """
     pass
 
+def createObjectPortalDestination():
+    r"""createObjectPortalDestination(state: MirState, name: str, ov: ParticleVectors.ObjectVector, src: float3, dst: float3, size: float3, tag: int, interCommPtr: int) -> Tuple[Plugins.ObjectPortalDestination, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ObjectPortalDestination` plugin
+
+        Args:
+            name: name of the plugin
+            ov: target object vector
+            src: lower corner of the portal on the source side
+            dst: lower corner of the portal on the destination side
+            size: portal size
+            tag: tag to use for MPI communication
+            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
+    
+
+    """
+    pass
+
+def createObjectPortalSource():
+    r"""createObjectPortalSource(state: MirState, name: str, ov: ParticleVectors.ObjectVector, src: float3, dst: float3, size: float3, plane: float4, tag: int, interCommPtr: int) -> Tuple[Plugins.ObjectPortalSource, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ObjectPortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ov: source object vector
+            src: lower corner of the portal on the source side
+            dst: lower corner of the portal on the destination side
+            size: portal size
+            plane: plane after which the objects get a new unique identifier
+                Should be far from the source portal and slightly away of the domain boundary.
+            tag: tag to use for MPI communication
+            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
+    
+
+    """
+    pass
+
+def createObjectToParticlesPlugin():
+    r"""createObjectToParticlesPlugin(state: MirState, name: str, ov: ParticleVectors.ObjectVector, pv: ParticleVectors.ParticleVector, plane: float4) -> Tuple[Plugins.ObjectToParticlesPlugin, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ObjectPortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ov: source object vector
+            pv: target particle vector
+            plane: plane `(a, b, c, d)` defined as `a*x + b*y + c*z + d == 0`
+    
+
+    """
+    pass
+
 def createParticleChannelSaver():
     r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.ParticleChannelSaver, Plugins.PostprocessPlugin]
 
@@ -805,6 +902,38 @@ def createParticleDrag():
     """
     pass
 
+def createParticlePortalDestination():
+    r"""createParticlePortalDestination(state: MirState, name: str, ov: ParticleVectors.ParticleVector, src: float3, dst: float3, size: float3, tag: int, interCommPtr: int) -> Tuple[Plugins.ParticlePortalDestination, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticlePortalDestination` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
+    
+
+    """
+    pass
+
+def createParticlePortalSource():
+    r"""createParticlePortalSource(state: MirState, name: str, ov: ParticleVectors.ParticleVector, src: float3, dst: float3, size: float3, tag: int, interCommPtr: int) -> Tuple[Plugins.ParticlePortalSource, Plugins.PostprocessPlugin]
+
+
+        Create :any:`ParticlePortalSource` plugin
+
+        Args:
+            name: name of the plugin
+            ...
+            ...
+            ..
+    
+
+    """
+    pass
+
 def createPinObject():
     r"""createPinObject(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: float3, angular_velocity: float3) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
@@ -837,6 +966,21 @@ def createPinRodExtremity():
             segment_id: the segment to which the plugin is active
             f_magn: force magnitude
             target_direction: the direction in which the material frame tends to align
+    
+
+    """
+    pass
+
+def createPlaneOutlet():
+    r"""createPlaneOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], plane: float4) -> Tuple[Plugins.PlaneOutletPlugin, Plugins.PostprocessPlugin]
+
+
+        Create :any:`PlaneOutletPlugin`
+
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            plane: Tuple (a, b, c, d). Particles are removed if `ax + by + cz + d >= 0`.
     
 
     """

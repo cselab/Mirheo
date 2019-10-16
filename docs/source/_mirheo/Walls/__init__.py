@@ -223,7 +223,7 @@ class SDF(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, sdfFilename: str, h: float3 = <float3 object at 0x7fa471dcdea0>) -> None
+        r"""__init__(name: str, sdfFilename: str, h: float3 = <float3 object at 0x7f4d89527ea0>) -> None
 
 
             Args:
