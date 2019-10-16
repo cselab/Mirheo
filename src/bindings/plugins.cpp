@@ -452,7 +452,7 @@ void exportPlugins(py::module& m)
     
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
-          "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
+          "bin_size"_a = float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         Create :any:`Average3D` plugin
         
         Args:
@@ -483,7 +483,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
           "sample_every"_a, "dump_every"_a,
-          "bin_size"_a = PyTypes::float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
+          "bin_size"_a = float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
           R"(
               
         Create :any:`AverageRelative3D` plugin

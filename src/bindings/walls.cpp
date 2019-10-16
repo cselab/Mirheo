@@ -1,9 +1,7 @@
-#include <core/walls/factory.h>
-
-#include <core/utils/pytypes.h>
-
 #include "bindings.h"
 #include "class_wrapper.h"
+
+#include <core/walls/factory.h>
 
 using namespace pybind11::literals;
 
@@ -81,7 +79,7 @@ void exportWalls(py::module& m)
         The boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&WallFactory::createSDFWall),
-            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = PyTypes::float3{0.25, 0.25, 0.25}, R"(
+            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = float3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: name of the ``.sdf`` file

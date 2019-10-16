@@ -13,8 +13,6 @@
 #include "velocity_field/translate.h"
 #include "wall_with_velocity.h"
 
-#include <core/utils/pytypes.h>
-
 #include <memory>
 
 class ParticleVector;

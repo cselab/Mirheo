@@ -3,7 +3,6 @@
 #include "mesh.h"
 
 #include <core/containers.h>
-#include <core/utils/pytypes.h>
 
 class MembraneMesh : public Mesh
 {

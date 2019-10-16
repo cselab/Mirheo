@@ -20,7 +20,7 @@ __global__ void addForce(OVview view, const Force *forces)
 }
 } // namespace MembraneExtraForcesKernels
 
-MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const PyTypes::VectorOfFloat3 &forces) :
+MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<float3>& forces) :
     SimulationPlugin(state, name),
     pvName(pvName),
     forces(forces.size())
@@ -28,10 +28,7 @@ MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::s
     HostBuffer<Force> hostForces(forces.size());
 
     for (size_t i = 0; i < forces.size(); ++i)
-    {
-        auto f = forces[i];
-        hostForces[i].f = make_float3(f[0], f[1], f[2]);
-    }
+        hostForces[i].f = forces[i];
     
     this->forces.copy(hostForces, 0);
 }

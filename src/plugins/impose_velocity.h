@@ -6,7 +6,6 @@
 #include <string>
 
 #include <core/utils/folders.h>
-#include <core/utils/pytypes.h>
 
 class ParticleVector;
 
@@ -21,7 +20,7 @@ public:
 
     bool needPostproc() override { return false; }
     
-    void setTargetVelocity(PyTypes::float3 v);
+    void setTargetVelocity(float3 v);
     
 private:
     std::vector<std::string> pvNames;

@@ -9,7 +9,6 @@
 #include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/rod_vector.h>
 #include <core/pvs/factory.h>
-#include <core/utils/pytypes.h>
 
 #include <pybind11/stl.h>
 

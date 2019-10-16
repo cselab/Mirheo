@@ -4,7 +4,6 @@
 
 #include <core/containers.h>
 #include <core/utils/file_wrapper.h>
-#include <core/utils/pytypes.h>
 
 #include <functional>
 #include <vector>

@@ -36,7 +36,7 @@ void exportVectorTypes(py::module& m)
         });
 
     py::implicitly_convertible<py::tuple, float2>();
-    py::implicitly_convertible<py::list, float2>();
+    py::implicitly_convertible<py::list,  float2>();
 
     
     py::class_<float3>(m, "float3")
@@ -65,7 +65,38 @@ void exportVectorTypes(py::module& m)
         });
 
     py::implicitly_convertible<py::tuple, float3>();
-    py::implicitly_convertible<py::list, float3>();
+    py::implicitly_convertible<py::list,  float3>();
+
+
+    py::class_<float4>(m, "float4")
+        .def(py::init([](py::tuple t)
+        {
+            if (py::len(t) != 4)
+                throw std::runtime_error("Should have length 4.");
+            return float4{t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>(), t[3].cast<float>()};
+        }))
+        .def(py::init([](py::list t)
+        {
+            if (py::len(t) != 4)
+                throw std::runtime_error("Should have length 4.");
+            return float4{t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>(), t[3].cast<float>()};
+        }))
+        .def_readwrite("x", &float4::x)
+        .def_readwrite("y", &float4::y)
+        .def_readwrite("z", &float4::z)
+        .def_readwrite("w", &float4::w)
+        .def("__getitem__", [](const float4 &v, size_t i)
+        {
+            if (i == 0) return v.x;
+            if (i == 1) return v.y;
+            if (i == 2) return v.z;
+            if (i == 3) return v.z;
+            throw py::index_error();
+            return 0.f;
+        });
+
+    py::implicitly_convertible<py::tuple, float4>();
+    py::implicitly_convertible<py::list,  float4>();
 
     
     py::class_<int3>(m, "int3")
@@ -83,7 +114,7 @@ void exportVectorTypes(py::module& m)
         }));
 
     py::implicitly_convertible<py::tuple, int3>();
-    py::implicitly_convertible<py::list, int3>();
+    py::implicitly_convertible<py::list,  int3>();
 
 
 
@@ -108,6 +139,5 @@ void exportVectorTypes(py::module& m)
         }));
 
     py::implicitly_convertible<py::tuple, ComQ>();
-    py::implicitly_convertible<py::list, ComQ>();
-
+    py::implicitly_convertible<py::list,  ComQ>();
 }

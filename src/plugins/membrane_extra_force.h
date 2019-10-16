@@ -1,13 +1,13 @@
 #pragma once
 
-#include <array>
-#include <vector>
-#include <string>
-
-#include <plugins/interface.h>
 #include <core/containers.h>
 #include <core/datatypes.h>
-#include <core/utils/pytypes.h>
+#include <plugins/interface.h>
+
+#include <array>
+#include <string>
+#include <vector>
+#include <vector_types.h>
 
 class MembraneVector;
 
@@ -15,9 +15,9 @@ class MembraneExtraForcePlugin : public SimulationPlugin
 {
 public:
 
-    MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const PyTypes::VectorOfFloat3 &forces);
+    MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<float3>& forces);
 
-    void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }

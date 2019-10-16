@@ -1,6 +1,5 @@
 #pragma once
 
-#include <core/utils/pytypes.h>
 #include <core/logger.h>
 
 #include <extern/variant/include/mpark/variant.hpp>

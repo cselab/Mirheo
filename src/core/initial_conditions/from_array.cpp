@@ -1,8 +1,7 @@
-#include <core/utils/pytypes.h>
+#include "from_array.h"
+
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
-
-#include "from_array.h"
 
 FromArrayIC::FromArrayIC(const std::vector<float3>& pos, const std::vector<float3>& vel) :
     pos(pos),

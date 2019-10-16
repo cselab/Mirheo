@@ -10,7 +10,6 @@
 #include <core/initial_conditions/uniform.h>
 #include <core/initial_conditions/uniform_filtered.h>
 #include <core/initial_conditions/uniform_sphere.h>
-#include <core/utils/pytypes.h>
 
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
