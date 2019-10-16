@@ -15,7 +15,7 @@ class Oscillate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, velocity: Tuple[float, float, float], period: float) -> None
+        r"""__init__(name: str, velocity: float3, period: float) -> None
 
 
                 Args:
@@ -50,7 +50,7 @@ class Rotate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, center: Tuple[float, float, float], omega: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, center: float3, omega: float3) -> None
 
 
                 Args:
@@ -93,7 +93,7 @@ class Translate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, velocity: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, velocity: float3) -> None
 
 
                 Args:
@@ -139,7 +139,7 @@ class VelocityVerlet_withConstForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, force: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, force: float3) -> None
 
 
 

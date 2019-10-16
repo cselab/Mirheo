@@ -26,7 +26,7 @@ class Box(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, low: Tuple[float, float, float], high: Tuple[float, float, float], inside: bool = False) -> None
+        r"""__init__(name: str, low: float3, high: float3, inside: bool = False) -> None
 
 
             Args:
@@ -56,7 +56,7 @@ class Cylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: Tuple[float, float], radius: float, axis: str, inside: bool = False) -> None
+        r"""__init__(name: str, center: float2, radius: float, axis: str, inside: bool = False) -> None
 
 
             Args:
@@ -89,7 +89,7 @@ class MovingPlane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: Tuple[float, float, float], pointThrough: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, normal: float3, pointThrough: float3, velocity: float3) -> None
 
 
             Args:
@@ -122,7 +122,7 @@ class OscillatingPlane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: Tuple[float, float, float], pointThrough: Tuple[float, float, float], velocity: Tuple[float, float, float], period: float) -> None
+        r"""__init__(name: str, normal: float3, pointThrough: float3, velocity: float3, period: float) -> None
 
 
             Args:
@@ -154,7 +154,7 @@ class Plane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: Tuple[float, float, float], pointThrough: Tuple[float, float, float]) -> None
+        r"""__init__(name: str, normal: float3, pointThrough: float3) -> None
 
 
             Args:
@@ -183,7 +183,7 @@ class RotatingCylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: Tuple[float, float], radius: float, axis: str, omega: float, inside: bool = False) -> None
+        r"""__init__(name: str, center: float2, radius: float, axis: str, omega: float, inside: bool = False) -> None
 
 
             Args:
@@ -223,7 +223,7 @@ class SDF(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, sdfFilename: str, h: Tuple[float, float, float] = (0.25, 0.25, 0.25)) -> None
+        r"""__init__(name: str, sdfFilename: str, h: float3 = <float3 object at 0x7fa471dcdea0>) -> None
 
 
             Args:
@@ -255,7 +255,7 @@ class Sphere(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: Tuple[float, float, float], radius: float, inside: bool = False) -> None
+        r"""__init__(name: str, center: float3, radius: float, inside: bool = False) -> None
 
 
             Args:

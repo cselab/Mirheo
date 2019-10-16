@@ -138,7 +138,7 @@ class ObjRodBinding(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, torque: float, rel_anchor: Tuple[float, float, float], k_bound: float) -> None
+        r"""__init__(name: str, torque: float, rel_anchor: float3, k_bound: float) -> None
 
 
             Args:

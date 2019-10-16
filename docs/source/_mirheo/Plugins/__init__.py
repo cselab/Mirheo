@@ -93,7 +93,7 @@ class ImposeVelocity(SimulationPlugin):
         
     """
     def set_target_velocity():
-        r"""set_target_velocity(arg0: Tuple[float, float, float]) -> None
+        r"""set_target_velocity(arg0: float3) -> None
 
         """
         pass
@@ -380,7 +380,7 @@ class XYZPlugin(SimulationPlugin):
 # Functions
 
 def createAddForce():
-    r"""createAddForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: Tuple[float, float, float]) -> Tuple[Plugins.AddForce, Plugins.PostprocessPlugin]
+    r"""createAddForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: float3) -> Tuple[Plugins.AddForce, Plugins.PostprocessPlugin]
 
 
         Create :any:`AddForce` plugin
@@ -395,7 +395,7 @@ def createAddForce():
     pass
 
 def createAddTorque():
-    r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: Tuple[float, float, float]) -> Tuple[Plugins.AddTorque, Plugins.PostprocessPlugin]
+    r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: float3) -> Tuple[Plugins.AddTorque, Plugins.PostprocessPlugin]
 
 
         Create :any:`AddTorque` plugin
@@ -410,7 +410,7 @@ def createAddTorque():
     pass
 
 def createAnchorParticles():
-    r"""createAnchorParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, positions: Callable[[float], List[Tuple[float, float, float]]], velocities: Callable[[float], List[Tuple[float, float, float]]], pids: List[int], report_every: int, path: str) -> Tuple[Plugins.AnchorParticles, Plugins.AnchorParticlesStats]
+    r"""createAnchorParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, positions: Callable[[float], List[float3]], velocities: Callable[[float], List[float3]], pids: List[int], report_every: int, path: str) -> Tuple[Plugins.AnchorParticles, Plugins.AnchorParticlesStats]
 
 
         Create :any:`AnchorParticles` plugin
@@ -429,7 +429,7 @@ def createAnchorParticles():
     pass
 
 def createDensityControl():
-    r"""createDensityControl(state: MirState, name: str, file_name: str, pvs: List[ParticleVectors.ParticleVector], target_density: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float], level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> Tuple[Plugins.DensityControlPlugin, Plugins.PostprocessDensityControl]
+    r"""createDensityControl(state: MirState, name: str, file_name: str, pvs: List[ParticleVectors.ParticleVector], target_density: float, region: Callable[[float3], float], resolution: float3, level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> Tuple[Plugins.DensityControlPlugin, Plugins.PostprocessDensityControl]
 
 
         Create :any:`DensityControlPlugin`
@@ -455,7 +455,7 @@ def createDensityControl():
     pass
 
 def createDensityOutlet():
-    r"""createDensityOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], number_density: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float]) -> Tuple[Plugins.DensityOutletPlugin, Plugins.PostprocessPlugin]
+    r"""createDensityOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], number_density: float, region: Callable[[float3], float], resolution: float3) -> Tuple[Plugins.DensityOutletPlugin, Plugins.PostprocessPlugin]
 
 
         Create :any:`DensityOutletPlugin`
@@ -473,7 +473,7 @@ def createDensityOutlet():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7fa471ddcb90>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
 
 
         Create :any:`Average3D` plugin
@@ -506,7 +506,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: Tuple[float, float, float] = (1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7fa471ddcc00>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
 
 
               
@@ -649,7 +649,7 @@ def createDumpXYZ():
     pass
 
 def createExchangePVSFluxPlane():
-    r"""createExchangePVSFluxPlane(state: MirState, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: Tuple[float, float, float, float]) -> Tuple[Plugins.ExchangePVSFluxPlane, Plugins.PostprocessPlugin]
+    r"""createExchangePVSFluxPlane(state: MirState, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: float4) -> Tuple[Plugins.ExchangePVSFluxPlane, Plugins.PostprocessPlugin]
 
 
         Create :any:`ExchangePVSFluxPlane` plugin
@@ -679,7 +679,7 @@ def createForceSaver():
     pass
 
 def createImposeProfile():
-    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float], kBT: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
+    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: float3, high: float3, velocity: float3, kBT: float) -> Tuple[Plugins.ImposeProfile, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeProfile` plugin
@@ -697,7 +697,7 @@ def createImposeProfile():
     pass
 
 def createImposeVelocity():
-    r"""createImposeVelocity(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], every: int, low: Tuple[float, float, float], high: Tuple[float, float, float], velocity: Tuple[float, float, float]) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
+    r"""createImposeVelocity(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], every: int, low: float3, high: float3, velocity: float3) -> Tuple[Plugins.ImposeVelocity, Plugins.PostprocessPlugin]
 
 
         Create :any:`ImposeVelocity` plugin
@@ -715,7 +715,7 @@ def createImposeVelocity():
     pass
 
 def createMagneticOrientation():
-    r"""createMagneticOrientation(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: Tuple[float, float, float], magneticFunction: Callable[[float], Tuple[float, float, float]]) -> Tuple[Plugins.MagneticOrientation, Plugins.PostprocessPlugin]
+    r"""createMagneticOrientation(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: float3, magneticFunction: Callable[[float], float3]) -> Tuple[Plugins.MagneticOrientation, Plugins.PostprocessPlugin]
 
 
         Create :any:`MagneticOrientation` plugin
@@ -731,7 +731,7 @@ def createMagneticOrientation():
     pass
 
 def createMembraneExtraForce():
-    r"""createMembraneExtraForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, forces: List[List[float[3]]]) -> Tuple[Plugins.MembraneExtraForce, Plugins.PostprocessPlugin]
+    r"""createMembraneExtraForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, forces: List[float3]) -> Tuple[Plugins.MembraneExtraForce, Plugins.PostprocessPlugin]
 
 
         Create :any:`MembraneExtraForce` plugin
@@ -806,7 +806,7 @@ def createParticleDrag():
     pass
 
 def createPinObject():
-    r"""createPinObject(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: Tuple[float, float, float], angular_velocity: Tuple[float, float, float]) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
+    r"""createPinObject(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: float3, angular_velocity: float3) -> Tuple[Plugins.PinObject, Plugins.ReportPinObject]
 
 
         Create :any:`PinObject` plugin
@@ -826,7 +826,7 @@ def createPinObject():
     pass
 
 def createPinRodExtremity():
-    r"""createPinRodExtremity(state: MirState, name: str, rv: ParticleVectors.RodVector, segment_id: int, f_magn: float, target_direction: Tuple[float, float, float]) -> Tuple[Plugins.PinRodExtremity, Plugins.PostprocessPlugin]
+    r"""createPinRodExtremity(state: MirState, name: str, rv: ParticleVectors.RodVector, segment_id: int, f_magn: float, target_direction: float3) -> Tuple[Plugins.PinRodExtremity, Plugins.PostprocessPlugin]
 
 
         Create :any:`PinRodExtremity` plugin
@@ -843,7 +843,7 @@ def createPinRodExtremity():
     pass
 
 def createRadialVelocityControl():
-    r"""createRadialVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], minRadius: float, maxRadius: float, sample_every: int, tune_every: int, dump_every: int, center: Tuple[float, float, float], target_vel: float, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.RadialVelocityControl, Plugins.PostprocessRadialVelocityControl]
+    r"""createRadialVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], minRadius: float, maxRadius: float, sample_every: int, tune_every: int, dump_every: int, center: float3, target_vel: float, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.RadialVelocityControl, Plugins.PostprocessRadialVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
@@ -865,7 +865,7 @@ def createRadialVelocityControl():
     pass
 
 def createRateOutlet():
-    r"""createRateOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], mass_rate: float, region: Callable[[Tuple[float, float, float]], float], resolution: Tuple[float, float, float]) -> Tuple[Plugins.RateOutletPlugin, Plugins.PostprocessPlugin]
+    r"""createRateOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], mass_rate: float, region: Callable[[float3], float], resolution: float3) -> Tuple[Plugins.RateOutletPlugin, Plugins.PostprocessPlugin]
 
 
         Create :any:`RateOutletPlugin`
@@ -914,7 +914,7 @@ def createTemperaturize():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: Tuple[float, float, float], high: Tuple[float, float, float], sample_every: int, tune_every: int, dump_every: int, target_vel: Tuple[float, float, float], Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
+    r"""createVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: float3, high: float3, sample_every: int, tune_every: int, dump_every: int, target_vel: float3, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.VelocityControl, Plugins.PostprocessVelocityControl]
 
 
         Create :any:`VelocityControl` plugin
@@ -935,7 +935,7 @@ def createVelocityControl():
     pass
 
 def createVelocityInlet():
-    r"""createVelocityInlet(state: MirState, name: str, pv: ParticleVectors.ParticleVector, implicit_surface_func: Callable[[Tuple[float, float, float]], float], velocity_field: Callable[[Tuple[float, float, float]], Tuple[float, float, float]], resolution: Tuple[float, float, float], number_density: float, kBT: float) -> Tuple[Plugins.VelocityInlet, Plugins.PostprocessPlugin]
+    r"""createVelocityInlet(state: MirState, name: str, pv: ParticleVectors.ParticleVector, implicit_surface_func: Callable[[float3], float], velocity_field: Callable[[float3], float3], resolution: float3, number_density: float, kBT: float) -> Tuple[Plugins.VelocityInlet, Plugins.PostprocessPlugin]
 
 
         Create :any:`VelocityInlet` plugin
@@ -954,7 +954,7 @@ def createVelocityInlet():
     pass
 
 def createVirialPressurePlugin():
-    r"""createVirialPressurePlugin(state: MirState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[Tuple[float, float, float]], float], h: Tuple[float, float, float], dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
+    r"""createVirialPressurePlugin(state: MirState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[float3], float], h: float3, dump_every: int, path: str) -> Tuple[Plugins.VirialPressure, Plugins.VirialPressureDumper]
 
 
         Create :any:`VirialPressure` plugin

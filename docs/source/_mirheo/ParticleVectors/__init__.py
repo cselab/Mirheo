@@ -16,7 +16,7 @@ Overloaded function.
             off_filename: path of the OFF file
     
 
-2. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+2. __init__(vertices: List[float3], faces: List[int3]) -> None
 
 
         Create a mesh by giving coordinates and connectivity
@@ -112,7 +112,7 @@ class ParticleVector:
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -123,7 +123,7 @@ class ParticleVector:
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -134,7 +134,7 @@ class ParticleVector:
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -175,25 +175,25 @@ Overloaded function.
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
         
 
-3. __init__(vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+3. __init__(vertices: List[float3], faces: List[int3]) -> None
 
 
-        Create a mesh by giving coordinates and connectivity
+            Create a mesh by giving coordinates and connectivity
         
-        Args:
-            vertices: vertex coordinates
-            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+            Args:
+                vertices: vertex coordinates
+                faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         
 
-4. __init__(vertices: List[List[float[3]]], stress_free_vertices: List[List[float[3]]], faces: List[List[int[3]]]) -> None
+4. __init__(vertices: List[float3], stress_free_vertices: List[float3], faces: List[int3]) -> None
 
 
-        Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
+            Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
         
-        Args:
-            vertices: vertex coordinates
-            stress_free_vertices: vertex coordinates of the stress-free shape
-            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+            Args:
+                vertices: vertex coordinates
+                stress_free_vertices: vertex coordinates of the stress-free shape
+                faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
     
 
         """
@@ -279,7 +279,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -290,7 +290,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -301,7 +301,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -375,7 +375,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -386,7 +386,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -397,7 +397,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -414,7 +414,7 @@ class RigidObjectVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, inertia: Tuple[float, float, float], object_size: int, mesh: ParticleVectors.Mesh) -> None
+        r"""__init__(name: str, mass: float, inertia: float3, object_size: int, mesh: ParticleVectors.Mesh) -> None
 
  
 
@@ -474,7 +474,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -485,7 +485,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -496,7 +496,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -570,7 +570,7 @@ class RodVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -581,7 +581,7 @@ class RodVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -592,7 +592,7 @@ class RodVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -686,7 +686,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -697,7 +697,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -708,7 +708,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -800,7 +800,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -811,7 +811,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -822,7 +822,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:
@@ -842,7 +842,7 @@ class RigidEllipsoidVector(RigidObjectVector):
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float]) -> None
+1. __init__(name: str, mass: float, object_size: int, semi_axes: float3) -> None
 
 
 
@@ -853,7 +853,7 @@ Overloaded function.
                 semi_axes: ellipsoid principal semi-axes
         
 
-2. __init__(name: str, mass: float, object_size: int, semi_axes: Tuple[float, float, float], mesh: ParticleVectors.Mesh) -> None
+2. __init__(name: str, mass: float, object_size: int, semi_axes: float3, mesh: ParticleVectors.Mesh) -> None
 
 
 
@@ -915,7 +915,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[List[float[3]]]) -> None
+        r"""setCoordinates(coordinates: List[float3]) -> None
 
 
             Args:
@@ -926,7 +926,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[List[float[3]]]) -> None
+        r"""setForces(forces: List[float3]) -> None
 
 
             Args:
@@ -937,7 +937,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[List[float[3]]]) -> None
+        r"""setVelocities(velocities: List[float3]) -> None
 
 
             Args:

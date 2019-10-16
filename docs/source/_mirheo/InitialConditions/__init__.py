@@ -14,7 +14,7 @@ class FromArray(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(pos: List[List[float[3]]], vel: List[List[float[3]]]) -> None
+        r"""__init__(pos: List[float3], vel: List[float3]) -> None
 
 
             Args:
@@ -32,7 +32,7 @@ class Membrane(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[List[float[7]]], global_scale: float = 1.0) -> None
+        r"""__init__(com_q: List[ComQ], global_scale: float = 1.0) -> None
 
 
             Args:
@@ -78,7 +78,7 @@ class Rigid(InitialConditions):
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(com_q: List[List[float[7]]], xyz_filename: str) -> None
+1. __init__(com_q: List[ComQ], xyz_filename: str) -> None
 
 
             Args:
@@ -96,7 +96,7 @@ Overloaded function.
                     in the corresponding PV
         
 
-2. __init__(com_q: List[List[float[7]]], coords: List[List[float[3]]]) -> None
+2. __init__(com_q: List[ComQ], coords: List[float3]) -> None
 
 
             Args:
@@ -113,7 +113,7 @@ Overloaded function.
                     in the corresponding PV
         
 
-3. __init__(com_q: List[List[float[7]]], coords: List[List[float[3]]], init_vels: List[List[float[3]]]) -> None
+3. __init__(com_q: List[ComQ], coords: List[float3], init_vels: List[float3]) -> None
 
 
             Args:
@@ -145,7 +145,7 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[List[float[7]]], center_line: Callable[[float], Tuple[float, float, float]], torsion: Callable[[float], float], a: float, initial_frame: Tuple[float, float, float] = (inf, inf, inf)) -> None
+        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], float3], torsion: Callable[[float], float], a: float, initial_frame: float3 = <float3 object at 0x7fa471dbbd18>) -> None
 
 
             Args:
@@ -195,7 +195,7 @@ class UniformFiltered(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(number_density: float, filter: Callable[[Tuple[float, float, float]], bool]) -> None
+        r"""__init__(number_density: float, filter: Callable[[float3], bool]) -> None
 
 
             Args:
@@ -214,7 +214,7 @@ class UniformSphere(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(number_density: float, center: Tuple[float, float, float], radius: float, inside: bool) -> None
+        r"""__init__(number_density: float, center: float3, radius: float, inside: bool) -> None
 
 
             Args:

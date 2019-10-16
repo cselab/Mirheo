@@ -1,3 +1,17 @@
+class ComQ:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: tuple) -> None
+
+2. __init__(arg0: list) -> None
+
+        """
+        pass
+
 class MirState:
     r"""
         state of the simulation shared by all simulation objects.
@@ -9,7 +23,7 @@ class Mirheo:
     
     """
     def __init__():
-        r"""__init__(nranks: Tuple[int, int, int], domain: Tuple[float, float, float], dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+        r"""__init__(nranks: int3, domain: float3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
                 Create the Mirheo coordinator.
@@ -96,7 +110,7 @@ class Mirheo:
         pass
 
     def dumpWalls2XDMF():
-        r"""dumpWalls2XDMF(walls: List[Wall], h: Tuple[float, float, float], filename: str = 'xdmf/wall') -> None
+        r"""dumpWalls2XDMF(walls: List[Wall], h: float3, filename: str = 'xdmf/wall') -> None
 
 
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
@@ -409,6 +423,116 @@ Tells nvprof to start recording timeline
         r"""stop_profiler(self: Mirheo) -> None
 
 Tells nvprof to stop recording timeline
+
+        """
+        pass
+
+class float2:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: tuple) -> None
+
+2. __init__(arg0: list) -> None
+
+        """
+        pass
+
+    @property
+    def x():
+        r"""
+        """
+        pass
+
+    @property
+    def y():
+        r"""
+        """
+        pass
+
+class float3:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: tuple) -> None
+
+2. __init__(arg0: list) -> None
+
+        """
+        pass
+
+    @property
+    def x():
+        r"""
+        """
+        pass
+
+    @property
+    def y():
+        r"""
+        """
+        pass
+
+    @property
+    def z():
+        r"""
+        """
+        pass
+
+class float4:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: tuple) -> None
+
+2. __init__(arg0: list) -> None
+
+        """
+        pass
+
+    @property
+    def w():
+        r"""
+        """
+        pass
+
+    @property
+    def x():
+        r"""
+        """
+        pass
+
+    @property
+    def y():
+        r"""
+        """
+        pass
+
+    @property
+    def z():
+        r"""
+        """
+        pass
+
+class int3:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: tuple) -> None
+
+2. __init__(arg0: list) -> None
 
         """
         pass
