@@ -1095,8 +1095,6 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
     scheduler->addDependency(tasks->pluginsBeforeForces, {tasks->localForces, tasks->haloForces}, {tasks->partClearFinal});
     scheduler->addDependency(tasks->pluginsSerializeSend, {tasks->pluginsBeforeIntegration, tasks->pluginsAfterIntegration}, {tasks->pluginsBeforeForces});
 
-    scheduler->addDependency(tasks->objClearHaloForces, {tasks->objHaloBounce}, {tasks->objHaloFinalFinalize});
-
     scheduler->addDependency(tasks->objReverseFinalInit, {}, {tasks->haloForces});
     scheduler->addDependency(tasks->objReverseFinalFinalize, {tasks->accumulateInteractionFinal}, {tasks->objReverseFinalInit});
 
@@ -1130,7 +1128,8 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
     scheduler->addDependency(tasks->objHaloFinalInit, {}, {tasks->integration, tasks->objRedistFinalize});
     scheduler->addDependency(tasks->objHaloFinalFinalize, {}, {tasks->objHaloFinalInit});
 
-    scheduler->addDependency(tasks->objLocalBounce, {tasks->objHaloFinalFinalize}, {tasks->integration, tasks->objClearLocalForces});
+    scheduler->addDependency(tasks->objClearHaloForces, {tasks->objHaloBounce}, {tasks->objHaloFinalFinalize});
+    scheduler->addDependency(tasks->objLocalBounce, {}, {tasks->integration, tasks->objClearLocalForces});
     scheduler->addDependency(tasks->objHaloBounce, {}, {tasks->integration, tasks->objHaloFinalFinalize, tasks->objClearHaloForces});
 
     scheduler->addDependency(tasks->pluginsAfterIntegration, {tasks->objLocalBounce, tasks->objHaloBounce}, {tasks->integration, tasks->wallBounce});
