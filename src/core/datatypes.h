@@ -310,3 +310,9 @@ struct __align__(16) COMandExtent
 {
     float3 com, low, high;
 };
+
+struct ComQ
+{
+    float3 r;
+    float4 q;
+};

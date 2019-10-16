@@ -3,18 +3,18 @@
 #include <core/containers.h>
 #include <core/utils/pytypes.h>
 
+#include <vector_types.h>
+#include <vector>
+
 class Mesh
 {
-protected:
-    int nvertices{0}, ntriangles{0};
-
 public:
     PinnedBuffer<int3> triangles;
     PinnedBuffer<float4> vertexCoordinates;
 
     Mesh();
-    Mesh(std::string);
-    Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces);
+    Mesh(const std::string& filename);
+    Mesh(const std::vector<float3>& vertices, const std::vector<int3>& faces);
 
     Mesh(Mesh&&);
     Mesh& operator=(Mesh&&);
@@ -33,7 +33,10 @@ protected:
     int maxDegree {-1};
     void _computeMaxDegree();
     void _check() const;
-    void _readOff(std::string fname);
+    void _readOff(const std::string& fname);
+
+protected:
+    int nvertices{0}, ntriangles{0};
 };
 
 

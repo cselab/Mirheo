@@ -8,9 +8,9 @@
 #include <fstream>
 #include <random>
 
-static PyTypes::VectorOfFloat3 readXYZ(std::string fname)
+static std::vector<float3> readXYZ(const std::string& fname)
 {
-    PyTypes::VectorOfFloat3 positions;
+    std::vector<float3> positions;
     int n;
     float dummy;
     std::string line;
@@ -26,24 +26,24 @@ static PyTypes::VectorOfFloat3 readXYZ(std::string fname)
 
     positions.resize(n);
     for (int i = 0; i < n; ++i)
-        fin >> dummy >> positions[i][0] >> positions[i][1] >> positions[i][2];
+        fin >> dummy >> positions[i].x >> positions[i].y >> positions[i].z;
     return positions;
 }
 
 
 
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname) :
+RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::string& xyzfname) :
     RigidIC(com_q, readXYZ(xyzfname))
 {}
 
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords) :
+RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::vector<float3>& coords) :
     com_q(com_q),
     coords(coords)
 {}
 
-RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q,
-                 const PyTypes::VectorOfFloat3& coords,
-                 const PyTypes::VectorOfFloat3& comVelocities) :
+RigidIC::RigidIC(const std::vector<ComQ>& com_q,
+                 const std::vector<float3>& coords,
+                 const std::vector<float3>& comVelocities) :
     com_q(com_q),
     coords(coords),
     comVelocities(comVelocities)
@@ -55,13 +55,13 @@ RigidIC::RigidIC(PyTypes::VectorOfFloat7 com_q,
 RigidIC::~RigidIC() = default;
 
 
-static PinnedBuffer<float4> getInitialPositions(const PyTypes::VectorOfFloat3& in,
+static PinnedBuffer<float4> getInitialPositions(const std::vector<float3>& in,
                                                 cudaStream_t stream)
 {
     PinnedBuffer<float4> out(in.size());
     
     for (size_t i = 0; i < in.size(); ++i)
-        out[i] = make_float4(in[i][0], in[i][1], in[i][2], 0);
+        out[i] = make_float4(in[i].x, in[i].y, in[i].z, 0);
         
     out.uploadToDevice(stream);
     return out;
@@ -94,8 +94,8 @@ static void checkInitialPositions(const DomainInfo& domain,
 }
 
 static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
-                                              const PyTypes::VectorOfFloat7& com_q,
-                                              const PyTypes::VectorOfFloat3& comVelocities)
+                                              const std::vector<ComQ>& com_q,
+                                              const std::vector<float3>& comVelocities)
 {
     std::vector<RigidMotion> motions;
 
@@ -106,12 +106,12 @@ static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
         // Zero everything at first
         RigidMotion motion{};
         
-        motion.r = {entry[0], entry[1], entry[2]};
-        motion.q = make_rigidReal4( make_float4(entry[3], entry[4], entry[5], entry[6]) );
+        motion.r = make_rigidReal3( entry.r );
+        motion.q = make_rigidReal4( entry.q );
         motion.q = normalize(motion.q);
         
         if (i < comVelocities.size())
-            motion.vel = {comVelocities[i][0], comVelocities[i][1], comVelocities[i][2]};
+            motion.vel = {comVelocities[i].x, comVelocities[i].y, comVelocities[i].z};
 
         if (domain.inSubDomain(motion.r))
         {

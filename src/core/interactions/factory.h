@@ -36,6 +36,6 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
 
 std::shared_ptr<ObjectRodBindingInteraction>
 createInteractionObjRodBinding(const MirState *state, std::string name,
-                               float torque, PyTypes::float3 relAnchor, float kBound);
+                               float torque, float3 relAnchor, float kBound);
 
 } // namespace InteractionFactory

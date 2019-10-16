@@ -8,7 +8,7 @@
 Mesh::Mesh()
 {}
 
-Mesh::Mesh(std::string fname)
+Mesh::Mesh(const std::string& fname)
 {
     _readOff(fname);
     _check();
@@ -19,7 +19,7 @@ Mesh::Mesh(std::string fname)
     _computeMaxDegree();
 }
 
-Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3& faces)
+Mesh::Mesh(const std::vector<float3>& vertices, const std::vector<int3>& faces)
 {
     nvertices  = vertices.size();
     ntriangles = faces.size();
@@ -28,10 +28,13 @@ Mesh::Mesh(const PyTypes::VectorOfFloat3& vertices, const PyTypes::VectorOfInt3&
     triangles.resize_anew(ntriangles);
 
     for (int i = 0; i < ntriangles; ++i)
-        triangles[i] = make_int3(faces[i][0], faces[i][1], faces[i][2]);
+        triangles[i] = faces[i];
 
     for (int i = 0; i < nvertices; ++i)
-        vertexCoordinates[i] = make_float4(vertices[i][0], vertices[i][1], vertices[i][2], 0.f);
+    {
+        const float3 v = vertices[i];
+        vertexCoordinates[i] = make_float4(v.x, v.y, v.z, 0.f);
+    }
 
     _check();
     
@@ -112,7 +115,7 @@ void Mesh::_check() const
     }
 }
 
-void Mesh::_readOff(std::string fname)
+void Mesh::_readOff(const std::string& fname)
 {
    std::ifstream fin(fname);
     if (!fin.good())

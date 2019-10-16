@@ -88,12 +88,6 @@ RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, fl
                                       DataManager::PersistenceMode::None);
 }
 
-RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, float partMass,
-                                     PyTypes::float3 J, const int objSize,
-                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
-    RigidObjectVector( state, name, partMass, make_float3(J), objSize, mesh, nObjects )
-{}
-
 RigidObjectVector::~RigidObjectVector() = default;
 
 static void writeInitialPositions(MPI_Comm comm, const std::string& filename,

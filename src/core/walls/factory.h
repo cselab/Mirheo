@@ -38,14 +38,14 @@ createBoxWall(const MirState *state, const std::string& name, float3 low, float3
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
-createCylinderWall(const MirState *state, const std::string& name, PyTypes::float2 center, float radius, const std::string& axis, bool inside)
+createCylinderWall(const MirState *state, const std::string& name, float2 center, float radius, const std::string& axis, bool inside)
 {
     StationaryWall_Cylinder::Direction dir;
     if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
     if (axis == "y") dir = StationaryWall_Cylinder::Direction::y;
     if (axis == "z") dir = StationaryWall_Cylinder::Direction::z;
 
-    StationaryWall_Cylinder cylinder(make_float2(center), radius, dir, inside);
+    StationaryWall_Cylinder cylinder(center, radius, dir, inside);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Cylinder>> (name, state, std::move(cylinder));
 }
 
@@ -66,10 +66,8 @@ createSDFWall(const MirState *state, const std::string& name, const std::string&
 // Moving walls
 
 inline std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
-createMovingCylinderWall(const MirState *state, const std::string& name, PyTypes::float2 _center, float radius, const std::string& axis, float omega, bool inside)
+createMovingCylinderWall(const MirState *state, const std::string& name, float2 center, float radius, const std::string& axis, float omega, bool inside)
 {
-    float2 center = make_float2(_center);
-        
     StationaryWall_Cylinder::Direction dir;
     if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
     if (axis == "y") dir = StationaryWall_Cylinder::Direction::y;

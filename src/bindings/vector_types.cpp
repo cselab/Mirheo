@@ -1,6 +1,8 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
+#include <core/datatypes.h>
+
 #include <pybind11/stl.h>
 #include <vector_types.h>
 
@@ -10,6 +12,33 @@ using namespace pybind11::literals;
 
 void exportVectorTypes(py::module& m)
 {
+    py::class_<float2>(m, "float2")
+        .def(py::init([](py::tuple t)
+        {
+            if (py::len(t) != 2)
+                throw std::runtime_error("Should have length 2.");
+            return float2{t[0].cast<float>(), t[1].cast<float>()};
+        }))
+        .def(py::init([](py::list t)
+        {
+            if (py::len(t) != 2)
+                throw std::runtime_error("Should have length 2.");
+            return float2{t[0].cast<float>(), t[1].cast<float>()};
+        }))
+        .def_readwrite("x", &float2::x)
+        .def_readwrite("y", &float2::y)
+        .def("__getitem__", [](const float2 &v, size_t i)
+        {
+            if (i == 0) return v.x;
+            if (i == 1) return v.y;
+            throw py::index_error();
+            return 0.f;
+        });
+
+    py::implicitly_convertible<py::tuple, float2>();
+    py::implicitly_convertible<py::list, float2>();
+
+    
     py::class_<float3>(m, "float3")
         .def(py::init([](py::tuple t)
         {
@@ -38,6 +67,7 @@ void exportVectorTypes(py::module& m)
     py::implicitly_convertible<py::tuple, float3>();
     py::implicitly_convertible<py::list, float3>();
 
+    
     py::class_<int3>(m, "int3")
         .def(py::init([](py::tuple t)
         {
@@ -54,4 +84,30 @@ void exportVectorTypes(py::module& m)
 
     py::implicitly_convertible<py::tuple, int3>();
     py::implicitly_convertible<py::list, int3>();
+
+
+
+    py::class_<ComQ>(m, "ComQ")
+        .def(py::init([](py::tuple t)
+        {
+            if (py::len(t) != 7)
+                throw std::runtime_error("Should have length 7.");
+
+            const float3 com {t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>()};
+            const float4 Q {t[3].cast<float>(), t[4].cast<float>(), t[5].cast<float>(), t[6].cast<float>()};
+            return ComQ{com, Q};
+        }))
+        .def(py::init([](py::list t)
+        {
+            if (py::len(t) != 7)
+                throw std::runtime_error("Should have length 7.");
+
+            const float3 com {t[0].cast<float>(), t[1].cast<float>(), t[2].cast<float>()};
+            const float4 Q {t[3].cast<float>(), t[4].cast<float>(), t[5].cast<float>(), t[6].cast<float>()};
+            return ComQ{com, Q};
+        }));
+
+    py::implicitly_convertible<py::tuple, ComQ>();
+    py::implicitly_convertible<py::list, ComQ>();
+
 }

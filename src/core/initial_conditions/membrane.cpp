@@ -7,7 +7,7 @@
 #include <fstream>
 #include <random>
 
-MembraneIC::MembraneIC(PyTypes::VectorOfFloat7 com_q, float globalScale) :
+MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, float globalScale) :
     com_q(com_q),
     globalScale(globalScale)
 {}
@@ -34,7 +34,7 @@ MembraneIC::~MembraneIC() = default;
  * Set unique id to all the particles and also write unique cell ids into
  * 'ids' per-object channel
  */
-void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
+void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
     auto domain = pv->state->domain;
@@ -47,8 +47,8 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
 
     for (auto& entry : com_q)
     {
-        float3 com = {entry[0], entry[1], entry[2]};
-        float4 q   = {entry[3], entry[4], entry[5], entry[6]};
+        float3 com = entry.r;
+        float4 q   = entry.q;
 
         q = normalize(q);
 
@@ -57,7 +57,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             domain.globalStart.z <= com.z && com.z < domain.globalStart.z + domain.localSize.z)
         {
             com = domain.global2local(com);
-            int oldSize = ov->local()->size();
+            const int oldSize = ov->local()->size();
             ov->local()->resize(oldSize + ov->mesh->getNvertices(), stream);
 
             auto& pos = ov->local()->positions();
@@ -65,8 +65,8 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t str
             
             for (int i = 0; i < ov->mesh->getNvertices(); i++)
             {
-                float3 r = Quaternion::rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
-                Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
+                const float3 r = Quaternion::rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+                const Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
 
                 pos[oldSize + i] = p.r2Float4();
                 vel[oldSize + i] = p.u2Float4();

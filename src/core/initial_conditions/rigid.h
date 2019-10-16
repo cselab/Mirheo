@@ -2,22 +2,25 @@
 
 #include "interface.h"
 
-#include <core/utils/pytypes.h>
+#include <core/datatypes.h>
+
+#include <vector>
+#include <vector_types.h>
 
 class RigidIC : public InitialConditions
 {
-private:
-    PyTypes::VectorOfFloat7 com_q;
-    PyTypes::VectorOfFloat3 coords;
-    PyTypes::VectorOfFloat3 comVelocities;
-
 public:
-    RigidIC(PyTypes::VectorOfFloat7 com_q, std::string xyzfname);
-    RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords);
-    RigidIC(PyTypes::VectorOfFloat7 com_q, const PyTypes::VectorOfFloat3& coords,
-            const PyTypes::VectorOfFloat3& comVelocities);
+    RigidIC(const std::vector<ComQ>& com_q, const std::string& xyzfname);
+    RigidIC(const std::vector<ComQ>& com_q, const std::vector<float3>& coords);
+    RigidIC(const std::vector<ComQ>& com_q, const std::vector<float3>& coords,
+            const std::vector<float3>& comVelocities);
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
     ~RigidIC();
+
+private:
+    std::vector<ComQ> com_q;
+    std::vector<float3> coords;
+    std::vector<float3> comVelocities;
 };

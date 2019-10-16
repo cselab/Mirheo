@@ -1,8 +1,7 @@
 #pragma once
 
 #include "object_vector.h"
-#include <core/utils/pytypes.h>
-
+#include <vector_types.h>
 
 class LocalRigidObjectVector : public LocalObjectVector
 {
@@ -22,7 +21,7 @@ protected:
 class RigidObjectVector : public ObjectVector
 {
 public:
-    RigidObjectVector(const MirState *state, std::string name, float partMass, PyTypes::float3 J, const int objSize,
+    RigidObjectVector(const MirState *state, std::string name, float partMass, float3 J, const int objSize,
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
     virtual ~RigidObjectVector();
@@ -31,8 +30,6 @@ public:
     LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(ParticleVector::halo());  }
 
 protected:
-    RigidObjectVector(const MirState *state, std::string name, float partMass, float3 J, const int objSize,
-                      std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;

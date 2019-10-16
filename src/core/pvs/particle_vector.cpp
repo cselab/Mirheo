@@ -172,12 +172,7 @@ PyTypes::VectorOfFloat3 ParticleVector::getForces_vector()
     return res;
 }
 
-void ParticleVector::setCoosVels_globally(__UNUSED PyTypes::VectorOfFloat6& coosvels, __UNUSED cudaStream_t stream)
-{
-    error("Not implemented yet");
-}
-
-void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
+void ParticleVector::setCoordinates_vector(const std::vector<float3>& coordinates)
 {
     auto& pos = local()->positions();
     const size_t n = local()->size();
@@ -189,8 +184,8 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
     
     for (size_t i = 0; i < coordinates.size(); i++)
     {
-        auto& r_ = coordinates[i];
-        float3 r = state->domain.global2local( { r_[0], r_[1], r_[2] } );
+        float3 r = coordinates[i];
+        r = state->domain.global2local(r);
         pos[i].x = r.x;
         pos[i].y = r.y;
         pos[i].z = r.z;
@@ -199,7 +194,7 @@ void ParticleVector::setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates)
     pos.uploadToDevice(defaultStream);
 }
 
-void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
+void ParticleVector::setVelocities_vector(const std::vector<float3>& velocities)
 {
     auto& vel = local()->velocities();
     const size_t n = local()->size();
@@ -211,16 +206,16 @@ void ParticleVector::setVelocities_vector(PyTypes::VectorOfFloat3& velocities)
     
     for (size_t i = 0; i < velocities.size(); i++)
     {
-        auto& u = velocities[i];
-        vel[i].x = u[0];
-        vel[i].y = u[1];
-        vel[i].z = u[2];
+        const float3 u = velocities[i];
+        vel[i].x = u.x;
+        vel[i].y = u.y;
+        vel[i].z = u.z;
     }
     
     vel.uploadToDevice(defaultStream);
 }
 
-void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
+void ParticleVector::setForces_vector(const std::vector<float3>& forces)
 {
     HostBuffer<Force> myforces(local()->size());
     const size_t n = local()->size();
@@ -230,10 +225,7 @@ void ParticleVector::setForces_vector(PyTypes::VectorOfFloat3& forces)
         ", got: " + std::to_string(forces.size()) );
     
     for (size_t i = 0; i < forces.size(); i++)
-    {
-        auto& f = forces[i];
-        myforces[i].f = { f[0], f[1], f[2] };
-    }
+        myforces[i].f = forces[i];
     
     local()->forces().copy(myforces);
     local()->forces().uploadToDevice(defaultStream);

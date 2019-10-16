@@ -63,13 +63,14 @@ void exportParticleVectors(py::module& m)
         Internally used class for describing a simple triangular mesh
     )");
 
-    pymesh.def(py::init<std::string>(), "off_filename"_a, R"(
+    pymesh.def(py::init<const std::string&>(), "off_filename"_a, R"(
         Create a mesh by reading the OFF file
         
         Args:
             off_filename: path of the OFF file
     )")
-        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfInt3&>(), "vertices"_a, "faces"_a, R"(
+        .def(py::init<const std::vector<float3>&, const std::vector<int3>&>(),
+             "vertices"_a, "faces"_a, R"(
         Create a mesh by giving coordinates and connectivity
         
         Args:
@@ -89,14 +90,14 @@ void exportParticleVectors(py::module& m)
         In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh, 
         including connectivity structures and stress-free quantities.        
     )")
-        .def(py::init<std::string>(), "off_filename"_a, R"(
+        .def(py::init<const std::string&>(), "off_filename"_a, R"(
             Create a mesh by reading the OFF file.
             The stress free shape is the input initial mesh
             
             Args:
                 off_filename: path of the OFF file
         )")
-        .def(py::init<std::string, std::string>(),
+        .def(py::init<const std::string&, const std::string&>(),
              "off_initial_mesh"_a, "off_stress_free_mesh"_a, R"(
             Create a mesh by reading the OFF file, with a different stress free shape.
             
@@ -104,21 +105,22 @@ void exportParticleVectors(py::module& m)
                 off_initial_mesh: path of the OFF file : initial mesh
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
         )")
-        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfInt3&>(), "vertices"_a, "faces"_a, R"(
-        Create a mesh by giving coordinates and connectivity
+        .def(py::init<const std::vector<float3>&, const std::vector<int3>&>(),
+             "vertices"_a, "faces"_a, R"(
+            Create a mesh by giving coordinates and connectivity
         
-        Args:
-            vertices: vertex coordinates
-            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+            Args:
+                vertices: vertex coordinates
+                faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         )")
-        .def(py::init<const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfInt3&>(),
+        .def(py::init<const std::vector<float3>&, const std::vector<float3>&, const std::vector<int3>&>(),
              "vertices"_a, "stress_free_vertices"_a, "faces"_a, R"(
-        Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
+            Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
         
-        Args:
-            vertices: vertex coordinates
-            stress_free_vertices: vertex coordinates of the stress-free shape
-            faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
+            Args:
+                vertices: vertex coordinates
+                stress_free_vertices: vertex coordinates of the stress-free shape
+                faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
     )");
 
         
@@ -148,8 +150,7 @@ void exportParticleVectors(py::module& m)
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
-    pyrov.def(py::init<const MirState*, std::string, float,
-              PyTypes::float3, int, std::shared_ptr<Mesh>>(),
+    pyrov.def(py::init<const MirState*, std::string, float, float3, int, std::shared_ptr<Mesh>>(),
               "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
 
             Args:

@@ -11,7 +11,7 @@
 MembraneMesh::MembraneMesh()
 {}
 
-MembraneMesh::MembraneMesh(std::string initialMesh) :
+MembraneMesh::MembraneMesh(const std::string& initialMesh) :
     Mesh(initialMesh)
 {
     findAdjacent();
@@ -37,7 +37,7 @@ static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>
     return true;
 }
 
-MembraneMesh::MembraneMesh(std::string initialMesh, std::string stressFreeMesh) :
+MembraneMesh::MembraneMesh(const std::string& initialMesh, const std::string& stressFreeMesh) :
     Mesh(initialMesh)
 {
     Mesh stressFree(stressFreeMesh);
@@ -52,17 +52,17 @@ MembraneMesh::MembraneMesh(std::string initialMesh, std::string stressFreeMesh) 
     _computeInitialQuantities(stressFree.vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
-                           const PyTypes::VectorOfInt3& faces) :
+MembraneMesh::MembraneMesh(const std::vector<float3>& vertices,
+                           const std::vector<int3>& faces) :
     Mesh(vertices, faces)
 {
     findAdjacent();
     _computeInitialQuantities(vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
-                           const PyTypes::VectorOfFloat3& stressFreeVertices,
-                           const PyTypes::VectorOfInt3& faces) :
+MembraneMesh::MembraneMesh(const std::vector<float3>& vertices,
+                           const std::vector<float3>& stressFreeVertices,
+                           const std::vector<int3>& faces) :
     Mesh(vertices, faces)
 {
     if (vertices.size() != stressFreeVertices.size())

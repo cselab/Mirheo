@@ -8,14 +8,14 @@
 #include <random>
 
 const float RodIC::Default = std::numeric_limits<float>::infinity();
-const PyTypes::float3 RodIC::DefaultFrame = PyTypes::float3{Default, Default, Default};
+const float3 RodIC::DefaultFrame = {Default, Default, Default};
 
-RodIC::RodIC(PyTypes::VectorOfFloat7 com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
-             float a, PyTypes::float3 initialMaterialFrame) :
+RodIC::RodIC(const std::vector<ComQ>& com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
+             float a, float3 initialMaterialFrame) :
     com_q(com_q),
     centerLine(centerLine),
     torsion(torsion),
-    initialMaterialFrame(make_float3(initialMaterialFrame)),
+    initialMaterialFrame(initialMaterialFrame),
     a(a)
 {}
 
@@ -29,13 +29,13 @@ static bool isDefaultFrame(float3 v)
 
 static float3 getFirstBishop(float3 r0, float3 r1, float3 r2, float3 initialMaterialFrame)
 {
-    float3 t0 = normalize(r1 - r0);
+    const float3 t0 = normalize(r1 - r0);
     float3 u;
     
     if (isDefaultFrame(initialMaterialFrame))
     {
-        float3 t1 = normalize(r2 - r1);
-        float3 b = cross(t0, t1);
+        const float3 t1 = normalize(r2 - r1);
+        const float3 b = cross(t0, t1);
         
         if (length(b) > 1e-6)
         {
@@ -132,8 +132,8 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     
     for (auto& entry : com_q)
     {
-        float3 com {entry[0], entry[1], entry[2]};
-        float4 q   {entry[3], entry[4], entry[5], entry[6]};
+        float3 com = entry.r;
+        float4 q   = entry.q;;
 
         q = normalize(q);        
 

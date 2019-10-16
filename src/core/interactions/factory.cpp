@@ -110,9 +110,9 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 {
     RodParameters p;
 
-    if (desc.exists<std::vector<PyTypes::float2>>( "kappa0" ))
+    if (desc.exists<std::vector<float2>>( "kappa0" ))
     {
-        auto kappaEqs = desc.read<std::vector<PyTypes::float2>>( "kappa0");
+        auto kappaEqs = desc.read<std::vector<float2>>( "kappa0");
         auto tauEqs   = desc.read<std::vector<float>>( "tau0");
         auto groundE  = desc.read<std::vector<float>>( "E0");
 
@@ -120,7 +120,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
             die("Rod parameters: expected same number of kappa0, tau0 and E0");
 
         for (const auto& om : kappaEqs)
-            p.kappaEq.push_back(make_float2(om));
+            p.kappaEq.push_back(om);
         
         for (const auto& tau : tauEqs)
             p.tauEq.push_back(tau);
@@ -216,7 +216,7 @@ InteractionFactory::createPairwiseInteraction(const MirState *state, std::string
 
 std::shared_ptr<ObjectRodBindingInteraction>
 InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::string name,
-                                                   float torque, PyTypes::float3 relAnchor, float kBound)
+                                                   float torque, float3 relAnchor, float kBound)
 {
-    return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, make_float3(relAnchor), kBound);
+    return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }

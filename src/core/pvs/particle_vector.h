@@ -68,11 +68,9 @@ public:
     PyTypes::VectorOfFloat3 getVelocities_vector();
     PyTypes::VectorOfFloat3 getForces_vector();
     
-    void setCoosVels_globally(PyTypes::VectorOfFloat6& coosvels, cudaStream_t stream=0);
-
-    void setCoordinates_vector(PyTypes::VectorOfFloat3& coordinates);
-    void setVelocities_vector(PyTypes::VectorOfFloat3& velocities);
-    void setForces_vector(PyTypes::VectorOfFloat3& forces);    
+    void setCoordinates_vector(const std::vector<float3>& coordinates);
+    void setVelocities_vector(const std::vector<float3>& velocities);
+    void setForces_vector(const std::vector<float3>& forces);
     
     template<typename T>
     void requireDataPerParticle(const std::string& name, DataManager::PersistenceMode persistence,

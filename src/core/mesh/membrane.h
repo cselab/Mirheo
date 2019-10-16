@@ -8,25 +8,26 @@
 class MembraneMesh : public Mesh
 {
 public:
-    PinnedBuffer<int> adjacent, degrees;
-    PinnedBuffer<float> initialLengths, initialAreas, initialDotProducts;
-
     MembraneMesh();
 
-    MembraneMesh(std::string initialMesh);
-    MembraneMesh(std::string initialMesh, std::string stressFreeMesh);
+    MembraneMesh(const std::string& initialMesh);
+    MembraneMesh(const std::string& initialMesh, const std::string& stressFreeMesh);
 
-    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
-                 const PyTypes::VectorOfInt3& faces);
+    MembraneMesh(const std::vector<float3>& vertices,
+                 const std::vector<int3>& faces);
     
-    MembraneMesh(const PyTypes::VectorOfFloat3& vertices,
-                 const PyTypes::VectorOfFloat3& stressFreeVertices,
-                 const PyTypes::VectorOfInt3& faces);
+    MembraneMesh(const std::vector<float3>& vertices,
+                 const std::vector<float3>& stressFreeVertices,
+                 const std::vector<int3>& faces);
 
     MembraneMesh(MembraneMesh&&);
     MembraneMesh& operator=(MembraneMesh&&);
 
     ~MembraneMesh();
+
+    PinnedBuffer<int> adjacent, degrees;
+    PinnedBuffer<float> initialLengths, initialAreas, initialDotProducts;
+
 
 protected:
     void findAdjacent();

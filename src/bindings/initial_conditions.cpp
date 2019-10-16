@@ -24,7 +24,6 @@ void exportInitialConditions(py::module& m)
         )");
 
     
-
     py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
         Set particles according to given position and velocity arrays.
     )")
@@ -39,7 +38,8 @@ void exportInitialConditions(py::module& m)
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
     )")
-        .def(py::init<PyTypes::VectorOfFloat7, float>(), "com_q"_a, "global_scale"_a=1.0, R"(
+        .def(py::init<const std::vector<ComQ>&, float>(),
+             "com_q"_a, "global_scale"_a=1.0, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -66,7 +66,8 @@ void exportInitialConditions(py::module& m)
         according to the template .xyz file and then the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<PyTypes::VectorOfFloat7, std::string>(), "com_q"_a, "xyz_filename"_a, R"(
+        .def(py::init<const std::vector<ComQ>&, const std::string&>(),
+             "com_q"_a, "xyz_filename"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -81,7 +82,8 @@ void exportInitialConditions(py::module& m)
                     The number of particles in the file must be the same as in number of particles per object
                     in the corresponding PV
         )")
-        .def(py::init<PyTypes::VectorOfFloat7, const PyTypes::VectorOfFloat3&>(), "com_q"_a, "coords"_a, R"(
+        .def(py::init<const std::vector<ComQ>&, const std::vector<float3>&>(),
+             "com_q"_a, "coords"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -95,7 +97,7 @@ void exportInitialConditions(py::module& m)
                     The number of coordinates must be the same as in number of particles per object
                     in the corresponding PV
         )")
-        .def(py::init<PyTypes::VectorOfFloat7, const PyTypes::VectorOfFloat3&, const PyTypes::VectorOfFloat3&>(),
+        .def(py::init<const std::vector<ComQ>&, const std::vector<float3>&, const std::vector<float3>&>(),
              "com_q"_a, "coords"_a, "init_vels"_a, R"(
             Args:
                 com_q:
@@ -121,7 +123,7 @@ void exportInitialConditions(py::module& m)
         the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<PyTypes::VectorOfFloat7, std::function<PyTypes::float3(float)>, std::function<float(float)>, float, PyTypes::float3>(),
+        .def(py::init<const std::vector<ComQ>&, std::function<float3(float)>, std::function<float(float)>, float, float3>(),
              "com_q"_a, "center_line"_a, "torsion"_a, "a"_a, "initial_frame"_a=RodIC::DefaultFrame, R"(
             Args:
                 com_q:
