@@ -151,33 +151,30 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
     }
 }
 
-Mirheo::Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     initializedMpi = true;
 
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
-          checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
 }
 
-Mirheo::Mirheo(long commAdress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(long commAdress, int3 nranks3D, float3 globalDomainSize, float dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
     MPI_Comm comm = *((MPI_Comm*) commAdress);
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
-          checkpointInfo, gpuAwareMPI);    
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);    
 }
 
-Mirheo::Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
+Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, float3 globalDomainSize, float dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &this->comm);
-    init( make_int3(nranks3D), make_float3(globalDomainSize), dt, logInfo,
-          checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
 }
 
 static void safeCommFree(MPI_Comm *comm)

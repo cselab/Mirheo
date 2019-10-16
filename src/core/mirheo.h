@@ -34,14 +34,14 @@ struct LogInfo
 class Mirheo
 {
 public:
-    Mirheo(PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+    Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    Mirheo(long commAddress, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+    Mirheo(long commAddress, int3 nranks3D, float3 globalDomainSize, float dt,
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    Mirheo(MPI_Comm comm, PyTypes::int3 nranks3D, PyTypes::float3 globalDomainSize, float dt,
-          LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+    Mirheo(MPI_Comm comm, int3 nranks3D, float3 globalDomainSize, float dt,
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
     
