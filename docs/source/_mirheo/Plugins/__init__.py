@@ -514,7 +514,7 @@ def createDensityOutlet():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7f4d89537ca8>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: float3 = float3(1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.Average3D, Plugins.UniformCartesianDumper]
 
 
         Create :any:`Average3D` plugin
@@ -547,7 +547,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: float3 = <float3 object at 0x7f4d89537d18>, channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
+    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: float3 = float3(1.0, 1.0, 1.0), channels: List[Tuple[str, str]], path: str = 'xdmf/') -> Tuple[Plugins.AverageRelative3D, Plugins.UniformCartesianDumper]
 
 
               

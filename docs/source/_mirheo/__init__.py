@@ -5,9 +5,13 @@ class ComQ:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(arg0: tuple) -> None
+1. __init__(arg0: float, arg1: float, arg2: float, arg3: float, arg4: float, arg5: float, arg6: float) -> None
 
-2. __init__(arg0: list) -> None
+2. __init__(arg0: float3, arg1: float4) -> None
+
+3. __init__(arg0: tuple) -> None
+
+4. __init__(arg0: list) -> None
 
         """
         pass
@@ -434,9 +438,11 @@ class float2:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(arg0: tuple) -> None
+1. __init__(arg0: float, arg1: float) -> None
 
-2. __init__(arg0: list) -> None
+2. __init__(arg0: tuple) -> None
+
+3. __init__(arg0: list) -> None
 
         """
         pass
@@ -460,9 +466,11 @@ class float3:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(arg0: tuple) -> None
+1. __init__(arg0: float, arg1: float, arg2: float) -> None
 
-2. __init__(arg0: list) -> None
+2. __init__(arg0: tuple) -> None
+
+3. __init__(arg0: list) -> None
 
         """
         pass
@@ -492,9 +500,11 @@ class float4:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(arg0: tuple) -> None
+1. __init__(arg0: float, arg1: float, arg2: float, arg3: float) -> None
 
-2. __init__(arg0: list) -> None
+2. __init__(arg0: tuple) -> None
+
+3. __init__(arg0: list) -> None
 
         """
         pass
@@ -530,9 +540,11 @@ class int3:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(arg0: tuple) -> None
+1. __init__(arg0: int, arg1: int, arg2: int) -> None
 
-2. __init__(arg0: list) -> None
+2. __init__(arg0: tuple) -> None
+
+3. __init__(arg0: list) -> None
 
         """
         pass

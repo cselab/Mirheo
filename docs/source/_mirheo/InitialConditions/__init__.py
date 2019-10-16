@@ -145,7 +145,7 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], float3], torsion: Callable[[float], float], a: float, initial_frame: float3 = <float3 object at 0x7f4d89516d18>) -> None
+        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], float3], torsion: Callable[[float], float], a: float, initial_frame: float3 = float3(inf, inf, inf)) -> None
 
 
             Args:
