@@ -119,7 +119,7 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](__UNUSED float s)
@@ -135,9 +135,9 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
-    
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+
+    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -166,7 +166,7 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](float s)
@@ -182,9 +182,9 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
-    
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+
+    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 

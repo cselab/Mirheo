@@ -186,7 +186,7 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](float s)
@@ -202,9 +202,9 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
-    
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+
+    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -248,7 +248,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](float s)
@@ -264,9 +264,9 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
-    
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+
+    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
 
     RodParameters params;
     params.kBending = make_float3(kBending);
@@ -316,7 +316,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](float s)
@@ -332,9 +332,10 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
+
     
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+    const ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
 
@@ -379,7 +380,7 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
         auto r = centerLine(s);
-        return PyTypes::float3({(float) r.x, (float) r.y, (float) r.z});
+        return float3({(float) r.x, (float) r.y, (float) r.z});
     };
     
     RodIC::MappingFunc1D mirTorsion = [&](float s)
@@ -395,9 +396,9 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     float mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
-    
-    RodIC ic({{L/2, L/2, L/2, 1.0f, 0.0f, 0.0f}},
-             mirCenterLine, mirTorsion, a);
+
+    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     RodParameters params;
     params.kBending = make_float3(0.f);

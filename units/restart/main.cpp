@@ -108,7 +108,7 @@ TEST (RESTART, pv)
 // rejection sampling for particles inside ellipsoid
 static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
 {
-    PyTypes::VectorOfFloat3 pos;
+    std::vector<float3> pos;
     pos.reserve(n);
 
     Ellipsoid ell(axes);
@@ -120,16 +120,16 @@ static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
     
     while (static_cast<int>(pos.size()) < n)
     {
-        float3 r {dx(gen), dy(gen), dz(gen)};
+        const float3 r {dx(gen), dy(gen), dz(gen)};
         if (ell.inOutFunction(r) < 0.f)
-            pos.push_back({r.x, r.y, r.z});
+            pos.push_back(r);
     }
     return pos;
 }
 
 static auto generateObjectComQ(int n, float3 L, long seed=12345)
 {
-    PyTypes::VectorOfFloat7 com_q;
+    std::vector<ComQ> com_q;
     com_q.reserve(n);
 
     std::mt19937 gen(seed);
@@ -140,18 +140,15 @@ static auto generateObjectComQ(int n, float3 L, long seed=12345)
     float3 com {0.f, 0.f, 0.f};
     for (int i = 0; i < n; ++i)
     {
-        float3 r {dx(gen), dy(gen), dz(gen)};
+        const float3 r {dx(gen), dy(gen), dz(gen)};
+        const float4 q {1.f, 0.f, 0.f, 0.f};
         com += r;
-        com_q.push_back({r.x, r.y, r.z, 1.f, 0.f, 0.f, 0.f});
+        com_q.push_back({r, q});
     }
     com *= 1.0 / n;
 
-    for (auto& r : com_q)
-    {
-        r[0] -= com.x;
-        r[1] -= com.y;
-        r[2] -= com.z;
-    }
+    for (auto& rq : com_q)
+        rq.r -= com;
     
     return com_q;
 }
