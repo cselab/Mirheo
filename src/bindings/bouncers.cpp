@@ -86,6 +86,7 @@ void exportBouncers(py::module& m)
                 \mathbf{u}_\text{new} = \mathbf{u}_\text{wall} + \sqrt{\frac {k_BT} {m}} \xi,
 
             where :math:`\xi \sim \mathcal{N}\left(0, 1\right)`.
+            
 
 
     )");

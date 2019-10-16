@@ -82,11 +82,9 @@ bool ObjectRedistributor::needExchange(int id)
 
 void ObjectRedistributor::attach(ObjectVector *ov)
 {
-    int id = objects.size();
+    const int id = objects.size();
     objects.push_back(ov);
 
-    auto rv = dynamic_cast<RodVector*>(ov);
-    
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
         return (namedDesc.second->persistence == DataManager::PersistenceMode::Active) ||
@@ -94,9 +92,9 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     };
     
     std::unique_ptr<ObjectPacker> packer;
-    if (rv == nullptr) packer = std::make_unique<ObjectPacker>(predicate);
-    else               packer = std::make_unique<RodPacker>   (predicate);
-        
+    if (auto rv = dynamic_cast<RodVector*>(ov)) packer = std::make_unique<RodPacker>   (predicate);
+    else                                        packer = std::make_unique<ObjectPacker>(predicate);
+    
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
     packers.push_back(std::move(packer));
@@ -140,7 +138,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
         helper->computeSendOffsets_Dev2Dev(stream);
     }
 
-    int nObjs = helper->send.sizes[bulkId];
+    const int nObjs = helper->send.sizes[bulkId];
     debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
 
     // Early termination support
