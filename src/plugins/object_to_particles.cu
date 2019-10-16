@@ -4,6 +4,8 @@
 #include <core/utils/kernel_launch.h>
 #include <core/simulation.h>
 
+// NOTE: Work in progress! Currently, instead of transforming the object to
+// particles, the objects are simply deleted.
 
 // TODO: Some mechanism for arbitrary types. Something like walls have now, but
 // then without duplication of code here and there?

@@ -23,6 +23,7 @@ __global__ void removeMarkedObjects(ObjectPackerHandler src, ObjectPackerHandler
     src.blockCopyTo(dst, srcIdx, dstIdx);
 }
 
+/*
 __global__ void copyMarkedObjectParticles(ObjectPackerHandler src, ParticlePackerHandler dst, int oldNumParticles, bool *marks, int *prefixSum)
 {
     int i = blockIdx.x;
@@ -34,6 +35,7 @@ __global__ void copyMarkedObjectParticles(ObjectPackerHandler src, ParticlePacke
     int dstPartIdOffset = oldNumParticles + (i - prefixSum[i]) * src.objSize;
     src.blockCopyParticlesTo(dst, srcObjId, dstPartIdOffset);
 }
+*/
 
 } // namespace ObjectDeleterDetails
 
@@ -85,7 +87,8 @@ void ObjectDeleter::deleteObjects(LocalObjectVector *lov, cudaStream_t stream, L
     cub::DeviceScan::ExclusiveSum(scanBuffer.devPtr(), bufferSize, marks.devPtr(), prefixSum.devPtr(), numOld + 1, stream);
 
     // Copy the total number of removed objects.
-    CUDA_Check( cudaMemcpyAsync(numRemoved.hostPtr(), prefixSum.devPtr() + numOld, sizeof(int), cudaMemcpyDeviceToHost, stream) );
+    CUDA_Check( cudaMemcpyAsync(numRemoved.hostPtr(), prefixSum.devPtr() + numOld,
+                                sizeof(decltype(prefixSum)::value_type), cudaMemcpyDeviceToHost, stream) );
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     if (numRemoved[0] == 0)
@@ -102,8 +105,9 @@ void ObjectDeleter::deleteObjects(LocalObjectVector *lov, cudaStream_t stream, L
 
     // If requested, copy the object particles to another particle vector.
     if (lpvTarget != nullptr) {
-        assert(false);  // Not implemented yet, as it would be called at a wrong time.
+        die("lpvTarget not implemented yet.");  // beforeCelllists vs afterIntegration problem.
 
+        /*
         // Not sure about the performance of this part...
         partPackerDst.update(lpvTarget, stream);
         lpvTarget->resize(lpvTarget->size() + numNew * lov->objSize, stream);
@@ -112,6 +116,7 @@ void ObjectDeleter::deleteObjects(LocalObjectVector *lov, cudaStream_t stream, L
             numOld, nthreads, 0, stream,
             packerSrc.handler(), partPackerDst.handler(), lpvTarget->size(),
             marks.devPtr(), prefixSum.devPtr());
+        */
     }
 
     SAFE_KERNEL_LAUNCH(

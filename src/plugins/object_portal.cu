@@ -152,13 +152,6 @@ ObjectPortalCommon::ObjectPortalCommon(
     MPI_Check( MPI_Comm_test_inter(interCommExternal, &flag) );
     if (!flag)
         throw std::invalid_argument("Expected an intercommunicator, got an intracommunicator.");
-
-    float3 hi = position + size;
-    fprintf(stderr, "\nObject portal [%s]:\n", name.c_str());
-    fprintf(stderr, "        lo = (%f %f %f)\n", position.x, position.y, position.z);
-    fprintf(stderr, "        hi = (%f %f %f)\n", hi.x, hi.y, hi.z);
-    fprintf(stderr, "        localLo = (%f %f %f)\n", localLo.x, localLo.y, localLo.z);
-    fprintf(stderr, "        localHi = (%f %f %f)\n", localHi.x, localHi.y, localHi.z);
 }
 
 ObjectPortalCommon::~ObjectPortalCommon() = default;
@@ -167,7 +160,7 @@ void ObjectPortalCommon::setup(Simulation* simulation, const MPI_Comm& comm, con
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    // UUIDs are not active because we send them separately.
+    // Set UUIDs as non-active because we send them separately.
     ov = simulation->getOVbyNameOrDie(ovName);
     ov->requireDataPerObject<int64_t>(uuidChannelName, DataManager::PersistenceMode::None);
 }

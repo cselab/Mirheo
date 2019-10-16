@@ -9,18 +9,17 @@
 
 class ParticleVector;
 
-
 class ParticlePortalCommon : public SimulationPlugin
 {
 protected:
     ParticlePortalCommon(const MirState *state, std::string name, std::string pvName, float3 position, float3 size, int tag, MPI_Comm interCommExternal);
 
 public:
-    bool needPostproc() override { return false; }
-
     ~ParticlePortalCommon();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
+
+    bool needPostproc() override { return false; }
 
 protected:
     std::string pvName;
@@ -39,12 +38,9 @@ class ParticlePortalSource : public ParticlePortalCommon
 {
 public:
     ParticlePortalSource(const MirState *state, std::string name, std::string pvName, float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal);
-
     ~ParticlePortalSource();
 
     void beforeCellLists(cudaStream_t stream) override;
-
-    bool needPostproc() override { return false; }
 
 private:
     float3 shift;
@@ -60,7 +56,6 @@ public:
     // Using the same interface as for portal source, even though we don't need
     // `src` here.
     ParticlePortalDestination(const MirState *state, std::string name, std::string pvName, float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal);
-
     ~ParticlePortalDestination();
 
     void beforeCellLists(cudaStream_t stream) override;

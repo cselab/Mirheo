@@ -69,6 +69,7 @@ static void extractChannelsInfos(const std::vector< std::pair<std::string, std::
 
 static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
 {
+    pvNames.reserve(pvs.size());
     for (auto &pv : pvs)
         pvNames.push_back(pv->name);
 }
@@ -161,17 +162,16 @@ createDensityOutletPlugin(bool computeTask, const MirState *state, std::string n
 }
 
 inline pair_shared< PlaneOutletPlugin, PostprocessPlugin >
-createPlaneOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                        PyTypes::float4 plane)
+createPlaneOutletPlugin(bool computeTask, const MirState *state, std::string name,
+                        std::vector<ParticleVector*> pvs, float4 plane)
 {
+    if (!computeTask)
+        return { nullptr, nullptr };
+
     std::vector<std::string> pvNames;
+    extractPVsNames(pvs, pvNames);
 
-    if (computeTask) extractPVsNames(pvs, pvNames);
-
-    auto simPl = computeTask ?
-        std::make_shared<PlaneOutletPlugin> (state, name, std::move(pvNames), make_float4(plane) )
-        : nullptr;
-    return { simPl, nullptr };
+    return { std::make_shared<PlaneOutletPlugin> (state, name, std::move(pvNames), plane), nullptr };
 }
 
 inline pair_shared< RateOutletPlugin, PostprocessPlugin >
@@ -371,40 +371,40 @@ createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::str
 
 inline pair_shared< ObjectPortalDestination, PostprocessPlugin >
 createObjectPortalDestination(bool computeTask, const MirState *state, std::string name,
-                              ObjectVector *ov, PyTypes::float3 src, PyTypes::float3 dst,
-                              PyTypes::float3 size, int tag, long interCommPtr)
+                              ObjectVector *ov, float3 src, float3 dst, float3 size,
+                              int tag, long interCommPtr)
 {
     if (!computeTask)
         return { nullptr, nullptr };
 
     MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
     auto simPl = std::make_shared<ObjectPortalDestination> (
-            state, name, ov->name, make_float3(src), make_float3(dst), make_float3(size), tag, interComm);
+            state, name, ov->name, src, dst, size, tag, interComm);
     return { std::move(simPl), nullptr };
 }
 
 inline pair_shared< ObjectPortalSource, PostprocessPlugin >
 createObjectPortalSource(bool computeTask, const MirState *state, std::string name,
-                         ObjectVector *ov, PyTypes::float3 src, PyTypes::float3 dst,
-                         PyTypes::float3 size, PyTypes::float4 plane, int tag, long interCommPtr)
+                         ObjectVector *ov, float3 src, float3 dst, float3 size, float4 plane,
+                         int tag, long interCommPtr)
 {
     if (!computeTask)
         return { nullptr, nullptr };
 
     MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
     auto simPl = std::make_shared<ObjectPortalSource> (
-            state, name, ov->name, make_float3(src), make_float3(dst), make_float3(size), make_float4(plane), tag, interComm);
+            state, name, ov->name, src, dst, size, plane, tag, interComm);
     return { std::move(simPl), nullptr };
 }
 
 inline pair_shared< ObjectToParticlesPlugin, PostprocessPlugin >
 createObjectToParticlesPlugin(bool computeTask, const MirState *state, std::string name,
-                              ObjectVector *ov, ParticleVector *pv, PyTypes::float4 plane)
+                              ObjectVector *ov, ParticleVector *pv, float4 plane)
 {
     if (!computeTask)
         return { nullptr, nullptr };
 
-    return { std::make_shared<ObjectToParticlesPlugin> (state, name, ov->name, pv->name, make_float4(plane)), nullptr };
+    return { std::make_shared<ObjectToParticlesPlugin> (state, name, ov->name, pv->name, plane), nullptr };
 }
 
 inline pair_shared< ParticleChannelSaverPlugin, PostprocessPlugin >
@@ -442,22 +442,22 @@ createParticleDragPlugin(bool computeTask, const MirState *state, std::string na
 
 inline pair_shared< ParticlePortalDestination, PostprocessPlugin >
 createParticlePortalDestination(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                PyTypes::float3 src, PyTypes::float3 dst, PyTypes::float3 size, int tag, long comm_ptr)
+                                float3 src, float3 dst, float3 size, int tag, long comm_ptr)
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalDestination> (
-            state, name, pv->name, make_float3(src), make_float3(dst), make_float3(size), tag, comm) : nullptr;
-    return { simPl, nullptr };
+            state, name, pv->name, src, dst, size, tag, comm) : nullptr;
+    return { std::move(simPl), nullptr };
 }
 
 inline pair_shared< ParticlePortalSource, PostprocessPlugin >
 createParticlePortalSource(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                PyTypes::float3 src, PyTypes::float3 dst, PyTypes::float3 size, int tag, long comm_ptr)
+                                float3 src, float3 dst, float3 size, int tag, long comm_ptr)
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalSource> (
-            state, name, pv->name, make_float3(src), make_float3(dst), make_float3(size), tag, comm) : nullptr;
-    return { simPl, nullptr };
+            state, name, pv->name, src, dst, size, tag, comm) : nullptr;
+    return { std::move(simPl), nullptr };
 }
 
 inline pair_shared< PinObjectPlugin, ReportPinObjectPlugin >

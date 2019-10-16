@@ -117,6 +117,8 @@ void test_delete(const std::vector<int> &mask, const int objSize)
 
 void test_large_delete(int N, double p, int objSize)
 {
+    // Was not sure if cub::ExclusiveSum works fine with `bool` markers that
+    // get accumulated into `int`s. This shows it works fine.
     std::vector<int> mask(N);
     std::mt19937 gen;
     std::uniform_real_distribution<double> distr(0, 1);

@@ -62,7 +62,7 @@ public:
 
     friend void swap(DataManager& a, DataManager& b);
 
-    /// Copy channel names and their types of a given DataManager.
+    /// Copy channel names and their types from a given DataManager.
     /// Does not copy data or resize buffers. New buffers are empty.
     void copyChannelMap(const DataManager &);
     
@@ -172,7 +172,7 @@ public:
     /// Get constant entry from channelMap or die if it is not found
     const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
 
-public:
+private:
     /// Delete the channel with the given name.
     void deleteChannel(const std::string &name);
 

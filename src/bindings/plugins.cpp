@@ -180,11 +180,20 @@ void exportPlugins(py::module& m)
     )");
 
     py::handlers_class<ObjectPortalDestination>(m, "ObjectPortalDestination", pysim, R"(
-        This plugin receives object vector content from external code.
+        This plugin receives object vector content from another Mirheo instance.
+        Currently works only for single rank simulations.
     )");
 
     py::handlers_class<ObjectPortalSource>(m, "ObjectPortalSource", pysim, R"(
-        This plugin sends object vector content to external code.
+        This plugin sends object vector content to another Mirheo instance.
+        Currently works only for single rank simulations.
+
+        Sends to destination all objects that touch the portal box. The
+        destination tracks portal-assigned IDs to differentiate between objects
+        that have already arrived and that are new to the destination side. To
+        treat objects as new when they cross the periodic boundary, a marker
+        plane must be given. Objects are considered then new as soon as their
+        center of mass crosses the plane.
     )");
 
     py::handlers_class<ObjectToParticlesPlugin>(m, "ObjectToParticlesPlugin", pysim, R"(
@@ -206,11 +215,13 @@ void exportPlugins(py::module& m)
     )");
 
     py::handlers_class<ParticlePortalDestination>(m, "ParticlePortalDestination", pysim, R"(
-        This plugin receives particle vector content from external code.
+        This plugin receives particle vector content from another Mirheo instance.
+        Currently works only for single rank simulations.
     )");
 
     py::handlers_class<ParticlePortalSource>(m, "ParticlePortalSource", pysim, R"(
-        This plugin sends particle vector content to external code.
+        This plugin sends particle vector content to another Mirheo instance.
+        Currently works only for single rank simulations.
     )");
 
     
@@ -640,7 +651,6 @@ void exportPlugins(py::module& m)
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 
-
     m.def("__createForceSaver", &PluginFactory::createForceSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, R"(
         Create :any:`ForceSaver` plugin
@@ -703,9 +713,12 @@ void exportPlugins(py::module& m)
 
         Args:
             name: name of the plugin
-            ...
-            ...
-            ..
+            ov: target object vector
+            src: lower corner of the portal on the source side
+            dst: lower corner of the portal on the destination side
+            size: portal size
+            tag: tag to use for MPI communication
+            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
     )");
 
     m.def("__createObjectPortalSource", &PluginFactory::createObjectPortalSource,
@@ -714,9 +727,14 @@ void exportPlugins(py::module& m)
 
         Args:
             name: name of the plugin
-            ...
-            ...
-            ..
+            ov: source object vector
+            src: lower corner of the portal on the source side
+            dst: lower corner of the portal on the destination side
+            size: portal size
+            plane: plane after which the objects get a new unique identifier
+                Should be far from the source portal and slightly away of the domain boundary.
+            tag: tag to use for MPI communication
+            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
     )");
 
     m.def("__createObjectToParticlesPlugin", &PluginFactory::createObjectToParticlesPlugin,

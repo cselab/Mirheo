@@ -110,13 +110,6 @@ ParticlePortalCommon::ParticlePortalCommon(
     MPI_Check( MPI_Comm_test_inter(interCommExternal, &flag) );
     if (!flag)
         throw std::invalid_argument("Expected an intercommunicator, got an intracommunicator.");
-
-    float3 hi = position + size;
-    fprintf(stderr, "\nParticle portal [%s]:\n", name.c_str());
-    fprintf(stderr, "        lo = (%f %f %f)\n", position.x, position.y, position.z);
-    fprintf(stderr, "        hi = (%f %f %f)\n", hi.x, hi.y, hi.z);
-    fprintf(stderr, "        localLo = (%f %f %f)\n", localLo.x, localLo.y, localLo.z);
-    fprintf(stderr, "        localHi = (%f %f %f)\n", localHi.x, localHi.y, localHi.z);
 }
 
 ParticlePortalCommon::~ParticlePortalCommon() = default;
