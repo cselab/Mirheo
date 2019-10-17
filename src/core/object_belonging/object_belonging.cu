@@ -58,7 +58,7 @@ static void copyToLpv(int start, int n, const float4 *pos, const float4 *vel, Lo
                                 cudaMemcpyDeviceToDevice, stream) );
 }
 
-void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, ParticleVector* pvIn, ParticleVector* pvOut, cudaStream_t stream)
+void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream)
 {
     if (dynamic_cast<ObjectVector*>(src) != nullptr)
         error("Trying to split object vector %s into two per-particle, probably that's not what you wanted",
@@ -87,17 +87,16 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector* src, Partic
 
     nInside. clearDevice(stream);
     nOutside.clearDevice(stream);
-    tags.downloadFromDevice(stream);
 
     PVview view(src, src->local());
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            ObjectBelongingKernels::copyInOut,
-            getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, tags.devPtr(),
-            bufInsPos.devPtr(), bufInsVel.devPtr(),
-            bufOutPos.devPtr(), bufOutVel.devPtr(),
-            nInside.devPtr(), nOutside.devPtr() );
+        ObjectBelongingKernels::copyInOut,
+        getNblocks(view.size, nthreads), nthreads, 0, stream,
+        view, tags.devPtr(),
+        bufInsPos.devPtr(), bufInsVel.devPtr(),
+        bufOutPos.devPtr(), bufOutVel.devPtr(),
+        nInside.devPtr(), nOutside.devPtr() );
 
     CUDA_Check( cudaStreamSynchronize(stream) );
 
@@ -128,17 +127,17 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl,
 {
     tagInner(pv, cl, stream);
 
-    nInside.clear(stream);
+    nInside .clear(stream);
     nOutside.clear(stream);
 
     // Only count
     PVview view(pv, pv->local());
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-                ObjectBelongingKernels::copyInOut,
-                getNblocks(view.size, nthreads), nthreads, 0, stream,
-                view, tags.devPtr(), nullptr, nullptr, nullptr, nullptr,
-                nInside.devPtr(), nOutside.devPtr() );
+        ObjectBelongingKernels::copyInOut,
+        getNblocks(view.size, nthreads), nthreads, 0, stream,
+        view, tags.devPtr(), nullptr, nullptr, nullptr, nullptr,
+        nInside.devPtr(), nOutside.devPtr() );
 
     nInside. downloadFromDevice(stream, ContainersSynch::Asynch);
     nOutside.downloadFromDevice(stream, ContainersSynch::Synch);
