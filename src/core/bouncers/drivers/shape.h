@@ -22,11 +22,11 @@ __device__ static inline float3 rescue(float3 candidate, float dt, float tol, co
         const float v = shape.inOutFunction(candidate);
         if (v > tol) break;
 
-        float3 rndShift;
-        float seed0 = candidate.x - floorf(candidate.x) / i;
-        float seed1 = candidate.y - floorf(candidate.y) * i;
-        float seed2 = candidate.z - floorf(candidate.z) + i;
+        const float seed0 = candidate.x - floorf(candidate.x) / i;
+        const float seed1 = candidate.y - floorf(candidate.y) * i;
+        const float seed2 = candidate.z - floorf(candidate.z) + i;
         
+        float3 rndShift;
         rndShift.x = Saru::mean0var1(seed0, seed1, seed2);
         rndShift.y = Saru::mean0var1(rndShift.x, seed0, seed1);
         rndShift.z = Saru::mean0var1(rndShift.y, seed2, seed1 * seed0);
@@ -41,7 +41,7 @@ __device__ static inline float3 rescue(float3 candidate, float dt, float tol, co
 template <class Shape, class BounceKernel>
 __device__ static inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
-        int objId, int *validCells, int nCells,
+        int objId, const int *validCells, int nCells,
         CellListInfo cinfo, const float dt, const BounceKernel& bounceKernel)
 {
     const float threshold = 2e-5f;
@@ -80,9 +80,12 @@ __device__ static inline void bounceCellArray(
 
             if (shape.inOutFunction(newCoo) < 0.0f)
             {
-                printf("Bounce-back rescue failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f (rescued: %g).\n",
-                       p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
-                       shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
+                printf("Bounce-back rescue failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g (rescued: %g).\n",
+                       p.getId(),
+                       p.r.x, p.r.y, p.r.z,
+                       coo.x, coo.y, coo.z,
+                       shape.inOutFunction(oldCoo),
+                       shape.inOutFunction(coo),
                        shape.inOutFunction(newCoo));
 
                 newCoo = oldCoo;
@@ -103,10 +106,14 @@ __device__ static inline void bounceCellArray(
             // If smth went notoriously bad
             if (shape.inOutFunction(newCoo) < 0.0f)
             {
-                printf("Bounce-back failed on particle %d (%f %f %f) (local: (%g %g %g))  %f -> %f to %f, alpha %f. Recovering to old position\n",
-                       p.i1, p.r.x, p.r.y, p.r.z, coo.x, coo.y, coo.z,
-                       shape.inOutFunction(oldCoo), shape.inOutFunction(coo),
-                       shape.inOutFunction(newCoo - threshold*normal), alpha);
+                printf("Bounce-back failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g to %g, alpha %f. Recovering to old position\n",
+                       p.getId(),
+                       p.r.x, p.r.y, p.r.z,
+                       coo.x, coo.y, coo.z,
+                       shape.inOutFunction(oldCoo),
+                       shape.inOutFunction(coo),
+                       shape.inOutFunction(newCoo - threshold*normal),
+                       alpha);
 
                 newCoo = oldCoo;
             }

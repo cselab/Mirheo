@@ -21,7 +21,7 @@ __global__ void collectRigidForces(ROVview ovView)
 
     RigidReal3 force {0,0,0};
     RigidReal3 torque{0,0,0};
-    float3 com = make_float3( ovView.motions[objId].r );
+    const float3 com = make_float3( ovView.motions[objId].r );
 
     // Find the total force and torque
 #pragma unroll 3
