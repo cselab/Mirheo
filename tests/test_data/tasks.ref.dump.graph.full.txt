@@ -202,7 +202,6 @@
 		<edge source="17" target="26" />
 		<edge source="17" target="29" />
 		<edge source="16" target="17" />
-		<edge source="28" target="17" />
 		<edge source="18" target="11" />
 		<edge source="18" target="19" />
 		<edge source="9" target="18" />
@@ -226,7 +225,6 @@
 		<edge source="27" target="28" />
 		<edge source="2" target="27" />
 		<edge source="36" target="27" />
-		<edge source="28" target="17" />
 		<edge source="28" target="42" />
 		<edge source="2" target="28" />
 		<edge source="27" target="28" />
