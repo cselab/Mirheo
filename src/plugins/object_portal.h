@@ -13,16 +13,20 @@ class ObjectVector;
 class ObjectPortalCommon : public SimulationPlugin
 {
 protected:
-    ObjectPortalCommon(const MirState *state, std::string name, std::string ovName, float3 position, float3 size, int tag, MPI_Comm interCommExternal);
+    ObjectPortalCommon(const MirState *state, std::string name, std::string ovName,
+                       float3 position, float3 size, int tag, MPI_Comm interCommExternal,
+                       PackPredicate predicate);
 
 public:
-    bool needPostproc() override { return false; }
-
     ~ObjectPortalCommon();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
+    bool needPostproc() override { return false; }
+
 protected:
+    bool packPredicate(const DataManager::NamedChannelDesc &) noexcept;
+
     std::string ovName;
     ObjectVector *ov;
     std::string uuidChannelName;
@@ -30,22 +34,24 @@ protected:
     int tag;
     MPI_Comm interCommExternal;
 
-    float3 localLo;  // Bounds of the local side of the portal.
-    float3 localHi;
+    float3 localLo;  // Bounds of the local side of the portal
+    float3 localHi;  // in the local coordinate system.
     ObjectPacker packer;
 };
+
 
 class ObjectPortalSource : public ObjectPortalCommon
 {
 public:
     ObjectPortalSource(const MirState *state, std::string name, std::string ovName, float3 src, float3 dst, float3 size, float4 plane, int tag, MPI_Comm interCommExternal);
-
     ~ObjectPortalSource();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
 
 private:
+    bool packPredicate(const DataManager::NamedChannelDesc &) noexcept;
+
     std::string oldSideChannelName;
     float4 plane;
     float3 shift;
@@ -64,7 +70,6 @@ class ObjectPortalDestination : public ObjectPortalCommon
 {
 public:
     ObjectPortalDestination(const MirState *state, std::string name, std::string ovName, float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal);
-
     ~ObjectPortalDestination();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

@@ -9,12 +9,6 @@
 
 namespace ObjectPortal {
 
-static bool packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept {
-    // Positions are not Active, so we accept them explicitly.
-    return namedDesc.second->persistence == DataManager::PersistenceMode::Active
-        || namedDesc.first == ChannelNames::positions;
-};
-
 static __device__ bool areBoxesIntersecting(const float3 &lo1, const float3 &hi1,
                                             const float3 &lo2, const float3 &hi2)
 {
@@ -90,7 +84,6 @@ __global__ void matchUUIDs(
 
     if (localUUIDs[lid] == inUUIDs[iid]) {
         int idx = atomicAdd(&counters[0], 1);
-        atomicAdd(&counters[1], 1);
         indexPairs[2 * idx]     = iid;  // Source index (incoming buffer).
         indexPairs[2 * idx + 1] = lid;  // Destination index (object vector).
         visited[iid] = 1;
@@ -130,7 +123,8 @@ __global__ void unpackObjects(
     int srcIdx = indexPairs[2 * i];
     int dstIdx = indexPairs[2 * i + 1];
     handler.blockUnpackShift(numRecv, inBuffer, srcIdx, dstIdx, shift);
-    localUUIDs[dstIdx] = inUUIDs[i];
+    if (threadIdx.x == 0)
+        localUUIDs[dstIdx] = inUUIDs[i];
 }
 
 } // namespace ObjectPortal
@@ -138,7 +132,8 @@ __global__ void unpackObjects(
 
 ObjectPortalCommon::ObjectPortalCommon(
         const MirState *state, std::string name, std::string ovName,
-        float3 position, float3 size, int tag, MPI_Comm interCommExternal) :
+        float3 position, float3 size, int tag, MPI_Comm interCommExternal,
+        PackPredicate packPredicate) :
     SimulationPlugin(state, name),
     ovName(ovName),
     uuidChannelName(name + "_UUID"),
@@ -146,7 +141,7 @@ ObjectPortalCommon::ObjectPortalCommon(
     localHi(state->domain.global2local(position + size)),
     tag(tag),
     interCommExternal(interCommExternal),
-    packer(ObjectPortal::packPredicate)
+    packer(std::move(packPredicate))
 {
     int flag;
     MPI_Check( MPI_Comm_test_inter(interCommExternal, &flag) );
@@ -160,30 +155,50 @@ void ObjectPortalCommon::setup(Simulation* simulation, const MPI_Comm& comm, con
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    // Set UUIDs as non-active because we send them separately.
     ov = simulation->getOVbyNameOrDie(ovName);
-    ov->requireDataPerObject<int64_t>(uuidChannelName, DataManager::PersistenceMode::None);
+    ov->requireDataPerObject<int64_t>(uuidChannelName, DataManager::PersistenceMode::Active);
 }
 
+bool ObjectPortalCommon::packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept
+{
+    if (namedDesc.second->persistence == DataManager::PersistenceMode::None) {
+        // Positions are not Active, so we accept them explicitly.
+        return namedDesc.first == ChannelNames::positions;
+    } else {
+        // UUID is Active, but is sent separately for convenience.
+        return namedDesc.first != uuidChannelName;
+    }
+};
+
+bool ObjectPortalSource::packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept
+{
+    // oldSide is Active on the source side, but the destination doesn't have it.
+    return ObjectPortalCommon::packPredicate(namedDesc)
+        && namedDesc.first != oldSideChannelName;
+}
 
 ObjectPortalSource::ObjectPortalSource(
         const MirState *state, std::string name, std::string ovName,
         float3 src, float3 dst, float3 size, float4 plane, int tag, MPI_Comm interCommExternal) :
-    ObjectPortalCommon(state, name, ovName, src, size, tag, interCommExternal),
+    ObjectPortalCommon(
+        state, name, ovName, src, size, tag, interCommExternal,
+        [this](const auto &namedDesc) { return packPredicate(namedDesc); }),
     oldSideChannelName(name + "_oldSide"),
     plane(state->domain.global2localPlane(plane)),
     shift(state->domain.local2global(dst - src))  // (src local --> src global shift)
                                                   // + (src global --> dst global)
 {
+    uuidCounter.clearDevice(defaultStream);
 }
 
 ObjectPortalSource::~ObjectPortalSource() = default;
+
 
 void ObjectPortalSource::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     ObjectPortalCommon::setup(simulation, comm, interComm);
 
-    ov->requireDataPerObject<float>(oldSideChannelName, DataManager::PersistenceMode::None);
+    ov->requireDataPerObject<float>(oldSideChannelName, DataManager::PersistenceMode::Active);
 
     auto& manager    = ov->local()->dataPerObject;
     auto& localUUIDs = *manager.getData<int64_t>(uuidChannelName);
@@ -254,7 +269,9 @@ void ObjectPortalSource::afterIntegration(cudaStream_t stream)
 ObjectPortalDestination::ObjectPortalDestination(
         const MirState *state, std::string name, std::string ovName,
         __UNUSED float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal) :
-    ObjectPortalCommon(state, name, ovName, dst, size, tag, interCommExternal),
+    ObjectPortalCommon(
+            state, name, ovName, dst, size, tag, interCommExternal,
+            [this](const auto &namedDesc) { return packPredicate(namedDesc); }),
     shift(state->domain.global2local(float3{0.f, 0.f, 0.f}))  // (dst global -> dst local)
 {}
 
@@ -316,7 +333,7 @@ void ObjectPortalDestination::afterIntegration(cudaStream_t stream)
     auto& localUUIDs = *manager.getData<int64_t>(uuidChannelName);
     OVview view(ov, ov->local());
 
-    counters.clear(stream);
+    counters.clearDevice(stream);
     SAFE_KERNEL_LAUNCH(
         ObjectPortal::matchUUIDs,
         getNblocks(numRecv * view.nObjects, nthreads), nthreads, 0, stream,
@@ -331,8 +348,8 @@ void ObjectPortalDestination::afterIntegration(cudaStream_t stream)
 
     counters.downloadFromDevice(stream);
     int toOverwrite = counters[0];
-    int toInsert    = counters[1] - counters[0];
-    assert(counters[1] == numRecv);
+    int toInsert    = counters[1];
+    assert(toOverwrite + toInsert == numRecv);
 
     // 3. Copy all incoming objects to the obstacle vector.
     ov->local()->resize(view.size + toInsert * view.objSize, stream);
