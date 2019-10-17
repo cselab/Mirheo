@@ -46,7 +46,7 @@ public:
     ObjectVector(const MirState *state, std::string name, float mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
     
-    void findExtentAndCOM(cudaStream_t stream, ParticleVectorType type);
+    void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
 
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(ParticleVector::halo());  }

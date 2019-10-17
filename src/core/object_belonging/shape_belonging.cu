@@ -67,8 +67,8 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
 
-    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
-    ov->findExtentAndCOM(stream, ParticleVectorType::Halo);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Halo);
 
     auto pvView   = cl->getView<PVview>();
     auto rsovView = RSOVview<Shape>(rsov, rsov->local());

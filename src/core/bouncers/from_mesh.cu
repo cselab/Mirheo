@@ -83,7 +83,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
           activeOV->nObjects,  ov->name.c_str(),
           local ? "local" : "halo");
 
-    ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
+    ov->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
 
     int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
 

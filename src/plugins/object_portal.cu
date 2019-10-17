@@ -226,7 +226,7 @@ void ObjectPortalSource::afterIntegration(cudaStream_t stream)
 
     // 1a. Update COMs and UUIDs -- check if objects crossed the plane.
     // 1b. Find which objects overlap the portal box.
-    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
 
     OVview view(ov, ov->local());
     numObjectsToSend.clearDevice(stream);

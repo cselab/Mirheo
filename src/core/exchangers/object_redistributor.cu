@@ -112,7 +112,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     auto packer = packers[id].get();
     auto bulkId = helper->bulkId;
     
-    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
     
     OVview ovView(ov, lov);
 

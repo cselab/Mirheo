@@ -49,7 +49,7 @@ void ObjectToParticlesPlugin::afterIntegration(cudaStream_t stream)
 {
     const int nthreads = 128;
 
-    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
     if (ov->local()->nObjects || ov->halo()->nObjects)
         info("ObjectVector local = %d   halo = %d", ov->local()->nObjects, ov->halo()->nObjects);
     LocalObjectVector *lov = ov->local();

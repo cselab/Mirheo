@@ -54,7 +54,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStrea
           activeRV->nObjects,  rv->name.c_str(),
           local ? "local" : "halo");
 
-    rv->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
+    rv->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
 
     int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
 

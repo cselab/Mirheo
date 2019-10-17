@@ -154,8 +154,8 @@ void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream
 
     const int warpsPerObject = 1024;
 
-    ov->findExtentAndCOM(stream, ParticleVectorType::Local);
-    ov->findExtentAndCOM(stream, ParticleVectorType::Halo);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
+    ov->findExtentAndCOM(stream, ParticleVectorLocality::Halo);
 
     // Local
     auto lov = ov->local();

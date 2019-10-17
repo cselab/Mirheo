@@ -149,9 +149,9 @@ ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, 
 
 ObjectVector::~ObjectVector() = default;
 
-void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorType type)
+void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality)
 {
-    bool isLocal = (type == ParticleVectorType::Local);
+    const bool isLocal = (locality == ParticleVectorLocality::Local);
     auto lov = isLocal ? local() : halo();
 
     debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");

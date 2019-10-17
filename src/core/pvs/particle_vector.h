@@ -14,7 +14,7 @@
 
 class ParticleVector;
 
-enum class ParticleVectorType {
+enum class ParticleVectorLocality {
     Local,
     Halo
 };

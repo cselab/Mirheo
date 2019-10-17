@@ -59,7 +59,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool lo
           local ? rsov->local()->nObjects : rsov->halo()->nObjects, rsov->name.c_str(),
           local ? "local objs" : "halo objs");
 
-    ov->findExtentAndCOM(stream, local ? ParticleVectorType::Local : ParticleVectorType::Halo);
+    ov->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
 
     RSOVviewWithOldMotion<Shape> ovView(rsov, local ? rsov->local() : rsov->halo());
     PVviewWithOldParticles pvView(pv, pv->local());
