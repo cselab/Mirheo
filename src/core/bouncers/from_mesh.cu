@@ -74,22 +74,22 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
 /**
  * Bounce particles from objects with meshes
  */
-void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
+void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
-    auto activeOV = local ? ov->local() : ov->halo();
+    auto activeOV = ov->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
           pv->local()->size(), pv->name.c_str(),
           activeOV->nObjects,  ov->name.c_str(),
-          local ? "local" : "halo");
+          getParticleVectorLocalityStr(locality).c_str());
 
-    ov->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
+    ov->findExtentAndCOM(stream, locality);
 
-    int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
+    const int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased
-    int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
+    const int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
     coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
     coarseTable.nCollisions.clear(stream);
     MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
@@ -109,12 +109,12 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
     collisionTimes.resize_anew(pv->local()->size());
     collisionTimes.clear(stream);
 
-    int nthreads = 128;
+    const int nthreads = 128;
 
     // FIXME this is a hack
     if (rov)
     {
-        if (local)
+        if (locality == ParticleVectorLocality::Local)
             rov->local()->getMeshForces(stream)->clear(stream);
         else
             rov->halo()-> getMeshForces(stream)->clear(stream);
@@ -168,16 +168,16 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, bool local, cudaStre
 
     }, varBounceKernel);
 
-    if (rov != nullptr)
+    if (rov)
     {
-        if (!local)
+        if (locality == ParticleVectorLocality::Halo)
         {
             ROVview view(rov, rov->halo());
             RigidOperations::clearRigidForcesFromMotions(view, stream);
         }
 
         // make a fake view with vertices instead of particles
-        ROVview view(rov, local ? rov->local() : rov->halo());
+        ROVview view(rov, rov->get(locality));
         view.objSize   = ov->mesh->getNvertices();
         view.size      = view.nObjects * view.objSize;
         view.positions = vertexView.vertices;

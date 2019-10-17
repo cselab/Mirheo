@@ -28,6 +28,10 @@ public:
 
     LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(ParticleVector::local()); }
     LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(ParticleVector::halo());  }
+    LocalRigidObjectVector* get(ParticleVectorLocality locality)
+    {
+        return (locality == ParticleVectorLocality::Local) ? local() : halo();
+    }
 
 protected:
 

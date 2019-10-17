@@ -51,6 +51,6 @@ private:
 
     RigidObjectVector *rov;
 
-    void exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) override;
+    void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;
 };

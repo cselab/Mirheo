@@ -11,6 +11,14 @@
 
 constexpr const char *RestartPVIdentifier = "PV";
 
+std::string getParticleVectorLocalityStr(ParticleVectorLocality locality)
+{
+    if (locality == ParticleVectorLocality::Local)
+        return "local";
+    else
+        return "halo";
+}
+
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     pv(pv)
 {

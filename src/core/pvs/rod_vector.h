@@ -28,6 +28,10 @@ public:
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
+    LocalRodVector* get(ParticleVectorLocality locality)
+    {
+        return (locality == ParticleVectorLocality::Local) ? local() : halo();
+    }
 
     template<typename T>
     void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence,

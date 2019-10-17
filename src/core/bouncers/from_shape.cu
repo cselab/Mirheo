@@ -48,23 +48,25 @@ std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeSentBack() 
 }
 
 template <class Shape>
-void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
+void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*>(ov);
     if (rsov == nullptr)
         die("Analytic %s bounce only works with Rigid %s vector", Shape::desc, Shape::desc);
 
+    auto lrsov = rsov->get(locality);
+
     debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
           pv->local()->size(), pv->name.c_str(),
-          local ? rsov->local()->nObjects : rsov->halo()->nObjects, rsov->name.c_str(),
-          local ? "local objs" : "halo objs");
+          lrsov->nObjects, rsov->name.c_str(),
+          getParticleVectorLocalityStr(locality).c_str());
 
-    ov->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
+    ov->findExtentAndCOM(stream, locality);
 
-    RSOVviewWithOldMotion<Shape> ovView(rsov, local ? rsov->local() : rsov->halo());
+    RSOVviewWithOldMotion<Shape> ovView(rsov, lrsov);
     PVviewWithOldParticles pvView(pv, pv->local());
 
-    if (!local)
+    if (locality == ParticleVectorLocality::Halo)
         RigidOperations::clearRigidForcesFromMotions(ovView, stream);
 
     mpark::visit([&](auto& bounceKernel)

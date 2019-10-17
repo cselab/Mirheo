@@ -151,10 +151,10 @@ ObjectVector::~ObjectVector() = default;
 
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality)
 {
-    const bool isLocal = (locality == ParticleVectorLocality::Local);
-    auto lov = isLocal ? local() : halo();
+    auto lov = get(locality);
 
-    debug("Computing COM and extent OV '%s' (%s)", name.c_str(), isLocal ? "local" : "halo");
+    debug("Computing COM and extent OV '%s' (%s)",
+          name.c_str(), getParticleVectorLocalityStr(locality).c_str());
 
     OVview view(this, lov);
     

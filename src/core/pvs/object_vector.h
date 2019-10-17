@@ -50,6 +50,11 @@ public:
 
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(ParticleVector::halo());  }
+    LocalObjectVector* get(ParticleVectorLocality locality)
+    {
+        return (locality == ParticleVectorLocality::Local) ? local() : halo();
+    }
+
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;

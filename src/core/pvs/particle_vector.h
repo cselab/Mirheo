@@ -19,6 +19,8 @@ enum class ParticleVectorLocality {
     Halo
 };
 
+std::string getParticleVectorLocalityStr(ParticleVectorLocality locality);
+
 class LocalParticleVector
 {
 public:
@@ -57,6 +59,10 @@ public:
     
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }
+    LocalParticleVector* get(ParticleVectorLocality locality)
+    {
+        return (locality == ParticleVectorLocality::Local) ? local() : halo();
+    }
 
     const LocalParticleVector* local() const { return _local.get(); }
     const LocalParticleVector* halo()  const { return  _halo.get(); }

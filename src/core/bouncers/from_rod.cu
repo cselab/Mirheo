@@ -45,22 +45,22 @@ std::vector<std::string> BounceFromRod::getChannelsToBeSentBack() const
     return {ChannelNames::forces};
 }
 
-void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream)
+void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
-    auto activeRV = local ? rv->local() : rv->halo();
+    auto activeRV = rv->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
           pv->local()->size(), pv->name.c_str(),
           activeRV->nObjects,  rv->name.c_str(),
-          local ? "local" : "halo");
+          getParticleVectorLocalityStr(locality).c_str());
 
-    rv->findExtentAndCOM(stream, local ? ParticleVectorLocality::Local : ParticleVectorLocality::Halo);
+    rv->findExtentAndCOM(stream, locality);
 
-    int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
+    const int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
 
     // Set maximum possible number of collisions with segments
     // In case of crash, the estimate should be increased
-    int maxCollisions = collisionsPerSeg * totalSegments;
+    const int maxCollisions = collisionsPerSeg * totalSegments;
     table.collisionTable.resize_anew(maxCollisions);
     table.nCollisions.clear(stream);
     RodBounceKernels::SegmentTable devCollisionTable { maxCollisions,
@@ -88,7 +88,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, bool local, cudaStrea
             rvView, radius, pvView, cl->cellInfo(), devCollisionTable, collisionTimes.devPtr() );
 
     table.nCollisions.downloadFromDevice(stream);
-    int nCollisions = table.nCollisions[0];
+    const int nCollisions = table.nCollisions[0];
     debug("Found %d rod collision candidates", nCollisions);
 
     if (nCollisions > maxCollisions)

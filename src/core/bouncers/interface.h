@@ -10,6 +10,7 @@
 class CellList;
 class ParticleVector;
 class ObjectVector;
+enum class ParticleVectorLocality;
 
 /**
  * Interface for a class implementing bouncing from objects
@@ -59,7 +60,7 @@ protected:
      * @param pv ptr to \c ParticleVector whose particles will be
      * bounced from the objects associated with this bouncer
      * @param cl ptr to \c CellList that has to be built for \c pv
-     * @param local if \c true, will bounce from the local objects, if \c false -- from halo objects.
+     * @param local bounce from the local or halo objects?
      *
      * \rst
      * .. note::
@@ -67,5 +68,5 @@ protected:
      * \endrst
      * @param stream cuda stream on which to execute
      */
-    virtual void exec (ParticleVector *pv, CellList *cl, bool local, cudaStream_t stream) = 0;
+    virtual void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) = 0;
 };
