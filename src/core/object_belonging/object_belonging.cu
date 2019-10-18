@@ -18,19 +18,19 @@ __global__ void copyInOut(PVview view, const BelongingTags *tags,
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    auto tag = tags[gid];
+    const BelongingTags tag = tags[gid];
     const Particle p(view.readParticle(gid));
 
     if (tag == BelongingTags::Outside)
     {
-        int dstId = atomicAggInc(nOut);
+        const int dstId = atomicAggInc(nOut);
         if (outPos) outPos[dstId] = p.r2Float4();
         if (outVel) outVel[dstId] = p.u2Float4();
     }
 
     if (tag == BelongingTags::Inside)
     {
-        int dstId = atomicAggInc(nIn);
+        const int dstId = atomicAggInc(nIn);
         if (insPos) insPos[dstId] = p.r2Float4();
         if (insVel) insVel[dstId] = p.u2Float4();
     }
@@ -102,7 +102,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
 
     if (pvIn  != nullptr)
     {
-        int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
+        const int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
         pvIn->local()->resize(oldSize + nInside[0], stream);
 
         copyToLpv(oldSize, nInside[0], bufInsPos.devPtr(), bufInsVel.devPtr(), pvIn->local(), stream);
@@ -113,7 +113,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
 
     if (pvOut != nullptr)
     {
-        int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
+        const int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
         pvOut->local()->resize(oldSize + nOutside[0], stream);
 
         copyToLpv(oldSize, nOutside[0], bufOutPos.devPtr(), bufOutVel.devPtr(), pvOut->local(), stream);
