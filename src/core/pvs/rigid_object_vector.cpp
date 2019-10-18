@@ -59,6 +59,12 @@ PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t
     return &meshForces;
 }
 
+void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
+{
+    ROVview view(static_cast<RigidObjectVector*>(pv), this);
+    RigidOperations::clearRigidForcesFromMotions(view, stream);
+}
+
 
 
 

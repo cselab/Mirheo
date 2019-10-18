@@ -66,9 +66,6 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
     RSOVviewWithOldMotion<Shape> ovView(rsov, lrsov);
     PVviewWithOldParticles pvView(pv, pv->local());
 
-    if (locality == ParticleVectorLocality::Halo)
-        RigidOperations::clearRigidForcesFromMotions(ovView, stream);
-
     mpark::visit([&](auto& bounceKernel)
     {
         constexpr int nthreads = 256;

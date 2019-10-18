@@ -170,12 +170,6 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
 
     if (rov)
     {
-        if (locality == ParticleVectorLocality::Halo)
-        {
-            ROVview view(rov, rov->halo());
-            RigidOperations::clearRigidForcesFromMotions(view, stream);
-        }
-
         // make a fake view with vertices instead of particles
         ROVview view(rov, rov->get(locality));
         view.objSize   = ov->mesh->getNvertices();

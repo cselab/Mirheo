@@ -12,6 +12,8 @@ public:
     PinnedBuffer<float4>* getOldMeshVertices(cudaStream_t stream) override;
     PinnedBuffer<Force>* getMeshForces(cudaStream_t stream) override;
 
+    void clearRigidForces(cudaStream_t stream);
+
 protected:
     PinnedBuffer<float4> meshVertices;
     PinnedBuffer<float4> meshOldVertices;

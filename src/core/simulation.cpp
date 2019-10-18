@@ -8,7 +8,7 @@
 #include <core/managers/interactions.h>
 #include <core/exchangers/api.h>
 #include <core/object_belonging/interface.h>
-#include <core/pvs/object_vector.h>
+#include <core/pvs/rigid_object_vector.h>
 #include <core/pvs/particle_vector.h>
 #include <core/task_scheduler.h>
 #include <core/utils/folders.h>
@@ -966,6 +966,9 @@ void Simulation::createTasks()
             // force clear forces in case there is no interactions but bounce back
             if (interactionsFinal->empty())
                 lov->forces().clearDevice(stream);
+
+            if (auto rov = dynamic_cast<RigidObjectVector*>(ov))
+                rov->local()->clearRigidForces(stream);
         });
 
         scheduler->addTask(tasks->objClearHaloForces, [this, ov] (cudaStream_t stream)
@@ -977,6 +980,9 @@ void Simulation::createTasks()
             // force clear forces in case there is no interactions but bounce back
             if (interactionsFinal->empty())
                 lov->forces().clearDevice(stream);
+
+            if (auto rov = dynamic_cast<RigidObjectVector*>(ov))
+                rov->halo()->clearRigidForces(stream);
         });
     }
 
