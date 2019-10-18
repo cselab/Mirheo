@@ -164,10 +164,10 @@ class Pairwise(Interaction):
     
             .. math::
             
-                \mathbf{F}_{ij} &= \mathbf{F}^C(\mathbf{r}_{ij}) + \mathbf{F}^D(\mathbf{r}_{ij}, \mathbf{u}_{ij}) + \mathbf{F}^R(\mathbf{r}_{ij}) \\
-                \mathbf{F}^C(\mathbf{r}) &= \begin{cases} a(1-\frac{r}{r_c}) \mathbf{\hat r}, & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
-                \mathbf{F}^D(\mathbf{r}, \mathbf{u}) &= \gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \mathbf{\hat r} \\
-                \mathbf{F}^R(\mathbf{r}) &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \, \mathbf{\hat r}
+                \mathbf{F}_{ij} &= \left(\mathbf{F}^C_{ij} + \mathbf{F}^D_{ij} + \mathbf{F}^R_{ij} \right)  \mathbf{\hat r} \\
+                F^C_{ij} &= \begin{cases} a(1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
+                F^D_{ij} &= -\gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \\
+                F^R_{ij} &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \,
         
             where bold symbol means a vector, its regular counterpart means vector length: 
             :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
@@ -200,9 +200,17 @@ class Pairwise(Interaction):
 
 
         * **SDPD**: 
-            Compute SDPD interaction with angular momentum conservation.
+            Compute SDPD interaction with angular momentum conservation, following [Hu2006]_ and [Bian2012]_.
             Must be used together with "Density" interaction with the same density kernel.
     
+            .. math::
+            
+                \mathbf{F}_{ij} &= \left(F^C_{ij} + F^D_{ij} + F^R_{ij} \right) \\
+                F^C_{ij} &= - \left( \frac{p_{i}}{d_{i}^{2}}+\frac{p_{j}}{d_{j}^{2}}\right) \frac{\partial W}{\partial r_{ij}}, \\
+                F^D_{ij} &= - \eta \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial W}{\partial r_{ij}}\right] \left( \mathbf{v}_{i j} \cdot \mathbf{e}_{ij} \right), \\
+                F^R_{ij} &= \sqrt{2 k_BT \eta} \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial W}{\partial r_{ij}}\right]^{\frac 1 2} \xi_{ij},
+        
+            where :math:`\eta` is the viscosity, :math:`W` is the density kernel, :math:`\zeta = 2+d = 5`, :math:`d_i` is the density of particle i and :math:`p_i = p(d_i)` is the pressure of particle i..
             The available density kernels are listed in "Density".
             The available equations of state (EOS) are:
 
@@ -261,13 +269,19 @@ class Pairwise(Interaction):
             
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
-            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`_
+            J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`
 
-        .. [Warren2003] Warren, P. B. 
-           "Vapor-liquid coexistence in many-body dissipative particle dynamics."
-           Physical Review E 68.6 (2003): 066702.`_
+        .. [Warren2003] Warren, P. B.
+            "Vapor-liquid coexistence in many-body dissipative particle dynamics."
+            Physical Review E 68.6 (2003): 066702.
 
+        .. [Hu2006] Hu, X. Y., and N. A. Adams.
+            "Angular-momentum conservative smoothed particle dynamics for incompressible viscous flows."
+            Physics of Fluids 18.10 (2006): 101702.
 
+        .. [Bian2012] Bian, Xin, et al.
+            "Multiscale modeling of particle in suspension with smoothed dissipative particle dynamics."
+            Physics of Fluids 24.1 (2012): 012002.
     
     """
     def __init__():
