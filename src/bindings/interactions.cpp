@@ -120,11 +120,11 @@ void exportInteractions(py::module& m)
             .. math::
             
                 \mathbf{F}_{ij} &= \left(F^C_{ij} + F^D_{ij} + F^R_{ij} \right) \\
-                F^C_{ij} &= - \left( \frac{p_{i}}{d_{i}^{2}}+\frac{p_{j}}{d_{j}^{2}}\right) \frac{\partial W}{\partial r_{ij}}, \\
-                F^D_{ij} &= - \eta \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial W}{\partial r_{ij}}\right] \left( \mathbf{v}_{i j} \cdot \mathbf{e}_{ij} \right), \\
-                F^R_{ij} &= \sqrt{2 k_BT \eta} \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial W}{\partial r_{ij}}\right]^{\frac 1 2} \xi_{ij},
+                F^C_{ij} &= - \left( \frac{p_{i}}{d_{i}^{2}}+\frac{p_{j}}{d_{j}^{2}}\right) \frac{\partial w_\rho}{\partial r_{ij}}, \\
+                F^D_{ij} &= - \eta \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial w_\rho}{\partial r_{ij}}\right] \left( \mathbf{v}_{i j} \cdot \mathbf{e}_{ij} \right), \\
+                F^R_{ij} &= \sqrt{2 k_BT \eta} \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial w_\rho}{\partial r_{ij}}\right]^{\frac 1 2} \xi_{ij},
         
-            where :math:`\eta` is the viscosity, :math:`W` is the density kernel, :math:`\zeta = 2+d = 5`, :math:`d_i` is the density of particle i and :math:`p_i = p(d_i)` is the pressure of particle i..
+            where :math:`\eta` is the viscosity, :math:`w_\rho` is the density kernel, :math:`\zeta = 2+d = 5`, :math:`d_i` is the density of particle i and :math:`p_i = p(d_i)` is the pressure of particle i..
             The available density kernels are listed in "Density".
             The available equations of state (EOS) are:
 
