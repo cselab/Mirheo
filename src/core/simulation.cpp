@@ -426,30 +426,30 @@ void Simulation::setObjectBelongingChecker(const std::string& checkerName, const
 }
 
 
-void Simulation::applyObjectBelongingChecker(const std::string& checkerName,
-            const std::string& source, const std::string& inside, const std::string& outside,
-            int checkEvery)
+void Simulation::applyObjectBelongingChecker(const std::string& checkerName, const std::string& source,
+                                             const std::string& inside, const std::string& outside,
+                                             int checkEvery)
 {
     auto pvSource = getPVbyNameOrDie(source);
 
     if (inside == outside)
         die("Splitting into same pvs: %s into %s %s",
-                source.c_str(), inside.c_str(), outside.c_str());
+            source.c_str(), inside.c_str(), outside.c_str());
 
     if (source != inside && source != outside)
         die("At least one of the split destinations should be the same as source: %s into %s %s",
-                source.c_str(), inside.c_str(), outside.c_str());
+            source.c_str(), inside.c_str(), outside.c_str());
 
     if (belongingCheckerMap.find(checkerName) == belongingCheckerMap.end())
         die("No such belonging checker: %s", checkerName.c_str());
 
     if (getPVbyName(inside) != nullptr && inside != source)
         die("Cannot split into existing particle vector: %s into %s %s",
-                source.c_str(), inside.c_str(), outside.c_str());
+            source.c_str(), inside.c_str(), outside.c_str());
 
     if (getPVbyName(outside) != nullptr && outside != source)
         die("Cannot split into existing particle vector: %s into %s %s",
-                source.c_str(), inside.c_str(), outside.c_str());
+            source.c_str(), inside.c_str(), outside.c_str());
 
 
     auto checker = belongingCheckerMap[checkerName].get();
