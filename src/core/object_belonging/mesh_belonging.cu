@@ -13,7 +13,7 @@ namespace MeshBelongingKernels
 const float tolerance = 1e-6f;
 
 /// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-__device__ inline bool doesRayIntersectTriangle(
+__device__ static inline bool doesRayIntersectTriangle(
         float3 rayOrigin,
         float3 rayVector,
         float3 v0, float3 v1, float3 v2)
@@ -49,7 +49,7 @@ __device__ inline bool doesRayIntersectTriangle(
 }
 
 
-__device__ inline float3 fetchPosition(const float4 *vertices, int i)
+__device__ static inline float3 fetchPosition(const float4 *vertices, int i)
 {
     auto v = vertices[i];
     return {v.x, v.y, v.z};
@@ -58,7 +58,7 @@ __device__ inline float3 fetchPosition(const float4 *vertices, int i)
 /**
  * One warp works on one particle
  */
-__device__ BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh, const float4* vertices)
+__device__ static inline BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh, const float4* vertices)
 {
     // Work in obj reference frame for simplicity
     r = r - com;
@@ -147,43 +147,35 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const float
 
 void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    int nthreads = 128;
-
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
 
-    const int warpsPerObject = 1024;
+    auto computeTags = [&](ParticleVectorLocality locality)
+    {
+        ov->findExtentAndCOM(stream, locality);
 
-    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
-    ov->findExtentAndCOM(stream, ParticleVectorLocality::Halo);
+        auto lov = ov->get(locality);
+        auto view = OVview(ov, lov);
+        auto vertices = lov->getMeshVertices(stream);
+        auto meshView = MeshView(ov->mesh.get());
 
-    // Local
-    auto lov = ov->local();
-    auto view = OVview(ov, lov);
-    auto vertices = lov->getMeshVertices(stream);
-    auto meshView = MeshView(ov->mesh.get());
+        debug("Computing inside/outside tags (against mesh) for %d %s objects '%s' and %d '%s' particles",
+              view.nObjects, getParticleVectorLocalityStr(locality).c_str(),
+              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
-    debug("Computing inside/outside tags (against mesh) for %d local objects '%s' and %d '%s' particles",
-          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
-
-    SAFE_KERNEL_LAUNCH(
+        constexpr int nthreads = 128;
+        constexpr int warpsPerObject = 1024;
+        
+        SAFE_KERNEL_LAUNCH(
             MeshBelongingKernels::insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+            view, meshView, reinterpret_cast<float4*>(vertices->devPtr()),
+            cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+    };
+    
 
-    // Halo
-    lov = ov->halo();       // Note ->halo() here
-    view = OVview(ov, lov);
-    vertices = lov->getMeshVertices(stream);
-    meshView = MeshView(ov->mesh.get());
-
-    debug("Computing inside/outside tags (against mesh) for %d halo objects '%s' and %d '%s' particles",
-          view.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
-
-    SAFE_KERNEL_LAUNCH(
-            MeshBelongingKernels::insideMesh<warpsPerObject>,
-            getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-            view, meshView, (float4*)vertices->devPtr(), cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+    computeTags(ParticleVectorLocality::Local);
+    computeTags(ParticleVectorLocality::Halo);
 }
 
 

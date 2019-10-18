@@ -58,8 +58,6 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
 template <class Shape>
 void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    const int nthreads = 512;
-
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*> (ov);
     if (rsov == nullptr)
         die("%s belonging can only be used with %s objects (%s is not)", Shape::desc, Shape::desc, ov->name.c_str());
@@ -67,28 +65,28 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
 
-    ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
-    ov->findExtentAndCOM(stream, ParticleVectorLocality::Halo);
+    auto pvView = cl->getView<PVview>();
 
-    auto pvView   = cl->getView<PVview>();
-    auto rsovView = RSOVview<Shape>(rsov, rsov->local());
+    auto computeTags = [&](ParticleVectorLocality locality)
+    {
+        ov->findExtentAndCOM(stream, locality);
+        
+        auto rsovView = RSOVview<Shape>(rsov, rsov->get(locality));
 
-    debug("Computing inside/outside tags for %d local %s '%s' and %d '%s' particles",
-          rsovView.nObjects, Shape::desc, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+        debug("Computing inside/outside tags for %d %s %s '%s' and %d '%s' particles",
+              rsovView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
+              Shape::desc, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
-    SAFE_KERNEL_LAUNCH(
+        constexpr int nthreads = 512;
+
+        SAFE_KERNEL_LAUNCH(
             ShapeBelongingKernels::computeTags,
             rsovView.nObjects, nthreads, 0, stream,
             rsovView, cl->cellInfo(), pvView, tags.devPtr());
+    };        
 
-    rsovView = RSOVview<Shape>(rsov, rsov->halo());
-    debug("Computing inside/outside tags for %d halo %s '%s' and %d '%s' particles",
-          rsovView.nObjects, Shape::desc, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
-
-    SAFE_KERNEL_LAUNCH(
-            ShapeBelongingKernels::computeTags,
-            rsovView.nObjects, nthreads, 0, stream,
-            rsovView, cl->cellInfo(), pvView, tags.devPtr());
+    computeTags(ParticleVectorLocality::Local);
+    computeTags(ParticleVectorLocality::Halo);
 }
 
 #define INSTANTIATE(Shape) template class ShapeBelongingChecker<Shape>;

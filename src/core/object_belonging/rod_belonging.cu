@@ -97,35 +97,30 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
 
-    auto pvView   = cl->getView<PVview>();
-    auto rvView = RVview(rv, rv->local());
-
     const int numSegmentsPerRod = rv->local()->getNumSegmentsPerRod();
+    
+    auto pvView   = cl->getView<PVview>();
 
-    int totNumSegments = rvView.nObjects * numSegmentsPerRod;
+    auto computeTags = [&](ParticleVectorLocality locality)
+    {
+        auto rvView = RVview(rv, rv->get(locality));
 
-    const int nthreads = 128;
-    int nblocks = getNblocks(totNumSegments, nthreads);
+        debug("Computing inside/outside tags for %d %s rods '%s' and %d '%s' particles",
+              rvView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
+              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
 
-    debug("Computing inside/outside tags for %d local rods '%s' and %d '%s' particles",
-          rvView.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+        const int totNumSegments = rvView.nObjects * numSegmentsPerRod;
+        constexpr int nthreads = 128;
+        const int nblocks = getNblocks(totNumSegments, nthreads);
 
-    SAFE_KERNEL_LAUNCH(
+        SAFE_KERNEL_LAUNCH(
             RodBelongingKernels::setInsideTags,
             nblocks, nthreads, 0, stream,
             rvView, radius, pvView, cl->cellInfo(), tags.devPtr());
+    };
 
-    rvView = RVview(rv, rv->halo());
-    debug("Computing inside/outside tags for %d halo rods '%s' and %d '%s' particles",
-          rvView.nObjects, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
-
-    totNumSegments = rvView.nObjects * numSegmentsPerRod;
-    nblocks = getNblocks(totNumSegments, nthreads);
-
-    SAFE_KERNEL_LAUNCH(
-            RodBelongingKernels::setInsideTags,
-            nblocks, nthreads, 0, stream,
-            rvView, radius, pvView, cl->cellInfo(), tags.devPtr());
+    computeTags(ParticleVectorLocality::Local);
+    computeTags(ParticleVectorLocality::Halo);
 }
 
 
