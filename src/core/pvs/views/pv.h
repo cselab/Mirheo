@@ -10,17 +10,15 @@
  */
 struct PVview
 {
-    int size = 0;
-    float4 *positions = nullptr;
-    float4 *velocities = nullptr;
-    float4 *forces = nullptr;
+    int size {0};
+    float4 *positions  {nullptr};
+    float4 *velocities {nullptr};
+    float4 *forces     {nullptr};
 
-    float mass = 0, invMass = 0;
+    float mass {0.f}, invMass {0.f};
 
-    PVview(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr)
+    PVview(ParticleVector *pv, LocalParticleVector *lpv)
     {
-        if (lpv == nullptr) return;
-
         size = lpv->size();
         positions  = lpv->positions() .devPtr();
         velocities = lpv->velocities().devPtr();
@@ -86,9 +84,9 @@ struct PVview
 
 struct PVviewWithOldParticles : public PVview
 {
-    float4 *oldPositions = nullptr;
+    float4 *oldPositions {nullptr};
 
-    PVviewWithOldParticles(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
+    PVviewWithOldParticles(ParticleVector *pv, LocalParticleVector *lpv) :
         PVview(pv, lpv)
     {
         if (lpv != nullptr)
@@ -104,26 +102,24 @@ struct PVviewWithOldParticles : public PVview
 
 struct PVviewWithDensities : public PVview
 {
-    float *densities = nullptr;
+    float *densities {nullptr};
 
-    PVviewWithDensities(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
+    PVviewWithDensities(ParticleVector *pv, LocalParticleVector *lpv) :
         PVview(pv, lpv)
     {
-        if (lpv != nullptr)
-            densities = lpv->dataPerParticle.getData<float>(ChannelNames::densities)->devPtr();
+        densities = lpv->dataPerParticle.getData<float>(ChannelNames::densities)->devPtr();
     }
 };
 
 template <typename BasicView> 
 struct PVviewWithStresses : public BasicView
 {
-    Stress *stresses = nullptr;
+    Stress *stresses {nullptr};
 
-    PVviewWithStresses(ParticleVector *pv = nullptr, LocalParticleVector *lpv = nullptr) :
+    PVviewWithStresses(ParticleVector *pv, LocalParticleVector *lpv) :
         BasicView(pv, lpv)
     {
-        if (lpv != nullptr)
-            stresses = lpv->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
+        stresses = lpv->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
     }
 };
 

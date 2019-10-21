@@ -6,15 +6,14 @@
 
 struct RVview : public OVview
 {
-    int   nSegments { 0 };
-    int   *states   { nullptr };
-    float *energies { nullptr };
+    int   nSegments {0};
+    int   *states   {nullptr};
+    float *energies {nullptr};
 
-    RVview(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr) :
+    RVview(RodVector *rv, LocalRodVector *lrv) :
         OVview(rv, lrv)
     {
-        if (rv == nullptr || lrv == nullptr) return;
-        nSegments          = lrv->getNumSegmentsPerRod();
+        nSegments = lrv->getNumSegmentsPerRod();
 
         auto& data = lrv->dataPerBisegment;
         
@@ -28,13 +27,11 @@ struct RVview : public OVview
 
 struct RVviewWithOldParticles : public RVview
 {
-    float4 *oldPositions = nullptr;
+    float4 *oldPositions {nullptr};
 
-    RVviewWithOldParticles(RodVector *rv = nullptr, LocalRodVector *lrv = nullptr) :
+    RVviewWithOldParticles(RodVector *rv, LocalRodVector *lrv) :
         RVview(rv, lrv)
     {
-        if (rv == nullptr || lrv == nullptr) return;
-
         oldPositions = lrv->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->devPtr();
     }
 };

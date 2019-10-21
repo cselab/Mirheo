@@ -9,24 +9,20 @@
  */
 struct OVview : public PVview
 {
-    int nObjects = 0, objSize = 0;
-    float objMass = 0, invObjMass = 0;
+    int nObjects {0}, objSize {0};
+    float objMass {0.f}, invObjMass {0.f};
 
-    COMandExtent *comAndExtents = nullptr;
-    int64_t *ids = nullptr;
+    COMandExtent *comAndExtents {nullptr};
+    int64_t *ids {nullptr};
 
-    OVview(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
+    OVview(ObjectVector *ov, LocalObjectVector *lov) :
         PVview(ov, lov)
     {
-        if (ov == nullptr || lov == nullptr) return;
-
-        // More fields
         nObjects = lov->nObjects;
-        objSize = ov->objSize;
-        objMass = objSize * mass;
+        objSize  = ov->objSize;
+        objMass  = objSize * mass;
         invObjMass = 1.0 / objMass;
 
-        // Required data per object
         comAndExtents = lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
         ids           = lov->dataPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();
     }
@@ -34,29 +30,25 @@ struct OVview : public PVview
 
 struct OVviewWithAreaVolume : public OVview
 {
-    float2 *area_volumes = nullptr;
+    float2 *area_volumes {nullptr};
 
-    OVviewWithAreaVolume(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
+    OVviewWithAreaVolume(ObjectVector *ov, LocalObjectVector *lov) :
         OVview(ov, lov)
     {
-        if (ov == nullptr || lov == nullptr) return;
-
         area_volumes = lov->dataPerObject.getData<float2>(ChannelNames::areaVolumes)->devPtr();
     }
 };
 
 struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 {
-    float *vertexAreas          = nullptr;
-    float *vertexMeanCurvatures = nullptr;
+    float *vertexAreas          {nullptr};
+    float *vertexMeanCurvatures {nullptr};
 
-    float *lenThetaTot = nullptr;
+    float *lenThetaTot {nullptr};
 
-    OVviewWithJuelicherQuants(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr) :
+    OVviewWithJuelicherQuants(ObjectVector *ov, LocalObjectVector *lov) :
         OVviewWithAreaVolume(ov, lov)
     {
-        if (ov == nullptr || lov == nullptr) return;
-
         vertexAreas          = lov->dataPerParticle.getData<float>(ChannelNames::areas)->devPtr();
         vertexMeanCurvatures = lov->dataPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
 
@@ -66,17 +58,15 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 
 struct OVviewWithNewOldVertices : public OVview
 {
-    float4 *vertices     = nullptr;
-    float4 *old_vertices = nullptr;
-    float4 *vertexForces = nullptr;
+    float4 *vertices     {nullptr};
+    float4 *old_vertices {nullptr};
+    float4 *vertexForces {nullptr};
 
-    int nvertices = 0;
+    int nvertices {0};
 
-    OVviewWithNewOldVertices(ObjectVector *ov = nullptr, LocalObjectVector *lov = nullptr, cudaStream_t stream = 0) :
+    OVviewWithNewOldVertices(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream) :
         OVview(ov, lov)
     {
-        if (ov == nullptr || lov == nullptr) return;
-
         nvertices    = ov->mesh->getNvertices();
         vertices     = reinterpret_cast<float4*>( lov->getMeshVertices   (stream)->devPtr() );
         old_vertices = reinterpret_cast<float4*>( lov->getOldMeshVertices(stream)->devPtr() );

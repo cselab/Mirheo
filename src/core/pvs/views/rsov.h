@@ -8,7 +8,7 @@ struct RSOVview : public ROVview
 {
     Shape shape;
     
-    RSOVview(RigidShapedObjectVector<Shape>* rsov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+    RSOVview(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         ROVview(rsov, lrov),
         shape(rsov->shape)
     {}
@@ -17,13 +17,11 @@ struct RSOVview : public ROVview
 template <class Shape>
 struct RSOVviewWithOldMotion : public RSOVview<Shape>
 {
-    RigidMotion *old_motions = nullptr;
+    RigidMotion *old_motions {nullptr};
 
-    RSOVviewWithOldMotion(RigidShapedObjectVector<Shape>* rsov = nullptr, LocalRigidObjectVector* lrov = nullptr) :
+    RSOVviewWithOldMotion(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         RSOVview<Shape>(rsov, lrov)
     {
-        if (rsov == nullptr || lrov == nullptr) return;
-
         old_motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
     }
 };
