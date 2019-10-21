@@ -12,8 +12,13 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased
+### unreleased
 
+* **bug fixes**:
+  * fixed cell lists sizes with domain sizes not multiple of rc
+  * fix in reverse force exchanger
+  * objectBelonging: split all persistent channels instead of positions and velocities only
+  
 * add `PlaneOutletPlugin` for removing particles that cross a given plane
 * add `ParticlePortal` plugin that transfers standalone particles from one Mirheo instance to another
 * add `ObjectDeleter` helper class for removing marked objects
@@ -21,8 +26,6 @@ For more information, please refer to the online documentation: http://mirheo.re
 Work in progress:
 * adding `ObjectPortal` plugin that transfers objects from one Mirheo instance to another
 * adding `ObjectsToParticles` plugin that destroys objects and transforms them into standalone particles once a condition is met
-
--->
 
 ### v1.2.1
 
