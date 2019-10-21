@@ -455,17 +455,18 @@ void Simulation::applyObjectBelongingChecker(const std::string& checkerName, con
     auto checker = belongingCheckerMap[checkerName].get();
 
     std::shared_ptr<ParticleVector> pvInside, pvOutside;
+    std::shared_ptr<InitialConditions> noIC;
 
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
         pvInside = std::make_shared<ParticleVector> (state, inside, pvSource->mass);
-        registerParticleVector(pvInside, nullptr);
+        registerParticleVector(pvInside, noIC);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
         pvOutside = std::make_shared<ParticleVector> (state, outside, pvSource->mass);
-        registerParticleVector(pvOutside, nullptr);
+        registerParticleVector(pvOutside, noIC);
     }
 
     splitterPrototypes.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});

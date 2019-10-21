@@ -90,8 +90,8 @@ __global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer, ch
     
     for (int pid = laneId; pid < view.objSize; pid += warpSize)
     {
-        int srcPid = objId    * view.objSize + pid;
-        int dstPid = dstObjId * view.objSize + pid;
+        const int srcPid = objId    * view.objSize + pid;
+        const int dstPid = dstObjId * view.objSize + pid;
         offsetObjData = packer.particles.pack(srcPid, dstPid, output, maxNumObj * view.objSize);
     }
 
@@ -336,13 +336,54 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     PinnedBuffer<int> nRemaining(1);
     nRemaining.clear(defaultStream);
 
-    int oldSize = pv->local()->size();
+    const int oldSize = pv->local()->size();
     if (oldSize == 0) return;
 
     const int nthreads = 128;
     // Need a different path for objects
-    ObjectVector* ov = dynamic_cast<ObjectVector*>(pv);
-    if (ov == nullptr)
+    if (auto ov = dynamic_cast<ObjectVector*>(pv))
+    {
+        PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
+            return namedDesc.second->persistence == DataManager::PersistenceMode::Active ||
+                namedDesc.first == ChannelNames::positions;
+        };
+        
+        // Prepare temp storage for extra object data
+        OVview ovView(ov, ov->local());
+        ObjectPacker packer(packPredicate);
+        packer.update(ov->local(), defaultStream);
+        const int maxNumObj = ovView.nObjects;
+
+        DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj));
+
+        constexpr int warpSize = 32;
+        
+        SAFE_KERNEL_LAUNCH(
+            StationaryWallsKernels::packRemainingObjects,
+            getNblocks(ovView.nObjects*warpSize, nthreads), nthreads, 0, defaultStream,
+            ovView, packer.handler(), tmp.devPtr(), nRemaining.devPtr(),
+            insideWallChecker.handler(), maxNumObj );
+
+        nRemaining.downloadFromDevice(defaultStream);
+        
+        info("Removing %d out of %d '%s' objects from walls '%s'",
+             ovView.nObjects - nRemaining[0], ovView.nObjects,
+             ov->name.c_str(), this->name.c_str());
+
+        if (nRemaining[0] != ovView.nObjects)
+        {
+            // Copy temporary buffers back
+            ov->local()->resize_anew(nRemaining[0] * ov->objSize);
+            ovView = OVview(ov, ov->local());
+            packer.update(ov->local(), defaultStream);
+
+            SAFE_KERNEL_LAUNCH(
+                StationaryWallsKernels::unpackRemainingObjects,
+                ovView.nObjects, nthreads, 0, defaultStream,
+                tmp.devPtr(), ovView, packer.handler(), maxNumObj );
+        }
+    }
+    else
     {
         PVview view(pv, pv->local());
         PinnedBuffer<float4> tmpPos(view.size), tmpVel(view.size);
@@ -357,37 +398,6 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         std::swap(pv->local()->positions(),  tmpPos);
         std::swap(pv->local()->velocities(), tmpVel);
         pv->local()->resize(nRemaining[0], defaultStream);
-    }
-    else
-    {
-        PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
-        };
-        
-        // Prepare temp storage for extra object data
-        OVview ovView(ov, ov->local());
-        ObjectPacker packer(packPredicate);
-        packer.update(ov->local(), defaultStream);
-        const int maxNumObj = ovView.nObjects;
-
-        DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj));
-
-        SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::packRemainingObjects,
-            getNblocks(ovView.nObjects*32, nthreads), nthreads, 0, defaultStream,
-            ovView, packer.handler(), tmp.devPtr(), nRemaining.devPtr(),
-            insideWallChecker.handler(), maxNumObj );
-
-        // Copy temporary buffers back
-        nRemaining.downloadFromDevice(defaultStream);
-        ov->local()->resize_anew(nRemaining[0] * ov->objSize);
-        ovView = OVview(ov, ov->local());
-        packer.update(ov->local(), defaultStream);
-
-        SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::unpackRemainingObjects,
-            ovView.nObjects, nthreads, 0, defaultStream,
-            tmp.devPtr(), ovView, packer.handler(), maxNumObj );
     }
 
     pv->haloValid = false;
