@@ -89,11 +89,10 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
 
 CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
     rc(rc),
-    h(make_float3(rc)),
     localDomainSize(localDomainSize)
 {
     ncells = make_int3( floorf(localDomainSize / rc + 1e-6) );
-    float3 h = make_float3(localDomainSize) / make_float3(ncells);
+    h = make_float3(localDomainSize) / make_float3(ncells);
     invh = 1.0f / h;
     this->rc = std::min( {h.x, h.y, h.z} );
 
