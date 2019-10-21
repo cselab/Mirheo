@@ -33,10 +33,10 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
     int cid;
     int dx, dy, dz;
 
-    bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
+    const bool valid = distributeThreadsToFaceCell(cid, dx, dy, dz, gid, faceId, cinfo);
 
-    int pstart = valid ? cinfo.cellStarts[cid]   : 0;
-    int pend   = valid ? cinfo.cellStarts[cid+1] : 0;
+    const int pstart = valid ? cinfo.cellStarts[cid]   : 0;
+    const int pend   = valid ? cinfo.cellStarts[cid+1] : 0;
 
     // Use shared memory to decrease number of global atomics
     // We're sending to max 7 halos (corner)

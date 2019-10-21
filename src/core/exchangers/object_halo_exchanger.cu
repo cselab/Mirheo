@@ -77,16 +77,16 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
             __syncthreads();
 
             const int3 dir = FragmentMapping::getDir(bufId);
-            auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+            const auto shift = ExchangersCommon::getShift(domain.localSize, dir);
 
             auto buffer = dataWrap.getBuffer(bufId);
-            int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
+            const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
             packer.blockPackShift(numElements, buffer, objId, shDstObjId, shift);
             
             // save map
             
-            int myOffset = dataWrap.offsets[bufId] + shDstObjId;
+            const int myOffset = dataWrap.offsets[bufId] + shDstObjId;
             if (tid == 0)
                 map[myOffset] = MapEntry(objId, bufId);
         }
@@ -130,7 +130,7 @@ ObjectHaloExchanger::~ObjectHaloExchanger() = default;
 
 void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames)
 {
-    int id = objects.size();
+    const int id = objects.size();
     objects.push_back(ov);
     rcs.push_back(rc);
 
