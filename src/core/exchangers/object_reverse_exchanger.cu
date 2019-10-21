@@ -43,12 +43,12 @@ __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
 {
     constexpr float eps = 1e-6f;
     const int objId       = blockIdx.x;
-    const int numElements = gridDim.x;
     
-    auto mapEntry = map[objId];
+    const MapEntry mapEntry = map[objId];
     const int bufId    = mapEntry.getBufId();
     const int dstObjId = mapEntry.getId();
     const int srcObjId = objId - dataWrap.offsets[bufId];
+    const int numElements = dataWrap.sizes[bufId];
     
     auto buffer = dataWrap.getBuffer(bufId);
 
@@ -66,7 +66,7 @@ ObjectReverseExchanger::~ObjectReverseExchanger() = default;
 
 void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> channelNames)
 {
-    int id = objects.size();
+    const int id = objects.size();
     objects.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
@@ -162,10 +162,10 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
     auto unpacker = unpackers[id].get();
 
     unpacker->update(lov, stream);
-    
-    int totalRecvd = helper->recv.offsets[helper->nBuffers];
+
+    const int totalRecvd = helper->recv.offsets[helper->nBuffers];
     auto& map = entangledHaloExchanger->getMap(id);
-    
+
     debug("Updating data for %d '%s' objects", totalRecvd, ov->name.c_str());
 
     const int nthreads = 256;
