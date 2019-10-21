@@ -4,36 +4,55 @@
 #include <core/pvs/particle_vector.h>
 #include <core/pvs/views/pv.h>
 #include <core/pvs/object_vector.h>
+#include <core/pvs/packers/particles.h>
 
 #include <core/celllist.h>
 
 namespace ObjectBelongingKernels
 {
 
-__global__ void copyInOut(PVview view, const BelongingTags *tags,
-                          float4 *insPos, float4 *insVel,
-                          float4 *outPos, float4 *outVel,
-                          int *nIn, int *nOut)
+__global__ void countInOut(int n, const BelongingTags *tags, int *nIn, int *nOut)
 {
-    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (gid >= view.size) return;
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n) return;
 
-    const BelongingTags tag = tags[gid];
-    const Particle p(view.readParticle(gid));
+    const BelongingTags tag = tags[i];
+
+    if (tag == BelongingTags::Outside)
+        atomicAggInc(nOut);
+
+    if (tag == BelongingTags::Inside)
+        atomicAggInc(nIn);
+}
+
+__global__ void packToInOut(int n, const BelongingTags *tags, ParticlePackerHandler packer,
+                            char *outputInsideBuffer, char *outputOutsideBuffer, int *nIn, int *nOut,
+                            int maxInside, int maxOutside)
+{
+    const int srcPid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (srcPid >= n) return;
+
+    const BelongingTags tag = tags[srcPid];
 
     if (tag == BelongingTags::Outside)
     {
-        const int dstId = atomicAggInc(nOut);
-        if (outPos) outPos[dstId] = p.r2Float4();
-        if (outVel) outVel[dstId] = p.u2Float4();
+        const int dstPid = atomicAggInc(nOut);
+        packer.particles.pack(srcPid, dstPid, outputOutsideBuffer, maxOutside);
     }
 
     if (tag == BelongingTags::Inside)
     {
-        const int dstId = atomicAggInc(nIn);
-        if (insPos) insPos[dstId] = p.r2Float4();
-        if (insVel) insVel[dstId] = p.u2Float4();
+        const int dstPid = atomicAggInc(nIn);
+        packer.particles.pack(srcPid, dstPid, outputInsideBuffer, maxInside);
     }
+}
+
+__global__ void unpackParticles(int n, int dstOffset, const char *inputBuffer, ParticlePackerHandler packer, int maxParticles)
+{
+    const int srcPid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (srcPid >= n) return;
+    const int dstPid = dstOffset + srcPid;
+    packer.particles.unpack(srcPid, dstPid, inputBuffer, maxParticles);
 }
 
 } // namespace ObjectBelongingKernels
@@ -45,17 +64,24 @@ ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *sta
 ObjectBelongingChecker_Common::~ObjectBelongingChecker_Common() = default;
 
 
-static void copyToLpv(int start, int n, const float4 *pos, const float4 *vel, LocalParticleVector *lpv, cudaStream_t stream)
+static bool keepAllpersistentDataPredicate(const DataManager::NamedChannelDesc& namedDesc)
+{
+    return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
+};
+
+static void copyToLpv(int start, int n, const char *buffer, LocalParticleVector *lpv, cudaStream_t stream)
 {
     if (n <= 0) return;
 
-    CUDA_Check( cudaMemcpyAsync(lpv->positions().devPtr() + start,
-                                pos, n * sizeof(pos[0]), 
-                                cudaMemcpyDeviceToDevice, stream) );
+    constexpr int nthreads = 128;
 
-    CUDA_Check( cudaMemcpyAsync(lpv->velocities().devPtr() + start,
-                                vel, n * sizeof(vel[0]),
-                                cudaMemcpyDeviceToDevice, stream) );
+    ParticlePacker packer(keepAllpersistentDataPredicate);
+    packer.update(lpv, stream);
+    
+    SAFE_KERNEL_LAUNCH(
+         ObjectBelongingKernels::unpackParticles,
+         getNblocks(n, nthreads), nthreads, 0, stream,
+         n, start, buffer, packer.handler(), n);
 }
 
 void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream)
@@ -81,22 +107,23 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
     info("Splitting PV %s with respect to OV %s. Number of particles: in/out/total %d / %d / %d",
          src->name.c_str(), ov->name.c_str(), nInside[0], nOutside[0], src->local()->size());
 
-    // Need buffers because the source is the same as inside or outside
-    PinnedBuffer<float4> bufInsPos(nInside[0] ), bufInsVel(nInside[0] );
-    PinnedBuffer<float4> bufOutPos(nOutside[0]), bufOutVel(nOutside[0]);
+    ParticlePacker packer(keepAllpersistentDataPredicate);
+    packer.update(src->local(), stream);
 
+    DeviceBuffer<char> insideBuffer (packer.getSizeBytes(nInside [0]));
+    DeviceBuffer<char> outsideBuffer(packer.getSizeBytes(nOutside[0]));
+    
     nInside. clearDevice(stream);
     nOutside.clearDevice(stream);
 
-    PVview view(src, src->local());
-    const int nthreads = 128;
+    const int srcSize = src->local()->size();
+    constexpr int nthreads = 128;
+
     SAFE_KERNEL_LAUNCH(
-        ObjectBelongingKernels::copyInOut,
-        getNblocks(view.size, nthreads), nthreads, 0, stream,
-        view, tags.devPtr(),
-        bufInsPos.devPtr(), bufInsVel.devPtr(),
-        bufOutPos.devPtr(), bufOutVel.devPtr(),
-        nInside.devPtr(), nOutside.devPtr() );
+        ObjectBelongingKernels::packToInOut,
+        getNblocks(srcSize, nthreads), nthreads, 0, stream,
+        srcSize, tags.devPtr(), packer.handler(), insideBuffer.devPtr(), outsideBuffer.devPtr(),
+        nInside.devPtr(), nOutside.devPtr(), nInside[0], nOutside[0] );
 
     CUDA_Check( cudaStreamSynchronize(stream) );
 
@@ -105,7 +132,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
         const int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
         pvIn->local()->resize(oldSize + nInside[0], stream);
 
-        copyToLpv(oldSize, nInside[0], bufInsPos.devPtr(), bufInsVel.devPtr(), pvIn->local(), stream);
+        copyToLpv(oldSize, nInside[0], insideBuffer.devPtr(), pvIn->local(), stream);
 
         info("New size of inner PV %s is %d", pvIn->name.c_str(), pvIn->local()->size());
         pvIn->cellListStamp++;
@@ -116,7 +143,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
         const int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
         pvOut->local()->resize(oldSize + nOutside[0], stream);
 
-        copyToLpv(oldSize, nOutside[0], bufOutPos.devPtr(), bufOutVel.devPtr(), pvOut->local(), stream);
+        copyToLpv(oldSize, nOutside[0], outsideBuffer.devPtr(), pvOut->local(), stream);
 
         info("New size of outer PV %s is %d", pvOut->name.c_str(), pvOut->local()->size());
         pvOut->cellListStamp++;
@@ -131,13 +158,13 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl,
     nOutside.clear(stream);
 
     // Only count
-    PVview view(pv, pv->local());
-    const int nthreads = 128;
+    const int np = pv->local()->size();
+    constexpr int nthreads = 128;
+    
     SAFE_KERNEL_LAUNCH(
-        ObjectBelongingKernels::copyInOut,
-        getNblocks(view.size, nthreads), nthreads, 0, stream,
-        view, tags.devPtr(), nullptr, nullptr, nullptr, nullptr,
-        nInside.devPtr(), nOutside.devPtr() );
+        ObjectBelongingKernels::countInOut,
+        getNblocks(np, nthreads), nthreads, 0, stream,
+        np, tags.devPtr(), nInside.devPtr(), nOutside.devPtr() );
 
     nInside. downloadFromDevice(stream, ContainersSynch::Asynch);
     nOutside.downloadFromDevice(stream, ContainersSynch::Synch);
