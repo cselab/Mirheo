@@ -344,8 +344,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     if (auto ov = dynamic_cast<ObjectVector*>(pv))
     {
         PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->persistence == DataManager::PersistenceMode::Active ||
-                namedDesc.first == ChannelNames::positions;
+            return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
         };
         
         // Prepare temp storage for extra object data

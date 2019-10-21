@@ -26,11 +26,9 @@ LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
     dataPerParticle.createData<float4>(ChannelNames::velocities, n);
     dataPerParticle.createData<Force>(ChannelNames::forces, n);
 
-    // positions are treated specially, do not need to be persistent
-    dataPerParticle.setPersistenceMode(ChannelNames::velocities,
-                                       DataManager::PersistenceMode::Active);
-    dataPerParticle.setShiftMode(ChannelNames::positions,
-                                 DataManager::ShiftMode::Active);
+    dataPerParticle.setPersistenceMode(ChannelNames::positions,  DataManager::PersistenceMode::Active);
+    dataPerParticle.setShiftMode      (ChannelNames::positions,  DataManager::ShiftMode::Active);
+    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Active);
     resize_anew(n);
 }
 
@@ -269,8 +267,8 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
 
     XDMF::VertexGrid grid(positions, comm);
 
-    // do not dump velocities, they are already there
-    const std::set<std::string> blackList {{ChannelNames::velocities}};
+    // do not dump positions and velocities, they are already there
+    const std::set<std::string> blackList {{ChannelNames::positions, ChannelNames::velocities}};
 
     auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
                                                                   local()->dataPerParticle,

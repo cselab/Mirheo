@@ -138,7 +138,7 @@ ParticleHaloExchanger::~ParticleHaloExchanger() = default;
 
 void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames)
 {
-    int id = particles.size();
+    const int id = particles.size();
     particles.push_back(pv);
     cellLists.push_back(cl);
 

@@ -87,8 +87,7 @@ void ObjectRedistributor::attach(ObjectVector *ov)
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
-        return (namedDesc.second->persistence == DataManager::PersistenceMode::Active) ||
-            (namedDesc.first == ChannelNames::positions);
+        return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
     };
     
     std::unique_ptr<ObjectPacker> packer;

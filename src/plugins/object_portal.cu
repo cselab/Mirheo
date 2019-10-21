@@ -161,13 +161,8 @@ void ObjectPortalCommon::setup(Simulation* simulation, const MPI_Comm& comm, con
 
 bool ObjectPortalCommon::packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept
 {
-    if (namedDesc.second->persistence == DataManager::PersistenceMode::None) {
-        // Positions are not Active, so we accept them explicitly.
-        return namedDesc.first == ChannelNames::positions;
-    } else {
-        // UUID is Active, but is sent separately for convenience.
-        return namedDesc.first != uuidChannelName;
-    }
+    return namedDesc.second->persistence == DataManager::PersistenceMode::Active &&
+        namedDesc.first != uuidChannelName; // UUID is Active, but is sent separately for convenience.
 };
 
 bool ObjectPortalSource::packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept

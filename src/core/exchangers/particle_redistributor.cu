@@ -132,7 +132,7 @@ bool ParticleRedistributor::needExchange(int id)
 
 void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 {
-    int id = particles.size();
+    const int id = particles.size();
     particles.push_back(pv);
     cellLists.push_back(cl);
 
@@ -141,8 +141,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
-        return (namedDesc.second->persistence == DataManager::PersistenceMode::Active) ||
-            namedDesc.first == ChannelNames::positions;
+        return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
     };
 
     auto packer = std::make_unique<ParticlePacker>(predicate);

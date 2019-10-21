@@ -16,9 +16,7 @@ static_assert(Float3_int::mark_val < -100.f,
               "the simulation domain is not correct anymore?");
 
 static bool packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexcept {
-    // Positions are not Active, so we accept them explicitly.
-    return namedDesc.second->persistence == DataManager::PersistenceMode::Active
-        || namedDesc.first == ChannelNames::positions;
+    return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
 };
 
 static __device__ bool isPointInsideBox(const float3 &point, const float3 &lo, const float3 &hi)
