@@ -36,22 +36,31 @@ namespace StationaryWallsKernels {
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void collectRemaining(PVview view, float4 *remainingPos, float4 *remainingVel, int *nRemaining, InsideWallChecker checker)
+__global__ void packRemainingParticles(PVview view, ParticlePackerHandler packer, char *outputBuffer,
+                                       int *nRemaining, InsideWallChecker checker, int maxNumParticles)
 {
     const float tolerance = 1e-6f;
 
-    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (pid >= view.size) return;
+    const int srcPid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (srcPid >= view.size) return;
 
-    Particle p(view.readParticle(pid));
-
-    const float val = checker(p.r);
+    const float3 r = make_float3(view.readPosition(srcPid));
+    const float val = checker(r);
 
     if (val <= -tolerance)
     {
-        const int ind = atomicAggInc(nRemaining);
-        p.write2Float4(remainingPos, remainingVel, ind);
+        const int dstPid = atomicAggInc(nRemaining);
+        packer.particles.pack(srcPid, dstPid, outputBuffer, maxNumParticles);
     }
+}
+
+__global__ void unpackRemainingParticles(const char *inputBuffer, ParticlePackerHandler packer, int nRemaining, int maxNumParticles)
+{
+    const int srcPid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (srcPid >= nRemaining) return;
+
+    const int dstPid = srcPid;
+    packer.particles.unpack(srcPid, dstPid, inputBuffer, maxNumParticles);
 }
 
 template<typename InsideWallChecker>
@@ -319,7 +328,10 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-
+static bool keepAllpersistentDataPredicate(const DataManager::NamedChannelDesc& namedDesc)
+{
+    return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
+};
 
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
@@ -339,17 +351,13 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     const int oldSize = pv->local()->size();
     if (oldSize == 0) return;
 
-    const int nthreads = 128;
+    constexpr int nthreads = 128;
     // Need a different path for objects
     if (auto ov = dynamic_cast<ObjectVector*>(pv))
     {
-        PackPredicate packPredicate = [](const DataManager::NamedChannelDesc& namedDesc) {
-            return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
-        };
-        
         // Prepare temp storage for extra object data
         OVview ovView(ov, ov->local());
-        ObjectPacker packer(packPredicate);
+        ObjectPacker packer(keepAllpersistentDataPredicate);
         packer.update(ov->local(), defaultStream);
         const int maxNumObj = ovView.nObjects;
 
@@ -365,12 +373,12 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
 
         nRemaining.downloadFromDevice(defaultStream);
         
-        info("Removing %d out of %d '%s' objects from walls '%s'",
-             ovView.nObjects - nRemaining[0], ovView.nObjects,
-             ov->name.c_str(), this->name.c_str());
-
         if (nRemaining[0] != ovView.nObjects)
         {
+            info("Removing %d out of %d '%s' objects from walls '%s'",
+                 ovView.nObjects - nRemaining[0], ovView.nObjects,
+                 ov->name.c_str(), this->name.c_str());
+
             // Copy temporary buffers back
             ov->local()->resize_anew(nRemaining[0] * ov->objSize);
             ovView = OVview(ov, ov->local());
@@ -385,21 +393,38 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
     else
     {
         PVview view(pv, pv->local());
-        PinnedBuffer<float4> tmpPos(view.size), tmpVel(view.size);
+        ParticlePacker packer(keepAllpersistentDataPredicate);
+        packer.update(pv->local(), defaultStream);
+        const int maxNumParticles = view.size;
 
+        DeviceBuffer<char> tmpBuffer(packer.getSizeBytes(maxNumParticles));
+        
         SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::collectRemaining,
+            StationaryWallsKernels::packRemainingParticles,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
-            view, tmpPos.devPtr(), tmpVel.devPtr(), nRemaining.devPtr(),
-            insideWallChecker.handler() );
+            view, packer.handler(), tmpBuffer.devPtr(), nRemaining.devPtr(),
+            insideWallChecker.handler(), maxNumParticles );
 
         nRemaining.downloadFromDevice(defaultStream);
-        std::swap(pv->local()->positions(),  tmpPos);
-        std::swap(pv->local()->velocities(), tmpVel);
-        pv->local()->resize(nRemaining[0], defaultStream);
+        const int newSize = nRemaining[0];
+
+        if (newSize != oldSize)
+        {
+            info("Removing %d out of %d '%s' particles from walls '%s'",
+                 oldSize - newSize, oldSize,
+                 pv->name.c_str(), this->name.c_str());
+            
+            pv->local()->resize_anew(newSize);
+            packer.update(pv->local(), defaultStream);
+
+            SAFE_KERNEL_LAUNCH(
+                StationaryWallsKernels::unpackRemainingParticles,
+                getNblocks(newSize, nthreads), nthreads, 0, defaultStream,
+                tmpBuffer.devPtr(), packer.handler(), newSize, maxNumParticles );
+        }
     }
 
-    pv->haloValid = false;
+    pv->haloValid   = false;
     pv->redistValid = false;
     pv->cellListStamp++;
 
