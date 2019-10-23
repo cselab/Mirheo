@@ -46,7 +46,8 @@ DataManager& DataManager::operator=(DataManager&& b)
 
 void DataManager::copyChannelMap(const DataManager &other)
 {
-    for (const auto &pair : other.channelMap) {
+    for (const auto &pair : other.channelMap)
+    {
         auto it = channelMap.find(pair.first);
         mpark::visit([&pair, it, this](const auto *pinnedBuffer)
         {
@@ -54,13 +55,13 @@ void DataManager::copyChannelMap(const DataManager &other)
             using T = typename Buffer::value_type;
 
             if (it == channelMap.end()) {
-                createData<T>(pair.first);
+                this->createData<T>(pair.first);
             } else if (!mpark::holds_alternative<Buffer*>(it->second.varDataPtr)) {
-                deleteChannel(pair.first);
-                createData<T>(pair.first);
+                this->deleteChannel(pair.first);
+                this->createData<T>(pair.first);
             }
-            setPersistenceMode(pair.first, pair.second.persistence);
-            setShiftMode      (pair.first, pair.second.shift);
+            this->setPersistenceMode(pair.first, pair.second.persistence);
+            this->setShiftMode      (pair.first, pair.second.shift);
         }, pair.second.varDataPtr);
     }
 

@@ -1877,9 +1877,9 @@ inline __HD__ float4 smoothstep(float4 a, float4 b, float4 x)
 template <class R3>
 inline __HD__ R3 anyOrthogonal(R3 v)
 {
-    auto x = abs(v.x);
-    auto y = abs(v.y);
-    auto z = abs(v.z);
+    auto x = fabs(v.x);
+    auto y = fabs(v.y);
+    auto z = fabs(v.z);
 
     constexpr R3 xAxis {1.f, 0.f, 0.f};
     constexpr R3 yAxis {0.f, 1.f, 0.f};
