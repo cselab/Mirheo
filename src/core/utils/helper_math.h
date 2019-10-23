@@ -65,9 +65,13 @@ inline int min(int a, int b)
 
 
 #if !defined(__CUDACC__)
-inline float rsqrtf(float x)
+static inline float rsqrtf(float x)
 {
     return 1.0f / sqrtf(x);
+}
+static inline double rsqrt(double x)
+{
+    return 1.0 / sqrt(x);
 }
 #endif
 
@@ -1657,15 +1661,15 @@ inline __HD__ float length(float4 v)
 
 inline __HD__ double length(double2 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
 }
 inline __HD__ double length(double3 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
 }
 inline __HD__ double length(double4 v)
 {
-    return sqrtf(dot(v, v));
+    return sqrt(dot(v, v));
 }
 
 
@@ -1700,17 +1704,17 @@ inline __HD__ float4 normalize(float4 v)
 
 inline __HD__ double2 normalize(double2 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ double3 normalize(double3 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ double4 normalize(double4 v)
 {
-    double invLen = rsqrtf(dot(v, v));
+    double invLen = rsqrt(dot(v, v));
     return v * invLen;
 }
 
@@ -1792,15 +1796,15 @@ inline __HD__ float4 fmodf(float4 a, float4 b)
 
 inline __HD__ float2 fabs(float2 v)
 {
-    return make_float2(fabs(v.x), fabs(v.y));
+    return make_float2(fabsf(v.x), fabsf(v.y));
 }
 inline __HD__ float3 fabs(float3 v)
 {
-    return make_float3(fabs(v.x), fabs(v.y), fabs(v.z));
+    return make_float3(fabsf(v.x), fabsf(v.y), fabsf(v.z));
 }
 inline __HD__ float4 fabs(float4 v)
 {
-    return make_float4(fabs(v.x), fabs(v.y), fabs(v.z), fabs(v.w));
+    return make_float4(fabsf(v.x), fabsf(v.y), fabsf(v.z), fabsf(v.w));
 }
 
 inline __HD__ int2 abs(int2 v)
@@ -1877,9 +1881,9 @@ inline __HD__ float4 smoothstep(float4 a, float4 b, float4 x)
 template <class R3>
 inline __HD__ R3 anyOrthogonal(R3 v)
 {
-    auto x = fabs(v.x);
-    auto y = fabs(v.y);
-    auto z = fabs(v.z);
+    auto x = fabsf(v.x);
+    auto y = fabsf(v.y);
+    auto z = fabsf(v.z);
 
     constexpr R3 xAxis {1.f, 0.f, 0.f};
     constexpr R3 yAxis {0.f, 1.f, 0.f};

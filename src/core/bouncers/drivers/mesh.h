@@ -69,7 +69,7 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
     // assume that particles don t move more than this distance every time step
     constexpr float tolDistance = 0.1;
     
-    if (fabs(F0) > tolDistance && fabs(F1) > tolDistance)
+    if (fabsf(F0) > tolDistance && fabsf(F1) > tolDistance)
         return false;
     
     if (F0 * F1 < 0.0f)
@@ -417,9 +417,9 @@ void triangleForces(Triangle tr, float m,
     const float3 L = M * cross(C-O, U_par);
 
     const float J = len2(C-tr.v0) + len2(C-tr.v1) + len2(C-tr.v2);
-    if (fabs(J) < tol)
+    if (fabsf(J) < tol)
     {
-        float3 f = dU * M / dt;
+        const float3 f = dU * M / dt;
         f0 = O_barycentric.x*f;
         f1 = O_barycentric.y*f;
         f2 = O_barycentric.z*f;
