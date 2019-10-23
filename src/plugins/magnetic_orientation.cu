@@ -20,7 +20,9 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 
     const float3 T = cross(M, B);
     
-    view.motions[gid].torque += T;
+    atomicAdd(&view.motions[gid].torque.x, static_cast<RigidReal>(T.x));
+    atomicAdd(&view.motions[gid].torque.y, static_cast<RigidReal>(T.y));
+    atomicAdd(&view.motions[gid].torque.z, static_cast<RigidReal>(T.z));
 }
 } // namespace MagneticOrientationPluginKernels
 
