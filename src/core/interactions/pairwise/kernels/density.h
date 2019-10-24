@@ -30,7 +30,7 @@ public:
         if (rij2 > rc2)
             return 0.0f;
 
-        const float rij = sqrtf(rij2);
+        const float rij = math::sqrt(rij2);
 
         return densityKernel(rij, invrc);
     }

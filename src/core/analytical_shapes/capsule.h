@@ -19,7 +19,7 @@ public:
         float drsq = sqr(coo.x) + sqr(coo.y);
         if (dz > 0) drsq += sqr(dz);
 
-        const float dr = sqrtf(drsq) - R;
+        const float dr = math::sqrt(drsq) - R;
         return dr;
     }
 

@@ -37,7 +37,7 @@ public:
         if (_dir == 1) projR = make_float2(gr.x, gr.z);
         if (_dir == 2) projR = make_float2(gr.x, gr.y);
 
-        float dist = sqrtf(dot(projR-center, projR-center));
+        float dist = math::sqrt(dot(projR-center, projR-center));
 
         return inside ? dist - radius : radius - dist;
     }

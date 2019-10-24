@@ -15,7 +15,7 @@ __global__ void applyTemperature(PVview view, float kBT, float seed1, float seed
     float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
     float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
-    float3 vel = sqrtf(kBT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
+    float3 vel = math::sqrt(kBT * view.invMass) * make_float3(rand1.x, rand1.y, rand2.x);
 
     Float3_int u(view.readVelocity(gid));
     if (keepVelocity) u.v += vel;

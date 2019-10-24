@@ -14,10 +14,10 @@ public:
 
     __HD__ inline float inOutFunction(float3 coo) const
     {
-        const float dr = sqrtf(sqr(coo.x) + sqr(coo.y)) - R;
+        const float dr = math::sqrt(sqr(coo.x) + sqr(coo.y)) - R;
         const float dz = fabsf(coo.z) - halfL;
 
-        const float dist2edge = sqrtf(sqr(dz) + sqr(dr));
+        const float dist2edge = math::sqrt(sqr(dz) + sqr(dr));
         const float dist2disk = dr > 0 ? dist2edge : dz;
         const float dist2cyl  = dz > 0 ? dist2edge : dr;
 
@@ -34,7 +34,7 @@ public:
         const float rsq = sqr(coo.x) + sqr(coo.y);
         const float rinv = rsq > eps ? math::rsqrt(rsq) : 0.f;
 
-        const float dr = sqrtf(rsq) - R;
+        const float dr = math::sqrt(rsq) - R;
         const float dz = fabsf(coo.z) - halfL;
         
         const float3 er {rinv * coo.x, rinv * coo.y, 0.f};

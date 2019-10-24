@@ -19,8 +19,8 @@ static auto getBoundParams(const RodParameters& p)
     dp.ksFrame  = p.ksFrame;
     dp.lcenter  = p.l0;
     dp.lcross   = p.a0;
-    dp.lring    = 0.5 * sqrt(2.0) * p.a0;
-    dp.ldiag    = 0.5 * sqrt(p.a0*p.a0 + p.l0*p.l0);
+    dp.lring    = 0.5 * math::sqrt(2.0) * p.a0;
+    dp.ldiag    = 0.5 * math::sqrt(p.a0*p.a0 + p.l0*p.l0);
     return dp;
 }
 

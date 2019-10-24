@@ -22,7 +22,7 @@ public:
     __D__ inline float operator()(float3 coo) const
     {
         float3 gr = domain.local2global(coo);
-        float dist = sqrtf(dot(gr-center, gr-center));
+        float dist = math::sqrt(dot(gr-center, gr-center));
 
         return inside ? dist - radius : radius - dist;
     }

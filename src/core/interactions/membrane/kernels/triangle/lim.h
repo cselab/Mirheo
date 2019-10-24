@@ -35,7 +35,7 @@ public:
         mu = p.mu * lscale * lscale;
         
         area0   = p.totArea0 * lscale * lscale / mesh->getNtriangles();
-        length0 = sqrt(area0 * 4.0 / sqrt(3.0));
+        length0 = math::sqrt(area0 * 4.0 / math::sqrt(3.0));
     }
 
     __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const
@@ -60,7 +60,7 @@ public:
 
     __D__ inline mReal safeSqrt(mReal a) const
     {
-        return a > 0.0_mr ? sqrt(a) : 0.0_mr;
+        return a > 0.0_mr ? math::sqrt(a) : 0.0_mr;
     }
     
     __D__ inline mReal3 operator()(mReal3 v1, mReal3 v2, mReal3 v3, EquilibriumTriangleDesc eq) const

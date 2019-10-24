@@ -107,7 +107,7 @@ protected:
 
     static float computeSigma(float gamma, float kBT, float dt)
     {
-        return sqrt(2.0 * gamma * kBT / dt);
+        return math::sqrt(2.0 * gamma * kBT / dt);
     }
     
     StepRandomGen stepGen;

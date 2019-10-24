@@ -186,7 +186,7 @@ struct mean0var1_flops_counter {
 
 inline __D__ float mean0var1( float seed, float u, float v )
 {
-    float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
+    float p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
     float q = rem( seed );
 
     float l = __logistic_core<N>( q - p );
@@ -195,7 +195,7 @@ inline __D__ float mean0var1( float seed, float u, float v )
 
 inline __D__ float mean0var1_dual( float seed, float u, float v )
 {
-    float p = rem( sqrtf(u) * gold + sqrtf(v) * silver ); // Acknowledging Dmitry for the use of sqrtf
+    float p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
     float q = rem( seed );
 
     float l = __logistic_core<N>( q - p );
@@ -247,7 +247,7 @@ inline __D__ float2 normal2( float seed, uint i, uint j )
     float u1 = uniform01( seed, min(i, j),   max(i, j) );
     float u2 = uniform01( u1,   max(i, j)+1, min(i, j) );
 
-    float r = sqrtf(-2.0f * logf(u1));
+    float r = math::sqrt(-2.0f * logf(u1));
     float theta = 2.0f * M_PI * u2;
 
     float2 res;

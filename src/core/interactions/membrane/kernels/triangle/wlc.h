@@ -31,7 +31,7 @@ public:
         kd = p.kd * lscale * lscale;
         
         area0   = p.totArea0 * lscale * lscale / mesh->getNtriangles();
-        length0 = sqrt(area0 * 4.0 / sqrt(3.0));
+        length0 = math::sqrt(area0 * 4.0 / math::sqrt(3.0));
     }
 
     __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const

@@ -40,7 +40,7 @@ public:
             const float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
             v = make_float3(rand3.x, rand3.y, rand4.x);
         }
-        v = normalize(v) * sqrtf(kBT / mass);
+        v = normalize(v) * math::sqrt(kBT / mass);
 
         return uWall + v;
     }

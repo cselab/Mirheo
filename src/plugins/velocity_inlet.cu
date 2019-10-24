@@ -81,7 +81,7 @@ __device__ inline float3 getBarycentricUniformTriangle(float seed, int seed0, in
 {
     float r1 = Saru::uniform01(seed, 42*seed0, 5+seed1);
     float r2 = Saru::uniform01(seed, 24*seed1, 6+seed0);
-    r1 = sqrtf(r1);    
+    r1 = math::sqrt(r1);    
     return { (1-r1), (1-r2)*r1, r2*r1 };
 }
 
@@ -115,7 +115,7 @@ __global__ void generateParticles(float seed, float kBT, int nNewParticles, int 
     p.r = interpolateFrombarycentric(barCoords, triangles,  triangleId);
     p.u = interpolateFrombarycentric(barCoords, velocities, triangleId);
 
-    p.u += sqrtf(kBT * view.invMass) * gaussian3D(seed, i, triangleId);
+    p.u += math::sqrt(kBT * view.invMass) * gaussian3D(seed, i, triangleId);
     // TODO id
     
     int dstId = oldSize + i;

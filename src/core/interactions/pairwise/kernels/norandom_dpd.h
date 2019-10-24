@@ -24,7 +24,7 @@ public:
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
-        sigma(sqrt(2 * gamma * kBT / dt)),
+        sigma(math::sqrt(2 * gamma * kBT / dt)),
         power(power),
         invrc(1.0 / rc)
     {}

@@ -43,7 +43,7 @@ static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const Commo
     if (devP.fluctuationForces) {
         float dt = state->dt;
         devP.seed = stepGen.generate(state);
-        devP.sigma_rnd = sqrt(2 * p.kBT * p.gammaC / dt);
+        devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
     }
     
     return devP;

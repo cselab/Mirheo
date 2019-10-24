@@ -378,9 +378,8 @@ inline float4 readNoCache(const float4* addr)
 __HD__ inline float fastPower(const float x, const float k)
 {
     if (fabsf(k - 1.0f)   < 1e-6f) return x;
-    if (fabsf(k - 0.5f)   < 1e-6f) return sqrtf(fabsf(x));
-    if (fabsf(k - 0.25f)  < 1e-6f) return sqrtf(sqrtf(fabsf(x)));
-    //if (fabsf(k - 0.125f) < 1e-6f) return sqrtf(sqrtf(sqrtf(fabsf(x))));
+    if (fabsf(k - 0.5f)   < 1e-6f) return math::sqrt(fabsf(x));
+    if (fabsf(k - 0.25f)  < 1e-6f) return math::sqrt(math::sqrt(fabsf(x)));
 
     return powf(fabsf(x), k);
 }

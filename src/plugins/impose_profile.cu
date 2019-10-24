@@ -36,7 +36,7 @@ __global__ void applyProfile(
             float2 rand1 = Saru::normal2(seed1 + pid, threadIdx.x, blockIdx.x);
             float2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
 
-            p.u = targetVel + sqrtf(kBT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
+            p.u = targetVel + math::sqrt(kBT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
             view.writeParticle(pid, p);
         }
     }

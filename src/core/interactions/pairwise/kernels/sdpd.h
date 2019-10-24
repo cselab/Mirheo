@@ -62,8 +62,8 @@ public:
 
         const float Aij = (inv_disq + inv_djsq) * dWdr;
         const float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
-        const float fD = fDfact *        Aij * inv_rij  * erdotdu;
-        const float fR = fRfact * sqrtf(-Aij * inv_rij) * myrandnr;
+        const float fD = fDfact *             Aij * inv_rij  * erdotdu;
+        const float fR = fRfact * math::sqrt(-Aij * inv_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
@@ -124,7 +124,7 @@ protected:
 
     static float computeFRfact(float viscosity, float kBT, float dt)
     {
-        return sqrt(2 * HandlerType::zeta * viscosity * kBT / dt);
+        return math::sqrt(2 * HandlerType::zeta * viscosity * kBT / dt);
     }
     
     StepRandomGen stepGen;
