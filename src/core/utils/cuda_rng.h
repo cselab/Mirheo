@@ -78,7 +78,7 @@ struct KISS {
 
 // floating point version of LCG
 inline __D__ float rem( float r ) {
-    return r - floorf( r );
+    return r - math::floor( r );
 }
 
 // FMA wrapper for the convenience of switching rouding modes

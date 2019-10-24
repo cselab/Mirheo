@@ -37,10 +37,10 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
 {
     auto domain = pv->state->domain;
 
-    int3 ncells = make_int3( ceilf(domain.localSize) );
+    int3 ncells = make_int3( math::ceil(domain.localSize) );
     float3 h    = domain.localSize / make_float3(ncells);
 
-    int wholeInCell = floor(density);
+    int wholeInCell = math::floor(density);
     float fracInCell = density - wholeInCell;
 
     auto seed = genSeed(comm, pv->name);

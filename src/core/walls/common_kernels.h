@@ -21,9 +21,9 @@ __device__ inline float3 rescue(float3 candidate, float dt, float tol, int seed,
         if (v < -tol) break;
 
         float3 rndShift;
-        rndShift.x = Saru::mean0var1(candidate.x - floorf(candidate.x), seed+i, seed*seed);
-        rndShift.y = Saru::mean0var1(rndShift.x,                        seed+i, seed*seed);
-        rndShift.z = Saru::mean0var1(rndShift.y,                        seed+i, seed*seed);
+        rndShift.x = Saru::mean0var1(candidate.x - math::floor(candidate.x), seed+i, seed*seed);
+        rndShift.y = Saru::mean0var1(rndShift.x,                             seed+i, seed*seed);
+        rndShift.z = Saru::mean0var1(rndShift.y,                             seed+i, seed*seed);
 
         if (checker(candidate + factor * rndShift) < v)
             candidate += factor * rndShift;

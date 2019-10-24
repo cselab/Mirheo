@@ -77,7 +77,7 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
     
     for (auto r : positions)
     {
-        int3 procId3 = make_int3(floorf(r / domain.localSize));
+        int3 procId3 = make_int3(math::floor(r / domain.localSize));
 
         if (procId3.x >= dims[0] ||
             procId3.y >= dims[1] ||

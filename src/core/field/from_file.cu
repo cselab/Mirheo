@@ -45,7 +45,7 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
             0.0f <= inputCoo.z && inputCoo.z <= inDims.z*inH.z    );
 
     // Reference point of the original grid, rounded down
-    int3 inputId_down = make_int3( floorf(inputCoo / inH) );
+    int3 inputId_down = make_int3( math::floor(inputCoo / inH) );
     float3 mu = (inputCoo - make_float3(inputId_down)*inH) / inH;
 
     // Interpolate along x
@@ -109,7 +109,7 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
             0.0f <= inputCoo.z && inputCoo.z <= inDims.z*inH.z    );
 
     // Reference point of the original grid, rounded down
-    int3 inputId_down = make_int3( floorf(inputCoo / inH) );
+    int3 inputId_down = make_int3( math::floor(inputCoo / inH) );
     
     float nominator = 0, denominator = 0;
 
@@ -237,8 +237,8 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
     // We cannot send big sdf files directly, so we'll carve a piece now
 
     constexpr int margin = 3; // +2 from cubic interpolation, +1 from possible round-off errors
-    const int3 startId = make_int3( floorf( extendedDomainStart                     / initialSdfH) ) - margin;
-    const int3 endId   = make_int3( ceilf ((extendedDomainStart+extendedDomainSize) / initialSdfH) ) + margin;
+    const int3 startId = make_int3( math::floor( extendedDomainStart                     / initialSdfH) ) - margin;
+    const int3 endId   = make_int3( math::ceil ((extendedDomainStart+extendedDomainSize) / initialSdfH) ) + margin;
 
     const float3 startInLocalCoord = make_float3(startId)*initialSdfH - (extendedDomainStart + 0.5*extendedDomainSize);
 

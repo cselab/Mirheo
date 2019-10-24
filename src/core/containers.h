@@ -211,7 +211,7 @@ private:
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        const int conservative_estimate = static_cast<int>(std::ceil(1.1 * n + 10));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
@@ -376,7 +376,7 @@ private:
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        const int conservative_estimate = static_cast<int> (std::ceil(1.1 * n + 10));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
@@ -620,7 +620,7 @@ private:
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = (int)ceil(1.1 * n + 10);
+        const int conservative_estimate = static_cast<int>(std::ceil(1.1 * n + 10));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));

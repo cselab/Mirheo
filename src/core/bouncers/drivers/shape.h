@@ -22,9 +22,9 @@ __device__ static inline float3 rescue(float3 candidate, float dt, float tol, co
         const float v = shape.inOutFunction(candidate);
         if (v > tol) break;
 
-        const float seed0 = candidate.x - floorf(candidate.x) / i;
-        const float seed1 = candidate.y - floorf(candidate.y) * i;
-        const float seed2 = candidate.z - floorf(candidate.z) + i;
+        const float seed0 = candidate.x - math::floor(candidate.x) / i;
+        const float seed1 = candidate.y - math::floor(candidate.y) * i;
+        const float seed2 = candidate.z - math::floor(candidate.z) + i;
         
         float3 rndShift;
         rndShift.x = Saru::mean0var1(seed0, seed1, seed2);

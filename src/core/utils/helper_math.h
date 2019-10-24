@@ -45,6 +45,11 @@ static inline __HD__ double abs(long x) {return ::abs(x);}
 static inline __HD__ float  sqrt(float x)  {return ::sqrtf(x);}
 static inline __HD__ double sqrt(double x) {return ::sqrt (x);}
 
+static inline __HD__ float  ceil(float x)  {return ::ceilf(x);}
+static inline __HD__ double ceil(double x) {return ::ceil (x);}
+
+static inline __HD__ float  floor(float x)  {return ::floorf(x);}
+static inline __HD__ double floor(double x) {return ::floor (x);}
 
 #if defined(__CUDACC__)
 
@@ -1563,46 +1568,47 @@ static inline __HD__ double4 normalize(double4 v)
     return v * invLen;
 }
 
+namespace math
+{
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // ceil
 ////////////////////////////////////////////////////////////////////////////////
 
-static inline __HD__ float2 ceilf(float2 v)
+static inline __HD__ float2 ceil(float2 v)
 {
-    return make_float2(ceilf(v.x), ceilf(v.y));
+    return make_float2(math::ceil(v.x), math::ceil(v.y));
 }
-static inline __HD__ float3 ceilf(float3 v)
+static inline __HD__ float3 ceil(float3 v)
 {
-    return make_float3(ceilf(v.x), ceilf(v.y), ceilf(v.z));
+    return make_float3(math::ceil(v.x), math::ceil(v.y), math::ceil(v.z));
 }
-static inline __HD__ float4 ceilf(float4 v)
+static inline __HD__ float4 ceil(float4 v)
 {
-    return make_float4(ceilf(v.x), ceilf(v.y), ceilf(v.z), ceilf(v.w));
+    return make_float4(math::ceil(v.x), math::ceil(v.y), math::ceil(v.z), math::ceil(v.w));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // floor
 ////////////////////////////////////////////////////////////////////////////////
 
-static inline __HD__ float2 floorf(float2 v)
+static inline __HD__ float2 floor(float2 v)
 {
-    return make_float2(floorf(v.x), floorf(v.y));
+    return make_float2(math::floor(v.x), math::floor(v.y));
 }
-static inline __HD__ float3 floorf(float3 v)
+static inline __HD__ float3 floor(float3 v)
 {
-    return make_float3(floorf(v.x), floorf(v.y), floorf(v.z));
+    return make_float3(math::floor(v.x), math::floor(v.y), math::floor(v.z));
 }
-static inline __HD__ float4 floorf(float4 v)
+static inline __HD__ float4 floor(float4 v)
 {
-    return make_float4(floorf(v.x), floorf(v.y), floorf(v.z), floorf(v.w));
+    return make_float4(math::floor(v.x), math::floor(v.y), math::floor(v.z), math::floor(v.w));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // absolute value
 ////////////////////////////////////////////////////////////////////////////////
-
-namespace math
-{
 
 static inline __HD__ float2 abs(float2 v)
 {

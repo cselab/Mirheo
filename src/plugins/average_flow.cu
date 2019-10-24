@@ -71,7 +71,7 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
     nranks3D = simulation->nranks3D;
     
     // TODO: this should be reworked if the domains are allowed to have different size
-    resolution = make_int3( floorf(state->domain.localSize / binSize) );
+    resolution = make_int3( math::floor(state->domain.localSize / binSize) );
     binSize = state->domain.localSize / make_float3(resolution);
 
     if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)

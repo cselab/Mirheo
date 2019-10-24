@@ -11,7 +11,7 @@ Field::Field(const MirState *state, std::string name, float3 hField) :
     // We'll make sdf a bit bigger, so that particles that flew away
     // would also be correctly bounced back
     extendedDomainSize = state->domain.localSize + 2.0f*margin3;
-    resolution         = make_int3( ceilf(extendedDomainSize / hField) );
+    resolution         = make_int3( math::ceil(extendedDomainSize / hField) );
     h                  = extendedDomainSize / make_float3(resolution-1);
     invh               = 1.0f / h;
 }

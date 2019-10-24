@@ -91,7 +91,7 @@ CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
     rc(rc),
     localDomainSize(localDomainSize)
 {
-    ncells = make_int3( floorf(localDomainSize / rc + 1e-6) );
+    ncells = make_int3( math::floor(localDomainSize / rc + 1e-6) );
     h = make_float3(localDomainSize) / make_float3(ncells);
     invh = 1.0f / h;
     this->rc = std::min( {h.x, h.y, h.z} );
@@ -105,7 +105,7 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
     localDomainSize(localDomainSize)
 {
     rc = std::min( {h.x, h.y, h.z} );
-    ncells = make_int3( ceilf(localDomainSize / h - 1e-6f) );
+    ncells = make_int3( math::ceil(localDomainSize / h - 1e-6f) );
     totcells = ncells.x * ncells.y * ncells.z;
 }
 

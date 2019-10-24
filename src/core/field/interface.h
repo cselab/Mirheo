@@ -27,7 +27,7 @@ public:
         float s000, s001, s010, s011, s100, s101, s110, s111;
         float sx00, sx01, sx10, sx11, sxy0, sxy1, sxyz;
 
-        float3 texcoord = floorf((x + extendedDomainSize*0.5f) * invh);
+        float3 texcoord = math::floor((x + extendedDomainSize*0.5f) * invh);
         float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
         
         auto access = [this, &texcoord] (int dx, int dy, int dz) {
