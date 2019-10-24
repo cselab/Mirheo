@@ -17,16 +17,16 @@ namespace MembraneInteractionKernels
 {
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
-    int objId = blockIdx.x;
-    int offset = objId * mesh.nvertices;
+    const int objId = blockIdx.x;
+    const int offset = objId * mesh.nvertices;
     float2 a_v = make_float2(0.0f);
 
     for (int i = threadIdx.x; i < mesh.ntriangles; i += blockDim.x) {
-        int3 ids = mesh.triangles[i];
+        const int3 ids = mesh.triangles[i];
 
-        auto v0 = make_real3(make_float3( view.readPosition(offset + ids.x) ));
-        auto v1 = make_real3(make_float3( view.readPosition(offset + ids.y) ));
-        auto v2 = make_real3(make_float3( view.readPosition(offset + ids.z) ));
+        const auto v0 = make_mReal3(make_float3( view.readPosition(offset + ids.x) ));
+        const auto v1 = make_mReal3(make_float3( view.readPosition(offset + ids.y) ));
+        const auto v2 = make_mReal3(make_float3( view.readPosition(offset + ids.z) ));
 
         a_v.x += triangleArea(v0, v1, v2);
         a_v.y += triangleSignedVolume(v0, v1, v2);

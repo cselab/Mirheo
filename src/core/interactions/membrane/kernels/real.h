@@ -4,51 +4,55 @@
 #include <core/utils/vec_traits.h>
 
 #ifdef MEMBRANE_FORCES_DOUBLE
-using real  = double;
+using mReal  = double;
 #else
-using real  = float;
+using mReal  = float;
 #endif // MEMBRANE_FORCES_DOUBLE
 
-using real2 = VecTraits::Vec<real, 2>::Type;
-using real3 = VecTraits::Vec<real, 3>::Type;
+using mReal2 = VecTraits::Vec<mReal, 2>::Type;
+using mReal3 = VecTraits::Vec<mReal, 3>::Type;
 
 
 template<typename T3>
-__D__ inline real3 make_real3(T3 v)
+__D__ inline mReal3 make_mReal3(T3 v)
 {
     return {v.x, v.y, v.z};
 }
 
-__D__ constexpr inline real3 make_real3(float a)
+__D__ constexpr inline mReal3 make_mReal3(float a)
 {
-    return {(real)a, (real)a, (real)a};
+    return {static_cast<mReal>(a),
+            static_cast<mReal>(a),
+            static_cast<mReal>(a)};
 }
 
-__D__ constexpr inline real3 make_real3(double a)
+__D__ constexpr inline mReal3 make_mReal3(double a)
 {
-    return {(real)a, (real)a, (real)a};
+    return {static_cast<mReal>(a),
+            static_cast<mReal>(a),
+            static_cast<mReal>(a)};
 }
 
-__D__ constexpr inline real operator "" _r (const long double a)
+__D__ constexpr inline mReal operator "" _mr (const long double a)
 {
-    return (real) a;
+    return static_cast<mReal>(a);
 }
 
-struct ParticleReal
+struct ParticleMReal
 {
-    real3 r, u;
+    mReal3 r, u;
 };
 
 template <typename View>
-__D__ inline real3 fetchPosition(View view, int i)
+__D__ inline mReal3 fetchPosition(View view, int i)
 {
     Float3_int ri(view.readPosition(i));
-    return make_real3(ri.v);
+    return make_mReal3(ri.v);
 }
 
 template <typename View>
-__D__ inline ParticleReal fetchParticle(View view, int i)
+__D__ inline ParticleMReal fetchParticle(View view, int i)
 {
     Particle p(view.readParticle(i));
-    return {make_real3(p.r), make_real3(p.u)};
+    return {make_mReal3(p.r), make_mReal3(p.u)};
 }

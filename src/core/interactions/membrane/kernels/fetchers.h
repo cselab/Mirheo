@@ -6,12 +6,12 @@
 class VertexFetcher
 {
 public:
-    using VertexType = real3;
+    using VertexType = mReal3;
     using ViewType   = OVview;
 
     __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
-        return make_real3(Float3_int(view.readPosition(i)).v);
+        return make_mReal3(Float3_int(view.readPosition(i)).v);
     }
 };
 
@@ -21,8 +21,8 @@ public:
 
     struct VertexWithMeanCurvature
     {
-        real3 r;
-        real H;
+        mReal3 r;
+        mReal H;
     };
     
     using VertexType = VertexWithMeanCurvature;
@@ -31,6 +31,6 @@ public:
     __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
         return {VertexFetcher::fetchVertex(view, i),
-                real(view.vertexMeanCurvatures[i])};
+                mReal(view.vertexMeanCurvatures[i])};
     }
 };

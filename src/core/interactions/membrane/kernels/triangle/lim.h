@@ -14,16 +14,16 @@ class TriangleLimForce
 public:    
     struct LengthsArea
     {
-        real l0;   // first  eq edge length
-        real l1;   // second eq edge length
-        real a;    // eq triangle area
-        real dotp; // dot product of 2 above edges
+        mReal l0;   // first  eq edge length
+        mReal l1;   // second eq edge length
+        mReal a;    // eq triangle area
+        mReal dotp; // dot product of 2 above edges
     };
 
     using EquilibriumTriangleDesc = LengthsArea;
     using ParametersType          = LimParameters;
     
-    TriangleLimForce(ParametersType p, const Mesh *mesh, real lscale) :
+    TriangleLimForce(ParametersType p, const Mesh *mesh, mReal lscale) :
         lscale(lscale)
     {
         a3 = p.a3;
@@ -53,65 +53,65 @@ public:
             eq.l0   = this->length0;
             eq.l1   = this->length0;
             eq.a    = this->area0;
-            eq.dotp = this->length0 * 0.5_r;
+            eq.dotp = this->length0 * 0.5_mr;
         }
         return eq;
     }
 
-    __D__ inline real safeSqrt(real a) const
+    __D__ inline mReal safeSqrt(mReal a) const
     {
-        return a > 0.0_r ? sqrt(a) : 0.0_r;
+        return a > 0.0_mr ? sqrt(a) : 0.0_mr;
     }
     
-    __D__ inline real3 operator()(real3 v1, real3 v2, real3 v3, EquilibriumTriangleDesc eq) const
+    __D__ inline mReal3 operator()(mReal3 v1, mReal3 v2, mReal3 v3, EquilibriumTriangleDesc eq) const
     {
-        const real3 x12 = v2 - v1;
-        const real3 x13 = v3 - v1;
-        const real3 x32 = v2 - v3;
+        const mReal3 x12 = v2 - v1;
+        const mReal3 x13 = v3 - v1;
+        const mReal3 x32 = v2 - v3;
 
-        const real3 normalArea2 = cross(x12, x13);
-        const real area = 0.5_r * length(normalArea2);
-        const real area_inv = 1.0_r / area;
-        const real area0_inv = 1.0_r / eq.a;
+        const mReal3 normalArea2 = cross(x12, x13);
+        const mReal area = 0.5_mr * length(normalArea2);
+        const mReal area_inv = 1.0_mr / area;
+        const mReal area0_inv = 1.0_mr / eq.a;
 
-        const real3 derArea  = (0.25_r * area_inv) * cross(normalArea2, x32);
+        const mReal3 derArea  = (0.25_mr * area_inv) * cross(normalArea2, x32);
 
-        const real alpha = area * area0_inv - 1;
-        const real coeffAlpha = 0.5_r * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
+        const mReal alpha = area * area0_inv - 1;
+        const mReal coeffAlpha = 0.5_mr * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
 
-        const real3 fArea = coeffAlpha * derArea;
+        const mReal3 fArea = coeffAlpha * derArea;
         
-        const real e0sq_A = dot(x12, x12) * area_inv;
-        const real e1sq_A = dot(x13, x13) * area_inv;
+        const mReal e0sq_A = dot(x12, x12) * area_inv;
+        const mReal e1sq_A = dot(x13, x13) * area_inv;
 
-        const real e0sq_A0 = eq.l0*eq.l0 * area0_inv;
-        const real e1sq_A0 = eq.l1*eq.l1 * area0_inv;
+        const mReal e0sq_A0 = eq.l0*eq.l0 * area0_inv;
+        const mReal e1sq_A0 = eq.l1*eq.l1 * area0_inv;
 
-        const real dotp = dot(x12, x13);
+        const mReal dotp = dot(x12, x13);
 
-        const real dot_4A = 0.25_r * eq.dotp * area0_inv;
-        const real mixed_v = 0.125_r * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A);
-        const real beta = mixed_v - dot_4A * dotp * area_inv - 1.0_r;
+        const mReal dot_4A = 0.25_mr * eq.dotp * area0_inv;
+        const mReal mixed_v = 0.125_mr * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A);
+        const mReal beta = mixed_v - dot_4A * dotp * area_inv - 1.0_mr;
 
-        const real3 derBeta = area_inv * ((0.25_r * e1sq_A0 - dot_4A) * x12 +
-                                          (0.25_r * e0sq_A0 - dot_4A) * x13 +
+        const mReal3 derBeta = area_inv * ((0.25_mr * e1sq_A0 - dot_4A) * x12 +
+                                          (0.25_mr * e0sq_A0 - dot_4A) * x13 +
                                           (dot_4A * dotp * area_inv - mixed_v) * derArea);
         
-        const real3 derAlpha = area0_inv * derArea;
+        const mReal3 derAlpha = area0_inv * derArea;
             
-        const real coefAlpha = eq.a * mu * b1 * beta;
-        const real coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
+        const mReal coefAlpha = eq.a * mu * b1 * beta;
+        const mReal coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
 
-        const real3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
+        const mReal3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
 
         return fArea + fShear;
     }
         
 private:
     
-    real ka, mu;
-    real a3, a4, b1, b2;
+    mReal ka, mu;
+    mReal a3, a4, b1, b2;
 
-    real length0, area0; ///< only useful when StressFree is false
-    real lscale;
+    mReal length0, area0; ///< only useful when StressFree is false
+    mReal lscale;
 };

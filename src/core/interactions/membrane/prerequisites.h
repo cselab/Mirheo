@@ -32,42 +32,42 @@ inline void setPrerequisitesPerEnergy(const JuelicherBendingParameters&, Particl
 
 namespace InteractionMembraneJuelicherKernels
 {
-__device__ inline real compute_lenTheta(real3 v0, real3 v1, real3 v2, real3 v3)
+__device__ inline mReal compute_lenTheta(mReal3 v0, mReal3 v1, mReal3 v2, mReal3 v3)
 {
-    real len = length(v2 - v0);
-    real theta = supplementaryDihedralAngle(v0, v1, v2, v3);
+    const mReal len = length(v2 - v0);
+    const mReal theta = supplementaryDihedralAngle(v0, v1, v2, v3);
     return len * theta;
 }
 
 __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, MembraneMeshView mesh)
 {
-    int rbcId = blockIdx.y;
-    int idv0  = blockIdx.x * blockDim.x + threadIdx.x;
-    int offset = rbcId * mesh.nvertices;
+    const int rbcId = blockIdx.y;
+    const int idv0  = blockIdx.x * blockDim.x + threadIdx.x;
+    const int offset = rbcId * mesh.nvertices;
 
-    real lenTheta = 0;
+    mReal lenTheta = 0;
     
     if (idv0 < mesh.nvertices)
     {        
-        int startId = mesh.maxDegree * idv0;
-        int degree = mesh.degrees[idv0];
+        const int startId = mesh.maxDegree * idv0;
+        const int degree = mesh.degrees[idv0];
         
-        int idv1 = mesh.adjacent[startId];
-        int idv2 = mesh.adjacent[startId+1];
+        const int idv1 = mesh.adjacent[startId];
+        const int idv2 = mesh.adjacent[startId+1];
         
-        real3 v0 = fetchPosition(view, offset + idv0);
-        real3 v1 = fetchPosition(view, offset + idv1);
-        real3 v2 = fetchPosition(view, offset + idv2);
+        const mReal3 v0 = fetchPosition(view, offset + idv0);
+        mReal3 v1 = fetchPosition(view, offset + idv1);
+        mReal3 v2 = fetchPosition(view, offset + idv2);
         
-        real area = 0;    
+        mReal area = 0;
         
 #pragma unroll 2
         for (int i = 0; i < degree; i++) {
             
-            int idv3 = mesh.adjacent[startId + (i+2) % degree];
-            real3 v3 = fetchPosition(view, offset + idv3);
+            const int idv3 = mesh.adjacent[startId + (i+2) % degree];
+            const mReal3 v3 = fetchPosition(view, offset + idv3);
             
-            area     += 0.3333333_r * triangleArea(v0, v1, v2);
+            area     += 0.3333333_mr * triangleArea(v0, v1, v2);
             lenTheta += compute_lenTheta(v0, v1, v2, v3);
             
             v1 = v2;
@@ -78,7 +78,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         view.vertexMeanCurvatures [offset + idv0] = lenTheta / (4 * area);
     }
     
-    lenTheta = warpReduce( lenTheta, [] (real a, real b) { return a+b; } );
+    lenTheta = warpReduce( lenTheta, [] (mReal a, mReal b) { return a+b; } );
 
     if (laneId() == 0)
         atomicAdd(&view.lenThetaTot[rbcId], (float) lenTheta);
@@ -107,8 +107,8 @@ inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, Par
 
     const int nthreads = 128;    
 
-    dim3 threads(nthreads, 1);
-    dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
+    const dim3 threads(nthreads, 1);
+    const dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
         
     SAFE_KERNEL_LAUNCH(
         InteractionMembraneJuelicherKernels::computeAreasAndCurvatures,
