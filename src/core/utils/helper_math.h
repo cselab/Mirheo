@@ -20,16 +20,15 @@
  *    Thanks to Linh Hah for additions and fixes.
  */
 
-#ifndef HELPER_MATH_H
-#define HELPER_MATH_H
+#pragma once
 
 #include "cpu_gpu_defines.h"
 
-#if !defined(__CUDACC__)
+#if defined(__CUDACC__)
+#include <cuda_runtime.h>
+#else
 #include <cmath>
 #include <cstdlib>
-#else
-#include <cuda_runtime.h>
 #endif
 
 typedef unsigned int uint;
@@ -1377,70 +1376,6 @@ static inline __HD__ int3 operator/(int3 a, int3 b)
     return make_int3(a.x / b.x, a.y / b.y, a.z / b.z);
 }
 
-namespace math
-{
-
-////////////////////////////////////////////////////////////////////////////////
-// min
-////////////////////////////////////////////////////////////////////////////////
-
-static inline  __HD__ float2 min(float2 a, float2 b)
-{
-    return make_float2(min(a.x, b.x), min(a.y,b.y));
-}
-static inline __HD__ float3 min(float3 a, float3 b)
-{
-    return make_float3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
-}
-static inline  __HD__ float4 min(float4 a, float4 b)
-{
-    return make_float4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
-}
-
-static inline __HD__ int2 min(int2 a, int2 b)
-{
-    return make_int2(min(a.x,b.x), min(a.y,b.y));
-}
-static inline __HD__ int3 min(int3 a, int3 b)
-{
-    return make_int3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
-}
-static inline __HD__ int4 min(int4 a, int4 b)
-{
-    return make_int4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// max
-////////////////////////////////////////////////////////////////////////////////
-
-static inline __HD__ float2 max(float2 a, float2 b)
-{
-    return make_float2(max(a.x,b.x), max(a.y,b.y));
-}
-static inline __HD__ float3 max(float3 a, float3 b)
-{
-    return make_float3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
-}
-static inline __HD__ float4 max(float4 a, float4 b)
-{
-    return make_float4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
-}
-
-static inline __HD__ int2 max(int2 a, int2 b)
-{
-    return make_int2(max(a.x,b.x), max(a.y,b.y));
-}
-static inline __HD__ int3 max(int3 a, int3 b)
-{
-    return make_int3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
-}
-static inline __HD__ int4 max(int4 a, int4 b)
-{
-    return make_int4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
-}
-
-} // namespace math
 
 ////////////////////////////////////////////////////////////////////////////////
 // dot product
@@ -1568,8 +1503,104 @@ static inline __HD__ double4 normalize(double4 v)
     return v * invLen;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// cross product
+////////////////////////////////////////////////////////////////////////////////
+
+static inline __HD__ float3 cross(float3 a, float3 b)
+{
+    return make_float3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
+}
+
+static inline __HD__ double3 cross(double3 a, double3 b)
+{
+    return make_double3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// anyOrthogonal
+// returns any orthogonal vector to the input vector
+////////////////////////////////////////////////////////////////////////////////
+
+template <class R3>
+static inline  __HD__ R3 anyOrthogonal(R3 v)
+{
+    const auto x = fabsf(v.x);
+    const auto y = fabsf(v.y);
+    const auto z = fabsf(v.z);
+
+    constexpr R3 xAxis {1.f, 0.f, 0.f};
+    constexpr R3 yAxis {0.f, 1.f, 0.f};
+    constexpr R3 zAxis {0.f, 0.f, 1.f};
+    
+    auto other = x < y ? (x < z ? xAxis : zAxis) : (y < z ? yAxis : zAxis);
+    return cross(v, other);
+}
+
+
 namespace math
 {
+
+////////////////////////////////////////////////////////////////////////////////
+// min
+////////////////////////////////////////////////////////////////////////////////
+
+static inline  __HD__ float2 min(float2 a, float2 b)
+{
+    return make_float2(min(a.x, b.x), min(a.y,b.y));
+}
+static inline __HD__ float3 min(float3 a, float3 b)
+{
+    return make_float3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
+}
+static inline  __HD__ float4 min(float4 a, float4 b)
+{
+    return make_float4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
+}
+
+static inline __HD__ int2 min(int2 a, int2 b)
+{
+    return make_int2(min(a.x,b.x), min(a.y,b.y));
+}
+static inline __HD__ int3 min(int3 a, int3 b)
+{
+    return make_int3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
+}
+static inline __HD__ int4 min(int4 a, int4 b)
+{
+    return make_int4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// max
+////////////////////////////////////////////////////////////////////////////////
+
+static inline __HD__ float2 max(float2 a, float2 b)
+{
+    return make_float2(max(a.x,b.x), max(a.y,b.y));
+}
+static inline __HD__ float3 max(float3 a, float3 b)
+{
+    return make_float3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
+}
+static inline __HD__ float4 max(float4 a, float4 b)
+{
+    return make_float4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
+}
+
+static inline __HD__ int2 max(int2 a, int2 b)
+{
+    return make_int2(max(a.x,b.x), max(a.y,b.y));
+}
+static inline __HD__ int3 max(int3 a, int3 b)
+{
+    return make_int3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
+}
+static inline __HD__ int4 max(int4 a, int4 b)
+{
+    return make_int4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1652,42 +1683,4 @@ static inline __HD__ int4 abs(int4 v)
 }
 
 } // namespace math
-
-////////////////////////////////////////////////////////////////////////////////
-// cross product
-////////////////////////////////////////////////////////////////////////////////
-
-static inline __HD__ float3 cross(float3 a, float3 b)
-{
-    return make_float3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
-}
-
-static inline __HD__ double3 cross(double3 a, double3 b)
-{
-    return make_double3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// anyOrthogonal
-// returns any orthogonal vector to the input vector
-////////////////////////////////////////////////////////////////////////////////
-
-template <class R3>
-static inline  __HD__ R3 anyOrthogonal(R3 v)
-{
-    const auto x = fabsf(v.x);
-    const auto y = fabsf(v.y);
-    const auto z = fabsf(v.z);
-
-    constexpr R3 xAxis {1.f, 0.f, 0.f};
-    constexpr R3 yAxis {0.f, 1.f, 0.f};
-    constexpr R3 zAxis {0.f, 0.f, 1.f};
-    
-    auto other = x < y ? (x < z ? xAxis : zAxis) : (y < z ? yAxis : zAxis);
-    return cross(v, other);
-}
-
-
-#endif
 
