@@ -34,8 +34,8 @@ inline void testSolver(Solver sqrtSolver)
         const float x = distr(gen);
 
         const float val = sqrtSolver(x);
-        const float ref = std::sqrt(x);
-        ASSERT_LE(fabs(val-ref), tol) << "estimate of sqrt(" << x << ") : got " << val << ", ref is " << ref;
+        const float ref = math::sqrt(x);
+        ASSERT_LE(math::abs(val-ref), tol) << "estimate of sqrt(" << x << ") : got " << val << ", ref is " << ref;
     }
 }
 

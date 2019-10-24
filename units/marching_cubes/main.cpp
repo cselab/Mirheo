@@ -46,7 +46,7 @@ TEST (MARCHING_CUBES, Sphere)
     auto sphereSurface = [&] (float3 r)
     {
         r -= center;
-        return std::sqrt(dot(r, r)) - R;
+        return math::sqrt(dot(r, r)) - R;
     };
 
     std::vector<MarchingCubes::Triangle> triangles;

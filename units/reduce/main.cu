@@ -69,7 +69,7 @@ static void testReduceRandom(int n, double tolerance=1e-6)
     const auto resGPU = reduceGPU(data, defaultStream);
     const auto resCPU = reduceCPU(data);
 
-    const double err = fabs(resCPU - resGPU) / fabs(resCPU);
+    const double err = math::abs(resCPU - resGPU) / math::abs(resCPU);
     
     ASSERT_LT(err, tolerance) << "failed: " << resGPU << " != " << resCPU;
 }

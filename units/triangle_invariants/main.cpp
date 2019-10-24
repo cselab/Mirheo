@@ -53,7 +53,7 @@ static real alpha(Triangle t, Triangle tref)
 
 inline real safeSqrt(real a)
 {
-    return a > 0.0 ? sqrt(a) : 0.0;
+    return a > 0.0 ? math::sqrt(a) : 0.0;
 }
 
 static real beta_stable(Triangle t, Triangle tref)
@@ -99,8 +99,8 @@ static void testManyTriangles(long seed, int ntests, InvariantFunction invariant
         a2 = invariant(t, tref); shuffle(t); shuffle(tref);
         a3 = invariant(t, tref);
         
-        ASSERT_LE(fabs(a1-a2), tolerance);
-        ASSERT_LE(fabs(a1-a3), tolerance);
+        ASSERT_LE(math::abs(a1-a2), tolerance);
+        ASSERT_LE(math::abs(a1-a3), tolerance);
     }
 }
 

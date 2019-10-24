@@ -70,7 +70,7 @@ TEST (RNG, autoCorrelationGenFromTime)
 
     printf("from time: %g\n", (double) corr);
                                        
-    ASSERT_LE(abs(corr), 1e-3);
+    ASSERT_LE(std::abs(corr), 1e-3);
 }
 
 TEST (RNG, autoCorrelationGenFromMT)
@@ -82,7 +82,7 @@ TEST (RNG, autoCorrelationGenFromMT)
 
     printf("from MT: %g\n", (double) corr);
                                        
-    ASSERT_LE(abs(corr), 1e-3);
+    ASSERT_LE(std::abs(corr), 1e-3);
 }
 
 int main(int argc, char **argv)

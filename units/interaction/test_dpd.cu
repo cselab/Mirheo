@@ -115,8 +115,8 @@ void execute(MPI_Comm comm, float3 length)
     const float k = 1;    
     const float kbT = 1.0f;
     const float gammadpd = 20;
-    const float sigmadpd = sqrt(2 * gammadpd * kbT);
-    const float sigma_dt = sigmadpd / sqrt(dt);
+    const float sigmadpd = math::sqrt(2 * gammadpd * kbT);
+    const float sigma_dt = sigmadpd / math::sqrt(dt);
     const float adpd = 50;
 
     PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
@@ -186,7 +186,7 @@ void execute(MPI_Comm comm, float3 length)
         if (rij2 > 1.0f) return;
         //assert(rij2 < 1);
 
-        const float invrij = 1.0f / sqrt(rij2);
+        const float invrij = 1.0f / math::sqrt(rij2);
         const float rij = rij2 * invrij;
         const float argwr = 1.0f - rij;
         const float wr = argwr;
@@ -262,9 +262,9 @@ void execute(MPI_Comm comm, float3 length)
         for (int c=0; c<3; c++)
         {
             double err;
-            if (c==0) err = fabs(finalFrcs[i].f.x - hacc[i].f.x);
-            if (c==1) err = fabs(finalFrcs[i].f.y - hacc[i].f.y);
-            if (c==2) err = fabs(finalFrcs[i].f.z - hacc[i].f.z);
+            if (c==0) err = math::abs(finalFrcs[i].f.x - hacc[i].f.x);
+            if (c==1) err = math::abs(finalFrcs[i].f.y - hacc[i].f.y);
+            if (c==2) err = math::abs(finalFrcs[i].f.z - hacc[i].f.z);
 
             toterr += err;
             linf = max(linf, err);
@@ -283,7 +283,7 @@ void execute(MPI_Comm comm, float3 length)
     }
 
 
-    l2 = sqrt(l2 / np);
+    l2 = math::sqrt(l2 / np);
     fprintf(stderr, "L2   norm: %f\n", l2);
     fprintf(stderr, "Linf norm: %f\n", linf);
 

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
 namespace RootFinder
 {

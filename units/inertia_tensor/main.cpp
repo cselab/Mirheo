@@ -55,7 +55,7 @@ static float3 inertiaTensorMC(long nsamples, const Shape& shape, float3 low, flo
 
 static float Lmax(float3 a, float3 b)
 {
-    return max(max(fabs(a.x-b.x), fabs(a.y-b.y)), fabs(a.z-b.z));
+    return max(max(math::abs(a.x-b.x), math::abs(a.y-b.y)), math::abs(a.z-b.z));
 }
 
 TEST (InertiaTensor, Ellipsoid)

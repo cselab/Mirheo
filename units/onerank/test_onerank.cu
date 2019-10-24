@@ -23,8 +23,8 @@ const float gammadpd = 20;
 const float adpd = 50;
 const float powerdpd = 1.0;
 
-const float sigma = sqrt(2 * gammadpd * kBT);
-const float sigmaf = sigma / sqrt(dt);
+const float sigma = math::sqrt(2 * gammadpd * kBT);
+const float sigmaf = sigma / math::sqrt(dt);
 
 
 void makeCells(float4*& pos, float4*& vel,
@@ -125,7 +125,7 @@ void forces(const float4 *pos, const float4 *vel, Force *accs,
         if (rij2 > 1.0f) return;
         //assert(rij2 < 1);
 
-        const float invrij = 1.0f / sqrt(rij2);
+        const float invrij = 1.0f / math::sqrt(rij2);
         const float rij = rij2 * invrij;
         const float argwr = 1.0f - rij;
         const float wr = pow(argwr, powerdpd);
@@ -360,9 +360,9 @@ void execute(float3 length, int niters, double& l2, double& linf)
 
 
         double3 err = {
-            fabs(cpuP.r.x - gpuP.r.x) + fabs(cpuP.u.x - gpuP.u.x),
-            fabs(cpuP.r.y - gpuP.r.y) + fabs(cpuP.u.y - gpuP.u.y),
-            fabs(cpuP.r.z - gpuP.r.z) + fabs(cpuP.u.z - gpuP.u.z)};
+            math::abs(cpuP.r.x - gpuP.r.x) + math::abs(cpuP.u.x - gpuP.u.x),
+            math::abs(cpuP.r.y - gpuP.r.y) + math::abs(cpuP.u.y - gpuP.u.y),
+            math::abs(cpuP.r.z - gpuP.r.z) + math::abs(cpuP.u.z - gpuP.u.z)};
             
         linf = max(linf, max(err.x, max(err.y, err.z)));
         perr = max(perr, max(err.x, max(err.y, err.z)));
@@ -379,7 +379,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
         }
     }
 
-    l2 = sqrt(l2 / pv.local()->size());
+    l2 = math::sqrt(l2 / pv.local()->size());
     printf("L2   norm: %f\n", l2);
     printf("Linf norm: %f\n", linf);
 }

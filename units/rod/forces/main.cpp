@@ -442,7 +442,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
         real3 a = refForces[i];
         real3 b = make_real3(forces[i].f);
         real3 diff = a - b;
-        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+        double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
         // if ((i % 5) == 0)
@@ -502,7 +502,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
         real3 a = refForces[i];
         real3 b = make_real3(forces[i].f);
         real3 diff = a - b;
-        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+        double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
         
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
         // if ((i % 5) == 0)
@@ -563,7 +563,7 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
         real3 a = refForces[i];
         real3 b = make_real3(forces[i].f);
         real3 diff = a - b;
-        double err = std::max(std::max(fabs(diff.x), fabs(diff.y)), fabs(diff.z));
+        double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
         // if ((i % 5) == 0)

@@ -82,8 +82,8 @@ static std::vector<real> computeBendingEnergies(const float4 *positions, int nSe
         real3 dpPerp0 = dp0 - dpt0 * t0;
         real3 dpPerp1 = dp1 - dpt1 * t1;
 
-        real dpPerp0inv = rsqrtf(dot(dpPerp0, dpPerp0));
-        real dpPerp1inv = rsqrtf(dot(dpPerp1, dpPerp1));
+        real dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
+        real dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
     
         real2 kappa0 { +dpPerp0inv * dot(bicur, t0_dp0),
                        -dpPerp0inv * dot(bicur,    dp0)};
@@ -227,7 +227,7 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
             // printf("%g %g\n", eRef, eSim);
             err += de * de;
         }
-        err = sqrt(err / nSegments);
+        err = math::sqrt(err / nSegments);
     }
     else
     {
@@ -236,7 +236,7 @@ static real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
 
         auto EtotSim = std::accumulate(energies.begin(), energies.end(), 0.0);
         // printf("%g %g\n", EtotRef, EtotSim);
-        err = fabs(EtotSim - EtotRef);
+        err = math::abs(EtotSim - EtotRef);
     }
 
     return err;
@@ -300,7 +300,7 @@ static real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
         real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
-        auto dE = fabs(cpuE - gpuE);
+        auto dE = math::abs(cpuE - gpuE);
         err = std::max(err, dE);
     }
     
@@ -360,7 +360,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
             err += de * de;
         }
 
-        err = sqrt(err / nSegments);
+        err = math::sqrt(err / nSegments);
     }
     else
     {
@@ -368,7 +368,7 @@ static real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
             (pos.data(), nSegments, kTwist, tauEq);
 
         auto EtotSim = std::accumulate(energies.begin(), energies.end(), 0.0);
-        err = fabs(EtotRef - EtotSim);
+        err = math::abs(EtotRef - EtotSim);
     }
 
     return err;
@@ -432,7 +432,7 @@ static real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
         real gpuE = gpuEnergies[i];
         real cpuE = cpuEnergies[i];
         // printf("%g %g\n", cpuE, gpuE);
-        auto dE = fabs(cpuE - gpuE);
+        auto dE = math::abs(cpuE - gpuE);
         err = std::max(err, dE);
     }
     
@@ -520,7 +520,7 @@ TEST (ROD, cpu_energies_bending_circle)
         real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
 
         // printf("%g\n", rate);
-        ASSERT_LE(fabs(rate-rateTh), 1e-1);
+        ASSERT_LE(math::abs(rate-rateTh), 1e-1);
     }
 }
 

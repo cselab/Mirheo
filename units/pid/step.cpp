@@ -1,4 +1,5 @@
 #include <core/logger.h>
+#include <core/utils/helper_math.h>
 #include <plugins/utils/pid.h>
 
 #include <cmath>
@@ -34,7 +35,7 @@ TEST (PID, PidEquilibrates)
         // printf("%g\n", state);
     }
 
-    ASSERT_LE(fabs(state - target_end), tolerance);
+    ASSERT_LE(math::abs(state - target_end), tolerance);
 }
 
 int main(int argc, char **argv)

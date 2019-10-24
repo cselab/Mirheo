@@ -158,7 +158,7 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
         err += dcurv * dcurv;
     }
 
-    return sqrt(err / nSegments);
+    return math::sqrt(err / nSegments);
 }
 
 static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
@@ -205,7 +205,7 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
         err += dtau * dtau;
     }
 
-    return sqrt(err / nSegments);
+    return math::sqrt(err / nSegments);
 }
 
 
@@ -263,7 +263,7 @@ TEST (ROD, curvature_circle)
 
         real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
 
-        ASSERT_LE(fabs(rate-rateTh), 1e-1);
+        ASSERT_LE(math::abs(rate-rateTh), 1e-1);
     }
 }
 
@@ -280,7 +280,7 @@ TEST (ROD, curvature_helix)
 
     auto analyticCurv = [&](__UNUSED real s) -> real
     {
-        return fabs(a) / (a*a + b*b);
+        return math::abs(a) / (a*a + b*b);
     };
 
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
@@ -298,7 +298,7 @@ TEST (ROD, curvature_helix)
 
         real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
 
-        ASSERT_LE(fabs(rate-rateTh), 1e-1);
+        ASSERT_LE(math::abs(rate-rateTh), 1e-1);
     }
 }
 

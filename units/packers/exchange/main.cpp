@@ -42,7 +42,7 @@ static void checkRef(const PinnedBuffer<float4>& pos,
     {
         auto r = make_float3(pos[i]);
         auto v = make_float3(vel[i]);
-        auto e = fabs(r-v) - L;
+        auto e = math::abs(r-v) - L;
 
         auto minErr = std::min(e.x, std::min(e.y, e.z));
 
@@ -109,9 +109,9 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
             
             while (lb != hposSorted.end() && lessEq(*lb, r))
             {
-                float errx = fabs(lb->x - r.x);
-                float erry = fabs(lb->y - r.y);
-                float errz = fabs(lb->z - r.z);
+                float errx = math::abs(lb->x - r.x);
+                float erry = math::abs(lb->y - r.y);
+                float errz = math::abs(lb->z - r.z);
                 float curr = std::min(errx, std::min(erry, errz));
                 err = std::min(err, curr);
                 ++lb;
@@ -244,7 +244,7 @@ static void applyFieldUnbounded(const PinnedBuffer<float4>& pos,
 
 inline float linf(float3 a, float3 b)
 {
-    auto d = fabs(a-b);
+    auto d = math::abs(a-b);
     return std::min(d.x, std::min(d.y, d.z));
 }
 

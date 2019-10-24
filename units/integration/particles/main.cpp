@@ -104,13 +104,13 @@ computeError(int n,
         auto r1 = pos1[i], r2 = pos2[i];
         auto v1 = vel1[i], v2 = vel2[i];
 
-        dx = fabs(r1.x - r2.x);
-        dy = fabs(r1.y - r2.y);
-        dz = fabs(r1.z - r2.z);
+        dx = math::abs(r1.x - r2.x);
+        dy = math::abs(r1.y - r2.y);
+        dz = math::abs(r1.z - r2.z);
 
-        du = fabs(v1.x - v2.x);
-        dv = fabs(v1.y - v2.y);
-        dw = fabs(v1.z - v2.z);
+        du = math::abs(v1.x - v2.x);
+        dv = math::abs(v1.y - v2.y);
+        dw = math::abs(v1.z - v2.z);
 
         l2 += dx*dx + dy*dy + dz*dz;
         l2 += du*du + dv*dv + dw*dw;
