@@ -1472,28 +1472,6 @@ inline __HD__ uint4 max(uint4 a, uint4 b)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// lerp
-// - linear interpolation between a and b, based on value t in [0, 1] range
-////////////////////////////////////////////////////////////////////////////////
-
-inline __HD__ float lerp(float a, float b, float t)
-{
-    return a + t*(b-a);
-}
-inline __HD__ float2 lerp(float2 a, float2 b, float t)
-{
-    return a + t*(b-a);
-}
-inline __HD__ float3 lerp(float3 a, float3 b, float t)
-{
-    return a + t*(b-a);
-}
-inline __HD__ float4 lerp(float4 a, float4 b, float t)
-{
-    return a + t*(b-a);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // clamp
 // - clamp the value v to be in the range [a, b]
 ////////////////////////////////////////////////////////////////////////////////
@@ -1680,6 +1658,12 @@ inline __HD__ float distance2(float3 a, float3 b)
     return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
 }
 
+inline __HD__ double distance2(double3 a, double3 b)
+{
+    auto sqr = [] (double x) { return x*x; };
+    return sqr(a.x - b.x) + sqr(a.y - b.y) + sqr(a.z - b.z);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // normalize
@@ -1821,17 +1805,6 @@ inline __HD__ int4 abs(int4 v)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// reflect
-// - returns reflection of incident ray I around surface normal N
-// - N should be normalized, reflected vector's length is equal to length of I
-////////////////////////////////////////////////////////////////////////////////
-
-inline __HD__ float3 reflect(float3 i, float3 n)
-{
-    return i - 2.0f * n * dot(n,i);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // cross product
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1845,33 +1818,6 @@ inline __HD__ double3 cross(double3 a, double3 b)
     return make_double3(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// smoothstep
-// - returns 0 if x < a
-// - returns 1 if x > b
-// - otherwise returns smooth interpolation between 0 and 1 based on x
-////////////////////////////////////////////////////////////////////////////////
-
-inline __HD__ float smoothstep(float a, float b, float x)
-{
-    float y = clamp((x - a) / (b - a), 0.0f, 1.0f);
-    return (y*y*(3.0f - (2.0f*y)));
-}
-inline __HD__ float2 smoothstep(float2 a, float2 b, float2 x)
-{
-    float2 y = clamp((x - a) / (b - a), 0.0f, 1.0f);
-    return (y*y*(make_float2(3.0f) - (make_float2(2.0f)*y)));
-}
-inline __HD__ float3 smoothstep(float3 a, float3 b, float3 x)
-{
-    float3 y = clamp((x - a) / (b - a), 0.0f, 1.0f);
-    return (y*y*(make_float3(3.0f) - (make_float3(2.0f)*y)));
-}
-inline __HD__ float4 smoothstep(float4 a, float4 b, float4 x)
-{
-    float4 y = clamp((x - a) / (b - a), 0.0f, 1.0f);
-    return (y*y*(make_float4(3.0f) - (make_float4(2.0f)*y)));
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // anyOrthogonal
@@ -1881,9 +1827,9 @@ inline __HD__ float4 smoothstep(float4 a, float4 b, float4 x)
 template <class R3>
 inline __HD__ R3 anyOrthogonal(R3 v)
 {
-    auto x = fabsf(v.x);
-    auto y = fabsf(v.y);
-    auto z = fabsf(v.z);
+    const auto x = fabsf(v.x);
+    const auto y = fabsf(v.y);
+    const auto z = fabsf(v.z);
 
     constexpr R3 xAxis {1.f, 0.f, 0.f};
     constexpr R3 yAxis {0.f, 1.f, 0.f};
