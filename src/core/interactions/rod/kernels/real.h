@@ -55,6 +55,15 @@ __D__ constexpr inline rReal3 make_rReal3(double a)
             static_cast<rReal>(a)};
 }
 
+template<typename T4>
+__D__ inline rReal4 make_rReal4(T4 v)
+{
+    return {static_cast<rReal>(v.x),
+            static_cast<rReal>(v.y),
+            static_cast<rReal>(v.z),
+            static_cast<rReal>(v.w)};
+}
+
 __D__ constexpr inline rReal4 make_rReal4(float a)
 {
     return {static_cast<rReal>(a),

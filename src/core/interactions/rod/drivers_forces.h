@@ -164,12 +164,12 @@ __global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
                                       gradpm0z, gradpm1z);
 
     const auto k  = kappa[i];
-    const auto kl = biSegmentId > 0               ? kappa[i-1] : make_rReal4(0._rr);
-    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[i+1] : make_rReal4(0._rr);
+    const auto kl = biSegmentId > 0               ? make_rReal4(kappa[i-1]) : make_rReal4(0._rr);
+    const auto kr = biSegmentId < (nBiSegments-1) ? make_rReal4(kappa[i+1]) : make_rReal4(0._rr);
 
     const auto tl  = tau_l[i];
-    const auto tll = biSegmentId > 0               ? tau_l[i-1] : make_rReal2(0._rr);
-    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[i+1] : make_rReal2(0._rr);
+    const auto tll = biSegmentId > 0               ? make_rReal2(tau_l[i-1]) : make_rReal2(0._rr);
+    const auto tlr = biSegmentId < (nBiSegments-1) ? make_rReal2(tau_l[i+1]) : make_rReal2(0._rr);
 
     const rReal3 dOmegal = biSegmentId > 0 ?
         rReal3 {k.x - kl.x, k.y - kl.y, tl.x - tll.x} : rReal3 {0._rr, 0._rr, 0._rr};
