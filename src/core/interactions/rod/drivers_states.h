@@ -127,7 +127,7 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
     if (spinParams.kBT < 1e-6)
         return dE < 0 ? sother : scurrent;
     
-    if (u < exp(-dE * spinParams.beta))
+    if (u < math::exp(-dE * spinParams.beta))
         return sother;
 
     return scurrent;

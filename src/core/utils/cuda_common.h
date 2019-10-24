@@ -381,7 +381,7 @@ __HD__ inline float fastPower(const float x, const float k)
     if (math::abs(k - 0.5f)   < 1e-6f) return math::sqrt(math::abs(x));
     if (math::abs(k - 0.25f)  < 1e-6f) return math::sqrt(math::sqrt(math::abs(x)));
 
-    return powf(math::abs(x), k);
+    return math::pow(math::abs(x), k);
 }
 
 

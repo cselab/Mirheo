@@ -20,7 +20,7 @@ public:
 
     void setup(float t, __UNUSED DomainInfo domain)
     {
-        cosOmega = cos(2*M_PI * t / period);
+        cosOmega = math::cos(2*M_PI * t / period);
     }
 
     const VelocityField_Oscillate& handler() const { return *this; }

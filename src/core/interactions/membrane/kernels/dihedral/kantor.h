@@ -18,8 +18,8 @@ public:
     {
         const mReal theta0 = p.theta / 180.0 * M_PI;
         
-        cost0kb = cos(theta0) * p.kb * lscale * lscale;
-        sint0kb = sin(theta0) * p.kb * lscale * lscale;
+        cost0kb = math::cos(theta0) * p.kb * lscale * lscale;
+        sint0kb = math::sin(theta0) * p.kb * lscale * lscale;
     }
 
     __D__ inline void computeCommon(const ViewType& view, int rbcId)

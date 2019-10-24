@@ -189,8 +189,8 @@ struct BiSegment
         rReal dpu1 = dot(dp1, u1);
         rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = atan2(dpv0, dpu0);
-        rReal theta1 = atan2(dpv1, dpu1);
+        rReal theta0 = math::atan2(dpv0, dpu0);
+        rReal theta1 = math::atan2(dpv1, dpu1);
     
         rReal tau = safeDiffTheta(theta0, theta1) * linv;
         rReal dtau = tau - params.tauEq[state];
@@ -253,8 +253,8 @@ struct BiSegment
         rReal dpu1 = dot(dp1, u1);
         rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = atan2(dpv0, dpu0);
-        rReal theta1 = atan2(dpv1, dpu1);
+        rReal theta0 = math::atan2(dpv0, dpu0);
+        rReal theta1 = math::atan2(dpv1, dpu1);
     
         tau = safeDiffTheta(theta0, theta1) * linv;
     }
@@ -347,8 +347,8 @@ struct BiSegment
         rReal dpu1 = dot(dp1, u1);
         rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = atan2(dpv0, dpu0);
-        rReal theta1 = atan2(dpv1, dpu1);
+        rReal theta0 = math::atan2(dpv0, dpu0);
+        rReal theta1 = math::atan2(dpv1, dpu1);
     
         rReal tau = safeDiffTheta(theta0, theta1) * linv;
 

@@ -31,8 +31,8 @@
 #include <cstdlib>
 #endif
 
-typedef unsigned int uint;
-typedef unsigned short ushort;
+using uint =  unsigned int;
+using ushort =  unsigned short;
 
 namespace math
 {
@@ -50,6 +50,21 @@ static inline __HD__ double ceil(double x) {return ::ceil (x);}
 static inline __HD__ float  floor(float x)  {return ::floorf(x);}
 static inline __HD__ double floor(double x) {return ::floor (x);}
 
+static inline __HD__ float  exp(float x)  {return ::expf(x);}
+static inline __HD__ double exp(double x) {return ::exp (x);}
+
+static inline __HD__ float  cos(float x)  {return ::cosf(x);}
+static inline __HD__ double cos(double x) {return ::cos (x);}
+
+static inline __HD__ float  sin(float x)  {return ::sinf(x);}
+static inline __HD__ double sin(double x) {return ::sin (x);}
+
+static inline __HD__ float  pow(float  x, float  y) {return ::powf(x, y);}
+static inline __HD__ double pow(double x, double y) {return ::pow (x, y);}
+
+static inline __HD__ float  atan2(float  x, float  y) {return ::atan2f(x, y);}
+static inline __HD__ double atan2(double x, double y) {return ::atan2 (x, y);}
+
 #if defined(__CUDACC__)
 
 static inline __HD__ float  rsqrt(float x)  {return ::rsqrtf(x);}
@@ -65,6 +80,20 @@ static inline __HD__ double max(double a, double b) {return ::max(a,b);}
 static inline __HD__ int    max(int    a, int    b) {return ::max(a,b);}
 static inline __HD__ uint   max(uint   a, uint   b) {return ::max(a,b);}
 
+static inline __HD__ float2 sincos(float x)
+{
+    float2 res;
+    ::sincosf(x, &res.x, &res.y);
+    return res;
+}
+
+static inline __HD__ double2 sincos(double x)
+{
+    double2 res;
+    ::sincos(x, &res.x, &res.y);
+    return res;
+}
+
 #else
 
 static inline float  rsqrt(float x)  {return 1.f / math::sqrt(x);}
@@ -72,6 +101,9 @@ static inline double rsqrt(double x) {return 1.0 / math::sqrt(x);}
 
 template <typename T> static inline T min(const T& a, const T& b) {return a < b ? a : b;}
 template <typename T> static inline T max(const T& a, const T& b) {return a < b ? b : a;}
+
+static inline __HD__ float2  sincos(float x)  {return {sin(x), cos(x)};}
+static inline __HD__ double2 sincos(double x) {return {sin(x), cos(x)};}
 
 #endif
 

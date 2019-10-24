@@ -244,14 +244,13 @@ __D__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int se
 
 inline __D__ float2 normal2( float seed, uint i, uint j )
 {
-    float u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
-    float u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
+    const float u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
+    const float u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
 
-    float r = math::sqrt(-2.0f * logf(u1));
-    float theta = 2.0f * M_PI * u2;
+    const float r = math::sqrt(-2.0f * logf(u1));
+    const float theta = 2.0f * M_PI * u2;
 
-    float2 res;
-    sincosf(theta, &res.x, &res.y);
+    auto res = math::sincos(theta);
     res *= r;
 
     return res;

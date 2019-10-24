@@ -26,7 +26,7 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
     float t = state->currentTime;
     
     const auto _vel = vel;
-    float cosOmega = cos(2*M_PI * t / period);
+    float cosOmega = math::cos(2*M_PI * t / period);
 
     auto oscillate = [_vel, cosOmega] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
         p.u = _vel * cosOmega;
