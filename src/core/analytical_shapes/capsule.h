@@ -32,7 +32,7 @@ public:
         float rsq = sqr(coo.x) + sqr(coo.y);
         if (dz > 0) rsq += sqr(dz);
 
-        const float rinv = rsq > eps ? rsqrtf(rsq) : 0.f;
+        const float rinv = rsq > eps ? math::rsqrt(rsq) : 0.f;
 
         const float3 n {coo.x,
                         coo.y,

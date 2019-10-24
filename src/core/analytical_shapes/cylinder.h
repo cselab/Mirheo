@@ -32,7 +32,7 @@ public:
         constexpr float delta = 1e-3f;
         
         const float rsq = sqr(coo.x) + sqr(coo.y);
-        const float rinv = rsq > eps ? rsqrtf(rsq) : 0.f;
+        const float rinv = rsq > eps ? math::rsqrt(rsq) : 0.f;
 
         const float dr = sqrtf(rsq) - R;
         const float dz = fabsf(coo.z) - halfL;

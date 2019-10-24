@@ -58,8 +58,8 @@ private:
         const mReal3 n = cross(v21, v20);
         const mReal3 k = cross(v20, v23);
 
-        const mReal inv_lenn = rsqrt(dot(n,n));
-        const mReal inv_lenk = rsqrt(dot(k,k));
+        const mReal inv_lenn = math::rsqrt(dot(n,n));
+        const mReal inv_lenk = math::rsqrt(dot(k,k));
 
         const mReal cotangent2n = dot(v20, v21) * inv_lenn;
         const mReal cotangent2k = dot(v23, v20) * inv_lenk;

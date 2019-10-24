@@ -35,7 +35,7 @@ public:
         const float rij2 = dot(dr, dr);
         if (rij2 > rc2) return make_float3(0.0f);
 
-        const float invrij = rsqrtf(rij2);
+        const float invrij = math::rsqrt(rij2);
         const float rij = rij2 * invrij;
         const float argwr = 1.0f - rij * invrc;
         const float wr = fastPower(argwr, power);

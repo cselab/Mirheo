@@ -290,11 +290,11 @@ using RigidReal4 = VecTraits::Vec<RigidReal, 4>::Type;
 
 //=================================================================
 
-template <class real>
+template <class RealType>
 struct __align__(16) TemplRigidMotion
 {
-    using R3 = typename VecTraits::Vec<real, 3>::Type;
-    using R4 = typename VecTraits::Vec<real, 4>::Type;
+    using R3 = typename VecTraits::Vec<RealType, 3>::Type;
+    using R4 = typename VecTraits::Vec<RealType, 4>::Type;
     
     R3 r;
     R4 q;

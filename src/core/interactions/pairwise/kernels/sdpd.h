@@ -50,7 +50,7 @@ public:
         const float inv_disq = 1.f / (di * di);
         const float inv_djsq = 1.f / (dj * dj);
 
-        const float inv_rij = rsqrtf(rij2);
+        const float inv_rij = math::rsqrt(rij2);
         const float rij = rij2 * inv_rij;
         const float dWdr = densityKernel.derivative(rij, inv_rc);
 

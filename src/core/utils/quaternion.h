@@ -13,10 +13,10 @@ namespace Quaternion
 template <typename R3>
 __HD__ inline auto f3toQ(const R3& vec)
 {
-    using real  = decltype(vec.x);
-    using real4 = typename VecTraits::Vec<real, 4>::Type;
+    using RealType  = decltype(vec.x);
+    using RealType4 = typename VecTraits::Vec<RealType, 4>::Type;
     
-    return real4 {(real) 0.0, vec.x, vec.y, vec.z};
+    return RealType4 {static_cast<RealType>(0.0), vec.x, vec.y, vec.z};
 }
 
 template<class R4>
@@ -29,11 +29,11 @@ __HD__ inline R4 conjugate(const R4 q)
 template <typename R3>
 __HD__ inline auto getFromVectorPair(R3 u, R3 v)
 {
-    using real  = decltype(u.x);
-    using real4 = typename VecTraits::Vec<real, 4>::Type;
+    using RealType  = decltype(u.x);
+    using RealType4 = typename VecTraits::Vec<RealType, 4>::Type;
 
     auto kCosTheta = dot(u, v);
-    auto k = sqrtf(dot(u,u) * dot(v,v));
+    auto k = math::sqrt(dot(u,u) * dot(v,v));
 
     if (fabs(kCosTheta + k) < 1e-6)
     {
@@ -41,7 +41,7 @@ __HD__ inline auto getFromVectorPair(R3 u, R3 v)
         return f3toQ( normalize(anyOrthogonal(u)) );
     }
     auto uv = cross(u, v);
-    real4 q {kCosTheta + k, uv.x, uv.y, uv.z};
+    RealType4 q {kCosTheta + k, uv.x, uv.y, uv.z};
     return normalize(q);
 }
 
@@ -61,26 +61,26 @@ __HD__ inline R4 multiply(const R4 q1, const R4 q2)
 template<class R4, class R3>
 __HD__ inline R3 rotate(const R3 x, const R4 q)
 {
-    using Qreal = decltype(R4::x);
-    using Vreal = decltype(R3::x);
+    using QRealType = decltype(R4::x);
+    using VRealType = decltype(R3::x);
     
-    R4 qX = { (Qreal)0.0,
-              (Qreal)x.x,
-              (Qreal)x.y,
-              (Qreal)x.z };
+    R4 qX = { static_cast<QRealType>(0.0),
+              static_cast<QRealType>(x.x),
+              static_cast<QRealType>(x.y),
+              static_cast<QRealType>(x.z) };
 
     qX = multiply(multiply(q, qX), conjugate(q));
 
-    return { (Vreal)qX.y,
-             (Vreal)qX.z,
-             (Vreal)qX.w };
+    return { static_cast<VRealType>(qX.y),
+             static_cast<VRealType>(qX.z),
+             static_cast<VRealType>(qX.w) };
 }
 
 template<class R4, class R3>
 __HD__ inline R4 timeDerivative(const R4 q, const R3 omega)
 {
-    using real = decltype(R4::x);
-    constexpr real half = 0.5;
+    using RealType = decltype(R4::x);
+    constexpr RealType half = static_cast<RealType>(0.5);
     return half * multiply(f3toQ(omega), q);
 }
 

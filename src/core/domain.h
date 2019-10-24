@@ -26,8 +26,8 @@ struct DomainInfo
         return make_float4(v, dot(v, local2global(float3{0, 0, 0})) + plane.w);
     }
 
-    template <typename real3>
-    inline __HD__ bool inSubDomain(real3 xg) const
+    template <typename RealType3>
+    inline __HD__ bool inSubDomain(RealType3 xg) const
     {
         return (globalStart.x <= xg.x) && (xg.x < (globalStart.x + localSize.x))
             && (globalStart.y <= xg.y) && (xg.y < (globalStart.y + localSize.y))

@@ -40,7 +40,7 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, float k, float3 t
     
     float3 a = normalize(target - t * dot(target, t));
 
-    float inv_du = rsqrt(dot(du, du));
+    float inv_du = math::rsqrt(dot(du, du));
 
     float3 fu0 = k * inv_du * (a - (inv_du * inv_du * dot(du, a)) * du);
     

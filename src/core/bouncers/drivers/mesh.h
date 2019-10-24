@@ -218,7 +218,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     // precompute scaling factor
     auto n = cross(trNew.v1-trNew.v0,
                    trNew.v2-trNew.v0);
-    const float n_1 = rsqrtf(dot(n, n));
+    const float n_1 = math::rsqrt(dot(n, n));
 
     // Distance to a triangle
     auto F = [=] (float t) {
@@ -373,7 +373,7 @@ float3 barycentric(Triangle tr, float3 p)
     };
 
     const auto n = cross(tr.v0-tr.v1, tr.v0-tr.v2);
-    const auto s0_1 = rsqrtf(dot(n, n));
+    const auto s0_1 = math::rsqrt(dot(n, n));
 
     const auto s1 = signedArea(tr.v0, tr.v1, p, n);
     const auto s2 = signedArea(tr.v1, tr.v2, p, n);

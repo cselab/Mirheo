@@ -29,7 +29,7 @@ __device__ inline float3 safeNormalize(float3 u)
     constexpr float tol = 1e-6f;
     auto nrm2 = dot(u,u);
     if (nrm2 < tol) return make_float3(0.f);
-    return rsqrtf(nrm2) * u;
+    return math::rsqrt(nrm2) * u;
 }
 
 __device__ void applyBindingForce(const DomainInfo& domain,

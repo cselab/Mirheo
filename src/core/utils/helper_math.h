@@ -25,18 +25,17 @@
 
 #include "cpu_gpu_defines.h"
 
+#if !defined(__CUDACC__)
+#include <cmath>
+#include <cstdlib>
+#else
 #include <cuda_runtime.h>
+#endif
 
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
-#ifndef EXIT_WAIVED
-#define EXIT_WAIVED 2
-#endif
-
-#if !defined(__CUDACC__) || defined(__clang__)
-#include <cmath>
-#include <cstdlib>
+#if !defined(__CUDACC__)
 
 ////////////////////////////////////////////////////////////////////////////////
 // host implementations of CUDA functions
@@ -64,16 +63,22 @@ inline int min(int a, int b)
 #endif
 
 
-#if !defined(__CUDACC__)
-static inline float rsqrtf(float x)
+namespace math
 {
-    return 1.0f / sqrtf(x);
-}
-static inline double rsqrt(double x)
-{
-    return 1.0 / sqrt(x);
-}
+inline __HD__ float  sqrt(float x)  {return ::sqrtf(x);}
+inline __HD__ double sqrt(double x) {return ::sqrt (x);}
+
+#if defined(__CUDACC__)
+inline __HD__ float  rsqrt(float x)  {return ::rsqrtf(x);}
+inline __HD__ double rsqrt(double x) {return ::rsqrt (x);}
+#else
+inline float  rsqrt(float x)  {return 1.f / math::sqrt(x);}
+inline double rsqrt(double x) {return 1.0 / math::sqrt(x);}
 #endif
+
+} // namespace math
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // constructors
@@ -1626,28 +1631,28 @@ inline __HD__ uint dot(uint4 a, uint4 b)
 
 inline __HD__ float length(float2 v)
 {
-    return sqrtf(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 inline __HD__ float length(float3 v)
 {
-    return sqrtf(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 inline __HD__ float length(float4 v)
 {
-    return sqrtf(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 
 inline __HD__ double length(double2 v)
 {
-    return sqrt(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 inline __HD__ double length(double3 v)
 {
-    return sqrt(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 inline __HD__ double length(double4 v)
 {
-    return sqrt(dot(v, v));
+    return math::sqrt(dot(v, v));
 }
 
 
@@ -1671,34 +1676,34 @@ inline __HD__ double distance2(double3 a, double3 b)
 
 inline __HD__ float2 normalize(float2 v)
 {
-    float invLen = rsqrtf(dot(v, v));
+    float invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ float3 normalize(float3 v)
 {
-    float invLen = rsqrtf(dot(v, v));
+    float invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ float4 normalize(float4 v)
 {
-    float invLen = rsqrtf(dot(v, v));
+    float invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 
 
 inline __HD__ double2 normalize(double2 v)
 {
-    double invLen = rsqrt(dot(v, v));
+    double invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ double3 normalize(double3 v)
 {
-    double invLen = rsqrt(dot(v, v));
+    double invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 inline __HD__ double4 normalize(double4 v)
 {
-    double invLen = rsqrt(dot(v, v));
+    double invLen = math::rsqrt(dot(v, v));
     return v * invLen;
 }
 

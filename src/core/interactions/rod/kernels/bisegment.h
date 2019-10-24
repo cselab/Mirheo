@@ -111,8 +111,8 @@ struct BiSegment
         rReal3 dpPerp0 = dp0 - dpt0 * t0;
         rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
-        rReal dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
-        rReal dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
+        rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
+        rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
     
         rReal2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
                        -dpPerp0inv * linv * dot(bicur,    dp0)};
@@ -228,8 +228,8 @@ struct BiSegment
         rReal3 dpPerp0 = dp0 - dpt0 * t0;
         rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
-        rReal dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
-        rReal dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
+        rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
+        rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
     
         kappa0.x =   dpPerp0inv * linv * dot(bicur, t0_dp0);
         kappa0.y = - dpPerp0inv * linv * dot(bicur,    dp0);
@@ -274,8 +274,8 @@ struct BiSegment
         rReal3 dpPerp0 = dp0 - dpt0 * t0;
         rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
-        rReal dpPerp0inv = rsqrt(dot(dpPerp0, dpPerp0));
-        rReal dpPerp1inv = rsqrt(dot(dpPerp1, dpPerp1));
+        rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
+        rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
     
         rReal2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
                        -dpPerp0inv * linv * dot(bicur,    dp0)};

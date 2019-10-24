@@ -37,13 +37,13 @@ private:
         const mReal3 ksi   = cross(v1 - v2, v1 - v3);
         const mReal3 dzeta = cross(v3 - v4, v2 - v4);
 
-        const mReal overIksiI   = rsqrtf(dot(ksi, ksi));
-        const mReal overIdzetaI = rsqrtf(dot(dzeta, dzeta));
+        const mReal overIksiI   = math::rsqrt(dot(ksi, ksi));
+        const mReal overIdzetaI = math::rsqrt(dot(dzeta, dzeta));
 
         const mReal cosTheta = dot(ksi, dzeta) * overIksiI * overIdzetaI;
         const mReal IsinThetaI2 = 1.0f - cosTheta*cosTheta;
 
-        const mReal rawST_1 = rsqrtf(max(IsinThetaI2, 1.0e-6f));
+        const mReal rawST_1 = math::rsqrt(max(IsinThetaI2, 1.0e-6f));
         const mReal sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) ); // because the normals look inside
         const mReal beta = cost0kb - cosTheta * sint0kb * sinTheta_1;
 
