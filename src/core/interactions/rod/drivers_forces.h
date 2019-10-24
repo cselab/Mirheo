@@ -19,14 +19,14 @@ namespace RodForcesKernels
 {
 
 // elastic force exerted from p1 to p0
-__device__ inline real3 fbound(const real3& r0, const real3& r1, const float ks, float l0)
+__device__ inline rReal3 fbound(const rReal3& r0, const rReal3& r1, const float ks, float l0)
 {
     auto dr = r1 - r0;
     auto l = length(dr);
     auto xi = (l - l0);
-    auto linv = 1.0_r / l;
+    auto linv = 1.0_rr / l;
 
-    auto fmagn = ks * xi * (0.5_r * xi + l);
+    auto fmagn = ks * xi * (0.5_rr * xi + l);
     
     return (linv * fmagn) * dr;
 }
@@ -48,9 +48,9 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     auto v1 = fetchPosition(view, start + 4);
     auto r1 = fetchPosition(view, start + 5);
 
-    real3 fr0{0._r, 0._r, 0._r}, fr1{0._r, 0._r, 0._r};
-    real3 fu0{0._r, 0._r, 0._r}, fu1{0._r, 0._r, 0._r};
-    real3 fv0{0._r, 0._r, 0._r}, fv1{0._r, 0._r, 0._r};
+    rReal3 fr0{0._rr, 0._rr, 0._rr}, fr1{0._rr, 0._rr, 0._rr};
+    rReal3 fu0{0._rr, 0._rr, 0._rr}, fu1{0._rr, 0._rr, 0._rr};
+    rReal3 fv0{0._rr, 0._rr, 0._rr}, fv1{0._rr, 0._rr, 0._rr};
 
 #define BOUND(a, b, k, l) do {                          \
         auto f = fbound(a, b, params. k, params. l);    \
@@ -110,8 +110,8 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
 
     const BiSegment<Nstates> bisegment(view, start);
 
-    real3 fr0, fr2, fpm0, fpm1;
-    fr0 = fr2 = fpm0 = fpm1 = make_real3(0.0_r);
+    rReal3 fr0, fr2, fpm0, fpm1;
+    fr0 = fr2 = fpm0 = fpm1 = make_rReal3(0.0_rr);
 
     const int state = getState<Nstates>(view, i);
     
@@ -150,10 +150,10 @@ __global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
 
     const BiSegment<0> bisegment(view, start);
 
-    real3 gradr0x, gradr0y, gradr0z;
-    real3 gradr2x, gradr2y, gradr2z;
-    real3 gradpm0x, gradpm0y, gradpm0z;
-    real3 gradpm1x, gradpm1y, gradpm1z;
+    rReal3 gradr0x, gradr0y, gradr0z;
+    rReal3 gradr2x, gradr2y, gradr2z;
+    rReal3 gradpm0x, gradpm0y, gradpm0z;
+    rReal3 gradpm1x, gradpm1y, gradpm1z;
 
     bisegment.computeCurvaturesGradients(gradr0x, gradr0y,
                                          gradr2x, gradr2y,
@@ -164,49 +164,49 @@ __global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
                                       gradpm0z, gradpm1z);
 
     const auto k  = kappa[i];
-    const auto kl = biSegmentId > 0               ? kappa[i-1] : make_real4(0._r);
-    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[i+1] : make_real4(0._r);
+    const auto kl = biSegmentId > 0               ? kappa[i-1] : make_rReal4(0._rr);
+    const auto kr = biSegmentId < (nBiSegments-1) ? kappa[i+1] : make_rReal4(0._rr);
 
     const auto tl  = tau_l[i];
-    const auto tll = biSegmentId > 0               ? tau_l[i-1] : make_real2(0._r);
-    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[i+1] : make_real2(0._r);
+    const auto tll = biSegmentId > 0               ? tau_l[i-1] : make_rReal2(0._rr);
+    const auto tlr = biSegmentId < (nBiSegments-1) ? tau_l[i+1] : make_rReal2(0._rr);
 
-    const real3 dOmegal = biSegmentId > 0 ?
-        real3 {k.x - kl.x, k.y - kl.y, tl.x - tll.x} : real3 {0._r, 0._r, 0._r};
+    const rReal3 dOmegal = biSegmentId > 0 ?
+        rReal3 {k.x - kl.x, k.y - kl.y, tl.x - tll.x} : rReal3 {0._rr, 0._rr, 0._rr};
 
-    const real3 dOmegar = biSegmentId > (nBiSegments-1) ?
-        real3 {kr.x - k.x, kr.y - k.y, tlr.x - tl.x} : real3 {0._r, 0._r, 0._r};
+    const rReal3 dOmegar = biSegmentId > (nBiSegments-1) ?
+        rReal3 {kr.x - k.x, kr.y - k.y, tlr.x - tl.x} : rReal3 {0._rr, 0._rr, 0._rr};
 
-    const real coeffl = biSegmentId > 0               ? -kbi / length(bisegment.e0) : 0._r;
-    const real coeffm = biSegmentId < (nBiSegments-1) ?  kbi / length(bisegment.e1) : 0._r;
+    const rReal coeffl = biSegmentId > 0               ? -kbi / length(bisegment.e0) : 0._rr;
+    const rReal coeffm = biSegmentId < (nBiSegments-1) ?  kbi / length(bisegment.e1) : 0._rr;
 
-    auto applyGrad = [](real3 gx, real3 gy, real3 gz, real3 v) -> real3
+    auto applyGrad = [](rReal3 gx, rReal3 gy, rReal3 gz, rReal3 v) -> rReal3
     {
         return {gx.x * v.x + gy.x * v.y + gz.x * v.z,
                 gx.y * v.x + gy.y * v.y + gz.y * v.z,
                 gx.z * v.x + gy.z * v.y + gz.z * v.z};
     };
     
-    real3 fr0 =
+    rReal3 fr0 =
         coeffl * applyGrad(gradr0x, gradr0y, gradr0z, dOmegal) +
         coeffm * applyGrad(gradr0x, gradr0y, gradr0z, dOmegar);
 
-    real3 fr2 =
+    rReal3 fr2 =
         coeffl * applyGrad(gradr2x, gradr2y, gradr2z, dOmegal) +
         coeffm * applyGrad(gradr2x, gradr2y, gradr2z, dOmegar);
 
-    real3 fpm0 = 
+    rReal3 fpm0 = 
         coeffl * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegal) +
         coeffm * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegar);
 
-    real3 fpm1 = 
+    rReal3 fpm1 = 
         coeffl * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegal) +
         coeffm * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegar);
 
     // contribution of l
     if (biSegmentId < nBiSegments - 1)
     {
-        const auto coeff = 0.5_r * kbi * dot(dOmegar, dOmegar);
+        const auto coeff = 0.5_rr * kbi * dot(dOmegar, dOmegar);
         fr0 -= coeff * bisegment.t0;
         fr2 += coeff * bisegment.t1;
     }

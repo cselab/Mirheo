@@ -18,7 +18,7 @@ namespace RodStatesKernels
 {
 
 __device__ inline void writeBisegmentData(int i, float4 *kappa, float2 *tau_l,
-                                          real2 k0, real2 k1, real tau, real l)
+                                          rReal2 k0, rReal2 k1, rReal tau, rReal l)
 {
     kappa[i] = { (float) k0.x, (float) k0.y,
                  (float) k1.x, (float) k1.y };
@@ -27,7 +27,7 @@ __device__ inline void writeBisegmentData(int i, float4 *kappa, float2 *tau_l,
 }
 
 __device__ inline void fetchBisegmentData(int i, const float4 *kappa, const float2 *tau_l,
-                                          real2& k0, real2& k1, real& tau, real& l)
+                                          rReal2& k0, rReal2& k1, rReal& tau, rReal& l)
 {
     auto ks = kappa[i];
     auto tl = tau_l[i];
@@ -55,8 +55,8 @@ __global__ void computeBisegmentData(RVview view, float4 *kappa, float2 *tau_l)
 
     const BiSegment<0> bisegment(view, start);
 
-    real2 k0, k1;
-    real tau;
+    rReal2 k0, k1;
+    rReal tau;
     bisegment.computeCurvatures(k0, k1);
     bisegment.computeTorsion(tau);
 
@@ -73,19 +73,19 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
     {
-        real2 k0, k1;
-        real tau, l;
+        rReal2 k0, k1;
+        rReal tau, l;
         int i = rodId * nBiSegments + biSegmentId;
 
         fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
         int state = 0;
-        real E = computeEnergy(l, k0, k1, tau, state, params);            
+        rReal E = computeEnergy(l, k0, k1, tau, state, params);            
         
         #pragma unroll
         for (int s = 1; s < Nstates; ++s)
         {
-            real Es = computeEnergy(l, k0, k1, tau, s, params);
+            rReal Es = computeEnergy(l, k0, k1, tau, s, params);
             if (Es < E)
             {
                 E = Es;
@@ -108,7 +108,7 @@ __device__ inline int randomOtherState(int current, float seed)
 
 template <int Nstates>
 __device__ inline int acceptReject(int sprev, int scurrent, int snext,
-                                   const real2& k0, const real2& k1, const real& tau, const real& l,
+                                   const rReal2& k0, const rReal2& k1, const rReal& tau, const rReal& l,
                                    const GPU_RodBiSegmentParameters<Nstates>& params,
                                    const GPU_SpinParameters& spinParams)
 {
@@ -158,8 +158,8 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
         {
             if (biSegmentId % 2 == evenOdd) continue;
             
-            real2 k0, k1;
-            real tau, l;
+            rReal2 k0, k1;
+            rReal tau, l;
             int i = rodId * nBiSegments + biSegmentId;
             
             fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
