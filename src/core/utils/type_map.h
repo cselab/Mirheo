@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <core/datatypes.h>
 #include <core/utils/cuda_variant.h>
 
@@ -16,6 +15,7 @@
     OP(float3)       SEP                        \
     OP(float4)       SEP                        \
     OP(double)       SEP                        \
+    OP(double2)      SEP                        \
     OP(double3)      SEP                        \
     OP(double4)      SEP                        \
     OP(Stress)       SEP                        \
