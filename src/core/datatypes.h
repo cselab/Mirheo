@@ -29,12 +29,12 @@ struct __align__(16) Float3_int
 
     __HD__ inline Float3_int(const Float3_int& x)
     {
-        *((float4*)this) = *((float4*)&x);
+        *reinterpret_cast<float4*>(this) = *reinterpret_cast<const float4*>(&x);
     }
 
     __HD__ inline Float3_int& operator=(const Float3_int& x)
     {
-        *((float4*)this) = *((float4*)&x);
+        *reinterpret_cast<float4*>(this) = *reinterpret_cast<const float4*>(&x);
         return *this;
     }
 
@@ -43,12 +43,12 @@ struct __align__(16) Float3_int
 
     __HD__ inline Float3_int(const float4 f4)
     {
-        *((float4*)this) = f4;
+        *reinterpret_cast<float4*>(this) = f4;
     }
 
     __HD__ inline float4 toFloat4() const
     {
-        float4 f = *((float4*)this);
+        const float4 f = *reinterpret_cast<const float4*>(this);
         return f;
     }
 
@@ -83,8 +83,8 @@ struct __align__(16) Particle
     /// Copy constructor uses efficient 16-bytes wide copies
     __HD__ inline Particle(const Particle& x)
     {
-        auto f4this = (float4*)this;
-        auto f4x    = (float4*)&x;
+        auto f4this = reinterpret_cast<float4*>(this);
+        auto f4x    = reinterpret_cast<const float4*>(&x);
 
         f4this[0] = f4x[0];
         f4this[1] = f4x[1];
@@ -93,8 +93,8 @@ struct __align__(16) Particle
     /// Assignment operator uses efficient 16-bytes wide copies
     __HD__ inline Particle& operator=(Particle x)
     {
-        auto f4this = (float4*)this;
-        auto f4x    = (float4*)&x;
+        auto f4this = reinterpret_cast<float4*>(this);
+        auto f4x    = reinterpret_cast<const float4*>(&x);
 
         f4this[0] = f4x[0];
         f4this[1] = f4x[1];
@@ -114,7 +114,7 @@ struct __align__(16) Particle
 
     __HD__ inline void setId(int64_t id)
     {
-        int64_t highHalf = (id >> 32) << 32;
+        const int64_t highHalf = (id >> 32) << 32;
         i1 = (int32_t) (id - highHalf);
         i2 = (int32_t) (id >> 32);
     }
@@ -201,7 +201,7 @@ struct __align__(16) Particle
      * @param dst must have at least \e 2*pid entries
      * @param pid particle id
      */
-    __HD__ inline void write2Float4(float4* pos, float4 *vel, int pid) const
+    __HD__ inline void write2Float4(float4 *pos, float4 *vel, int pid) const
     {
         pos[pid] = r2Float4();
         vel[pid] = u2Float4();
@@ -220,10 +220,6 @@ struct __align__(16) Particle
     }
 };
 
-/**
- * Structure holding force
- * Not much used as of now
- */
 struct __align__(16) Force
 {
     float3 f;
@@ -245,14 +241,14 @@ struct __align__(16) Force
     }
 };
 
-__HD__ void inline operator+=(Force& a, const Force& b)
+__HD__ static inline void operator+=(Force& a, const Force& b)
 {
     a.f.x += b.f.x;
     a.f.y += b.f.y;
     a.f.z += b.f.z;
 }    
 
-__HD__ Force inline operator+(Force a, const Force& b)
+__HD__ static inline Force operator+(Force a, const Force& b)
 {
     a += b;
     return a;
@@ -264,13 +260,13 @@ struct Stress
     float xx, xy, xz, yy, yz, zz;
 };
 
-__HD__ void inline operator+=(Stress& a, const Stress& b)
+__HD__ static inline void operator+=(Stress& a, const Stress& b)
 {
     a.xx += b.xx; a.xy += b.xy; a.xz += b.xz;
     a.yy += b.yy; a.yz += b.yz; a.zz += b.zz;
 }    
 
-__HD__ Stress inline operator+(Stress a, const Stress& b)
+__HD__ static inline Stress operator+(Stress a, const Stress& b)
 {
     a += b;
     return a;
