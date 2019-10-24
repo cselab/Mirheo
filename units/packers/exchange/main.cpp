@@ -78,9 +78,9 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
         int dy = -1 + (r0.y >= -0.5f * L.y + rc) + (r0.y >= 0.5f * L.y - rc);
         int dz = -1 + (r0.z >= -0.5f * L.z + rc) + (r0.z >= 0.5f * L.z - rc);
         
-        for (int iz = min(dz,0); iz < max(dz,0); ++iz)
-        for (int iy = min(dy,0); iy < max(dy,0); ++iy)
-        for (int ix = min(dx,0); ix < max(dx,0); ++ix)
+        for (int iz = math::min(dz,0); iz < math::max(dz,0); ++iz)
+        for (int iy = math::min(dy,0); iy < math::max(dy,0); ++iy)
+        for (int ix = math::min(dx,0); ix < math::max(dx,0); ++ix)
         {
             if (ix == 0 && iy == 0 && iz == 0) continue;
 
