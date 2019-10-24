@@ -9,9 +9,10 @@ if(POLICY CMP0074)
 endif()
 
 # compile options for Mirheo library
+option(DOUBLE_PRECISION "use double precision everywhere; will also enable MEMBRANE_DOUBLE and ROD_DOUBLE" OFF)
+option(MEMBRANE_DOUBLE  "compute membrane forces in double precision" OFF)
+option(ROD_DOUBLE       "compute rod forces in double precision" OFF)
 option(USE_NVTX "enable NVTX profiling" OFF)
-option(MEMBRANE_DOUBLE "compute membrane forces in double precision" OFF)
-option(ROD_DOUBLE      "compute rod forces in double precision" OFF)
 
 project(Mirheo LANGUAGES C CXX CUDA)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -145,11 +146,12 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda  --compiler-opt
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
 set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
-if (USE_NVTX)
-  add_definitions(-DUSE_NVTX)
-  target_link_libraries(${MIR} PRIVATE "-lnvToolsExt")
-  target_link_libraries(${MIR_MAIN} PRIVATE "-lnvToolsExt")
-  message("compiling with USE_NVTX ON")
+
+if (DOUBLE_PRECISION)
+  add_definitions(-DMIRHEO_DOUBLE_PRECISION)
+  message("compiling with DOUBLE_PRECISION ON")
+  set(MEMBRANE_DOUBLE ON)
+  set(ROD_DOUBLE ON)
 endif()
 
 if (MEMBRANE_DOUBLE)
@@ -161,6 +163,14 @@ if (ROD_DOUBLE)
   add_definitions(-DROD_FORCES_DOUBLE)
   message("compiling with ROD_DOUBLE ON")
 endif()
+
+if (USE_NVTX)
+  add_definitions(-DUSE_NVTX)
+  target_link_libraries(${MIR} PRIVATE "-lnvToolsExt")
+  target_link_libraries(${MIR_MAIN} PRIVATE "-lnvToolsExt")
+  message("compiling with USE_NVTX ON")
+endif()
+
 
 # Auto-detect compute capability if not provided
 if (NOT DEFINED CUDA_ARCH_NAME)
