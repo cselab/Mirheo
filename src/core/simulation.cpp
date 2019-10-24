@@ -482,7 +482,7 @@ static void sortDescendingOrder(std::vector<float>& v)
 // assume sorted array (ascending or descending)
 static void removeDuplicatedElements(std::vector<float>& v, float tolerance)
 {
-    auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return fabs(a - b) < tolerance; });
+    auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return math::abs(a - b) < tolerance; });
     v.resize( std::distance(v.begin(), it) );    
 }
 

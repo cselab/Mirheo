@@ -275,7 +275,7 @@ FieldFromFile::FieldFromFile(FieldFromFile&&) = default;
 
 inline bool componentsAreEqual(float3 v, float eps = 1e-5f)
 {
-    return fabsf(v.x - v.y) < eps && fabsf(v.x - v.z) < eps;
+    return math::abs(v.x - v.y) < eps && math::abs(v.x - v.z) < eps;
 }
 
 void FieldFromFile::setup(const MPI_Comm& comm)

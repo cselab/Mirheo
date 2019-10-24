@@ -115,10 +115,10 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
     int sother = randomOtherState<Nstates>(scurrent, spinParams.seed);
 
     float Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
-        + spinParams.J * (abs(scurrent-sprev) + abs(scurrent-snext));
+        + spinParams.J * (math::abs(scurrent-sprev) + math::abs(scurrent-snext));
 
     float Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
-        + spinParams.J * (abs(sother  -sprev) + abs(sother  -snext));
+        + spinParams.J * (math::abs(sother  -sprev) + math::abs(sother  -snext));
 
     float dE = Eother - Ecurrent;
     

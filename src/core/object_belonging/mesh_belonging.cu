@@ -25,7 +25,7 @@ __device__ static inline bool doesRayIntersectTriangle(
     edge2 = v2 - v0;
     h = cross(rayVector, edge2);
     a = dot(edge1, h);
-    if (fabs(a) < tolerance)
+    if (math::abs(a) < tolerance)
         return false;
 
     f = 1.0f / a;

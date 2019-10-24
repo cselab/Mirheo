@@ -10,7 +10,7 @@ namespace TypeAtomicAdd
 template <typename T>
 __D__ inline void _add(T *v, T s, float eps)
 {
-    if (fabs(s) >= eps)
+    if (math::abs(s) >= eps)
     {
 #ifdef __CUDACC__
         atomicAdd(v, s);

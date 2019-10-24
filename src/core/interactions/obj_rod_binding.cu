@@ -50,9 +50,9 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     auto dr = anchor - r0;
 
     // avoid computing the forces with periodic images
-    if (fabs(dr.x) > 0.5f * domain.localSize.x) return;
-    if (fabs(dr.y) > 0.5f * domain.localSize.y) return;
-    if (fabs(dr.z) > 0.5f * domain.localSize.z) return;
+    if (math::abs(dr.x) > 0.5f * domain.localSize.x) return;
+    if (math::abs(dr.y) > 0.5f * domain.localSize.y) return;
+    if (math::abs(dr.z) > 0.5f * domain.localSize.z) return;
 
     const auto fanchor = -params.kb * safeNormalize(dr);
     const auto e0 = normalize(r1 - r0);

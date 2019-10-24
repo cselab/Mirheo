@@ -65,6 +65,11 @@ inline int min(int a, int b)
 
 namespace math
 {
+inline __HD__ float  abs(float x)  {return ::fabsf(x);}
+inline __HD__ double abs(double x) {return ::fabs (x);}
+inline __HD__ float  abs(int x)  {return ::abs(x);}
+inline __HD__ double abs(long x) {return ::abs(x);}
+
 inline __HD__ float  sqrt(float x)  {return ::sqrtf(x);}
 inline __HD__ double sqrt(double x) {return ::sqrt (x);}
 
@@ -1783,31 +1788,51 @@ inline __HD__ float4 fmodf(float4 a, float4 b)
 // absolute value
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __HD__ float2 fabs(float2 v)
+namespace math
 {
-    return make_float2(fabsf(v.x), fabsf(v.y));
-}
-inline __HD__ float3 fabs(float3 v)
+
+inline __HD__ float2 abs(float2 v)
 {
-    return make_float3(fabsf(v.x), fabsf(v.y), fabsf(v.z));
+    return make_float2(math::abs(v.x), math::abs(v.y));
 }
-inline __HD__ float4 fabs(float4 v)
+inline __HD__ float3 abs(float3 v)
 {
-    return make_float4(fabsf(v.x), fabsf(v.y), fabsf(v.z), fabsf(v.w));
+    return make_float3(math::abs(v.x), math::abs(v.y), math::abs(v.z));
 }
+inline __HD__ float4 abs(float4 v)
+{
+    return make_float4(math::abs(v.x), math::abs(v.y), math::abs(v.z), math::abs(v.w));
+}
+
+
+inline __HD__ double2 abs(double2 v)
+{
+    return make_double2(math::abs(v.x), math::abs(v.y));
+}
+inline __HD__ double3 abs(double3 v)
+{
+    return make_double3(math::abs(v.x), math::abs(v.y), math::abs(v.z));
+}
+inline __HD__ double4 abs(double4 v)
+{
+    return make_double4(math::abs(v.x), math::abs(v.y), math::abs(v.z), math::abs(v.w));
+}
+
 
 inline __HD__ int2 abs(int2 v)
 {
-    return make_int2(abs(v.x), abs(v.y));
+    return make_int2(math::abs(v.x), math::abs(v.y));
 }
 inline __HD__ int3 abs(int3 v)
 {
-    return make_int3(abs(v.x), abs(v.y), abs(v.z));
+    return make_int3(math::abs(v.x), math::abs(v.y), math::abs(v.z));
 }
 inline __HD__ int4 abs(int4 v)
 {
-    return make_int4(abs(v.x), abs(v.y), abs(v.z), abs(v.w));
+    return make_int4(math::abs(v.x), math::abs(v.y), math::abs(v.z), math::abs(v.w));
 }
+
+} // namespace math
 
 ////////////////////////////////////////////////////////////////////////////////
 // cross product

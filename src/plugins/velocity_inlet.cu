@@ -40,7 +40,7 @@ __global__ void initLocalFluxes(int n, const float3 *vertices, const float3 *vel
     float3 nA = 0.5 * cross(r1 - r0, r2 - r0); // normal times area of triangle
     float3 v = 0.33333f * (v0 + v1 + v2);
 
-    localFluxes[i] = fabs(dot(nA, v));
+    localFluxes[i] = math::abs(dot(nA, v));
 }
 
 __global__ void countFromCumulativeFluxes(int n, float dt, float numberDensity, const float *localFluxes,

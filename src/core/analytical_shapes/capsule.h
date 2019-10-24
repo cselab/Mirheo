@@ -14,7 +14,7 @@ public:
 
     __HD__ inline float inOutFunction(float3 coo) const
     {
-        const float dz = fabsf(coo.z) - halfL;
+        const float dz = math::abs(coo.z) - halfL;
 
         float drsq = sqr(coo.x) + sqr(coo.y);
         if (dz > 0) drsq += sqr(dz);
@@ -27,7 +27,7 @@ public:
     {
         constexpr float eps = 1e-6f;
 
-        const float dz = fabsf(coo.z) - halfL;
+        const float dz = math::abs(coo.z) - halfL;
 
         float rsq = sqr(coo.x) + sqr(coo.y);
         if (dz > 0) rsq += sqr(dz);

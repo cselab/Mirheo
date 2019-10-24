@@ -88,7 +88,7 @@ struct LJAwarenessRod
                 const int srcSegId = (dstId % objSize) / 5;
                 const int dstSegId = (srcId % objSize) / 5;
 
-                if (abs(srcSegId - dstSegId) <= minSegmentsDist)
+                if (math::abs(srcSegId - dstSegId) <= minSegmentsDist)
                     return false;
             }
         }

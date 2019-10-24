@@ -35,7 +35,7 @@ __HD__ inline auto getFromVectorPair(R3 u, R3 v)
     auto kCosTheta = dot(u, v);
     auto k = math::sqrt(dot(u,u) * dot(v,v));
 
-    if (fabs(kCosTheta + k) < 1e-6)
+    if (math::abs(kCosTheta + k) < 1e-6)
     {
         // 180 degree rotation around any orthogonal vector
         return f3toQ( normalize(anyOrthogonal(u)) );

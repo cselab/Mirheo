@@ -69,7 +69,7 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
     // assume that particles don t move more than this distance every time step
     constexpr float tolDistance = 0.1;
     
-    if (fabsf(F0) > tolDistance && fabsf(F1) > tolDistance)
+    if (math::abs(F0) > tolDistance && math::abs(F1) > tolDistance)
         return false;
     
     if (F0 * F1 < 0.0f)
@@ -265,7 +265,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     {
         return root.x >= leftLimit
             && root.x <= rightLimit
-            && fabsf(root.val) < tol;
+            && math::abs(root.val) < tol;
     };
 
     float left, right;
@@ -275,8 +275,8 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         // Three roots
         if (validRoot(roots[0]) && validRoot(roots[2]))
         {
-            left  = roots[0].x + epsilon/fabsf(F_prime(roots[0].x));
-            right = roots[2].x - epsilon/fabsf(F_prime(roots[2].x));
+            left  = roots[0].x + epsilon/math::abs(F_prime(roots[0].x));
+            right = roots[2].x - epsilon/math::abs(F_prime(roots[2].x));
         }
         else // One root
         {
@@ -299,11 +299,11 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         else if (F(leftLimit) * F_prime(newtonRoot.x) > 0.0f)
         {
             left  = leftLimit;
-            right = newtonRoot.x - epsilon/fabsf(F_prime(newtonRoot.x));
+            right = newtonRoot.x - epsilon/math::abs(F_prime(newtonRoot.x));
         }
         else
         {
-            left  = newtonRoot.x + epsilon/fabsf(F_prime(newtonRoot.x));
+            left  = newtonRoot.x + epsilon/math::abs(F_prime(newtonRoot.x));
             right = rightLimit;
         }
     }
@@ -417,7 +417,7 @@ void triangleForces(Triangle tr, float m,
     const float3 L = M * cross(C-O, U_par);
 
     const float J = len2(C-tr.v0) + len2(C-tr.v1) + len2(C-tr.v2);
-    if (fabsf(J) < tol)
+    if (math::abs(J) < tol)
     {
         const float3 f = dU * M / dt;
         f0 = O_barycentric.x*f;

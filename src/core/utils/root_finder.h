@@ -65,7 +65,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, floa
             a = mid;
         }
 
-        if (fabsf(vmid) < tolerance)
+        if (math::abs(vmid) < tolerance)
             break;
     }
     return {mid, vmid};
@@ -88,7 +88,7 @@ __D__ inline RootInfo newton(F f, F_prime f_prime, float x0, float tolerance = 1
     for (int iter = 0; iter < maxNIters; ++iter)
     {
         val = f(x);
-        if (fabsf(val) < tolerance)
+        if (math::abs(val) < tolerance)
             return {x, val};
         x = x - val / f_prime(x);
     }

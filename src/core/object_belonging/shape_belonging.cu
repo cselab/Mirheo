@@ -39,14 +39,12 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
         for (int pid = pstart; pid < pend; pid++)
         {
             const Particle p(pvView.readParticle(pid));
-            auto motion = toSingleMotion(rsView.motions[objId]);
+            const auto motion = toSingleMotion(rsView.motions[objId]);
 
-            float3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
+            const float3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
 
-            float v = rsView.shape.inOutFunction(coo);
+            const float v = rsView.shape.inOutFunction(coo);
 
-//            if (fabs(v) <= tolerance)
-//                tags[pid] = BelongingTags::Boundary;
             if (v <= tolerance)
                 tags[pid] = BelongingTags::Inside;
         }

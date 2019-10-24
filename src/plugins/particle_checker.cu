@@ -18,9 +18,9 @@ __device__ inline bool checkFinite(float3 v)
 __device__ inline bool withinBounds(float3 v, float3 bounds)
 {
     return
-        (fabs(v.x) < bounds.x) &&
-        (fabs(v.y) < bounds.y) &&
-        (fabs(v.z) < bounds.z);
+        (math::abs(v.x) < bounds.x) &&
+        (math::abs(v.y) < bounds.y) &&
+        (math::abs(v.z) < bounds.z);
 }
 
 __global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, ParticleCheckerPlugin::ParticleStatus *status)
