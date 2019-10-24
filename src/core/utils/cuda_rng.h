@@ -43,20 +43,20 @@ namespace Logistic
  * passes BigCrush
  *****************************************************************/
 struct KISS {
-    typedef uint32_t integer;
-    integer x, y, z, c;
+    using intType = uint32_t;
+    intType x, y, z, c;
 
     KISS() : x( 0 ), y( 0 ), z( 0 ), c( 0 ) {}
 
-    KISS( integer x_, integer y_, integer z_, integer c_ ) :
+    KISS( intType x_, intType y_, intType z_, intType c_ ) :
         x( x_ ), y( y_ ), z( z_ ), c( c_ ) {}
 
     float get_float()
     {
-        return get_int() / float( std::numeric_limits<integer>::max() );
+        return get_int() / float( std::numeric_limits<intType>::max() );
     }
 
-    integer get_int()
+    intType get_int()
     {
         uint64_t t, a = 698769069ULL;
         x = 69069 * x + 12345;
