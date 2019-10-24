@@ -59,7 +59,7 @@ private:
 
     __D__ inline mReal3 bondForce(mReal3 v1, mReal3 v2, mReal l0) const
     {
-        const mReal r = max(length(v2 - v1), 1e-5_mr);
+        const mReal r = math::max(length(v2 - v1), 1e-5_mr);
         const mReal lmax     = l0 / x0;
         const mReal inv_lmax = x0 / l0;
 
@@ -67,13 +67,13 @@ private:
             return ks * inv_lmax * (4.0_mr*x*x - 9.0_mr*x + 6.0_mr) / ( 4.0f*sqr(1.0_mr - x) );
         };
 
-        const mReal IbforceI_wlc = wlc( min(lmax - 1e-6_mr, r) * inv_lmax );
+        const mReal IbforceI_wlc = wlc( math::min(lmax - 1e-6_mr, r) * inv_lmax );
 
         const mReal kp = wlc( l0 * inv_lmax ) * fastPower(l0, mpow+1);
 
         const mReal IbforceI_pow = -kp / (fastPower(r, mpow+1));
 
-        const mReal IfI = min(forceCap, max(-forceCap, IbforceI_wlc + IbforceI_pow));
+        const mReal IfI = math::min(forceCap, math::max(-forceCap, IbforceI_wlc + IbforceI_pow));
 
         return IfI * (v2 - v1);
     }

@@ -45,9 +45,9 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
         if (prop.high.y >  0.5f*domain.localSize.y - rc) dy = 1;
         if (prop.high.z >  0.5f*domain.localSize.z - rc) dz = 1;
 
-        for (int ix = min(dx, 0); ix <= max(dx, 0); ++ix)
-            for (int iy = min(dy, 0); iy <= max(dy, 0); ++iy)
-                for (int iz = min(dz, 0); iz <= max(dz, 0); ++iz)
+        for (int ix = math::min(dx, 0); ix <= math::max(dx, 0); ++ix)
+            for (int iy = math::min(dy, 0); iy <= math::max(dy, 0); ++iy)
+                for (int iz = math::min(dz, 0); iz <= math::max(dz, 0); ++iz)
                 {
                     if (ix == 0 && iy == 0 && iz == 0) continue;
                     const int bufId = FragmentMapping::getId(ix, iy, iz);

@@ -534,10 +534,10 @@ void Mirheo::sayHello()
     std::string version = Version::mir_version;
     std::string sha1    = Version::git_SHA1;
 
-    int missing_spaces = max(0, max_length_version - (int) version.size());
+    int missing_spaces = math::max(0, max_length_version - static_cast<int>(version.size()));
     version.append(missing_spaces, ' ');
 
-    missing_spaces = max(0, max_length_sha1 - (int) sha1.size());
+    missing_spaces = math::max(0, max_length_sha1 - static_cast<int>(sha1.size()));
     sha1.append(missing_spaces, ' ');
     
     printf("\n");

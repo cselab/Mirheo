@@ -173,7 +173,7 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, float seed) con
     nInside.clearDevice(defaultStream);
 
     const int nthreads = 128;
-    const int nblocks = std::min(getNblocks(nSamples, nthreads), 1024);
+    const int nblocks = math::min(getNblocks(nSamples, nthreads), 1024);
     
     SAFE_KERNEL_LAUNCH(
         RegionOutletPluginKernels::countInsideRegion,

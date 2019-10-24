@@ -65,7 +65,7 @@ public:
         const int3 v = make_int3( floorf(invh * (x + 0.5f*localDomainSize)) );
 
         if (Projection == CellListsProjection::Clamp)
-            return min( ncells - 1, max(make_int3(0), v) );
+            return math::min( ncells - 1, math::max(make_int3(0), v) );
         else
             return v;
     }

@@ -79,8 +79,8 @@ static void checkInitialPositions(const DomainInfo& domain,
     for (auto r4 : positions)
     {
         const float3 r = make_float3(r4);
-        low = fminf(low, r);
-        hig = fmaxf(hig, r);
+        low = math::min(low, r);
+        hig = math::max(hig, r);
     }
 
     const auto L = domain.localSize;

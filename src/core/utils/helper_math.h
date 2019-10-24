@@ -35,34 +35,6 @@
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
-#if !defined(__CUDACC__)
-
-////////////////////////////////////////////////////////////////////////////////
-// host implementations of CUDA functions
-////////////////////////////////////////////////////////////////////////////////
-
-inline float fminf(float a, float b)
-{
-    return a < b ? a : b;
-}
-
-inline float fmaxf(float a, float b)
-{
-    return a > b ? a : b;
-}
-
-inline int max(int a, int b)
-{
-    return a > b ? a : b;
-}
-
-inline int min(int a, int b)
-{
-    return a < b ? a : b;
-}
-#endif
-
-
 namespace math
 {
 inline __HD__ float  abs(float x)  {return ::fabsf(x);}
@@ -73,12 +45,30 @@ inline __HD__ double abs(long x) {return ::abs(x);}
 inline __HD__ float  sqrt(float x)  {return ::sqrtf(x);}
 inline __HD__ double sqrt(double x) {return ::sqrt (x);}
 
+
 #if defined(__CUDACC__)
+
 inline __HD__ float  rsqrt(float x)  {return ::rsqrtf(x);}
 inline __HD__ double rsqrt(double x) {return ::rsqrt (x);}
+
+inline __HD__ float  min(float  a, float  b) {return ::fminf(a,b);}
+inline __HD__ double min(double a, double b) {return ::min(a,b);}
+inline __HD__ int    min(int    a, int    b) {return ::min(a,b);}
+inline __HD__ uint   min(uint   a, uint   b) {return ::min(a,b);}
+
+inline __HD__ float  max(float  a, float  b) {return ::fmaxf(a,b);}
+inline __HD__ double max(double a, double b) {return ::max(a,b);}
+inline __HD__ int    max(int    a, int    b) {return ::max(a,b);}
+inline __HD__ uint   max(uint   a, uint   b) {return ::max(a,b);}
+
 #else
+
 inline float  rsqrt(float x)  {return 1.f / math::sqrt(x);}
 inline double rsqrt(double x) {return 1.0 / math::sqrt(x);}
+
+template <typename T> inline T min(const T& a, const T& b) {return a < b ? a : b;}
+template <typename T> inline T max(const T& a, const T& b) {return a < b ? b : a;}
+
 #endif
 
 } // namespace math
@@ -121,19 +111,6 @@ inline __HD__ int2 make_int2(uint2 a)
 inline __HD__ int2 make_int2(float2 a)
 {
     return make_int2(int(a.x), int(a.y));
-}
-
-inline __HD__ uint2 make_uint2(uint s)
-{
-    return make_uint2(s, s);
-}
-inline __HD__ uint2 make_uint2(uint3 a)
-{
-    return make_uint2(a.x, a.y);
-}
-inline __HD__ uint2 make_uint2(int2 a)
-{
-    return make_uint2(uint(a.x), uint(a.y));
 }
 
 inline __HD__ float3 make_float3(float s)
@@ -1395,21 +1372,24 @@ inline __HD__ int3 operator/(int3 a, int3 b)
     return make_int3(a.x / b.x, a.y / b.y, a.z / b.z);
 }
 
+namespace math
+{
+
 ////////////////////////////////////////////////////////////////////////////////
 // min
 ////////////////////////////////////////////////////////////////////////////////
 
-inline  __HD__ float2 fminf(float2 a, float2 b)
+inline  __HD__ float2 min(float2 a, float2 b)
 {
-    return make_float2(fminf(a.x,b.x), fminf(a.y,b.y));
+    return make_float2(min(a.x, b.x), min(a.y,b.y));
 }
-inline __HD__ float3 fminf(float3 a, float3 b)
+inline __HD__ float3 min(float3 a, float3 b)
 {
-    return make_float3(fminf(a.x,b.x), fminf(a.y,b.y), fminf(a.z,b.z));
+    return make_float3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
 }
-inline  __HD__ float4 fminf(float4 a, float4 b)
+inline  __HD__ float4 min(float4 a, float4 b)
 {
-    return make_float4(fminf(a.x,b.x), fminf(a.y,b.y), fminf(a.z,b.z), fminf(a.w,b.w));
+    return make_float4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
 }
 
 inline __HD__ int2 min(int2 a, int2 b)
@@ -1425,34 +1405,21 @@ inline __HD__ int4 min(int4 a, int4 b)
     return make_int4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
 }
 
-inline __HD__ uint2 min(uint2 a, uint2 b)
-{
-    return make_uint2(min(a.x,b.x), min(a.y,b.y));
-}
-inline __HD__ uint3 min(uint3 a, uint3 b)
-{
-    return make_uint3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
-}
-inline __HD__ uint4 min(uint4 a, uint4 b)
-{
-    return make_uint4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // max
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __HD__ float2 fmaxf(float2 a, float2 b)
+inline __HD__ float2 max(float2 a, float2 b)
 {
-    return make_float2(fmaxf(a.x,b.x), fmaxf(a.y,b.y));
+    return make_float2(max(a.x,b.x), max(a.y,b.y));
 }
-inline __HD__ float3 fmaxf(float3 a, float3 b)
+inline __HD__ float3 max(float3 a, float3 b)
 {
-    return make_float3(fmaxf(a.x,b.x), fmaxf(a.y,b.y), fmaxf(a.z,b.z));
+    return make_float3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
 }
-inline __HD__ float4 fmaxf(float4 a, float4 b)
+inline __HD__ float4 max(float4 a, float4 b)
 {
-    return make_float4(fmaxf(a.x,b.x), fmaxf(a.y,b.y), fmaxf(a.z,b.z), fmaxf(a.w,b.w));
+    return make_float4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
 }
 
 inline __HD__ int2 max(int2 a, int2 b)
@@ -1468,18 +1435,7 @@ inline __HD__ int4 max(int4 a, int4 b)
     return make_int4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
 }
 
-inline __HD__ uint2 max(uint2 a, uint2 b)
-{
-    return make_uint2(max(a.x,b.x), max(a.y,b.y));
-}
-inline __HD__ uint3 max(uint3 a, uint3 b)
-{
-    return make_uint3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
-}
-inline __HD__ uint4 max(uint4 a, uint4 b)
-{
-    return make_uint4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
-}
+} // namespace math
 
 ////////////////////////////////////////////////////////////////////////////////
 // dot product
@@ -1524,18 +1480,6 @@ inline __HD__ int dot(int4 a, int4 b)
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-inline __HD__ uint dot(uint2 a, uint2 b)
-{
-    return a.x * b.x + a.y * b.y;
-}
-inline __HD__ uint dot(uint3 a, uint3 b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-inline __HD__ uint dot(uint4 a, uint4 b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // length

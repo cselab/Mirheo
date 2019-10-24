@@ -44,7 +44,7 @@ public:
         const float3 du = dst.u - src.u;
         const float rdotv = dot(dr_r, du);
 
-        const float myrandnr = ((min(src.i1, dst.i1) ^ max(src.i1, dst.i1)) % 13) - 6;
+        const float myrandnr = ((math::min(src.i1, dst.i1) ^ math::max(src.i1, dst.i1)) % 13) - 6;
 
         const float strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 

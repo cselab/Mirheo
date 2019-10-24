@@ -24,7 +24,7 @@ __device__ static inline T fmin_vec(T v)
 template<typename T, typename... Args>
 __device__ static inline T fmin_vec(T v, Args... args)
 {
-    return fminf(v, fmin_vec(args...));
+    return math::min(v, fmin_vec(args...));
 }
 
 template<typename T>
@@ -36,5 +36,5 @@ __device__ static inline T fmax_vec(T v)
 template<typename T, typename... Args>
 __device__ static inline T fmax_vec(T v, Args... args)
 {
-    return fmaxf(v, fmax_vec(args...));
+    return math::max(v, fmax_vec(args...));
 }

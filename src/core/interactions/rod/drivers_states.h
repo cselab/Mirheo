@@ -165,8 +165,8 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
             fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
             int scurrent = states[biSegmentId];
-            int sprev = states[max(biSegmentId - 1, 0            )];
-            int snext = states[min(biSegmentId + 1, nBiSegments-1)];
+            int sprev = states[math::max(biSegmentId - 1, 0            )];
+            int snext = states[math::min(biSegmentId + 1, nBiSegments-1)];
 
             states[biSegmentId] = acceptReject(sprev, scurrent, snext,
                                                k0, k1, tau, l, params, spinParams);

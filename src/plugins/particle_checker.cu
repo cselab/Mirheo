@@ -87,7 +87,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     auto dt     = state->dt;
-    auto dtInv  = 1.0f / max(1e-6f, dt);
+    auto dtInv  = 1.0f / math::max(1e-6f, dt);
     auto domain = state->domain;
     
     for (size_t i = 0; i < pvs.size(); ++i)

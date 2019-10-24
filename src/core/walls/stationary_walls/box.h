@@ -25,8 +25,8 @@ public:
     {
         const float3 gr = domain.local2global(coo);
 
-        const float3 dist3 = fminf(math::abs(gr - lo), math::abs(hi - gr));
-        const float dist = min(dist3.x, min(dist3.y, dist3.z));
+        const float3 dist3 = math::min(math::abs(gr - lo), math::abs(hi - gr));
+        const float dist = math::min(dist3.x, math::min(dist3.y, dist3.z));
 
         float sign = 1.0f;
         if (lo.x < gr.x && gr.x < hi.x  &&

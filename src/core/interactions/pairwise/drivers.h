@@ -125,8 +125,8 @@ __global__ void computeSelfInteractions(
             if (cellY == cell0.y && cellZ > cell0.z) continue;
             
             const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
-            int rowStart  = max(midCellId-1, 0);
-            int rowEnd    = min(midCellId+2, cinfo.totcells);
+            const int rowStart  = math::max(midCellId-1, 0);
+            int rowEnd          = math::min(midCellId+2, cinfo.totcells);
             
             if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
             
@@ -202,8 +202,8 @@ __global__ void computeExternalInteractions_1tpp(
                 if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
                 const int midCellId = srcCinfo.encode(cell0.x, cellY, cellZ);
-                int rowStart  = max(midCellId-1, 0);
-                int rowEnd    = min(midCellId+2, srcCinfo.totcells);
+                const int rowStart  = math::max(midCellId-1, 0);
+                const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
                 if (rowStart >= rowEnd) continue;
                 
@@ -217,7 +217,7 @@ __global__ void computeExternalInteractions_1tpp(
             {
                 if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
-                for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
+                for (int cellX = math::max(cell0.x-1, 0); cellX <= math::min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
                 {
                     const int cid = srcCinfo.encode(cellX, cellY, cellZ);
                     const int pstart = srcCinfo.cellStarts[cid];
@@ -269,8 +269,8 @@ __global__ void computeExternalInteractions_3tpp(
             if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
             const int midCellId = srcCinfo.encode(cell0.x, cellY, cellZ);
-            int rowStart  = max(midCellId-1, 0);
-            int rowEnd    = min(midCellId+2, srcCinfo.totcells);
+            const int rowStart  = math::max(midCellId-1, 0);
+            const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
             if (rowStart >= rowEnd) continue;
             
@@ -284,7 +284,7 @@ __global__ void computeExternalInteractions_3tpp(
         {
             if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
 
-            for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
+            for (int cellX = math::max(cell0.x-1, 0); cellX <= math::min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
             {
                 const int cid = srcCinfo.encode(cellX, cellY, cellZ);
                 const int pstart = srcCinfo.cellStarts[cid];
@@ -336,8 +336,8 @@ __global__ void computeExternalInteractions_9tpp(
         if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) return;
 
         const int midCellId = srcCinfo.encode(cell0.x, cellY, cellZ);
-        int rowStart  = max(midCellId-1, 0);
-        int rowEnd    = min(midCellId+2, srcCinfo.totcells);
+        const int rowStart  = math::max(midCellId-1, 0);
+        const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
         if (rowStart >= rowEnd) return;
         
@@ -351,7 +351,7 @@ __global__ void computeExternalInteractions_9tpp(
     {
         if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) return;
 
-        for (int cellX = max(cell0.x-1, 0); cellX <= min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
+        for (int cellX = math::max(cell0.x-1, 0); cellX <= math::min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
         {
             const int cid = srcCinfo.encode(cellX, cellY, cellZ);
             const int pstart = srcCinfo.cellStarts[cid];

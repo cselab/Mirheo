@@ -13,7 +13,7 @@ __device__ inline float squaredDistanceToSegment(const float3& r0, const float3&
 {
     float3 dr = r1 - r0;
     float alpha = dot(x - r0, dr) / dot(dr, dr);
-    alpha = min(1.f, max(0.f, alpha));
+    alpha = math::min(1.f, math::max(0.f, alpha));
     float3 p = r0 + alpha * dr;
     float3 dx = x - p;
     return dot(dx, dx);
@@ -52,8 +52,8 @@ __global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellLi
     auto r0 = make_float3(rvView.readPosition(segStart + 0));
     auto r1 = make_float3(rvView.readPosition(segStart + 5));
 
-    const float3 lo = fminf(r0, r1);
-    const float3 hi = fmaxf(r0, r1);
+    const float3 lo = math::min(r0, r1);
+    const float3 hi = math::max(r0, r1);
 
     const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - (radius + tol));
     const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + (radius + tol));
@@ -66,13 +66,13 @@ __global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellLi
         for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; ++cid3.y)
         {
             cid3.x = cidLow.x;
-            int cidLo = max(cinfo.encode(cid3), 0);
+            const int cidLo = math::max(cinfo.encode(cid3), 0);
             
             cid3.x = cidHigh.x;
-            int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
+            const int cidHi = math::min(cinfo.encode(cid3)+1, cinfo.totcells);
             
-            int pstart = cinfo.cellStarts[cidLo];
-            int pend   = cinfo.cellStarts[cidHi];
+            const int pstart = cinfo.cellStarts[cidLo];
+            const int pend   = cinfo.cellStarts[cidHi];
             
             setTagsCell(pstart, pend, radius, r0, r1, pvView, tags);
         }

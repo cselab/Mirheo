@@ -136,7 +136,7 @@ public:
 
         const float IfI = epsx24_sigma * (2*rs14 - rs8);
 
-        return dr * min(max(IfI, 0.0f), maxForce);
+        return dr * math::min(math::max(IfI, 0.0f), maxForce);
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}

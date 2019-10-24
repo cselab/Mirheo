@@ -18,14 +18,14 @@ namespace WallRepulsionPluginKernels
 {
 __global__ void forceFromSDF(PVview view, const float *sdfs, const float3 *gradients, float C, float h, float maxForce)
 {
-    int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    float sdf = sdfs[pid];
+    const float sdf = sdfs[pid];
 
     if (sdf + h >= 0.0f)
     {
-        float3 f = -gradients[pid] * min( maxForce, C * max(sdf + h, 0.0f) );
+        const float3 f = -gradients[pid] * math::min( maxForce, C * math::max(sdf + h, 0.0f) );
         atomicAdd(view.forces + pid, f);
     }
 }

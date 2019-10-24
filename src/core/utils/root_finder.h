@@ -51,7 +51,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, floa
 
     for (int iter = 0; iter < maxNIters; ++iter)
     {
-        const float lambda = fminf( fmaxf(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
+        const float lambda = math::min( math::max(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
         mid = a * lambda + b * (1.0f - lambda);
         vmid = F(mid);
 

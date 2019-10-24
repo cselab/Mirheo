@@ -130,10 +130,10 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
         for (cid3.y = cidLow.y; cid3.y <= cidHigh.y; cid3.y++)
             {
                 cid3.x = cidLow.x;
-                const int cidLo = max(cinfo.encode(cid3), 0);
+                const int cidLo = math::max(cinfo.encode(cid3), 0);
 
                 cid3.x = cidHigh.x;
-                const int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
+                const int cidHi = math::min(cinfo.encode(cid3)+1, cinfo.totcells);
 
                 const int pstart = cinfo.cellStarts[cidLo];
                 const int pend   = cinfo.cellStarts[cidHi];

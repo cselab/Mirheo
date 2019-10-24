@@ -53,7 +53,7 @@ public:
         const float3 du = dst.p.u - src.p.u;
         const float rdotv = dot(dr_r, du);
 
-        const float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
+        const float myrandnr = Logistic::mean0var1(seed, math::min(src.p.i1, dst.p.i1), math::max(src.p.i1, dst.p.i1));
 
         const float strength = a * argwr + b * argwd * (src.d + dst.d) - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 

@@ -58,7 +58,7 @@ public:
         const float3 du = dst.p.u - src.p.u;
         const float erdotdu = dot(er, du);
 
-        const float myrandnr = Logistic::mean0var1(seed, min(src.p.i1, dst.p.i1), max(src.p.i1, dst.p.i1));
+        const float myrandnr = Logistic::mean0var1(seed, math::min(src.p.i1, dst.p.i1), math::max(src.p.i1, dst.p.i1));
 
         const float Aij = (inv_disq + inv_djsq) * dWdr;
         const float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;

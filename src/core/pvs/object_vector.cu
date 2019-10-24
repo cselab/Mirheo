@@ -31,14 +31,14 @@ __global__ void minMaxCom(OVview ovView)
 
         const float3 coo = make_float3(ovView.readPosition(offset));
 
-        mymin = fminf(mymin, coo);
-        mymax = fmaxf(mymax, coo);
+        mymin = math::min(mymin, coo);
+        mymax = math::max(mymax, coo);
         mycom += coo;
     }
 
     mycom = warpReduce( mycom, [] (float a, float b) { return a+b; } );
-    mymin = warpReduce( mymin, [] (float a, float b) { return fmin(a, b); } );
-    mymax = warpReduce( mymax, [] (float a, float b) { return fmax(a, b); } );
+    mymin = warpReduce( mymin, [] (float a, float b) { return math::min(a, b); } );
+    mymax = warpReduce( mymax, [] (float a, float b) { return math::max(a, b); } );
 
     if (laneId == 0)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};

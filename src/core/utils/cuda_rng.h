@@ -158,7 +158,7 @@ const static float sqrt2 = 1.41421356237309514547;
 inline __D__ float uniform01( float seed, int i, int j )
 {
     float val = mean0var1(seed, i, j) * (0.5f/sqrt2) + 0.5f;
-    return max(0.0f, min(1.0f, val));
+    return math::max(0.0f, math::min(1.0f, val));
 }
 
 inline __D__ float mean0var1( float seed, int u, int v )
@@ -244,8 +244,8 @@ __D__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int se
 
 inline __D__ float2 normal2( float seed, uint i, uint j )
 {
-    float u1 = uniform01( seed, min(i, j),   max(i, j) );
-    float u2 = uniform01( u1,   max(i, j)+1, min(i, j) );
+    float u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
+    float u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
 
     float r = math::sqrt(-2.0f * logf(u1));
     float theta = 2.0f * M_PI * u2;

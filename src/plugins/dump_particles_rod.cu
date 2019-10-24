@@ -18,7 +18,7 @@ __global__ void copyRodQuantities(int numBiSegmentsPerObject, int objSize, int n
 
     int objId        = pid / objSize;
     int localPartId  = pid % objSize;
-    int localBisegId = min(localPartId / stride, numBiSegmentsPerObject); // min because of last particle
+    int localBisegId = math::min(localPartId / stride, numBiSegmentsPerObject); // min because of last particle
 
     int bid = objId * numBiSegmentsPerObject + localBisegId;
 

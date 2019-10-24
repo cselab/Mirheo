@@ -73,7 +73,7 @@ public:
                             float growUntil, long seed = 42424242) :
         Interaction(state, name, 1.0f),
         parameters(parameters),
-        scaleFromTime( [growUntil] (float t) { return min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
+        scaleFromTime( [growUntil] (float t) { return math::min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams),
         stepGen(seed)

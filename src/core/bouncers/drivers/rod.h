@@ -150,7 +150,7 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
             const int cidLo = max(cinfo.encode(cid3), 0);
             
             cid3.x = cidHigh.x;
-            const int cidHi = min(cinfo.encode(cid3)+1, cinfo.totcells);
+            const int cidHi = math::min(cinfo.encode(cid3)+1, cinfo.totcells);
             
             const int pstart = cinfo.cellStarts[cidLo];
             const int pend   = cinfo.cellStarts[cidHi];

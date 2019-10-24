@@ -22,8 +22,8 @@ public:
         const float dist2cyl  = dz > 0 ? dist2edge : dr;
 
         return (dz <= 0) && (dr <= 0)
-            ? fmaxf(dist2cyl, dist2disk)
-            : fminf(dist2cyl, dist2disk);
+            ? math::max(dist2cyl, dist2disk)
+            : math::min(dist2cyl, dist2disk);
     }
 
     __HD__ inline float3 normal(float3 coo) const

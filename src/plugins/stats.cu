@@ -31,7 +31,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
     myMomentum = warpReduce(myMomentum, [](float a, float b) { return a+b; });
     myEnergy   = warpReduce(myEnergy,   [](float a, float b) { return a+b; });
     
-    myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return max(a, b); });
+    myMaxIvelI = warpReduce(length(vel), [](float a, float b) { return math::max(a, b); });
 
     if (laneId() == 0)
     {

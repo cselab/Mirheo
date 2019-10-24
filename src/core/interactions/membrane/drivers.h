@@ -55,10 +55,10 @@ __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
     if (!parameters.fluctuationForces)
         return make_mReal3(0.0_mr);
 
-    // mReal mean0var1 = Saru::normal2(parameters.seed, min(i1, i2), max(i1, i2)).x;
+    // mReal mean0var1 = Saru::normal2(parameters.seed, math::min(i1, i2), math::max(i1, i2)).x;
 
     constexpr mReal sqrt_12 = 3.4641016151_mr;
-    const mReal mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, min(i1, i2), max(i1, i2)) - 0.5_mr);
+    const mReal mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, math::min(i1, i2), math::max(i1, i2)) - 0.5_mr);
 
     const mReal3 x21 = v2 - v1;
     return (mean0var1 * parameters.sigma_rnd / length(x21)) * x21;
