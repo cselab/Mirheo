@@ -19,16 +19,16 @@ static long genSeed(const MPI_Comm& comm, std::string name)
 }
 
 static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& domain,
-                            std::uniform_real_distribution<real>& udistr, std::mt19937& gen)
+                            std::uniform_real_distribution<float>& udistr, std::mt19937& gen)
 {
     Particle p;
-    p.r.x = i*h.x - 0.5*domain.localSize.x + udistr(gen);
-    p.r.y = j*h.y - 0.5*domain.localSize.y + udistr(gen);
-    p.r.z = k*h.z - 0.5*domain.localSize.z + udistr(gen);
+    p.r.x = i*h.x - 0.5_r * domain.localSize.x + udistr(gen);
+    p.r.y = j*h.y - 0.5_r * domain.localSize.y + udistr(gen);
+    p.r.z = k*h.z - 0.5_r * domain.localSize.z + udistr(gen);
 
-    p.u.x = 0.0f * (udistr(gen) - 0.5);
-    p.u.y = 0.0f * (udistr(gen) - 0.5);
-    p.u.z = 0.0f * (udistr(gen) - 0.5);
+    p.u.x = 0.0_r * (udistr(gen) - 0.5_r);
+    p.u.y = 0.0_r * (udistr(gen) - 0.5_r);
+    p.u.z = 0.0_r * (udistr(gen) - 0.5_r);
 
     return p;
 }
@@ -45,7 +45,7 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
 
     auto seed = genSeed(comm, pv->name);
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<real> udistr(0, 1);
+    std::uniform_real_distribution<float> udistr(0, 1); // use float to get the same refs for tests
 
     double3 avgMomentum{0,0,0};
     int mycount = 0;

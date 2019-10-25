@@ -3,6 +3,7 @@
 
 #include <core/simulation.h>
 #include <core/utils/folders.h>
+#include <core/xdmf/type_map.h>
 
 #include <string>
 #include <memory>
@@ -38,7 +39,7 @@ void UniformCartesianDumper::handshake()
         
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
     {
-        return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float,
+        return XDMF::Channel(str, nullptr, dataForm, XDMF::getNumberType<real>(),
                              DataTypeWrapper<real>(), XDMF::Channel::NeedShift::False);
     };
     

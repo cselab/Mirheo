@@ -5,6 +5,7 @@
 #include <core/pvs/particle_vector.h>
 #include <core/simulation.h>
 #include <core/utils/folders.h>
+#include <core/xdmf/type_map.h>
 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
@@ -104,7 +105,7 @@ void ParticleDumperPlugin::handshake()
     SimpleSerializer::deserialize(data, sizes, names);
     
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str,
-                            XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float,
+                            XDMF::Channel::NumberType numberType = XDMF::getNumberType<real>(),
                             TypeDescriptor datatype = DataTypeWrapper<real>(),
                             XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
     {
@@ -113,7 +114,7 @@ void ParticleDumperPlugin::handshake()
 
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<real>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
     channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < sizes.size(); ++i)
