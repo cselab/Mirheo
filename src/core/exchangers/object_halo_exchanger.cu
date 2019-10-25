@@ -22,7 +22,7 @@ namespace ObjectHaloExchangeKernels
 
 template <PackMode packMode, class PackerHandler>
 __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *map,
-                                    float rc, PackerHandler packer,
+                                    real rc, PackerHandler packer,
                                     BufferOffsetsSizesWrap dataWrap)
 {
     const int objId = blockIdx.x;
@@ -128,7 +128,7 @@ bool ObjectHaloExchanger::needExchange(int id)
 ObjectHaloExchanger::ObjectHaloExchanger() = default;
 ObjectHaloExchanger::~ObjectHaloExchanger() = default;
 
-void ObjectHaloExchanger::attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames)
+void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<std::string>& extraChannelNames)
 {
     const int id = objects.size();
     objects.push_back(ov);

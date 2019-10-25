@@ -4,16 +4,16 @@
 #include <core/utils/helper_math.h>
 
 template <typename FieldHandler>
-inline __D__ float3 computeGradient(const FieldHandler& field, float3 x, float h)
+inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)
 {
-    float mx = field(x + make_float3(-h,  0,  0));
-    float px = field(x + make_float3( h,  0,  0));
-    float my = field(x + make_float3( 0, -h,  0));
-    float py = field(x + make_float3( 0,  h,  0));
-    float mz = field(x + make_float3( 0,  0, -h));
-    float pz = field(x + make_float3( 0,  0,  h));
+    real mx = field(x + make_real3(-h,  0,  0));
+    real px = field(x + make_real3( h,  0,  0));
+    real my = field(x + make_real3( 0, -h,  0));
+    real py = field(x + make_real3( 0,  h,  0));
+    real mz = field(x + make_real3( 0,  0, -h));
+    real pz = field(x + make_real3( 0,  0,  h));
 
-    float3 diff { px - mx,
+    real3 diff { px - mx,
                   py - my,
                   pz - mz };
 

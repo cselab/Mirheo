@@ -23,7 +23,7 @@ public:
 class RodVector: public ObjectVector
 {
 public:
-    RodVector(const MirState *state, std::string name, float mass, int nSegments, int nObjects = 0);
+    RodVector(const MirState *state, std::string name, real mass, int nSegments, int nObjects = 0);
     ~RodVector();
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }

@@ -21,10 +21,10 @@ inline void setPrerequisitesPerEnergy(const JuelicherBendingParameters&, Particl
 {
     auto ov = dynamic_cast<MembraneVector*>(pv1);
     
-    ov->requireDataPerObject<float>(ChannelNames::lenThetaTot, DataManager::PersistenceMode::None);
+    ov->requireDataPerObject<real>(ChannelNames::lenThetaTot, DataManager::PersistenceMode::None);
 
-    ov->requireDataPerParticle<float>(ChannelNames::areas, DataManager::PersistenceMode::None);
-    ov->requireDataPerParticle<float>(ChannelNames::meanCurvatures, DataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<real>(ChannelNames::areas, DataManager::PersistenceMode::None);
+    ov->requireDataPerParticle<real>(ChannelNames::meanCurvatures, DataManager::PersistenceMode::None);
 }
 
 
@@ -81,7 +81,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
     lenTheta = warpReduce( lenTheta, [] (mReal a, mReal b) { return a+b; } );
 
     if (laneId() == 0)
-        atomicAdd(&view.lenThetaTot[rbcId], (float) lenTheta);
+        atomicAdd(&view.lenThetaTot[rbcId], (real) lenTheta);
 }
 } // namespace InteractionMembraneJuelicherKernels
 
@@ -99,7 +99,7 @@ inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, Par
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
           ov->local()->nObjects, ov->name.c_str());
 
-    ov->local()->dataPerObject.getData<float>(ChannelNames::lenThetaTot)->clear(stream);
+    ov->local()->dataPerObject.getData<real>(ChannelNames::lenThetaTot)->clear(stream);
 
     OVviewWithJuelicherQuants view(ov, ov->local());
 

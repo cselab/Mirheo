@@ -22,14 +22,14 @@ class CellListInfo
 public:
     int3 ncells;
     int  totcells;
-    float3 localDomainSize;
-    float3 h, invh;
-    float rc;
+    real3 localDomainSize;
+    real3 h, invh;
+    real rc;
 
     int *cellSizes, *cellStarts, *order;
 
-    CellListInfo(float3 h, float3 localDomainSize);
-    CellListInfo(float rc, float3 localDomainSize);
+    CellListInfo(real3 h, real3 localDomainSize);
+    CellListInfo(real rc, real3 localDomainSize);
 
 #ifdef __CUDACC__
 // ==========================================================================================================================================
@@ -60,7 +60,7 @@ public:
     }
 
     template<CellListsProjection Projection = CellListsProjection::Clamp>
-    __device__ __host__ inline int3 getCellIdAlongAxes(const float3 x) const
+    __device__ __host__ inline int3 getCellIdAlongAxes(const real3 x) const
     {
         const int3 v = make_int3( math::floor(invh * (x + 0.5f*localDomainSize)) );
 
@@ -73,7 +73,7 @@ public:
     template<CellListsProjection Projection = CellListsProjection::Clamp, typename T>
     __device__ __host__ inline int getCellId(const T coo) const
     {
-        const int3 id = getCellIdAlongAxes<CellListsProjection::Clamp>(make_float3(coo));
+        const int3 id = getCellIdAlongAxes<CellListsProjection::Clamp>(make_real3(coo));
 
         if (Projection == CellListsProjection::NoClamp)
         {
@@ -90,8 +90,8 @@ class CellList : public CellListInfo
 {
 public:    
     
-    CellList(ParticleVector *pv, float rc, float3 localDomainSize);
-    CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
+    CellList(ParticleVector *pv, real rc, real3 localDomainSize);
+    CellList(ParticleVector *pv, int3 resolution, real3 localDomainSize);
 
     virtual ~CellList();
     
@@ -159,8 +159,8 @@ class PrimaryCellList : public CellList
 {
 public:
 
-    PrimaryCellList(ParticleVector *pv, float rc, float3 localDomainSize);
-    PrimaryCellList(ParticleVector *pv, int3 resolution, float3 localDomainSize);
+    PrimaryCellList(ParticleVector *pv, real rc, real3 localDomainSize);
+    PrimaryCellList(ParticleVector *pv, int3 resolution, real3 localDomainSize);
 
     ~PrimaryCellList();
     

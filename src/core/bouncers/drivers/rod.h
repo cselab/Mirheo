@@ -13,49 +13,49 @@ namespace RodBounceKernels
 
 struct Segment
 {
-    float3 r0, r1;
+    real3 r0, r1;
 };
 
 using SegmentTable = CollisionTable<int2>;
 
 
 __device__ static inline
-Segment readSegment(const float4 *rodPos, int segmentId)
+Segment readSegment(const real4 *rodPos, int segmentId)
 {
-    return {make_float3( rodPos[5*(segmentId + 0)] ),
-            make_float3( rodPos[5*(segmentId + 1)] )};
+    return {make_real3( rodPos[5*(segmentId + 0)] ),
+            make_real3( rodPos[5*(segmentId + 1)] )};
 }
 
 __device__ static inline
-Segment readMatFrame(const float4 *rodPos, int segmentId)
+Segment readMatFrame(const real4 *rodPos, int segmentId)
 {
-    return {make_float3( rodPos[5*segmentId + 1] ),
-            make_float3( rodPos[5*segmentId + 2] )};
+    return {make_real3( rodPos[5*segmentId + 1] ),
+            make_real3( rodPos[5*segmentId + 2] )};
 }
 
 
 
-static constexpr float NoCollision = -1.f;
+static constexpr real NoCollision = -1.f;
 
-__device__ static inline float3 projectionPointOnSegment(const Segment& s, const float3& x)
+__device__ static inline real3 projectionPointOnSegment(const Segment& s, const real3& x)
 {
-    const float3 dr = s.r1 - s.r0;
-    float alpha = dot(x - s.r0, dr) / dot(dr, dr);
+    const real3 dr = s.r1 - s.r0;
+    real alpha = dot(x - s.r0, dr) / dot(dr, dr);
     alpha = min(1.f, max(0.f, alpha));
-    const float3 p = s.r0 + alpha * dr;
+    const real3 p = s.r0 + alpha * dr;
     return p;
 }
 
 
-__device__ static inline float squaredDistanceToSegment(const Segment& s, const float3& x)
+__device__ static inline real squaredDistanceToSegment(const Segment& s, const real3& x)
 {
-    const float3 dx = x - projectionPointOnSegment(s, x);
+    const real3 dx = x - projectionPointOnSegment(s, x);
     return dot(dx, dx);
 }
 
-__device__ static inline float3 segmentNormal(const Segment& s, const float3& x)
+__device__ static inline real3 segmentNormal(const Segment& s, const real3& x)
 {
-    const float3 dx = x - projectionPointOnSegment(s, x);
+    const real3 dx = x - projectionPointOnSegment(s, x);
     return normalize(dx);
 }
 
@@ -63,22 +63,22 @@ __device__ static inline float3 segmentNormal(const Segment& s, const float3& x)
 // returns NoCollision is no intersection
 // sets intPoint and intSegment if intersection found
 __device__ static inline
-float collision(const float radius,
+real collision(const real radius,
                 const Segment& segNew, const Segment& segOld,
-                float3 xNew, float3 xOld)
+                real3 xNew, real3 xOld)
 {
     const auto dx  = xNew - xOld;
     const auto dr0 = segNew.r0 - segOld.r0;
     const auto dr1 = segNew.r1 - segOld.r1;
 
     // Signed distance to a segment of given radius
-    auto F = [=] (float t)
+    auto F = [=] (real t)
     {
         const Segment st = {segOld.r0 + t * dr0,
                             segOld.r1 + t * dr1};
-        const float3  xt =  xOld +      t * dx;
+        const real3  xt =  xOld +      t * dx;
 
-        const float dsq = squaredDistanceToSegment(st, xt);
+        const real dsq = squaredDistanceToSegment(st, xt);
         return dsq - radius*radius;
     };
 
@@ -86,8 +86,8 @@ float collision(const float radius,
     
     if (F(limits.up) > 0.f) return NoCollision;
 
-    constexpr float tol = 1e-6f;
-    const float alpha = RootFinder::linearSearch(F, limits, tol);
+    constexpr real tol = 1e-6f;
+    const real alpha = RootFinder::linearSearch(F, limits, tol);
 
     if (alpha >= limits.lo && alpha <= limits.up)
         return alpha;
@@ -97,7 +97,7 @@ float collision(const float radius,
 
 __device__ static inline
 void findBouncesInCell(int pstart, int pend, int globSegId,
-                       const float radius,
+                       const real radius,
                        const Segment& segNew, const Segment& segOld,
                        PVviewWithOldParticles pvView,
                        SegmentTable segmentTable, int *collisionTimes)
@@ -105,24 +105,24 @@ void findBouncesInCell(int pstart, int pend, int globSegId,
     #pragma unroll 2
     for (int pid = pstart; pid < pend; ++pid)
     {
-        const float3 rNew = make_float3(pvView.readPosition(pid));
-        const float3 rOld = pvView.readOldPosition(pid);
+        const real3 rNew = make_real3(pvView.readPosition(pid));
+        const real3 rOld = pvView.readOldPosition(pid);
 
         const auto alpha = collision(radius, segNew, segOld, rNew, rOld);
 
         if (alpha == NoCollision) continue;
 
-        atomicMax(collisionTimes+pid, __float_as_int(1.0f - alpha));
+        atomicMax(collisionTimes+pid, __float_as_int(static_cast<float>(1.0_r - alpha)));
         segmentTable.push_back({pid, globSegId});
     }
 }
 
-__global__ void findBounces(RVviewWithOldParticles rvView, float radius,
+__global__ void findBounces(RVviewWithOldParticles rvView, real radius,
                             PVviewWithOldParticles pvView, CellListInfo cinfo,
                             SegmentTable segmentTable, int *collisionTimes)
 {
     // About maximum distance a particle can cover in one step
-    constexpr float tol = 0.25f;
+    constexpr real tol = 0.25f;
 
     // One thread per segment
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -133,8 +133,8 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
     auto segNew = readSegment(rvView.positions    + rodId * rvView.objSize, segId);
     auto segOld = readSegment(rvView.oldPositions + rodId * rvView.objSize, segId);
 
-    const float3 lo = fmin_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
-    const float3 hi = fmax_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
+    const real3 lo = fmin_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
+    const real3 hi = fmax_vec(segNew.r0, segNew.r1, segOld.r0, segOld.r1);
 
     const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - (radius + tol));
     const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + (radius + tol));
@@ -164,12 +164,12 @@ __global__ void findBounces(RVviewWithOldParticles rvView, float radius,
 
 
 
-__device__ static inline auto interpolate(const float3& r0, const float3& r1, float a)
+__device__ static inline auto interpolate(const real3& r0, const real3& r1, real a)
 {
     return a * r0 + (1.f-a) * r1;
 }
 
-__device__ static inline Segment interpolate(const Segment& s0, const Segment& s1, float a)
+__device__ static inline Segment interpolate(const Segment& s0, const Segment& s1, real a)
 {
     return {interpolate(s0.r0, s1.r0, a),
             interpolate(s0.r1, s1.r1, a)};
@@ -179,7 +179,7 @@ __device__ static inline Segment interpolate(const Segment& s0, const Segment& s
 // compute coordinates of a point in a rod with material frame
 // coords are in directions of (rod segment, material frame, cross product of the first 2)
 // origin is at rod start (r0)
-__device__ static inline float3 getLocalCoords(float3 x, const Segment& seg, const Segment& mat)
+__device__ static inline real3 getLocalCoords(real3 x, const Segment& seg, const Segment& mat)
 {
     auto t = normalize(seg.r1 - seg.r0);
     auto u = mat.r1 - mat.r0;
@@ -191,10 +191,10 @@ __device__ static inline float3 getLocalCoords(float3 x, const Segment& seg, con
 }
 
 
-__device__ static inline float3 getLocalCoords(const float3& xNew, const float3& xOld,
+__device__ static inline real3 getLocalCoords(const real3& xNew, const real3& xOld,
                                                const Segment& segNew, const Segment& segOld,
                                                const Segment& matNew, const Segment& matOld,
-                                               float alpha)
+                                               real alpha)
 {
     const auto colPoint = interpolate(xOld, xNew, alpha);
     const auto colSeg = interpolate(segOld, segNew, alpha);
@@ -202,54 +202,54 @@ __device__ static inline float3 getLocalCoords(const float3& xNew, const float3&
     return getLocalCoords(colPoint, colSeg, colMat); 
 }
 
-__device__ static inline float3 localToCartesianCoords(const float3& local, const Segment& seg, const Segment& mat)
+__device__ static inline real3 localToCartesianCoords(const real3& local, const Segment& seg, const Segment& mat)
 {
-    const float3 t = normalize(seg.r1 - seg.r0);
-    float3 u = mat.r1 - mat.r0;
+    const real3 t = normalize(seg.r1 - seg.r0);
+    real3 u = mat.r1 - mat.r0;
     u = normalize(u - dot(u, t) * t);
-    const float3 v = cross(t, u);
+    const real3 v = cross(t, u);
 
-    const float3 x = local.x * t + local.y * u + local.z * v;
+    const real3 x = local.x * t + local.y * u + local.z * v;
     return seg.r0 + x;
 }
 
 struct Forces
 {
-    float3 fr0, fr1, fu0, fu1;
+    real3 fr0, fr1, fu0, fu1;
 };
 
-__device__ static inline Forces transferMomentumToSegment(float dt, float partMass, const float3& pos, const float3& dV,
+__device__ static inline Forces transferMomentumToSegment(real dt, real partMass, const real3& pos, const real3& dV,
                                                           const Segment& seg, const Segment& mat)
 {
     Forces out;
-    const float3 rc = 0.5f * (seg.r0 + seg.r1);
-    const float3 dx = pos - rc;
+    const real3 rc = 0.5f * (seg.r0 + seg.r1);
+    const real3 dx = pos - rc;
     
-    const float3 F = (partMass / dt) * dV;
-    const float3 T = cross(dx, F);
+    const real3 F = (partMass / dt) * dV;
+    const real3 T = cross(dx, F);
 
     // linear momentum equaly to everyone
     out.fr0 = out.fr1 = out.fu0 = out.fu1 = -0.25f * F;
 
-    const float3 dr = seg.r1 - seg.r0;
+    const real3 dr = seg.r1 - seg.r0;
     const auto t = normalize(dr);
-    const float3 du = mat.r1 - mat.r0;
+    const real3 du = mat.r1 - mat.r0;
 
-    const float3 Tpara = dot(T, t) * t;
-    float3 Tperp = T - Tpara;
+    const real3 Tpara = dot(T, t) * t;
+    real3 Tperp = T - Tpara;
 
-    const float tdu = dot(du, t);
-    const float3 du_ = du - tdu * t;
+    const real tdu = dot(du, t);
+    const real3 du_ = du - tdu * t;
 
-    const float paraFactor = 1.f / (dot(du, du) + tdu*tdu);
+    const real paraFactor = 1.f / (dot(du, du) + tdu*tdu);
     
-    const float3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
+    const real3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
 
     // the above force gives extra torque in Tperp direction
     // compensate that here
     Tperp -= (paraFactor * tdu*tdu * length(Tpara)) * du_;
     
-    const float3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
+    const real3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
 
     out.fr0 -= fTperp;
     out.fr1 += fTperp;
@@ -261,10 +261,10 @@ __device__ static inline Forces transferMomentumToSegment(float dt, float partMa
 }
 
 template <class BounceKernel>
-__global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
+__global__ void performBouncing(RVviewWithOldParticles rvView, real radius,
                                 PVviewWithOldParticles pvView, int nCollisions,
                                 const int2 *collisionInfos, const int *collisionTimes,
-                                float dt, const BounceKernel bounceKernel)
+                                real dt, const BounceKernel bounceKernel)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= nCollisions) return;
@@ -284,23 +284,23 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, float radius,
 
     Particle p (pvView.readParticle(pid));
     
-    const float3 rNew = p.r;
-    const float3 rOld = pvView.readOldPosition(pid);
+    const real3 rNew = p.r;
+    const real3 rOld = pvView.readOldPosition(pid);
 
-    const float alpha = collision(radius, segNew, segOld, rNew, rOld);
+    const real alpha = collision(radius, segNew, segOld, rNew, rOld);
 
     // perform the collision only with the first rod encountered
     const int minTime = collisionTimes[pid];
-    if (1.0f - alpha != __int_as_float(minTime)) return;
+    if (static_cast<float>(1.0_r - alpha) != __int_as_float(minTime)) return;
 
     const auto localCoords = getLocalCoords(rNew, rOld, segNew, segOld, matNew, matOld, alpha);
 
-    const float3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
-    const float3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
-    const float3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
+    const real3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
+    const real3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
+    const real3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
 
-    const float3 normal = segmentNormal(segNew, colPosNew);
-    const float3 newVel = bounceKernel.newVelocity(p.u, colVel, normal, pvView.mass);
+    const real3 normal = segmentNormal(segNew, colPosNew);
+    const real3 newVel = bounceKernel.newVelocity(p.u, colVel, normal, pvView.mass);
 
     const auto segF = transferMomentumToSegment(dt, pvView.mass, colPosNew, newVel - p.u, segNew, matNew);
     

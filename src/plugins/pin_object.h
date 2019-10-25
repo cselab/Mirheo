@@ -17,9 +17,9 @@ class RigidObjectVector;
 class PinObjectPlugin : public SimulationPlugin
 {
 public:
-    constexpr static float Unrestricted = std::numeric_limits<float>::infinity();
+    constexpr static real Unrestricted = std::numeric_limits<real>::infinity();
     
-    PinObjectPlugin(const MirState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery);
+    PinObjectPlugin(const MirState *state, std::string name, std::string ovName, real3 translation, real3 rotation, int reportEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;
@@ -34,12 +34,12 @@ private:
     ObjectVector *ov;
     RigidObjectVector *rov{nullptr};
 
-    float3 translation, rotation;
+    real3 translation, rotation;
 
     int reportEvery;
     int count{0};
 
-    PinnedBuffer<float4> forces, torques;
+    PinnedBuffer<real4> forces, torques;
     std::vector<char> sendBuffer;
 };
 
@@ -57,5 +57,5 @@ private:
     std::string path;
 
     FileWrapper fout;
-    std::vector<float4> forces, torques;
+    std::vector<real4> forces, torques;
 };

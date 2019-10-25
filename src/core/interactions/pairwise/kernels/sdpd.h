@@ -24,7 +24,7 @@ public:
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensityAndMass;
     
-    PairwiseSDPDHandler(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float fRfact) :
+    PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real fRfact) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
         inv_rc(1.0 / rc),
         pressure(pressure),
@@ -33,37 +33,39 @@ public:
         fDfact(viscosity * zeta)
     {}
 
-    __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
-        const float3 dr = dst.p.r - src.p.r;
-        const float rij2 = dot(dr, dr);
+        const real3 dr = dst.p.r - src.p.r;
+        const real rij2 = dot(dr, dr);
 
         if (rij2 > rc2)
-            return make_float3(0.0f);
+            return make_real3(0.0f);
         
-        const float di = dst.d;
-        const float dj = src.d;
+        const real di = dst.d;
+        const real dj = src.d;
         
-        const float pi = pressure(di * dst.m);
-        const float pj = pressure(dj * src.m);
+        const real pi = pressure(di * dst.m);
+        const real pj = pressure(dj * src.m);
 
-        const float inv_disq = 1.f / (di * di);
-        const float inv_djsq = 1.f / (dj * dj);
+        const real inv_disq = 1.f / (di * di);
+        const real inv_djsq = 1.f / (dj * dj);
 
-        const float inv_rij = math::rsqrt(rij2);
-        const float rij = rij2 * inv_rij;
-        const float dWdr = densityKernel.derivative(rij, inv_rc);
+        const real inv_rij = math::rsqrt(rij2);
+        const real rij = rij2 * inv_rij;
+        const real dWdr = densityKernel.derivative(rij, inv_rc);
 
-        const float3 er = dr * inv_rij;
-        const float3 du = dst.p.u - src.p.u;
-        const float erdotdu = dot(er, du);
+        const real3 er = dr * inv_rij;
+        const real3 du = dst.p.u - src.p.u;
+        const real erdotdu = dot(er, du);
 
-        const float myrandnr = Logistic::mean0var1(seed, math::min(src.p.i1, dst.p.i1), math::max(src.p.i1, dst.p.i1));
+        const real myrandnr = Logistic::mean0var1(seed,
+                                                  math::min(static_cast<int>(src.p.i1), static_cast<int>(dst.p.i1)),
+                                                  math::max(static_cast<int>(src.p.i1), static_cast<int>(dst.p.i1)));
 
-        const float Aij = (inv_disq + inv_djsq) * dWdr;
-        const float fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
-        const float fD = fDfact *             Aij * inv_rij  * erdotdu;
-        const float fR = fRfact * math::sqrt(-Aij * inv_rij) * myrandnr;
+        const real Aij = (inv_disq + inv_djsq) * dWdr;
+        const real fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
+        const real fD = fDfact *             Aij * inv_rij  * erdotdu;
+        const real fR = fRfact * math::sqrt(-Aij * inv_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
@@ -72,13 +74,13 @@ public:
 
 protected:
 
-    static constexpr float zeta = 3 + 2;
+    static constexpr real zeta = 3 + 2;
 
-    float inv_rc;
-    float seed {0.f};
+    real inv_rc;
+    real seed {0.f};
     PressureEOS pressure;
     DensityKernel densityKernel;
-    float fDfact, fRfact;
+    real fDfact, fRfact;
 };
 
 template <typename PressureEOS, typename DensityKernel>
@@ -88,7 +90,7 @@ public:
 
     using HandlerType = PairwiseSDPDHandler<PressureEOS, DensityKernel>;
     
-    PairwiseSDPD(float rc, PressureEOS pressure, DensityKernel densityKernel, float viscosity, float kBT, float dt, long seed = 42424242) :
+    PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, real dt, long seed = 42424242) :
         PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
         stepGen(seed),
         viscosity(viscosity),
@@ -122,12 +124,12 @@ public:
     
 protected:
 
-    static float computeFRfact(float viscosity, float kBT, float dt)
+    static real computeFRfact(real viscosity, real kBT, real dt)
     {
         return math::sqrt(2 * HandlerType::zeta * viscosity * kBT / dt);
     }
     
     StepRandomGen stepGen;
-    float viscosity;
-    float kBT;
+    real viscosity;
+    real kBT;
 };

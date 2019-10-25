@@ -32,31 +32,31 @@ protected:
     DeviceBuffer<int> nParticlesInside {1};
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<float> udistr {0.f, 1.f};
+    std::uniform_real_distribution<real> udistr {0.f, 1.f};
 };
 
 
 class PlaneOutletPlugin : public OutletPlugin
 {
 public:
-    PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvName, float4 plane);
+    PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvName, real4 plane);
 
     ~PlaneOutletPlugin();
 
     void beforeCellLists(cudaStream_t stream) override;
 
 private:
-    float4 plane;
+    real4 plane;
 };
 
 
 class RegionOutletPlugin : public OutletPlugin
 {
 public:
-    using RegionFunc = std::function<float(float3)>;
+    using RegionFunc = std::function<real(real3)>;
     
     RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                       RegionFunc region, float3 resolution);
+                       RegionFunc region, real3 resolution);
 
     ~RegionOutletPlugin();
 
@@ -66,7 +66,7 @@ public:
 
 protected:
 
-    double computeVolume(long long int nSamples, float seed) const;
+    double computeVolume(long long int nSamples, real seed) const;
     void countInsideParticles(cudaStream_t stream);
     
 protected:
@@ -78,7 +78,7 @@ protected:
     DeviceBuffer<int> nParticlesInside {1};
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<float> udistr {0.f, 1.f};
+    std::uniform_real_distribution<real> udistr {0.f, 1.f};
 };
 
 
@@ -87,7 +87,7 @@ class DensityOutletPlugin : public RegionOutletPlugin
 public:
     
     DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                        float numberDensity, RegionFunc region, float3 resolution);
+                        real numberDensity, RegionFunc region, real3 resolution);
 
     ~DensityOutletPlugin();
 
@@ -95,7 +95,7 @@ public:
     
 protected:
     
-    float numberDensity;
+    real numberDensity;
 };
 
 
@@ -104,7 +104,7 @@ class RateOutletPlugin : public RegionOutletPlugin
 public:
     
     RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                     float rate, RegionFunc region, float3 resolution);
+                     real rate, RegionFunc region, real3 resolution);
 
     ~RateOutletPlugin();
 
@@ -112,5 +112,5 @@ public:
     
 protected:
     
-    float rate;
+    real rate;
 };

@@ -4,7 +4,7 @@
 #include <core/logger.h>
 #include <core/pvs/particle_vector.h>
 
-IntegratorConstOmega::IntegratorConstOmega(const MirState *state, std::string name, float3 center, float3 omega) :
+IntegratorConstOmega::IntegratorConstOmega(const MirState *state, std::string name, real3 center, real3 omega) :
     Integrator(state, name),
     center(center), omega(omega)
 {}
@@ -20,12 +20,12 @@ void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
     const auto _center = center;
     const auto _omega = omega;
 
-    auto rotate = [domain, _center, _omega] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
-        constexpr float tolerance = 1e-6;
-        float3 gr = domain.local2global(p.r);
-        float3 gr_c = gr - _center;
+    auto rotate = [domain, _center, _omega] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
+        constexpr real tolerance = 1e-6;
+        real3 gr = domain.local2global(p.r);
+        real3 gr_c = gr - _center;
         p.u = cross(_omega, gr_c);
-        float IrI = length(gr_c);
+        real IrI = length(gr_c);
 
         if (IrI < tolerance)
             return;

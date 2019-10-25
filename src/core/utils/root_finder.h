@@ -8,13 +8,13 @@ namespace RootFinder
 {
 struct RootInfo
 {
-    float x;
-    float val;
+    real x;
+    real val;
 };
 
 struct Bounds
 {
-    float lo, up;
+    real lo, up;
 };
 
 constexpr RootInfo invalidRoot {-666.f, -666.f};
@@ -28,7 +28,7 @@ __D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
 template <typename Equation>
-__D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, float tolerance = 1e-6f)
+__D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, real tolerance = 1e-6f)
 {
     // F is one dimensional equation
     // It returns value signed + or - depending on whether
@@ -37,13 +37,13 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, floa
 
     constexpr int maxNIters = 20;
 
-    float a {limits.lo};
-    float b {limits.up};
+    real a {limits.lo};
+    real b {limits.up};
 
-    float va = F(a);
-    float vb = F(b);
+    real va = F(a);
+    real vb = F(b);
 
-    float mid, vmid;
+    real mid, vmid;
 
     // Check if the collision is there in the first place
     if (va*vb > 0.0f)
@@ -51,7 +51,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, floa
 
     for (int iter = 0; iter < maxNIters; ++iter)
     {
-        const float lambda = math::min( math::max(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
+        const real lambda = math::min( math::max(vb / (vb - va),  0.1f), 0.9f );  // va*l + (1-l)*vb = 0
         mid = a * lambda + b * (1.0f - lambda);
         vmid = F(mid);
 
@@ -73,19 +73,19 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, floa
 }
 
 template <typename Equation>
-__D__ inline float linearSearch(Equation F, const Bounds& limits, float tolerance = 1e-6f)
+__D__ inline real linearSearch(Equation F, const Bounds& limits, real tolerance = 1e-6f)
 {
     const RootInfo ri = linearSearchVerbose(F, limits, tolerance);
     return ri.x;
 }
 
 template <typename F, typename F_prime>
-__D__ inline RootInfo newton(F f, F_prime f_prime, float x0, float tolerance = 1e-6f)
+__D__ inline RootInfo newton(F f, F_prime f_prime, real x0, real tolerance = 1e-6f)
 {
     constexpr int maxNIters = 10;
 
-    float x {x0};
-    float val;
+    real x {x0};
+    real val;
     for (int iter = 0; iter < maxNIters; ++iter)
     {
         val = f(x);

@@ -76,10 +76,10 @@ void exportPlugins(py::module& m)
                 resolution.push_back(ch.nComponents());
             
                 pybind11::dtype dt;
-                if (ch.numberType == XDMF::Channel::NumberType::Float) dt = pybind11::dtype::of<float>();
+                if (ch.numberType == XDMF::Channel::NumberType::Float) dt = pybind11::dtype::of<real>();
                 if (ch.numberType == XDMF::Channel::NumberType::Int)   dt = pybind11::dtype::of<int>();
             
-                return py::array(dt, resolution, (float*)ch.data, py::cast(dumper));
+                return py::array(dt, resolution, (real*)ch.data, py::cast(dumper));
             });
 
     py::handlers_class<DensityControlPlugin>(m, "DensityControlPlugin", pysim, R"(
@@ -111,7 +111,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<ForceSaverPlugin>(m, "ForceSaver", pysim, R"(
         This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
         It copies the total forces at each time step and make it accessible by other plugins.
-        The forces are stored in an array of float3.
+        The forces are stored in an array of real3.
     )");
     
     py::handlers_class<ImposeProfilePlugin>(m, "ImposeProfile", pysim, R"(
@@ -135,7 +135,7 @@ void exportPlugins(py::module& m)
             \mathbf{T} = \mathbf{M} \times \mathbf{B}   
 
         The magnetic field is passed as a function from python.
-        The function must take a float (time) as input and output a tuple of three floats (magnetic field).
+        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
     )");
 
     py::handlers_class<MembraneExtraForcePlugin>(m, "MembraneExtraForce", pysim, R"(
@@ -238,7 +238,7 @@ void exportPlugins(py::module& m)
 
     py::handlers_class<ParticleDisplacementPlugin>(m, "ParticleDisplacementPlugin", pysim, R"(
         This plugin computes and save the displacement of the particles within a given particle vector.
-        The result is stored inside the extra channel "displacements" as an array of float3.
+        The result is stored inside the extra channel "displacements" as an array of real3.
     )");
 
     
@@ -498,7 +498,7 @@ void exportPlugins(py::module& m)
     
     m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
-          "bin_size"_a = float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
+          "bin_size"_a = real3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         Create :any:`Average3D` plugin
         
         Args:
@@ -511,17 +511,17 @@ void exportPlugins(py::module& m)
             channels: list of pairs name - type.
                 Name is the channel (per particle) name. Always available channels are:
                     
-                * 'velocity' with type "float4"
+                * 'velocity' with type "real4"
                 
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Type can also define a simple transformation from the channel internal structure                 
                 to the datatype supported in HDF5 (i.e. scalar, vector, tensor)                                  
                 Available types are:                                                                             
                                                                                                                 
-                * 'scalar': 1 float per particle
-                * 'vector': 3 floats per particle
-                * 'vector_from_float4': 4 floats per particle. 3 first floats will form the resulting vector
-                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                * 'scalar': 1 real per particle
+                * 'vector': 3 reals per particle
+                * 'vector_from_float4': 4 reals per particle. 3 first reals will form the resulting vector
+                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     )");
 
@@ -529,7 +529,7 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
           "sample_every"_a, "dump_every"_a,
-          "bin_size"_a = float3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
+          "bin_size"_a = real3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/",
           R"(
               
         Create :any:`AverageRelative3D` plugin
@@ -579,9 +579,9 @@ void exportPlugins(py::module& m)
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Available types are:                                                                             
                                                                                                                 
-                * 'scalar': 1 float per particle
-                * 'vector': 3 floats per particle
-                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                * 'scalar': 1 real per particle
+                * 'vector': 3 reals per particle
+                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     )");
 
@@ -602,9 +602,9 @@ void exportPlugins(py::module& m)
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Available types are:
 
-                * 'scalar': 1 float per particle
-                * 'vector': 3 floats per particle
-                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                * 'scalar': 1 real per particle
+                * 'vector': 3 reals per particle
+                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
     )");
 
     m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
@@ -623,9 +623,9 @@ void exportPlugins(py::module& m)
                 Type is to provide the type of quantity to extract from the channel.                                            
                 Available types are:                                                                             
                                                                                                                 
-                * 'scalar': 1 float per particle
-                * 'vector': 3 floats per particle
-                * 'tensor6': 6 floats per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
+                * 'scalar': 1 real per particle
+                * 'vector': 3 reals per particle
+                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
                 
     )");
     
@@ -694,7 +694,7 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             rov: :class:`RigidObjectVector` with which the magnetic field will interact
             moment: magnetic moment per object
-            magneticFunction: a function that depends on time and returns a uniform (float3) magnetic field
+            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
     )");
 
     m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
@@ -704,7 +704,7 @@ void exportPlugins(py::module& m)
         Args:
             name: name of the plugin
             pv: :class:`ParticleVector` to which the force should be added
-            forces: array of forces, one force (3 floats) per vertex in a single mesh
+            forces: array of forces, one force (3 reals) per vertex in a single mesh
     )");
 
     m.def("__createObjectPortalDestination", &PluginFactory::createObjectPortalDestination,
@@ -820,9 +820,9 @@ void exportPlugins(py::module& m)
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
-            velocity: 3 floats, each component is the desired object velocity.
+            velocity: 3 reals, each component is the desired object velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
-            angular_velocity: 3 floats, each component is the desired object angular velocity.
+            angular_velocity: 3 reals, each component is the desired object angular velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
     )");
 

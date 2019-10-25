@@ -36,7 +36,7 @@ public:
 
     enum class Stage {Intermediate, Final};
     
-    Interaction(const MirState *state, std::string name, float rc);
+    Interaction(const MirState *state, std::string name, real rc);
 
     virtual ~Interaction();
 
@@ -104,7 +104,7 @@ public:
     
 public:
     /// Cut-off raduis
-    float rc;
+    real rc;
 
 protected:
 

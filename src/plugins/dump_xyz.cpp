@@ -36,7 +36,7 @@ void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     for (auto& r : positions)
     {
-        auto r3 = make_float3(r);
+        auto r3 = make_real3(r);
         r3 = state->domain.local2global(r3);
         r.x = r3.x; r.y = r3.y; r.z = r3.z;
     }

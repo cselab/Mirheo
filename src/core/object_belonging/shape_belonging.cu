@@ -15,7 +15,7 @@ namespace ShapeBelongingKernels
 template <class Shape>
 __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview pvView, BelongingTags *tags)
 {
-    const float tolerance = 5e-6f;
+    const real tolerance = 5e-6f;
 
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
@@ -39,11 +39,11 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
         for (int pid = pstart; pid < pend; pid++)
         {
             const Particle p(pvView.readParticle(pid));
-            const auto motion = toSingleMotion(rsView.motions[objId]);
+            const auto motion = toRealMotion(rsView.motions[objId]);
 
-            const float3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
+            const real3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
 
-            const float v = rsView.shape.inOutFunction(coo);
+            const real v = rsView.shape.inOutFunction(coo);
 
             if (v <= tolerance)
                 tags[pid] = BelongingTags::Inside;

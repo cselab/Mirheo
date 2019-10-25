@@ -16,7 +16,7 @@ public:
     using TimeType = double;
     using StepType = long long;
     
-    MirState(DomainInfo domain, float dt);
+    MirState(DomainInfo domain, real dt);
     MirState(const MirState&);
     MirState& operator=(MirState other);
 
@@ -32,7 +32,7 @@ public:
 public:
     DomainInfo domain;
 
-    float dt;
+    real dt;
     TimeType currentTime;
     StepType currentStep;
 };

@@ -41,7 +41,7 @@ template <class PackerHandler>
 __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
                                     BufferOffsetsSizesWrap dataWrap)
 {
-    constexpr float eps = 1e-6f;
+    constexpr real eps = 1e-6_r;
     const int objId       = blockIdx.x;
     
     const MapEntry mapEntry = map[objId];

@@ -12,7 +12,7 @@ template<class PairwiseKernel>
 class PairwiseInteractionWithStressImpl : public Interaction
 {
 public:
-    PairwiseInteractionWithStressImpl(const MirState *state, const std::string& name, float rc, float stressPeriod, PairwiseKernel pair) :
+    PairwiseInteractionWithStressImpl(const MirState *state, const std::string& name, real rc, real stressPeriod, PairwiseKernel pair) :
         Interaction(state, name, rc),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
@@ -34,7 +34,7 @@ public:
 
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        const float t = state->currentTime;
+        const real t = state->currentTime;
         
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -51,7 +51,7 @@ public:
     
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        const float t = state->currentTime;
+        const real t = state->currentTime;
     
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -83,7 +83,7 @@ public:
         
         auto activePredicateStress = [this]()
         {
-            const float t = state->currentTime;
+            const real t = state->currentTime;
             return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
         };
 
@@ -106,8 +106,8 @@ public:
 
     
 private:
-    float stressPeriod;
-    float lastStressTime{-1e6};
+    real stressPeriod;
+    real lastStressTime{-1e6};
 
     PairwiseInteractionImpl<PairwiseKernel> interaction;
     PairwiseInteractionImpl<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;

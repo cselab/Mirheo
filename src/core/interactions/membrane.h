@@ -19,7 +19,7 @@ class MembraneInteraction : public Interaction
 public:
 
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
-                        VarBendingParams bendingParams, VarShearParams shearParams, bool stressFree, float growUntil);
+                        VarBendingParams bendingParams, VarShearParams shearParams, bool stressFree, real growUntil);
     ~MembraneInteraction();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;

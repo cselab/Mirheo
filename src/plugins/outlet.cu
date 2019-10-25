@@ -20,7 +20,7 @@ namespace OutletPluginKernels
 /// but in some cases it can only be computed on GPU, so it cannot be passed by
 /// value.
 template <typename IsInsideFunc, typename KillProbabilityFunc>
-static __global__ void killParticles(PVview view, IsInsideFunc isInsideFunc, float seed, KillProbabilityFunc killProbabilityFunc)
+static __global__ void killParticles(PVview view, IsInsideFunc isInsideFunc, real seed, KillProbabilityFunc killProbabilityFunc)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
@@ -30,7 +30,7 @@ static __global__ void killParticles(PVview view, IsInsideFunc isInsideFunc, flo
 
     if (p.isMarked() || !isInsideFunc(p.r)) return;
 
-    float prob = killProbabilityFunc();
+    real prob = killProbabilityFunc();
 
     if (Saru::uniform01(seed, p.i1, i) >= prob) return;
 
@@ -60,7 +60,7 @@ void OutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI
 }
 
 
-PlaneOutletPlugin::PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames, float4 plane) :
+PlaneOutletPlugin::PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames, real4 plane) :
     OutletPlugin(state, std::move(name), std::move(pvNames)),
     plane(plane)
 {}
@@ -75,9 +75,9 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
     {
         PVview view(pv, pv->local());
 
-        float seed = udistr(gen);
+        real seed = udistr(gen);
 
-        auto isInsideFunc = [plane = this->plane, domain = state->domain] __device__ (float3 r) {
+        auto isInsideFunc = [plane = this->plane, domain = state->domain] __device__ (real3 r) {
             r = domain.local2global(r);
             return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0.f;
         };
@@ -93,20 +93,20 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
 namespace RegionOutletPluginKernels
 {
 
-static __device__ inline bool isInsideRegion(const FieldDeviceHandler& field, const float3& r)
+static __device__ inline bool isInsideRegion(const FieldDeviceHandler& field, const real3& r)
 {
     return field(r) < 0.f;
 }
 
 /// Monte-Carlo estimate of the region volume.
-static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo domain, FieldDeviceHandler field, float seed, AccumulatedIntType *nInside)
+static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo domain, FieldDeviceHandler field, real seed, AccumulatedIntType *nInside)
 {
     AccumulatedIntType tid = threadIdx.x + blockIdx.x * blockDim.x;
     int countInside = 0;
 
     for (AccumulatedIntType i = tid; i < nSamples; i += blockDim.x * gridDim.x)
     {
-        float3 r {Saru::uniform01(seed, i - 2, i + 4242),
+        real3 r {Saru::uniform01(seed, i - 2, i + 4242),
                   Saru::uniform01(seed, i - 3, i + 4343),
                   Saru::uniform01(seed, i - 4, i + 4444)};
 
@@ -146,7 +146,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
 
 
 RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                       RegionFunc region, float3 resolution) :
+                                       RegionFunc region, real3 resolution) :
     OutletPlugin(state, name, std::move(pvNames)),
     outletRegion(std::make_unique<FieldFromFunction>(state, name + "_region", region, resolution)),
     volume(0)
@@ -163,7 +163,7 @@ void RegionOutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, con
     volume = computeVolume(1000000, udistr(gen));
 }
 
-double RegionOutletPlugin::computeVolume(long long int nSamples, float seed) const
+double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) const
 {
     auto domain = state->domain;
 
@@ -205,7 +205,7 @@ void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
 
 
 DensityOutletPlugin::DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                         float numberDensity, RegionFunc region, float3 resolution) :
+                                         real numberDensity, RegionFunc region, real3 resolution) :
     RegionOutletPlugin(state, std::move(name), std::move(pvNames), std::move(region), resolution),
     numberDensity(numberDensity)
 {}
@@ -222,10 +222,10 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
     {
         PVview view(pv, pv->local());
 
-        float seed = udistr(gen);
-        float rhoTimesVolume = volume * numberDensity;
+        real seed = udistr(gen);
+        real rhoTimesVolume = volume * numberDensity;
 
-        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const float3& r) {
+        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const real3& r) {
             return RegionOutletPluginKernels::isInsideRegion(field, r);
         };
         auto killProbability = [rhoTimesVolume, nInside = nParticlesInside.devPtr()] __device__ () {
@@ -242,7 +242,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
 
 
 RateOutletPlugin::RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                   float rate, RegionFunc region, float3 resolution) :
+                                   real rate, RegionFunc region, real3 resolution) :
     RegionOutletPlugin(state, std::move(name), std::move(pvNames), std::move(region), resolution),
     rate(rate)
 {}
@@ -259,10 +259,10 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
     {
         PVview view(pv, pv->local());
 
-        float seed = udistr(gen);
-        float QTimesdt = rate * state->dt * view.invMass;
+        real seed = udistr(gen);
+        real QTimesdt = rate * state->dt * view.invMass;
 
-        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const float3& r) {
+        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const real3& r) {
             return RegionOutletPluginKernels::isInsideRegion(field, r);
         };
         auto killProbability = [QTimesdt, nInside = nParticlesInside.devPtr()] __device__ () {

@@ -24,6 +24,9 @@
 
 #include "cpu_gpu_defines.h"
 
+#include <core/datatypes.h>
+
+
 #if defined(__CUDACC__)
 #include <cuda_runtime.h>
 #else
@@ -65,6 +68,9 @@ static inline __HD__ double pow(double x, double y) {return ::pow (x, y);}
 static inline __HD__ float  atan2(float  x, float  y) {return ::atan2f(x, y);}
 static inline __HD__ double atan2(double x, double y) {return ::atan2 (x, y);}
 
+template <typename T> static inline T min(const T& a, const T& b) {return a < b ? a : b;}
+template <typename T> static inline T max(const T& a, const T& b) {return a < b ? b : a;}
+
 #if defined(__CUDACC__)
 
 static inline __HD__ float  rsqrt(float x)  {return ::rsqrtf(x);}
@@ -98,9 +104,6 @@ static inline __HD__ double2 sincos(double x)
 
 static inline float  rsqrt(float x)  {return 1.f / math::sqrt(x);}
 static inline double rsqrt(double x) {return 1.0 / math::sqrt(x);}
-
-template <typename T> static inline T min(const T& a, const T& b) {return a < b ? a : b;}
-template <typename T> static inline T max(const T& a, const T& b) {return a < b ? b : a;}
 
 static inline __HD__ float2  sincos(float x)  {return {sin(x), cos(x)};}
 static inline __HD__ double2 sincos(double x) {return {sin(x), cos(x)};}
@@ -149,6 +152,15 @@ static inline __HD__ int2 make_int2(float2 a)
     return make_int2(int(a.x), int(a.y));
 }
 
+static inline __HD__ real2 make_real2(real s)
+{
+    return {s, s};
+}
+static inline __HD__ real2 make_real2(int2 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y)};
+}
 static inline __HD__ float3 make_float3(float s)
 {
     return make_float3(s, s, s);
@@ -178,6 +190,49 @@ static inline __HD__ float3 make_float3(uint3 a)
     return make_float3(float(a.x), float(a.y), float(a.z));
 }
 
+
+static inline __HD__ real3 make_real3(real s)
+{
+    return {s, s, s};
+}
+static inline __HD__ real3 make_real3(float3 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+static inline __HD__ real3 make_real3(float4 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+
+static inline __HD__ real3 make_real3(double3 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+static inline __HD__ real3 make_real3(double4 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+static inline __HD__ real3 make_real3(int3 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+static inline __HD__ real3 make_real3(uint3 a)
+{
+    return {static_cast<real>(a.x),
+            static_cast<real>(a.y),
+            static_cast<real>(a.z)};
+}
+
 static inline __HD__ int3 make_int3(int s)
 {
     return make_int3(s, s, s);
@@ -195,6 +250,11 @@ static inline __HD__ int3 make_int3(uint3 a)
     return make_int3(int(a.x), int(a.y), int(a.z));
 }
 static inline __HD__ int3 make_int3(float3 a)
+{
+    return make_int3(int(a.x), int(a.y), int(a.z));
+}
+
+static inline __HD__ int3 make_int3(double3 a)
 {
     return make_int3(int(a.x), int(a.y), int(a.z));
 }
@@ -245,6 +305,33 @@ static inline __HD__ float4 make_float4(uint4 a)
     return make_float4(float(a.x), float(a.y), float(a.z), float(a.w));
 }
 
+static inline __HD__ real4 make_real4(real s)
+{
+    return {s, s, s, s};
+}
+
+static inline __HD__ real4 make_real4(real3 v, real a)
+{
+    return {v.x, v.y, v.z, a};
+}
+
+static inline __HD__ real4 make_real4(float4 v)
+{
+    return {static_cast<real>(v.x),
+            static_cast<real>(v.y),
+            static_cast<real>(v.z),
+            static_cast<real>(v.w)};
+}
+
+static inline __HD__ real4 make_real4(double4 v)
+{
+    return {static_cast<real>(v.x),
+            static_cast<real>(v.y),
+            static_cast<real>(v.z),
+            static_cast<real>(v.w)};
+}
+
+
 static inline __HD__ int4 make_int4(int s)
 {
     return make_int4(s, s, s, s);
@@ -292,6 +379,11 @@ static inline __HD__ float3 make_float3(double3 a)
 static inline __HD__ double3 make_double3(float3 a)
 {
     return make_double3(double(a.x), double(a.y), double(a.z));
+}
+
+static inline __HD__ double3 make_double3(double3 a)
+{
+    return a;
 }
 
 static inline __HD__ float4 make_float4(double4 a)
@@ -1591,6 +1683,19 @@ static inline  __HD__ float4 min(float4 a, float4 b)
     return make_float4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
 }
 
+static inline  __HD__ double2 min(double2 a, double2 b)
+{
+    return make_double2(min(a.x, b.x), min(a.y,b.y));
+}
+static inline __HD__ double3 min(double3 a, double3 b)
+{
+    return make_double3(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z));
+}
+static inline  __HD__ double4 min(double4 a, double4 b)
+{
+    return make_double4(min(a.x,b.x), min(a.y,b.y), min(a.z,b.z), min(a.w,b.w));
+}
+
 static inline __HD__ int2 min(int2 a, int2 b)
 {
     return make_int2(min(a.x,b.x), min(a.y,b.y));
@@ -1619,6 +1724,19 @@ static inline __HD__ float3 max(float3 a, float3 b)
 static inline __HD__ float4 max(float4 a, float4 b)
 {
     return make_float4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
+}
+
+static inline __HD__ double2 max(double2 a, double2 b)
+{
+    return make_double2(max(a.x,b.x), max(a.y,b.y));
+}
+static inline __HD__ double3 max(double3 a, double3 b)
+{
+    return make_double3(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z));
+}
+static inline __HD__ double4 max(double4 a, double4 b)
+{
+    return make_double4(max(a.x,b.x), max(a.y,b.y), max(a.z,b.z), max(a.w,b.w));
 }
 
 static inline __HD__ int2 max(int2 a, int2 b)
@@ -1652,6 +1770,19 @@ static inline __HD__ float4 ceil(float4 v)
     return make_float4(math::ceil(v.x), math::ceil(v.y), math::ceil(v.z), math::ceil(v.w));
 }
 
+static inline __HD__ double2 ceil(double2 v)
+{
+    return make_double2(math::ceil(v.x), math::ceil(v.y));
+}
+static inline __HD__ double3 ceil(double3 v)
+{
+    return make_double3(math::ceil(v.x), math::ceil(v.y), math::ceil(v.z));
+}
+static inline __HD__ double4 ceil(double4 v)
+{
+    return make_double4(math::ceil(v.x), math::ceil(v.y), math::ceil(v.z), math::ceil(v.w));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // floor
 ////////////////////////////////////////////////////////////////////////////////
@@ -1667,6 +1798,19 @@ static inline __HD__ float3 floor(float3 v)
 static inline __HD__ float4 floor(float4 v)
 {
     return make_float4(math::floor(v.x), math::floor(v.y), math::floor(v.z), math::floor(v.w));
+}
+
+static inline __HD__ double2 floor(double2 v)
+{
+    return make_double2(math::floor(v.x), math::floor(v.y));
+}
+static inline __HD__ double3 floor(double3 v)
+{
+    return make_double3(math::floor(v.x), math::floor(v.y), math::floor(v.z));
+}
+static inline __HD__ double4 floor(double4 v)
+{
+    return make_double4(math::floor(v.x), math::floor(v.y), math::floor(v.z), math::floor(v.w));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

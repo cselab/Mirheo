@@ -15,7 +15,7 @@
 
 template <class KernelType>
 static std::unique_ptr<Interaction>
-createPairwiseFromKernel(const MirState *state, const std::string& name, float rc,
+createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
                          const KernelType& kernel,
                          const VarStressParams& varStressParams,
                          __UNUSED typename std::enable_if<outputsForce<KernelType>::value, int>::type enabler = 0)
@@ -33,7 +33,7 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, float r
 
 template <class KernelType>
 static std::unique_ptr<Interaction>
-createPairwiseFromKernel(const MirState *state, const std::string& name, float rc,
+createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
                          const KernelType& kernel,
                          const VarStressParams& varStressParams,
                          __UNUSED typename std::enable_if<!outputsForce<KernelType>::value, int>::type enabler = 0)
@@ -47,7 +47,7 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, float r
 
 template <class Parameters>
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const Parameters& params, const VarStressParams& varStressParams)
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const Parameters& params, const VarStressParams& varStressParams)
 {
     using KernelType = typename Parameters::KernelType;
     KernelType kernel(rc, params, state->dt);
@@ -57,7 +57,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 
 
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const LJParams& params, const VarStressParams& varStressParams)
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const LJParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& awareParams)
     {
@@ -71,7 +71,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 }
 
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const DensityParams& params, const VarStressParams& varStressParams)
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const DensityParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& densityKernelParams)
     {
@@ -85,7 +85,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 }
 
 static std::unique_ptr<Interaction>
-createPairwiseFromParams(const MirState *state, const std::string& name, float rc, const SDPDParams& params, const VarStressParams& varStressParams)
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const SDPDParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& densityKernelParams, auto& EOSParams)
     {
@@ -102,7 +102,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, float r
 }
 
 
-PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, float rc,
+PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                                          const VarPairwiseParams& varParams, const VarStressParams& varStressParams) :
     Interaction(state, name, rc),
     varParams(varParams),
@@ -261,7 +261,7 @@ static  void setSpecificFromKernel(const KernelType& kernel, const VarStressPara
 }
 
 template <class Parameters>
-static void setSpecificFromParams(const MirState *state, float rc, const Parameters& params,
+static void setSpecificFromParams(const MirState *state, real rc, const Parameters& params,
                                   const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     using KernelType = typename Parameters::KernelType;
@@ -271,7 +271,7 @@ static void setSpecificFromParams(const MirState *state, float rc, const Paramet
 }
 
 
-static void setSpecificFromParams(__UNUSED const MirState *state, float rc, const LJParams& params,
+static void setSpecificFromParams(__UNUSED const MirState *state, real rc, const LJParams& params,
                                   const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     mpark::visit([&](auto& awareParams)
@@ -285,7 +285,7 @@ static void setSpecificFromParams(__UNUSED const MirState *state, float rc, cons
     }, params.varLJAwarenessParams);
 }
 
-static void setSpecificFromParams(__UNUSED const MirState *state, float rc, const DensityParams& params,
+static void setSpecificFromParams(__UNUSED const MirState *state, real rc, const DensityParams& params,
                                   const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     mpark::visit([&](auto& densityKernelParams)
@@ -299,7 +299,7 @@ static void setSpecificFromParams(__UNUSED const MirState *state, float rc, cons
     }, params.varDensityKernelParams);
 }
 
-static void setSpecificFromParams(const MirState *state, float rc, const SDPDParams& params,
+static void setSpecificFromParams(const MirState *state, real rc, const SDPDParams& params,
                                   const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     mpark::visit([&](auto& densityKernelParams, auto& EOSParams)

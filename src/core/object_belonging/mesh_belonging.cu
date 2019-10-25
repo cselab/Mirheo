@@ -10,16 +10,16 @@
 namespace MeshBelongingKernels
 {
 
-const float tolerance = 1e-6f;
+const real tolerance = 1e-6f;
 
 /// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 __device__ static inline bool doesRayIntersectTriangle(
-        float3 rayOrigin,
-        float3 rayVector,
-        float3 v0, float3 v1, float3 v2)
+        real3 rayOrigin,
+        real3 rayVector,
+        real3 v0, real3 v1, real3 v2)
 {
-    float3 edge1, edge2, h, s, q;
-    float a,f,u,v;
+    real3 edge1, edge2, h, s, q;
+    real a,f,u,v;
 
     edge1 = v1 - v0;
     edge2 = v2 - v0;
@@ -40,7 +40,7 @@ __device__ static inline bool doesRayIntersectTriangle(
         return false;
 
     // At this stage we can compute t to find out where the intersection point is on the line.
-    float t = f * dot(edge2, q);
+    real t = f * dot(edge2, q);
 
     if (t > tolerance) // ray intersection
         return true;
@@ -49,7 +49,7 @@ __device__ static inline bool doesRayIntersectTriangle(
 }
 
 
-__device__ static inline float3 fetchPosition(const float4 *vertices, int i)
+__device__ static inline real3 fetchPosition(const real4 *vertices, int i)
 {
     auto v = vertices[i];
     return {v.x, v.y, v.z};
@@ -58,23 +58,23 @@ __device__ static inline float3 fetchPosition(const float4 *vertices, int i)
 /**
  * One warp works on one particle
  */
-__device__ static inline BelongingTags oneParticleInsideMesh(int pid, float3 r, int objId, const float3 com, const MeshView mesh, const float4* vertices)
+__device__ static inline BelongingTags oneParticleInsideMesh(int pid, real3 r, int objId, const real3 com, const MeshView mesh, const real4* vertices)
 {
     // Work in obj reference frame for simplicity
     r = r - com;
 
     // shoot 3 rays in different directions, count intersections
     constexpr int nRays = 3;
-    constexpr float3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
+    constexpr real3 rays[nRays] = { {0,1,0}, {0,1,0}, {0,1,0} };
     int counters[nRays] = {0, 0, 0};
 
     for (int i = laneId(); i < mesh.ntriangles; i += warpSize)
     {
         int3 trid = mesh.triangles[i];
 
-        float3 v0 = fetchPosition(vertices, objId*mesh.nvertices + trid.x) - com;
-        float3 v1 = fetchPosition(vertices, objId*mesh.nvertices + trid.y) - com;
-        float3 v2 = fetchPosition(vertices, objId*mesh.nvertices + trid.z) - com;
+        real3 v0 = fetchPosition(vertices, objId*mesh.nvertices + trid.x) - com;
+        real3 v1 = fetchPosition(vertices, objId*mesh.nvertices + trid.y) - com;
+        real3 v2 = fetchPosition(vertices, objId*mesh.nvertices + trid.z) - com;
 
         for (int c = 0; c < nRays; c++)
             if (doesRayIntersectTriangle(r, rays[c], v0, v1, v2))
@@ -82,7 +82,7 @@ __device__ static inline BelongingTags oneParticleInsideMesh(int pid, float3 r, 
     }
 
     // counter is odd if the particle is inside
-    // however, floating-point precision sometimes yields in errors
+    // however, realing-point precision sometimes yields in errors
     // so we choose what the majority(!) of the rays say
     int intersecting = 0;
     for (int c = 0; c < nRays; c++)
@@ -104,7 +104,7 @@ __device__ static inline BelongingTags oneParticleInsideMesh(int pid, float3 r, 
  * @param cinfo is the cell-list sync'd with the target ParticleVector data
  */
 template<int WARPS_PER_OBJ>
-__global__ void insideMesh(const OVview ovView, const MeshView mesh, const float4 *vertices, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
+__global__ void insideMesh(const OVview ovView, const MeshView mesh, const real4 *vertices, CellListInfo cinfo, PVview pvView, BelongingTags* tags)
 {
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
     const int wid = gid / warpSize;
@@ -169,7 +169,7 @@ void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream
         SAFE_KERNEL_LAUNCH(
             MeshBelongingKernels::insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
-            view, meshView, reinterpret_cast<float4*>(vertices->devPtr()),
+            view, meshView, reinterpret_cast<real4*>(vertices->devPtr()),
             cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
     };
     

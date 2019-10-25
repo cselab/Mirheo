@@ -43,7 +43,7 @@ void BounceFromMesh::setup(ObjectVector *ov)
     // old motions HAVE to be there and communicated and shifted
 
     if (rov == nullptr)
-        ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+        ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
     else
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
@@ -51,7 +51,7 @@ void BounceFromMesh::setup(ObjectVector *ov)
 void BounceFromMesh::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/datatypes.h>
+
 #include <extern/variant/include/mpark/variant.hpp>
 
 // forward declaration of pairwise kernels
@@ -32,7 +34,7 @@ class PairwiseSDPD;
 struct DPDParams
 {
     using KernelType = PairwiseDPD;
-    float a, gamma, kBT, power;
+    real a, gamma, kBT, power;
 };
 
 struct LJAwarenessParamsNone   {using KernelType = LJAwarenessNone;};
@@ -49,14 +51,14 @@ using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
 
 struct LJParams
 {
-    float epsilon, sigma, maxForce;
+    real epsilon, sigma, maxForce;
     VarLJAwarenessParams varLJAwarenessParams;
 };
 
 struct MDPDParams
 {
     using KernelType = PairwiseMDPD;
-    float rd, a, b, gamma, kBT, power;
+    real rd, a, b, gamma, kBT, power;
 };
 
 
@@ -76,13 +78,13 @@ struct DensityParams
 struct LinearPressureEOSParams
 {
     using KernelType = LinearPressureEOS;
-    float soundSpeed, rho0;
+    real soundSpeed, rho0;
 };
 
 struct QuasiIncompressiblePressureEOSParams
 {
     using KernelType = QuasiIncompressiblePressureEOS;
-    float p0, rhor;
+    real p0, rhor;
 };
 
 using VarEOSParams = mpark::variant<LinearPressureEOSParams,
@@ -93,7 +95,7 @@ using VarSDPDDensityKernelParams = mpark::variant<WendlandC2DensityKernelParams>
 
 struct SDPDParams
 {
-    float viscosity, kBT;
+    real viscosity, kBT;
     VarEOSParams varEOSParams;
     VarSDPDDensityKernelParams varDensityKernelParams;
 };
@@ -110,7 +112,7 @@ struct StressNoneParams {};
 
 struct StressActiveParams
 {
-    float period; // compute stresses every this time in time units
+    real period; // compute stresses every this time in time units
 };
 
 using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;

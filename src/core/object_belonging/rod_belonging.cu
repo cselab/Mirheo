@@ -9,24 +9,24 @@
 namespace RodBelongingKernels
 {
 
-__device__ inline float squaredDistanceToSegment(const float3& r0, const float3& r1, const float3& x)
+__device__ inline real squaredDistanceToSegment(const real3& r0, const real3& r1, const real3& x)
 {
-    float3 dr = r1 - r0;
-    float alpha = dot(x - r0, dr) / dot(dr, dr);
+    real3 dr = r1 - r0;
+    real alpha = dot(x - r0, dr) / dot(dr, dr);
     alpha = math::min(1.f, math::max(0.f, alpha));
-    float3 p = r0 + alpha * dr;
-    float3 dx = x - p;
+    real3 p = r0 + alpha * dr;
+    real3 dx = x - p;
     return dot(dx, dx);
 }
 
 __device__ inline
-void setTagsCell(int pstart, int pend, float radius, const float3& r0, const float3& r1,
+void setTagsCell(int pstart, int pend, real radius, const real3& r0, const real3& r1,
                  const PVview& pvView, BelongingTags *tags)
 {
     #pragma unroll 2
     for (int pid = pstart; pid < pend; ++pid)
     {
-        auto x = make_float3(pvView.readPosition(pid));
+        auto x = make_real3(pvView.readPosition(pid));
 
         auto d = squaredDistanceToSegment(r0, r1, x);
 
@@ -37,10 +37,10 @@ void setTagsCell(int pstart, int pend, float radius, const float3& r0, const flo
     }
 }
 
-__global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellListInfo cinfo, BelongingTags *tags)
+__global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellListInfo cinfo, BelongingTags *tags)
 {
     // About maximum distance a particle can cover in one step
-    const float tol = 0.25f;
+    const real tol = 0.25f;
 
     // One thread per segment
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -49,11 +49,11 @@ __global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellLi
     if (rodId >= rvView.nObjects) return;
 
     int segStart = rodId * rvView.objSize + 5 * segId;
-    auto r0 = make_float3(rvView.readPosition(segStart + 0));
-    auto r1 = make_float3(rvView.readPosition(segStart + 5));
+    auto r0 = make_real3(rvView.readPosition(segStart + 0));
+    auto r1 = make_real3(rvView.readPosition(segStart + 5));
 
-    const float3 lo = math::min(r0, r1);
-    const float3 hi = math::max(r0, r1);
+    const real3 lo = math::min(r0, r1);
+    const real3 hi = math::max(r0, r1);
 
     const int3 cidLow  = cinfo.getCellIdAlongAxes(lo - (radius + tol));
     const int3 cidHigh = cinfo.getCellIdAlongAxes(hi + (radius + tol));
@@ -83,7 +83,7 @@ __global__ void setInsideTags(RVview rvView, float radius, PVview pvView, CellLi
 } // namespace RodBelongingKernels
 
 
-RodBelongingChecker::RodBelongingChecker(const MirState *state, std::string name, float radius) :
+RodBelongingChecker::RodBelongingChecker(const MirState *state, std::string name, real radius) :
     ObjectBelongingChecker_Common(state, name),
     radius(radius)
 {}

@@ -63,7 +63,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
     MPI_Check( MPI_Comm_free(&shmcomm) );
 }
 
-void Mirheo::init(int3 nranks3D, float3 globalDomainSize, float dt, LogInfo logInfo,
+void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     int nranks;
@@ -151,7 +151,7 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
     }
 }
 
-Mirheo::Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
+Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Init(nullptr, nullptr);
@@ -161,7 +161,7 @@ Mirheo::Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
 }
 
-Mirheo::Mirheo(long commAddress, int3 nranks3D, float3 globalDomainSize, float dt,
+Mirheo::Mirheo(long commAddress, int3 nranks3D, real3 globalDomainSize, real dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     // see https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
@@ -170,7 +170,7 @@ Mirheo::Mirheo(long commAddress, int3 nranks3D, float3 globalDomainSize, float d
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);    
 }
 
-Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, float3 globalDomainSize, float dt,
+Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &this->comm);
@@ -293,7 +293,7 @@ void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
         sim->setBouncer(bouncer->name, ov->name, pv->name);
 }
 
-void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, float maximumPartTravel)
+void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, real maximumPartTravel)
 {
     checkNotInitialized();
     
@@ -316,7 +316,7 @@ std::shared_ptr<MirState> Mirheo::getMirState()
     return state;
 }
 
-void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, float3 h, const std::string& filename)
+void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, const std::string& filename)
 {
     if (!isComputeTask()) return;
 
@@ -364,7 +364,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
                                                                std::vector<std::shared_ptr<Wall>> walls,
                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                std::shared_ptr<Integrator> integrator,
-                                                               float density, int nsteps)
+                                                               real density, int nsteps)
 {
     checkNotInitialized();
     
@@ -397,7 +397,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     
     Simulation wallsim(sim->cartComm, MPI_COMM_NULL, getState());
 
-    float mass = 1.0;
+    real mass = 1.0;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(density);
     
@@ -415,11 +415,11 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     wallsim.init();
     wallsim.run(nsteps);
 
-    float effectiveCutoff = wallsim.getMaxEffectiveCutoff();
+    real effectiveCutoff = wallsim.getMaxEffectiveCutoff();
     
-    const float wallThicknessTolerance = 0.2f;
-    const float wallLevelSet = 0.0f;
-    float wallThickness = effectiveCutoff + wallThicknessTolerance;
+    const real wallThicknessTolerance = 0.2f;
+    const real wallLevelSet = 0.0f;
+    real wallThickness = effectiveCutoff + wallThicknessTolerance;
 
     info("wall thickness is set to %g", wallThickness);
     
@@ -442,7 +442,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
                                                                 std::shared_ptr<InitialConditions> icShape,
                                                                 std::vector<std::shared_ptr<Interaction>> interactions,
                                                                 std::shared_ptr<Integrator>   integrator,
-                                                                float density, int nsteps)
+                                                                real density, int nsteps)
 {
     checkNotInitialized();
     
@@ -456,7 +456,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
         die("expected no more than one object vector; given %d", shape->local()->nObjects);
     
 
-    float mass = 1.0;
+    real mass = 1.0;
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->name, mass);
     auto ic = std::make_shared<UniformIC>(density);
 

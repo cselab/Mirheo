@@ -2,7 +2,7 @@
 
 #include <core/pvs/particle_vector.h>
 
-UniformFilteredIC::UniformFilteredIC(float density, PositionFilter filter) :
+UniformFilteredIC::UniformFilteredIC(real density, PositionFilter filter) :
     density(density),
     filter(filter)
 {}

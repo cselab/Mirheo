@@ -22,21 +22,21 @@ class CellList;
 namespace WallFactory
 {
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Sphere>>
-createSphereWall(const MirState *state, const std::string& name, float3 center, float radius, bool inside)
+createSphereWall(const MirState *state, const std::string& name, real3 center, real radius, bool inside)
 {
     StationaryWall_Sphere sphere(center, radius, inside);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Sphere>> (name, state, std::move(sphere));
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Box>>
-createBoxWall(const MirState *state, const std::string& name, float3 low, float3 high, bool inside)
+createBoxWall(const MirState *state, const std::string& name, real3 low, real3 high, bool inside)
 {
     StationaryWall_Box box(low, high, inside);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Box>> (name, state, std::move(box));
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
-createCylinderWall(const MirState *state, const std::string& name, float2 center, float radius, const std::string& axis, bool inside)
+createCylinderWall(const MirState *state, const std::string& name, real2 center, real radius, const std::string& axis, bool inside)
 {
     StationaryWall_Cylinder::Direction dir;
     if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
@@ -48,14 +48,14 @@ createCylinderWall(const MirState *state, const std::string& name, float2 center
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Plane>>
-createPlaneWall(const MirState *state, const std::string& name, float3 normal, float3 pointThrough)
+createPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough)
 {
     StationaryWall_Plane plane(normalize(normal), pointThrough);
     return std::make_shared<SimpleStationaryWall<StationaryWall_Plane>> (name, state, std::move(plane));
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
-createSDFWall(const MirState *state, const std::string& name, const std::string& sdfFilename, float3 h)
+createSDFWall(const MirState *state, const std::string& name, const std::string& sdfFilename, real3 h)
 {
     StationaryWall_SDF sdf(state, sdfFilename, h);
     return std::make_shared<SimpleStationaryWall<StationaryWall_SDF>> (name, state, std::move(sdf));
@@ -64,7 +64,7 @@ createSDFWall(const MirState *state, const std::string& name, const std::string&
 // Moving walls
 
 inline std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
-createMovingCylinderWall(const MirState *state, const std::string& name, float2 center, float radius, const std::string& axis, float omega, bool inside)
+createMovingCylinderWall(const MirState *state, const std::string& name, real2 center, real radius, const std::string& axis, real omega, bool inside)
 {
     StationaryWall_Cylinder::Direction dir;
     if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
@@ -72,7 +72,7 @@ createMovingCylinderWall(const MirState *state, const std::string& name, float2 
     if (axis == "z") dir = StationaryWall_Cylinder::Direction::z;
 
     StationaryWall_Cylinder cylinder(center, radius, dir, inside);
-    float3 omega3, center3;
+    real3 omega3, center3;
     switch (dir)
     {
     case StationaryWall_Cylinder::Direction::x :
@@ -96,7 +96,7 @@ createMovingCylinderWall(const MirState *state, const std::string& name, float2 
 }
 
 inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>>
-createMovingPlaneWall(const MirState *state, const std::string& name, float3 normal, float3 pointThrough, float3 velocity)
+createMovingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity)
 {
     StationaryWall_Plane plane(normalize(normal), pointThrough);
     VelocityField_Translate translate(velocity);
@@ -104,7 +104,7 @@ createMovingPlaneWall(const MirState *state, const std::string& name, float3 nor
 }
 
 inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>>
-createOscillatingPlaneWall(const MirState *state, const std::string& name, float3 normal, float3 pointThrough, float3 velocity, float period)
+createOscillatingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity, real period)
 {
     StationaryWall_Plane plane(normalize(normal), pointThrough);
     VelocityField_Oscillate osc(velocity, period);

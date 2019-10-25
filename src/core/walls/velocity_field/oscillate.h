@@ -11,30 +11,30 @@ class ParticleVector;
 class VelocityField_Oscillate
 {
 public:
-    VelocityField_Oscillate(float3 vel, float period) :
+    VelocityField_Oscillate(real3 vel, real period) :
         vel(vel), period(period)
     {
         if (period <= 0)
             die("Oscillating period should be strictly positive");
     }
 
-    void setup(float t, __UNUSED DomainInfo domain)
+    void setup(real t, __UNUSED DomainInfo domain)
     {
         cosOmega = math::cos(2*M_PI * t / period);
     }
 
     const VelocityField_Oscillate& handler() const { return *this; }
 
-    __D__ inline float3 operator()(__UNUSED float3 coo) const
+    __D__ inline real3 operator()(__UNUSED real3 coo) const
     {
         return vel * cosOmega;
     }
 
 private:
-    float3 vel;
-    float period;
+    real3 vel;
+    real period;
 
-    float cosOmega;
+    real cosOmega;
 
     DomainInfo domain;
 };

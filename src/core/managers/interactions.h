@@ -19,7 +19,7 @@ public:
     bool empty() const;
     
     CellList* getLargestCellList(ParticleVector *pv) const;
-    float getLargestCutoff() const;
+    real getLargestCutoff() const;
 
     std::vector<std::string> getInputChannels(ParticleVector *pv) const;
     std::vector<std::string> getOutputChannels(ParticleVector *pv) const;

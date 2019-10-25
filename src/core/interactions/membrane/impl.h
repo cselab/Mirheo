@@ -36,12 +36,12 @@ static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const Commo
     devP.totVolume0 = p.totVolume0;
 
     devP.ka0 = p.ka / p.totArea0;
-    devP.kv0 = p.kv / (6.0*p.totVolume0);
+    devP.kv0 = p.kv / (6.0_r*p.totVolume0);
 
     devP.fluctuationForces = p.fluctuationForces;
 
     if (devP.fluctuationForces) {
-        float dt = state->dt;
+        const auto dt = state->dt;
         devP.seed = stepGen.generate(state);
         devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
     }
@@ -49,7 +49,7 @@ static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const Commo
     return devP;
 }
 
-static void rescaleParameters(CommonMembraneParameters& p, float scale)
+static void rescaleParameters(CommonMembraneParameters& p, real scale)
 {
     p.totArea0   *= scale * scale;
     p.totVolume0 *= scale * scale * scale;
@@ -70,10 +70,10 @@ public:
     MembraneInteractionImpl(const MirState *state, std::string name, CommonMembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
-                            float growUntil, long seed = 42424242) :
-        Interaction(state, name, 1.0f),
+                            real growUntil, long seed = 42424242) :
+        Interaction(state, name, 1.0_r),
         parameters(parameters),
-        scaleFromTime( [growUntil] (float t) { return math::min(1.0f, 0.5f + 0.5f * (t / growUntil)); } ),
+        scaleFromTime( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams),
         stepGen(seed)
@@ -99,7 +99,7 @@ public:
               ov->local()->nObjects, ov->name.c_str());
 
         auto currentParams = parameters;
-        float scale = scaleFromTime(state->currentTime);
+        real scale = scaleFromTime(state->currentTime);
         rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
@@ -159,7 +159,7 @@ public:
     
 protected:
 
-    std::function< float(float) > scaleFromTime;
+    std::function< real(real) > scaleFromTime;
     CommonMembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;
     typename TriangleInteraction::ParametersType triangleParams;

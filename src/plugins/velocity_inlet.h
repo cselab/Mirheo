@@ -15,12 +15,12 @@ class VelocityInletPlugin : public SimulationPlugin
 {
 public:
 
-    using ImplicitSurfaceFunc = std::function<float(float3)>;
-    using VelocityFieldFunc = std::function<float3(float3)>;
+    using ImplicitSurfaceFunc = std::function<real(real3)>;
+    using VelocityFieldFunc = std::function<real3(real3)>;
     
     VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                         ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
-                        float3 resolution, float numberDensity, float kBT);
+                        real3 resolution, real numberDensity, real kBT);
 
     ~VelocityInletPlugin();
 
@@ -35,15 +35,15 @@ private:
 
     ImplicitSurfaceFunc implicitSurface;
     VelocityFieldFunc velocityField;
-    float3 resolution;
-    float numberDensity, kBT;
+    real3 resolution;
+    real numberDensity, kBT;
 
-    PinnedBuffer<float3> surfaceTriangles;
-    PinnedBuffer<float3> surfaceVelocity;
-    DeviceBuffer<float> cumulativeFluxes, localFluxes;
+    PinnedBuffer<real3> surfaceTriangles;
+    PinnedBuffer<real3> surfaceVelocity;
+    DeviceBuffer<real> cumulativeFluxes, localFluxes;
     PinnedBuffer<int> nNewParticles {1};
     DeviceBuffer<int> workQueue; // contains id of triangle per new particle
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<float> dist {0.f, 1.f};
+    std::uniform_real_distribution<real> dist {0.f, 1.f};
 };

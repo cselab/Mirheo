@@ -1,6 +1,7 @@
 #include "grids.h"
 #include "common.h"
 #include "hdf5_helpers.h"
+#include "type_map.h"
 
 #include <core/logger.h>
 
@@ -114,7 +115,7 @@ void UniformGrid::readFromHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm)
     die("not implemented");
 }
         
-UniformGrid::UniformGrid(int3 localSize, float3 h, MPI_Comm cartComm) :
+UniformGrid::UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm) :
     dims(localSize, cartComm),
     spacing{h.x, h.y, h.z}
 {}
@@ -132,7 +133,7 @@ VertexGrid::VertexGridDims::VertexGridDims(long nlocal, MPI_Comm comm) :
     MPI_Check( MPI_Allreduce(&nlocal, &nglobal, 1, MPI_LONG_LONG_INT, MPI_SUM, comm) );    
 }
 
-VertexGrid::VertexGrid(std::shared_ptr<std::vector<float3>> positions, MPI_Comm comm) :
+VertexGrid::VertexGrid(std::shared_ptr<std::vector<real3>> positions, MPI_Comm comm) :
     dims(positions->size(), comm),
     positions(positions)
 {}
@@ -147,8 +148,8 @@ std::string VertexGrid::getCentering() const                         { return "N
 void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
     Channel posCh(positionChannelName, (void*) positions->data(),
-                  Channel::DataForm::Vector, Channel::NumberType::Float,
-                  DataTypeWrapper<float>(), Channel::NeedShift::True);
+                  Channel::DataForm::Vector, XDMF::getNumberType<real>(),
+                  DataTypeWrapper<real>(), Channel::NeedShift::True);
         
     HDF5::writeDataSet(file_id, getGridDims(), posCh);
 }
@@ -167,8 +168,8 @@ pugi::xml_node VertexGrid::writeToXMF(pugi::xml_node node, std::string h5filenam
         
     auto partNode = geomNode.append_child("DataItem");
     partNode.append_attribute("Dimensions") = (std::to_string(dims.nglobal) + " 3").c_str();
-    partNode.append_attribute("NumberType") = numberTypeToString(Channel::NumberType::Float).c_str();
-    partNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(Channel::NumberType::Float)).c_str();
+    partNode.append_attribute("NumberType") = numberTypeToString(XDMF::getNumberType<real>()).c_str();
+    partNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(XDMF::getNumberType<real>())).c_str();
     partNode.append_attribute("Format") = "HDF";
     partNode.text() = (h5filename + ":/" + positionChannelName).c_str();
         
@@ -228,7 +229,7 @@ void VertexGrid::readFromHDF5(hid_t file_id, __UNUSED MPI_Comm comm)
 {
     positions->resize(dims.nlocal);
     Channel posCh(positionChannelName, positions->data(), Channel::DataForm::Vector,
-                  Channel::NumberType::Float, DataTypeWrapper<float>(), Channel::NeedShift::True);
+                  XDMF::getNumberType<real>(), DataTypeWrapper<real>(), Channel::NeedShift::True);
         
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
@@ -245,7 +246,7 @@ const std::string VertexGrid::positionChannelName = "position";
 // Triangle Mesh Grid
 //
     
-TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<float3>> positions,
+TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<real3>> positions,
                                    std::shared_ptr<std::vector<int3>> triangles,
                                    MPI_Comm comm) :
     VertexGrid(positions, comm),

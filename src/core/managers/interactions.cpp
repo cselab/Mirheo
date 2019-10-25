@@ -89,9 +89,9 @@ CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
     return clMax;
 }
 
-float InteractionManager::getLargestCutoff() const
+real InteractionManager::getLargestCutoff() const
 {
-    float rc = 0.f;
+    real rc = 0.0_r;
     for (const auto& prototype : interactions)
     {
         if (!prototype.cl1)

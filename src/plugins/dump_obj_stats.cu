@@ -26,9 +26,9 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
     {
         int pid = objId * view.objSize + i;
         const Particle p = view.readParticle(pid);
-        float3 f = make_float3(view.forces[pid]);
+        real3 f = make_real3(view.forces[pid]);
 
-        float3 dr = p.r - com;
+        real3 dr = p.r - com;
         
         local.vel    += p.u;
         local.omega  += cross(dr, p.u);
@@ -127,7 +127,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
 //=================================================================================
 
-static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, float curTime, const std::vector<int64_t>& ids,
+static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real curTime, const std::vector<int64_t>& ids,
                        const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov)
 {
     int rank;

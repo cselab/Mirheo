@@ -14,7 +14,7 @@ Need to define a view type to be passed (example: PVview, PVviewWithStresses...)
 
 Setup function (on Host, for manager only)
 
-	void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, float t);
+	void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, real t);
 	
 Handler function (on Host, for manager only)
 
@@ -43,4 +43,4 @@ Interacting checker to discard pairs not within cutoff:
 	
 Position getter from generic particle type:
 	
-	__D__ inline float3 getPosition(const ParticleType& p) const;
+	__D__ inline real3 getPosition(const ParticleType& p) const;

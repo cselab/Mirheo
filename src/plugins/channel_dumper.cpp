@@ -26,7 +26,7 @@ void UniformCartesianDumper::handshake()
     
     int3 nranks3D, rank3D;
     int3 resolution;
-    float3 h;
+    real3 h;
     std::vector<int> sizes;
     std::vector<std::string> names;
     SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes, names);
@@ -39,7 +39,7 @@ void UniformCartesianDumper::handshake()
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
     {
         return XDMF::Channel(str, nullptr, dataForm, XDMF::Channel::NumberType::Float,
-                             DataTypeWrapper<float>(), XDMF::Channel::NeedShift::False);
+                             DataTypeWrapper<real>(), XDMF::Channel::NeedShift::False);
     };
     
     // Density is a special channel which is always present
@@ -67,7 +67,7 @@ void UniformCartesianDumper::handshake()
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());
 }
 
-static void convert(const std::vector<double> &src, std::vector<float> &dst)
+static void convert(const std::vector<double> &src, std::vector<real> &dst)
 {
     dst.resize(src.size());
     for (size_t i = 0; i < src.size(); ++i)

@@ -8,7 +8,7 @@
 /**
  * @param vel Move with this velocity
  */
-IntegratorTranslate::IntegratorTranslate(const MirState *state, std::string name, float3 vel) :
+IntegratorTranslate::IntegratorTranslate(const MirState *state, std::string name, real3 vel) :
     Integrator(state, name),
     vel(vel)
 {}
@@ -19,7 +19,7 @@ void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     const auto _vel = vel;
 
-    auto translate = [_vel] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+    auto translate = [_vel] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
         p.u = _vel;
         p.r += p.u*dt;
     };

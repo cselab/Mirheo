@@ -19,23 +19,23 @@ namespace DensityControlPluginKernels
 
 enum {INVALID_LEVEL=-1};
 
-__device__ int getLevelId(const FieldDeviceHandler& field, const float3& r,
+__device__ int getLevelId(const FieldDeviceHandler& field, const real3& r,
                            const DensityControlPlugin::LevelBounds& lb)
 {
-    float l = field(r);
+    real l = field(r);
     return (l > lb.lo && l < lb.hi) ?
         (l - lb.lo) / lb.space :
         INVALID_LEVEL;
 }
 
 __global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb,
-                                   float seed, unsigned long long int *nInsides)
+                                   real seed, unsigned long long int *nInsides)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i >= nSamples) return;
     
-    float3 r {Saru::uniform01(seed, i - 2, i + 4242),
+    real3 r {Saru::uniform01(seed, i - 2, i + 4242),
               Saru::uniform01(seed, i - 3, i + 4343),
               Saru::uniform01(seed, i - 4, i + 4444)};
 
@@ -61,7 +61,7 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
 
-    auto r = Float3_int(view.readPosition(i)).v;
+    auto r = Real3_int(view.readPosition(i)).v;
 
     int levelId = getLevelId(field, r, lb);
 
@@ -69,27 +69,27 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
         atomicAdd(&nInsides[levelId], 1);
 }
 
-__global__ void applyForces(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, const float *forces)
+__global__ void applyForces(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, const real *forces)
 {
-    const float h = 0.25f;
-    const float zeroTolerance = 1e-10f;
+    const real h = 0.25f;
+    const real zeroTolerance = 1e-10f;
     
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
 
-    auto r = Float3_int(view.readPosition(i)).v;
+    auto r = Real3_int(view.readPosition(i)).v;
 
     int levelId = getLevelId(field, r, lb);
 
     if (levelId == INVALID_LEVEL) return;
 
-    float forceMagn = forces[levelId];
+    real forceMagn = forces[levelId];
 
-    float3 grad = computeGradient(field, r, h);
+    real3 grad = computeGradient(field, r, h);
 
     if (dot(grad, grad) < zeroTolerance) return;
 
-    float3 force = normalize(grad) * forceMagn;
+    real3 force = normalize(grad) * forceMagn;
 
     atomicAdd(view.forces + i, force);
 }
@@ -97,10 +97,10 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
 } // namespace DensityControlPluginKernels
 
 DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string name,
-                                           std::vector<std::string> pvNames, float targetDensity,
-                                           RegionFunc region, float3 resolution,
-                                           float levelLo, float levelHi, float levelSpace,
-                                           float Kp, float Ki, float Kd,
+                                           std::vector<std::string> pvNames, real targetDensity,
+                                           RegionFunc region, real3 resolution,
+                                           real levelLo, real levelHi, real levelSpace,
+                                           real Kp, real Ki, real Kd,
                                            int tuneEvery, int dumpEvery, int sampleEvery) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
@@ -132,8 +132,8 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
     nInsides     .resize_anew(nLevelSets);    
     forces       .resize_anew(nLevelSets);
 
-    const float initError = 0;
-    controllers.assign(nLevelSets, PidControl<float>(initError, Kp, Ki, Kd));
+    const real initError = 0;
+    controllers.assign(nLevelSets, PidControl<real>(initError, Kp, Ki, Kd));
 
     volumes   .resize(nLevelSets);
     densities .resize(nLevelSets);
@@ -171,7 +171,7 @@ void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
-    float seed = 0.42424242f + rank * 17;
+    real seed = 0.42424242f + rank * 17;
     auto domain = state->domain;    
     int nLevelSets = nInsides.size();
 
@@ -186,7 +186,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
         MCnSamples, domain, spaceDecompositionField->handler(),
         levelBounds, seed, nInsides.devPtr());
 
-    float3 L = domain.localSize;
+    real3 L = domain.localSize;
     double subdomainVolume = L.x * L.y * L.z;
 
     SAFE_KERNEL_LAUNCH(
@@ -240,7 +240,7 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
 
     for (size_t i = 0; i < densities.size(); ++i)
     {
-        const float error = densities[i] - targetDensity;        
+        const real error = densities[i] - targetDensity;        
         forces[i] = controllers[i].update(error);
     }
 
@@ -304,7 +304,7 @@ void PostprocessDensityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;
-    std::vector<float> densities, forces;
+    std::vector<real> densities, forces;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);
 

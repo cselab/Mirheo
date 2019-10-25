@@ -21,7 +21,7 @@ __global__ void collectRigidForces(ROVview ovView)
 
     RigidReal3 force {0,0,0};
     RigidReal3 torque{0,0,0};
-    const float3 com = make_float3( ovView.motions[objId].r );
+    const real3 com = make_real3( ovView.motions[objId].r );
 
     // Find the total force and torque
 #pragma unroll 3
@@ -29,8 +29,8 @@ __global__ void collectRigidForces(ROVview ovView)
     {
         const int offset = (objId * ovView.objSize + i);
 
-        const float3 frc = make_float3(ovView.forces[offset]);
-        const float3 r   = make_float3(ovView.readPosition(offset)) - com;
+        const real3 frc = make_real3(ovView.forces[offset]);
+        const real3 r   = make_real3(ovView.readPosition(offset)) - com;
 
         force  += frc;
         torque += cross(r, frc);
@@ -51,7 +51,7 @@ __global__ void collectRigidForces(ROVview ovView)
  * compute also velocity if template parameter set to corresponding value
  */
 template <RigidOperations::ApplyTo action>
-__global__ void applyRigidMotion(ROVview ovView, const float4 *initialPositions)
+__global__ void applyRigidMotion(ROVview ovView, const real4 *initialPositions)
 {
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
     const int objId = pid / ovView.objSize;
@@ -59,13 +59,13 @@ __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPositions)
 
     if (pid >= ovView.nObjects*ovView.objSize) return;
 
-    const auto motion = toSingleMotion(ovView.motions[objId]);
+    const auto motion = toRealMotion(ovView.motions[objId]);
 
     Particle p;
     ovView.readPosition(p, pid);
 
     // Some explicit conversions for double precision
-    p.r = motion.r + Quaternion::rotate( make_float3(initialPositions[locId]), motion.q );
+    p.r = motion.r + Quaternion::rotate( make_real3(initialPositions[locId]), motion.q );
 
     if (action == RigidOperations::ApplyTo::PositionsAndVelocities)
     {
@@ -75,7 +75,7 @@ __global__ void applyRigidMotion(ROVview ovView, const float4 *initialPositions)
     }
     else
     {
-        ovView.writePosition(pid, p.r2Float4());
+        ovView.writePosition(pid, p.r2Real4());
     }
 }
 
@@ -104,7 +104,7 @@ void collectRigidForces(const ROVview& view, cudaStream_t stream)
         view );
 }
 
-void applyRigidMotion(const ROVview& view, const PinnedBuffer<float4>& initialPositions,
+void applyRigidMotion(const ROVview& view, const PinnedBuffer<real4>& initialPositions,
                       ApplyTo action, cudaStream_t stream)
 {
     constexpr int nthreads = 128;

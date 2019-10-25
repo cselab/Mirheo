@@ -9,7 +9,7 @@ class ObjectRodBindingInteraction : public Interaction
 {
 public:
     ObjectRodBindingInteraction(const MirState *state, std::string name,
-                                float torque, float3 relAnchor, float kBound);
+                                real torque, real3 relAnchor, real kBound);
 
     ~ObjectRodBindingInteraction();
     
@@ -23,7 +23,7 @@ protected:
     void  _halo(RigidObjectVector *rov, RodVector *rv, cudaStream_t stream) const;
 protected:
 
-    float torque; // torque magnitude to apply to the rod from the object
-    float3 relAnchor; // relative position with respect to object of attachement point
-    float kBound;
+    real torque; // torque magnitude to apply to the rod from the object
+    real3 relAnchor; // relative position with respect to object of attachement point
+    real kBound;
 };

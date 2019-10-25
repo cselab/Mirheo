@@ -13,6 +13,37 @@
 #include <type_traits>
 #include <utility>
 
+#ifdef MIRHEO_DOUBLE_PRECISION
+using real    = double;
+using integer = int64_t;
+#else
+using real    = float;
+using integer = int32_t;
+#endif
+
+using real2 = VecTraits::Vec<real, 2>::Type;
+using real3 = VecTraits::Vec<real, 3>::Type;
+using real4 = VecTraits::Vec<real, 4>::Type;
+
+__HD__ constexpr inline real operator "" _r (const long double a)
+{
+    return static_cast<real>(a);
+}
+
+static inline __HD__ real2 make_real2(real x, real y)
+{
+    return {x, y};
+}
+static inline __HD__ real3 make_real3(real x, real y, real z)
+{
+    return {x, y, z};
+}
+static inline __HD__ real4 make_real4(real x, real y, real z, real w)
+{
+    return {x, y, z, w};
+}
+
+
 //==================================================================================================================
 // Basic types
 //==================================================================================================================
@@ -20,36 +51,38 @@
 /**
  * Helper class for packing/unpacking \e float3 + \e int into \e float4
  */
-struct __align__(16) Float3_int
+struct __align__(16) Real3_int
 {
-    float3 v;
-    int32_t i;
+    real3 v;
+    integer i;
 
-    static constexpr float mark_val = -900.f;
+    static constexpr real mark_val = -900._r;
 
-    __HD__ inline Float3_int(const Float3_int& x)
+    __HD__ inline Real3_int(const Real3_int& x)
     {
-        *reinterpret_cast<float4*>(this) = *reinterpret_cast<const float4*>(&x);
+        *reinterpret_cast<real4*>(this) = *reinterpret_cast<const real4*>(&x);
     }
 
-    __HD__ inline Float3_int& operator=(const Float3_int& x)
+    __HD__ inline Real3_int& operator=(const Real3_int& x)
     {
-        *reinterpret_cast<float4*>(this) = *reinterpret_cast<const float4*>(&x);
+        *reinterpret_cast<real4*>(this) = *reinterpret_cast<const real4*>(&x);
         return *this;
     }
 
-    __HD__ inline Float3_int() {};
-    __HD__ inline Float3_int(const float3 v, int i) : v(v), i(i) {};
+    __HD__ inline Real3_int() {}
+    __HD__ inline Real3_int(real3 v, integer i) :
+        v(v),
+        i(i)
+    {}
 
-    __HD__ inline Float3_int(const float4 f4)
+    __HD__ inline Real3_int(const real4 r4)
     {
-        *reinterpret_cast<float4*>(this) = f4;
+        *reinterpret_cast<real4*>(this) = r4;
     }
 
-    __HD__ inline float4 toFloat4() const
+    __HD__ inline real4 toReal4() const
     {
-        const float4 f = *reinterpret_cast<const float4*>(this);
-        return f;
+        return *reinterpret_cast<const real4*>(this);
     }
 
     __HD__ inline void mark()
@@ -59,7 +92,10 @@ struct __align__(16) Float3_int
 
     __HD__ inline bool isMarked() const
     {
-        return v.x == mark_val && v.y == mark_val && v.z == mark_val;
+        return
+            v.x == mark_val &&
+            v.y == mark_val &&
+            v.z == mark_val;
     }
 };
 
@@ -70,34 +106,34 @@ struct __align__(16) Float3_int
  * The integer fields are used for particle ids
  *
  * For performance reasons instead of an N-element array of Particle
- * an array of 2*N \e float4 elements is used.
+ * an array of 2*N \e real4 elements is used.
  */
 struct __align__(16) Particle
 {
-    float3 r;    ///< coordinate
-    int32_t i1;  ///< lower part of particle id
+    real3 r;     ///< coordinate
+    integer i1;  ///< lower part of particle id
 
-    float3 u;    ///< velocity
-    int32_t i2;  ///< higher part of particle id
+    real3 u;     ///< velocity
+    integer i2 {0};  ///< higher part of particle id
 
     /// Copy constructor uses efficient 16-bytes wide copies
     __HD__ inline Particle(const Particle& x)
     {
-        auto f4this = reinterpret_cast<float4*>(this);
-        auto f4x    = reinterpret_cast<const float4*>(&x);
+        auto r4this = reinterpret_cast<real4*>(this);
+        auto r4x    = reinterpret_cast<const real4*>(&x);
 
-        f4this[0] = f4x[0];
-        f4this[1] = f4x[1];
+        r4this[0] = r4x[0];
+        r4this[1] = r4x[1];
     }
 
     /// Assignment operator uses efficient 16-bytes wide copies
     __HD__ inline Particle& operator=(Particle x)
     {
-        auto f4this = reinterpret_cast<float4*>(this);
-        auto f4x    = reinterpret_cast<const float4*>(&x);
+        auto r4this = reinterpret_cast<real4*>(this);
+        auto r4x    = reinterpret_cast<const real4*>(&x);
 
-        f4this[0] = f4x[0];
-        f4this[1] = f4x[1];
+        r4this[0] = r4x[0];
+        r4this[1] = r4x[1];
 
         return *this;
     }
@@ -114,25 +150,33 @@ struct __align__(16) Particle
 
     __HD__ inline void setId(int64_t id)
     {
+#ifdef MIRHEO_DOUBLE_PRECISION
+        i1 = id;
+#else
         const int64_t highHalf = (id >> 32) << 32;
         i1 = (int32_t) (id - highHalf);
         i2 = (int32_t) (id >> 32);
+#endif
     }
 
     __HD__ inline int64_t getId() const
     {
+#ifdef MIRHEO_DOUBLE_PRECISION
+        return i1;
+#else
         return int64_t(i1) + (int64_t (i2) << 32);
+#endif
     }
     
     /**
-     * Construct a Particle from two float4 entries
+     * Construct a Particle from two real4 entries
      *
-     * @param r4 first three floats will be coordinates (#r), last one, \e \.w - #i1
-     * @param u4 first three floats will be velocities (#u), last one \e \.w - #i1
+     * @param r4 first three reals will be coordinates (#r), last one, \e \.w - #i1
+     * @param u4 first three reals will be velocities (#u), last one \e \.w - #i1
      */
-    __HD__ inline Particle(const float4 r4, const float4 u4)
+    __HD__ inline Particle(const real4 r4, const real4 u4)
     {
-        Float3_int rtmp(r4), utmp(u4);
+        Real3_int rtmp(r4), utmp(u4);
         r  = rtmp.v;
         i1 = rtmp.i;
         u  = utmp.v;
@@ -145,9 +189,9 @@ struct __align__(16) Particle
      * @param addr must have at least \e pid entries
      * @param pid  particle id
      */
-    __HD__ inline void readCoordinate(const float4 *addr, const int pid)
+    __HD__ inline void readCoordinate(const real4 *addr, const int pid)
     {
-        const Float3_int tmp = addr[pid];
+        const Real3_int tmp = addr[pid];
         r  = tmp.v;
         i1 = tmp.i;
     }
@@ -158,86 +202,89 @@ struct __align__(16) Particle
      * @param addr must have at least \e pid entries
      * @param pid  particle id
      */
-    __HD__ inline void readVelocity(const float4 *addr, const int pid)
+    __HD__ inline void readVelocity(const real4 *addr, const int pid)
     {
-        const Float3_int tmp = addr[pid];
+        const Real3_int tmp = addr[pid];
         u  = tmp.v;
         i2 = tmp.i;
     }
 
-    __HD__ inline Float3_int r2Float3_int() const
+    __HD__ inline Real3_int r2Real3_int() const
     {
-        return Float3_int{r, i1};
+        return Real3_int{r, i1};
     }
     
     /**
-     * Helps writing particles back to \e float4 array
+     * Helps writing particles back to \e real4 array
      *
-     * @return packed #r and #i1 as \e float4
+     * @return packed #r and #i1 as \e real4
      */
-    __HD__ inline float4 r2Float4() const
+    __HD__ inline real4 r2Real4() const
     {
-        return r2Float3_int().toFloat4();
+        return r2Real3_int().toReal4();
     }
 
-    __HD__ inline Float3_int u2Float3_int() const
+    __HD__ inline Real3_int u2Real3_int() const
     {
-        return Float3_int{u, i2};
+        return Real3_int{u, i2};
     }
 
     /**
-     * Helps writing particles back to \e float4 array
+     * Helps writing particles back to \e real4 array
      *
-     * @return packed #u and #i2 as \e float4
+     * @return packed #u and #i2 as \e real4
      */
-    __HD__ inline float4 u2Float4() const
+    __HD__ inline real4 u2Real4() const
     {
-        return u2Float3_int().toFloat4();
+        return u2Real3_int().toReal4();
     }
 
     /**
-     * Helps writing particles back to \e float4 array
+     * Helps writing particles back to \e real4 array
      *
      * @param dst must have at least \e 2*pid entries
      * @param pid particle id
      */
-    __HD__ inline void write2Float4(float4 *pos, float4 *vel, int pid) const
+    __HD__ inline void write2Real4(real4 *pos, real4 *vel, int pid) const
     {
-        pos[pid] = r2Float4();
-        vel[pid] = u2Float4();
+        pos[pid] = r2Real4();
+        vel[pid] = u2Real4();
     }
 
     __HD__ inline void mark()
     {
-        Float3_int f3i = r2Float3_int();
+        Real3_int f3i = r2Real3_int();
         f3i.mark();
         r = f3i.v;
     }
 
     __HD__ inline bool isMarked() const
     {
-        return r2Float3_int().isMarked();
+        return r2Real3_int().isMarked();
     }
 };
 
 struct __align__(16) Force
 {
-    float3 f;
-    int32_t i;
+    real3 f;
+    integer i;
 
     __HD__ inline Force() {};
-    __HD__ inline Force(const float3 f, int i) : f(f), i(i) {};
+    __HD__ inline Force(const real3 f, int i) :
+        f(f),
+        i(i)
+    {};
 
-    __HD__ inline Force(const float4 f4)
+    __HD__ inline Force(const real4 f4)
     {
-        Float3_int tmp(f4);
+        Real3_int tmp(f4);
         f = tmp.v;
         i = tmp.i;
     }
 
-    __HD__ inline float4 toFloat4() const
+    __HD__ inline real4 toReal4() const
     {
-        return Float3_int{f, i}.toFloat4();
+        return Real3_int{f, i}.toReal4();
     }
 };
 
@@ -257,7 +304,7 @@ __HD__ static inline Force operator+(Force a, const Force& b)
 
 struct Stress
 {
-    float xx, xy, xz, yy, yz, zz;
+    real xx, xy, xz, yy, yz, zz;
 };
 
 __HD__ static inline void operator+=(Stress& a, const Stress& b)
@@ -299,16 +346,16 @@ struct __align__(16) TemplRigidMotion
 };
 
 using DoubleRigidMotion = TemplRigidMotion<double>;
-using SingleRigidMotion = TemplRigidMotion<float>;
+using RealRigidMotion   = TemplRigidMotion<real>;
 using RigidMotion       = TemplRigidMotion<RigidReal>;
 
 struct __align__(16) COMandExtent
 {
-    float3 com, low, high;
+    real3 com, low, high;
 };
 
 struct ComQ
 {
-    float3 r;
-    float4 q;
+    real3 r;
+    real4 q;
 };

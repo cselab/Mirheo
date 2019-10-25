@@ -3,7 +3,7 @@
 #include <core/datatypes.h>
 #include <core/pvs/particle_vector.h>
 
-FromArrayIC::FromArrayIC(const std::vector<float3>& pos, const std::vector<float3>& vel) :
+FromArrayIC::FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>& vel) :
     pos(pos),
     vel(vel)
 {
@@ -13,7 +13,7 @@ FromArrayIC::FromArrayIC(const std::vector<float3>& pos, const std::vector<float
 
 void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    std::vector<float4> positions, velocities;
+    std::vector<real4> positions, velocities;
     auto domain = pv->state->domain;
 
     const size_t n = pos.size();
@@ -22,18 +22,18 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     
     for (size_t i = 0; i < n; ++i)
     {
-        float3 r = pos[i];
-        const float3 u = vel[i];
+        real3 r = pos[i];
+        const real3 u = vel[i];
 
         if (domain.inSubDomain(r)) {
 
             r = domain.global2local(r);
 
-            Particle p(Float3_int(r, 0).toFloat4(),
-                       Float3_int(u, 0).toFloat4());
+            Particle p(Real3_int(r, 0).toReal4(),
+                       Real3_int(u, 0).toReal4());
 
-            positions .push_back(p.r2Float4());
-            velocities.push_back(p.u2Float4());
+            positions .push_back(p.r2Real4());
+            velocities.push_back(p.u2Real4());
         }
     }
 

@@ -16,9 +16,9 @@ namespace CellListKernels
 
 enum {INVALID = -1};
 
-inline __device__ bool outgoingParticle(float4 pos)
+inline __device__ bool outgoingParticle(real4 pos)
 {
-    return Float3_int(pos).isMarked();
+    return Real3_int(pos).isMarked();
 }
 
 __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
@@ -26,7 +26,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    float4 coo = view.readPositionNoCache(pid);
+    real4 coo = view.readPositionNoCache(pid);
 
     // XXX: relying here only on redistribution
     if ( outgoingParticle(coo) ) return;
@@ -35,7 +35,7 @@ __global__ void computeCellSizes(PVview view, CellListInfo cinfo)
     atomicAdd(cinfo.cellSizes + cid, 1);
 }
 
-__global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, float4 *outPositions)
+__global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, real4 *outPositions)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
@@ -44,7 +44,7 @@ __global__ void reorderPositionsAndCreateMap(PVview view, CellListInfo cinfo, fl
 
     // this is to allow more cache for atomics
     // loads / stores here need no cache
-    float4 pos = view.readPositionNoCache(pid);
+    real4 pos = view.readPositionNoCache(pid);
 
     int cid = cinfo.getCellId<CellListsProjection::Clamp>(pos);
 
@@ -87,19 +87,19 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
 // Info
 //=================================================================================
 
-CellListInfo::CellListInfo(float rc, float3 localDomainSize) :
+CellListInfo::CellListInfo(real rc, real3 localDomainSize) :
     rc(rc),
     localDomainSize(localDomainSize)
 {
     ncells = make_int3( math::floor(localDomainSize / rc + 1e-6) );
-    h = make_float3(localDomainSize) / make_float3(ncells);
+    h = make_real3(localDomainSize) / make_real3(ncells);
     invh = 1.0f / h;
     this->rc = std::min( {h.x, h.y, h.z} );
 
     totcells = ncells.x * ncells.y * ncells.z;
 }
 
-CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
+CellListInfo::CellListInfo(real3 h, real3 localDomainSize) :
     h(h),
     invh(1.0f/h),
     localDomainSize(localDomainSize)
@@ -113,7 +113,7 @@ CellListInfo::CellListInfo(float3 h, float3 localDomainSize) :
 // Basic cell-lists
 //=================================================================================
 
-CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
+CellList::CellList(ParticleVector *pv, real rc, real3 localDomainSize) :
     CellListInfo(rc, localDomainSize),
     pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
@@ -121,8 +121,8 @@ CellList::CellList(ParticleVector *pv, float rc, float3 localDomainSize) :
     _initialize();
 }
 
-CellList::CellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
-    CellListInfo(localDomainSize / make_float3(resolution), localDomainSize),
+CellList::CellList(ParticleVector *pv, int3 resolution, real3 localDomainSize) :
+    CellListInfo(localDomainSize / make_real3(resolution), localDomainSize),
     pv(pv),
     particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
 {
@@ -383,7 +383,7 @@ std::string CellList::makeName() const
 // Primary cell-lists
 //=================================================================================
 
-PrimaryCellList::PrimaryCellList(ParticleVector *pv, float rc, float3 localDomainSize) :
+PrimaryCellList::PrimaryCellList(ParticleVector *pv, real rc, real3 localDomainSize) :
         CellList(pv, rc, localDomainSize)
 {
     localPV = pv->local();
@@ -392,7 +392,7 @@ PrimaryCellList::PrimaryCellList(ParticleVector *pv, float rc, float3 localDomai
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
 }
 
-PrimaryCellList::PrimaryCellList(ParticleVector *pv, int3 resolution, float3 localDomainSize) :
+PrimaryCellList::PrimaryCellList(ParticleVector *pv, int3 resolution, real3 localDomainSize) :
         CellList(pv, resolution, localDomainSize)
 {
     localPV = pv->local();

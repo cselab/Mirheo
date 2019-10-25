@@ -3,7 +3,7 @@
 
 #include <core/pvs/particle_vector.h>
 
-UniformSphereIC::UniformSphereIC(float density, float3 center, float radius, bool inside) :
+UniformSphereIC::UniformSphereIC(real density, real3 center, real radius, bool inside) :
     density(density),
     center(center),
     radius(radius),
@@ -14,7 +14,7 @@ UniformSphereIC::~UniformSphereIC() = default;
     
 void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream)
 {
-    auto filterSphere = [this](float3 r) {
+    auto filterSphere = [this](real3 r) {
         r -= center;
         bool is_inside = length(r) <= radius;
         

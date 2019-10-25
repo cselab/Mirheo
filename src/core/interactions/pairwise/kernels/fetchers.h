@@ -17,7 +17,7 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    ParticleFetcher(float rc) :
+    ParticleFetcher(real rc) :
         rc(rc),
         rc2(rc*rc)
     {}
@@ -32,7 +32,7 @@ public:
     __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
     {
         return Particle(view.readPositionNoCache(id),
-                        make_float4(0.f, 0.f, 0.f, 0.f));
+                        make_real4(0._r));
     }
     
     __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const { view.readPosition(p, id); }
@@ -43,11 +43,11 @@ public:
         return distance2(src.r, dst.r) < rc2;
     }
 
-    __D__ inline float3 getPosition(const ParticleType& p) const {return p.r;}
+    __D__ inline real3 getPosition(const ParticleType& p) const {return p.r;}
     
 protected:
 
-    float rc, rc2;
+    real rc, rc2;
 };
 
 /**
@@ -57,7 +57,7 @@ class ParticleFetcherWithVelocity : public ParticleFetcher
 {
 public:
     
-    ParticleFetcherWithVelocity(float rc) :
+    ParticleFetcherWithVelocity(real rc) :
         ParticleFetcher(rc)
     {}
 
@@ -76,13 +76,13 @@ public:
     struct ParticleWithDensity
     {
         Particle p;
-        float d;
+        real d;
     };
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensity;
     
-    ParticleFetcherWithVelocityAndDensity(float rc) :
+    ParticleFetcherWithVelocityAndDensity(real rc) :
         ParticleFetcherWithVelocity(rc)
     {}
 
@@ -114,7 +114,7 @@ public:
         return ParticleFetcherWithVelocity::withinCutoff(src.p, dst.p);
     }
 
-    __D__ inline float3 getPosition(const ParticleType& p) const {return p.p.r;}
+    __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
 };
 
 /**
@@ -127,13 +127,13 @@ public:
     struct ParticleWithDensityAndMass
     {
         Particle p;
-        float d, m;
+        real d, m;
     };
 
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensityAndMass;
     
-    ParticleFetcherWithVelocityDensityAndMass(float rc) :
+    ParticleFetcherWithVelocityDensityAndMass(real rc) :
         ParticleFetcherWithVelocity(rc)
     {}
 
@@ -166,5 +166,5 @@ public:
         return ParticleFetcherWithVelocity::withinCutoff(src.p, dst.p);
     }
 
-    __D__ inline float3 getPosition(const ParticleType& p) const {return p.p.r;}
+    __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
 };

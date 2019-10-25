@@ -8,15 +8,15 @@
 
 namespace CheckpointHelpers
 {
-std::tuple<std::vector<float3>,
-           std::vector<float3>,
+std::tuple<std::vector<real3>,
+           std::vector<real3>,
            std::vector<int64_t>>
 splitAndShiftPosVel(const DomainInfo &domain,
-                    const PinnedBuffer<float4>& pos4,
-                    const PinnedBuffer<float4>& vel4)
+                    const PinnedBuffer<real4>& pos4,
+                    const PinnedBuffer<real4>& vel4)
 {
     auto n = pos4.size();
-    std::vector<float3> pos(n), vel(n);
+    std::vector<real3> pos(n), vel(n);
     std::vector<int64_t> ids(n);
 
     for (size_t i = 0; i < n; ++i)
@@ -29,20 +29,20 @@ splitAndShiftPosVel(const DomainInfo &domain,
     return {std::move(pos), std::move(vel), std::move(ids)};
 }
 
-std::tuple<std::vector<float3>, std::vector<RigidReal4>,
+std::tuple<std::vector<real3>, std::vector<RigidReal4>,
            std::vector<RigidReal3>, std::vector<RigidReal3>,
            std::vector<RigidReal3>, std::vector<RigidReal3>>
 splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions)
 {
     const int n = motions.size();
-    std::vector<float3> pos(n);
+    std::vector<real3> pos(n);
     std::vector<RigidReal4> quaternion(n);
     std::vector<RigidReal3> vel(n), omega(n), force(n), torque(n);
 
     for (int i = 0; i < n; ++i)
     {
         auto m = motions[i];
-        pos[i] = domain.local2global(make_float3(m.r));
+        pos[i] = domain.local2global(make_real3(m.r));
         quaternion[i] = m.q;
         vel[i] = m.vel;
         omega[i] = m.omega;

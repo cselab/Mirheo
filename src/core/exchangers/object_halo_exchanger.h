@@ -17,14 +17,14 @@ public:
     ObjectHaloExchanger();
     ~ObjectHaloExchanger();
 
-    void attach(ObjectVector *ov, float rc, const std::vector<std::string>& extraChannelNames);
+    void attach(ObjectVector *ov, real rc, const std::vector<std::string>& extraChannelNames);
 
     PinnedBuffer<int>& getSendOffsets(int id);
     PinnedBuffer<int>& getRecvOffsets(int id);
     DeviceBuffer<MapEntry>& getMap   (int id);
 
 protected:
-    std::vector<float> rcs;
+    std::vector<real> rcs;
     std::vector<ObjectVector*> objects;
     std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;
     std::vector<DeviceBuffer<MapEntry>> maps;

@@ -16,7 +16,7 @@ class BounceFromRod : public Bouncer
 {
 public:
 
-    BounceFromRod(const MirState *state, const std::string& name, float radius, VarBounceKernel varBounceKernel);
+    BounceFromRod(const MirState *state, const std::string& name, real radius, VarBounceKernel varBounceKernel);
     ~BounceFromRod();
 
     void setPrerequisites(ParticleVector *pv) override;
@@ -35,7 +35,7 @@ private:
      * Maximum supported number of collisions per step
      * will be #bouncesPerSeg * total number of triangles in mesh
      */
-    const float collisionsPerSeg = 5.0f;
+    const real collisionsPerSeg = 5.0f;
 
     CollisionTableWrapper<int2> table;
 
@@ -43,7 +43,7 @@ private:
     // note that times are always positive, thus guarantees ordering
     DeviceBuffer<int> collisionTimes;
 
-    float radius;
+    real radius;
 
     RodVector *rv;
 

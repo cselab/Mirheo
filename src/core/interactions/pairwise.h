@@ -8,7 +8,7 @@ class PairwiseInteraction : public Interaction
 {
 public:
     
-    PairwiseInteraction(const MirState *state, const std::string& name, float rc,
+    PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         const VarPairwiseParams& varParams, const VarStressParams& varStressParams);
     ~PairwiseInteraction();
 

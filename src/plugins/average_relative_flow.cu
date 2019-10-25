@@ -10,19 +10,20 @@
 #include <core/simulation.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/mpi_types.h>
 
 namespace AverageRelativeFlowKernels
 {
 __global__ void sampleRelative(
         PVview pvView, CellListInfo cinfo,
-        float* avgDensity,
+        real* avgDensity,
         ChannelsInfo channelsInfo,
-        float3 relativePoint)
+        real3 relativePoint)
 {
     const int pid = threadIdx.x + blockIdx.x*blockDim.x;
     if (pid >= pvView.size) return;
 
-    float3 r = make_float3(pvView.readPosition(pid));
+    real3 r = make_real3(pvView.readPosition(pid));
     r -= relativePoint;
 
     int3 cid3 = cinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(r);
@@ -39,7 +40,7 @@ AverageRelative3D::AverageRelative3D(
     const MirState *state, std::string name, std::vector<std::string> pvNames,
     std::vector<std::string> channelNames,
     std::vector<Average3D::ChannelType> channelTypes, int sampleEvery,
-    int dumpEvery, float3 binSize, std::string relativeOVname, int relativeID) :
+    int dumpEvery, real3 binSize, std::string relativeOVname, int relativeID) :
     Average3D(state, name, pvNames, channelNames, channelTypes, sampleEvery,
               dumpEvery, binSize),
     relativeOVname(relativeOVname), relativeID(relativeID)
@@ -88,7 +89,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
             relativeOV->name.c_str(), totsize, relativeID);
 }
 
-void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream)
+void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream)
 {
     CellListInfo cinfo(binSize, state->domain.globalSize);
     PVview pvView(pv, pv->local());
@@ -104,17 +105,17 @@ void AverageRelative3D::sampleOnePv(float3 relativeParam, ParticleVector *pv, cu
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
 {
     const int TAG = 22;
-    const int NCOMPONENTS = 2 * sizeof(float3) / sizeof(float);
+    const int NCOMPONENTS = 2 * sizeof(real3) / sizeof(real);
     
     if (!isTimeEvery(state, sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
-    float3 relativeParams[2] = {make_float3(0.0f), make_float3(0.0f)};
+    real3 relativeParams[2] = {make_real3(0.0f), make_real3(0.0f)};
 
     // Find and broadcast the position and velocity of the relative object
     MPI_Request req;
-    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, MPI_FLOAT, MPI_ANY_SOURCE, TAG, comm, &req) );
+    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm, &req) );
 
     auto ids     = relativeOV->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = relativeOV->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
@@ -126,13 +127,13 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     {
         if ((*ids)[i] == relativeID)
         {
-            float3 params[2] = { make_float3( (*motions)[i].r   ),
-                                 make_float3( (*motions)[i].vel ) };
+            real3 params[2] = { make_real3( (*motions)[i].r   ),
+                                 make_real3( (*motions)[i].vel ) };
 
             params[0] = state->domain.local2global(params[0]);
 
             for (int r = 0; r < nranks; r++)
-                MPI_Send(&params, NCOMPONENTS, MPI_FLOAT, r, TAG, comm);
+                MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm);
 
             break;
         }
@@ -203,9 +204,9 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
             SAFE_KERNEL_LAUNCH
                 (SamplingHelpersKernels::correctVelocity,
                  getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
-                 data.size() / 3, (double3*)data.devPtr(), accumulated_density.devPtr(), averageRelativeVelocity / (float) nSamples);
+                 data.size() / 3, (double3*)data.devPtr(), accumulated_density.devPtr(), averageRelativeVelocity / (real) nSamples);
 
-            averageRelativeVelocity = make_float3(0);
+            averageRelativeVelocity = make_real3(0);
         }
     }
 

@@ -24,14 +24,14 @@ createVV(const MirState *state, const std::string& name)
 }
 
 inline std::shared_ptr<IntegratorVV<Forcing_ConstDP>>
-createVV_constDP(const MirState *state, const std::string& name, float3 extraForce)
+createVV_constDP(const MirState *state, const std::string& name, real3 extraForce)
 {
     Forcing_ConstDP forcing(extraForce);
     return std::make_shared<IntegratorVV<Forcing_ConstDP>> (state, name, forcing);
 }
 
 inline std::shared_ptr<IntegratorVV<Forcing_PeriodicPoiseuille>>
-createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, float force, std::string direction)
+createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, real force, std::string direction)
 {
     Forcing_PeriodicPoiseuille::Direction dir;
     if      (direction == "x") dir = Forcing_PeriodicPoiseuille::Direction::x;
@@ -44,19 +44,19 @@ createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, floa
 }
 
 inline std::shared_ptr<IntegratorConstOmega>
-createConstOmega(const MirState *state, const std::string& name, float3 center, float3 omega)
+createConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega)
 {
     return std::make_shared<IntegratorConstOmega> (state, name, center, omega);
 }
 
 inline std::shared_ptr<IntegratorTranslate>
-createTranslate(const MirState *state, const std::string& name, float3 velocity)
+createTranslate(const MirState *state, const std::string& name, real3 velocity)
 {
     return std::make_shared<IntegratorTranslate> (state, name, velocity);
 }
 
 inline std::shared_ptr<IntegratorOscillate>
-createOscillating(const MirState *state, const std::string& name, float3 velocity, float period)
+createOscillating(const MirState *state, const std::string& name, real3 velocity, real period)
 {
     return std::make_shared<IntegratorOscillate> (state, name, velocity, period);
 }

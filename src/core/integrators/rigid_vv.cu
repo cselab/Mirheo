@@ -15,7 +15,7 @@ namespace RigidVVKernels
  * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
  * Velocity-Verlet fused is used at the moment
  */
-__global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const float dt)
+__global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const real dt)
 {
     const int objId = threadIdx.x + blockDim.x * blockIdx.x;
     if (objId >= ovView.nObjects) return;
@@ -98,7 +98,7 @@ void IntegratorVVRigid::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_
 {}
 
 
-static void integrateRigidMotions(const ROVviewWithOldMotion& view, float dt, cudaStream_t stream)
+static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cudaStream_t stream)
 {
     const int nthreads = 64;
     const int nblocks = getNblocks(view.nObjects, nthreads);
@@ -111,7 +111,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, float dt, cu
 
 void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    const float dt = state->dt;
+    const real dt = state->dt;
     auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",

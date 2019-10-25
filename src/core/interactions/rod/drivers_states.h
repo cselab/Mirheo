@@ -11,22 +11,22 @@
 
 struct GPU_SpinParameters
 {
-    float J, kBT, beta, seed;
+    real J, kBT, beta, seed;
 };
 
 namespace RodStatesKernels
 {
 
-__device__ inline void writeBisegmentData(int i, float4 *kappa, float2 *tau_l,
+__device__ inline void writeBisegmentData(int i, real4 *kappa, real2 *tau_l,
                                           rReal2 k0, rReal2 k1, rReal tau, rReal l)
 {
-    kappa[i] = { (float) k0.x, (float) k0.y,
-                 (float) k1.x, (float) k1.y };
+    kappa[i] = { (real) k0.x, (real) k0.y,
+                 (real) k1.x, (real) k1.y };
 
-    tau_l[i] = { (float) tau, (float) l };
+    tau_l[i] = { (real) tau, (real) l };
 }
 
-__device__ inline void fetchBisegmentData(int i, const float4 *kappa, const float2 *tau_l,
+__device__ inline void fetchBisegmentData(int i, const real4 *kappa, const real2 *tau_l,
                                           rReal2& k0, rReal2& k1, rReal& tau, rReal& l)
 {
     auto ks = kappa[i];
@@ -41,7 +41,7 @@ __device__ inline void fetchBisegmentData(int i, const float4 *kappa, const floa
     l = tl.y;
 }
 
-__global__ void computeBisegmentData(RVview view, float4 *kappa, float2 *tau_l)
+__global__ void computeBisegmentData(RVview view, real4 *kappa, real2 *tau_l)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -64,7 +64,7 @@ __global__ void computeBisegmentData(RVview view, float4 *kappa, float2 *tau_l)
 }
 
 template <int Nstates>
-__global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Nstates> params, const float4 *kappa, const float2 *tau_l)
+__global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Nstates> params, const real4 *kappa, const real2 *tau_l)
 {
     const int tid   = threadIdx.x;
     const int rodId = blockIdx.x;
@@ -98,9 +98,9 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 }
 
 template <int Nstates>
-__device__ inline int randomOtherState(int current, float seed)
+__device__ inline int randomOtherState(int current, real seed)
 {
-    float u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
+    real u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
     unsigned int r = 4294967295.0f * u;
     int s = r % (Nstates - 1);
     return s >= current ? (s + 1) % Nstates : s;
@@ -114,15 +114,15 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
 {
     int sother = randomOtherState<Nstates>(scurrent, spinParams.seed);
 
-    float Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
+    real Ecurrent = computeEnergy(l, k0, k1, tau, scurrent, params)
         + spinParams.J * (math::abs(scurrent-sprev) + math::abs(scurrent-snext));
 
-    float Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
+    real Eother   = computeEnergy(l, k0, k1, tau, sother  , params)
         + spinParams.J * (math::abs(sother  -sprev) + math::abs(sother  -snext));
 
-    float dE = Eother - Ecurrent;
+    real dE = Eother - Ecurrent;
     
-    float u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
+    real u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
 
     if (spinParams.kBT < 1e-6)
         return dE < 0 ? sother : scurrent;
@@ -135,7 +135,7 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
 
 template <int Nstates>
 __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParameters<Nstates> params,
-                                            GPU_SpinParameters spinParams, const float4 *kappa, const float2 *tau_l)
+                                            GPU_SpinParameters spinParams, const real4 *kappa, const real2 *tau_l)
 {
     const int tid   = threadIdx.x;
     const int rodId = blockIdx.x;

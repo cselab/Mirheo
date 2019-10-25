@@ -8,7 +8,7 @@
 
 struct ForceStress
 {
-    float3 force;
+    real3 force;
     Stress stress;
 };
 

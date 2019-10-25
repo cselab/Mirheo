@@ -13,7 +13,7 @@ class IntegratorTranslate : public Integrator
 {
 public:
 
-    IntegratorTranslate(const MirState *state, std::string name, float3 vel);
+    IntegratorTranslate(const MirState *state, std::string name, real3 vel);
     ~IntegratorTranslate();
 
     void stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream) override {};
@@ -21,5 +21,5 @@ public:
 
   private:
 
-    float3 vel;   ///< Velocity
+    real3 vel;   ///< Velocity
 };

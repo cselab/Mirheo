@@ -211,17 +211,17 @@ MPI_Comm Simulation::getCartComm() const
     return cartComm;
 }
 
-float Simulation::getCurrentDt() const
+real Simulation::getCurrentDt() const
 {
     return state->dt;
 }
 
-float Simulation::getCurrentTime() const
+real Simulation::getCurrentTime() const
 {
     return state->currentTime;
 }
 
-float Simulation::getMaxEffectiveCutoff() const
+real Simulation::getMaxEffectiveCutoff() const
 {
     const auto rcIntermediate = interactionsIntermediate->getLargestCutoff();
     const auto rcFinal        = interactionsFinal       ->getLargestCutoff();
@@ -378,7 +378,7 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
         die("No such interaction: %s", interactionName.c_str());
     auto interaction = interactionMap[interactionName].get();    
 
-    float rc = interaction->rc;
+    real rc = interaction->rc;
     interactionPrototypes.push_back({rc, pv1, pv2, interaction});
 }
 
@@ -396,7 +396,7 @@ void Simulation::setBouncer(const std::string& bouncerName, const std::string& o
     bouncerPrototypes.push_back({bouncer, pv});
 }
 
-void Simulation::setWallBounce(const std::string& wallName, const std::string& pvName, float maximumPartTravel)
+void Simulation::setWallBounce(const std::string& wallName, const std::string& pvName, real maximumPartTravel)
 {
     auto pv = getPVbyNameOrDie(pvName);
 
@@ -474,15 +474,15 @@ void Simulation::applyObjectBelongingChecker(const std::string& checkerName, con
     belongingCorrectionPrototypes.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
 }
 
-static void sortDescendingOrder(std::vector<float>& v)
+static void sortDescendingOrder(std::vector<real>& v)
 {
-    std::sort(v.begin(), v.end(), [] (float a, float b) { return a > b; });
+    std::sort(v.begin(), v.end(), [] (real a, real b) { return a > b; });
 }
 
 // assume sorted array (ascending or descending)
-static void removeDuplicatedElements(std::vector<float>& v, float tolerance)
+static void removeDuplicatedElements(std::vector<real>& v, real tolerance)
 {
-    auto it = std::unique(v.begin(), v.end(), [=] (float a, float b) { return math::abs(a - b) < tolerance; });
+    auto it = std::unique(v.begin(), v.end(), [=] (real a, real b) { return math::abs(a - b) < tolerance; });
     v.resize( std::distance(v.begin(), it) );    
 }
 
@@ -490,12 +490,12 @@ void Simulation::prepareCellLists()
 {
     info("Preparing cell-lists");
 
-    std::map<ParticleVector*, std::vector<float>> cutOffMap;
+    std::map<ParticleVector*, std::vector<real>> cutOffMap;
 
     // Deal with the cell-lists and interactions
     for (auto prototype : interactionPrototypes)
     {
-        float rc = prototype.rc;
+        real rc = prototype.rc;
         cutOffMap[prototype.pv1].push_back(rc);
         cutOffMap[prototype.pv2].push_back(rc);
     }
@@ -528,7 +528,7 @@ void Simulation::prepareCellLists()
         auto pvptr = pv.get();
         if (cellListMap[pvptr].empty())
         {
-            const float defaultRc = 1.f;
+            const real defaultRc = 1.f;
             bool primary = true;
 
             // Don't use primary cell-lists with ObjectVectors
@@ -544,13 +544,13 @@ void Simulation::prepareCellLists()
 }
 
 // Choose a CL with smallest but bigger than rc cell
-static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLists, float rc, float tolerance)
+static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLists, real rc, real tolerance)
 {
-    float minDiff = 1e6;
+    real minDiff = 1e6;
     CellList* best = nullptr;
     
     for (auto& cl : cellLists) {
-        float diff = cl->rc - rc;
+        real diff = cl->rc - rc;
         if (diff > -tolerance && diff < minDiff) {
             best    = cl.get();
             minDiff = diff;

@@ -3,7 +3,7 @@
 #include <core/utils/common.h>
 #include <core/utils/macros.h>
 
-Interaction::Interaction(const MirState *state, std::string name, float rc) :
+Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),
     rc(rc)
 {}

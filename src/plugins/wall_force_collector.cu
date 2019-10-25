@@ -16,12 +16,12 @@ __global__ void totalForce(PVview view, double3 *totalForce)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    float3 f {0.f, 0.f, 0.f};
+    real3 f {0.f, 0.f, 0.f};
     
     if (tid < view.size)
-        f = make_float3(view.forces[tid]);
+        f = make_real3(view.forces[tid]);
 
-    f = warpReduce(f, [](float a, float b) { return a + b; });
+    f = warpReduce(f, [](real a, real b) { return a + b; });
 
     if (laneId() == 0)
         atomicAdd(totalForce, make_double3(f));

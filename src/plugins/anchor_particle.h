@@ -10,7 +10,7 @@
 
 class ParticleVector;
 
-using FuncTime3D = std::function<std::vector<float3>(float)>;
+using FuncTime3D = std::function<std::vector<real3>(real)>;
 
 class AnchorParticlesPlugin : public SimulationPlugin
 {
@@ -34,7 +34,7 @@ private:
     FuncTime3D velocities;
 
     PinnedBuffer<double3> forces;
-    PinnedBuffer<float3> posBuffer, velBuffer;
+    PinnedBuffer<real3> posBuffer, velBuffer;
     PinnedBuffer<int> pids;
 
     int nsamples {0};

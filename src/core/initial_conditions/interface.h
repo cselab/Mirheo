@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/datatypes.h>
+
 #include <mpi.h>
 #include <cuda_runtime.h>
 

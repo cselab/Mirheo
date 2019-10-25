@@ -12,7 +12,7 @@ class PinRodExtremityPlugin : public SimulationPlugin
 {
 public:
     PinRodExtremityPlugin(const MirState *state, std::string name, std::string rvName,
-                          int segmentId, float fmagn, float3 targetDirection);
+                          int segmentId, real fmagn, real3 targetDirection);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;
@@ -23,6 +23,6 @@ private:
     std::string rvName;
     RodVector *rv;
     int segmentId;
-    float fmagn;
-    float3 targetDirection;
+    real fmagn;
+    real3 targetDirection;
 };

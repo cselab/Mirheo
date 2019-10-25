@@ -6,7 +6,7 @@
 class StationaryWall_SDF
 {
 public:
-    StationaryWall_SDF(const MirState *state, std::string sdfFileName, float3 sdfH);
+    StationaryWall_SDF(const MirState *state, std::string sdfFileName, real3 sdfH);
     StationaryWall_SDF(StationaryWall_SDF&&);
 
     void setup(MPI_Comm& comm, DomainInfo domain);

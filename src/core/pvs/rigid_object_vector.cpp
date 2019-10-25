@@ -15,7 +15,7 @@ LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, 
     LocalObjectVector(pv, objSize, nObjects)
 {}
 
-PinnedBuffer<float4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
+PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
@@ -32,7 +32,7 @@ PinnedBuffer<float4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t strea
     return &meshVertices;
 }
 
-PinnedBuffer<float4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
+PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
@@ -68,8 +68,8 @@ void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 
 
 
-RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, float partMass,
-                                     float3 J, const int objSize,
+RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, real partMass,
+                                     real3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
                   std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
@@ -97,7 +97,7 @@ RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, fl
 RigidObjectVector::~RigidObjectVector() = default;
 
 static void writeInitialPositions(MPI_Comm comm, const std::string& filename,
-                                  const PinnedBuffer<float4>& positions)
+                                  const PinnedBuffer<real4>& positions)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
@@ -108,10 +108,10 @@ static void writeInitialPositions(MPI_Comm comm, const std::string& filename,
     fwrite(positions.data(), sizeof(positions[0]), positions.size(), f.get());
 }
 
-static PinnedBuffer<float4> readInitialPositions(MPI_Comm comm, const std::string& filename,
+static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string& filename,
                                                  int objSize)
 {
-    PinnedBuffer<float4> positions(objSize);
+    PinnedBuffer<real4> positions(objSize);
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     constexpr int root = 0;
@@ -142,7 +142,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float3>>();
+    auto positions = std::make_shared<std::vector<real3>>();
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
     
@@ -208,7 +208,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     auto listData = readData(filename, comm, objChunkSize);
 
     namespace ChNames = ChannelNames::XDMF;
-    auto pos        = extractChannel<float3>     (ChNames::position,            listData);
+    auto pos        = extractChannel<real3>     (ChNames::position,            listData);
     auto quaternion = extractChannel<RigidReal4> (ChNames::Motions::quaternion, listData);
     auto vel        = extractChannel<RigidReal3> (ChNames::Motions::velocity,   listData);
     auto omega      = extractChannel<RigidReal3> (ChNames::Motions::omega,      listData);

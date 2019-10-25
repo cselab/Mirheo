@@ -9,21 +9,21 @@
 
 struct DomainInfo
 {
-    float3 globalSize, globalStart, localSize;
+    real3 globalSize, globalStart, localSize;
 
-    inline __HD__ float3 local2global(float3 x) const
+    inline __HD__ real3 local2global(real3 x) const
     {
-        return x + globalStart + 0.5f * localSize;
+        return x + globalStart + 0.5_r * localSize;
     }
-    inline __HD__ float3 global2local(float3 x) const
+    inline __HD__ real3 global2local(real3 x) const
     {
-        return x - globalStart - 0.5f * localSize;
+        return x - globalStart - 0.5_r * localSize;
     }
 
-    inline __HD__ float4 global2localPlane(float4 plane) const noexcept {
+    inline __HD__ real4 global2localPlane(real4 plane) const noexcept {
         // v * x_global + d == v * x_local + (v * delta_{local -> global} + d)
-        float3 v = make_float3(plane);
-        return make_float4(v, dot(v, local2global(float3{0, 0, 0})) + plane.w);
+        real3 v = make_real3(plane);
+        return make_real4(v, dot(v, local2global(real3{0, 0, 0})) + plane.w);
     }
 
     template <typename RealType3>
@@ -35,4 +35,4 @@ struct DomainInfo
     }    
 };
 
-DomainInfo createDomainInfo(MPI_Comm cartComm, float3 globalSize);
+DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize);

@@ -11,7 +11,7 @@ public:
 
     __D__ inline VertexType fetchVertex(const ViewType& view, int i) const
     {
-        return make_mReal3(Float3_int(view.readPosition(i)).v);
+        return make_mReal3(Real3_int(view.readPosition(i)).v);
     }
 };
 

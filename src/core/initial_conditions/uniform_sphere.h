@@ -10,15 +10,15 @@
 class UniformSphereIC : public InitialConditions
 {
 public:
-    UniformSphereIC(float density, float3 center, float radius, bool inside);
+    UniformSphereIC(real density, real3 center, real radius, bool inside);
     ~UniformSphereIC();
     
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
-    float density;
-    float3 center;
-    float radius;
+    real density;
+    real3 center;
+    real  radius;
     bool inside;
 };
 

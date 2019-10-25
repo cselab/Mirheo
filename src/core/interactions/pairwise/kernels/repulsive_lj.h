@@ -108,7 +108,7 @@ public:
     using ParticleType = Particle;
     using HandlerType  = PairwiseRepulsiveLJ;
     
-    PairwiseRepulsiveLJ(float rc, float epsilon, float sigma, float maxForce, Awareness awareness) :
+    PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
         ParticleFetcher(rc),
         epsilon(epsilon),
         sigma(sigma),
@@ -117,24 +117,24 @@ public:
         awareness(awareness)
     {}
 
-    __D__ inline float3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
+    __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
-        constexpr float tolerance = 1e-6f;
+        constexpr real tolerance = 1e-6f;
         if (!awareness.interact(src.i1, dst.i1))
-            return make_float3(0.0f);
+            return make_real3(0.0f);
         
-        const float3 dr = dst.r - src.r;
-        const float rij2 = dot(dr, dr);
+        const real3 dr = dst.r - src.r;
+        const real rij2 = dot(dr, dr);
 
         if (rij2 > rc2 || rij2 < tolerance)
-            return make_float3(0.0f);
+            return make_real3(0.0f);
 
-        const float rs2 = sigma*sigma / rij2;
-        const float rs4 = rs2*rs2;
-        const float rs8 = rs4*rs4;
-        const float rs14 = rs8*rs4*rs2;
+        const real rs2 = sigma*sigma / rij2;
+        const real rs4 = rs2*rs2;
+        const real rs8 = rs4*rs4;
+        const real rs14 = rs8*rs4*rs2;
 
-        const float IfI = epsx24_sigma * (2*rs14 - rs8);
+        const real IfI = epsx24_sigma * (2*rs14 - rs8);
 
         return dr * math::min(math::max(IfI, 0.0f), maxForce);
     }
@@ -155,8 +155,8 @@ public:
     
 private:
 
-    float epsilon, sigma, maxForce;
-    float epsx24_sigma;
+    real epsilon, sigma, maxForce;
+    real epsx24_sigma;
 
     Awareness awareness;
 };

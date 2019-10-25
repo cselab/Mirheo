@@ -12,21 +12,21 @@ namespace ShapeBounceKernels
 {
 
 template <class Shape>
-__device__ static inline float3 rescue(float3 candidate, float dt, float tol, const Shape& shape)
+__device__ static inline real3 rescue(real3 candidate, real dt, real tol, const Shape& shape)
 {
     const int maxIters = 100;
-    const float factor = 50.0f * dt;
+    const real factor = 50.0f * dt;
 
     for (int i = 0; i < maxIters; i++)
     {
-        const float v = shape.inOutFunction(candidate);
+        const real v = shape.inOutFunction(candidate);
         if (v > tol) break;
 
-        const float seed0 = candidate.x - math::floor(candidate.x) / i;
-        const float seed1 = candidate.y - math::floor(candidate.y) * i;
-        const float seed2 = candidate.z - math::floor(candidate.z) + i;
+        const real seed0 = candidate.x - math::floor(candidate.x) / i;
+        const real seed1 = candidate.y - math::floor(candidate.y) * i;
+        const real seed2 = candidate.z - math::floor(candidate.z) + i;
         
-        float3 rndShift;
+        real3 rndShift;
         rndShift.x = Saru::mean0var1(seed0, seed1, seed2);
         rndShift.y = Saru::mean0var1(rndShift.x, seed0, seed1);
         rndShift.z = Saru::mean0var1(rndShift.y, seed2, seed1 * seed0);
@@ -42,14 +42,14 @@ template <class Shape, class BounceKernel>
 __device__ static inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
         int objId, const int *validCells, int nCells,
-        CellListInfo cinfo, const float dt, const BounceKernel& bounceKernel)
+        CellListInfo cinfo, const real dt, const BounceKernel& bounceKernel)
 {
-    const float threshold = 2e-5f;
+    const real threshold = 2e-5f;
 
     const Shape& shape = ovView.shape;
     
-    const auto motion     = toSingleMotion( ovView.motions[objId] );
-    const auto old_motion = toSingleMotion( ovView.old_motions[objId] );
+    const auto motion     = toRealMotion( ovView.motions[objId] );
+    const auto old_motion = toRealMotion( ovView.old_motions[objId] );
 
     if (threadIdx.x >= nCells) return;
 
@@ -64,14 +64,14 @@ __device__ static inline void bounceCellArray(
         const auto rOld = pvView.readOldPosition(pid);
 
         // Go to the obj frame of reference
-        const float3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
-        const float3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
-        const float3 dr = coo - oldCoo;
+        const real3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
+        const real3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
+        const real3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
         if (shape.inOutFunction(coo) > 0.0f) continue;
 
-        float3 newCoo;
+        real3 newCoo;
         
         // worst case scenario: was already inside before, we need to rescue the particle
         if (shape.inOutFunction(oldCoo) <= 0.0f)
@@ -96,11 +96,11 @@ __device__ static inline void bounceCellArray(
         {
             // This is intersection point
             constexpr RootFinder::Bounds limits {0.f, 1.f};
-            const float alpha = RootFinder::linearSearch( [=] (const float lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
+            const real alpha = RootFinder::linearSearch( [=] (const real lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
             newCoo = oldCoo + dr*max(alpha, limits.lo);
 
             // Push out a little bit
-            const float3 normal = shape.normal(newCoo);
+            const real3 normal = shape.normal(newCoo);
             newCoo += threshold * normal;
 
             // If smth went notoriously bad
@@ -119,17 +119,17 @@ __device__ static inline void bounceCellArray(
             }
         }
 
-        float3 normal = shape.normal(newCoo);
+        real3 normal = shape.normal(newCoo);
         
         // Return to the original frame
         newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
         normal = Quaternion::rotate(normal, motion.q);
 
         // Change velocity's frame to the object frame, correct for rotation as well
-        const float3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
-        const float3 newU = bounceKernel.newVelocity(p.u, vObj, normal, pvView.mass);
+        const real3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
+        const real3 newU = bounceKernel.newVelocity(p.u, vObj, normal, pvView.mass);
 
-        const float3 frc = -pvView.mass * (newU - p.u) / dt;
+        const real3 frc = -pvView.mass * (newU - p.u) / dt;
         atomicAdd( &ovView.motions[objId].force,  make_rigidReal3(frc));
         atomicAdd( &ovView.motions[objId].torque, make_rigidReal3(cross(newCoo - motion.r, frc)) );
 
@@ -140,20 +140,20 @@ __device__ static inline void bounceCellArray(
 }
 
 template <class Shape>
-__device__ static inline bool isValidCell(int3 cid3, SingleRigidMotion motion, CellListInfo cinfo, const Shape& shape)
+__device__ static inline bool isValidCell(int3 cid3, const RealRigidMotion& motion, CellListInfo cinfo, const Shape& shape)
 {
-    constexpr float threshold = 0.5f;
+    constexpr real threshold = 0.5f;
 
-    float3 v000 = make_float3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
-    const float4 invq = Quaternion::conjugate(motion.q);
+    real3 v000 = make_real3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
+    const real4 invq = Quaternion::conjugate(motion.q);
 
-    const float3 v001 = Quaternion::rotate( v000 + make_float3(        0,         0, cinfo.h.z), invq );
-    const float3 v010 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y,         0), invq );
-    const float3 v011 = Quaternion::rotate( v000 + make_float3(        0, cinfo.h.y, cinfo.h.z), invq );
-    const float3 v100 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0,         0), invq );
-    const float3 v101 = Quaternion::rotate( v000 + make_float3(cinfo.h.x,         0, cinfo.h.z), invq );
-    const float3 v110 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y,         0), invq );
-    const float3 v111 = Quaternion::rotate( v000 + make_float3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
+    const real3 v001 = Quaternion::rotate( v000 + make_real3(        0,         0, cinfo.h.z), invq );
+    const real3 v010 = Quaternion::rotate( v000 + make_real3(        0, cinfo.h.y,         0), invq );
+    const real3 v011 = Quaternion::rotate( v000 + make_real3(        0, cinfo.h.y, cinfo.h.z), invq );
+    const real3 v100 = Quaternion::rotate( v000 + make_real3(cinfo.h.x,         0,         0), invq );
+    const real3 v101 = Quaternion::rotate( v000 + make_real3(cinfo.h.x,         0, cinfo.h.z), invq );
+    const real3 v110 = Quaternion::rotate( v000 + make_real3(cinfo.h.x, cinfo.h.y,         0), invq );
+    const real3 v111 = Quaternion::rotate( v000 + make_real3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
 
     v000 = Quaternion::rotate( v000, invq );
 
@@ -169,7 +169,7 @@ __device__ static inline bool isValidCell(int3 cid3, SingleRigidMotion motion, C
 
 template <class Shape, class BounceKernel>
 __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticles pvView,
-                       CellListInfo cinfo, const float dt, const BounceKernel bounceKernel)
+                       CellListInfo cinfo, const real dt, const BounceKernel bounceKernel)
 {
     // About max travel distance per step + safety
     // Safety comes from the fact that bounce works with the analytical shape,
@@ -201,7 +201,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
 
         if ( i < totCells &&
              cid < cinfo.totcells &&
-             isValidCell(cid3, toSingleMotion(ovView.motions[objId]), cinfo, ovView.shape) )
+             isValidCell(cid3, toRealMotion(ovView.motions[objId]), cinfo, ovView.shape) )
         {
             const int id = atomicAggInc(static_cast<int*>(&nCells));
             validCells[id] = cid;

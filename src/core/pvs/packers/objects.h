@@ -26,7 +26,7 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     }
 
     inline __device__ size_t blockPackShift(int numElements, char *buffer,
-                                            int srcObjId, int dstObjId, float3 shift) const
+                                            int srcObjId, int dstObjId, real3 shift) const
     {
         return blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
@@ -38,13 +38,13 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     }
 
     inline __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
-                                                   int srcObjId, int dstObjId, float eps) const
+                                                   int srcObjId, int dstObjId, real eps) const
     {
          return blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
     }
 
     inline __device__ size_t blockUnpackShift(int numElements, const char *buffer,
-                                              int srcObjId, int dstObjId, float3 shift) const
+                                              int srcObjId, int dstObjId, real3 shift) const
     {
         return blockApply<UnpackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
@@ -84,7 +84,7 @@ protected:
 
     struct PackShiftOp
     {
-        float3 shift;
+        real3 shift;
         inline __device__ auto operator()(const GenericPackerHandler& gpacker,
                                           int srcId, int dstId, char *buffer, int numElements)
         {
@@ -104,7 +104,7 @@ protected:
 
     struct UnpackAddOp
     {
-        float eps;
+        real eps;
         inline __device__ auto operator()(const GenericPackerHandler& gpacker,
                                           int srcId, int dstId, const char *buffer,
                                           int numElements)
@@ -115,7 +115,7 @@ protected:
 
     struct UnpackShiftOp
     {
-        float3 shift;
+        real3 shift;
         inline __device__ auto operator()(const GenericPackerHandler& gpacker,
                                           int srcId, int dstId, const char *buffer,
                                           int numElements)

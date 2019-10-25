@@ -13,14 +13,14 @@ namespace XDMF {struct Channel;}
 namespace CheckpointHelpers
 {
 
-std::tuple<std::vector<float3>,
-           std::vector<float3>,
+std::tuple<std::vector<real3>,
+           std::vector<real3>,
            std::vector<int64_t>>
 splitAndShiftPosVel(const DomainInfo &domain,
-                    const PinnedBuffer<float4>& pos4,
-                    const PinnedBuffer<float4>& vel4);
+                    const PinnedBuffer<real4>& pos4,
+                    const PinnedBuffer<real4>& vel4);
 
-std::tuple<std::vector<float3>, std::vector<RigidReal4>,
+std::tuple<std::vector<real3>, std::vector<RigidReal4>,
            std::vector<RigidReal3>, std::vector<RigidReal3>,
            std::vector<RigidReal3>, std::vector<RigidReal3>>
 splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions);

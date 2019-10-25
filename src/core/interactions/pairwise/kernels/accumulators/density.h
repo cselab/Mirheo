@@ -8,22 +8,22 @@ class DensityAccumulator
 public:
 
     __D__ inline DensityAccumulator() :
-        den(0.f)
+        den(0._r)
     {}
     
-    __D__ inline void atomicAddToDst(float d, PVviewWithDensities& view, int id) const
+    __D__ inline void atomicAddToDst(real d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline void atomicAddToSrc(float d, PVviewWithDensities& view, int id) const
+    __D__ inline void atomicAddToSrc(real d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline float get() const {return den;}
-    __D__ inline void add(float d) {den += d;}
+    __D__ inline real get() const {return den;}
+    __D__ inline void add(real d) {den += d;}
     
 private:
-    float den;
+    real den;
 };

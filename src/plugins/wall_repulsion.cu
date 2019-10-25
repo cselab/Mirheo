@@ -16,16 +16,16 @@ static const std::string grad_sdf = "grad_sdf";
 
 namespace WallRepulsionPluginKernels
 {
-__global__ void forceFromSDF(PVview view, const float *sdfs, const float3 *gradients, float C, float h, float maxForce)
+__global__ void forceFromSDF(PVview view, const real *sdfs, const real3 *gradients, real C, real h, real maxForce)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    const float sdf = sdfs[pid];
+    const real sdf = sdfs[pid];
 
     if (sdf + h >= 0.0f)
     {
-        const float3 f = -gradients[pid] * math::min( maxForce, C * math::max(sdf + h, 0.0f) );
+        const real3 f = -gradients[pid] * math::min( maxForce, C * math::max(sdf + h, 0.0f) );
         atomicAdd(view.forces + pid, f);
     }
 }
@@ -33,7 +33,7 @@ __global__ void forceFromSDF(PVview view, const float *sdfs, const float3 *gradi
 
 WallRepulsionPlugin::WallRepulsionPlugin(const MirState *state, std::string name,
                                          std::string pvName, std::string wallName,
-                                         float C, float h, float maxForce) :
+                                         real C, real h, real maxForce) :
     SimulationPlugin(state, name),
     pvName(pvName),
     wallName(wallName),
@@ -49,8 +49,8 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
     pv = simulation->getPVbyNameOrDie(pvName);
     wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
     
-    pv->requireDataPerParticle<float>(ChannelNames::sdf, DataManager::PersistenceMode::None);
-    pv->requireDataPerParticle<float3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<real>(ChannelNames::sdf, DataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<real3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);
 
     if (wall == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
@@ -64,10 +64,10 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
     
-    auto sdfs      = pv->local()->dataPerParticle.getData<float>(ChannelNames::sdf);
-    auto gradients = pv->local()->dataPerParticle.getData<float3>(ChannelNames::grad_sdf);
+    auto sdfs      = pv->local()->dataPerParticle.getData<real>(ChannelNames::sdf);
+    auto gradients = pv->local()->dataPerParticle.getData<real3>(ChannelNames::grad_sdf);
 
-    float gradientThreshold = h + 0.1f;
+    real gradientThreshold = h + 0.1f;
     
     wall->sdfPerParticle(pv->local(), sdfs, gradients, gradientThreshold, stream);
 

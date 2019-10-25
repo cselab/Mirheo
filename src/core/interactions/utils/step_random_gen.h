@@ -18,14 +18,14 @@ public:
     explicit StepRandomGen(long seed);
     ~StepRandomGen();
     
-    float generate(const MirState *state);
+    real generate(const MirState *state);
 
     friend std::ofstream& operator<<(std::ofstream& stream, const StepRandomGen& gen);
     friend std::ifstream& operator>>(std::ifstream& stream,       StepRandomGen& gen);
     
 private:
     MirState::StepType lastIteration {-1};
-    float lastSample;
+    real lastSample;
     std::mt19937 gen;
-    std::uniform_real_distribution<float> udistr;
+    std::uniform_real_distribution<real> udistr;
 };

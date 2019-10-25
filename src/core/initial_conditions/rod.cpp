@@ -7,11 +7,11 @@
 #include <limits>
 #include <random>
 
-const float RodIC::Default = std::numeric_limits<float>::infinity();
-const float3 RodIC::DefaultFrame = {Default, Default, Default};
+const real RodIC::Default = std::numeric_limits<real>::infinity();
+const real3 RodIC::DefaultFrame = {Default, Default, Default};
 
 RodIC::RodIC(const std::vector<ComQ>& com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
-             float a, float3 initialMaterialFrame) :
+             real a, real3 initialMaterialFrame) :
     com_q(com_q),
     centerLine(centerLine),
     torsion(torsion),
@@ -21,21 +21,21 @@ RodIC::RodIC(const std::vector<ComQ>& com_q, MappingFunc3D centerLine, MappingFu
 
 RodIC::~RodIC() = default;
 
-static bool isDefaultFrame(float3 v)
+static bool isDefaultFrame(real3 v)
 {
-    const float defVal = RodIC::Default;
+    const real defVal = RodIC::Default;
     return v.x == defVal && v.y == defVal && v.z == defVal;
 }
 
-static float3 getFirstBishop(float3 r0, float3 r1, float3 r2, float3 initialMaterialFrame)
+static real3 getFirstBishop(real3 r0, real3 r1, real3 r2, real3 initialMaterialFrame)
 {
-    const float3 t0 = normalize(r1 - r0);
-    float3 u;
+    const real3 t0 = normalize(r1 - r0);
+    real3 u;
     
     if (isDefaultFrame(initialMaterialFrame))
     {
-        const float3 t1 = normalize(r2 - r1);
-        const float3 b = cross(t0, t1);
+        const real3 t1 = normalize(r2 - r1);
+        const real3 b = cross(t0, t1);
         
         if (length(b) > 1e-6)
         {
@@ -56,19 +56,19 @@ static float3 getFirstBishop(float3 r0, float3 r1, float3 r2, float3 initialMate
     return normalize(u);
 }
 
-std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMaterialFrame,
+std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMaterialFrame,
                                       const RodIC::MappingFunc3D& centerLine,
                                       const RodIC::MappingFunc1D& torsion)
 {
     assert(nSegments > 1);
     
-    std::vector<float3> positions (5*nSegments + 1);
-    float h = 1.f / nSegments;
+    std::vector<real3> positions (5*nSegments + 1);
+    real h = 1.f / nSegments;
 
-    float3 u; // bishop frame
+    real3 u; // bishop frame
     
     for (int i = 0; i <= nSegments; ++i)
-        positions[i*5] = make_float3(centerLine(i*h));
+        positions[i*5] = make_real3(centerLine(i*h));
 
     u = getFirstBishop(positions[0], positions[5], positions[10], initialMaterialFrame);
 
@@ -80,8 +80,8 @@ std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMate
         auto r1 = positions[5*(i + 1)];
 
         auto r = 0.5f * (r0 + r1);
-        float cost = cos(theta);
-        float sint = sin(theta);
+        real cost = math::cos(theta);
+        real sint = math::sin(theta);
 
         auto t0 = normalize(r1-r0);
 
@@ -89,8 +89,8 @@ std::vector<float3> createRodTemplate(int nSegments, float a, float3 initialMate
         auto v = cross(t0, u);
 
         // material frame
-        float3 mu =  cost * u + sint * v;
-        float3 mv = -sint * u + cost * v;
+        real3 mu =  cost * u + sint * v;
+        real3 mv = -sint * u + cost * v;
             
         positions[5*i + 1] = r - 0.5 * a * mu;
         positions[5*i + 2] = r + 0.5 * a * mu;
@@ -132,8 +132,8 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     
     for (auto& entry : com_q)
     {
-        float3 com = entry.r;
-        float4 q   = entry.q;;
+        real3 com = entry.r;
+        real4 q   = entry.q;;
 
         q = normalize(q);        
 
@@ -145,16 +145,16 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             int oldSize = rv->local()->size();
             rv->local()->resize(oldSize + objSize, stream);
 
-            float4 *pos = rv->local()->positions() .data();
-            float4 *vel = rv->local()->velocities().data();
+            real4 *pos = rv->local()->positions() .data();
+            real4 *vel = rv->local()->velocities().data();
             
             for (int i = 0; i < objSize; i++)
             {
-                float3 r = Quaternion::rotate(positions[i], q) + com;
-                Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
+                real3 r = Quaternion::rotate(positions[i], q) + com;
+                Particle p {{r.x, r.y, r.z, 0.f}, make_real4(0.f)};
 
-                pos[oldSize + i] = p.r2Float4();
-                vel[oldSize + i] = p.u2Float4();
+                pos[oldSize + i] = p.r2Real4();
+                vel[oldSize + i] = p.u2Real4();
             }
 
             nObjs++;
@@ -164,7 +164,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     rv->local()->positions() .uploadToDevice(stream);
     rv->local()->velocities().uploadToDevice(stream);
     rv->local()->computeGlobalIds(comm, stream);
-    rv->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(rv->local()->positions(), stream);
+    rv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(rv->local()->positions(), stream);
 
     info("Initialized %d '%s' rods", nObjs, rv->name.c_str());
 }

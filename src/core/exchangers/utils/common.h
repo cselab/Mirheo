@@ -9,7 +9,7 @@ using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
 namespace ExchangersCommon
 {
 
-__device__ inline int3 getDirection(float3 pos, float3 L)
+__device__ static inline int3 getDirection(real3 pos, real3 L)
 {
     int3 dir {0, 0, 0};
     if (pos.x < -0.5f * L.x) dir.x = -1;
@@ -23,7 +23,7 @@ __device__ inline int3 getDirection(float3 pos, float3 L)
     return dir;
 }
 
-__device__ inline float3 getShift(float3 L, int3 dir)
+__device__ static inline real3 getShift(real3 L, int3 dir)
 {
     return {-L.x * dir.x,
             -L.y * dir.y,

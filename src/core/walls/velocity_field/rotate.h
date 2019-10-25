@@ -11,23 +11,23 @@ class ParticleVector;
 class VelocityField_Rotate
 {
 public:
-    VelocityField_Rotate(float3 omega, float3 center) :
+    VelocityField_Rotate(real3 omega, real3 center) :
         omega(omega), center(center)
     {}
 
-    void setup(__UNUSED float t, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED real t, DomainInfo domain) { this->domain = domain; }
 
     const VelocityField_Rotate& handler() const { return *this; }
 
-    __D__ inline float3 operator()(float3 coo) const
+    __D__ inline real3 operator()(real3 coo) const
     {
-        float3 gr = domain.local2global(coo);
+        real3 gr = domain.local2global(coo);
 
         return cross(omega, gr - center);
     }
 
 private:
-    float3 omega, center;
+    real3 omega, center;
 
     DomainInfo domain;
 };

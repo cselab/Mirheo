@@ -1,6 +1,6 @@
 #include "xyz.h"
 
-void writeXYZ(MPI_Comm comm, std::string fname, const float4 *positions, int np)
+void writeXYZ(MPI_Comm comm, std::string fname, const real4 *positions, int np)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );

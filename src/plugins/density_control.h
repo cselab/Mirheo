@@ -19,13 +19,13 @@ class DensityControlPlugin : public SimulationPlugin
 {
 public:
 
-    using RegionFunc = std::function<float(float3)>;
+    using RegionFunc = std::function<real(real3)>;
     
     DensityControlPlugin(const MirState *state, std::string name,
-                         std::vector<std::string> pvNames, float targetDensity,
-                         RegionFunc region, float3 resolution,
-                         float levelLo, float levelHi, float levelSpace,
-                         float Kp, float Ki, float Kd,
+                         std::vector<std::string> pvNames, real targetDensity,
+                         RegionFunc region, real3 resolution,
+                         real levelLo, real levelHi, real levelSpace,
+                         real Kp, real Ki, real Kd,
                          int tuneEvery, int dumpEvery, int sampleEvery);
     
     ~DensityControlPlugin();
@@ -37,7 +37,7 @@ public:
 
     struct LevelBounds
     {
-        float lo, hi, space;
+        real lo, hi, space;
     };
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
@@ -50,7 +50,7 @@ private:
     std::vector<ParticleVector*> pvs;
 
     LevelBounds levelBounds;
-    float targetDensity;
+    real targetDensity;
     
     std::unique_ptr<Field> spaceDecompositionField; /// a scalar field used to decompose the space with level sets
 
@@ -58,11 +58,11 @@ private:
     PinnedBuffer<unsigned long long int> nInsides;  /// number of samples per subregion
     std::vector<double> volumes;                    /// volume of each subregion
 
-    std::vector<float> densities;
-    PinnedBuffer<float> forces;
+    std::vector<real> densities;
+    PinnedBuffer<real> forces;
     
-    std::vector<PidControl<float>> controllers;
-    float Kp, Ki, Kd;
+    std::vector<PidControl<real>> controllers;
+    real Kp, Ki, Kd;
 
     std::vector<char> sendBuffer;
 private:

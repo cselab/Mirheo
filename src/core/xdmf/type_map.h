@@ -36,7 +36,7 @@ template <> Channel::NumberType inline getNumberType<float>  () {return Channel:
 template <> Channel::NumberType inline getNumberType<double> () {return Channel::NumberType::Double;}
 template <> Channel::NumberType inline getNumberType<int>    () {return Channel::NumberType::Int;}
 template <> Channel::NumberType inline getNumberType<int64_t>() {return Channel::NumberType::Int64;}
-template <> Channel::NumberType inline getNumberType<Stress> () {return Channel::NumberType::Float;}
+template <> Channel::NumberType inline getNumberType<Stress> () {return getNumberType<decltype(Stress::xx)>();}
 
 template <typename T>
 Channel::NumberType inline getNumberType()

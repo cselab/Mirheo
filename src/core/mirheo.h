@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/datatypes.h>
 #include <core/logger.h>
 #include <core/utils/common.h>
 
@@ -34,13 +35,13 @@ struct LogInfo
 class Mirheo
 {
 public:
-    Mirheo(int3 nranks3D, float3 globalDomainSize, float dt,
+    Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    Mirheo(long commAddress, int3 nranks3D, float3 globalDomainSize, float dt,
+    Mirheo(long commAddress, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    Mirheo(MPI_Comm comm, int3 nranks3D, float3 globalDomainSize, float dt,
+    Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
@@ -69,27 +70,27 @@ public:
     void setIntegrator  (Integrator *integrator,  ParticleVector *pv);
     void setInteraction (Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2);
     void setBouncer     (Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv);
-    void setWallBounce  (Wall *wall, ParticleVector *pv, float maximumPartTravel = 0.25f);
+    void setWallBounce  (Wall *wall, ParticleVector *pv, real maximumPartTravel = 0.25f);
 
     MirState* getState();
     const MirState* getState() const;
     std::shared_ptr<MirState> getMirState();
 
-    void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, float3 h, const std::string& filename);
+    void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, const std::string& filename);
     double computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank = 100000);
     
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
                                                             std::vector<std::shared_ptr<Wall>> walls,
                                                             std::vector<std::shared_ptr<Interaction>> interactions,
                                                             std::shared_ptr<Integrator> integrator,
-                                                            float density, int nsteps);
+                                                            real density, int nsteps);
 
     std::shared_ptr<ParticleVector> makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
                                                              std::shared_ptr<ObjectVector> shape,
                                                              std::shared_ptr<InitialConditions> icShape,
                                                              std::vector<std::shared_ptr<Interaction>> interactions,
                                                              std::shared_ptr<Integrator>   integrator,
-                                                             float density, int nsteps);
+                                                             real density, int nsteps);
     
     std::shared_ptr<ParticleVector> applyObjectBelongingChecker(ObjectBelongingChecker* checker,
                                                                 ParticleVector* pv,
@@ -118,7 +119,7 @@ private:
     MPI_Comm compComm  {MPI_COMM_NULL}; ///< simulation communicator
     MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
-    void init(int3 nranks3D, float3 globalDomainSize, float dt, LogInfo logInfo,
+    void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();

@@ -36,8 +36,8 @@ public:
     virtual void resize_anew(int n);    
 
     PinnedBuffer<Force>& forces();
-    PinnedBuffer<float4>& positions();
-    PinnedBuffer<float4>& velocities();
+    PinnedBuffer<real4>& positions();
+    PinnedBuffer<real4>& velocities();
 
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
     
@@ -54,7 +54,7 @@ class ParticleVector : public MirSimulationObject
 {
 public:
     
-    ParticleVector(const MirState *state, std::string name, float mass, int n=0);
+    ParticleVector(const MirState *state, std::string name, real mass, int n=0);
     ~ParticleVector() override;
     
     LocalParticleVector* local() { return _local.get(); }
@@ -74,13 +74,13 @@ public:
     // Python getters / setters
     // Use default blocking stream
     std::vector<int64_t> getIndices_vector();
-    PyTypes::VectorOfFloat3 getCoordinates_vector();
-    PyTypes::VectorOfFloat3 getVelocities_vector();
-    PyTypes::VectorOfFloat3 getForces_vector();
+    PyTypes::VectorOfReal3 getCoordinates_vector();
+    PyTypes::VectorOfReal3 getVelocities_vector();
+    PyTypes::VectorOfReal3 getForces_vector();
     
-    void setCoordinates_vector(const std::vector<float3>& coordinates);
-    void setVelocities_vector(const std::vector<float3>& velocities);
-    void setForces_vector(const std::vector<float3>& forces);
+    void setCoordinates_vector(const std::vector<real3>& coordinates);
+    void setVelocities_vector(const std::vector<real3>& velocities);
+    void setForces_vector(const std::vector<real3>& forces);
     
     template<typename T>
     void requireDataPerParticle(const std::string& name, DataManager::PersistenceMode persistence,
@@ -91,7 +91,7 @@ public:
     }
 
 protected:
-    ParticleVector(const MirState *state, std::string name, float mass,
+    ParticleVector(const MirState *state, std::string name, real mass,
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
@@ -118,7 +118,7 @@ private:
     }
 
 public:    
-    float mass;
+    real mass;
 
     bool haloValid   {false};
     bool redistValid {false};

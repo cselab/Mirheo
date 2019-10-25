@@ -9,23 +9,23 @@
 namespace ParticleDisplacementPluginKernels
 {
 
-__global__ void extractPositions(PVview view, float4 *positions)
+__global__ void extractPositions(PVview view, real4 *positions)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > view.size) return;
     positions[i] = view.readPosition(i);
 }
 
-__global__ void computeDisplacementsAndSavePositions(PVview view, float4 *positions, float3 *displacements)
+__global__ void computeDisplacementsAndSavePositions(PVview view, real4 *positions, real3 *displacements)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > view.size) return;
     
-    Float3_int pos(view.readPosition(i));
-    Float3_int oldPos(positions[i]);
+    Real3_int pos(view.readPosition(i));
+    Real3_int oldPos(positions[i]);
     
     displacements[i] = pos.v - oldPos.v;
-    positions[i] = pos.toFloat4();
+    positions[i] = pos.toReal4();
 }
 
 } // namespace DisplacementKernels
@@ -45,10 +45,10 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    pv->requireDataPerParticle<float3>(displacementChannelName,
+    pv->requireDataPerParticle<real3>(displacementChannelName,
                                        DataManager::PersistenceMode::Active);
 
-    pv->requireDataPerParticle<float4>(savedPositionChannelName,
+    pv->requireDataPerParticle<real4>(savedPositionChannelName,
                                        DataManager::PersistenceMode::Active,
                                        DataManager::ShiftMode::Active);
 
@@ -56,8 +56,8 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
     const int nthreads = 128;    
 
     auto& manager      = pv->local()->dataPerParticle;
-    auto positions     = manager.getData<float4>(savedPositionChannelName);
-    auto displacements = manager.getData<float3>(displacementChannelName);
+    auto positions     = manager.getData<real4>(savedPositionChannelName);
+    auto displacements = manager.getData<real3>(displacementChannelName);
 
     displacements->clear(defaultStream);
     
@@ -73,8 +73,8 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 
     auto& manager = pv->local()->dataPerParticle;
     
-    auto positions     = manager.getData<float4>(savedPositionChannelName);
-    auto displacements = manager.getData<float3>( displacementChannelName);
+    auto positions     = manager.getData<real4>(savedPositionChannelName);
+    auto displacements = manager.getData<real3>( displacementChannelName);
 
     PVview view(pv, pv->local());
     const int nthreads = 128;

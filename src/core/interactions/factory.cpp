@@ -12,15 +12,15 @@ static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
 {
     CommonMembraneParameters p;
 
-    p.totArea0    = desc.read<float>("tot_area");
-    p.totVolume0  = desc.read<float>("tot_volume");
+    p.totArea0    = desc.read<real>("tot_area");
+    p.totVolume0  = desc.read<real>("tot_volume");
 
-    p.ka = desc.read<float>("ka_tot");
-    p.kv = desc.read<float>("kv_tot");
+    p.ka = desc.read<real>("ka_tot");
+    p.kv = desc.read<real>("kv_tot");
 
-    p.gammaC = desc.read<float>("gammaC");
-    p.gammaT = desc.read<float>("gammaT");
-    p.kBT    = desc.read<float>("kBT");
+    p.gammaC = desc.read<real>("gammaC");
+    p.gammaT = desc.read<real>("gammaT");
+    p.kBT    = desc.read<real>("kBT");
 
     p.fluctuationForces = (p.kBT > 1e-6);
     
@@ -31,12 +31,12 @@ static WLCParameters readWLCParameters(ParametersWrap& desc)
 {
     WLCParameters p;
 
-    p.x0   = desc.read<float>("x0");
-    p.ks   = desc.read<float>("ks");
-    p.mpow = desc.read<float>("mpow");
+    p.x0   = desc.read<real>("x0");
+    p.ks   = desc.read<real>("ks");
+    p.mpow = desc.read<real>("mpow");
 
-    p.kd = desc.read<float>("ka");
-    p.totArea0 = desc.read<float>("tot_area");
+    p.kd = desc.read<real>("ka");
+    p.totArea0 = desc.read<real>("tot_area");
     
     return p;
 }
@@ -45,15 +45,15 @@ static LimParameters readLimParameters(ParametersWrap& desc)
 {
     LimParameters p;
 
-    p.ka = desc.read<float>("ka");
-    p.a3 = desc.read<float>("a3");
-    p.a4 = desc.read<float>("a4");
+    p.ka = desc.read<real>("ka");
+    p.a3 = desc.read<real>("a3");
+    p.a4 = desc.read<real>("a4");
     
-    p.mu = desc.read<float>("mu");
-    p.b1 = desc.read<float>("b1");
-    p.b2 = desc.read<float>("b2");
+    p.mu = desc.read<real>("mu");
+    p.b1 = desc.read<real>("b1");
+    p.b2 = desc.read<real>("b2");
 
-    p.totArea0 = desc.read<float>("tot_area");
+    p.totArea0 = desc.read<real>("tot_area");
     
     return p;
 }
@@ -62,8 +62,8 @@ static KantorBendingParameters readKantorParameters(ParametersWrap& desc)
 {
     KantorBendingParameters p;
 
-    p.kb    = desc.read<float>("kb");
-    p.theta = desc.read<float>("theta");
+    p.kb    = desc.read<real>("kb");
+    p.theta = desc.read<real>("theta");
     
     return p;
 }
@@ -72,11 +72,11 @@ static JuelicherBendingParameters readJuelicherParameters(ParametersWrap& desc)
 {
     JuelicherBendingParameters p;
 
-    p.kb = desc.read<float>("kb");
-    p.C0 = desc.read<float>("C0");
+    p.kb = desc.read<real>("kb");
+    p.C0 = desc.read<real>("C0");
 
-    p.kad = desc.read<float>("kad");
-    p.DA0 = desc.read<float>("DA0");
+    p.kad = desc.read<real>("kad");
+    p.DA0 = desc.read<real>("DA0");
     
     return p;
 }
@@ -85,7 +85,7 @@ std::shared_ptr<MembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               const MapParams& parameters,
-                                              bool stressFree, float growUntil)
+                                              bool stressFree, real growUntil)
 {
     VarBendingParams bendingParams;
     VarShearParams shearParams;
@@ -110,11 +110,11 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 {
     RodParameters p;
 
-    if (desc.exists<std::vector<float2>>( "kappa0" ))
+    if (desc.exists<std::vector<real2>>( "kappa0" ))
     {
-        auto kappaEqs = desc.read<std::vector<float2>>( "kappa0");
-        auto tauEqs   = desc.read<std::vector<float>>( "tau0");
-        auto groundE  = desc.read<std::vector<float>>( "E0");
+        auto kappaEqs = desc.read<std::vector<real2>>( "kappa0");
+        auto tauEqs   = desc.read<std::vector<real>>( "tau0");
+        auto groundE  = desc.read<std::vector<real>>( "E0");
 
         if (kappaEqs.size() != tauEqs.size() || tauEqs.size() != groundE.size())
             die("Rod parameters: expected same number of kappa0, tau0 and E0");
@@ -130,29 +130,29 @@ static RodParameters readRodParameters(ParametersWrap& desc)
     }
     else
     {
-        p.kappaEq.push_back(desc.read<float2>("kappa0"));
-        p.tauEq  .push_back(desc.read<float>("tau0"));
+        p.kappaEq.push_back(desc.read<real2>("kappa0"));
+        p.tauEq  .push_back(desc.read<real>("tau0"));
 
-        if (desc.exists<float>("E0"))
-            p.groundE.push_back(desc.read<float>("E0"));
+        if (desc.exists<real>("E0"))
+            p.groundE.push_back(desc.read<real>("E0"));
         else
             p.groundE.push_back(0.f);
     }
     
-    p.kBending  = desc.read<float3>("k_bending");
-    p.kTwist    = desc.read<float>("k_twist");
+    p.kBending  = desc.read<real3>("k_bending");
+    p.kTwist    = desc.read<real>("k_twist");
     
-    p.a0        = desc.read<float>("a0");
-    p.l0        = desc.read<float>("l0");
-    p.ksCenter  = desc.read<float>("k_s_center");
-    p.ksFrame   = desc.read<float>("k_s_frame");
+    p.a0        = desc.read<real>("a0");
+    p.l0        = desc.read<real>("l0");
+    p.ksCenter  = desc.read<real>("k_s_center");
+    p.ksFrame   = desc.read<real>("k_s_frame");
     return p;
 }
 
 static StatesSmoothingParameters readStatesSmoothingRodParameters(ParametersWrap& desc)
 {
     StatesSmoothingParameters p;
-    p.kSmoothing = desc.read<float>("k_smoothing");
+    p.kSmoothing = desc.read<real>("k_smoothing");
     return p;
 }
 
@@ -160,9 +160,9 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 {
     StatesSpinParameters p;
 
-    p.nsteps = desc.read<float>("nsteps");
-    p.kBT    = desc.read<float>("kBT");
-    p.J      = desc.read<float>("J");
+    p.nsteps = desc.read<real>("nsteps");
+    p.kBT    = desc.read<real>("kBT");
+    p.J      = desc.read<real>("J");
     return p;
 }
 
@@ -190,7 +190,7 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
 }
 
 std::shared_ptr<PairwiseInteraction>
-InteractionFactory::createPairwiseInteraction(const MirState *state, std::string name, float rc, const std::string type, const MapParams& parameters)
+InteractionFactory::createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     VarPairwiseParams varParams;
@@ -216,7 +216,7 @@ InteractionFactory::createPairwiseInteraction(const MirState *state, std::string
 
 std::shared_ptr<ObjectRodBindingInteraction>
 InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::string name,
-                                                   float torque, float3 relAnchor, float kBound)
+                                                   real torque, real3 relAnchor, real kBound)
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }

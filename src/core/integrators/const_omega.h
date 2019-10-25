@@ -12,7 +12,7 @@ class IntegratorConstOmega : public Integrator
 {
 public:
 
-    IntegratorConstOmega(const MirState *state, std::string name, float3 center, float3 omega);
+    IntegratorConstOmega(const MirState *state, std::string name, real3 center, real3 omega);
 
     ~IntegratorConstOmega();
 
@@ -21,5 +21,5 @@ public:
 
 private:
 
-    float3 center, omega;
+    real3 center, omega;
 };

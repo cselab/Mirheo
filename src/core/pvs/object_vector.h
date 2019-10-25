@@ -22,8 +22,8 @@ public:
 
     void computeGlobalIds(MPI_Comm comm, cudaStream_t stream) override;
     
-    virtual PinnedBuffer<float4>* getMeshVertices(cudaStream_t stream);
-    virtual PinnedBuffer<float4>* getOldMeshVertices(cudaStream_t stream);
+    virtual PinnedBuffer<real4>* getMeshVertices(cudaStream_t stream);
+    virtual PinnedBuffer<real4>* getOldMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
 
@@ -43,7 +43,7 @@ class ObjectVector : public ParticleVector
 {
 public:
     
-    ObjectVector(const MirState *state, std::string name, float mass, int objSize, int nObjects = 0);
+    ObjectVector(const MirState *state, std::string name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
     
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
@@ -72,7 +72,7 @@ public:
     std::shared_ptr<Mesh> mesh;
     
 protected:
-    ObjectVector(const MirState *state, std::string name, float mass, int objSize,
+    ObjectVector(const MirState *state, std::string name, real mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
     

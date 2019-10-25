@@ -92,9 +92,9 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
                 packer.particles.packShift(srcId, myId, buffer, numElements, shift);
                 
                 // mark the particle as exited to assist cell-list building
-                Float3_int pos = p.r2Float3_int();
+                Real3_int pos = p.r2Real3_int();
                 pos.mark();
-                view.writePosition(srcId, pos.toFloat4());
+                view.writePosition(srcId, pos.toReal4());
             }
         }
     }

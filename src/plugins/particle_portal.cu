@@ -11,7 +11,7 @@ namespace ParticlePortal {
 // (*) In the code below, we don't manually check whether particles are marked
 // or not because marked particles are always outside of the box. The following
 // `static_assert` is to ensure the compilation fails if this changes.
-static_assert(Float3_int::mark_val < -100.f,
+static_assert(Real3_int::mark_val < -100.f,
               "The assumption that marked particles are far outside of "
               "the simulation domain is not correct anymore?");
 
@@ -19,7 +19,7 @@ static bool packPredicate(const DataManager::NamedChannelDesc& namedDesc) noexce
     return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
 };
 
-static __device__ bool isPointInsideBox(const float3 &point, const float3 &lo, const float3 &hi)
+static __device__ bool isPointInsideBox(const real3 &point, const real3 &lo, const real3 &hi)
 {
     return lo.x <= point.x && point.x < hi.x
         && lo.y <= point.y && point.y < hi.y
@@ -28,23 +28,23 @@ static __device__ bool isPointInsideBox(const float3 &point, const float3 &lo, c
 
 __global__ void countParticlesInBox(
         PVview view,
-        float3 lo,  // Local coordinate system.
-        float3 hi,
+        real3 lo,  // Local coordinate system.
+        real3 hi,
         int *numParticlesToSend)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    if (isPointInsideBox(make_float3(view.readPosition(pid)), lo, hi))  // (*)
+    if (isPointInsideBox(make_real3(view.readPosition(pid)), lo, hi))  // (*)
         atomicAggInc(numParticlesToSend);
 }
 
 __global__ void packParticles(
         PVview view,
         ParticlePackerHandler handler,
-        float3 lo,  // Local coordinate system.
-        float3 hi,
-        float3 shift,
+        real3 lo,  // Local coordinate system.
+        real3 hi,
+        real3 shift,
         int numParticlesToSend,
         char *dstBuffer,
         int *counter)
@@ -52,7 +52,7 @@ __global__ void packParticles(
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    if (isPointInsideBox(make_float3(view.readPosition(pid)), lo, hi))  // (*)
+    if (isPointInsideBox(make_real3(view.readPosition(pid)), lo, hi))  // (*)
     {
         // The shift includes the local->global domain transformation.
         int dst = atomicAggInc(counter);
@@ -62,8 +62,8 @@ __global__ void packParticles(
 
 __global__ void removeParticlesInBox(
         PVview view,
-        float3 lo,  // Local coordinate system.
-        float3 hi)
+        real3 lo,  // Local coordinate system.
+        real3 hi)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
@@ -79,7 +79,7 @@ __global__ void removeParticlesInBox(
 __global__ void unpackParticles(
         PVview view,
         ParticlePackerHandler handler,
-        float3 shift,
+        real3 shift,
         const char *srcBuffer,
         int numExisting,
         int numNew)
@@ -95,7 +95,7 @@ __global__ void unpackParticles(
 
 ParticlePortalCommon::ParticlePortalCommon(
         const MirState *state, std::string name, std::string pvName,
-        float3 position, float3 size, int tag, MPI_Comm interCommExternal) :
+        real3 position, real3 size, int tag, MPI_Comm interCommExternal) :
     SimulationPlugin(state, name),
     pvName(pvName),
     localLo(state->domain.global2local(position)),
@@ -122,7 +122,7 @@ void ParticlePortalCommon::setup(Simulation* simulation, const MPI_Comm& comm, c
 
 ParticlePortalSource::ParticlePortalSource(
         const MirState *state, std::string name, std::string pvName,
-        float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal) :
+        real3 src, real3 dst, real3 size, int tag, MPI_Comm interCommExternal) :
     ParticlePortalCommon(state, name, pvName, src, size, tag, interCommExternal),
     shift(state->domain.local2global(dst - src))  // (src local --> src global shift)
                                                   // + (src global --> dst global)
@@ -172,9 +172,9 @@ void ParticlePortalSource::beforeCellLists(cudaStream_t stream)
 
 ParticlePortalDestination::ParticlePortalDestination(
         const MirState *state, std::string name, std::string pvName,
-        __UNUSED float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal) :
+        __UNUSED real3 src, real3 dst, real3 size, int tag, MPI_Comm interCommExternal) :
     ParticlePortalCommon(state, name, pvName, dst, size, tag, interCommExternal),
-    shift(state->domain.global2local(float3{0.0, 0.0, 0.0}))  // (dst global -> dst local)
+    shift(state->domain.global2local(real3{0.0, 0.0, 0.0}))  // (dst global -> dst local)
 {}
 
 ParticlePortalDestination::~ParticlePortalDestination() = default;

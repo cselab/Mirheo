@@ -12,7 +12,7 @@
 namespace AnchorParticlesKernels
 {
 
-__global__ void anchorParticles(PVview view, int n, const int *pids, const float3 *poss, const float3 *vels, double3 *forces)
+__global__ void anchorParticles(PVview view, int n, const int *pids, const real3 *poss, const real3 *vels, double3 *forces)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= n) return;
@@ -83,7 +83,7 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 
     if (view.size == 0) return;
 
-    float t = (float) state->currentTime;
+    real t = (real) state->currentTime;
     const auto& domain = state->domain;
 
     auto poss = positions(t);

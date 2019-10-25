@@ -33,7 +33,7 @@ private:
 
     Stats::CountType nparticles;
     PinnedBuffer<Stats::ReductionType> momentum{3}, energy{1};
-    PinnedBuffer<float> maxvel{1};
+    PinnedBuffer<real> maxvel{1};
     std::vector<char> sendBuffer;
 
     std::vector<ParticleVector*> pvs;
@@ -49,6 +49,5 @@ public:
     void deserialize() override;
 
 private:
-    MPI_Datatype mpiReductionType, mpiCountType;
     FileWrapper fdump;
 };

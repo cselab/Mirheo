@@ -26,7 +26,7 @@ void exportInitialConditions(py::module& m)
     py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
         Set particles according to given position and velocity arrays.
     )")
-        .def(py::init<const std::vector<float3>&, const std::vector<float3>&>(),
+        .def(py::init<const std::vector<real3>&, const std::vector<real3>&>(),
              "pos"_a, "vel"_a, R"(
             Args:
                 pos: array of positions
@@ -37,13 +37,13 @@ void exportInitialConditions(py::module& m)
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
     )")
-        .def(py::init<const std::vector<ComQ>&, float>(),
+        .def(py::init<const std::vector<ComQ>&, real>(),
              "com_q"_a, "global_scale"_a=1.0, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 global_scale:
@@ -71,7 +71,7 @@ void exportInitialConditions(py::module& m)
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 xyz_filename:
@@ -81,13 +81,13 @@ void exportInitialConditions(py::module& m)
                     The number of particles in the file must be the same as in number of particles per object
                     in the corresponding PV
         )")
-        .def(py::init<const std::vector<ComQ>&, const std::vector<float3>&>(),
+        .def(py::init<const std::vector<ComQ>&, const std::vector<real3>&>(),
              "com_q"_a, "coords"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 coords:
@@ -96,13 +96,13 @@ void exportInitialConditions(py::module& m)
                     The number of coordinates must be the same as in number of particles per object
                     in the corresponding PV
         )")
-        .def(py::init<const std::vector<ComQ>&, const std::vector<float3>&, const std::vector<float3>&>(),
+        .def(py::init<const std::vector<ComQ>&, const std::vector<real3>&, const std::vector<real3>&>(),
              "com_q"_a, "coords"_a, "init_vels"_a, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 coords:
@@ -112,7 +112,7 @@ void exportInitialConditions(py::module& m)
                     in the corresponding PV
                 com_q:
                     List specifying initial Center-Of-Mass velocities of the bodies.               
-                    One entry (list of 3 floats) in the list corresponds to one object 
+                    One entry (list of 3 reals) in the list corresponds to one object 
         )");
     
 
@@ -122,13 +122,13 @@ void exportInitialConditions(py::module& m)
         the objects will be translated/rotated according to the provided initial conditions.
             
     )")
-        .def(py::init<const std::vector<ComQ>&, std::function<float3(float)>, std::function<float(float)>, float, float3>(),
+        .def(py::init<const std::vector<ComQ>&, std::function<real3(real)>, std::function<real(real)>, real, real3>(),
              "com_q"_a, "center_line"_a, "torsion"_a, "a"_a, "initial_frame"_a=RodIC::DefaultFrame, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 center_line:
@@ -148,7 +148,7 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
     )")
-        .def(py::init<float>(), "number_density"_a, R"(
+        .def(py::init<real>(), "number_density"_a, R"(
             Args:
                 number_density: target number density
         )");
@@ -157,7 +157,7 @@ void exportInitialConditions(py::module& m)
         The particles will be generated with the desired number density uniformly at random in all the domain and then filtered out by the given filter.
         These IC may be used with any Particle Vector, but only make sense for regular PV.            
     )")
-        .def(py::init<float, std::function<bool(float3)>>(),
+        .def(py::init<real, std::function<bool(real3)>>(),
              "number_density"_a, "filter"_a, R"(
             Args:
                 number_density: target number density
@@ -169,7 +169,7 @@ void exportInitialConditions(py::module& m)
         These IC may be used with any Particle Vector, but only make sense for regular PV.
             
     )")
-        .def(py::init<float, float3, float, bool>(),
+        .def(py::init<real, real3, real, bool>(),
              "number_density"_a, "center"_a, "radius"_a, "inside"_a, R"(
             Args:
                 number_density: target number density

@@ -18,6 +18,6 @@ public:
 protected:
 
     RodVector *rv;
-    std::map<std::string, DeviceBuffer<float>> channelRodData;
+    std::map<std::string, DeviceBuffer<real>> channelRodData;
 };
 

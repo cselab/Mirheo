@@ -8,11 +8,11 @@
 #include <fstream>
 #include <random>
 
-static std::vector<float3> readXYZ(const std::string& fname)
+static std::vector<real3> readXYZ(const std::string& fname)
 {
-    std::vector<float3> positions;
+    std::vector<real3> positions;
     int n;
-    float dummy;
+    real dummy;
     std::string line;
 
     std::ifstream fin(fname);
@@ -36,14 +36,14 @@ RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::string& xyzfname) :
     RigidIC(com_q, readXYZ(xyzfname))
 {}
 
-RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::vector<float3>& coords) :
+RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::vector<real3>& coords) :
     com_q(com_q),
     coords(coords)
 {}
 
 RigidIC::RigidIC(const std::vector<ComQ>& com_q,
-                 const std::vector<float3>& coords,
-                 const std::vector<float3>& comVelocities) :
+                 const std::vector<real3>& coords,
+                 const std::vector<real3>& comVelocities) :
     com_q(com_q),
     coords(coords),
     comVelocities(comVelocities)
@@ -55,30 +55,30 @@ RigidIC::RigidIC(const std::vector<ComQ>& com_q,
 RigidIC::~RigidIC() = default;
 
 
-static PinnedBuffer<float4> getInitialPositions(const std::vector<float3>& in,
+static PinnedBuffer<real4> getInitialPositions(const std::vector<real3>& in,
                                                 cudaStream_t stream)
 {
-    PinnedBuffer<float4> out(in.size());
+    PinnedBuffer<real4> out(in.size());
     
     for (size_t i = 0; i < in.size(); ++i)
-        out[i] = make_float4(in[i].x, in[i].y, in[i].z, 0);
+        out[i] = make_real4(in[i].x, in[i].y, in[i].z, 0);
         
     out.uploadToDevice(stream);
     return out;
 }
 
 static void checkInitialPositions(const DomainInfo& domain,
-                                  const PinnedBuffer<float4>& positions)
+                                  const PinnedBuffer<real4>& positions)
 {
     if (positions.size() < 1)
         die("Expect at least one particle per rigid object");
 
-    const float3 r0 = make_float3(positions[0]);
+    const real3 r0 = make_real3(positions[0]);
     
-    float3 low {r0}, hig {r0};
+    real3 low {r0}, hig {r0};
     for (auto r4 : positions)
     {
-        const float3 r = make_float3(r4);
+        const real3 r = make_real3(r4);
         low = math::min(low, r);
         hig = math::max(hig, r);
     }
@@ -95,7 +95,7 @@ static void checkInitialPositions(const DomainInfo& domain,
 
 static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
                                               const std::vector<ComQ>& com_q,
-                                              const std::vector<float3>& comVelocities)
+                                              const std::vector<real3>& comVelocities)
 {
     std::vector<RigidMotion> motions;
 
@@ -115,7 +115,7 @@ static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
 
         if (domain.inSubDomain(motion.r))
         {
-            motion.r = make_rigidReal3( domain.global2local(make_float3(motion.r)) );
+            motion.r = make_rigidReal3( domain.global2local(make_real3(motion.r)) );
             motions.push_back(motion);
         }
     }
@@ -126,7 +126,7 @@ static void setParticlesFromMotions(RigidObjectVector *rov, cudaStream_t stream)
 {
     // use rigid object integrator to set up the particles positions, velocities and old positions
     rov->local()->forces().clear(stream);
-    const float dummyDt = 0.f;
+    const real dummyDt = 0._r;
     const MirState dummyState(rov->state->domain, dummyDt);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
     integrator.stage2(rov, stream);

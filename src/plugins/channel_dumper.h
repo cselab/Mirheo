@@ -27,8 +27,8 @@ protected:
     std::vector<double> recv_density;
     std::vector<std::vector<double>> recv_containers;
     
-    std::vector<float> density;
-    std::vector<std::vector<float>> containers;
+    std::vector<real> density;
+    std::vector<std::vector<real>> containers;
     
     std::string path;
     const int zeroPadding = 5;

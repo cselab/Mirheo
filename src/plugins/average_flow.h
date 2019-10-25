@@ -14,7 +14,7 @@ class Average3D : public SimulationPlugin
 public:
     enum class ChannelType : int
     {
-        Scalar, Vector_float3, Vector_float4, Tensor6
+        Scalar, Vector_real3, Vector_real4, Tensor6
     };
 
     struct HostChannelsInfo
@@ -22,14 +22,14 @@ public:
         int n;
         std::vector<std::string> names;
         PinnedBuffer<ChannelType> types;
-        PinnedBuffer<float*> averagePtrs, dataPtrs;
-        std::vector<DeviceBuffer<float>> average;
+        PinnedBuffer<real*> averagePtrs, dataPtrs;
+        std::vector<DeviceBuffer<real>> average;
     };
 
     Average3D(const MirState *state, std::string name,
               std::vector<std::string> pvNames,
               std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
-              int sampleEvery, int dumpEvery, float3 binSize);
+              int sampleEvery, int dumpEvery, real3 binSize);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
@@ -43,10 +43,10 @@ protected:
     int nSamples;
     int sampleEvery, dumpEvery;
     int3 resolution;
-    float3 binSize;
+    real3 binSize;
     int3 rank3D, nranks3D;
 
-    DeviceBuffer<float>   density;
+    DeviceBuffer<real>   density;
     PinnedBuffer<double>  accumulated_density;
     std::vector<char> sendBuffer;
 

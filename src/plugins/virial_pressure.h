@@ -17,7 +17,7 @@ class VirialPressurePlugin : public SimulationPlugin
 {
 public:
     VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
-                         FieldFunction func, float3 h, int dumpEvery);
+                         FieldFunction func, real3 h, int dumpEvery);
 
     ~VirialPressurePlugin();
 

@@ -15,7 +15,7 @@ enum {
 namespace velocityInletKernels
 {
 
-__global__ void initCumulativeFluxes(float seed, int n, float *cumulativeFluxes)
+__global__ void initCumulativeFluxes(real seed, int n, real *cumulativeFluxes)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
@@ -23,12 +23,12 @@ __global__ void initCumulativeFluxes(float seed, int n, float *cumulativeFluxes)
     cumulativeFluxes[i] = Saru::uniform01(seed, i, 42 + i*i);
 }
 
-__global__ void initLocalFluxes(int n, const float3 *vertices, const float3 *velocities, float *localFluxes)
+__global__ void initLocalFluxes(int n, const real3 *vertices, const real3 *velocities, real *localFluxes)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
 
-    float3 r0, r1, r2, v0, v1, v2;
+    real3 r0, r1, r2, v0, v1, v2;
     r0 = vertices[3*i + 0];
     r1 = vertices[3*i + 1];
     r2 = vertices[3*i + 2];
@@ -37,14 +37,14 @@ __global__ void initLocalFluxes(int n, const float3 *vertices, const float3 *vel
     v1 = velocities[3*i + 1];
     v2 = velocities[3*i + 2];
 
-    float3 nA = 0.5 * cross(r1 - r0, r2 - r0); // normal times area of triangle
-    float3 v = 0.33333f * (v0 + v1 + v2);
+    real3 nA = 0.5 * cross(r1 - r0, r2 - r0); // normal times area of triangle
+    real3 v = 0.33333f * (v0 + v1 + v2);
 
     localFluxes[i] = math::abs(dot(nA, v));
 }
 
-__global__ void countFromCumulativeFluxes(int n, float dt, float numberDensity, const float *localFluxes,
-                                          float *cumulativeFluxes, int *nNewParticles, int *workQueue)
+__global__ void countFromCumulativeFluxes(int n, real dt, real numberDensity, const real *localFluxes,
+                                          real *cumulativeFluxes, int *nNewParticles, int *workQueue)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int nLocal = 0;
@@ -77,38 +77,38 @@ __global__ void countFromCumulativeFluxes(int n, float dt, float numberDensity, 
 }
 
 // https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle
-__device__ inline float3 getBarycentricUniformTriangle(float seed, int seed0, int seed1)
+__device__ inline real3 getBarycentricUniformTriangle(real seed, int seed0, int seed1)
 {
-    float r1 = Saru::uniform01(seed, 42*seed0, 5+seed1);
-    float r2 = Saru::uniform01(seed, 24*seed1, 6+seed0);
+    real r1 = Saru::uniform01(seed, 42*seed0, 5+seed1);
+    real r2 = Saru::uniform01(seed, 24*seed1, 6+seed0);
     r1 = math::sqrt(r1);    
     return { (1-r1), (1-r2)*r1, r2*r1 };
 }
 
-__device__ inline float3 interpolateFrombarycentric(float3 coords, const float3 *data, int i)
+__device__ inline real3 interpolateFrombarycentric(real3 coords, const real3 *data, int i)
 {
-    float3 a = data[3*i+0];
-    float3 b = data[3*i+1];
-    float3 c = data[3*i+2];
+    real3 a = data[3*i+0];
+    real3 b = data[3*i+1];
+    real3 c = data[3*i+2];
     return coords.x * a + coords.y * b + coords.z * c;
 }
 
-__device__ inline float3 gaussian3D(float seed, int seed0, int seed1)
+__device__ inline real3 gaussian3D(real seed, int seed0, int seed1)
 {
-    float2 rand1 = Saru::normal2(seed, 42*seed0, 5+seed1);
-    float2 rand2 = Saru::normal2(seed, 24*seed0, 6+seed1);
+    real2 rand1 = Saru::normal2(seed, 42*seed0, 5+seed1);
+    real2 rand2 = Saru::normal2(seed, 24*seed0, 6+seed1);
 
     return {rand1.x, rand1.y, rand2.x}; 
 }
 
-__global__ void generateParticles(float seed, float kBT, int nNewParticles, int oldSize, PVview view, const int *workQueue,
-                                  const float3 *triangles, const float3 *velocities)
+__global__ void generateParticles(real seed, real kBT, int nNewParticles, int oldSize, PVview view, const int *workQueue,
+                                  const real3 *triangles, const real3 *velocities)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= nNewParticles) return;
     
     int triangleId = workQueue[i];
-    float3 barCoords = getBarycentricUniformTriangle(seed, i, triangleId);
+    real3 barCoords = getBarycentricUniformTriangle(seed, i, triangleId);
 
     Particle p;
 
@@ -128,7 +128,7 @@ __global__ void generateParticles(float seed, float kBT, int nNewParticles, int 
 
 VelocityInletPlugin::VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                                          ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
-                                         float3 resolution, float numberDensity, float kBT) :
+                                         real3 resolution, real numberDensity, real kBT) :
     SimulationPlugin(state, name),
     pvName(pvName),
     implicitSurface(implicitSurface),
@@ -166,7 +166,7 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
 
     for (size_t i = 0; i < surfaceTriangles.size(); ++i)
     {
-        float3 r = state->domain.local2global(surfaceTriangles[i]);
+        real3 r = state->domain.local2global(surfaceTriangles[i]);
         surfaceVelocity[i] = velocityField(r);
     }
 
@@ -177,7 +177,7 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     localFluxes     .resize_anew(nTriangles);
     workQueue       .resize_anew(nTriangles * MAX_NEW_PARTICLE_PER_TRIANGLE);
 
-    float seed = dist(gen);
+    real seed = dist(gen);
     const int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
@@ -220,7 +220,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
 
     view = PVview(pv, pv->local());
 
-    float seed = dist(gen);
+    real seed = dist(gen);
     
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::generateParticles,

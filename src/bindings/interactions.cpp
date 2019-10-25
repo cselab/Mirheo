@@ -39,7 +39,7 @@ castToMap(const py::kwargs& kwargs, const std::string& intName)
 static std::shared_ptr<MembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
-                          bool stressFree, float growUntil, py::kwargs kwargs)
+                          bool stressFree, real growUntil, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
@@ -57,7 +57,7 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
 
 static std::shared_ptr<PairwiseInteraction>
 createPairwiseInteraction(const MirState *state, const std::string& name,
-                          float rc, const std::string& kind, py::kwargs kwargs)
+                          real rc, const std::string& kind, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     return InteractionFactory::createPairwiseInteraction(state, name, rc, kind, parameters);
@@ -463,15 +463,15 @@ void exportInteractions(py::module& m)
 
              kwargs:
 
-                 * **a0** (float):           equilibrium length between 2 opposite cross vertices
-                 * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
-                 * **k_s_center** (float):   elastic force magnitude for centerline
-                 * **k_s_frame** (float):    elastic force magnitude for material frame particles
-                 * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
-                 * **kappa0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\kappa}`
-                 * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
-                 * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
-                 * **E0** (float):           (optional) energy ground state
+                 * **a0** (real):           equilibrium length between 2 opposite cross vertices
+                 * **l0** (real):           equilibrium length between 2 consecutive vertices on the centerline 
+                 * **k_s_center** (real):   elastic force magnitude for centerline
+                 * **k_s_frame** (real):    elastic force magnitude for material frame particles
+                 * **k_bending** (real3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
+                 * **kappa0** (real2):      Spontaneous curvatures along the two material frames :math:`\overline{\kappa}`
+                 * **k_twist** (real):      Twist energy magnitude :math:`k_\mathrm{twist}`
+                 * **tau0** (real):         Spontaneous twist :math:`\overline{\tau}`
+                 * **E0** (real):           (optional) energy ground state
 
              state update parameters, for **state_update** = 'smoothing':
 

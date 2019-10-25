@@ -21,14 +21,14 @@ using VarParam = ParametersWrap::VarParam;
 using MapParams = ParametersWrap::MapParams;
 
 std::shared_ptr<PairwiseInteraction>
-createPairwiseInteraction(const MirState *state, std::string name, float rc, const std::string type, const MapParams& parameters);
+createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters);
 
 
 std::shared_ptr<MembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           const MapParams& parameters,
-                          bool stressFree, float growUntil);
+                          bool stressFree, real growUntil);
 
 std::shared_ptr<RodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
@@ -36,6 +36,6 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
 
 std::shared_ptr<ObjectRodBindingInteraction>
 createInteractionObjRodBinding(const MirState *state, std::string name,
-                               float torque, float3 relAnchor, float kBound);
+                               real torque, real3 relAnchor, real kBound);
 
 } // namespace InteractionFactory

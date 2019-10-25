@@ -10,12 +10,12 @@
 
 namespace ParticleCheckerKernels
 {
-__device__ inline bool checkFinite(float3 v)
+__device__ inline bool checkFinite(real3 v)
 {
     return isfinite(v.x) && isfinite(v.y) && isfinite(v.z);
 }
 
-__device__ inline bool withinBounds(float3 v, float3 bounds)
+__device__ inline bool withinBounds(real3 v, real3 bounds)
 {
     return
         (math::abs(v.x) < bounds.x) &&
@@ -23,14 +23,14 @@ __device__ inline bool withinBounds(float3 v, float3 bounds)
         (math::abs(v.z) < bounds.z);
 }
 
-__global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, ParticleCheckerPlugin::ParticleStatus *status)
+__global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (pid >= view.size) return;
 
-    auto pos = make_float3(view.readPosition(pid));
-    auto vel = make_float3(view.readVelocity(pid));
+    auto pos = make_real3(view.readPosition(pid));
+    auto vel = make_real3(view.readVelocity(pid));
 
     if (!checkFinite(pos) || !checkFinite(vel))
     {
@@ -44,8 +44,8 @@ __global__ void checkParticles(PVview view, DomainInfo domain, float dtInv, Part
         return;
     }
 
-    float3 boundsPos = 1.5f  * domain.localSize; // particle should not be further that in a neighbouring domain
-    float3 boundsVel = dtInv * domain.localSize; // particle should not travel more than one domain size per iteration
+    real3 boundsPos = 1.5_r  * domain.localSize; // particle should not be further that in a neighbouring domain
+    real3 boundsVel = dtInv * domain.localSize; // particle should not travel more than one domain size per iteration
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
@@ -86,9 +86,9 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
     const int nthreads = 128;
 
-    auto dt     = state->dt;
-    auto dtInv  = 1.0f / math::max(1e-6f, dt);
-    auto domain = state->domain;
+    const real dt     = state->dt;
+    const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
+    const auto domain = state->domain;
     
     for (size_t i = 0; i < pvs.size(); ++i)
     {

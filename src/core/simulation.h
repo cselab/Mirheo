@@ -53,7 +53,7 @@ public:
     void setIntegrator             (const std::string& integratorName,  const std::string& pvName);
     void setInteraction            (const std::string& interactionName, const std::string& pv1Name, const std::string& pv2Name);
     void setBouncer                (const std::string& bouncerName,     const std::string& objName, const std::string& pvName);
-    void setWallBounce             (const std::string& wallName,        const std::string& pvName, float maximumPartTravel);
+    void setWallBounce             (const std::string& wallName,        const std::string& pvName, real maximumPartTravel);
     void setObjectBelongingChecker (const std::string& checkerName,     const std::string& objName);
 
 
@@ -85,10 +85,10 @@ public:
 
     MPI_Comm getCartComm() const;
     
-    float getCurrentDt() const;
-    float getCurrentTime() const;
+    real getCurrentDt() const;
+    real getCurrentTime() const;
 
-    float getMaxEffectiveCutoff() const;
+    real getMaxEffectiveCutoff() const;
     
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
@@ -114,7 +114,7 @@ private:
 
     struct InteractionPrototype
     {
-        float rc;
+        real rc;
         ParticleVector *pv1, *pv2;
         Interaction *interaction;
     };
@@ -123,7 +123,7 @@ private:
     {
         Wall *wall;
         ParticleVector *pv;
-        float maximumPartTravel;
+        real maximumPartTravel;
     };
 
     struct CheckWallPrototype
@@ -154,7 +154,7 @@ private:
     
     MirState *state;
     
-    static constexpr float rcTolerance = 1e-5;
+    static constexpr real rcTolerance = 1e-5;
 
     int checkpointId {0};
     const CheckpointInfo checkpointInfo;

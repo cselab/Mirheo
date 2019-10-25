@@ -8,7 +8,7 @@
 #include <core/utils/cuda_rng.h>
 #include <core/utils/kernel_launch.h>
 
-__device__ inline bool all_lt(float3 a, float3 b)
+__device__ inline bool all_lt(real3 a, real3 b)
 {
     return a.x < b.x && a.y < b.y && a.z < b.z;
 }
@@ -16,9 +16,9 @@ __device__ inline bool all_lt(float3 a, float3 b)
 __global__ void applyProfile(
         CellListInfo cinfo, PVview view,
         const int* relevantCells, const int nRelevantCells,
-        float3 low, float3 high,
-        float3 targetVel,
-        float kBT, float invMass, float seed1, float seed2)
+        real3 low, real3 high,
+        real3 targetVel,
+        real kBT, real invMass, real seed1, real seed2)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= nRelevantCells) return;
@@ -33,10 +33,10 @@ __global__ void applyProfile(
 
         if (all_lt(low, p.r) && all_lt(p.r, high))
         {
-            float2 rand1 = Saru::normal2(seed1 + pid, threadIdx.x, blockIdx.x);
-            float2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
+            real2 rand1 = Saru::normal2(seed1 + pid, threadIdx.x, blockIdx.x);
+            real2 rand2 = Saru::normal2(seed2 + pid, threadIdx.x, blockIdx.x);
 
-            p.u = targetVel + math::sqrt(kBT * invMass) * make_float3(rand1.x, rand1.y, rand2.x);
+            p.u = targetVel + math::sqrt(kBT * invMass) * make_real3(rand1.x, rand1.y, rand2.x);
             view.writeParticle(pid, p);
         }
     }
@@ -45,7 +45,7 @@ __global__ void applyProfile(
 template<bool QUERY>
 __global__ void getRelevantCells(
         CellListInfo cinfo,
-        float3 low, float3 high,
+        real3 low, real3 high,
         int* relevantCells, int* nRelevantCells)
 {
     const int cid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -53,8 +53,8 @@ __global__ void getRelevantCells(
 
     int3 ind;
     cinfo.decode(cid, ind.x, ind.y, ind.z);
-    float3 botCell = -0.5f*cinfo.localDomainSize + make_float3(ind)*cinfo.h;
-    float3 topCell = botCell + cinfo.h;
+    real3 botCell = -0.5f*cinfo.localDomainSize + make_real3(ind)*cinfo.h;
+    real3 topCell = botCell + cinfo.h;
 
     bool relevant = all_lt(low, topCell) && all_lt(botCell, high);
 
@@ -66,7 +66,7 @@ __global__ void getRelevantCells(
 }
 
 ImposeProfilePlugin::ImposeProfilePlugin(const MirState *state, std::string name, std::string pvName,
-                                         float3 low, float3 high, float3 targetVel, float kBT) :
+                                         real3 low, real3 high, real3 targetVel, real kBT) :
     SimulationPlugin(state, name), pvName(pvName), low(low), high(high), targetVel(targetVel), kBT(kBT)
 {}
 

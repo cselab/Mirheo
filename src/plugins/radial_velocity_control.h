@@ -15,8 +15,8 @@ class SimulationRadialVelocityControl : public SimulationPlugin
 {
 public:
     SimulationRadialVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                    float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                    float3 center, float targetVel, float Kp, float Ki, float Kd);
+                                    real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
+                                    real3 center, real targetVel, real Kp, real Ki, real Kd);
 
     ~SimulationRadialVelocityControl();
     
@@ -36,16 +36,16 @@ private:
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 
-    float currentVel, targetVel, force;
-    float minRadiusSquare, maxRadiusSquare;
-    float3 center;
+    real currentVel, targetVel, force;
+    real minRadiusSquare, maxRadiusSquare;
+    real3 center;
 
     PinnedBuffer<int> nSamples{1};
     PinnedBuffer<double> totVel{1};
     long double        accumulatedVel;
     unsigned long long accumulatedSamples;
 
-    PidControl<float> pid;
+    PidControl<real> pid;
     std::vector<char> sendBuffer;
 
 private:

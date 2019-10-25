@@ -73,7 +73,7 @@ static constexpr uint64_t marchingCubeTris[256] =
      724147968595ULL, 1436604830452292ULL, 176259090ULL, 42001ULL,
      143955266ULL, 2385ULL, 18433ULL, 0ULL,};
 
-static int getConfig(const float vs[8])
+static int getConfig(const real vs[8])
 {
     return
         ((vs[0] < 0.0f) << 0) |
@@ -86,7 +86,7 @@ static int getConfig(const float vs[8])
         ((vs[7] < 0.0f) << 7);
 }
 
-void computeTriangles(DomainInfo domain, float3 resolution,
+void computeTriangles(DomainInfo domain, real3 resolution,
                       const ImplicitSurfaceFunction& field,
                       std::vector<Triangle>& triangles)
 {
@@ -94,27 +94,27 @@ void computeTriangles(DomainInfo domain, float3 resolution,
             int (domain.localSize.y / resolution.y),
             int (domain.localSize.z / resolution.z)};
 
-    float3 h {domain.localSize.x / N.x,
-              domain.localSize.y / N.y,
-              domain.localSize.z / N.z};
+    real3 h {domain.localSize.x / N.x,
+             domain.localSize.y / N.y,
+             domain.localSize.z / N.z};
 
-    std::vector<float3> vertices;
+    std::vector<real3> vertices;
     std::vector<int> indices;
     triangles.clear();
 
-    float3 dx {h.x, 0.0, 0.0};
-    float3 dy {0.0, h.y, 0.0};
-    float3 dz {0.0, 0.0, h.z};
+    real3 dx {h.x, 0.0, 0.0};
+    real3 dy {0.0, h.y, 0.0};
+    real3 dz {0.0, 0.0, h.z};
 
     for (int ix = 0; ix < N.x; ++ix) {
         for (int iy = 0; iy < N.y; ++iy) {
             for (int iz = 0; iz < N.z; ++iz) {
 
-                float3 r {domain.globalStart.x + ix * h.x,
+                real3 r {domain.globalStart.x + ix * h.x,
                           domain.globalStart.y + iy * h.y,
                           domain.globalStart.z + iz * h.z};
 
-                const float vs[8] =
+                const real vs[8] =
                     {field(r               ),
                      field(r + dx          ),
                      field(r      + dy     ),
@@ -132,12 +132,12 @@ void computeTriangles(DomainInfo domain, float3 resolution,
 
                 int edgeIndices[12];
 
-                auto processEdge = [&](int edgeId, float va, float vb, float3 axis, const float3 &base)
+                auto processEdge = [&](int edgeId, real va, real vb, real3 axis, const real3 &base)
                 {
                     if ((va < 0.0) == (vb < 0.0))
                         return;
                     
-                    float3 v = base;
+                    real3 v = base;
                     v += axis * va / (va - vb);
                     edgeIndices[edgeId] = vertices.size();
                     vertices.push_back(v);

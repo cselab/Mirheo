@@ -14,7 +14,7 @@
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, float time, MPI_Comm comm)
+           const std::vector<Channel>& channels, real time, MPI_Comm comm)
 {        
     std::string h5Filename  = filename + ".h5";
     std::string xmfFilename = filename + ".xmf";
@@ -31,7 +31,7 @@ void write(const std::string& filename, const Grid *grid,
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MPI_Comm comm)
 {
-    constexpr float arbitraryTime = -1.f;
+    constexpr real arbitraryTime = -1.f;
     write(filename, grid, channels, arbitraryTime, comm);
 }
 
@@ -49,7 +49,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
     std::string h5filename;
     VertexChannelsData vertexData;
 
-    auto positions = std::make_shared<std::vector<float3>>();
+    auto positions = std::make_shared<std::vector<real3>>();
     VertexGrid grid(positions, comm);
 
     mTimer timer;

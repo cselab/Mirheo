@@ -60,8 +60,8 @@ static void extractChannelsInfos(const std::vector< std::pair<std::string, std::
         std::string typeStr = p.second;
 
         if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
-        else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_float3);
-        else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_float4);
+        else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_real3);
+        else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_real4);
         else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
         else die("Unable to get parse channel type '%s'", typeStr.c_str());
     }
@@ -92,14 +92,14 @@ static void extractChannelInfos(const std::vector< std::pair<std::string, std::s
 
     
 inline pair_shared< AddForcePlugin, PostprocessPlugin >
-createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, float3 force)
+createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->name, force) : nullptr;
     return { simPl, nullptr };
 }
 
 inline pair_shared< AddTorquePlugin, PostprocessPlugin >
-createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, float3 torque)
+createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque)
 {
     auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->name, torque) : nullptr;
     return { simPl, nullptr };
@@ -107,8 +107,8 @@ createAddTorquePlugin(bool computeTask, const MirState *state, std::string name,
 
 inline pair_shared< AnchorParticlesPlugin, AnchorParticlesStatsPlugin >
 createAnchorParticlesPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                            std::function<std::vector<float3>(float)> positions,
-                            std::function<std::vector<float3>(float)> velocities,
+                            std::function<std::vector<real3>(real)> positions,
+                            std::function<std::vector<real3>(real)> velocities,
                             std::vector<int> pids, int reportEvery, const std::string& path)
 {
     auto simPl = computeTask ?
@@ -126,8 +126,8 @@ createAnchorParticlesPlugin(bool computeTask, const MirState *state, std::string
 
 inline pair_shared< DensityControlPlugin, PostprocessDensityControl >
 createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
-                           float targetDensity, std::function<float(float3)> region, float3 resolution,
-                           float levelLo, float levelHi, float levelSpace, float Kp, float Ki, float Kd,
+                           real targetDensity, std::function<real(real3)> region, real3 resolution,
+                           real levelLo, real levelHi, real levelSpace, real Kp, real Ki, real Kd,
                            int tuneEvery, int dumpEvery, int sampleEvery)
 {
     std::vector<std::string> pvNames;
@@ -149,7 +149,7 @@ createDensityControlPlugin(bool computeTask, const MirState *state, std::string 
 
 inline pair_shared< DensityOutletPlugin, PostprocessPlugin >
 createDensityOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                          float numberDensity, std::function<float(float3)> region, float3 resolution)
+                          real numberDensity, std::function<real(real3)> region, real3 resolution)
 {
     std::vector<std::string> pvNames;
 
@@ -163,7 +163,7 @@ createDensityOutletPlugin(bool computeTask, const MirState *state, std::string n
 
 inline pair_shared< PlaneOutletPlugin, PostprocessPlugin >
 createPlaneOutletPlugin(bool computeTask, const MirState *state, std::string name,
-                        std::vector<ParticleVector*> pvs, float4 plane)
+                        std::vector<ParticleVector*> pvs, real4 plane)
 {
     if (!computeTask)
         return { nullptr, nullptr };
@@ -176,7 +176,7 @@ createPlaneOutletPlugin(bool computeTask, const MirState *state, std::string nam
 
 inline pair_shared< RateOutletPlugin, PostprocessPlugin >
 createRateOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                       float rate, std::function<float(float3)> region, float3 resolution)
+                       real rate, std::function<real(real3)> region, real3 resolution)
 {
     std::vector<std::string> pvNames;
 
@@ -190,7 +190,7 @@ createRateOutletPlugin(bool computeTask, const MirState *state, std::string name
 
 inline pair_shared< Average3D, UniformCartesianDumper >
 createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                        int sampleEvery, int dumpEvery, float3 binSize,
+                        int sampleEvery, int dumpEvery, real3 binSize,
                         std::vector< std::pair<std::string, std::string> > channels,
                         std::string path)
 {
@@ -213,7 +213,7 @@ createDumpAveragePlugin(bool computeTask, const MirState *state, std::string nam
 inline pair_shared< AverageRelative3D, UniformCartesianDumper >
 createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                 ObjectVector* relativeToOV, int relativeToId,
-                                int sampleEvery, int dumpEvery, float3 binSize,
+                                int sampleEvery, int dumpEvery, real3 binSize,
                                 std::vector< std::pair<std::string, std::string> > channels,
                                 std::string path)
 {
@@ -308,7 +308,7 @@ createDumpObjStats(bool computeTask, const MirState *state, std::string name, Ob
 }
 
 inline pair_shared< ExchangePVSFluxPlanePlugin, PostprocessPlugin >
-createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv1, ParticleVector *pv2, float4 plane)
+createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv1, ParticleVector *pv2, real4 plane)
 {
     auto simPl = computeTask ?
         std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->name, pv2->name, plane) : nullptr;
@@ -325,7 +325,7 @@ createForceSaverPlugin(bool computeTask,  const MirState *state, std::string nam
 
 inline pair_shared< ImposeProfilePlugin, PostprocessPlugin >
 createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv, 
-                          float3 low, float3 high, float3 velocity, float kBT)
+                          real3 low, real3 high, real3 velocity, real kBT)
 {
     auto simPl = computeTask ?
         std::make_shared<ImposeProfilePlugin> (state, name, pv->name, low, high, velocity, kBT) :
@@ -337,7 +337,7 @@ createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string 
 inline pair_shared< ImposeVelocityPlugin, PostprocessPlugin >
 createImposeVelocityPlugin(bool computeTask,  const MirState *state, std::string name,
                            std::vector<ParticleVector*> pvs, int every,
-                           float3 low, float3 high, float3 velocity)
+                           real3 low, real3 high, real3 velocity)
 {
     std::vector<std::string> pvNames;
     if (computeTask) extractPVsNames(pvs, pvNames);
@@ -350,8 +350,8 @@ createImposeVelocityPlugin(bool computeTask,  const MirState *state, std::string
 }
 
 inline pair_shared< MagneticOrientationPlugin, PostprocessPlugin >
-createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, float3 moment,
-                                std::function<float3(float)> magneticFunction)
+createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
+                                std::function<real3(real)> magneticFunction)
 {
     auto simPl = computeTask ?
         std::make_shared<MagneticOrientationPlugin>(state, name, rov->name, moment, magneticFunction)
@@ -361,7 +361,7 @@ createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::st
 }
 
 inline pair_shared< MembraneExtraForcePlugin, PostprocessPlugin >
-createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<float3>& forces)
+createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces)
 {
     auto simPl = computeTask ?
         std::make_shared<MembraneExtraForcePlugin> (state, name, pv->name, forces) : nullptr;
@@ -371,7 +371,7 @@ createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::str
 
 inline pair_shared< ObjectPortalDestination, PostprocessPlugin >
 createObjectPortalDestination(bool computeTask, const MirState *state, std::string name,
-                              ObjectVector *ov, float3 src, float3 dst, float3 size,
+                              ObjectVector *ov, real3 src, real3 dst, real3 size,
                               int tag, long interCommPtr)
 {
     if (!computeTask)
@@ -385,7 +385,7 @@ createObjectPortalDestination(bool computeTask, const MirState *state, std::stri
 
 inline pair_shared< ObjectPortalSource, PostprocessPlugin >
 createObjectPortalSource(bool computeTask, const MirState *state, std::string name,
-                         ObjectVector *ov, float3 src, float3 dst, float3 size, float4 plane,
+                         ObjectVector *ov, real3 src, real3 dst, real3 size, real4 plane,
                          int tag, long interCommPtr)
 {
     if (!computeTask)
@@ -399,7 +399,7 @@ createObjectPortalSource(bool computeTask, const MirState *state, std::string na
 
 inline pair_shared< ObjectToParticlesPlugin, PostprocessPlugin >
 createObjectToParticlesPlugin(bool computeTask, const MirState *state, std::string name,
-                              ObjectVector *ov, ParticleVector *pv, float4 plane)
+                              ObjectVector *ov, ParticleVector *pv, real4 plane)
 {
     if (!computeTask)
         return { nullptr, nullptr };
@@ -432,7 +432,7 @@ createParticleDisplacementPlugin(bool computeTask, const MirState *state, std::s
 }
 
 inline pair_shared< ParticleDragPlugin, PostprocessPlugin >
-createParticleDragPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, float drag)
+createParticleDragPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real drag)
 {
     auto simPl = computeTask ?
         std::make_shared<ParticleDragPlugin> (state, name, pv->name, drag) :
@@ -442,7 +442,7 @@ createParticleDragPlugin(bool computeTask, const MirState *state, std::string na
 
 inline pair_shared< ParticlePortalDestination, PostprocessPlugin >
 createParticlePortalDestination(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                float3 src, float3 dst, float3 size, int tag, long comm_ptr)
+                                real3 src, real3 dst, real3 size, int tag, long comm_ptr)
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalDestination> (
@@ -452,7 +452,7 @@ createParticlePortalDestination(bool computeTask, const MirState *state, std::st
 
 inline pair_shared< ParticlePortalSource, PostprocessPlugin >
 createParticlePortalSource(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                float3 src, float3 dst, float3 size, int tag, long comm_ptr)
+                                real3 src, real3 dst, real3 size, int tag, long comm_ptr)
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalSource> (
@@ -462,7 +462,7 @@ createParticlePortalSource(bool computeTask, const MirState *state, std::string 
 
 inline pair_shared< PinObjectPlugin, ReportPinObjectPlugin >
 createPinObjPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,
-                   int dumpEvery, std::string path, float3 velocity, float3 omega)
+                   int dumpEvery, std::string path, real3 velocity, real3 omega)
 {
     auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (state, name, ov->name, velocity, omega, dumpEvery) : 
         nullptr;
@@ -473,7 +473,7 @@ createPinObjPlugin(bool computeTask, const MirState *state, std::string name, Ob
 
 inline pair_shared< PinRodExtremityPlugin, PostprocessPlugin >
 createPinRodExtremityPlugin(bool computeTask, const MirState *state, std::string name, RodVector *rv, int segmentId,
-                            float fmagn, float3 targetDirection)
+                            real fmagn, real3 targetDirection)
 {
     auto simPl  = computeTask ?
         std::make_shared<PinRodExtremityPlugin> (state, name, rv->name, segmentId, fmagn, targetDirection) : 
@@ -484,7 +484,7 @@ createPinRodExtremityPlugin(bool computeTask, const MirState *state, std::string
 
 inline pair_shared< SimulationVelocityControl, PostprocessVelocityControl >
 createVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                            float3 low, float3 high, int sampleEvery, int tuneEvery, int dumpEvery, float3 targetVel, float Kp, float Ki, float Kd)
+                            real3 low, real3 high, int sampleEvery, int tuneEvery, int dumpEvery, real3 targetVel, real Kp, real Ki, real Kd)
 {
     std::vector<std::string> pvNames;
     if (computeTask) extractPVsNames(pvs, pvNames);
@@ -504,8 +504,8 @@ createVelocityControlPlugin(bool computeTask, const MirState *state, std::string
 
 inline pair_shared< SimulationRadialVelocityControl, PostprocessRadialVelocityControl >
 createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                  float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                  float3 center, float targetVel, float Kp, float Ki, float Kd)
+                                  real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
+                                  real3 center, real targetVel, real Kp, real Ki, real Kd)
 {
     std::vector<std::string> pvNames;
     if (computeTask) extractPVsNames(pvs, pvNames);
@@ -533,7 +533,7 @@ createStatsPlugin(bool computeTask, const MirState *state, std::string name, std
 }
 
 inline pair_shared< TemperaturizePlugin, PostprocessPlugin >
-createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, float kBT, bool keepVelocity)
+createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity)
 {
     auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->name, kBT, keepVelocity) : nullptr;
     return { simPl, nullptr };
@@ -541,7 +541,7 @@ createTemperaturizePlugin(bool computeTask, const MirState *state, std::string n
 
 inline pair_shared< VirialPressurePlugin, VirialPressureDumper >
 createVirialPressurePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                           std::function<float(float3)> region, float3 h, int dumpEvery, std::string path)
+                           std::function<real(real3)> region, real3 h, int dumpEvery, std::string path)
 {
     auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name, region, h, dumpEvery)
         : nullptr;
@@ -551,14 +551,14 @@ createVirialPressurePlugin(bool computeTask, const MirState *state, std::string 
 
 inline pair_shared< VelocityInletPlugin, PostprocessPlugin >
 createVelocityInletPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                          std::function< float(float3)> implicitSurface,
-                          std::function<float3(float3)> velocityField,
-                          float3 resolution, float numberDensity, float kBT)
+                          std::function< real(real3)> implicitSurface,
+                          std::function<real3(real3)> velocityField,
+                          real3 resolution, real numberDensity, real kBT)
 {
     auto simPl  = computeTask ?
         std::make_shared<VelocityInletPlugin> (state, name, pv->name,
                                                implicitSurface, velocityField,
-                                               make_float3(resolution),
+                                               make_real3(resolution),
                                                numberDensity, kBT)
         : nullptr;
 
@@ -567,7 +567,7 @@ createVelocityInletPlugin(bool computeTask, const MirState *state, std::string n
     
 inline pair_shared< WallRepulsionPlugin, PostprocessPlugin >
 createWallRepulsionPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, Wall* wall,
-                          float C, float h, float maxForce)
+                          real C, real h, real maxForce)
 {
     auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (state, name, pv->name, wall->name, C, h, maxForce) : nullptr;
     return { simPl, nullptr };

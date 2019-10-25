@@ -93,7 +93,7 @@ struct ParticleRReal
 template <typename View>
 __D__ inline rReal3 fetchPosition(View view, int i)
 {
-    Float3_int ri(view.readPosition(i));
+    Real3_int ri(view.readPosition(i));
     return make_rReal3(ri.v);
 }
 

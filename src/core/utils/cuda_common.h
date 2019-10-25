@@ -188,7 +188,7 @@ __device__ inline T warpExclusiveScan(T val) {
 //=======================================================================================
 
 // For `int64_t` which apparently maps to `long`.
-__device__ inline long atomicAdd(long* address, long val)
+__device__ inline long atomicAdd(long *address, long val)
 {
     // Replacing with a supported function:
     // https://docs.nvidia.com/cuda/cuda-c-programming-guide/#atomicadd
@@ -207,14 +207,14 @@ __device__ inline long atomicAdd(long* address, long val)
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
-__device__ inline double atomicAdd(double* address, double val)
+__device__ inline double atomicAdd(double *address, double val)
 {
-    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int *address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
         assumed = old;
-         old = atomicCAS(address_as_ull, assumed,
-                          __double_as_longlong(val + __longlong_as_double(assumed)));
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val + __longlong_as_double(assumed)));
     } while (assumed != old);
     return __longlong_as_double(old);
 }
@@ -246,7 +246,25 @@ __device__ inline float3 atomicAdd(float4* addr, float3 v)
     return res;
 }
 
+
+__device__ inline double2 atomicAdd(double2* addr, double2 v)
+{
+    double2 res;
+    res.x = atomicAdd((double*)addr,   v.x);
+    res.y = atomicAdd((double*)addr+1, v.y);
+    return res;
+}
+
 __device__ inline double3 atomicAdd(double3* addr, double3 v)
+{
+    double3 res;
+    res.x = atomicAdd((double*)addr,   v.x);
+    res.y = atomicAdd((double*)addr+1, v.y);
+    res.z = atomicAdd((double*)addr+2, v.z);
+    return res;
+}
+
+__device__ inline double3 atomicAdd(double4* addr, double3 v)
 {
     double3 res;
     res.x = atomicAdd((double*)addr,   v.x);
@@ -269,6 +287,20 @@ __device__ inline float4 readNoCache(const float4* addr)
 __device__ inline void writeNoCache(float4* addr, const float4 val)
 {
     asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
+}
+
+__device__ inline double4 readNoCache(const double4* addr)
+{
+    // double4 res;
+    // asm("ld.global.cv.v4.f64 {%0, %1, %2, %3}, [%4];" : "=d"(res.x), "=d"(res.y), "=d"(res.z), "=d"(res.w) : "l"(addr));
+    // return res;
+    return *addr;
+}
+
+__device__ inline void writeNoCache(double4* addr, const double4 val)
+{
+    // asm("st.global.wt.v4.f64 [%0], {%1, %2, %3, %4};" :: "l"(addr), "d"(val.x), "d"(val.y), "d"(val.z), "d"(val.w));
+    *addr = val;
 }
 
 
@@ -372,14 +404,20 @@ inline float4 readNoCache(const float4* addr)
     return *addr;
 }
 
+inline double4 readNoCache(const double4* addr)
+{
+    return *addr;
+}
+
 #endif
 
 
 __HD__ inline float fastPower(const float x, const float k)
 {
-    if (math::abs(k - 1.0f)   < 1e-6f) return x;
-    if (math::abs(k - 0.5f)   < 1e-6f) return math::sqrt(math::abs(x));
-    if (math::abs(k - 0.25f)  < 1e-6f) return math::sqrt(math::sqrt(math::abs(x)));
+    constexpr real eps = 1e-6_r;
+    if (math::abs(k - 1.0_r)   < eps) return x;
+    if (math::abs(k - 0.5_r)   < eps) return math::sqrt(math::abs(x));
+    if (math::abs(k - 0.25_r)  < eps) return math::sqrt(math::sqrt(math::abs(x)));
 
     return math::pow(math::abs(x), k);
 }

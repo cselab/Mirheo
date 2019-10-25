@@ -16,7 +16,7 @@ namespace AverageFlowKernels
 
 __global__ void sample(
         PVview pvView, CellListInfo cinfo,
-        float* avgDensity,
+        real* avgDensity,
         ChannelsInfo channelsInfo)
 {
     const int pid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -44,7 +44,7 @@ int Average3D::getNcomponents(Average3D::ChannelType type) const
 Average3D::Average3D(const MirState *state, std::string name,
                      std::vector<std::string> pvNames,
                      std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
-                     int sampleEvery, int dumpEvery, float3 binSize) :
+                     int sampleEvery, int dumpEvery, real3 binSize) :
     SimulationPlugin(state, name), pvNames(pvNames),
     sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
     nSamples(0)
@@ -72,7 +72,7 @@ void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
     
     // TODO: this should be reworked if the domains are allowed to have different size
     resolution = make_int3( math::floor(state->domain.localSize / binSize) );
-    binSize = state->domain.localSize / make_float3(resolution);
+    binSize = state->domain.localSize / make_real3(resolution);
 
     if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)
     	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
@@ -126,7 +126,7 @@ void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
          pvView, cinfo, density.devPtr(), gpuInfo);
 }
 
-static void accumulateOneArray(int n, int components, const float *src, double *dst, cudaStream_t stream)
+static void accumulateOneArray(int n, int components, const real *src, double *dst, cudaStream_t stream)
 {
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH

@@ -60,13 +60,13 @@ public:
     {
         auto rv1 = dynamic_cast<RodVector *> (pv1);
 
-        if (saveEnergies) rv1->requireDataPerBisegment<float>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (saveEnergies) rv1->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
 
         if (Nstates > 1)
         {
             rv1->requireDataPerBisegment<int>     (ChannelNames::polyStates, DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<float4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<float2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<real4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<real2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
         }
     }
     
@@ -116,8 +116,8 @@ protected:
             RVview view(rv, rv->local());
             auto devParams = getBiSegmentParams<Nstates>(parameters);
 
-            auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
-            auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+            auto kappa = rv->local()->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
+            auto tau_l = rv->local()->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
 
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);

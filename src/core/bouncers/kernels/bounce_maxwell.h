@@ -12,33 +12,33 @@
 class BounceMaxwell
 {
 public:
-    BounceMaxwell(float kBT) :
+    BounceMaxwell(real kBT) :
         kBT(kBT)
     {}
 
     void update(std::mt19937& rng)
     {
-        std::uniform_real_distribution<float> dis(0.f, 1.f);
+        std::uniform_real_distribution<real> dis(0.f, 1.f);
         seed1 = dis(rng);
         seed2 = dis(rng);
     }
 
 #ifdef __NVCC__
-    __device__ float3 newVelocity(__UNUSED float3 uOld, float3 uWall, float3 n, float mass) const
+    __device__ real3 newVelocity(__UNUSED real3 uOld, real3 uWall, real3 n, real mass) const
     {
         constexpr int maxTries = 50;
-        const float2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
-        const float2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
+        const real2 rand1 = Saru::normal2(seed1, threadIdx.x, blockIdx.x);
+        const real2 rand2 = Saru::normal2(seed2, threadIdx.x, blockIdx.x);
 
-        float3 v = make_float3(rand1.x, rand1.y, rand2.x);
+        real3 v = make_real3(rand1.x, rand1.y, rand2.x);
 
         for (int i = 0; i < maxTries; ++i)
         {
             if (dot(v, n) > 0) break;
 
-            const float2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
-            const float2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
-            v = make_float3(rand3.x, rand3.y, rand4.x);
+            const real2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
+            const real2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
+            v = make_real3(rand3.x, rand3.y, rand4.x);
         }
         v = normalize(v) * math::sqrt(kBT / mass);
 
@@ -48,7 +48,7 @@ public:
 
 private:
 
-    float seed1{0.f};
-    float seed2{0.f};
-    float kBT;
+    real seed1{0.f};
+    real seed2{0.f};
+    real kBT;
 };

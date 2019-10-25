@@ -11,7 +11,7 @@ class ParticleVector;
 class StationaryWall_Box
 {
 public:
-    StationaryWall_Box(float3 lo, float3 hi, bool inside) :
+    StationaryWall_Box(real3 lo, real3 hi, bool inside) :
         lo(lo),
         hi(hi),
         inside(inside)
@@ -21,14 +21,14 @@ public:
 
     const StationaryWall_Box& handler() const { return *this; }
 
-    __D__ inline float operator()(float3 coo) const
+    __D__ inline real operator()(real3 coo) const
     {
-        const float3 gr = domain.local2global(coo);
+        const real3 gr = domain.local2global(coo);
 
-        const float3 dist3 = math::min(math::abs(gr - lo), math::abs(hi - gr));
-        const float dist = math::min(dist3.x, math::min(dist3.y, dist3.z));
+        const real3 dist3 = math::min(math::abs(gr - lo), math::abs(hi - gr));
+        const real dist = math::min(dist3.x, math::min(dist3.y, dist3.z));
 
-        float sign = 1.0f;
+        real sign = 1.0f;
         if (lo.x < gr.x && gr.x < hi.x  &&
             lo.y < gr.y && gr.y < hi.y  &&
             lo.z < gr.z && gr.z < hi.z)
@@ -38,7 +38,7 @@ public:
     }
 
 private:
-    float3 lo, hi;
+    real3 lo, hi;
     bool inside;
 
     DomainInfo domain;

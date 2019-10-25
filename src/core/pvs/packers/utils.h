@@ -1,8 +1,9 @@
 #pragma once
 
+#include <core/datatypes.h>
 #include <core/utils/cpu_gpu_defines.h>
 
-template <typename TPadding = float4>
+template <typename TPadding = real4>
 __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)
 {
     size_t size = n * datumSize;
@@ -10,7 +11,7 @@ __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)
     return npads * sizeof(TPadding);
 }
 
-template <typename T, typename TPadding = float4>
+template <typename T, typename TPadding = real4>
 __HD__ static size_t getPaddedSize(int n)
 {
     return getPaddedSize<TPadding>(sizeof(T), n);

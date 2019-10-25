@@ -12,10 +12,10 @@
 
 using namespace pybind11::literals;
 
-static std::map<std::string, float>
+static std::map<std::string, real>
 castToMap(const py::kwargs& kwargs, const std::string& name)
 {
-    std::map<std::string, float> parameters;
+    std::map<std::string, real> parameters;
     
     for (const auto& item : kwargs)
     {
@@ -27,7 +27,7 @@ castToMap(const py::kwargs& kwargs, const std::string& name)
             die("Could not cast one of the arguments in bouncer '%s' to string", name.c_str());
         }
         try {
-            parameters[key] = py::cast<float>(item.second);
+            parameters[key] = py::cast<real>(item.second);
         }
         catch (const py::cast_error& e) {
             die("Could not cast argument '%s' in bouncer '%s': wrong type", key.c_str(), name.c_str());
@@ -78,7 +78,7 @@ void exportBouncers(py::module& m)
 
         * **kernel** = "bounce_maxwell":
             Reinsert particle at the collision point with a velocity drawn from a maxwellian distribution.
-            Need the additional parameter **kBT (float)**.
+            Need the additional parameter **kBT (real)**.
             The new velocity of the particle is given by:
 
             .. math::
@@ -169,7 +169,7 @@ void exportBouncers(py::module& m)
         This bouncer will use the analytical representation of enlarged segments by a given radius.
         The velocity of the particles bounced from the segments is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init([](const MirState *state, const std::string& name, float radius, const std::string& kernel, const py::kwargs& kwargs)
+        .def(py::init([](const MirState *state, const std::string& name, real radius, const std::string& kernel, const py::kwargs& kwargs)
                       {
                           auto varBounceKernel = readBounceKernel(kernel, kwargs, name);
                           return std::make_shared<BounceFromRod>(state, name, radius, varBounceKernel);

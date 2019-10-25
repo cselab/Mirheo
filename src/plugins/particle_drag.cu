@@ -9,19 +9,19 @@
 namespace ParticleDragPluginKernels
 {
 
-__global__ void applyDrag(PVview view, float drag)
+__global__ void applyDrag(PVview view, real drag)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    auto v = make_float3(view.readVelocity(gid));
+    auto v = make_real3(view.readVelocity(gid));
     auto force = - drag * v;
-    view.forces[gid] += make_float4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0f);
 }
 
 } // namespace ParticleDragPluginKernels
 
-ParticleDragPlugin::ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, float drag) :
+ParticleDragPlugin::ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, real drag) :
     SimulationPlugin(state, name),
     pvName(pvName),
     drag(drag)

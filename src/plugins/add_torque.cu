@@ -9,7 +9,7 @@
 namespace AddTorqueKernels
 {
 
-__global__ void addTorque(ROVview view, float3 torque)
+__global__ void addTorque(ROVview view, real3 torque)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.nObjects) return;
@@ -19,7 +19,7 @@ __global__ void addTorque(ROVview view, float3 torque)
 
 } // namespace AddTorqueKernels
 
-AddTorquePlugin::AddTorquePlugin(const MirState *state, std::string name, std::string rovName, float3 torque) :
+AddTorquePlugin::AddTorquePlugin(const MirState *state, std::string name, std::string rovName, real3 torque) :
     SimulationPlugin(state, name),
     rovName(rovName),
     torque(torque)

@@ -37,7 +37,7 @@ void exportMirheo(py::module& m)
     py::class_<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init( [] (int3 nranks, float3 domain, float dt,
+        .def(py::init( [] (int3 nranks, real3 domain, real dt,
                            std::string log, int debuglvl, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
                            bool cudaMPI, bool noSplash, long comm)

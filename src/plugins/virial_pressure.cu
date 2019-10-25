@@ -22,7 +22,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 
     if (tid < view.size) {
         const Stress s = stress[tid];
-        auto r = Float3_int(view.readPosition(tid)).v;
+        auto r = Real3_int(view.readPosition(tid)).v;
 
         if (region(r) > 0)
             P = (s.xx + s.yy + s.zz) / 3.0;
@@ -36,7 +36,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 } // namespace VirialPressureKernels
 
 VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
-                                           FieldFunction func, float3 h, int dumpEvery) :
+                                           FieldFunction func, real3 h, int dumpEvery) :
     SimulationPlugin(state, name),
     pvName(pvName),
     dumpEvery(dumpEvery),
@@ -101,7 +101,7 @@ VirialPressureDumper::VirialPressureDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(makePath(path))
 {
-    if (std::is_same<VirialPressure::ReductionType, float>::value)
+    if (std::is_same<VirialPressure::ReductionType, real>::value)
         mpiReductionType = MPI_FLOAT;
     else if (std::is_same<VirialPressure::ReductionType, double>::value)
         mpiReductionType = MPI_DOUBLE;

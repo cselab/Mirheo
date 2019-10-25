@@ -1,7 +1,7 @@
 #include "uniform.h"
 #include "helpers.h"
 
-UniformIC::UniformIC(float density) :
+UniformIC::UniformIC(real density) :
     density(density)
 {}
 
@@ -30,7 +30,7 @@ UniformIC::~UniformIC() = default;
  */
 void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    auto filterInKeepAll = [](float3) {
+    auto filterInKeepAll = [](real3) {
         return true;
     };
     

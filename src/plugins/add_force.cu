@@ -9,17 +9,17 @@
 namespace AddForceKernels
 {
 
-__global__ void addForce(PVview view, float3 force)
+__global__ void addForce(PVview view, real3 force)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    view.forces[gid] += make_float4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0f);
 }
 
 } // namespace AddForceKernels
 
-AddForcePlugin::AddForcePlugin(const MirState *state, std::string name, std::string pvName, float3 force) :
+AddForcePlugin::AddForcePlugin(const MirState *state, std::string name, std::string pvName, real3 force) :
     SimulationPlugin(state, name),
     pvName(pvName),
     force(force)

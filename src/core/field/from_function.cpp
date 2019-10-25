@@ -2,7 +2,7 @@
 
 #include <core/utils/cuda_common.h>
 
-FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, float3 h) :
+FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h) :
     Field(state, name, h),
     func(func)
 {}
@@ -12,14 +12,14 @@ FieldFromFunction::~FieldFromFunction() = default;
 FieldFromFunction::FieldFromFunction(FieldFromFunction&&) = default;
 
 
-inline float make_perioidc(float x, float L)
+inline real make_perioidc(real x, real L)
 {
     if (x <  0) x += L;
     if (x >= L) x -= L;
     return x;
 }
 
-inline float3 make_periodic(float3 r, float3 L)
+inline real3 make_periodic(real3 r, real3 L)
 {
     return {make_perioidc(r.x, L.x),
             make_perioidc(r.y, L.y),
@@ -41,12 +41,12 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
     for (i.z = 0; i.z < resolution.z; ++i.z) {
         for (i.y = 0; i.y < resolution.y; ++i.y) {
             for (i.x = 0; i.x < resolution.x; ++i.x) {
-                float3 r {i.x * h.x, i.y * h.y, i.z * h.z};
+                real3 r {i.x * h.x, i.y * h.y, i.z * h.z};
                 r -= extendedDomainSize*0.5f;
                 r  = domain.local2global(r);
                 r  = make_periodic(r, domain.globalSize);
                 
-                fieldRawData[id++] = func(r);
+                fieldRawData[id++] = static_cast<float>(func(r));
             }
         }
     }

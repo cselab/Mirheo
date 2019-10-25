@@ -23,7 +23,7 @@ struct RodPackerHandler : public ObjectPackerHandler
     }
 
     inline __device__ size_t blockPackShift(int numElements, char *buffer,
-                                            int srcObjId, int dstObjId, float3 shift) const
+                                            int srcObjId, int dstObjId, real3 shift) const
     {
         return blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
@@ -35,7 +35,7 @@ struct RodPackerHandler : public ObjectPackerHandler
     }
 
     inline __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
-                                                   int srcObjId, int dstObjId, float eps) const
+                                                   int srcObjId, int dstObjId, real eps) const
     {
          return blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
     }

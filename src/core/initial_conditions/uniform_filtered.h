@@ -11,13 +11,13 @@
 class UniformFilteredIC : public InitialConditions
 {
 public:
-    UniformFilteredIC(float density, PositionFilter filter);
+    UniformFilteredIC(real density, PositionFilter filter);
     ~UniformFilteredIC();
     
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;    
 
 private:
-    float density;
+    real density;
     PositionFilter filter;
 };
 

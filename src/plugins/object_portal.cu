@@ -9,8 +9,8 @@
 
 namespace ObjectPortal {
 
-static __device__ bool areBoxesIntersecting(const float3 &lo1, const float3 &hi1,
-                                            const float3 &lo2, const float3 &hi2)
+static __device__ bool areBoxesIntersecting(const real3 &lo1, const real3 &hi1,
+                                            const real3 &lo2, const real3 &hi2)
 {
     return !(hi1.x < lo2.x || hi2.x < lo1.x
           || hi1.y < lo2.y || hi2.y < lo2.y
@@ -21,12 +21,12 @@ static __device__ bool areBoxesIntersecting(const float3 &lo1, const float3 &hi1
 /// Also, check how many COMs are inside the portal.
 __global__ void updateUUIDsAndCountInBox(
         OVview view,
-        float4 plane,          // Plane. Local coordinate system.
-        float *oldSides,       // Plane.
+        real4 plane,          // Plane. Local coordinate system.
+        real *oldSides,       // Plane.
         int64_t *localUUIDs,   // Plane.
         int64_t *uuidCounter,  // Plane.
-        float3 lo,             // Portal. Local coordinate system.
-        float3 hi,             // Portal.
+        real3 lo,             // Portal. Local coordinate system.
+        real3 hi,             // Portal.
         int64_t *outUUIDs,     // Portal.
         int *outIdx,           // Portal.
         int *numObjectsToSend) // Portal.
@@ -36,7 +36,7 @@ __global__ void updateUUIDsAndCountInBox(
 
     // Check if the object crossed the plane.
     auto &info = view.comAndExtents[oid];
-    float newSide = plane.x * info.com.x + plane.y * info.com.y + plane.z * info.com.z + plane.w;
+    real newSide = plane.x * info.com.x + plane.y * info.com.y + plane.z * info.com.z + plane.w;
     if (oldSides[oid] < 0.f && newSide >= 0.f)
         localUUIDs[oid] = atomicAdd(uuidCounter, 1);
 
@@ -55,7 +55,7 @@ __global__ void updateUUIDsAndCountInBox(
 __global__ void packObjects(
         OVview view,
         ObjectPackerHandler handler,
-        float3 shift,
+        real3 shift,
         const int *outIdx,
         int numObjectsToSend,
         char *outBuffer)
@@ -110,7 +110,7 @@ __global__ void findNew(
 __global__ void unpackObjects(
         OVview view,
         ObjectPackerHandler handler,
-        float3 shift,
+        real3 shift,
         const int64_t *inUUIDs,
         const char *inBuffer,
         const int *indexPairs,
@@ -132,7 +132,7 @@ __global__ void unpackObjects(
 
 ObjectPortalCommon::ObjectPortalCommon(
         const MirState *state, std::string name, std::string ovName,
-        float3 position, float3 size, int tag, MPI_Comm interCommExternal,
+        real3 position, real3 size, int tag, MPI_Comm interCommExternal,
         PackPredicate packPredicate) :
     SimulationPlugin(state, name),
     ovName(ovName),
@@ -174,7 +174,7 @@ bool ObjectPortalSource::packPredicate(const DataManager::NamedChannelDesc& name
 
 ObjectPortalSource::ObjectPortalSource(
         const MirState *state, std::string name, std::string ovName,
-        float3 src, float3 dst, float3 size, float4 plane, int tag, MPI_Comm interCommExternal) :
+        real3 src, real3 dst, real3 size, real4 plane, int tag, MPI_Comm interCommExternal) :
     ObjectPortalCommon(
         state, name, ovName, src, size, tag, interCommExternal,
         [this](const auto &namedDesc) { return packPredicate(namedDesc); }),
@@ -193,11 +193,11 @@ void ObjectPortalSource::setup(Simulation* simulation, const MPI_Comm& comm, con
 {
     ObjectPortalCommon::setup(simulation, comm, interComm);
 
-    ov->requireDataPerObject<float>(oldSideChannelName, DataManager::PersistenceMode::Active);
+    ov->requireDataPerObject<real>(oldSideChannelName, DataManager::PersistenceMode::Active);
 
     auto& manager    = ov->local()->dataPerObject;
     auto& localUUIDs = *manager.getData<int64_t>(uuidChannelName);
-    auto& oldSides   = *manager.getData<float>(oldSideChannelName);
+    auto& oldSides   = *manager.getData<real>(oldSideChannelName);
     localUUIDs.resize_anew(ov->local()->nObjects);
     oldSides  .resize_anew(ov->local()->nObjects);
 
@@ -217,7 +217,7 @@ void ObjectPortalSource::afterIntegration(cudaStream_t stream)
 
     auto& manager    = ov->local()->dataPerObject;
     auto& localUUIDs = *manager.getData<int64_t>(uuidChannelName);
-    auto& oldSides   = *manager.getData<float>(oldSideChannelName);
+    auto& oldSides   = *manager.getData<real>(oldSideChannelName);
 
     // 1a. Update COMs and UUIDs -- check if objects crossed the plane.
     // 1b. Find which objects overlap the portal box.
@@ -263,11 +263,11 @@ void ObjectPortalSource::afterIntegration(cudaStream_t stream)
 
 ObjectPortalDestination::ObjectPortalDestination(
         const MirState *state, std::string name, std::string ovName,
-        __UNUSED float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal) :
+        __UNUSED real3 src, real3 dst, real3 size, int tag, MPI_Comm interCommExternal) :
     ObjectPortalCommon(
             state, name, ovName, dst, size, tag, interCommExternal,
             [this](const auto &namedDesc) { return packPredicate(namedDesc); }),
-    shift(state->domain.global2local(float3{0.f, 0.f, 0.f}))  // (dst global -> dst local)
+    shift(state->domain.global2local(real3{0.f, 0.f, 0.f}))  // (dst global -> dst local)
 {}
 
 ObjectPortalDestination::~ObjectPortalDestination() = default;

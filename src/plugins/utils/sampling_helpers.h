@@ -8,18 +8,18 @@
 template <typename T>
 inline bool checkType(__UNUSED const Average3D::ChannelType& channelType) { return false;}
 
-template <> inline bool checkType<float> (const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
-template <> inline bool checkType<float3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float3;}
-template <> inline bool checkType<float4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_float4;}
+template <> inline bool checkType<real> (const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Scalar;}
+template <> inline bool checkType<real3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_real3;}
+template <> inline bool checkType<real4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_real4;}
 template <> inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
-template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<float4> (channelType);;}
+template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<real4> (channelType);;}
 
-static float* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
+static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
 {
     if (name == "velocity") {
-        if (channelType != Average3D::ChannelType::Vector_float4)
+        if (channelType != Average3D::ChannelType::Vector_real4)
             die("incompatible type for channel '%s'", name.c_str());
-        return (float*) lpv->velocities().devPtr();
+        return (real*) lpv->velocities().devPtr();
     }
     else
     {
@@ -29,7 +29,7 @@ static float* getDataAndCheck(const std::string& name, LocalParticleVector *lpv,
             using T = typename std::remove_reference< decltype(*pinnedBuff->hostPtr()) >::type;
             if (!checkType<T>(channelType))
                 die("incompatible type for channel '%s'", name.c_str());
-            return (float*) pinnedBuff->devPtr();
+            return (real*) pinnedBuff->devPtr();
         }, contDesc.varDataPtr);
     }
 }
@@ -38,7 +38,7 @@ struct ChannelsInfo
 {
     int n;
     Average3D::ChannelType *types;
-    float **average, **data;
+    real **average, **data;
 
     ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector *pv, cudaStream_t stream)
     {
@@ -66,16 +66,16 @@ __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInf
         if (channelsInfo.types[i] == Average3D::ChannelType::Scalar)
             atomicAdd(channelsInfo.average[i] + cid, channelsInfo.data[i][pid]);
 
-        if (channelsInfo.types[i] == Average3D::ChannelType::Vector_float3)
-            atomicAdd(((float3*)channelsInfo.average[i]) + cid, ((float3*)channelsInfo.data[i])[pid]);
+        if (channelsInfo.types[i] == Average3D::ChannelType::Vector_real3)
+            atomicAdd(((real3*)channelsInfo.average[i]) + cid, ((real3*)channelsInfo.data[i])[pid]);
 
-        if (channelsInfo.types[i] == Average3D::ChannelType::Vector_float4)
-            atomicAdd(((float3*)channelsInfo.average[i]) + cid, make_float3( ((float4*)channelsInfo.data[i])[pid] ));
+        if (channelsInfo.types[i] == Average3D::ChannelType::Vector_real4)
+            atomicAdd(((real3*)channelsInfo.average[i]) + cid, make_real3( ((real4*)channelsInfo.data[i])[pid] ));
 
         if (channelsInfo.types[i] == Average3D::ChannelType::Tensor6)
         {
-            atomicAdd(((float3*)channelsInfo.average[i]) + 2*cid + 0, ((float3*)channelsInfo.data[i])[2*pid + 0] );
-            atomicAdd(((float3*)channelsInfo.average[i]) + 2*cid + 1, ((float3*)channelsInfo.data[i])[2*pid + 1] );
+            atomicAdd(((real3*)channelsInfo.average[i]) + 2*cid + 0, ((real3*)channelsInfo.data[i])[2*pid + 0] );
+            atomicAdd(((real3*)channelsInfo.average[i]) + 2*cid + 1, ((real3*)channelsInfo.data[i])[2*pid + 1] );
         }
     }
 }
@@ -91,7 +91,7 @@ __global__ static void scaleVec(int n, int fieldComponents, double *field, const
                 field[fieldComponents*id + c] = 0.0f;
 }
 
-__global__ static void correctVelocity(int n, double3 *velocity, const double *density, const float3 correction)
+__global__ static void correctVelocity(int n, double3 *velocity, const double *density, const real3 correction)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id >= n) return;
@@ -101,14 +101,14 @@ __global__ static void correctVelocity(int n, double3 *velocity, const double *d
     velocity[id].z -= density[id] * correction.z;
 }
 
-__global__ static void scaleDensity(int n, double *density, const float factor)
+__global__ static void scaleDensity(int n, double *density, const real factor)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
         density[id] *= factor;
 }
 
-__global__ static void accumulate(int n, int fieldComponents, const float *src, double *dst)
+__global__ static void accumulate(int n, int fieldComponents, const real *src, double *dst)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n * fieldComponents)

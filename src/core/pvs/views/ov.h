@@ -10,7 +10,7 @@
 struct OVview : public PVview
 {
     int nObjects {0}, objSize {0};
-    float objMass {0.f}, invObjMass {0.f};
+    real objMass {0.f}, invObjMass {0.f};
 
     COMandExtent *comAndExtents {nullptr};
     int64_t *ids {nullptr};
@@ -30,37 +30,37 @@ struct OVview : public PVview
 
 struct OVviewWithAreaVolume : public OVview
 {
-    float2 *area_volumes {nullptr};
+    real2 *area_volumes {nullptr};
 
     OVviewWithAreaVolume(ObjectVector *ov, LocalObjectVector *lov) :
         OVview(ov, lov)
     {
-        area_volumes = lov->dataPerObject.getData<float2>(ChannelNames::areaVolumes)->devPtr();
+        area_volumes = lov->dataPerObject.getData<real2>(ChannelNames::areaVolumes)->devPtr();
     }
 };
 
 struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 {
-    float *vertexAreas          {nullptr};
-    float *vertexMeanCurvatures {nullptr};
+    real *vertexAreas          {nullptr};
+    real *vertexMeanCurvatures {nullptr};
 
-    float *lenThetaTot {nullptr};
+    real *lenThetaTot {nullptr};
 
     OVviewWithJuelicherQuants(ObjectVector *ov, LocalObjectVector *lov) :
         OVviewWithAreaVolume(ov, lov)
     {
-        vertexAreas          = lov->dataPerParticle.getData<float>(ChannelNames::areas)->devPtr();
-        vertexMeanCurvatures = lov->dataPerParticle.getData<float>(ChannelNames::meanCurvatures)->devPtr();
+        vertexAreas          = lov->dataPerParticle.getData<real>(ChannelNames::areas)->devPtr();
+        vertexMeanCurvatures = lov->dataPerParticle.getData<real>(ChannelNames::meanCurvatures)->devPtr();
 
-        lenThetaTot = lov->dataPerObject.getData<float>(ChannelNames::lenThetaTot)->devPtr();
+        lenThetaTot = lov->dataPerObject.getData<real>(ChannelNames::lenThetaTot)->devPtr();
     }
 };
 
 struct OVviewWithNewOldVertices : public OVview
 {
-    float4 *vertices     {nullptr};
-    float4 *old_vertices {nullptr};
-    float4 *vertexForces {nullptr};
+    real4 *vertices     {nullptr};
+    real4 *old_vertices {nullptr};
+    real4 *vertexForces {nullptr};
 
     int nvertices {0};
 
@@ -68,8 +68,8 @@ struct OVviewWithNewOldVertices : public OVview
         OVview(ov, lov)
     {
         nvertices    = ov->mesh->getNvertices();
-        vertices     = reinterpret_cast<float4*>( lov->getMeshVertices   (stream)->devPtr() );
-        old_vertices = reinterpret_cast<float4*>( lov->getOldMeshVertices(stream)->devPtr() );
-        vertexForces = reinterpret_cast<float4*>( lov->getMeshForces     (stream)->devPtr() );
+        vertices     = reinterpret_cast<real4*>( lov->getMeshVertices   (stream)->devPtr() );
+        old_vertices = reinterpret_cast<real4*>( lov->getOldMeshVertices(stream)->devPtr() );
+        vertexForces = reinterpret_cast<real4*>( lov->getMeshForces     (stream)->devPtr() );
     }
 };

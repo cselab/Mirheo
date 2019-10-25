@@ -65,15 +65,15 @@ std::vector<T> extractChannel(const std::string& name, ListData& channels)
 }
 
 ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
-                       int objSize, const std::vector<float3>& positions);
+                       int objSize, const std::vector<real3>& positions);
 
-std::tuple<std::vector<float4>, std::vector<float4>>
-combinePosVelIds(const std::vector<float3>& pos,
-                 const std::vector<float3>& vel,
+std::tuple<std::vector<real4>, std::vector<real4>>
+combinePosVelIds(const std::vector<real3>& pos,
+                 const std::vector<real3>& vel,
                  const std::vector<int64_t>& ids);
 
 std::vector<RigidMotion>
-combineMotions(const std::vector<float3>& pos,
+combineMotions(const std::vector<real3>& pos,
                const std::vector<RigidReal4>& quaternion,
                const std::vector<RigidReal3>& vel,
                const std::vector<RigidReal3>& omega,

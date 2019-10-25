@@ -21,7 +21,7 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     
-    PairwiseDPDHandler(float rc, float a, float gamma, float sigma, float power) :
+    PairwiseDPDHandler(real rc, real a, real gamma, real sigma, real power) :
         ParticleFetcherWithVelocity(rc),
         a(a),
         gamma(gamma),
@@ -30,24 +30,26 @@ public:
         invrc(1.0 / rc)
     {}
     
-    __D__ inline float3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
-        const float3 dr = dst.r - src.r;
-        const float rij2 = dot(dr, dr);
-        if (rij2 > rc2) return make_float3(0.0f);
+        const real3 dr = dst.r - src.r;
+        const real rij2 = dot(dr, dr);
+        if (rij2 > rc2) return make_real3(0.0f);
 
-        const float invrij = math::rsqrt(rij2);
-        const float rij = rij2 * invrij;
-        const float argwr = 1.0f - rij * invrc;
-        const float wr = fastPower(argwr, power);
+        const real invrij = math::rsqrt(rij2);
+        const real rij = rij2 * invrij;
+        const real argwr = 1.0f - rij * invrc;
+        const real wr = fastPower(argwr, power);
 
-        const float3 dr_r = dr * invrij;
-        const float3 du = dst.u - src.u;
-        const float rdotv = dot(dr_r, du);
+        const real3 dr_r = dr * invrij;
+        const real3 du = dst.u - src.u;
+        const real rdotv = dot(dr_r, du);
 
-        const float myrandnr = Logistic::mean0var1(seed, math::min(src.i1, dst.i1), math::max(src.i1, dst.i1));
+        const real myrandnr = Logistic::mean0var1(seed,
+                                                  math::min(static_cast<int>(src.i1), static_cast<int>(dst.i1)),
+                                                  math::max(static_cast<int>(src.i1), static_cast<int>(dst.i1)));
 
-        const float strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
+        const real strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 
         return dr_r * strength;
     }
@@ -56,9 +58,9 @@ public:
 
 protected:
 
-    float a, gamma, sigma, power;
-    float invrc;
-    float seed;
+    real a, gamma, sigma, power;
+    real invrc;
+    real seed;
 };
 
 class PairwiseDPD : public PairwiseKernel, public PairwiseDPDHandler
@@ -67,13 +69,13 @@ public:
 
     using HandlerType = PairwiseDPDHandler;
     
-    PairwiseDPD(float rc, float a, float gamma, float kBT, float dt, float power, long seed=42424242) :
+    PairwiseDPD(real rc, real a, real gamma, real kBT, real dt, real power, long seed=42424242) :
         PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
         stepGen(seed),
         kBT(kBT)
     {}
 
-    PairwiseDPD(float rc, const DPDParams& p, float dt, long seed=42424242) :
+    PairwiseDPD(real rc, const DPDParams& p, real dt, long seed=42424242) :
         PairwiseDPD(rc, p.a, p.gamma, p.kBT, dt, p.power, seed)
     {}
 
@@ -105,11 +107,11 @@ public:
 
 protected:
 
-    static float computeSigma(float gamma, float kBT, float dt)
+    static real computeSigma(real gamma, real kBT, real dt)
     {
         return math::sqrt(2.0 * gamma * kBT / dt);
     }
     
     StepRandomGen stepGen;
-    float kBT;
+    real kBT;
 };

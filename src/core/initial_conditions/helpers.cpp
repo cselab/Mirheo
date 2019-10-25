@@ -7,7 +7,7 @@
 
 #include "helpers.h"
 
-using PositionFilter = std::function<bool(float3)>;
+using PositionFilter = std::function<bool(real3)>;
 
 static long genSeed(const MPI_Comm& comm, std::string name)
 {
@@ -18,8 +18,8 @@ static long genSeed(const MPI_Comm& comm, std::string name)
     return rank + nameHash(name);
 }
 
-static Particle genParticle(float3 h, int i, int j, int k, const DomainInfo& domain,
-                            std::uniform_real_distribution<float>& udistr, std::mt19937& gen)
+static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& domain,
+                            std::uniform_real_distribution<real>& udistr, std::mt19937& gen)
 {
     Particle p;
     p.r.x = i*h.x - 0.5*domain.localSize.x + udistr(gen);
@@ -33,19 +33,19 @@ static Particle genParticle(float3 h, int i, int j, int k, const DomainInfo& dom
     return p;
 }
 
-void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
+void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
 {
     auto domain = pv->state->domain;
 
     int3 ncells = make_int3( math::ceil(domain.localSize) );
-    float3 h    = domain.localSize / make_float3(ncells);
+    real3 h    = domain.localSize / make_real3(ncells);
 
     int wholeInCell = math::floor(density);
-    float fracInCell = density - wholeInCell;
+    real fracInCell = density - wholeInCell;
 
     auto seed = genSeed(comm, pv->name);
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> udistr(0, 1);
+    std::uniform_real_distribution<real> udistr(0, 1);
 
     double3 avgMomentum{0,0,0};
     int mycount = 0;
@@ -68,8 +68,8 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
                     auto pos = pv->local()->positions ().hostPtr();
                     auto vel = pv->local()->velocities().hostPtr();
 
-                    pos[mycount] = part.r2Float4();
-                    vel[mycount] = part.u2Float4();
+                    pos[mycount] = part.r2Real4();
+                    vel[mycount] = part.u2Real4();
 
                     avgMomentum.x += part.u.x;
                     avgMomentum.y += part.u.y;
@@ -94,7 +94,7 @@ void addUniformParticles(float density, const MPI_Comm& comm, ParticleVector *pv
     pv->local()->positions() .uploadToDevice(stream);
     pv->local()->velocities().uploadToDevice(stream);
     pv->local()->computeGlobalIds(comm, stream);
-    pv->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
+    pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }

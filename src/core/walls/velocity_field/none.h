@@ -8,11 +8,11 @@ class VelocityField_None
 {
 public:
 
-    void setup(__UNUSED float t, __UNUSED DomainInfo domain) {}
+    void setup(__UNUSED real t, __UNUSED DomainInfo domain) {}
 
     const VelocityField_None& handler() const { return *this; }
 
-    __D__ inline float3 operator()(__UNUSED float3 coo) const
+    __D__ inline real3 operator()(__UNUSED real3 coo) const
     {
         return {0.f, 0.f, 0.f};
     }

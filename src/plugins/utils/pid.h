@@ -7,7 +7,7 @@
 template <typename ControlType>
 class PidControl {
 public:
-    __HD__ PidControl(ControlType initError, float Kp, float Ki, float Kd) :
+    __HD__ PidControl(ControlType initError, real Kp, real Ki, real Kd) :
         Kp(Kp),
         Ki(Ki),
         Kd(Kd),
@@ -41,7 +41,7 @@ public:
     }
     
 private:
-    float Kp, Ki, Kd;
+    real Kp, Ki, Kd;
     ControlType oldError, sumError;
 };
 

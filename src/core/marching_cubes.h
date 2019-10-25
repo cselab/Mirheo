@@ -7,14 +7,14 @@
 
 namespace MarchingCubes
 {
-using ImplicitSurfaceFunction = std::function< float(float3) >;
+using ImplicitSurfaceFunction = std::function< real(real3) >;
 
 struct Triangle
 {
-    float3 a, b, c;
+    real3 a, b, c;
 };
 
-void computeTriangles(DomainInfo domain, float3 resolution,
+void computeTriangles(DomainInfo domain, real3 resolution,
                       const ImplicitSurfaceFunction& surface,
                       std::vector<Triangle>& triangles);
 

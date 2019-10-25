@@ -14,7 +14,7 @@ class ObjectPortalCommon : public SimulationPlugin
 {
 protected:
     ObjectPortalCommon(const MirState *state, std::string name, std::string ovName,
-                       float3 position, float3 size, int tag, MPI_Comm interCommExternal,
+                       real3 position, real3 size, int tag, MPI_Comm interCommExternal,
                        PackPredicate predicate);
 
 public:
@@ -34,8 +34,8 @@ protected:
     int tag;
     MPI_Comm interCommExternal;
 
-    float3 localLo;  // Bounds of the local side of the portal
-    float3 localHi;  // in the local coordinate system.
+    real3 localLo;  // Bounds of the local side of the portal
+    real3 localHi;  // in the local coordinate system.
     ObjectPacker packer;
 };
 
@@ -43,7 +43,7 @@ protected:
 class ObjectPortalSource : public ObjectPortalCommon
 {
 public:
-    ObjectPortalSource(const MirState *state, std::string name, std::string ovName, float3 src, float3 dst, float3 size, float4 plane, int tag, MPI_Comm interCommExternal);
+    ObjectPortalSource(const MirState *state, std::string name, std::string ovName, real3 src, real3 dst, real3 size, real4 plane, int tag, MPI_Comm interCommExternal);
     ~ObjectPortalSource();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -53,10 +53,10 @@ private:
     bool packPredicate(const DataManager::NamedChannelDesc &) noexcept;
 
     std::string oldSideChannelName;
-    float4 plane;
-    float3 shift;
+    real4 plane;
+    real3 shift;
 
-    DeviceBuffer<float>   localOldSides;         // Per-object, previous value of ax+bx+cz+d for COM.
+    DeviceBuffer<real>   localOldSides;         // Per-object, previous value of ax+bx+cz+d for COM.
     DeviceBuffer<int64_t> uuidCounter {1};       // Global counter of UUIDs.
 
     DeviceBuffer<int>     outIdx;                // Local indices of the objects to send.
@@ -69,14 +69,14 @@ private:
 class ObjectPortalDestination : public ObjectPortalCommon
 {
 public:
-    ObjectPortalDestination(const MirState *state, std::string name, std::string ovName, float3 src, float3 dst, float3 size, int tag, MPI_Comm interCommExternal);
+    ObjectPortalDestination(const MirState *state, std::string name, std::string ovName, real3 src, real3 dst, real3 size, int tag, MPI_Comm interCommExternal);
     ~ObjectPortalDestination();
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
 
 private:
-    float3 shift;
+    real3 shift;
 
     PinnedBuffer<int64_t> inUUIDs;
     PinnedBuffer<char> inBuffer;

@@ -13,7 +13,7 @@ public:
     void update(__UNUSED std::mt19937& rng) {}
 
 #ifdef __NVCC__
-    __device__  float3 newVelocity(float3 uOld, float3 uWall, __UNUSED float3 n, __UNUSED float mass) const
+    __device__  real3 newVelocity(real3 uOld, real3 uWall, __UNUSED real3 n, __UNUSED real mass) const
     {
         return uWall - (uOld - uWall);
     }

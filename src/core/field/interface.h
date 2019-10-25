@@ -12,7 +12,7 @@
 #ifndef __NVCC__
 template<typename T>
 T tex3D(__UNUSED cudaTextureObject_t t,
-        __UNUSED float x, __UNUSED float y, __UNUSED float z)
+        __UNUSED real x, __UNUSED real y, __UNUSED real z)
 {
     return T();
 }
@@ -21,17 +21,22 @@ T tex3D(__UNUSED cudaTextureObject_t t,
 class FieldDeviceHandler
 {
 public:
-    __D__ inline float operator()(float3 x) const
+    __D__ inline real operator()(real3 x) const
     {
         //https://en.wikipedia.org/wiki/Trilinear_interpolation
-        float s000, s001, s010, s011, s100, s101, s110, s111;
-        float sx00, sx01, sx10, sx11, sxy0, sxy1, sxyz;
+        real s000, s001, s010, s011, s100, s101, s110, s111;
+        real sx00, sx01, sx10, sx11, sxy0, sxy1, sxyz;
 
-        float3 texcoord = math::floor((x + extendedDomainSize*0.5f) * invh);
-        float3 lambda = (x - (texcoord * h - extendedDomainSize*0.5f)) * invh;
+        real3 texcoord = math::floor((x + extendedDomainSize*0.5_r) * invh);
+        real3 lambda = (x - (texcoord * h - extendedDomainSize*0.5_r)) * invh;
         
-        auto access = [this, &texcoord] (int dx, int dy, int dz) {
-            return tex3D<float>(fieldTex, texcoord.x + dx, texcoord.y + dy, texcoord.z + dz);
+        auto access = [this, &texcoord] (int dx, int dy, int dz)
+        {
+            const auto val = tex3D<float>(fieldTex,
+                                          static_cast<float>(texcoord.x + dx),
+                                          static_cast<float>(texcoord.y + dy),
+                                          static_cast<float>(texcoord.z + dz));
+            return static_cast<real>(val);
         };
         
         s000 = access(0, 0, 0);
@@ -60,14 +65,14 @@ public:
 protected:
 
     cudaTextureObject_t fieldTex;
-    float3 h, invh, extendedDomainSize;
+    real3 h, invh, extendedDomainSize;
 };
 
 
 class Field : public FieldDeviceHandler, public MirSimulationObject
 {
 public:    
-    Field(const MirState *state, std::string name, float3 h);
+    Field(const MirState *state, std::string name, real3 h);
     virtual ~Field();
 
     Field(Field&&);
@@ -82,7 +87,7 @@ protected:
     
     cudaArray *fieldArray;
     
-    const float3 margin3{5, 5, 5};
+    const real3 margin3{5, 5, 5};
 
     void setupArrayTexture(const float *fieldDevPtr);
 };

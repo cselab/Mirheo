@@ -23,7 +23,7 @@ void writeDataSet(pugi::xml_node node, const std::string& h5filename,
     infoNode.append_attribute("RequireShift") =
         channel.needShift == Channel::NeedShift::True ? "True" : "False";
             
-    // Add one more dimension: number of floats per data item
+    // Add one more dimension: number of reals per data item
     auto globalSize = grid->getGridDims()->getGlobalSize();
     globalSize.push_back(channel.nComponents());
             
@@ -48,7 +48,7 @@ static bool isMasterRank(MPI_Comm comm)
     return (rank == 0);
 }
         
-void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, float time)
+void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, real time)
 {
     if (isMasterRank(comm)) {
         pugi::xml_document doc;

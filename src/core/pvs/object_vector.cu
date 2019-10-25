@@ -20,25 +20,25 @@ __global__ void minMaxCom(OVview ovView)
     const int laneId = gid % warpSize;
     if (objId >= ovView.nObjects) return;
 
-    float3 mymin = make_float3( 1e+10f);
-    float3 mymax = make_float3(-1e+10f);
-    float3 mycom = make_float3(0);
+    real3 mymin = make_real3( 1e+10f);
+    real3 mymax = make_real3(-1e+10f);
+    real3 mycom = make_real3(0);
 
 #pragma unroll 3
     for (int i = laneId; i < ovView.objSize; i += warpSize)
     {
         const int offset = objId * ovView.objSize + i;
 
-        const float3 coo = make_float3(ovView.readPosition(offset));
+        const real3 coo = make_real3(ovView.readPosition(offset));
 
         mymin = math::min(mymin, coo);
         mymax = math::max(mymax, coo);
         mycom += coo;
     }
 
-    mycom = warpReduce( mycom, [] (float a, float b) { return a+b; } );
-    mymin = warpReduce( mymin, [] (float a, float b) { return math::min(a, b); } );
-    mymax = warpReduce( mymax, [] (float a, float b) { return math::max(a, b); } );
+    mycom = warpReduce( mycom, [] (real a, real b) { return a+b; } );
+    mymin = warpReduce( mymin, [] (real a, real b) { return math::min(a, b); } );
+    mymax = warpReduce( mymax, [] (real a, real b) { return math::max(a, b); } );
 
     if (laneId == 0)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
@@ -103,14 +103,14 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     ids.uploadToDevice(stream);
 }
 
-PinnedBuffer<float4>* LocalObjectVector::getMeshVertices(__UNUSED cudaStream_t stream)
+PinnedBuffer<real4>* LocalObjectVector::getMeshVertices(__UNUSED cudaStream_t stream)
 {
     return &positions();
 }
 
-PinnedBuffer<float4>* LocalObjectVector::getOldMeshVertices(__UNUSED cudaStream_t stream)
+PinnedBuffer<real4>* LocalObjectVector::getOldMeshVertices(__UNUSED cudaStream_t stream)
 {
-    return dataPerParticle.getData<float4>(ChannelNames::oldPositions);
+    return dataPerParticle.getData<real4>(ChannelNames::oldPositions);
 }
 
 PinnedBuffer<Force>* LocalObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
@@ -127,13 +127,13 @@ int LocalObjectVector::getNobjects(int np) const
 }
 
 
-ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, int objSize, int nObjects) :
+ObjectVector::ObjectVector(const MirState *state, std::string name, real mass, int objSize, int nObjects) :
     ObjectVector( state, name, mass, objSize,
                   std::make_unique<LocalObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalObjectVector>(this, objSize, 0) )
 {}
 
-ObjectVector::ObjectVector(const MirState *state, std::string name, float mass, int objSize,
+ObjectVector::ObjectVector(const MirState *state, std::string name, real mass, int objSize,
                            std::unique_ptr<LocalParticleVector>&& local,
                            std::unique_ptr<LocalParticleVector>&& halo) :
     ParticleVector(state, name, mass, std::move(local), std::move(halo)),
@@ -168,11 +168,11 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality 
             view );
 }
 
-static std::vector<float3> getCom(DomainInfo domain,
+static std::vector<real3> getCom(DomainInfo domain,
                                   const PinnedBuffer<COMandExtent>& com_extents)
 {
     int n = com_extents.size();
-    std::vector<float3> pos(n);
+    std::vector<real3> pos(n);
 
     for (int i = 0; i < n; ++i) {
         auto r = com_extents[i].com;
@@ -194,7 +194,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<float3>>(getCom(state->domain, *coms_extents));
+    auto positions = std::make_shared<std::vector<real3>>(getCom(state->domain, *coms_extents));
 
     XDMF::VertexGrid grid(positions, comm);
 
@@ -220,7 +220,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
     auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
     // remove positions from the read data (artificial for non rov)
-    RestartHelpers::extractChannel<float3> (ChannelNames::XDMF::position, listData);
+    RestartHelpers::extractChannel<real3> (ChannelNames::XDMF::position, listData);
     
     RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
     RestartHelpers::requireExtraDataPerObject(listData, this);

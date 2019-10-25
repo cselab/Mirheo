@@ -16,11 +16,11 @@ __global__ void addForce(OVview view, const Force *forces)
 
     int locId = gid % view.objSize;
 
-    view.forces[gid] += forces[locId].toFloat4();
+    view.forces[gid] += forces[locId].toReal4();
 }
 } // namespace MembraneExtraForcesKernels
 
-MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<float3>& forces) :
+MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<real3>& forces) :
     SimulationPlugin(state, name),
     pvName(pvName),
     forces(forces.size())

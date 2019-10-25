@@ -52,7 +52,7 @@ MembraneMesh::MembraneMesh(const std::string& initialMesh, const std::string& st
     _computeInitialQuantities(stressFree.vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(const std::vector<float3>& vertices,
+MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
                            const std::vector<int3>& faces) :
     Mesh(vertices, faces)
 {
@@ -60,8 +60,8 @@ MembraneMesh::MembraneMesh(const std::vector<float3>& vertices,
     _computeInitialQuantities(vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(const std::vector<float3>& vertices,
-                           const std::vector<float3>& stressFreeVertices,
+MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
+                           const std::vector<real3>& stressFreeVertices,
                            const std::vector<int3>& faces) :
     Mesh(vertices, faces)
 {
@@ -143,14 +143,14 @@ void MembraneMesh::findAdjacent()
     degrees.uploadToDevice(defaultStream);
 }
 
-void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<real4>& vertices)
 {
     _computeInitialLengths(vertices);
     _computeInitialAreas(vertices);
     _computeInitialDotProducts(vertices);
 }
 
-void MembraneMesh::_computeInitialLengths(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialLengths(const PinnedBuffer<real4>& vertices)
 {
     initialLengths.resize_anew(nvertices * maxDegree);
 
@@ -162,20 +162,20 @@ void MembraneMesh::_computeInitialLengths(const PinnedBuffer<float4>& vertices)
     initialLengths.uploadToDevice(defaultStream);
 }
 
-static float computeArea(float3 v0, float3 v1, float3 v2) {
+static real computeArea(real3 v0, real3 v1, real3 v2) {
     return 0.5f * length(cross(v1 - v0, v2 - v0));
 }
 
-void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
 {
     initialAreas.resize_anew(nvertices * maxDegree);
 
-    float3 v0, v1, v2;
+    real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < nvertices; ++id0) {
         int degree = degrees[id0];
         int startId = id0 * maxDegree;
-        v0 = make_float3(vertices[id0]);
+        v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
             int id1 = adjacent[startId + j];
@@ -183,8 +183,8 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
 
             assert(id2 != NOT_SET);
 
-            v1 = make_float3(vertices[id1]);
-            v2 = make_float3(vertices[id2]);
+            v1 = make_real3(vertices[id1]);
+            v2 = make_real3(vertices[id2]);
 
             initialAreas[startId + j] = computeArea(v0, v1, v2);
         }
@@ -193,16 +193,16 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<float4>& vertices)
     initialAreas.uploadToDevice(defaultStream);
 }
 
-void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<float4>& vertices)
+void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<real4>& vertices)
 {
     initialDotProducts.resize_anew(nvertices * maxDegree);
 
-    float3 v0, v1, v2;
+    real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < nvertices; ++id0) {
         int degree = degrees[id0];
         int startId = id0 * maxDegree;
-        v0 = make_float3(vertices[id0]);
+        v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
             int id1 = adjacent[startId + j];
@@ -210,8 +210,8 @@ void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<float4>& vertic
 
             assert(id2 != NOT_SET);
 
-            v1 = make_float3(vertices[id1]);
-            v2 = make_float3(vertices[id2]);
+            v1 = make_real3(vertices[id1]);
+            v2 = make_real3(vertices[id2]);
 
             initialDotProducts[startId + j] = dot(v1 - v0, v2 - v0);
         }

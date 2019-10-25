@@ -58,7 +58,7 @@ void exportObjectBelongingCheckers(py::module& m)
     py::handlers_class<RodBelongingChecker>(m, "Rod", pycheck, R"(
         This checker will detect *inside*-*outside* status with respect to every segment of the rod, enlarged by a given radius.
     )")
-        .def(py::init<const MirState*, std::string, float>(),
+        .def(py::init<const MirState*, std::string, real>(),
              "state"_a, "name"_a, "radius"_a, R"(
             Args:
                 name: name of the checker

@@ -2,21 +2,23 @@
 
 #include <core/datatypes.h>
 #include <core/utils/cpu_gpu_defines.h>
+#include <core/utils/helper_math.h>
 
-inline __HD__ SingleRigidMotion toSingleMotion(const DoubleRigidMotion& dm)
+#ifndef MIRHEO_DOUBLE_PRECISION
+static inline __HD__ RealRigidMotion toRealMotion(const DoubleRigidMotion& dm)
 {
-    SingleRigidMotion sm;
-    sm.r      = make_float3(dm.r);
-    sm.q      = make_float4(dm.q);
-    sm.vel    = make_float3(dm.vel);
-    sm.omega  = make_float3(dm.omega);
-    sm.force  = make_float3(dm.force);
-    sm.torque = make_float3(dm.torque);
-
+    RealRigidMotion sm;
+    sm.r      = make_real3(dm.r);
+    sm.q      = make_real4(dm.q);
+    sm.vel    = make_real3(dm.vel);
+    sm.omega  = make_real3(dm.omega);
+    sm.force  = make_real3(dm.force);
+    sm.torque = make_real3(dm.torque);
     return sm;
 }
+#endif
 
-inline __HD__ SingleRigidMotion toSingleMotion(const SingleRigidMotion& sm)
+static inline __HD__ RealRigidMotion toRealMotion(const RealRigidMotion& sm)
 {
     return sm;
 }

@@ -11,21 +11,21 @@ class ParticleVector;
 class VelocityField_Translate
 {
 public:
-    VelocityField_Translate(float3 vel) :
+    VelocityField_Translate(real3 vel) :
         vel(vel)
     {}
 
-    void setup(__UNUSED float t, __UNUSED DomainInfo domain) {}
+    void setup(__UNUSED real t, __UNUSED DomainInfo domain) {}
 
     const VelocityField_Translate& handler() const { return *this; }
 
-    __D__ inline float3 operator()(__UNUSED float3 coo) const
+    __D__ inline real3 operator()(__UNUSED real3 coo) const
     {
         return vel;
     }
 
 private:
-    float3 vel;
+    real3 vel;
 
     DomainInfo domain;
 };

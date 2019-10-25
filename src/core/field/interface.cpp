@@ -4,7 +4,7 @@
 #include <core/utils/cuda_common.h>
 
 
-Field::Field(const MirState *state, std::string name, float3 hField) :
+Field::Field(const MirState *state, std::string name, real3 hField) :
     MirSimulationObject(state, name),
     fieldArray(nullptr)
 {
@@ -12,7 +12,7 @@ Field::Field(const MirState *state, std::string name, float3 hField) :
     // would also be correctly bounced back
     extendedDomainSize = state->domain.localSize + 2.0f*margin3;
     resolution         = make_int3( math::ceil(extendedDomainSize / hField) );
-    h                  = extendedDomainSize / make_float3(resolution-1);
+    h                  = extendedDomainSize / make_real3(resolution-1);
     invh               = 1.0f / h;
 }
 

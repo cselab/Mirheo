@@ -13,21 +13,21 @@ class ImposeVelocityPlugin : public SimulationPlugin
 {
 public:
     ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                         float3 low, float3 high, float3 targetVel, int every);
+                         real3 low, real3 high, real3 targetVel, int every);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void afterIntegration(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
     
-    void setTargetVelocity(float3 v);
+    void setTargetVelocity(real3 v);
     
 private:
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 
-    float3 high, low;
-    float3 targetVel;
+    real3 high, low;
+    real3 targetVel;
 
     int every;
 

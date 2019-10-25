@@ -10,11 +10,11 @@
 template<int Nstates>
 struct GPU_RodBiSegmentParameters
 {
-    float3 kBending;
-    float kTwist;
-    float2 kappaEq[Nstates];
-    float tauEq[Nstates];
-    float groundE[Nstates];
+    real3 kBending;
+    real kTwist;
+    real2 kappaEq[Nstates];
+    real tauEq[Nstates];
+    real groundE[Nstates];
 };
 
 // theta0 and theta1 might be close to pi, leading to +- pi values

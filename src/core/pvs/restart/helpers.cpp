@@ -66,7 +66,7 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
 }
 
 static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
-                                     const std::vector<float3>& positions)
+                                     const std::vector<real3>& positions)
 {
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get(comm, 3, dims, periods, coords) );
@@ -102,22 +102,22 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
 }
 
 ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
-                       int objSize, const std::vector<float3>& positions)
+                       int objSize, const std::vector<real3>& positions)
 {
     int nObjs = positions.size() / objSize;
 
     if (positions.size() % objSize != 0)
         die("expected a multiple of %d, got %d", objSize, (int)positions.size());
 
-    std::vector<float3> coms;
+    std::vector<real3> coms;
     coms.reserve(nObjs);
 
-    constexpr float3 zero3 {0.f, 0.f, 0.f};
-    const float factor = 1.0 / objSize;
+    constexpr real3 zero3 {0.f, 0.f, 0.f};
+    const real factor = 1.0 / objSize;
     
     for (int i = 0; i < nObjs; ++i)
     {
-        float3 com = factor * std::accumulate(positions.data() + (i + 0) * objSize,
+        real3 com = factor * std::accumulate(positions.data() + (i + 0) * objSize,
                                               positions.data() + (i + 1) * objSize,
                                               zero3);
         coms.push_back(com);
@@ -126,13 +126,13 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
     return getExchangeMapFromPos(comm, domain, coms);
 }
 
-std::tuple<std::vector<float4>, std::vector<float4>>
-combinePosVelIds(const std::vector<float3>& pos,
-                 const std::vector<float3>& vel,
+std::tuple<std::vector<real4>, std::vector<real4>>
+combinePosVelIds(const std::vector<real3>& pos,
+                 const std::vector<real3>& vel,
                  const std::vector<int64_t>& ids)
 {
     auto n = pos.size();
-    std::vector<float4> pos4(n), vel4(n);
+    std::vector<real4> pos4(n), vel4(n);
 
     for (size_t i = 0; i < n; ++i)
     {
@@ -141,14 +141,14 @@ combinePosVelIds(const std::vector<float3>& pos,
         p.u = vel[i];
         p.setId(ids[i]);
 
-        pos4[i] = p.r2Float4();
-        vel4[i] = p.u2Float4();
+        pos4[i] = p.r2Real4();
+        vel4[i] = p.u2Real4();
     }
     return {pos4, vel4};
 }
 
 std::vector<RigidMotion>
-combineMotions(const std::vector<float3>& pos,
+combineMotions(const std::vector<real3>& pos,
                const std::vector<RigidReal4>& quaternion,
                const std::vector<RigidReal3>& vel,
                const std::vector<RigidReal3>& omega,

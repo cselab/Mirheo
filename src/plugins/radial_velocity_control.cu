@@ -13,48 +13,48 @@
 namespace RadialVelocityControlKernels
 {
 
-__device__ inline bool validRadius(float r2, float minR2, float maxR2)
+__device__ inline bool validRadius(real r2, real minR2, real maxR2)
 {
     return  minR2 < r2 && r2 < maxR2;
 }
 
-__global__ void addForce(PVview view, DomainInfo domain, float minRadiusSquare, float maxRadiusSquare,
-                         float3 center, float forceFactor)
+__global__ void addForce(PVview view, DomainInfo domain, real minRadiusSquare, real maxRadiusSquare,
+                         real3 center, real forceFactor)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    float3 r = make_float3(view.readPosition(gid));
+    real3 r = make_real3(view.readPosition(gid));
     r = domain.local2global(r);
     r -= center;
-    float r2 = r.x * r.x + r.y * r.y;
+    real r2 = r.x * r.x + r.y * r.y;
 
     if (!validRadius(r2, minRadiusSquare, maxRadiusSquare))
         return;
 
-    float factor = forceFactor / r2;
+    real factor = forceFactor / r2;
     
-    float3 force = {r.x * factor,
+    real3 force = {r.x * factor,
                     r.y * factor,
                     0.f};
     
-    view.forces[gid] += make_float4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0f);
 }
 
-__global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquare, float maxRadiusSquare,
-                            float3 center, double *totVel, int *nSamples)
+__global__ void sumVelocity(PVview view, DomainInfo domain, real minRadiusSquare, real maxRadiusSquare,
+                            real3 center, double *totVel, int *nSamples)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    float ur = 0.f;
+    real ur = 0.f;
 
     if (gid < view.size) {
         
         Particle p(view.readParticle(gid));
-        float3 r = domain.local2global(p.r);
+        real3 r = domain.local2global(p.r);
         r -= center;
 
-        float r2 = r.x * r.x + r.y * r.y;
+        real r2 = r.x * r.x + r.y * r.y;
 
         if (validRadius(r2, minRadiusSquare, maxRadiusSquare)) {
             atomicAggInc(nSamples);
@@ -62,7 +62,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquar
         }
     }
     
-    double urSum = warpReduce(ur, [](float a, float b) { return a+b; });
+    double urSum = warpReduce(ur, [](real a, real b) { return a+b; });
 
     if (laneId() == 0)
         atomicAdd(totVel, urSum);
@@ -71,8 +71,8 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float minRadiusSquar
 } // namespace RadialVelocityControlKernels
 
 SimulationRadialVelocityControl::SimulationRadialVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                                                 float minRadius, float maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                                                 float3 center, float targetVel, float Kp, float Ki, float Kd) :
+                                                                 real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
+                                                                 real3 center, real targetVel, real Kp, real Ki, real Kd) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
     minRadiusSquare(minRadius * minRadius),
@@ -200,7 +200,7 @@ void PostprocessRadialVelocityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;
-    float vel, force;
+    real vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 

@@ -11,7 +11,7 @@ class ParticleVector;
 class StationaryWall_Plane
 {
 public:
-    StationaryWall_Plane(float3 normal, float3 pointThrough) :
+    StationaryWall_Plane(real3 normal, real3 pointThrough) :
         normal(normal), pointThrough(pointThrough)
     {
         normal = normalize(normal);
@@ -21,16 +21,16 @@ public:
 
     const StationaryWall_Plane& handler() const { return *this; }
 
-    __D__ inline float operator()(float3 coo) const
+    __D__ inline real operator()(real3 coo) const
     {
-        float3 gr = domain.local2global(coo);
-        float dist = dot(normal, gr - pointThrough);
+        real3 gr = domain.local2global(coo);
+        real dist = dot(normal, gr - pointThrough);
 
         return dist;
     }
 
 private:
-    float3 normal, pointThrough;
+    real3 normal, pointThrough;
 
     DomainInfo domain;
 };

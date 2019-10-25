@@ -73,13 +73,13 @@ void exportWalls(py::module& m)
         
         First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
-        Next the :math:`Nx \times Ny \times Nz` single precision floating point values are written (in binary representation).
+        Next the :math:`Nx \times Ny \times Nz` single precision realing point values are written (in binary representation).
         
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&WallFactory::createSDFWall),
-            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = float3{0.25, 0.25, 0.25}, R"(
+            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = real3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: name of the ``.sdf`` file

@@ -10,12 +10,12 @@ const std::string ForceSaverPlugin::fieldName = "forces";
 namespace ForceSaverKernels
 {
 
-__global__ void copyForces(PVview view, float3 *savedForces)
+__global__ void copyForces(PVview view, real3 *savedForces)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    float3 f = Float3_int(view.forces[pid]).v;
+    real3 f = Real3_int(view.forces[pid]).v;
     savedForces[pid] = f;
 }
 
@@ -27,7 +27,7 @@ ForceSaverPlugin::ForceSaverPlugin(const MirState *state, std::string name, std:
 
 void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
 {
-    auto savedForces  = pv->local()->dataPerParticle.getData<float3>(fieldName);
+    auto savedForces  = pv->local()->dataPerParticle.getData<real3>(fieldName);
     PVview view(pv, pv->local());
     const int nthreads = 128;
 
@@ -48,7 +48,7 @@ void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    pv->requireDataPerParticle<float3>(fieldName, DataManager::PersistenceMode::None);
+    pv->requireDataPerParticle<real3>(fieldName, DataManager::PersistenceMode::None);
 }
 
     

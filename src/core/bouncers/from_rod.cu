@@ -8,7 +8,7 @@
 
 BounceFromRod::BounceFromRod(const MirState *state,
                              const std::string& name,
-                             float radius,
+                             real radius,
                              VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
     radius(radius),
@@ -26,13 +26,13 @@ void BounceFromRod::setup(ObjectVector *ov)
     if (rv == nullptr)
         die("bounce from rod must be used with a rod vector");
 
-    ov->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void BounceFromRod::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const

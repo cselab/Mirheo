@@ -12,11 +12,11 @@ public:
     MembraneMesh(const std::string& initialMesh);
     MembraneMesh(const std::string& initialMesh, const std::string& stressFreeMesh);
 
-    MembraneMesh(const std::vector<float3>& vertices,
+    MembraneMesh(const std::vector<real3>& vertices,
                  const std::vector<int3>& faces);
     
-    MembraneMesh(const std::vector<float3>& vertices,
-                 const std::vector<float3>& stressFreeVertices,
+    MembraneMesh(const std::vector<real3>& vertices,
+                 const std::vector<real3>& stressFreeVertices,
                  const std::vector<int3>& faces);
 
     MembraneMesh(MembraneMesh&&);
@@ -25,16 +25,16 @@ public:
     ~MembraneMesh();
 
     PinnedBuffer<int> adjacent, degrees;
-    PinnedBuffer<float> initialLengths, initialAreas, initialDotProducts;
+    PinnedBuffer<real> initialLengths, initialAreas, initialDotProducts;
 
 
 protected:
     void findAdjacent();
 
-    void _computeInitialQuantities(const PinnedBuffer<float4>& vertices);
-    void _computeInitialLengths(const PinnedBuffer<float4>& vertices);
-    void _computeInitialAreas(const PinnedBuffer<float4>& vertices);
-    void _computeInitialDotProducts(const PinnedBuffer<float4>& vertices); /// used in Lim to determine if cos(phi) < 0
+    void _computeInitialQuantities(const PinnedBuffer<real4>& vertices);
+    void _computeInitialLengths(const PinnedBuffer<real4>& vertices);
+    void _computeInitialAreas(const PinnedBuffer<real4>& vertices);
+    void _computeInitialDotProducts(const PinnedBuffer<real4>& vertices); /// used in Lim to determine if cos(phi) < 0
 };
 
 struct MembraneMeshView : public MeshView
@@ -42,7 +42,7 @@ struct MembraneMeshView : public MeshView
     int maxDegree;
 
     int *adjacent, *degrees;
-    float *initialLengths, *initialAreas, *initialDotProducts;
+    real *initialLengths, *initialAreas, *initialDotProducts;
 
     MembraneMeshView(const MembraneMesh *m);
 };

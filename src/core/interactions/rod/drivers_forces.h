@@ -11,15 +11,15 @@
 
 struct GPU_RodBoundsParameters
 {
-    float lcenter, lcross, ldiag, lring;
-    float ksCenter, ksFrame;
+    real lcenter, lcross, ldiag, lring;
+    real ksCenter, ksFrame;
 };
 
 namespace RodForcesKernels
 {
 
 // elastic force exerted from p1 to p0
-__device__ inline rReal3 fbound(const rReal3& r0, const rReal3& r1, const float ks, float l0)
+__device__ inline rReal3 fbound(const rReal3& r0, const rReal3& r1, const real ks, real l0)
 {
     auto dr = r1 - r0;
     auto l = length(dr);
@@ -80,12 +80,12 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
 
 #undef BOUND
     
-    atomicAdd(view.forces + start + 0, make_float3(fr0));
-    atomicAdd(view.forces + start + 1, make_float3(fu0));
-    atomicAdd(view.forces + start + 2, make_float3(fu1));
-    atomicAdd(view.forces + start + 3, make_float3(fv0));
-    atomicAdd(view.forces + start + 4, make_float3(fv1));
-    atomicAdd(view.forces + start + 5, make_float3(fr1));
+    atomicAdd(view.forces + start + 0, make_real3(fr0));
+    atomicAdd(view.forces + start + 1, make_real3(fu0));
+    atomicAdd(view.forces + start + 2, make_real3(fu1));
+    atomicAdd(view.forces + start + 3, make_real3(fv0));
+    atomicAdd(view.forces + start + 4, make_real3(fv1));
+    atomicAdd(view.forces + start + 5, make_real3(fr1));
 }
 
 template <int Nstates>
@@ -123,20 +123,20 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
     
-    atomicAdd(view.forces + start + 0 * stride, make_float3(fr0));
-    atomicAdd(view.forces + start + 1 * stride, make_float3(fr1));
-    atomicAdd(view.forces + start + 2 * stride, make_float3(fr2));
+    atomicAdd(view.forces + start + 0 * stride, make_real3(fr0));
+    atomicAdd(view.forces + start + 1 * stride, make_real3(fr1));
+    atomicAdd(view.forces + start + 2 * stride, make_real3(fr2));
 
-    atomicAdd(view.forces + start +          1, make_float3(fpm0));
-    atomicAdd(view.forces + start +          2, make_float3(fpp0));
-    atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
-    atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
+    atomicAdd(view.forces + start +          1, make_real3(fpm0));
+    atomicAdd(view.forces + start +          2, make_real3(fpp0));
+    atomicAdd(view.forces + start + stride + 1, make_real3(fpm1));
+    atomicAdd(view.forces + start + stride + 2, make_real3(fpp1));
 
     if (saveEnergies) view.energies[i] = bisegment.computeEnergy(state, params);
 }
 
-__global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
-                                             const float4 *kappa, const float2 *tau_l)
+__global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
+                                             const real4 *kappa, const real2 *tau_l)
 {
     constexpr int stride = 5;
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -216,14 +216,14 @@ __global__ void computeRodCurvatureSmoothing(RVview view, float kbi,
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
     
-    atomicAdd(view.forces + start + 0 * stride, make_float3(fr0));
-    atomicAdd(view.forces + start + 1 * stride, make_float3(fr1));
-    atomicAdd(view.forces + start + 2 * stride, make_float3(fr2));
+    atomicAdd(view.forces + start + 0 * stride, make_real3(fr0));
+    atomicAdd(view.forces + start + 1 * stride, make_real3(fr1));
+    atomicAdd(view.forces + start + 2 * stride, make_real3(fr2));
 
-    atomicAdd(view.forces + start +          1, make_float3(fpm0));
-    atomicAdd(view.forces + start +          2, make_float3(fpp0));
-    atomicAdd(view.forces + start + stride + 1, make_float3(fpm1));
-    atomicAdd(view.forces + start + stride + 2, make_float3(fpp1));
+    atomicAdd(view.forces + start +          1, make_real3(fpm0));
+    atomicAdd(view.forces + start +          2, make_real3(fpp0));
+    atomicAdd(view.forces + start + stride + 1, make_real3(fpm1));
+    atomicAdd(view.forces + start + stride + 2, make_real3(fpp1));
 }
 
 

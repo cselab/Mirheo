@@ -13,7 +13,7 @@ class IntegratorOscillate : public Integrator
 {
 public:
 
-    IntegratorOscillate(const MirState *state, std::string name, float3 vel, float period);
+    IntegratorOscillate(const MirState *state, std::string name, real3 vel, real period);
 
     ~IntegratorOscillate();
 
@@ -22,6 +22,6 @@ public:
 
 private:
 
-    float3 vel;    ///< Velocity amplitude
-    float period;  ///< Sine wave period
+    real3 vel;    ///< Velocity amplitude
+    real period;  ///< Sine wave period
 };

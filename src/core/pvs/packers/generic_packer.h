@@ -21,7 +21,7 @@ struct GenericPackerHandler
     }
 
     inline __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
-                                  float3 shift) const
+                                  real3 shift) const
     {
         TransformShift t {shift, needShift};
         return pack(t, srcId, dstId, dstBuffer, numElements);
@@ -35,13 +35,13 @@ struct GenericPackerHandler
 
     inline __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
                                                const char *srcBuffer, int numElements,
-                                               float eps) const
+                                               real eps) const
     {
         TransformAtomicAdd t {eps};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, float3 shift) const
+    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
         TransformShift t {shift, needShift};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
@@ -100,7 +100,7 @@ private:
             *addr = val;
         }
 
-        float3 shift;
+        real3 shift;
         const bool *needShift;
     };
 
@@ -112,7 +112,7 @@ private:
             TypeAtomicAdd::apply(addr, val, eps);
         }
 
-        float eps;
+        real eps;
     };
 
     template <class Transform>

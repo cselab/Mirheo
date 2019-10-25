@@ -38,29 +38,29 @@ void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cud
  * - This function will be called once before integration and
  *   allows the functor to obtain required variables or data
  *   channels from the ParticleVector:
- *   \code setup(ParticleVector* pv, float t) \endcode
+ *   \code setup(ParticleVector* pv, real t) \endcode
  *
  * - This should be a \c \_\_device\_\_ operator that modifies
  *   the force. It will be called for each particle during the
  *   integration:
- *   \code float3 operator()(float3 f0, Particle p) const \endcode
+ *   \code real3 operator()(real3 f0, Particle p) const \endcode
  *
  */
 template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    float t = state->currentTime;
-    float dt = state->dt;
+    real t = state->currentTime;
+    real dt = state->dt;
     static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
             "Forcing term functor must provide member"
-            "void setup(ParticleVector*, float)");
+            "void setup(ParticleVector*, real)");
 
     auto& _fterm = forcingTerm;
     _fterm.setup(pv, t);
 
-    auto st2 = [_fterm] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+    auto st2 = [_fterm] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
 
-        float3 modF = _fterm(f, p);
+        real3 modF = _fterm(f, p);
 
         p.u += modF*invm*dt;
         p.r += p.u*dt;

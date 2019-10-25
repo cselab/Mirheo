@@ -25,14 +25,18 @@ float __fmaf_rz(float x, float y, float z)
 {
     return x*y + z;
 }
+double __fma_rz(double x, double y, double z)
+{
+    return x*y + z;
+}
 #endif
 
 
 namespace Logistic
 {
-__D__ float mean0var1( float seed, uint i, uint j );
-__D__ float mean0var1( float seed, int i, int j );
-__D__ float mean0var1( float seed, float i, float j );
+__D__ real mean0var1( real seed, uint i, uint j );
+__D__ real mean0var1( real seed, int i, int j );
+__D__ real mean0var1( real seed, real i, real j );
 }
 
 namespace Logistic
@@ -51,9 +55,9 @@ struct KISS {
     KISS( intType x_, intType y_, intType z_, intType c_ ) :
         x( x_ ), y( y_ ), z( z_ ), c( c_ ) {}
 
-    float get_float()
+    real get_real()
     {
-        return get_int() / float( std::numeric_limits<intType>::max() );
+        return get_int() / real( std::numeric_limits<intType>::max() );
     }
 
     intType get_int()
@@ -77,7 +81,7 @@ struct KISS {
  *****************************************************************/
 
 // floating point version of LCG
-inline __D__ float rem( float r ) {
+inline __D__ real rem( real r ) {
     return r - math::floor( r );
 }
 
@@ -85,38 +89,41 @@ inline __D__ float rem( float r ) {
 inline __D__ float FMA( float x, float y, float z ) {
     return __fmaf_rz( x, y, z );
 }
+inline __D__ double FMA( double x, double y, double z ) {
+    return __fma_rz( x, y, z );
+}
 
 // logistic rounds
 // <3> : 4 FMA + 1 MUL
 // <2> : 2 FMA + 1 MUL
 // <1> : 1 FMA + 1 MUL
 #if 0
-template<int N> inline __D__ float __logistic_core( float x ) {
-    float x2;
+template<int N> inline __D__ real __logistic_core( real x ) {
+    real x2;
     // saturated square
     // clamp result to [0,1]
     // to cancel error introduced by logistic<3> \in [-1.000001, 1.000003]
     asm("mul.f32.sat %0, %1, %1;" : "=f"(x2) : "f"(x), "f"(x) );
-    float r = FMA( FMA( FMA( FMA( 128.0, x2, -256.0 ), x2, 160.0 ), x2, -32.0 ), x2, 1.0 );
+    real r = FMA( FMA( FMA( FMA( 128.0_r, x2, -256.0_r ), x2, 160.0_r ), x2, -32.0_r ), x2, 1.0_r );
     return __logistic_core < N - 3 > ( r );
 }
 template<int N> struct __logistic_core_flops_counter {
     const static unsigned long long FLOPS = 9 + __logistic_core_flops_counter<N-3>::FLOPS;
 };
 
-template<> inline __D__ float __logistic_core<2>( float x ) {
-    float x2 = x * x;
-    return FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+template<> inline __D__ real __logistic_core<2>( real x ) {
+    real x2 = x * x;
+    return FMA( FMA( 8.0_r, x2, -8.0_r ), x2, 1.0_r );
 }
 template<> struct __logistic_core_flops_counter<2> {
     const static unsigned long long FLOPS = 5;
 };
 
 #else
-template<int N> inline __D__ float __logistic_core( float x )
+template<int N> inline __D__ real __logistic_core( real x )
 {
-    float x2 = x * x;
-    float r = FMA( FMA( 8.0, x2, -8.0 ), x2, 1.0 );
+    real x2 = x * x;
+    real r = FMA( FMA( 8.0_r, x2, -8.0_r ), x2, 1.0_r );
     return __logistic_core < N - 2 > ( r );
 }
 template<int N> struct __logistic_core_flops_counter {
@@ -124,14 +131,14 @@ template<int N> struct __logistic_core_flops_counter {
 };
 #endif
 
-template<> inline __D__ float __logistic_core<1>( float x ) {
-    return FMA( 2.0 * x, x, -1.0 );
+template<> inline __D__ real __logistic_core<1>( real x ) {
+    return FMA( 2.0_r * x, x, -1.0_r );
 }
 template<> struct __logistic_core_flops_counter<1> {
     const static unsigned long long FLOPS = 3;
 };
 
-template<> inline __D__ float __logistic_core<0>( float x ) {
+template<> inline __D__ real __logistic_core<0>( real x ) {
     return x;
 }
 template<> struct __logistic_core_flops_counter<0> {
@@ -146,37 +153,37 @@ template<> struct __logistic_core_flops_counter<0> {
 // passes of logistic map
 const static int N = 18;
 // spacing coefficints for low discrepancy numbers
-const static float gold   = 0.6180339887498948482;
-const static float hugegold   = 0.6180339887498948482E39;
-const static float silver = 0.4142135623730950488;
-const static float hugesilver = 0.4142135623730950488E39;
-const static float bronze = 0.00008877875787352212838853023;
-const static float tin    = 0.00004602357186447026756768986;
+const static real gold   = 0.6180339887498948482_r;
+const static real hugegold   = 0.6180339887498948482E39_r;
+const static real silver = 0.4142135623730950488_r;
+const static real hugesilver = 0.4142135623730950488E39_r;
+const static real bronze = 0.00008877875787352212838853023_r;
+const static real tin    = 0.00004602357186447026756768986_r;
 // square root of 2
-const static float sqrt2 = 1.41421356237309514547;
+const static real sqrt2 = 1.41421356237309514547_r;
 
-inline __D__ float uniform01( float seed, int i, int j )
+inline __D__ real uniform01( real seed, int i, int j )
 {
-    float val = mean0var1(seed, i, j) * (0.5f/sqrt2) + 0.5f;
-    return math::max(0.0f, math::min(1.0f, val));
+    real val = mean0var1(seed, i, j) * (0.5_r/sqrt2) + 0.5_r;
+    return math::max(0.0_r, math::min(1.0_r, val));
 }
 
-inline __D__ float mean0var1( float seed, int u, int v )
+inline __D__ real mean0var1( real seed, int u, int v )
 {
-    float p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
-    float q = rem( seed );
-    float l = __logistic_core<N>( q - p );
+    real p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
+    real q = rem( seed );
+    real l = __logistic_core<N>( q - p );
     return l * sqrt2;
 }
 
-inline __D__ float mean0var1( float seed, uint u, uint v )
+inline __D__ real mean0var1( real seed, uint u, uint v )
 {
     // 7 FLOPS
-    float p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
-    float q = rem( seed );
+    real p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+    real q = rem( seed );
 
     // 45+1 FLOPS
-    float l = __logistic_core<N>( q - p );
+    real l = __logistic_core<N>( q - p );
     // 1 FLOP
     return l * sqrt2;
 }
@@ -184,38 +191,38 @@ struct mean0var1_flops_counter {
     const static unsigned long long FLOPS = 9ULL + __logistic_core_flops_counter<N>::FLOPS;
 };
 
-inline __D__ float mean0var1( float seed, float u, float v )
+inline __D__ real mean0var1( real seed, real u, real v )
 {
-    float p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
-    float q = rem( seed );
+    real p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
+    real q = rem( seed );
 
-    float l = __logistic_core<N>( q - p );
+    real l = __logistic_core<N>( q - p );
     return l * sqrt2;
 }
 
-inline __D__ float mean0var1_dual( float seed, float u, float v )
+inline __D__ real mean0var1_dual( real seed, real u, real v )
 {
-    float p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
-    float q = rem( seed );
+    real p = rem( math::sqrt(u) * gold + sqrtf(v) * silver );
+    real q = rem( seed );
 
-    float l = __logistic_core<N>( q - p );
-    float z = __logistic_core<N>( q + p - 1.f );
+    real l = __logistic_core<N>( q - p );
+    real z = __logistic_core<N>( q + p - 1._r );
     return l + z;
 }
 } // namespace Logistic
 
 namespace Saru
 {
-__D__ float mean0var1( float seed, uint i, uint j );
-__D__ float mean0var1( float seed, int i, int j );
-__D__ float mean0var1( float seed, float i, float j );
-__D__ float uniform01( float seed, uint i, uint j );
-__D__ float2 normal2( float seed, uint i, uint j );
+__D__ real mean0var1( real seed, uint i, uint j );
+__D__ real mean0var1( real seed, int i, int j );
+__D__ real mean0var1( real seed, real i, real j );
+__D__ real uniform01( real seed, uint i, uint j );
+__D__ real2 normal2( real seed, uint i, uint j );
 }
 
 namespace Saru
 {
-__D__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
+__D__ inline real saru( unsigned int seed1, unsigned int seed2, unsigned int seed3 )
 {
     seed3 ^= ( seed1 << 7 ) ^ ( seed2 >> 6 );
     seed2 += ( seed1 >> 4 ) ^ ( seed3 >> 15 );
@@ -238,17 +245,17 @@ __D__ inline float saru( unsigned int seed1, unsigned int seed2, unsigned int se
     unsigned int v = ( state ^ ( state >> 26 ) ) + wstate;
     unsigned int r = ( v ^ ( v >> 20 ) ) * 0x6957f5a7;
 
-    float res = r / ( 4294967295.0f );
+    real res = r / ( 4294967295.0_r );
     return res;
 }
 
-inline __D__ float2 normal2( float seed, uint i, uint j )
+inline __D__ real2 normal2( real seed, uint i, uint j )
 {
-    const float u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
-    const float u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
+    const real u1 = uniform01( seed, math::min(i, j),   math::max(i, j) );
+    const real u2 = uniform01( u1,   math::max(i, j)+1, math::min(i, j) );
 
-    const float r = math::sqrt(-2.0f * logf(u1));
-    const float theta = 2.0f * M_PI * u2;
+    const real r = math::sqrt(-2.0_r * logf(u1));
+    const real theta = 2.0_r * static_cast<real>(M_PI) * u2;
 
     auto res = math::sincos(theta);
     res *= r;
@@ -256,7 +263,7 @@ inline __D__ float2 normal2( float seed, uint i, uint j )
     return res;
 }
 
-inline __D__ float uniform01( float seed, uint i, uint j )
+inline __D__ real uniform01( real seed, uint i, uint j )
 {
     auto t = reinterpret_cast<unsigned int*>(&seed);
     unsigned int tag = *t;
@@ -264,17 +271,17 @@ inline __D__ float uniform01( float seed, uint i, uint j )
     return saru( tag, i, j );
 }
 
-inline __D__ float mean0var1( float seed, uint i, uint j )
+inline __D__ real mean0var1( real seed, uint i, uint j )
 {
-    return uniform01(seed, i, j) * 3.464101615f - 1.732050807f;
+    return uniform01(seed, i, j) * 3.464101615_r - 1.732050807_r;
 }
 
-inline __D__ float mean0var1( float seed, int i, int j )
+inline __D__ real mean0var1( real seed, int i, int j )
 {
     return mean0var1( seed, (uint) i, (uint) j );
 }
 
-inline __D__ float mean0var1( float seed, float i, float j )
+inline __D__ real mean0var1( real seed, real i, real j )
 {
     return mean0var1( seed, (uint) i, (uint) j );
 }

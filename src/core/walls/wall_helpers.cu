@@ -8,53 +8,54 @@
 #include <core/utils/folders.h>
 #include <core/utils/kernel_launch.h>
 #include <core/walls/simple_stationary_wall.h>
+#include <core/xdmf/type_map.h>
 #include <core/xdmf/xdmf.h>
 
 #include <curand_kernel.h>
 
 namespace WallHelpersKernels
 {
-__global__ void init_sdf(int n, float *sdfs, float val)
+__global__ void init_sdf(int n, real *sdfs, real val)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) sdfs[i] = val;
 }
 
-__global__ void merge_sdfs(int n, const float *sdfs, float *sdfs_merged)
+__global__ void merge_sdfs(int n, const real *sdfs, real *sdfs_merged)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) sdfs_merged[i] = max(sdfs[i], sdfs_merged[i]);
 }
 
 template<bool QUERY>
-__global__ void collectFrozen(PVview view, const float *sdfs, float minVal, float maxVal,
-                              float4 *frozenPos, float4 *frozenVel, int *nFrozen)
+__global__ void collectFrozen(PVview view, const real *sdfs, real minVal, real maxVal,
+                              real4 *frozenPos, real4 *frozenVel, int *nFrozen)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
     Particle p(view.readParticle(pid));
-    p.u = make_float3(0);
+    p.u = make_real3(0);
 
-    const float val = sdfs[pid];
+    const real val = sdfs[pid];
         
     if (val > minVal && val < maxVal)
     {
         const int ind = atomicAggInc(nFrozen);
 
         if (!QUERY)
-            p.write2Float4(frozenPos, frozenVel, ind);
+            p.write2Real4(frozenPos, frozenVel, ind);
     }
 }
 
-__global__ void initRandomPositions(int n, float3 *positions, long seed, float3 localSize)
+__global__ void initRandomPositions(int n, real3 *positions, long seed, real3 localSize)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i >= n) return;
         
     curandState_t state;
-    float3 r;
+    real3 r;
         
     curand_init(seed, i, 0, &state);
         
@@ -65,7 +66,7 @@ __global__ void initRandomPositions(int n, float3 *positions, long seed, float3 
     positions[i] = r;
 }
 
-__global__ void countInside(int n, const float *sdf, int *nInside, float threshold = 0.f)
+__global__ void countInside(int n, const real *sdf, int *nInside, real threshold = 0.f)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     int myval = 0;
@@ -80,7 +81,7 @@ __global__ void countInside(int n, const float *sdf, int *nInside, float thresho
 }
 } // namespace WallHelpersKernels
 
-static void extract_particles(ParticleVector *pv, const float *sdfs, float minVal, float maxVal)
+static void extract_particles(ParticleVector *pv, const real *sdfs, real minVal, real maxVal)
 {
     PinnedBuffer<int> nFrozen(1);
     
@@ -97,7 +98,7 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
 
     nFrozen.downloadFromDevice(defaultStream);
 
-    PinnedBuffer<float4> frozenPos(nFrozen[0]), frozenVel(nFrozen[0]);
+    PinnedBuffer<real4> frozenPos(nFrozen[0]), frozenVel(nFrozen[0]);
     info("Freezing %d particles", nFrozen[0]);
 
     pv->local()->resize(nFrozen[0], defaultStream);
@@ -114,11 +115,11 @@ static void extract_particles(ParticleVector *pv, const float *sdfs, float minVa
     std::swap(frozenVel, pv->local()->velocities());
 }
 
-void WallHelpers::freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv, real minVal, real maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    DeviceBuffer<float> sdfs(pv->local()->size());
+    DeviceBuffer<real> sdfs(pv->local()->size());
     
     wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, defaultStream);
 
@@ -126,16 +127,16 @@ void WallHelpers::freezeParticlesInWall(SDF_basedWall *wall, ParticleVector *pv,
 }
 
 
-void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, float minVal, float maxVal)
+void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, ParticleVector *pv, real minVal, real maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
     int n = pv->local()->size();
-    DeviceBuffer<float> sdfs(n), sdfs_merged(n);
+    DeviceBuffer<real> sdfs(n), sdfs_merged(n);
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
-    const float safety = 1.f;
+    const real safety = 1.f;
 
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::init_sdf,
@@ -156,18 +157,18 @@ void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, Part
 }
 
 
-void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
+void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, real3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     CellListInfo gridInfo(gridH, domain.localSize);
     const int n = gridInfo.totcells;
 
-    DeviceBuffer<float> sdfs(n);
-    PinnedBuffer<float> sdfs_merged(n);
+    DeviceBuffer<real> sdfs(n);
+    PinnedBuffer<real> sdfs_merged(n);
         
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
-    const float initial = -1e5;
+    const real initial = -1e5;
 
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::init_sdf,
@@ -193,8 +194,8 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
     XDMF::Channel sdfCh("sdf", sdfs_merged.hostPtr(),
                         XDMF::Channel::DataForm::Scalar,
-                        XDMF::Channel::NumberType::Float,
-                        DataTypeWrapper<float>(),
+                        XDMF::getNumberType<real>(),
+                        DataTypeWrapper<real>(),
                         XDMF::Channel::NeedShift::False);
     XDMF::write(filename, &grid, {sdfCh}, cartComm);
 }
@@ -203,13 +204,13 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, float3 gridH
 double WallHelpers::volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
 {
     long n = nSamplesPerRank;
-    DeviceBuffer<float3> positions(n);
-    DeviceBuffer<float> sdfs(n), sdfs_merged(n);
+    DeviceBuffer<real3> positions(n);
+    DeviceBuffer<real> sdfs(n), sdfs_merged(n);
     PinnedBuffer<int> nInside(1);
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
-    const float initial = -1e5;
+    const real initial = -1e5;
 
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::initRandomPositions,
@@ -239,7 +240,7 @@ double WallHelpers::volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainI
 
     nInside.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
-    float3 localSize = domain.localSize;
+    real3  localSize = domain.localSize;
     double subDomainVolume = localSize.x * localSize.y * localSize.z;
 
     double locVolume = (double) nInside[0] / (double) n * subDomainVolume;

@@ -25,8 +25,8 @@ static void updateStatesAndApplyForces(RodVector *rv,
 {
     RVview view(rv, rv->local());
 
-    auto kappa = rv->local()->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
-    auto tau_l = rv->local()->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+    auto kappa = rv->local()->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
+    auto tau_l = rv->local()->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
 
     int nthreads = 128;
     int nblocks = view.nObjects;
@@ -61,8 +61,8 @@ static void updateStatesAndApplyForces(RodVector *rv,
     auto lrv = rv->local();
     RVview view(rv, lrv);
 
-    auto kappa = lrv->dataPerBisegment.getData<float4>(ChannelNames::rodKappa)->devPtr();
-    auto tau_l = lrv->dataPerBisegment.getData<float2>(ChannelNames::rodTau_l)->devPtr();
+    auto kappa = lrv->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
+    auto tau_l = lrv->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
 
     auto& states = *lrv->dataPerBisegment.getData<int>(ChannelNames::polyStates);
     states.clear(stream);

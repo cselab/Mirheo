@@ -43,7 +43,7 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     vertices.reserve(srcVerts->size());
 
     for (auto& p : *srcVerts)
-        vertices.push_back(state->domain.local2global(make_float3(p)));
+        vertices.push_back(state->domain.local2global(make_real3(p)));
 
     auto& mesh = ov->mesh;
 
@@ -79,7 +79,7 @@ static void writePLY(
         int ntriangles, int ntrianglesPerObject,
         int nObjects,
         const std::vector<int3>& mesh,
-        const std::vector<float3>& vertices)
+        const std::vector<real3>& vertices)
 {
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );

@@ -19,7 +19,7 @@ public:
                       std::vector<std::string> pvNames,
                       std::vector<std::string> channelNames,
                       std::vector<Average3D::ChannelType> channelTypes,
-                      int sampleEvery, int dumpEvery, float3 binSize,
+                      int sampleEvery, int dumpEvery, real3 binSize,
                       std::string relativeOVname, int relativeID);
 
   void setup(Simulation *simulation, const MPI_Comm &comm,
@@ -34,7 +34,7 @@ private:
     std::string relativeOVname;
     int relativeID;
 
-    float3 averageRelativeVelocity{0, 0, 0};
+    real3 averageRelativeVelocity{0, 0, 0};
 
     int3 localResolution;
 
@@ -43,7 +43,7 @@ private:
 
     void extractLocalBlock();
 
-    void sampleOnePv(float3 relativeParam, ParticleVector *pv, cudaStream_t stream);
+    void sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream);
 };
 
 

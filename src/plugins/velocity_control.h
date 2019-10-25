@@ -15,9 +15,9 @@ class SimulationVelocityControl : public SimulationPlugin
 {
 public:
     SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                              float3 low, float3 high,
+                              real3 low, real3 high,
                               int sampleEvery, int tuneEvery, int dumpEvery,
-                              float3 targetVel, float Kp, float Ki, float Kd);
+                              real3 targetVel, real Kp, real Ki, real Kd);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -36,15 +36,15 @@ private:
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 
-    float3 high, low;
-    float3 currentVel, targetVel, force;
+    real3 high, low;
+    real3 currentVel, targetVel, force;
 
     PinnedBuffer<int> nSamples{1};
-    PinnedBuffer<float3> totVel{1};
+    PinnedBuffer<real3> totVel{1};
     double3 accumulatedTotVel;
     
 
-    PidControl<float3> pid;
+    PidControl<real3> pid;
     std::vector<char> sendBuffer;
 
 private:

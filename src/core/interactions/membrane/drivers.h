@@ -150,7 +150,7 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
 
         f0 += dihedralInteraction(v0, v1, v2, v3, f1);
 
-        atomicAdd(view.forces + idv1, make_float3(f1));
+        atomicAdd(view.forces + idv1, make_real3(f1));
             
         v1   = v2  ; v2   = v3  ;
         idv1 = idv2; idv2 = idv3;
@@ -181,7 +181,7 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     f  = bondTriangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
     f += dihedralForce(locId, rbcId, dihedralView, dihedralInteraction, mesh);
 
-    atomicAdd(view.forces + pid, make_float3(f));
+    atomicAdd(view.forces + pid, make_real3(f));
 }
 
 } // namespace MembraneInteractionKernels

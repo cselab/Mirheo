@@ -17,8 +17,8 @@ private:
     int dumpEvery;
 
     std::vector<char> sendBuffer;
-    std::vector<float3> vertices;
-    PinnedBuffer<float4>* srcVerts;
+    std::vector<real3> vertices;
+    PinnedBuffer<real4>* srcVerts;
 
     ObjectVector* ov;
 
@@ -42,7 +42,7 @@ private:
     bool activated = true;
 
     std::vector<int3> connectivity;
-    std::vector<float3> vertices;
+    std::vector<real3> vertices;
 
 public:
     MeshDumper(std::string name, std::string path);

@@ -5,11 +5,11 @@
 class SimpleMDPDDensityKernel
 {
 public:
-    static constexpr float normalization = 15.0 / (2.0 * M_PI);
+    static constexpr real normalization = 15.0 / (2.0 * M_PI);
 
-    __D__ inline float operator()(float r, float invrc) const
+    __D__ inline real operator()(real r, real invrc) const
     {
-        const float rm = (1.f - r * invrc) * invrc;
+        const real rm = (1.f - r * invrc) * invrc;
 
         return normalization * rm * rm * invrc;
     }
@@ -18,23 +18,23 @@ public:
 class WendlandC2DensityKernel
 {
 public:
-    static constexpr float normalization = 21.0 / (2.0 * M_PI);
+    static constexpr real normalization = 21.0 / (2.0 * M_PI);
 
-    __D__ inline float operator()(float r, float invrc) const
+    __D__ inline real operator()(real r, real invrc) const
     {
-        const float r_ = r * invrc;
-        const float rm = 1.0f - r_;
-        const float rm2 = rm * rm;
-        const float invrc3 = invrc * invrc * invrc;
+        const real r_ = r * invrc;
+        const real rm = 1.0f - r_;
+        const real rm2 = rm * rm;
+        const real invrc3 = invrc * invrc * invrc;
         
         return normalization * invrc3 * rm2 * rm2 * (1.0f + 4.0f * r_);
     }
 
-    __D__ inline float derivative(float r, float invrc) const
+    __D__ inline real derivative(real r, real invrc) const
     {
-        const float r_ = r * invrc;
-        const float rm = r_ - 1.f;
-        const float invrc3 = invrc * invrc * invrc;
+        const real r_ = r * invrc;
+        const real rm = r_ - 1.f;
+        const real invrc3 = invrc * invrc * invrc;
         return 20.0f * invrc3 * normalization * r_ * rm*rm*rm * invrc;
     }
 };

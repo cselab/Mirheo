@@ -21,7 +21,7 @@ class PairwiseInteractionImpl : public Interaction
 {
 public:
     
-    PairwiseInteractionImpl(const MirState *state, const std::string& name, float rc, PairwiseKernel pair) :
+    PairwiseInteractionImpl(const MirState *state, const std::string& name, real rc, PairwiseKernel pair) :
         Interaction(state, name, rc),
         defaultPair(pair)
     {}
@@ -33,11 +33,11 @@ public:
         if (outputsDensity <PairwiseKernel>::value ||
             requiresDensity<PairwiseKernel>::value   )
         {
-            pv1->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
-            pv2->requireDataPerParticle<float>(ChannelNames::densities, DataManager::PersistenceMode::None);
+            pv1->requireDataPerParticle<real>(ChannelNames::densities, DataManager::PersistenceMode::None);
+            pv2->requireDataPerParticle<real>(ChannelNames::densities, DataManager::PersistenceMode::None);
             
-            cl1->requireExtraDataPerParticle<float>(ChannelNames::densities);
-            cl2->requireExtraDataPerParticle<float>(ChannelNames::densities);
+            cl1->requireExtraDataPerParticle<real>(ChannelNames::densities);
+            cl2->requireExtraDataPerParticle<real>(ChannelNames::densities);
         }
     }
     
@@ -200,11 +200,11 @@ private:
      * - This function will be called once before interactions computation
      *   and allows the functor to obtain required variables or data
      *   channels from the two ParticleVector and CellList:
-     *   \code setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, float t) \endcode
+     *   \code setup(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, real t) \endcode
      *
      * - This should be a \c \_\_device\_\_ operator that computes
      *   the force. It will be called for each close enough particle pair:
-     *   \code float3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const \endcode
+     *   \code real3 operator()(const Particle dst, int dstId, const Particle src, int srcId) const \endcode
      *   Return value of that call is force acting on the first particle,
      *   force acting on the second one is just opposite.
      */

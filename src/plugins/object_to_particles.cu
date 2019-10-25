@@ -12,13 +12,13 @@
 
 namespace ObjectToParticles {
 
-__global__ void markObjects(OVview view, ObjectDeleterHandler deleter, float4 plane)
+__global__ void markObjects(OVview view, ObjectDeleterHandler deleter, real4 plane)
 {
     int oid = blockIdx.x * blockDim.x + threadIdx.x;
     if (oid >= view.nObjects) return;
 
     auto &com = view.comAndExtents[oid].com;
-    float tmp = plane.x * com.x + plane.y * com.y + plane.z * com.z + plane.w;
+    real tmp = plane.x * com.x + plane.y * com.y + plane.z * com.z + plane.w;
     if (tmp > 0.f)
         deleter.mark(oid);
 }
@@ -28,7 +28,7 @@ __global__ void markObjects(OVview view, ObjectDeleterHandler deleter, float4 pl
 
 ObjectToParticlesPlugin::ObjectToParticlesPlugin(
         const MirState *state, std::string name,
-        std::string ovName, std::string pvName, float4 plane) :
+        std::string ovName, std::string pvName, real4 plane) :
     SimulationPlugin(state, name),
     ovName(ovName),
     pvName(pvName),

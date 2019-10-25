@@ -67,7 +67,7 @@ void writeDataSet(hid_t file_id, const GridDims *gridDims, const Channel& channe
 {
     debug2("Writing channel '%s'", channel.name.c_str());
             
-    // Add one more dimension: number of floats per data item
+    // Add one more dimension: number of reals per data item
     int ndims       = gridDims->getDims() + 1;
     auto localSize  = gridDims->getLocalSize();
     auto globalSize = gridDims->getGlobalSize();

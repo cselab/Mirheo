@@ -12,14 +12,14 @@
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, float time, MPI_Comm comm);
+           const std::vector<Channel>& channels, real time, MPI_Comm comm);
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels,             MPI_Comm comm);
 
 
 struct VertexChannelsData
 {
-    std::vector<float3> positions;
+    std::vector<real3> positions;
     std::vector<Channel> descriptions;
     std::vector<std::vector<char>> data;    
 };

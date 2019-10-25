@@ -10,34 +10,34 @@
 
 namespace ImposeVelocityKernels
 {
-__global__ void addVelocity(PVview view, DomainInfo domain, float3 low, float3 high, float3 extraVel)
+__global__ void addVelocity(PVview view, DomainInfo domain, real3 low, real3 high, real3 extraVel)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
     Particle p(view.readParticle(gid));
-    float3 gr = domain.local2global(p.r);
+    real3 gr = domain.local2global(p.r);
 
     if (low.x <= gr.x && gr.x <= high.x &&
         low.y <= gr.y && gr.y <= high.y &&
         low.z <= gr.z && gr.z <= high.z)
     {
         p.u += extraVel;
-        view.writeVelocity(gid, p.u2Float4());
+        view.writeVelocity(gid, p.u2Real4());
     }
 }
 
-__global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, float3 high, double3 *totVel, int *nSamples)
+__global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3 high, double3 *totVel, int *nSamples)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     Particle p;
 
-    p.u = make_float3(0.f);
+    p.u = make_real3(0.f);
 
     if (gid < view.size) {
 
         p = view.readParticle(gid);
-        float3 gr = domain.local2global(p.r);
+        real3 gr = domain.local2global(p.r);
 
         if (low.x <= gr.x && gr.x <= high.x &&
             low.y <= gr.y && gr.y <= high.y &&
@@ -47,11 +47,11 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
         }
         else
         {
-            p.u = make_float3(0.0f);
+            p.u = make_real3(0.0f);
         }
     }
     
-    float3 u = warpReduce(p.u, [](float a, float b) { return a+b; });
+    real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
     if (laneId() == 0 && dot(u, u) > 1e-8f)
     {
         atomicAdd(&totVel->x, (double)u.x);
@@ -62,7 +62,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, float3 low, floa
 } // namespace ImposeVelocityKernels
 
 ImposeVelocityPlugin::ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                           float3 low, float3 high, float3 targetVel, int every) :
+                                           real3 low, real3 high, real3 targetVel, int every) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
     low(low),
@@ -97,7 +97,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
         totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
         nSamples.downloadFromDevice(stream);
 
-        float3 avgVel = make_float3(totVel[0].x / nSamples[0], totVel[0].y / nSamples[0], totVel[0].z / nSamples[0]);
+        real3 avgVel = make_real3(totVel[0].x / nSamples[0], totVel[0].y / nSamples[0], totVel[0].z / nSamples[0]);
 
         debug("Current mean velocity measured by plugin '%s' is [%f %f %f]; as of %d particles",
               name.c_str(), avgVel.x, avgVel.y, avgVel.z, nSamples[0]);
@@ -110,7 +110,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
     }
 }
 
-void ImposeVelocityPlugin::setTargetVelocity(float3 v)
+void ImposeVelocityPlugin::setTargetVelocity(real3 v)
 {
     info("Changing target velocity from [%f %f %f] to [%f %f %f]",
          targetVel.x, targetVel.y, targetVel.z,

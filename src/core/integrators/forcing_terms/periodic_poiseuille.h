@@ -22,7 +22,7 @@ public:
      * @param magnitude force magnitude to be applied
      * @param dir force will be applied parallel to the specified axis.
      */
-    Forcing_PeriodicPoiseuille(float magnitude, Direction dir) :
+    Forcing_PeriodicPoiseuille(real magnitude, Direction dir) :
         magnitude(magnitude)
     {
         switch (dir)
@@ -33,7 +33,7 @@ public:
         }
     }
 
-    void setup(ParticleVector* pv, __UNUSED float t)
+    void setup(ParticleVector* pv, __UNUSED real t)
     {
         domain = pv->state->domain;
     }
@@ -52,10 +52,10 @@ public:
      * Similarly, if the force is parallel to \e y axis, its sign will
      * depend on \e z, parallel to \e z -- will depend on \e x
      */
-    __D__ inline float3 operator()(float3 original, Particle p) const
+    __D__ inline real3 operator()(real3 original, Particle p) const
     {
-        float3 gr = domain.local2global(p.r);
-        float3 ef{0.0f,0.0f,0.0f};
+        real3 gr = domain.local2global(p.r);
+        real3 ef{0.0f,0.0f,0.0f};
 
         if (_dir == 0) ef.x = gr.y > 0.5f*domain.globalSize.y ? magnitude : -magnitude;
         if (_dir == 1) ef.y = gr.z > 0.5f*domain.globalSize.z ? magnitude : -magnitude;
@@ -65,7 +65,7 @@ public:
     }
 
 private:
-    float magnitude;
+    real magnitude;
     int _dir;
 
     DomainInfo domain;

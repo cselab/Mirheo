@@ -1,6 +1,7 @@
 #include "mesh.h"
 
 #include <core/utils/cuda_common.h>
+#include <core/utils/helper_math.h>
 
 #include <fstream>
 #include <vector>
@@ -19,7 +20,7 @@ Mesh::Mesh(const std::string& fname)
     _computeMaxDegree();
 }
 
-Mesh::Mesh(const std::vector<float3>& vertices, const std::vector<int3>& faces)
+Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces)
 {
     nvertices  = vertices.size();
     ntriangles = faces.size();
@@ -32,8 +33,8 @@ Mesh::Mesh(const std::vector<float3>& vertices, const std::vector<int3>& faces)
 
     for (int i = 0; i < nvertices; ++i)
     {
-        const float3 v = vertices[i];
-        vertexCoordinates[i] = make_float4(v.x, v.y, v.z, 0.f);
+        const real3 v = vertices[i];
+        vertexCoordinates[i] = make_real4(v.x, v.y, v.z, 0.0_r);
     }
 
     _check();
@@ -58,10 +59,10 @@ const int& Mesh::getMaxDegree() const {
     return maxDegree;
 }
 
-PyTypes::VectorOfFloat3 Mesh::getVertices()
+PyTypes::VectorOfReal3 Mesh::getVertices()
 {
     vertexCoordinates.downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    PyTypes::VectorOfFloat3 ret(getNvertices());
+    PyTypes::VectorOfReal3 ret(getNvertices());
 
     for (int i = 0; i < getNvertices(); ++i) {
         auto r = vertexCoordinates[i];

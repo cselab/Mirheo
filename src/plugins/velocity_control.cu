@@ -14,7 +14,7 @@
 namespace VelocityControlKernels
 {
 
-inline __device__ bool is_inside(float3 r, float3 low, float3 high)
+inline __device__ bool is_inside(real3 r, real3 low, real3 high)
 {
     return
         low.x <= r.x && r.x <= high.x &&
@@ -22,38 +22,38 @@ inline __device__ bool is_inside(float3 r, float3 low, float3 high)
         low.z <= r.z && r.z <= high.z;
 }
 
-__global__ void addForce(PVview view, DomainInfo domain, float3 low, float3 high, float3 force)
+__global__ void addForce(PVview view, DomainInfo domain, real3 low, real3 high, real3 force)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    auto r = Float3_int(view.readPosition(gid)).v;
+    auto r = Real3_int(view.readPosition(gid)).v;
     
-    float3 gr = domain.local2global(r);
+    real3 gr = domain.local2global(r);
 
     if (is_inside(gr, low, high))
-        view.forces[gid] += make_float4(force, 0.0f);
+        view.forces[gid] += make_real4(force, 0.0_r);
 }
 
-__global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 high, float3 *totVel, int *nSamples)
+__global__ void sumVelocity(PVview view, DomainInfo domain, real3 low, real3 high, real3 *totVel, int *nSamples)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     Particle p;
     
-    p.u = make_float3(0.0f);
+    p.u = make_real3(0.0f);
 
     if (gid < view.size) {
 
         p = view.readParticle(gid);
-        float3 gr = domain.local2global(p.r);
+        real3 gr = domain.local2global(p.r);
 
         if (is_inside(gr, low, high))
             atomicAggInc(nSamples);
         else
-            p.u = make_float3(0.0f);
+            p.u = make_real3(0.0f);
     }
 
-    float3 u = warpReduce(p.u, [](float a, float b) { return a+b; });
+    real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
     
     if (laneId() == 0 && dot(u, u) > 1e-8)
         atomicAdd(totVel, u);
@@ -62,20 +62,20 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, float3 low, float3 h
 } // namespace VelocityControlKernels
 
 SimulationVelocityControl::SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
-                                                     float3 low, float3 high,
+                                                     real3 low, real3 high,
                                                      int sampleEvery, int tuneEvery, int dumpEvery,
-                                                     float3 targetVel, float Kp, float Ki, float Kd) :
+                                                     real3 targetVel, real Kp, real Ki, real Kd) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
     low(low),
     high(high),
-    currentVel(make_float3(0,0,0)),
+    currentVel(make_real3(0,0,0)),
     targetVel(targetVel),
     sampleEvery(sampleEvery),
     tuneEvery(tuneEvery),
     dumpEvery(dumpEvery), 
-    force(make_float3(0, 0, 0)),
-    pid(make_float3(0, 0, 0), Kp, Ki, Kd),
+    force(make_real3(0, 0, 0)),
+    pid(make_real3(0, 0, 0), Kp, Ki, Kd),
     accumulatedTotVel({0,0,0})
 {}
 
@@ -139,7 +139,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
     MPI_Check( MPI_Allreduce(&nSamples_loc,        &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&accumulatedTotVel,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 
-    currentVel = nSamples_tot ? make_float3(totVel_tot / nSamples_tot) : make_float3(0.f, 0.f, 0.f);
+    currentVel = nSamples_tot ? make_real3(totVel_tot / nSamples_tot) : make_real3(0.f, 0.f, 0.f);
     force = pid.update(targetVel - currentVel);
     accumulatedTotVel = {0,0,0};
 }
@@ -185,7 +185,7 @@ void PostprocessVelocityControl::deserialize()
 {
     MirState::StepType currentTimeStep;
     MirState::TimeType currentTime;
-    float3 vel, force;
+    real3 vel, force;
 
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 

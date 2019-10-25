@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/datatypes.h>
 #include <core/logger.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
@@ -12,7 +13,7 @@ class ParametersWrap
 {
 public:
 
-    using VarParam = mpark::variant<float, std::vector<float>, std::vector<float2>, std::string, bool>;
+    using VarParam = mpark::variant<real, std::vector<real>, std::vector<real2>, std::string, bool>;
     using MapParams = std::map<std::string, VarParam>;
     
     ParametersWrap(const MapParams& params) :
@@ -72,17 +73,17 @@ private:
         return mpark::get<T>(it->second);
     }
 
-    float2 read(const std::string& key, Identity<float2>)
+    real2 read(const std::string& key, Identity<real2>)
     {
-        const auto v = read<std::vector<float>>(key);
+        const auto v = read<std::vector<real>>(key);
         if (v.size() != 2)
             die("%s must have 2 components", key.c_str());
         return {v[0], v[1]};
     }
 
-    float3 read(const std::string& key, Identity<float3>)
+    real3 read(const std::string& key, Identity<real3>)
     {
-        const auto v = read<std::vector<float>>(key);
+        const auto v = read<std::vector<real>>(key);
         if (v.size() != 3)
             die("%s must have 3 components", key.c_str());
         return {v[0], v[1], v[2]};

@@ -8,12 +8,12 @@
 class UniformIC : public InitialConditions
 {
 private:
-    float density;
+    real density;
 
 public:
-    UniformIC(float density);
+    UniformIC(real density);
 
-    void exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_t stream) override;
+    void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
     ~UniformIC();
 };

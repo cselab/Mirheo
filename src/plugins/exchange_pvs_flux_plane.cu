@@ -10,19 +10,19 @@
 namespace ExchangePvsFluxPlaneKernels
 {
 
-__device__ inline bool sidePlane(float4 plane, float3 r)
+__device__ inline bool sidePlane(real4 plane, real3 r)
 {
     return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0.f;
 }
 
-__device__ inline bool hasCrossedPlane(DomainInfo domain, float3 pos, float3 oldPos, float4 plane)
+__device__ inline bool hasCrossedPlane(DomainInfo domain, real3 pos, real3 oldPos, real4 plane)
 {
     pos    = domain.local2global(pos);
     oldPos = domain.local2global(oldPos);
     return sidePlane(plane, pos) && !sidePlane(plane, oldPos);
 }
 
-__global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, float4 plane, int *numberCrossed)
+__global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, real4 plane, int *numberCrossed)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view1.size) return;
@@ -38,7 +38,7 @@ __global__ void countParticles(DomainInfo domain, PVviewWithOldParticles view1, 
 }
 
 __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, PVview view2,
-                              float4 plane, int oldsize2, int *numberCrossed,
+                              real4 plane, int oldsize2, int *numberCrossed,
                               ParticlePackerHandler extra1, ParticlePackerHandler extra2)
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -68,7 +68,7 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
 } // namespace ExchangePvsFluxPlaneKernels
 
 
-ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, float4 plane) :
+ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, real4 plane) :
     SimulationPlugin(state, name),
     pv1Name(pv1Name),
     pv2Name(pv2Name),
@@ -99,8 +99,8 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
     pv1 = simulation->getPVbyNameOrDie(pv1Name);
     pv2 = simulation->getPVbyNameOrDie(pv2Name);
 
-    pv1->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
-    pv2->requireDataPerParticle<float4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv1->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv2->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)

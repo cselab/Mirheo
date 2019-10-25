@@ -4,6 +4,7 @@
 #include <texture_types.h>
 #include <core/utils/kernel_launch.h>
 #include <core/utils/cuda_common.h>
+#include <core/utils/mpi_types.h>
 
 namespace InterpolateKernels
 {
@@ -185,7 +186,7 @@ static HeaderInfo readHeader(const std::string& fileName, const MPI_Comm& comm)
         file.close();
     }
 
-    MPI_Check( MPI_Bcast(&info.extents,          3, MPI_FLOAT,     root, comm) );
+    MPI_Check( MPI_Bcast(&info.extents,          3, getMPIFloatType<float>(), root, comm) );
     MPI_Check( MPI_Bcast(&info.resolution,       3, MPI_INT,       root, comm) );
     MPI_Check( MPI_Bcast(&info.fullSdfSize_byte, 1, MPI_INT64_T,   root, comm) );
     MPI_Check( MPI_Bcast(&info.endHeader_byte,   1, MPI_INT64_T,   root, comm) );
@@ -264,7 +265,7 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
     return sdfPiece;
 }
 
-FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, float3 h) :
+FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, real3 h) :
     Field(state, name, h),
     fieldFileName(fieldFileName)
 {}
@@ -292,18 +293,18 @@ void FieldFromFile::setup(const MPI_Comm& comm)
 
     // Read header
     auto headerInfo = readHeader(fieldFileName, comm);
-    const float3 initialSdfH = domain.globalSize / make_float3(headerInfo.resolution-1);
+    const float3 initialSdfH = make_float3(domain.globalSize) / make_float3(headerInfo.resolution-1);
 
     // Read heavy data
     const auto fullSdfData = readSdf(fieldFileName, comm, headerInfo);
 
-    const float3 scale3 = domain.globalSize / headerInfo.extents;
+    const float3 scale3 = make_float3(domain.globalSize) / headerInfo.extents;
     if ( !componentsAreEqual(scale3) )
         die("Sdf size and domain size mismatch");
     const float lenScalingFactor = (scale3.x + scale3.y + scale3.z) / 3;
 
     auto sdfPiece = prepareRelevantSdfPiece(fullSdfData,
-                                            domain.globalStart - margin3, extendedDomainSize,
+                                            make_float3(domain.globalStart - margin3), make_float3(extendedDomainSize),
                                             initialSdfH, headerInfo.resolution);
 
     // Interpolate
@@ -319,7 +320,8 @@ void FieldFromFile::setup(const MPI_Comm& comm)
             InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, defaultStream,
             sdfPiece.data.devPtr(), sdfPiece.resolution, initialSdfH,
-            fieldRawData.devPtr(), resolution, h, sdfPiece.offset, lenScalingFactor );
+            fieldRawData.devPtr(), resolution, make_float3(h),
+            sdfPiece.offset, lenScalingFactor );
 
     setupArrayTexture(fieldRawData.devPtr());
 }

@@ -22,7 +22,7 @@ public:
     virtual void attachFrozen(ParticleVector *pv) = 0;
 
     virtual void removeInner(ParticleVector *pv) = 0;
-    virtual void attach(ParticleVector *pv, CellList *cl, float maximumPartTravel) = 0;
+    virtual void attach(ParticleVector *pv, CellList *cl, real maximumPartTravel) = 0;
     virtual void bounce(cudaStream_t stream) = 0;
 
     /**
@@ -44,8 +44,8 @@ public:
     
     virtual void sdfPerParticle(LocalParticleVector *lpv,
             GPUcontainer *sdfs, GPUcontainer *gradients,
-            float gradientThreshold, cudaStream_t stream) = 0;
+            real gradientThreshold, cudaStream_t stream) = 0;
     virtual void sdfPerPosition(GPUcontainer *positions, GPUcontainer *sdfs, cudaStream_t stream) = 0;
-    virtual void sdfOnGrid(float3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
+    virtual void sdfOnGrid(real3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual PinnedBuffer<double3>* getCurrentBounceForce() = 0;
 };

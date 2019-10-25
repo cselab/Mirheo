@@ -5,7 +5,7 @@
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain, float dt) :
+MirState::MirState(DomainInfo domain, real dt) :
     domain(domain),
     dt(dt),
     currentTime(0),
@@ -48,7 +48,7 @@ void MirState::checkpoint(MPI_Comm comm, std::string folder)
     if (!isMasterRank(comm))
         return;
     
-    float3 gsz, gst, lsz;
+    real3 gsz, gst, lsz;
     gsz = domain.globalSize;
     gst = domain.globalStart;
     lsz = domain.localSize;
@@ -65,7 +65,7 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     if (!isMasterRank(comm))
         return;    
     
-    float3 gsz, gst, lsz;
+    real3 gsz, gst, lsz;
     auto filename = folder + fname;
     auto good = TextIO::read(filename,
                              gsz.x, gsz.y, gsz.z,

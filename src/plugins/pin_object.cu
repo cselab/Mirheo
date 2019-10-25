@@ -8,31 +8,32 @@
 #include <core/utils/cuda_common.h>
 #include <core/utils/cuda_rng.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/mpi_types.h>
 #include <core/utils/quaternion.h>
 
 namespace PinObjectKernels
 {
 
-__global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *totForces)
+__global__ void restrictVelocities(OVview view, real3 targetVelocity, real4 *totForces)
 {
     int objId = blockIdx.x;
     
-    __shared__ float3 objTotForce, objVelocity;
-    objTotForce = make_float3(0);
-    objVelocity = make_float3(0);
+    __shared__ real3 objTotForce, objVelocity;
+    objTotForce = make_real3(0.0_r);
+    objVelocity = make_real3(0.0_r);
     __syncthreads();
 
     // Find total force acting on the object and its velocity
 
-    float3 myf = make_float3(0), myv = make_float3(0);
+    real3 myf = make_real3(0), myv = make_real3(0);
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
     {
-        myf += Float3_int(view.forces[pid + objId*view.objSize]).v;
-        myv += Float3_int(view.readVelocity(pid + objId*view.objSize)).v;
+        myf += Real3_int(view.forces[pid + objId*view.objSize]).v;
+        myv += Real3_int(view.readVelocity(pid + objId*view.objSize)).v;
     }
 
-    myf = warpReduce(myf, [] (float a, float b) { return a+b; });
-    myv = warpReduce(myv, [] (float a, float b) { return a+b; });
+    myf = warpReduce(myf, [] (real a, real b) { return a+b; });
+    myv = warpReduce(myv, [] (real a, real b) { return a+b; });
 
     if (laneId() == 0)
     {
@@ -53,7 +54,7 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *t
         if (targetVelocity.y == PinObjectPlugin::Unrestricted) { objTotForce.y = 0; objVelocity.y = 0; }
         if (targetVelocity.z == PinObjectPlugin::Unrestricted) { objTotForce.z = 0; objVelocity.z = 0; }
         
-        totForces[view.ids[objId]] += Float3_int(objTotForce, 0).toFloat4();
+        totForces[view.ids[objId]] += Real3_int(objTotForce, 0).toReal4();
         objTotForce /= view.objSize;
     }
 
@@ -66,12 +67,12 @@ __global__ void restrictVelocities(OVview view, float3 targetVelocity, float4 *t
     
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
     {
-        view.forces    [pid + objId*view.objSize] -= Float3_int(objTotForce, 0).toFloat4();
-        view.velocities[pid + objId*view.objSize] += Float3_int(objVelocity, 0).toFloat4();
+        view.forces    [pid + objId*view.objSize] -= Real3_int(objTotForce, 0).toReal4();
+        view.velocities[pid + objId*view.objSize] += Real3_int(objVelocity, 0).toReal4();
     }
 }
 
-__global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelocity, float3 targetOmega, float dt, float4 *totForces, float4 *totTorques)
+__global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVelocity, real3 targetOmega, real dt, real4 *totForces, real4 *totTorques)
 {
     int objId = blockIdx.x * blockDim.x + threadIdx.x;
     if (objId >= view.nObjects) return;
@@ -123,7 +124,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, float3 targetVelo
 
 } // namespace PinObjectKernels::
 
-PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, float3 translation, float3 rotation, int reportEvery) :
+PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, real3 translation, real3 rotation, int reportEvery) :
     SimulationPlugin(state, name),
     ovName(ovName),
     translation(translation),
@@ -252,14 +253,14 @@ void ReportPinObjectPlugin::handshake()
 
 void ReportPinObjectPlugin::deserialize()
 {
-    std::vector<float4> forces, torques;
+    std::vector<real4> forces, torques;
     MirState::TimeType currentTime;
     int nsamples;
 
     SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);
 
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  MPI_FLOAT, MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, MPI_FLOAT, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm) );
 
     if (activated && rank == 0)
     {

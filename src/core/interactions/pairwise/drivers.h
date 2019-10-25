@@ -57,7 +57,7 @@ template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith I
          typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView, float rc2,
+        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView, real rc2,
         Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
@@ -98,7 +98,7 @@ __device__ inline void computeCell(
  * @param interaction is a \c \_\_device\_\_ callable that computes
  *        the force between two particles. It has to have the following
  *        signature:
- *        \code float3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
+ *        \code real3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
  *        The return value is the force acting on the first particle.
  *        The second one experiences the opposite force.
  */
@@ -106,7 +106,7 @@ template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
         CellListInfo cinfo, typename Interaction::ViewType view,
-        const float rc2, Interaction interaction)
+        const real rc2, Interaction interaction)
 {
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= view.size) return;
@@ -165,7 +165,7 @@ __global__ void computeSelfInteractions(
  * @param interaction is a \c \_\_device\_\_ callable that computes
  *        the force between two particles. It has to have the following
  *        signature:
- *        \code float3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
+ *        \code real3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
  *        The return value is the force acting on the first particle.
  *        The second one experiences the opposite force.
  *
@@ -181,7 +181,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
         typename Interaction::ViewType srcView,
-        const float rc2, Interaction interaction)
+        const real rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -243,7 +243,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
         typename Interaction::ViewType srcView,
-        const float rc2, Interaction interaction)
+        const real rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -310,7 +310,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
         typename Interaction::ViewType srcView,
-        const float rc2, Interaction interaction)
+        const real rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -377,7 +377,7 @@ __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
         typename Interaction::ViewType srcView,
-        const float rc2, Interaction interaction)
+        const real rc2, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");

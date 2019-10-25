@@ -9,7 +9,7 @@
 
 namespace MagneticOrientationPluginKernels
 {
-__global__ void applyMagneticField(ROVview view, float3 B, float3 M)
+__global__ void applyMagneticField(ROVview view, real3 B, real3 M)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.nObjects) return;
@@ -18,7 +18,7 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 
     M = Quaternion::rotate(M, q);
 
-    const float3 T = cross(M, B);
+    const real3 T = cross(M, B);
     
     atomicAdd(&view.motions[gid].torque.x, static_cast<RigidReal>(T.x));
     atomicAdd(&view.motions[gid].torque.y, static_cast<RigidReal>(T.y));
@@ -27,7 +27,7 @@ __global__ void applyMagneticField(ROVview view, float3 B, float3 M)
 } // namespace MagneticOrientationPluginKernels
 
 MagneticOrientationPlugin::MagneticOrientationPlugin(const MirState *state, std::string name, std::string rovName,
-                                                     float3 moment, UniformMagneticFunc magneticFunction) :
+                                                     real3 moment, UniformMagneticFunc magneticFunction) :
     SimulationPlugin(state, name),
     rovName(rovName),
     moment(moment),

@@ -19,7 +19,7 @@ private:
 
     ParticleVector* pv;
     
-    HostBuffer<float4> positions;
+    HostBuffer<real4> positions;
 
 public:
     XYZPlugin(const MirState *state, std::string name, std::string pvNames, int dumpEvery);
@@ -41,7 +41,7 @@ private:
 
     bool activated = true;
 
-    std::vector<float4> pos;
+    std::vector<real4> pos;
 
 public:
     XYZDumper(std::string name, std::string path);

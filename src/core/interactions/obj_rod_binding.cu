@@ -12,23 +12,23 @@ namespace ObjRodBindingKernels
 
 struct BindingParams
 {
-    float3 relPos;
-    float T;
-    float kb;
+    real3 relPos;
+    real T;
+    real kb;
 };
 
 template <typename View>
-__device__ inline float3 fetchPosition(View view, int i)
+__device__ inline real3 fetchPosition(View view, int i)
 {
-    Float3_int ri(view.readPosition(i));
-    return make_float3(ri.v);
+    Real3_int ri(view.readPosition(i));
+    return make_real3(ri.v);
 }
 
-__device__ inline float3 safeNormalize(float3 u)
+__device__ inline real3 safeNormalize(real3 u)
 {
-    constexpr float tol = 1e-6f;
+    constexpr real tol = 1e-6f;
     auto nrm2 = dot(u,u);
-    if (nrm2 < tol) return make_float3(0.f);
+    if (nrm2 < tol) return make_real3(0.f);
     return math::rsqrt(nrm2) * u;
 }
 
@@ -37,9 +37,9 @@ __device__ void applyBindingForce(const DomainInfo& domain,
                                   int j, const OVview& rods,
                                   const BindingParams& params)
 {
-    const auto motion = toSingleMotion(objs.motions[i]);
-    const float3 relAnchor = Quaternion::rotate( params.relPos, motion.q );
-    const float3 anchor = motion.r + relAnchor;
+    const auto motion = toRealMotion(objs.motions[i]);
+    const real3 relAnchor = Quaternion::rotate( params.relPos, motion.q );
+    const real3 anchor = motion.r + relAnchor;
 
     const int start = j * rods.objSize; 
     auto r0 = fetchPosition(rods, start + 0);
@@ -59,9 +59,9 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     auto dp = u1 - u0;
     dp = normalize(dp - e0 * dot(e0, dp));
 
-    float3 T       = params.T * e0;
-    float3 fu0     = 0.5f * cross(T, dp);
-    float3 Tanchor = cross(relAnchor, fanchor);
+    real3 T       = params.T * e0;
+    real3 fu0     = 0.5f * cross(T, dp);
+    real3 Tanchor = cross(relAnchor, fanchor);
     
     atomicAdd(&rods.forces[start + 0], -fanchor);
     atomicAdd(&rods.forces[start + 1],  fu0);
@@ -107,7 +107,7 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 
 
 ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
-                                                         float torque, float3 relAnchor, float kBound) :
+                                                         real torque, real3 relAnchor, real kBound) :
     Interaction(state, name, /*rc*/ 1.0f),
     torque(torque),
     relAnchor(relAnchor),

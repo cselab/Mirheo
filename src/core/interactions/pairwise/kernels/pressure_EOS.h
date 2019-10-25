@@ -8,7 +8,7 @@ class LinearPressureEOS
 {
 public:
 
-    LinearPressureEOS(float soundSpeed, float rho0) :
+    LinearPressureEOS(real soundSpeed, real rho0) :
         cSq(soundSpeed * soundSpeed),
         rho0(rho0)
     {}
@@ -17,13 +17,13 @@ public:
         LinearPressureEOS(p.soundSpeed, p.rho0)
     {}
     
-    __D__ inline float operator()(float rho) const
+    __D__ inline real operator()(real rho) const
     {
         return cSq * (rho - rho0);
     }
 
 private:
-    float cSq, rho0;
+    real cSq, rho0;
 };
 
 
@@ -31,7 +31,7 @@ class QuasiIncompressiblePressureEOS
 {
 public:
     
-    QuasiIncompressiblePressureEOS(float p0, float rhor) :
+    QuasiIncompressiblePressureEOS(real p0, real rhor) :
         p0(p0),
         invRhor(1.0/rhor)
     {}
@@ -40,15 +40,15 @@ public:
         QuasiIncompressiblePressureEOS(p.p0, p.rhor)
     {}
     
-    __D__ inline float operator()(float rho) const
+    __D__ inline real operator()(real rho) const
     {
-        const float r = rho * invRhor;
-        const float r3 = r*r*r;
-        const float r7 = r3*r3*r;
+        const real r = rho * invRhor;
+        const real r3 = r*r*r;
+        const real r7 = r3*r3*r;
         return p0 * (r7 - 1.f);
     }
 
 private:
 
-    float p0, invRhor;
+    real p0, invRhor;
 };

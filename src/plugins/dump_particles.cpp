@@ -72,7 +72,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     
     for (auto& p : positions)
     {
-        auto r = state->domain.local2global(make_float3(p));
+        auto r = state->domain.local2global(make_real3(p));
         p.x = r.x; p.y = r.y; p.z = r.z;
     }
 
@@ -90,7 +90,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(path),
-    positions(std::make_shared<std::vector<float3>>())
+    positions(std::make_shared<std::vector<real3>>())
 {}
 
 void ParticleDumperPlugin::handshake()
@@ -105,7 +105,7 @@ void ParticleDumperPlugin::handshake()
     
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str,
                             XDMF::Channel::NumberType numberType = XDMF::Channel::NumberType::Float,
-                            TypeDescriptor datatype = DataTypeWrapper<float>(),
+                            TypeDescriptor datatype = DataTypeWrapper<real>(),
                             XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
     {
         return XDMF::Channel(str, nullptr, dataForm, numberType, datatype, needShift);
@@ -113,7 +113,7 @@ void ParticleDumperPlugin::handshake()
 
     // Velocity and id are special channels which are always present
     std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<float>()));
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::Channel::NumberType::Float, DataTypeWrapper<real>()));
     channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < sizes.size(); ++i)
@@ -136,8 +136,8 @@ void ParticleDumperPlugin::handshake()
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name.c_str(), allNames.c_str(), path.c_str());
 }
 
-static void unpackParticles(const std::vector<float4> &pos4, const std::vector<float4> &vel4,
-                            std::vector<float3> &pos, std::vector<float3> &vel, std::vector<int64_t> &ids)
+static void unpackParticles(const std::vector<real4> &pos4, const std::vector<real4> &vel4,
+                            std::vector<real3> &pos, std::vector<real3> &vel, std::vector<int64_t> &ids)
 {
     int n = pos4.size();
     pos.resize(n);

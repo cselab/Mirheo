@@ -10,11 +10,11 @@ class Mesh
 {
 public:
     PinnedBuffer<int3> triangles;
-    PinnedBuffer<float4> vertexCoordinates;
+    PinnedBuffer<real4> vertexCoordinates;
 
     Mesh();
     Mesh(const std::string& filename);
-    Mesh(const std::vector<float3>& vertices, const std::vector<int3>& faces);
+    Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
 
     Mesh(Mesh&&);
     Mesh& operator=(Mesh&&);
@@ -25,7 +25,7 @@ public:
     const int& getNvertices() const;
     const int& getMaxDegree() const;
 
-    PyTypes::VectorOfFloat3 getVertices();
+    PyTypes::VectorOfReal3 getVertices();
     PyTypes::VectorOfInt3  getTriangles();
 
 protected:

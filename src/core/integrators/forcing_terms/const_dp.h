@@ -13,14 +13,14 @@ class ParticleVector;
 class Forcing_ConstDP
 {
 public:
-    Forcing_ConstDP(float3 extraForce) : extraForce(extraForce) {}
-    void setup(__UNUSED ParticleVector* pv, __UNUSED float t) {}
+    Forcing_ConstDP(real3 extraForce) : extraForce(extraForce) {}
+    void setup(__UNUSED ParticleVector* pv, __UNUSED real t) {}
 
-    __D__ inline float3 operator()(float3 original, __UNUSED Particle p) const
+    __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const
     {
         return extraForce + original;
     }
 
 private:
-    float3 extraForce;
+    real3 extraForce;
 };

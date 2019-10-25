@@ -8,7 +8,7 @@
 
 namespace FactoryHelper
 {
-constexpr auto defaultFloat = std::numeric_limits<float>::infinity();
+constexpr auto defaultReal = std::numeric_limits<real>::infinity();
 
 struct ParamsReader
 {

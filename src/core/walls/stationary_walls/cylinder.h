@@ -13,7 +13,7 @@ class StationaryWall_Cylinder
 public:
     enum class Direction {x, y, z};
 
-    StationaryWall_Cylinder(float2 center, float radius, Direction dir, bool inside) :
+    StationaryWall_Cylinder(real2 center, real radius, Direction dir, bool inside) :
         center(center), radius(radius), inside(inside)
     {
         switch (dir)
@@ -28,23 +28,23 @@ public:
 
     const StationaryWall_Cylinder& handler() const { return *this; }
 
-    __D__ inline float operator()(float3 coo) const
+    __D__ inline real operator()(real3 coo) const
     {
-        float3 gr = domain.local2global(coo);
+        real3 gr = domain.local2global(coo);
 
-        float2 projR;
-        if (_dir == 0) projR = make_float2(gr.y, gr.z);
-        if (_dir == 1) projR = make_float2(gr.x, gr.z);
-        if (_dir == 2) projR = make_float2(gr.x, gr.y);
+        real2 projR;
+        if (_dir == 0) projR = make_real2(gr.y, gr.z);
+        if (_dir == 1) projR = make_real2(gr.x, gr.z);
+        if (_dir == 2) projR = make_real2(gr.x, gr.y);
 
-        float dist = math::sqrt(dot(projR-center, projR-center));
+        real dist = math::sqrt(dot(projR-center, projR-center));
 
         return inside ? dist - radius : radius - dist;
     }
 
 private:
-    float2 center;
-    float radius;
+    real2 center;
+    real radius;
     int _dir;
 
     bool inside;

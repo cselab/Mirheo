@@ -2,7 +2,7 @@
 
 #include "domain.h"
 
-DomainInfo createDomainInfo(MPI_Comm cartComm, float3 globalSize)
+DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize)
 {
     DomainInfo domain;
     int ranks[3], periods[3], coords[3];
@@ -13,8 +13,8 @@ DomainInfo createDomainInfo(MPI_Comm cartComm, float3 globalSize)
     int3 rank3D = {coords[0], coords[1], coords[2]};
 
     domain.globalSize = globalSize;
-    domain.localSize = domain.globalSize / make_float3(nranks3D);
-    domain.globalStart = domain.localSize * make_float3(rank3D);
+    domain.localSize = domain.globalSize / make_real3(nranks3D);
+    domain.globalStart = domain.localSize * make_real3(rank3D);
 
     return domain;
 }

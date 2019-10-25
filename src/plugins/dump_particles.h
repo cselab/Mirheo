@@ -38,10 +38,10 @@ protected:
     
     int dumpEvery;
 
-    HostBuffer<float4> positions, velocities;
+    HostBuffer<real4> positions, velocities;
     std::vector<std::string> channelNames;
     std::vector<ChannelType> channelTypes;
-    std::vector<HostBuffer<float>> channelData;
+    std::vector<HostBuffer<real>> channelData;
 
     std::vector<char> sendBuffer;
 };
@@ -62,11 +62,11 @@ protected:
     static constexpr int zeroPadding = 5;
     std::string path;
 
-    std::vector<float4> pos4, vel4;
-    std::vector<float3> velocities;
+    std::vector<real4> pos4, vel4;
+    std::vector<real3> velocities;
     std::vector<int64_t> ids;
-    std::shared_ptr<std::vector<float3>> positions;
+    std::shared_ptr<std::vector<real3>> positions;
 
     std::vector<XDMF::Channel> channels;
-    std::vector<std::vector<float>> channelData;
+    std::vector<std::vector<real>> channelData;
 };

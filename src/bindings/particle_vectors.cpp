@@ -21,7 +21,7 @@ void exportParticleVectors(py::module& m)
         Basic particle vector, consists of identical disconnected particles.
     )");
     
-    pypv.def(py::init<const MirState*, std::string, float>(), py::return_value_policy::move,
+    pypv.def(py::init<const MirState*, std::string, real>(), py::return_value_policy::move,
              "state"_a, "name"_a, "mass"_a, R"(
             Args:
                 name: name of the created PV 
@@ -34,28 +34,28 @@ void exportParticleVectors(py::module& m)
         )")
         .def("getCoordinates", &ParticleVector::getCoordinates_vector, R"(
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )")
         .def("getVelocities",  &ParticleVector::getVelocities_vector, R"(
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         )")
         .def("getForces",      &ParticleVector::getForces_vector, R"(
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )")
         //
         .def("setCoordinates", &ParticleVector::setCoordinates_vector, "coordinates"_a, R"(
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )")
         .def("setVelocities",  &ParticleVector::setVelocities_vector, "velocities"_a, R"(
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         )")
         .def("setForces",      &ParticleVector::setForces_vector, "forces"_a, R"(
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )");
 
     py::handlers_class<Mesh> pymesh(m, "Mesh", R"(
@@ -68,7 +68,7 @@ void exportParticleVectors(py::module& m)
         Args:
             off_filename: path of the OFF file
     )")
-        .def(py::init<const std::vector<float3>&, const std::vector<int3>&>(),
+        .def(py::init<const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "faces"_a, R"(
         Create a mesh by giving coordinates and connectivity
         
@@ -104,7 +104,7 @@ void exportParticleVectors(py::module& m)
                 off_initial_mesh: path of the OFF file : initial mesh
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
         )")
-        .def(py::init<const std::vector<float3>&, const std::vector<int3>&>(),
+        .def(py::init<const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "faces"_a, R"(
             Create a mesh by giving coordinates and connectivity
         
@@ -112,7 +112,7 @@ void exportParticleVectors(py::module& m)
                 vertices: vertex coordinates
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         )")
-        .def(py::init<const std::vector<float3>&, const std::vector<float3>&, const std::vector<int3>&>(),
+        .def(py::init<const std::vector<real3>&, const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "stress_free_vertices"_a, "faces"_a, R"(
             Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
         
@@ -136,7 +136,7 @@ void exportParticleVectors(py::module& m)
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
     )")
-        .def(py::init<const MirState*, std::string, float, std::shared_ptr<MembraneMesh>>(),
+        .def(py::init<const MirState*, std::string, real, std::shared_ptr<MembraneMesh>>(),
              "state"_a, "name"_a, "mass"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV 
@@ -149,7 +149,7 @@ void exportParticleVectors(py::module& m)
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
-    pyrov.def(py::init<const MirState*, std::string, float, float3, int, std::shared_ptr<Mesh>>(),
+    pyrov.def(py::init<const MirState*, std::string, real, real3, int, std::shared_ptr<Mesh>>(),
               "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
 
             Args:
@@ -242,7 +242,7 @@ void exportParticleVectors(py::module& m)
     py::handlers_class<RodVector> (m, "RodVector", pyov, R"(
         Rod Vector is an :any:`ObjectVector` which reprents rod geometries.
     )")
-        .def(py::init<const MirState*, std::string, float, int>(),
+        .def(py::init<const MirState*, std::string, real, int>(),
              "state"_a, "name"_a, "mass"_a, "num_segments"_a, R"(
 
             Args:

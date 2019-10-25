@@ -78,8 +78,8 @@ void ParticleWithRodQuantitiesSenderPlugin::beforeForces(cudaStream_t stream)
                 int objSize  = rv->objSize;
                 int nObjects = rv->local()->nObjects;
                 
-                size_t sizeFloats = pv->local()->size() * sizeof(Type) / sizeof(float);
-                partData.resize_anew(sizeFloats);
+                size_t sizeReals = pv->local()->size() * sizeof(Type) / sizeof(real);
+                partData.resize_anew(sizeReals);
 
                 const int nthreads = 128;
                 const int nblocks = getNblocks(nparticles, nthreads);

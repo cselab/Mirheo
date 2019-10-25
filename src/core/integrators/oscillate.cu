@@ -8,7 +8,7 @@
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(const MirState *state, std::string name, float3 vel, float period) :
+IntegratorOscillate::IntegratorOscillate(const MirState *state, std::string name, real3 vel, real period) :
     Integrator(state, name),
     vel(vel), period(period)
 {
@@ -23,12 +23,12 @@ IntegratorOscillate::~IntegratorOscillate() = default;
  */
 void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    float t = state->currentTime;
+    real t = state->currentTime;
     
     const auto _vel = vel;
-    float cosOmega = math::cos(2*M_PI * t / period);
+    real cosOmega = math::cos(2*M_PI * t / period);
 
-    auto oscillate = [_vel, cosOmega] __device__ (Particle& p, const float3 f, const float invm, const float dt) {
+    auto oscillate = [_vel, cosOmega] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
         p.u = _vel * cosOmega;
         p.r += p.u*dt;
     };

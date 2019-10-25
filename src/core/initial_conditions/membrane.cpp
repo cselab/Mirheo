@@ -7,7 +7,7 @@
 #include <fstream>
 #include <random>
 
-MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, float globalScale) :
+MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
     com_q(com_q),
     globalScale(globalScale)
 {}
@@ -47,8 +47,8 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
 
     for (auto& entry : com_q)
     {
-        float3 com = entry.r;
-        float4 q   = entry.q;
+        real3 com = entry.r;
+        real4 q   = entry.q;
 
         q = normalize(q);
 
@@ -65,11 +65,11 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
             
             for (int i = 0; i < ov->mesh->getNvertices(); i++)
             {
-                const float3 r = Quaternion::rotate(make_float3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
-                const Particle p {{r.x, r.y, r.z, 0.f}, make_float4(0.f)};
+                const real3 r = Quaternion::rotate(make_real3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+                const Particle p {{r.x, r.y, r.z, 0.f}, make_real4(0.f)};
 
-                pos[oldSize + i] = p.r2Float4();
-                vel[oldSize + i] = p.u2Float4();
+                pos[oldSize + i] = p.r2Real4();
+                vel[oldSize + i] = p.u2Real4();
             }
 
             nObjs++;
@@ -79,7 +79,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     ov->local()->positions().uploadToDevice(stream);
     ov->local()->velocities().uploadToDevice(stream);
     ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->dataPerParticle.getData<float4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
+    ov->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }

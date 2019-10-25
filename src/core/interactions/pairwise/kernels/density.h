@@ -17,20 +17,20 @@ public:
     using ParticleType = ParticleFetcher::ParticleType;
     using HandlerType  = PairwiseDensity;
     
-    PairwiseDensity(float rc, DensityKernel densityKernel) :
+    PairwiseDensity(real rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),
         densityKernel(densityKernel),
         invrc(1.0 / rc)
     {}
 
-    __D__ inline float operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __D__ inline real operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
-        const float3 dr = dst.r - src.r;
-        const float rij2 = dot(dr, dr);
+        const real3 dr = dst.r - src.r;
+        const real rij2 = dot(dr, dr);
         if (rij2 > rc2)
             return 0.0f;
 
-        const float rij = math::sqrt(rij2);
+        const real rij = math::sqrt(rij2);
 
         return densityKernel(rij, invrc);
     }
@@ -45,6 +45,6 @@ public:
     
 protected:
 
-    float invrc;
+    real invrc;
     DensityKernel densityKernel;
 };

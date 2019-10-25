@@ -9,7 +9,7 @@
 class ObjectToParticlesPlugin : public SimulationPlugin
 {
 public:
-    ObjectToParticlesPlugin(const MirState *state, std::string name, std::string ovName, std::string pvName, float4 plane);
+    ObjectToParticlesPlugin(const MirState *state, std::string name, std::string ovName, std::string pvName, real4 plane);
     ~ObjectToParticlesPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -24,5 +24,5 @@ protected:
     ParticleVector *pv;  // To.
 
     ObjectDeleter deleter;
-    float4 plane;  // Local coordinate system.
+    real4 plane;  // Local coordinate system.
 };

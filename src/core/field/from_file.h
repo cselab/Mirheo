@@ -3,7 +3,7 @@
 class FieldFromFile : public Field
 {
 public:    
-    FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, float3 h);
+    FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, real3 h);
     ~FieldFromFile();
 
     FieldFromFile(FieldFromFile&&);
