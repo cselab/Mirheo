@@ -1,0 +1,11 @@
+  
+  
+  
+{  
+1, 0.25, 0.5,
+1, 0.5, 0.5,
+1, 0.75, 0.5
+"h5/solvent_particles-00000.h5" { 
+H5T_IEEE_F64LE  
+"position" { 
+SIMPLE { (

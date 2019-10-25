@@ -1,0 +1,8 @@
+  
+  
+  
+{  
+"h5/solvent_particles-00000.h5" { 
+H5T_IEEE_F64LE  
+"position" { 
+SIMPLE { (
