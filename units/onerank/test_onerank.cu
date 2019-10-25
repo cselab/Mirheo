@@ -17,18 +17,18 @@
 
 Logger logger;
 
-const float dt = 0.0025;
-const float kBT = 0.0; // to get rid of rng
-const float gammadpd = 20;
-const float adpd = 50;
-const float powerdpd = 1.0;
+const real dt = 0.0025;
+const real kBT = 0.0; // to get rid of rng
+const real gammadpd = 20;
+const real adpd = 50;
+const real powerdpd = 1.0;
 
-const float sigma = math::sqrt(2 * gammadpd * kBT);
-const float sigmaf = sigma / math::sqrt(dt);
+const real sigma = math::sqrt(2 * gammadpd * kBT);
+const real sigmaf = sigma / math::sqrt(dt);
 
 
-void makeCells(float4*& pos, float4*& vel,
-               float4*& posBuffer, float4*& velBuffer,
+void makeCells(real4*& pos, real4*& vel,
+               real4*& posBuffer, real4*& velBuffer,
                int *cellsStartSize, int *cellsSize,
                int np, CellListInfo cinfo)
 {
@@ -36,7 +36,7 @@ void makeCells(float4*& pos, float4*& vel,
         cellsSize[i] = 0;
 
     for (int i = 0; i < np; i++)
-        cellsSize[cinfo.getCellId(make_float3(pos[i]))]++;
+        cellsSize[cinfo.getCellId(make_real3(pos[i]))]++;
 
     cellsStartSize[0] = 0;
     for (int i = 1; i <= cinfo.totcells; i++)
@@ -44,7 +44,7 @@ void makeCells(float4*& pos, float4*& vel,
 
     for (int i = 0; i < np; i++)
     {
-        const int cid = cinfo.getCellId(make_float3(pos[i]));
+        const int cid = cinfo.getCellId(make_real3(pos[i]));
         posBuffer[cellsStartSize[cid]] = pos[i];
         velBuffer[cellsStartSize[cid]] = vel[i];
         cellsStartSize[cid]++;
@@ -57,11 +57,11 @@ void makeCells(float4*& pos, float4*& vel,
     std::swap(vel, velBuffer);
 }
 
-void integrate(float4* pos, float4 *vel, Force *accs,
-               int np, float dt, DomainInfo dinfo)
+void integrate(real4* pos, real4 *vel, Force *accs,
+               int np, real dt, DomainInfo dinfo)
 {
-    float3 dstart = dinfo.globalStart;
-    float3 dlength = dinfo.localSize;
+    real3 dstart = dinfo.globalStart;
+    real3 dlength = dinfo.localSize;
     
     for (int i = 0; i < np; i++)
     {
@@ -101,47 +101,47 @@ T minabs(T arg, Args... other)
 }
 
 
-void forces(const float4 *pos, const float4 *vel, Force *accs,
+void forces(const real4 *pos, const real4 *vel, Force *accs,
             const int *cellsStartSize, const int *cellsSize,
             CellListInfo cinfo, DomainInfo dinfo)
 {
-    float3 dlength = dinfo.localSize;
+    real3 dlength = dinfo.localSize;
     
     auto addForce = [=] (int dstId, int srcId, Force& a)
     {
         Particle pdst(pos[dstId], vel[dstId]);
         Particle psrc(pos[srcId], vel[srcId]);
         
-        float _xr = pdst.r.x - psrc.r.x;
-        float _yr = pdst.r.y - psrc.r.y;
-        float _zr = pdst.r.z - psrc.r.z;
+        real _xr = pdst.r.x - psrc.r.x;
+        real _yr = pdst.r.y - psrc.r.y;
+        real _zr = pdst.r.z - psrc.r.z;
 
         _xr = minabs(_xr, _xr - dlength.x, _xr + dlength.x);
         _yr = minabs(_yr, _yr - dlength.y, _yr + dlength.y);
         _zr = minabs(_zr, _zr - dlength.z, _zr + dlength.z);
 
-        const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+        const real rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
         if (rij2 > 1.0f) return;
         //assert(rij2 < 1);
 
-        const float invrij = 1.0f / math::sqrt(rij2);
-        const float rij = rij2 * invrij;
-        const float argwr = 1.0f - rij;
-        const float wr = pow(argwr, powerdpd);
+        const real invrij = 1.0f / math::sqrt(rij2);
+        const real rij = rij2 * invrij;
+        const real argwr = 1.0f - rij;
+        const real wr = pow(argwr, powerdpd);
 
-        const float xr = _xr * invrij;
-        const float yr = _yr * invrij;
-        const float zr = _zr * invrij;
+        const real xr = _xr * invrij;
+        const real yr = _yr * invrij;
+        const real zr = _zr * invrij;
 
-        const float rdotv =
+        const real rdotv =
         xr * (pdst.u.x - psrc.u.x) +
         yr * (pdst.u.y - psrc.u.y) +
         zr * (pdst.u.z - psrc.u.z);
 
-        const float myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
+        const real myrandnr = 0;//Logistic::mean0var1(1, min(srcId, dstId), max(srcId, dstId));
 
-        const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
+        const real strength = adpd * argwr - (gammadpd * wr * rdotv + sigmaf * myrandnr) * wr;
 
         a.f.x += strength * xr;
         a.f.y += strength * yr;
@@ -159,7 +159,7 @@ void forces(const float4 *pos, const float4 *vel, Force *accs,
 
                 for (int dstId = cellsStartSize[cid]; dstId < cellsStartSize[cid] + cellsSize[cid]; dstId++)
                 {
-                    Force f (make_float4(0.f, 0.f, 0.f, 0.f));
+                    Force f (make_real4(0.f, 0.f, 0.f, 0.f));
 
                     for (int dx = -1; dx <= 1; dx++)
                         for (int dy = -1; dy <= 1; dy++)
@@ -189,16 +189,16 @@ void forces(const float4 *pos, const float4 *vel, Force *accs,
             }
 }
 
-void execute(float3 length, int niters, double& l2, double& linf)
+void execute(real3 length, int niters, double& l2, double& linf)
 {
     cudaStream_t defStream;
     CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
     
     // Initial cells
     
-    float3 domainStart = -length / 2.0f;
-    const float rc = 1.0f;
-    const float mass = 1.0f;
+    real3 domainStart = -length / 2.0f;
+    const real rc = 1.0f;
+    const real mass = 1.0f;
 
     DomainInfo domainInfo;
     domainInfo.localSize = length;
@@ -238,8 +238,8 @@ void execute(float3 length, int niters, double& l2, double& linf)
                     p.u.z = 0*(drand48() - 0.5);
                     p.setId(c);
 
-                    pos[c] = p.r2Float4();
-                    vel[c] = p.u2Float4();
+                    pos[c] = p.r2Real4();
+                    vel[c] = p.u2Real4();
                     c++;
                 }
 
@@ -248,7 +248,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
     vel.uploadToDevice(defStream);
     pv.local()->forces().clear(defStream);
 
-    HostBuffer<float4> positions(pv.local()->size()), velocities(pv.local()->size());
+    HostBuffer<real4> positions(pv.local()->size()), velocities(pv.local()->size());
     std::copy(pos.begin(), pos.end(), positions .begin());
     std::copy(vel.begin(), vel.end(), velocities.begin());
 
@@ -309,7 +309,7 @@ void execute(float3 length, int niters, double& l2, double& linf)
     int np = positions.size();
     int totcells = cells.totcells;
 
-    HostBuffer<float4> posBuffer(np), velBuffer(np);
+    HostBuffer<real4> posBuffer(np), velBuffer(np);
     HostBuffer<Force> accs(np);
     HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
     
@@ -388,7 +388,7 @@ TEST (ONE_RANK, small)
 {
     double l2, linf, tol;
     int niters = 50;
-    float3 length{8, 8, 8};
+    real3 length{8, 8, 8};
     tol = 0.001;
     
     execute(length, niters, l2, linf);
@@ -401,7 +401,7 @@ TEST (ONE_RANK, big)
 {
     double l2, linf, tol;
     int niters = 3;
-    float3 length{32, 32, 32};
+    real3 length{32, 32, 32};
     tol = 0.00002;
     
     execute(length, niters, l2, linf);

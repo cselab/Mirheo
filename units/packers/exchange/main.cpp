@@ -24,7 +24,7 @@ Logger logger;
 // - correct reordering
 // - correct shift
 // by copying corrected positions to velocities
-static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel)
+static void createRef(const PinnedBuffer<real4>& pos, PinnedBuffer<real4>& vel)
 {
     for (size_t i = 0; i < pos.size(); ++i)
         vel[i] = pos[i];
@@ -33,15 +33,15 @@ static void createRef(const PinnedBuffer<float4>& pos, PinnedBuffer<float4>& vel
 }
 
 // check that ref pos and vel are exactly L apart
-static void checkRef(const PinnedBuffer<float4>& pos,
-                     const PinnedBuffer<float4>& vel,
-                     float3 L)
+static void checkRef(const PinnedBuffer<real4>& pos,
+                     const PinnedBuffer<real4>& vel,
+                     real3 L)
 {
-    constexpr float eps = 1e-6f;
+    constexpr real eps = 1e-6f;
     for (size_t i = 0; i < pos.size(); ++i)
     {
-        auto r = make_float3(pos[i]);
-        auto v = make_float3(vel[i]);
+        auto r = make_real3(pos[i]);
+        auto v = make_real3(vel[i]);
         auto e = math::abs(r-v) - L;
 
         auto minErr = std::min(e.x, std::min(e.y, e.z));
@@ -52,9 +52,9 @@ static void checkRef(const PinnedBuffer<float4>& pos,
 
 struct Comp // for sorting particles
 {
-    bool inline operator()(float4 a_, float4 b_) const
+    bool inline operator()(real4 a_, real4 b_) const
     {
-        Float3_int a(a_), b(b_);
+        Real3_int a(a_), b(b_);
         return
             (a.i < b.i) ||
             (a.i == b.i && a.v.x  < b.v.x) ||
@@ -63,11 +63,11 @@ struct Comp // for sorting particles
     } 
 };
 
-static void checkHalo(const PinnedBuffer<float4>& lpos,
-                      const PinnedBuffer<float4>& hpos,
-                      float3 L, float rc)
+static void checkHalo(const PinnedBuffer<real4>& lpos,
+                      const PinnedBuffer<real4>& hpos,
+                      real3 L, real rc)
 {
-    std::vector<float4> hposSorted(hpos.begin(), hpos.end());
+    std::vector<real4> hposSorted(hpos.begin(), hpos.end());
     std::sort(hposSorted.begin(), hposSorted.end(), Comp());
 
     for (size_t i = 0; i < lpos.size(); ++i)
@@ -84,20 +84,20 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
         {
             if (ix == 0 && iy == 0 && iz == 0) continue;
 
-            float4 r = {r0.x - ix * L.x,
+            real4 r = {r0.x - ix * L.x,
                         r0.y - iy * L.y,
                         r0.z - iz * L.z,
                         r0.w};
 
-            auto less = [](float4 a_, float4 b_)
+            auto less = [](real4 a_, real4 b_)
             {
-                Float3_int a(a_), b(b_);
+                Real3_int a(a_), b(b_);
                 return a.i < b.i;
             };
 
-            auto lessEq = [](float4 a_, float4 b_)
+            auto lessEq = [](real4 a_, real4 b_)
             {
-                Float3_int a(a_), b(b_);
+                Real3_int a(a_), b(b_);
                 return a.i <= b.i;
             };
 
@@ -105,14 +105,14 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
                                        hposSorted.end(),
                                        r, less);
 
-            float err = 1e9f;
+            real err = 1e9f;
             
             while (lb != hposSorted.end() && lessEq(*lb, r))
             {
-                float errx = math::abs(lb->x - r.x);
-                float erry = math::abs(lb->y - r.y);
-                float errz = math::abs(lb->z - r.z);
-                float curr = std::min(errx, std::min(erry, errz));
+                real errx = math::abs(lb->x - r.x);
+                real erry = math::abs(lb->y - r.y);
+                real errz = math::abs(lb->z - r.z);
+                real curr = std::min(errx, std::min(erry, errz));
                 err = std::min(err, curr);
                 ++lb;
             };
@@ -124,10 +124,10 @@ static void checkHalo(const PinnedBuffer<float4>& lpos,
 
 TEST (PACKERS_EXCHANGE, particles)
 {
-    float dt = 0.f;
-    float rc = 1.f;
-    float L  = 48.f;
-    float density = 8.f;
+    real dt = 0.f;
+    real rc = 1.f;
+    real L  = 48.f;
+    real density = 8.f;
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
@@ -178,10 +178,10 @@ template <class ForceCont>
 static void clearForces(ForceCont& forces)
 {
     for (auto& f : forces)
-        f.f = make_float3(0.f);
+        f.f = make_real3(0.f);
 }
 
-inline bool isInside(float3 r, float3 L)
+inline bool isInside(real3 r, real3 L)
 {
     return
         (r.x >= - 0.5f * L.x && r.x < 0.5f * L.x) &&
@@ -189,7 +189,7 @@ inline bool isInside(float3 r, float3 L)
         (r.z >= - 0.5f * L.z && r.z < 0.5f * L.z);
 }
 
-inline Force getField(float3 r)
+inline Force getField(real3 r)
 {
     Force f;
     f.f = length(r) * r;
@@ -197,30 +197,30 @@ inline Force getField(float3 r)
 }
 
 template <class ForceCont>
-static void applyFieldLocal(const PinnedBuffer<float4>& pos,
-                            ForceCont& force, float3 L)
+static void applyFieldLocal(const PinnedBuffer<real4>& pos,
+                            ForceCont& force, real3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
-        auto r = make_float3(pos[i]);
+        auto r = make_real3(pos[i]);
         if (isInside(r, L))
             force[i] += getField(r);
     }
 }
 
 template <class ForceCont>
-static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
-                               ForceCont& forces, float3 L)
+static void applyFieldPeriodic(const PinnedBuffer<real4>& pos,
+                               ForceCont& forces, real3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
-        const auto r0 = make_float3(pos[i]);
+        const auto r0 = make_real3(pos[i]);
 
         for (int ix = -1; ix < 2; ++ix)
         for (int iy = -1; iy < 2; ++iy)
         for (int iz = -1; iz < 2; ++iz)
         {
-            float3 r {r0.x + ix * L.x,
+            real3 r {r0.x + ix * L.x,
                       r0.y + iy * L.y,
                       r0.z + iz * L.z};
         
@@ -231,32 +231,32 @@ static void applyFieldPeriodic(const PinnedBuffer<float4>& pos,
 }
 
 template <class ForceCont>
-static void applyFieldUnbounded(const PinnedBuffer<float4>& pos,
+static void applyFieldUnbounded(const PinnedBuffer<real4>& pos,
                                ForceCont& forces)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
-        const auto r = make_float3(pos[i]);
+        const auto r = make_real3(pos[i]);
         forces[i] += getField(r);
     }
 }
 
 
-inline float linf(float3 a, float3 b)
+inline real linf(real3 a, real3 b)
 {
     auto d = math::abs(a-b);
     return std::min(d.x, std::min(d.y, d.z));
 }
 
-static void checkForces(const PinnedBuffer<float4>& pos,
+static void checkForces(const PinnedBuffer<real4>& pos,
                         const PinnedBuffer<Force>& forces,
-                        float3 L)
+                        real3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
-        const auto r0 = make_float3(pos[i]);
+        const auto r0 = make_real3(pos[i]);
         const auto f0 = forces[i].f;
-        float err = 1e9f;
+        real err = 1e9f;
 
         for (int ix = -1; ix < 2; ++ix)
         for (int iy = -1; iy < 2; ++iy)
@@ -264,7 +264,7 @@ static void checkForces(const PinnedBuffer<float4>& pos,
         {
             if (ix == 0 && iy == 0 && iz == 0) continue;
 
-            float3 r {r0.x + ix * L.x,
+            real3 r {r0.x + ix * L.x,
                       r0.y + iy * L.y,
                       r0.z + iz * L.z};
             auto f = getField(r).f;
@@ -294,9 +294,9 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
 
 TEST (PACKERS_EXCHANGE, objects_exchange)
 {
-    float dt = 0.f;
-    float rc = 1.f;
-    float L  = 48.f;
+    real dt = 0.f;
+    real rc = 1.f;
+    real L  = 48.f;
     int nObjs = 1024;
     int objSize = 555;
 
@@ -343,9 +343,9 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
 
 TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 {
-    float dt = 0.f;
-    float rc = 1.f;
-    float L  = 48.f;
+    real dt = 0.f;
+    real rc = 1.f;
+    real L  = 48.f;
     int nObjs = 1024;
     int objSize = 555;
 
@@ -406,9 +406,9 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 
 TEST (PACKERS_EXCHANGE, objects_extra_exchange)
 {
-    float dt = 0.f;
-    float rc = 1.f;
-    float L  = 48.f;
+    real dt = 0.f;
+    real rc = 1.f;
+    real L  = 48.f;
     int nObjs = 1024;
     int objSize = 555;
 
@@ -421,18 +421,18 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     auto lrev = rev->local();
     auto hrev = rev->halo();
 
-    const std::string extraChannelName = "single_float_field";
+    const std::string extraChannelName = "single_real_field";
     
-    rev->requireDataPerParticle<float>(extraChannelName,
+    rev->requireDataPerParticle<real>(extraChannelName,
                                        DataManager::PersistenceMode::None,
                                        DataManager::ShiftMode::None);
 
     auto& lpos = lrev->positions();
     auto& lforces = lrev->forces();
-    auto& lfield = *lrev->dataPerParticle.getData<float>(extraChannelName);
+    auto& lfield = *lrev->dataPerParticle.getData<real>(extraChannelName);
 
     auto& hforces = hrev->forces();
-    auto& hfield = *hrev->dataPerParticle.getData<float>(extraChannelName);
+    auto& hfield = *hrev->dataPerParticle.getData<real>(extraChannelName);
 
     auto fieldTransform = [](Force f){return length(f.f);};
     

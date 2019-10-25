@@ -14,23 +14,23 @@ Logger logger;
 #define SEP "\t"
 #define EXPAND(v) v.x, v.y, v.z
 
-using real  = double;
-using real2 = double2;
-using real3 = double3;
-using real4 = double4;
+using Real  = double;
+using Real2 = double2;
+using Real3 = double3;
+using Real4 = double4;
 
-static real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
-static real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+static Real2 make_Real2(real2 v) { return {(Real) v.x, (Real) v.y}; }
+static Real3 make_Real3(real3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
 
-using CenterLineFunc = std::function<real3(real)>;
+using CenterLineFunc = std::function<Real3(Real)>;
 
-static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFunc centerLine)
+static void initialFlagellum(int n, std::vector<Real3>& positions, CenterLineFunc centerLine)
 {
     positions.resize(5 * n + 1);
-    real h = 1.0 / n;
+    Real h = 1.0 / n;
 
     for (int i = 0; i < n; ++i) {
-        real3 r = centerLine(i*h);
+        Real3 r = centerLine(i*h);
 
         positions[i * 5 + 0] = r;
         positions[i * 5 + 1] = r;
@@ -42,21 +42,21 @@ static void initialFlagellum(int n, std::vector<real3>& positions, CenterLineFun
     positions[5*n] = centerLine(1.f);
 }
 
-static void getTransformation(real3 t0, real3 t1, real4& Q)
+static void getTransformation(Real3 t0, Real3 t1, Real4& Q)
 {
     Q = Quaternion::getFromVectorPair(t0, t1);
     auto t0t1 = cross(t0, t1);
     if (length(t0t1) > 1e-6)
         t0t1 = normalize(t0t1);
 
-    real err_t0_t1   = length(t1 - Quaternion::rotate(t0, Q));
-    real err_t01_t01 = length(t0t1 - Quaternion::rotate(t0t1, Q));
+    Real err_t0_t1   = length(t1 - Quaternion::rotate(t0, Q));
+    Real err_t01_t01 = length(t0t1 - Quaternion::rotate(t0t1, Q));
 
     ASSERT_LE(err_t01_t01, 1e-6f);
     ASSERT_LE(err_t0_t1, 1e-6);
 }
 
-static void initialFrame(real3 t0, real3& u, real3& v)
+static void initialFrame(Real3 t0, Real3& u, Real3& v)
 {
     t0 = normalize(t0);
     u = anyOrthogonal(t0);
@@ -64,7 +64,7 @@ static void initialFrame(real3 t0, real3& u, real3& v)
     v = normalize(cross(t0, u));
 }
 
-static void transportBishopFrame(const std::vector<real3>& positions, std::vector<real3>& frames)
+static void transportBishopFrame(const std::vector<Real3>& positions, std::vector<Real3>& frames)
 {
     int n = (positions.size() - 1) / 5;
     
@@ -77,7 +77,7 @@ static void transportBishopFrame(const std::vector<real3>& positions, std::vecto
         auto t0 = normalize(r1-r0);
         auto t1 = normalize(r2-r1);
 
-        real4 Q;
+        Real4 Q;
         getTransformation(t0, t1, Q);
         auto u0 = frames[2*(i-1) + 0];
         auto u1 = Quaternion::rotate(u0, Q);
@@ -87,11 +87,11 @@ static void transportBishopFrame(const std::vector<real3>& positions, std::vecto
     }
 }
 
-static real bendingEnergy(const std::vector<real3>& positions, const float2 B[2], float2 omega_eq)
+static Real bendingEnergy(const std::vector<Real3>& positions, const real2 B[2], real2 omega_eq)
 {
     int n = (positions.size() - 1) / 5;
 
-    real Etot = 0;
+    Real Etot = 0;
     
     for (int i = 1; i < n; ++i)
     {
@@ -111,38 +111,38 @@ static real bendingEnergy(const std::vector<real3>& positions, const float2 B[2]
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
         
-        real denom = length(e0) * length(e1) + dot(e0, e1);
+        Real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
         
-        real dp0Perpinv = 1.0 / length(dp0Perp);
-        real dp1Perpinv = 1.0 / length(dp1Perp);
+        Real dp0Perpinv = 1.0 / length(dp0Perp);
+        Real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        real l = 0.5 * (length(e0) + length(e1));
-        real linv = 1.0 / l;
+        Real l = 0.5 * (length(e0) + length(e1));
+        Real linv = 1.0 / l;
         
-        real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
+        Real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
                      - linv * dp0Perpinv * dot(bicur, dp0)};
-        real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
+        Real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
                      - linv * dp1Perpinv * dot(bicur, dp1)};
         
         
-        om0 -= make_real2(omega_eq);
-        om1 -= make_real2(omega_eq);
+        om0 -= make_Real2(omega_eq);
+        om1 -= make_Real2(omega_eq);
 
-        real2 Bom0 {dot(om0, make_real2(B[0])),
-                    dot(om0, make_real2(B[1]))};
+        Real2 Bom0 {dot(om0, make_Real2(B[0])),
+                    dot(om0, make_Real2(B[1]))};
         
-        real2 Bom1 {dot(om1, make_real2(B[0])),
-                    dot(om1, make_real2(B[1]))};
+        Real2 Bom1 {dot(om1, make_Real2(B[0])),
+                    dot(om1, make_Real2(B[1]))};
 
-        real E = 0.25 * l * (dot(Bom0, om0) + dot(Bom1, om1));
+        Real E = 0.25 * l * (dot(Bom0, om0) + dot(Bom1, om1));
         Etot += E;
     }
 
     return Etot;
 }
 
-inline real safeDiffTheta(real t0, real t1)
+inline Real safeDiffTheta(Real t0, Real t1)
 {
     auto dth = t1 - t0;
     if (dth >  M_PI) dth -= 2.0 * M_PI;
@@ -150,11 +150,11 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static real twistEnergy(const std::vector<real3>& positions, real kTwist, real tau0)
+static Real twistEnergy(const std::vector<Real3>& positions, Real kTwist, Real tau0)
 {
     int n = (positions.size() - 1) / 5;
 
-    real Etot = 0;
+    Real Etot = 0;
     
     for (int i = 1; i < n; ++i)
     {
@@ -194,13 +194,13 @@ static real twistEnergy(const std::vector<real3>& positions, real kTwist, real t
     return Etot;
 }
 
-static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing)
+static Real smoothingEnergy(const std::vector<Real3>& positions, Real kSmoothing)
 {
     int n = (positions.size() - 1) / 5;
     int nBisegments = n - 1;
     
-    std::vector<real>  taus  (nBisegments);
-    std::vector<real2> omegas(nBisegments);
+    std::vector<Real>  taus  (nBisegments);
+    std::vector<Real2> omegas(nBisegments);
 
     for (int i = 1; i < n; ++i)
     {
@@ -220,11 +220,11 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
         
-        real denom = length(e0) * length(e1) + dot(e0, e1);
+        Real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
         
-        real dp0Perpinv = 1.0 / length(dp0Perp);
-        real dp1Perpinv = 1.0 / length(dp1Perp);
+        Real dp0Perpinv = 1.0 / length(dp0Perp);
+        Real dp1Perpinv = 1.0 / length(dp1Perp);
 
         auto  Q = Quaternion::getFromVectorPair(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
@@ -236,12 +236,12 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
         auto theta1 = atan2(dot(dp1, v1), dot(dp1, u1));
         
-        real l = 0.5 * (length(e0) + length(e1));
-        real linv = 1.0 / l;
+        Real l = 0.5 * (length(e0) + length(e1));
+        Real linv = 1.0 / l;
         
-        real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
+        Real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
                      - linv * dp0Perpinv * dot(bicur, dp0)};
-        real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
+        Real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
                      - linv * dp1Perpinv * dot(bicur, dp1)};
 
         auto tau = safeDiffTheta(theta0, theta1) / l;
@@ -250,7 +250,7 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
         taus  [i-1] = tau;
     }
     
-    real Etot = 0;
+    Real Etot = 0;
     
     for (int i = 1; i < n-1; ++i)
     {
@@ -274,14 +274,14 @@ static real smoothingEnergy(const std::vector<real3>& positions, real kSmoothing
 }
 
 template <typename EnergyComp>
-inline void computeForces(const std::vector<real3>& positions, std::vector<real3>& forces, real h,
+inline void computeForces(const std::vector<Real3>& positions, std::vector<Real3>& forces, Real h,
                           EnergyComp computeEnergy)
 {
     auto perturbed = positions;
     
     for (size_t i = 0; i < positions.size(); ++i)
     {
-        auto computeForce = [&](real3 dir) {
+        auto computeForce = [&](Real3 dir) {
             const auto r = positions[i];
             perturbed[i] = r + (h/2) * dir;
             auto Ep = computeEnergy(perturbed);
@@ -297,9 +297,9 @@ inline void computeForces(const std::vector<real3>& positions, std::vector<real3
     }
 }
 
-static void bendingForces(real h, const float2 B[2], float2 omega_eq,
-                          const std::vector<real3>& positions,
-                          std::vector<real3>& forces)
+static void bendingForces(Real h, const real2 B[2], real2 omega_eq,
+                          const std::vector<Real3>& positions,
+                          std::vector<Real3>& forces)
 {
     return computeForces(positions, forces, h, [&](const auto& positions)
     {
@@ -307,9 +307,9 @@ static void bendingForces(real h, const float2 B[2], float2 omega_eq,
     });
 }
 
-static void twistForces(real h, float kt, float tau0,
-                        const std::vector<real3>& positions,
-                        std::vector<real3>& forces)
+static void twistForces(Real h, real kt, real tau0,
+                        const std::vector<Real3>& positions,
+                        std::vector<Real3>& forces)
 {
     return computeForces(positions, forces, h, [&](const auto& positions)
     {
@@ -317,9 +317,9 @@ static void twistForces(real h, float kt, float tau0,
     });
 }
 
-inline void smoothingForces(real h, float kbi,
-                            const std::vector<real3>& positions,
-                            std::vector<real3>& forces)
+inline void smoothingForces(Real h, real kbi,
+                            const std::vector<Real3>& positions,
+                            std::vector<Real3>& forces)
 {
     return computeForces(positions, forces, h, [&](const auto& positions)
     {
@@ -327,7 +327,7 @@ inline void smoothingForces(real h, float kbi,
     });
 }
 
-static void setCrosses(const std::vector<real3>& frames, std::vector<real3>& positions)
+static void setCrosses(const std::vector<Real3>& frames, std::vector<Real3>& positions)
 {
     int n = (positions.size() - 1) / 5;
     for (int i = 0; i < n; ++i)
@@ -337,7 +337,7 @@ static void setCrosses(const std::vector<real3>& frames, std::vector<real3>& pos
         auto r0 = positions[5*i+0];
         auto r1 = positions[5*i+5];
         auto dr = 0.5f * (r1 - r0);
-        real a = length(dr);
+        Real a = length(dr);
         auto c = 0.5f * (r0 + r1);
 
         positions[i*5+1] = c - a * u;
@@ -348,7 +348,7 @@ static void setCrosses(const std::vector<real3>& frames, std::vector<real3>& pos
 }
 
 template <class CenterLine>
-static void initializeRef(CenterLine centerLine, int nSegments, std::vector<real3>& positions, std::vector<real3>& frames)
+static void initializeRef(CenterLine centerLine, int nSegments, std::vector<Real3>& positions, std::vector<Real3>& frames)
 {
     initialFlagellum(nSegments, positions, centerLine);
 
@@ -360,7 +360,7 @@ static void initializeRef(CenterLine centerLine, int nSegments, std::vector<real
     setCrosses(frames, positions);
 }
 
-static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
+static void copyToRv(const std::vector<Real3>& positions, RodVector& rod)
 {
     auto& pos = rod.local()->positions ();
     auto& vel = rod.local()->velocities();
@@ -368,17 +368,17 @@ static void copyToRv(const std::vector<real3>& positions, RodVector& rod)
     for (size_t i = 0; i < positions.size(); ++i)
     {
         Particle p;
-        p.r = make_float3(positions[i]);
-        p.u = make_float3(0);
+        p.r = make_real3(positions[i]);
+        p.u = make_real3(0);
         p.setId(i);
-        pos[i] = p.r2Float4();
-        vel[i] = p.u2Float4();
+        pos[i] = p.r2Real4();
+        vel[i] = p.u2Real4();
     }
     pos.uploadToDevice(defaultStream);
     vel.uploadToDevice(defaultStream);    
 }
 
-static void checkMomentum(const PinnedBuffer<float4>& pos, const HostBuffer<Force>& forces)
+static void checkMomentum(const PinnedBuffer<real4>& pos, const HostBuffer<Force>& forces)
 {
     double3 totForce  {0., 0., 0.};
     double3 totTorque {0., 0., 0.};
@@ -403,7 +403,7 @@ static void checkMomentum(const PinnedBuffer<float4>& pos, const HostBuffer<Forc
 }
 
 template <class CenterLine>
-static double testTwistForces(float kt, float tau0, CenterLine centerLine, int nSegments, real h)
+static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSegments, Real h)
 {
     MirState state(DomainInfo(), 0.f);
 
@@ -418,7 +418,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
     
-    std::vector<real3> refPositions, refFrames, refForces;
+    std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     RodInteraction interactions(&state, "rod_interaction", params, StatesParametersNone{}, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
@@ -439,9 +439,9 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
     double Linfty = 0;
     for (size_t i = 0; i < refForces.size(); ++i)
     {
-        real3 a = refForces[i];
-        real3 b = make_real3(forces[i].f);
-        real3 diff = a - b;
+        Real3 a = refForces[i];
+        Real3 b = make_Real3(forces[i].f);
+        Real3 diff = a - b;
         double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
@@ -462,7 +462,7 @@ static double testTwistForces(float kt, float tau0, CenterLine centerLine, int n
 }
 
 template <class CenterLine>
-static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, int nSegments, real h)
+static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int nSegments, Real h)
 {
     MirState state(DomainInfo(), 0.f);
 
@@ -477,7 +477,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
     
-    std::vector<real3> refPositions, refFrames, refForces;
+    std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     RodInteraction interactions(&state, "rod_interaction", params, StatesParametersNone{}, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
@@ -485,7 +485,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
 
 
     refForces.resize(refPositions.size());
-    const float2 B_[2] {{B.x, B.y}, {B.y, B.z}};
+    const real2 B_[2] {{B.x, B.y}, {B.y, B.z}};
     bendingForces(h, B_, kappa, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
@@ -499,9 +499,9 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
     double Linfty = 0;
     for (size_t i = 0; i < refForces.size(); ++i)
     {
-        real3 a = refForces[i];
-        real3 b = make_real3(forces[i].f);
-        real3 diff = a - b;
+        Real3 a = refForces[i];
+        Real3 b = make_Real3(forces[i].f);
+        Real3 diff = a - b;
         double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
         
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
@@ -521,7 +521,7 @@ static double testBendingForces(float3 B, float2 kappa, CenterLine centerLine, i
 }
 
 template <class CenterLine>
-static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int nSegments, real h)
+static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nSegments, Real h)
 {
     MirState state(DomainInfo(), 0.f);
 
@@ -539,7 +539,7 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
     StatesSmoothingParameters stateParams;
     stateParams.kSmoothing = kSmoothing;
     
-    std::vector<real3> refPositions, refFrames, refForces;
+    std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     RodInteraction interactions(&state, "rod_interaction", params, stateParams, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
@@ -560,9 +560,9 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
     double Linfty = 0;
     for (int i = 0; i < refForces.size(); ++i)
     {
-        real3 a = refForces[i];
-        real3 b = make_real3(forces[i].f);
-        real3 diff = a - b;
+        Real3 a = refForces[i];
+        Real3 b = make_Real3(forces[i].f);
+        Real3 diff = a - b;
         double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
 
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
@@ -585,10 +585,10 @@ static double testSmoothingForces(float kSmoothing, CenterLine centerLine, int n
 
 TEST (ROD, twistForces_straight)
 {
-    real height = 5.0;
-    real h = 1e-6;
+    Real height = 5.0;
+    Real h = 1e-6;
     
-    auto centerLine = [&](real s) -> real3 {
+    auto centerLine = [&](Real s) -> Real3 {
                           return {0.f, 0.f, s*height};
                       };
 
@@ -598,16 +598,16 @@ TEST (ROD, twistForces_straight)
 
 TEST (ROD, twistForces_helix)
 {
-    real pitch  = 1.0;
-    real radius = 0.5;
-    real height = 1.0;
-    real h = 1e-4;
+    Real pitch  = 1.0;
+    Real radius = 0.5;
+    Real height = 1.0;
+    Real h = 1e-4;
     
-    auto centerLine = [&](real s) -> real3 {
-                          real z = s * height;
-                          real theta = 2 * M_PI * z / pitch;
-                          real x = radius * cos(theta);
-                          real y = radius * sin(theta);
+    auto centerLine = [&](Real s) -> Real3 {
+                          Real z = s * height;
+                          Real theta = 2 * M_PI * z / pitch;
+                          Real x = radius * cos(theta);
+                          Real y = radius * sin(theta);
                           return {x, y, z};
                       };
 
@@ -618,10 +618,10 @@ TEST (ROD, twistForces_helix)
 
 TEST (ROD, bendingForces_straight)
 {
-    real height = 5.0;
-    real h = 1e-4;
+    Real height = 5.0;
+    Real h = 1e-4;
     
-    auto centerLine = [&](real s) -> real3 {
+    auto centerLine = [&](Real s) -> Real3 {
                           return {0.f, 0.f, s*height};
                       };
 
@@ -632,19 +632,19 @@ TEST (ROD, bendingForces_straight)
 
 TEST (ROD, bendingForces_circle)
 {
-    real radius = 4.0;
-    real h = 5e-5;
+    Real radius = 4.0;
+    Real h = 5e-5;
     
-    auto centerLine = [&](real s) -> real3 {
-                          real theta = s * 2 * M_PI;
-                          real x = radius * cos(theta);
-                          real y = radius * sin(theta);
+    auto centerLine = [&](Real s) -> Real3 {
+                          Real theta = s * 2 * M_PI;
+                          Real x = radius * cos(theta);
+                          Real y = radius * sin(theta);
                           return {x, y, 0.f};
                       };
 
 
-    float3 B {1.0f, 0.0f, 1.0f};
-    float2 kappa {0.f, 0.f};
+    real3 B {1.0f, 0.0f, 1.0f};
+    real2 kappa {0.f, 0.f};
 
     std::vector<int> nsegs = {8, 16, 32};
     for (auto n : nsegs)
@@ -657,21 +657,21 @@ TEST (ROD, bendingForces_circle)
 
 TEST (ROD, bendingForces_helix)
 {
-    real pitch  = 1.0;
-    real radius = 0.5;
-    real height = 1.0;
-    real h = 1e-3;
+    Real pitch  = 1.0;
+    Real radius = 0.5;
+    Real height = 1.0;
+    Real h = 1e-3;
     
-    auto centerLine = [&](real s) -> real3 {
-                          real z = s * height;
-                          real theta = 2 * M_PI * z / pitch;
-                          real x = radius * cos(theta);
-                          real y = radius * sin(theta);
+    auto centerLine = [&](Real s) -> Real3 {
+                          Real z = s * height;
+                          Real theta = 2 * M_PI * z / pitch;
+                          Real x = radius * cos(theta);
+                          Real y = radius * sin(theta);
                           return {x, y, z};
                       };
 
-    float3 B {1.0f, 0.0f, 1.0f};
-    float2 kappa {0.f, 0.f};
+    real3 B {1.0f, 0.0f, 1.0f};
+    real2 kappa {0.f, 0.f};
 
     std::vector<int> nsegs = {4, 8, 16};
     for (auto n : nsegs)
@@ -684,19 +684,19 @@ TEST (ROD, bendingForces_helix)
 // // expect zero forces everywhere
 // TEST (ROD, smoothingForces_circle)
 // {
-//     real radius = 4.0;
-//     real h = 5e-5;
+//     Real radius = 4.0;
+//     Real h = 5e-5;
     
-//     auto centerLine = [&](real s) -> real3
+//     auto centerLine = [&](Real s) -> Real3
 //     {
-//         real theta = s * 2 * M_PI;
-//         real x = radius * cos(theta);
-//         real y = radius * sin(theta);
+//         Real theta = s * 2 * M_PI;
+//         Real x = radius * cos(theta);
+//         Real y = radius * sin(theta);
 //         return {x, y, 0.f};
 //     };
 
 
-//     float kSmoothing = 1.0f;
+//     real kSmoothing = 1.0f;
 
 //     std::vector<int> nsegs = {8, 16, 32};
 //     for (auto n : nsegs)
@@ -709,20 +709,20 @@ TEST (ROD, bendingForces_helix)
 
 // TEST (ROD, smoothingForces_complex)
 // {
-//     real h = 5e-3;
+//     Real h = 5e-3;
     
-//     auto centerLine = [&](real s) -> real3
+//     auto centerLine = [&](Real s) -> Real3
 //     {
-//         real xmagn = 1.0;
-//         real ymagn = 2.0;
-//         real zmagn = 0.5;
-//         real x = xmagn * cos(s);
-//         real y = ymagn * s;
-//         real z = zmagn * s*s;
+//         Real xmagn = 1.0;
+//         Real ymagn = 2.0;
+//         Real zmagn = 0.5;
+//         Real x = xmagn * cos(s);
+//         Real y = ymagn * s;
+//         Real z = zmagn * s*s;
 //         return {x, y, z};
 //     };
 
-//     float kSmoothing = 1.0f;
+//     real kSmoothing = 1.0f;
 
 //     // std::vector<int> nsegs = {8, 16, 32};
 //     std::vector<int> nsegs = {256};

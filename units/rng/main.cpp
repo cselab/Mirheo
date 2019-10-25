@@ -27,19 +27,19 @@ static std::vector<float> generateSamples(Gen gen, float dt, long n)
     return samples;
 }
 
-using real = long double;
+using Real = long double;
 
 template<typename Gen>
-static real computeAutoCorrelation(Gen gen, float dt, long n)
+static Real computeAutoCorrelation(Gen gen, float dt, long n)
 {
     auto samples = generateSamples(gen, dt, n);
     
-    real sum = 0;
-    for (const auto& x : samples) sum += (real) x;
+    Real sum = 0;
+    for (const auto& x : samples) sum += (Real) x;
 
-    real mean = sum / n;
-    real covariance = 0;
-    real mean_sq = mean*mean;
+    Real mean = sum / n;
+    Real covariance = 0;
+    Real mean_sq = mean*mean;
 
     for (int i = 1; i < n; ++i)
         covariance += samples[i] * samples[i-1] - mean_sq;

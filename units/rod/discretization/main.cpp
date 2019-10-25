@@ -11,39 +11,39 @@
 
 Logger logger;
 
-using real  = double;
-using real2 = double2;
-using real3 = double3;
-using real4 = double4;
+using Real  = double;
+using Real2 = double2;
+using Real3 = double3;
+using Real4 = double4;
 
-inline real2 make_real2(float2 v) { return {(real) v.x, (real) v.y}; }
-inline real3 make_real3(float3 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
-inline real3 make_real3(float4 v) { return {(real) v.x, (real) v.y, (real) v.z}; }
+inline Real2 make_Real2(float2 v) { return {(Real) v.x, (Real) v.y}; }
+inline Real3 make_Real3(float3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
+inline Real3 make_Real3(float4 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
 
-using CenterLineFunc = std::function<real3(real)>;
-using CurvatureFunc  = std::function<real(real)>;
-using TorsionFunc    = std::function<real(real)>;
+using CenterLineFunc = std::function<Real3(Real)>;
+using CurvatureFunc  = std::function<Real(Real)>;
+using TorsionFunc    = std::function<Real(Real)>;
 
 constexpr float a = 0.05f;
 constexpr float dt = 0.f;
 
-static std::vector<real> computeCurvatures(const float4 *positions, int nSegments)
+static std::vector<Real> computeCurvatures(const float4 *positions, int nSegments)
 {
-    std::vector<real> curvatures;
+    std::vector<Real> curvatures;
     curvatures.reserve(nSegments-1);
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        auto r0  = make_real3(positions[5*(i+0)]);
-        auto r1  = make_real3(positions[5*(i+1)]);
-        auto r2  = make_real3(positions[5*(i+2)]);
+        auto r0  = make_Real3(positions[5*(i+0)]);
+        auto r1  = make_Real3(positions[5*(i+1)]);
+        auto r2  = make_Real3(positions[5*(i+2)]);
 
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
 
-        real le0 = length(e0);
-        real le1 = length(e1);
-        real l = 0.5 * (le0 + le1);
+        Real le0 = length(e0);
+        Real le1 = length(e1);
+        Real l = 0.5 * (le0 + le1);
         auto bicurFactor = 1.0 / (le0 * le1 + dot(e0, e1));
         auto bicur = (2.0 * bicurFactor) * cross(e0, e1);
         auto kappa = (1/l) * bicur;
@@ -53,7 +53,7 @@ static std::vector<real> computeCurvatures(const float4 *positions, int nSegment
     return curvatures;
 }
 
-inline real safeDiffTheta(real t0, real t1)
+inline Real safeDiffTheta(Real t0, Real t1)
 {
     auto dth = t1 - t0;
     if (dth >  M_PI) dth -= 2.0 * M_PI;
@@ -61,21 +61,21 @@ inline real safeDiffTheta(real t0, real t1)
     return dth;
 }
 
-static std::vector<real> computeTorsions(const float4 *positions, int nSegments)
+static std::vector<Real> computeTorsions(const float4 *positions, int nSegments)
 {
-    std::vector<real> torsions;
+    std::vector<Real> torsions;
     torsions.reserve(nSegments-1);
 
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        auto r0  = make_real3(positions[5*(i+0)]);
-        auto r1  = make_real3(positions[5*(i+1)]);
-        auto r2  = make_real3(positions[5*(i+2)]);
+        auto r0  = make_Real3(positions[5*(i+0)]);
+        auto r1  = make_Real3(positions[5*(i+1)]);
+        auto r2  = make_Real3(positions[5*(i+2)]);
 
-        auto pm0 = make_real3(positions[5*i + 1]);
-        auto pp0 = make_real3(positions[5*i + 2]);
-        auto pm1 = make_real3(positions[5*i + 6]);
-        auto pp1 = make_real3(positions[5*i + 7]);
+        auto pm0 = make_Real3(positions[5*i + 1]);
+        auto pp0 = make_Real3(positions[5*i + 2]);
+        auto pm1 = make_Real3(positions[5*i + 6]);
+        auto pp1 = make_Real3(positions[5*i + 7]);
 
         auto e0 = r1 - r0;
         auto e1 = r2 - r1;
@@ -83,30 +83,30 @@ static std::vector<real> computeTorsions(const float4 *positions, int nSegments)
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
         
-        real4  Q = Quaternion::getFromVectorPair(t0, t1);
-        real3 u0 = normalize(anyOrthogonal(t0));
-        real3 u1 = normalize(Quaternion::rotate(u0, Q));
+        Real4  Q = Quaternion::getFromVectorPair(t0, t1);
+        Real3 u0 = normalize(anyOrthogonal(t0));
+        Real3 u1 = normalize(Quaternion::rotate(u0, Q));
 
         auto dp0 = pp0 - pm0;
         auto dp1 = pp1 - pm1;
 
-        real le0 = length(e0);
-        real le1 = length(e1);
+        Real le0 = length(e0);
+        Real le1 = length(e1);
         auto linv = 2.0 / (le0 + le1);
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
 
-        real dpu0 = dot(dp0, u0);
-        real dpv0 = dot(dp0, v0);
+        Real dpu0 = dot(dp0, u0);
+        Real dpv0 = dot(dp0, v0);
 
-        real dpu1 = dot(dp1, u1);
-        real dpv1 = dot(dp1, v1);
+        Real dpu1 = dot(dp1, u1);
+        Real dpv1 = dot(dp1, v1);
 
-        real theta0 = atan2(dpv0, dpu0);
-        real theta1 = atan2(dpv1, dpu1);
+        Real theta0 = atan2(dpv0, dpu0);
+        Real theta1 = atan2(dpv1, dpu1);
     
-        real tau = safeDiffTheta(theta0, theta1) * linv;
+        Real tau = safeDiffTheta(theta0, theta1) * linv;
         
         torsions.push_back(tau);
     }
@@ -114,7 +114,7 @@ static std::vector<real> computeTorsions(const float4 *positions, int nSegments)
 }
 
 
-static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int nSegments, CurvatureFunc ref)
+static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int nSegments, CurvatureFunc ref)
 {
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
@@ -145,12 +145,12 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     
     auto curvatures = computeCurvatures(pos.data(), nSegments);
 
-    real h = 1.0 / nSegments;
-    real err = 0;
+    Real h = 1.0 / nSegments;
+    Real err = 0;
     
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real s = (i+1) * h;
+        Real s = (i+1) * h;
         auto curvRef = ref(s);
         auto curvSim = curvatures[i];
         auto dcurv = curvSim - curvRef;
@@ -161,7 +161,7 @@ static real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     return math::sqrt(err / nSegments);
 }
 
-static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
+static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
 {
     RodIC::MappingFunc3D mirCenterLine = [&](float s)
     {
@@ -192,12 +192,12 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     
     auto torsions = computeTorsions(pos.data(), nSegments);
 
-    real h = 1.0 / nSegments;
-    real err = 0;
+    Real h = 1.0 / nSegments;
+    Real err = 0;
     
     for (int i = 0; i < nSegments - 1; ++i)
     {
-        real s = (i+1) * h;
+        Real s = (i+1) * h;
         auto tauRef = torsion(s);
         auto tauSim = torsions[i];
         auto dtau = tauSim - tauRef;
@@ -211,14 +211,14 @@ static real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
 
 TEST (ROD, curvature_straight)
 {
-    real L = 5.0;
+    Real L = 5.0;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto analyticCurv = [&](__UNUSED real s) -> real
+    auto analyticCurv = [&](__UNUSED Real s) -> Real
     {
         return 0.;
     };
@@ -234,34 +234,34 @@ TEST (ROD, curvature_straight)
 
 TEST (ROD, curvature_circle)
 {
-    real radius = 1.2;
+    Real radius = 1.2;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
-        real coss = cos(2*M_PI*s);
-        real sins = sin(2*M_PI*s);
+        Real coss = cos(2*M_PI*s);
+        Real sins = sin(2*M_PI*s);
         return {radius * coss, radius * sins, 0.};
     };
 
-    auto analyticCurv = [&](__UNUSED real s) -> real
+    auto analyticCurv = [&](__UNUSED Real s) -> Real
     {
         return 1 / radius;
     };
 
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
-    std::vector<real> errors;
+    std::vector<Real> errors;
     for (auto n : nsegs)
         errors.push_back( checkCurvature(MPI_COMM_WORLD, centerLine, n, analyticCurv) );
 
     // check convergence rate
-    const real rateTh = 2;
+    const Real rateTh = 2;
 
     for (int i = 0; i < static_cast<int>(nsegs.size()) - 1; ++i)
     {
-        real e0 = errors[i], e1 = errors[i+1];
+        Real e0 = errors[i], e1 = errors[i+1];
         int  n0 =  nsegs[i], n1 =  nsegs[i+1];
 
-        real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
+        Real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
 
         ASSERT_LE(math::abs(rate-rateTh), 1e-1);
     }
@@ -269,34 +269,34 @@ TEST (ROD, curvature_circle)
 
 TEST (ROD, curvature_helix)
 {
-    real a = 1.2;
-    real b = 2.32;
+    Real a = 1.2;
+    Real b = 2.32;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
-        real t = 2 * M_PI * s;
+        Real t = 2 * M_PI * s;
         return {a * cos(t), a * sin(t), b * t};
     };
 
-    auto analyticCurv = [&](__UNUSED real s) -> real
+    auto analyticCurv = [&](__UNUSED Real s) -> Real
     {
         return math::abs(a) / (a*a + b*b);
     };
 
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
-    std::vector<real> errors;
+    std::vector<Real> errors;
     for (auto n : nsegs)
         errors.push_back( checkCurvature(MPI_COMM_WORLD, centerLine, n, analyticCurv) );
 
     // check convergence rate
-    const real rateTh = 2;
+    const Real rateTh = 2;
 
     for (int i = 0; i < static_cast<int>(nsegs.size()) - 1; ++i)
     {
-        real e0 = errors[i], e1 = errors[i+1];
+        Real e0 = errors[i], e1 = errors[i+1];
         int  n0 =  nsegs[i], n1 =  nsegs[i+1];
 
-        real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
+        Real rate = (log(e0) - log(e1)) / (log(n1) - log(n0));
 
         ASSERT_LE(math::abs(rate-rateTh), 1e-1);
     }
@@ -305,15 +305,15 @@ TEST (ROD, curvature_helix)
 
 TEST (ROD, torsion_straight_const)
 {
-    real L = 5.0;
-    real tau = 0.5;
+    Real L = 5.0;
+    Real tau = 0.5;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [&](__UNUSED real s)
+    auto torsion = [&](__UNUSED Real s)
     {
         return tau;
     };
@@ -329,15 +329,15 @@ TEST (ROD, torsion_straight_const)
 
 TEST (ROD, torsion_straight_vary)
 {
-    real L = 5.0;
-    real tauA = 1.5;
+    Real L = 5.0;
+    Real tauA = 1.5;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
-    auto torsion = [&](real s)
+    auto torsion = [&](Real s)
     {
         return s * tauA;
     };
@@ -353,17 +353,17 @@ TEST (ROD, torsion_straight_vary)
 
 TEST (ROD, torsion_circle_vary)
 {
-    real radius = 1.2;
-    real tauA = 1.5;
+    Real radius = 1.2;
+    Real tauA = 1.5;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
-        real coss = cos(2*M_PI*s);
-        real sins = sin(2*M_PI*s);
+        Real coss = cos(2*M_PI*s);
+        Real sins = sin(2*M_PI*s);
         return {radius * coss, radius * sins, 0.};
     };
     
-    auto torsion = [&](real s)
+    auto torsion = [&](Real s)
     {
         return s * tauA;
     };
@@ -379,16 +379,16 @@ TEST (ROD, torsion_circle_vary)
 
 TEST (ROD, torsion_helix)
 {
-    real a = 1.2;
-    real b = 2.32;
+    Real a = 1.2;
+    Real b = 2.32;
     
-    auto centerLine = [&](real s) -> real3
+    auto centerLine = [&](Real s) -> Real3
     {
-        real t = 2 * M_PI * s;
+        Real t = 2 * M_PI * s;
         return {a * cos(t), a * sin(t), b * t};
     };
 
-    auto torsion = [&](__UNUSED real s)
+    auto torsion = [&](__UNUSED Real s)
     {
         return b / (a*a + b*b);
     };
