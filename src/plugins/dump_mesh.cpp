@@ -73,6 +73,10 @@ static MPI_Offset writeToMPI(const std::vector<T>& data, MPI_File f, MPI_Offset 
     return ntotal;
 }
 
+template<typename T> inline std::string getTypeStr();
+template<> inline std::string getTypeStr<float> () {return "float";}
+template<> inline std::string getTypeStr<double>() {return "double";}
+
 static void writePLY(
         MPI_Comm comm, std::string fname,
         int nvertices, int nverticesPerObject,
@@ -101,12 +105,14 @@ static void writePLY(
     if (rank == 0)
     {
         std::stringstream ss;
+        const std::string vertexTypeStr = getTypeStr<real>();
 
         ss <<  "ply\n";
         ss <<  "format binary_little_endian 1.0\n";
         ss <<  "element vertex " << totalVerts << "\n";
-        ss <<  "property float x\nproperty float y\nproperty float z\n";
-        //ss <<  "property float xnormal\nproperty float ynormal\nproperty float znormal\n";
+        ss <<  "property " << vertexTypeStr << " x\n";
+        ss <<  "property " << vertexTypeStr << " y\n";
+        ss <<  "property " << vertexTypeStr << " z\n";
         ss <<  "element face " << totalTriangles << "\n";
         ss <<  "property list int int vertex_index\n";
         ss <<  "end_header\n";
