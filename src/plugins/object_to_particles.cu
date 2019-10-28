@@ -19,7 +19,7 @@ __global__ void markObjects(OVview view, ObjectDeleterHandler deleter, real4 pla
 
     auto &com = view.comAndExtents[oid].com;
     real tmp = plane.x * com.x + plane.y * com.y + plane.z * com.z + plane.w;
-    if (tmp > 0.f)
+    if (tmp > 0._r)
         deleter.mark(oid);
 }
 

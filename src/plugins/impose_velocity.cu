@@ -32,7 +32,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     Particle p;
 
-    p.u = make_real3(0.f);
+    p.u = make_real3(0._r);
 
     if (gid < view.size) {
 
@@ -47,12 +47,12 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3
         }
         else
         {
-            p.u = make_real3(0.0f);
+            p.u = make_real3(0.0_r);
         }
     }
     
     real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
-    if (laneId() == 0 && dot(u, u) > 1e-8f)
+    if (laneId() == 0 && dot(u, u) > 1e-8_r)
     {
         atomicAdd(&totVel->x, (double)u.x);
         atomicAdd(&totVel->y, (double)u.y);

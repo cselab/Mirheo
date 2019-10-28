@@ -40,12 +40,12 @@ public:
         const real rij2 = dot(dr, dr);
 
         if (rij2 > rc2)
-            return make_real3(0.0f);
+            return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;
-        const real argwr = 1.0f - rij * invrc;
-        const real argwd = max(1.0f - rij * invrd, 0.f);
+        const real argwr = 1.0_r - rij * invrc;
+        const real argwd = max(1.0_r - rij * invrd, 0._r);
 
         const real wr = fastPower(argwr, power);
 
@@ -68,7 +68,7 @@ protected:
 
     real a, b, gamma, sigma, power, rd;
     real invrc, invrd;
-    real seed {0.f};
+    real seed {0._r};
 };
 
 class PairwiseMDPD : public PairwiseKernel, public PairwiseMDPDHandler

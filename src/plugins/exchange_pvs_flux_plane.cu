@@ -12,7 +12,7 @@ namespace ExchangePvsFluxPlaneKernels
 
 __device__ inline bool sidePlane(real4 plane, real3 r)
 {
-    return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0.f;
+    return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0._r;
 }
 
 __device__ inline bool hasCrossedPlane(DomainInfo domain, real3 pos, real3 oldPos, real4 plane)

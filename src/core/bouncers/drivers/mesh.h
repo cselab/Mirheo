@@ -63,20 +63,20 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
         return dot(dx-dv0, nt) + dot(xt-v0t, cross(dv1-dv0, v2t-v0t) + cross(v1t-v0t, dv2-dv0));
     };
 
-    const auto F0 = F(0.0f);
-    const auto F1 = F(1.0f);
+    const auto F0 = F(0.0_r);
+    const auto F1 = F(1.0_r);
 
     // assume that particles don t move more than this distance every time step
-    constexpr real tolDistance = 0.1;
+    constexpr real tolDistance = 0.1_r;
     
     if (math::abs(F0) > tolDistance && math::abs(F1) > tolDistance)
         return false;
     
-    if (F0 * F1 < 0.0f)
+    if (F0 * F1 < 0.0_r)
         return true;
 
     // XXX: This is not always correct
-    if (F_prime(0.0f) * F_prime(1.0f) >= 0.0f)
+    if (F_prime(0.0_r) * F_prime(1.0_r) >= 0.0_r)
         return false;
 
     return true;
@@ -106,7 +106,7 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
                                   TriangleTable triangleTable)
 {
     // About maximum distance a particle can cover in one step
-    constexpr real tol = 0.2f;
+    constexpr real tol = 0.2_r;
 
     // One THREAD per triangle
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -149,14 +149,14 @@ __global__ void findBouncesInMesh(OVviewWithNewOldVertices objView,
 
 __device__ static inline bool isInside(Triangle tr, real3 p)
 {
-    const real edgeTolerance = 1e-18f;
+    const real edgeTolerance = 1e-18_r;
 
     auto signedArea2 = [] (real3 a, real3 b, real3 c, real3 direction) {
         const auto n = cross(a-b, a-c);
         const auto sign = dot(n, direction);
 
         const auto S2 = dot(n, n);
-        return (sign >= 0.0f) ? S2 : -S2;
+        return (sign >= 0.0_r) ? S2 : -S2;
     };
 
     const real3 n = cross(tr.v1-tr.v0, tr.v2-tr.v0);
@@ -184,7 +184,7 @@ __device__ static inline void sort3(RootFinder::RootInfo v[3])
     if (v[1].x > v[2].x) swap(v[1], v[2]);
 }
 
-static constexpr real noCollision {-1.f};
+static constexpr real noCollision {-1._r};
 
 struct IntersectionInfo
 {
@@ -198,10 +198,10 @@ __device__ static inline IntersectionInfo
 intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
                              real3 xNew, real3 xOld)
 {
-    constexpr real tol        {2e-6f};
-    constexpr real leftLimit  {0.0f};
-    constexpr real rightLimit {1.0f};
-    constexpr real epsilon    {1e-5f};
+    constexpr real tol        {2e-6_r};
+    constexpr real leftLimit  {0.0_r};
+    constexpr real rightLimit {1.0_r};
+    constexpr real epsilon    {1e-5_r};
 
     IntersectionInfo info;
     
@@ -270,7 +270,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
 
     real left, right;
 
-    if (F(leftLimit) * F(rightLimit) < 0.0f)
+    if (F(leftLimit) * F(rightLimit) < 0.0_r)
     {
         // Three roots
         if (validRoot(roots[0]) && validRoot(roots[2]))
@@ -296,7 +296,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
             left  = leftLimit;
             right = rightLimit;
         }
-        else if (F(leftLimit) * F_prime(newtonRoot.x) > 0.0f)
+        else if (F(leftLimit) * F_prime(newtonRoot.x) > 0.0_r)
         {
             left  = leftLimit;
             right = newtonRoot.x - epsilon/math::abs(F_prime(newtonRoot.x));
@@ -369,7 +369,7 @@ real3 barycentric(Triangle tr, real3 p)
         const auto sign = dot(n, direction);
 
         const auto S = length(n);
-        return (sign >= 0.0f) ? S : -S;
+        return (sign >= 0.0_r) ? S : -S;
     };
 
     const auto n = cross(tr.v0-tr.v1, tr.v0-tr.v2);
@@ -392,7 +392,7 @@ void triangleForces(Triangle tr, real m,
                     real dt,
                     real3& f0, real3& f1, real3& f2)
 {
-    constexpr real tol = 1e-5f;
+    constexpr real tol = 1e-5_r;
     constexpr real oneThrird = 1.0 / 3.0;
 
     auto len2 = [] (real3 x) {
@@ -441,7 +441,7 @@ void triangleForces(Triangle tr, real m,
     const real3 v1 = v1_ort*n + Vc + u1;
     const real3 v2 = v2_ort*n + Vc + u2;
 
-    const real invdt = 1.0f / dt;
+    const real invdt = 1.0_r / dt;
     f0 = v0 * invdt;
     f1 = v1 * invdt;
     f2 = v2 * invdt;
@@ -456,7 +456,7 @@ __global__ void performBouncingTriangle(OVviewWithNewOldVertices objView,
                                         const real dt,
                                         const BounceKernel bounceKernel)
 {
-    constexpr real eps = 5e-5f;
+    constexpr real eps = 5e-5_r;
 
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= nCollisions) return;
@@ -482,7 +482,7 @@ __global__ void performBouncingTriangle(OVviewWithNewOldVertices objView,
 
     const real3 barycentricCoo = barycentric(info.triangle, info.point);
 
-    const real dt_1 = 1.0f / dt;
+    const real dt_1 = 1.0_r / dt;
     const Triangle trVel = { (tr.v0-trOld.v0)*dt_1, (tr.v1-trOld.v1)*dt_1, (tr.v2-trOld.v2)*dt_1 };
 
     // Position is based on INTERMEDIATE barycentric collision coordinates and FINAL triangle

@@ -36,10 +36,10 @@ __global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceH
     if (i >= nSamples) return;
     
     real3 r {Saru::uniform01(seed, i - 2, i + 4242),
-              Saru::uniform01(seed, i - 3, i + 4343),
-              Saru::uniform01(seed, i - 4, i + 4444)};
+             Saru::uniform01(seed, i - 3, i + 4343),
+             Saru::uniform01(seed, i - 4, i + 4444)};
 
-    r = domain.localSize * (r - 0.5f);
+    r = domain.localSize * (r - 0._r);
 
     int levelId = getLevelId(field, r, lb);
     
@@ -71,8 +71,8 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
 
 __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, const real *forces)
 {
-    const real h = 0.25f;
-    const real zeroTolerance = 1e-10f;
+    const real h = 0.25_r;
+    const real zeroTolerance = 1e-10_r;
     
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
@@ -137,7 +137,7 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     volumes   .resize(nLevelSets);
     densities .resize(nLevelSets);
-    densities .assign(nLevelSets, 0.0f);
+    densities .assign(nLevelSets, 0.0_r);
     
     computeVolumes(defaultStream, 1000000);
 
@@ -171,7 +171,7 @@ void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
-    real seed = 0.42424242f + rank * 17;
+    real seed = 0.42424242_r + rank * 17;
     auto domain = state->domain;    
     int nLevelSets = nInsides.size();
 

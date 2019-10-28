@@ -55,11 +55,11 @@ public:
     __D__ inline real3 operator()(real3 original, Particle p) const
     {
         real3 gr = domain.local2global(p.r);
-        real3 ef{0.0f,0.0f,0.0f};
+        real3 ef{0.0_r,0.0_r,0.0_r};
 
-        if (_dir == 0) ef.x = gr.y > 0.5f*domain.globalSize.y ? magnitude : -magnitude;
-        if (_dir == 1) ef.y = gr.z > 0.5f*domain.globalSize.z ? magnitude : -magnitude;
-        if (_dir == 2) ef.z = gr.x > 0.5f*domain.globalSize.x ? magnitude : -magnitude;
+        if (_dir == 0) ef.x = gr.y > 0.5_r * domain.globalSize.y ? magnitude : -magnitude;
+        if (_dir == 1) ef.y = gr.z > 0.5_r * domain.globalSize.z ? magnitude : -magnitude;
+        if (_dir == 2) ef.z = gr.x > 0.5_r * domain.globalSize.x ? magnitude : -magnitude;
 
         return ef + original;
     }

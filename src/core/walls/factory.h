@@ -76,18 +76,18 @@ createMovingCylinderWall(const MirState *state, const std::string& name, real2 c
     switch (dir)
     {
     case StationaryWall_Cylinder::Direction::x :
-        center3 = {0.0f, center.x, center.y};
-        omega3  = {omega,    0.0f,     0.0f};
+        center3 = {0.0_r, center.x, center.y};
+        omega3  = {omega,    0.0_r,    0.0_r};
         break;
 
     case StationaryWall_Cylinder::Direction::y :
-        center3 = {center.x, 0.0f, center.y};
-        omega3  = {0.0f,    omega,     0.0f};
+        center3 = {center.x, 0.0_r, center.y};
+        omega3  = {0.0_r,    omega,    0.0_r};
         break;
 
     case StationaryWall_Cylinder::Direction::z :
-        center3 = {center.x, center.y, 0.0f};
-        omega3  = {0.0f,    0.0f,     omega};
+        center3 = {center.x, center.y, 0.0_r};
+        omega3  = {0.0_r,    0.0_r,    omega};
         break;
     }
     VelocityField_Rotate rotate(omega3, center3);

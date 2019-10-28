@@ -14,7 +14,7 @@ __global__ void addForce(PVview view, real3 force)
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
-    view.forces[gid] += make_real4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0_r);
 }
 
 } // namespace AddForceKernels

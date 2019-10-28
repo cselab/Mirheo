@@ -10,7 +10,7 @@
 namespace MeshBelongingKernels
 {
 
-const real tolerance = 1e-6f;
+const real tolerance = 1e-6_r;
 
 /// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 __device__ static inline bool doesRayIntersectTriangle(
@@ -28,15 +28,15 @@ __device__ static inline bool doesRayIntersectTriangle(
     if (math::abs(a) < tolerance)
         return false;
 
-    f = 1.0f / a;
+    f = 1.0_r / a;
     s = rayOrigin - v0;
     u = f * (dot(s, h));
-    if (u < 0.0f || u > 1.0f)
+    if (u < 0.0_r || u > 1.0_r)
         return false;
 
     q = cross(s, edge1);
     v = f * dot(rayVector, q);
-    if (v < 0.0f || u + v > 1.0f)
+    if (v < 0.0_r || u + v > 1.0_r)
         return false;
 
     // At this stage we can compute t to find out where the intersection point is on the line.
@@ -114,8 +114,8 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const real4
 
     if (objId >= ovView.nObjects) return;
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - 0.5f);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + 0.5f);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].low  - 0.5_r);
+    const int3 cidHigh = cinfo.getCellIdAlongAxes(ovView.comAndExtents[objId].high + 0.5_r);
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;

@@ -1650,9 +1650,9 @@ static inline __HD__ double3 cross(double3 a, double3 b)
 template <class R3>
 static inline  __HD__ R3 anyOrthogonal(R3 v)
 {
-    const auto x = fabsf(v.x);
-    const auto y = fabsf(v.y);
-    const auto z = fabsf(v.z);
+    const auto x = math::abs(v.x);
+    const auto y = math::abs(v.y);
+    const auto z = math::abs(v.z);
 
     constexpr R3 xAxis {1.f, 0.f, 0.f};
     constexpr R3 yAxis {0.f, 1.f, 0.f};

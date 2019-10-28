@@ -22,7 +22,7 @@ static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
     p.gammaT = desc.read<real>("gammaT");
     p.kBT    = desc.read<real>("kBT");
 
-    p.fluctuationForces = (p.kBT > 1e-6);
+    p.fluctuationForces = (p.kBT > 1e-6_r);
     
     return p;
 }
@@ -136,7 +136,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
         if (desc.exists<real>("E0"))
             p.groundE.push_back(desc.read<real>("E0"));
         else
-            p.groundE.push_back(0.f);
+            p.groundE.push_back(0._r);
     }
     
     p.kBending  = desc.read<real3>("k_bending");

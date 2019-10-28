@@ -59,14 +59,14 @@ __global__ void initRandomPositions(int n, real3 *positions, long seed, real3 lo
         
     curand_init(seed, i, 0, &state);
         
-    r.x = localSize.x * (curand_uniform(&state) - 0.5f);
-    r.y = localSize.y * (curand_uniform(&state) - 0.5f);
-    r.z = localSize.z * (curand_uniform(&state) - 0.5f);
+    r.x = localSize.x * (curand_uniform(&state) - 0.5_r);
+    r.y = localSize.y * (curand_uniform(&state) - 0.5_r);
+    r.z = localSize.z * (curand_uniform(&state) - 0.5_r);
 
     positions[i] = r;
 }
 
-__global__ void countInside(int n, const real *sdf, int *nInside, real threshold = 0.f)
+__global__ void countInside(int n, const real *sdf, int *nInside, real threshold = 0._r)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     int myval = 0;
@@ -136,7 +136,7 @@ void WallHelpers::freezeParticlesInWalls(std::vector<SDF_basedWall*> walls, Part
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
-    const real safety = 1.f;
+    const real safety = 1._r;
 
     SAFE_KERNEL_LAUNCH(
         WallHelpersKernels::init_sdf,

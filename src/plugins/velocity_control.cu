@@ -24,12 +24,12 @@ inline __device__ bool is_inside(real3 r, real3 low, real3 high)
 
 __global__ void addForce(PVview view, DomainInfo domain, real3 low, real3 high, real3 force)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.size) return;
 
     auto r = Real3_int(view.readPosition(gid)).v;
     
-    real3 gr = domain.local2global(r);
+    const real3 gr = domain.local2global(r);
 
     if (is_inside(gr, low, high))
         view.forces[gid] += make_real4(force, 0.0_r);
@@ -37,23 +37,23 @@ __global__ void addForce(PVview view, DomainInfo domain, real3 low, real3 high, 
 
 __global__ void sumVelocity(PVview view, DomainInfo domain, real3 low, real3 high, real3 *totVel, int *nSamples)
 {
-    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     Particle p;
     
-    p.u = make_real3(0.0f);
+    p.u = make_real3(0.0_r);
 
     if (gid < view.size) {
 
         p = view.readParticle(gid);
-        real3 gr = domain.local2global(p.r);
+        const real3 gr = domain.local2global(p.r);
 
         if (is_inside(gr, low, high))
             atomicAggInc(nSamples);
         else
-            p.u = make_real3(0.0f);
+            p.u = make_real3(0.0_r);
     }
 
-    real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
+    const real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
     
     if (laneId() == 0 && dot(u, u) > 1e-8)
         atomicAdd(totVel, u);
@@ -139,7 +139,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
     MPI_Check( MPI_Allreduce(&nSamples_loc,        &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&accumulatedTotVel,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 
-    currentVel = nSamples_tot ? make_real3(totVel_tot / nSamples_tot) : make_real3(0.f, 0.f, 0.f);
+    currentVel = nSamples_tot ? make_real3(totVel_tot / nSamples_tot) : make_real3(0._r, 0._r, 0._r);
     force = pid.update(targetVel - currentVel);
     accumulatedTotVel = {0,0,0};
 }

@@ -9,7 +9,7 @@ class Cylinder
 public:
     Cylinder(real R, real L) :
         R(R),
-        halfL(0.5f * L)
+        halfL(0.5_r * L)
     {}
 
     __HD__ inline real inOutFunction(real3 coo) const
@@ -28,20 +28,20 @@ public:
 
     __HD__ inline real3 normal(real3 coo) const
     {
-        constexpr real eps   = 1e-6f;
-        constexpr real delta = 1e-3f;
+        constexpr real eps   = 1e-6_r;
+        constexpr real delta = 1e-3_r;
         
         const real rsq = sqr(coo.x) + sqr(coo.y);
-        const real rinv = rsq > eps ? math::rsqrt(rsq) : 0.f;
+        const real rinv = rsq > eps ? math::rsqrt(rsq) : 0._r;
 
         const real dr = math::sqrt(rsq) - R;
         const real dz = math::abs(coo.z) - halfL;
         
-        const real3 er {rinv * coo.x, rinv * coo.y, 0.f};
-        const real3 ez {0.f, 0.f, coo.z > 0 ? 1.f : -1.f};
+        const real3 er {rinv * coo.x, rinv * coo.y, 0._r};
+        const real3 ez {0._r, 0._r, coo.z > 0 ? 1._r : -1._r};
 
         
-        real3 n {0.f, 0.f, 0.f};
+        real3 n {0._r, 0._r, 0._r};
         if (math::abs(dr) < delta) n += er;
         if (math::abs(dz) < delta) n += ez;
         return n;
@@ -50,9 +50,9 @@ public:
 
     inline real3 inertiaTensor(real totalMass) const
     {
-        const real xx = totalMass * R * R * 0.25f;
+        const real xx = totalMass * R * R * 0.25_r;
         const real yy = xx;
-        const real zz = totalMass * halfL * halfL * 0.3333333f;
+        const real zz = totalMass * halfL * halfL * 0.3333333_r;
         
         return make_real3(yy + zz, xx + zz, xx + yy);
     }

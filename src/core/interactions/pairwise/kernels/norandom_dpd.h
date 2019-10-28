@@ -33,11 +33,11 @@ public:
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2) return make_real3(0.0f);
+        if (rij2 > rc2) return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;
-        const real argwr = 1.0f - rij * invrc;
+        const real argwr = 1.0_r - rij * invrc;
         const real wr = fastPower(argwr, power);
 
         const real3 dr_r = dr * invrij;

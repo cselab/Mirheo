@@ -62,7 +62,7 @@ public:
     template<CellListsProjection Projection = CellListsProjection::Clamp>
     __device__ __host__ inline int3 getCellIdAlongAxes(const real3 x) const
     {
-        const int3 v = make_int3( math::floor(invh * (x + 0.5f*localDomainSize)) );
+        const int3 v = make_int3( math::floor(invh * (x + 0.5_r * localDomainSize)) );
 
         if (Projection == CellListsProjection::Clamp)
             return math::min( ncells - 1, math::max(make_int3(0), v) );

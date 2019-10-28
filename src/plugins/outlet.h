@@ -32,7 +32,7 @@ protected:
     DeviceBuffer<int> nParticlesInside {1};
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<real> udistr {0.f, 1.f};
+    std::uniform_real_distribution<real> udistr {0._r, 1._r};
 };
 
 
@@ -78,7 +78,7 @@ protected:
     DeviceBuffer<int> nParticlesInside {1};
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<real> udistr {0.f, 1.f};
+    std::uniform_real_distribution<real> udistr {0._r, 1._r};
 };
 
 

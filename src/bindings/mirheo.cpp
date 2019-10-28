@@ -172,7 +172,7 @@ void exportMirheo(py::module& m)
                     pv: the :any:`ParticleVector` to be bounced
         )")
         .def("setWall",        &Mirheo::setWallBounce,
-             "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25f, R"(
+             "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25_r, R"(
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
                 The current implementation does not support :any:`ObjectVector`.
 

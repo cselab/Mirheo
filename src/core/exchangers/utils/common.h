@@ -12,13 +12,13 @@ namespace ExchangersCommon
 __device__ static inline int3 getDirection(real3 pos, real3 L)
 {
     int3 dir {0, 0, 0};
-    if (pos.x < -0.5f * L.x) dir.x = -1;
-    if (pos.y < -0.5f * L.y) dir.y = -1;
-    if (pos.z < -0.5f * L.z) dir.z = -1;
+    if (pos.x < -0.5_r * L.x) dir.x = -1;
+    if (pos.y < -0.5_r * L.y) dir.y = -1;
+    if (pos.z < -0.5_r * L.z) dir.z = -1;
 
-    if (pos.x >= 0.5f * L.x) dir.x = 1;
-    if (pos.y >= 0.5f * L.y) dir.y = 1;
-    if (pos.z >= 0.5f * L.z) dir.z = 1;
+    if (pos.x >= 0.5_r * L.x) dir.x = 1;
+    if (pos.y >= 0.5_r * L.y) dir.y = 1;
+    if (pos.z >= 0.5_r * L.z) dir.z = 1;
     
     return dir;
 }

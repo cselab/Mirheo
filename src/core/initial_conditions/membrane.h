@@ -17,7 +17,7 @@ class ParticleVector;
 class MembraneIC : public InitialConditions
 {
 public:
-    MembraneIC(const std::vector<ComQ>& com_q, real globalScale = 1.0f);
+    MembraneIC(const std::vector<ComQ>& com_q, real globalScale = 1.0_r);
     ~MembraneIC();
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;

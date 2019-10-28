@@ -355,7 +355,7 @@ void exportInteractions(py::module& m)
 
     pyMembraneForces.def(py::init(&createInteractionMembrane),
                          "state"_a, "name"_a, "shear_desc"_a, "bending_desc"_a,
-                         "stress_free"_a=false, "grow_until"_a=0.f, R"( 
+                         "stress_free"_a=false, "grow_until"_a=0._r, R"( 
              Args:
                  name: name of the interaction
                  shear_desc: a string describing what shear force is used

@@ -14,8 +14,8 @@ inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)
     real pz = field(x + make_real3( 0,  0,  h));
 
     real3 diff { px - mx,
-                  py - my,
-                  pz - mz };
+                 py - my,
+                 pz - mz };
 
-    return (1.0f / (2.0f*h)) * diff;
+    return (1.0_r / (2.0_r*h)) * diff;
 }

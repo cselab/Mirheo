@@ -11,7 +11,7 @@ namespace ParticlePortal {
 // (*) In the code below, we don't manually check whether particles are marked
 // or not because marked particles are always outside of the box. The following
 // `static_assert` is to ensure the compilation fails if this changes.
-static_assert(Real3_int::mark_val < -100.f,
+static_assert(Real3_int::mark_val < -100._r,
               "The assumption that marked particles are far outside of "
               "the simulation domain is not correct anymore?");
 

@@ -16,7 +16,7 @@ __global__ void applyDrag(PVview view, real drag)
 
     auto v = make_real3(view.readVelocity(gid));
     auto force = - drag * v;
-    view.forces[gid] += make_real4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0_r);
 }
 
 } // namespace ParticleDragPluginKernels

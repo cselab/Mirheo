@@ -37,13 +37,13 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
         auto prop = view.comAndExtents[objId];
         int dx = 0, dy = 0, dz = 0;
 
-        if (prop.low.x  < -0.5f*domain.localSize.x + rc) dx = -1;
-        if (prop.low.y  < -0.5f*domain.localSize.y + rc) dy = -1;
-        if (prop.low.z  < -0.5f*domain.localSize.z + rc) dz = -1;
+        if (prop.low.x  < -0.5_r * domain.localSize.x + rc) dx = -1;
+        if (prop.low.y  < -0.5_r * domain.localSize.y + rc) dy = -1;
+        if (prop.low.z  < -0.5_r * domain.localSize.z + rc) dz = -1;
 
-        if (prop.high.x >  0.5f*domain.localSize.x - rc) dx = 1;
-        if (prop.high.y >  0.5f*domain.localSize.y - rc) dy = 1;
-        if (prop.high.z >  0.5f*domain.localSize.z - rc) dz = 1;
+        if (prop.high.x >  0.5_r * domain.localSize.x - rc) dx = 1;
+        if (prop.high.y >  0.5_r * domain.localSize.y - rc) dy = 1;
+        if (prop.high.z >  0.5_r * domain.localSize.z - rc) dz = 1;
 
         for (int ix = math::min(dx, 0); ix <= math::max(dx, 0); ++ix)
             for (int iy = math::min(dy, 0); iy <= math::max(dy, 0); ++iy)

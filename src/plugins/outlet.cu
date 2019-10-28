@@ -79,9 +79,9 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
 
         auto isInsideFunc = [plane = this->plane, domain = state->domain] __device__ (real3 r) {
             r = domain.local2global(r);
-            return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0.f;
+            return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0._r;
         };
-        auto killProbability = [] __device__ () { return 1.0f; };
+        auto killProbability = [] __device__ () { return 1.0_r; };
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
@@ -95,7 +95,7 @@ namespace RegionOutletPluginKernels
 
 static __device__ inline bool isInsideRegion(const FieldDeviceHandler& field, const real3& r)
 {
-    return field(r) < 0.f;
+    return field(r) < 0._r;
 }
 
 /// Monte-Carlo estimate of the region volume.
@@ -110,7 +110,7 @@ static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo
                   Saru::uniform01(seed, i - 3, i + 4343),
                   Saru::uniform01(seed, i - 4, i + 4444)};
 
-        r = domain.localSize * (r - 0.5f);
+        r = domain.localSize * (r - 0.5_r);
 
         if (isInsideRegion(field, r))
             ++countInside;
@@ -230,7 +230,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
         };
         auto killProbability = [rhoTimesVolume, nInside = nParticlesInside.devPtr()] __device__ () {
             int n = *nInside;
-            return n > 0 ? (n - rhoTimesVolume) / n : 0.f;
+            return n > 0 ? (n - rhoTimesVolume) / n : 0._r;
         };
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,
@@ -267,7 +267,7 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
         };
         auto killProbability = [QTimesdt, nInside = nParticlesInside.devPtr()] __device__ () {
             int n = *nInside;
-            return n > 0 ? QTimesdt / n : 0.f;
+            return n > 0 ? QTimesdt / n : 0._r;
         };
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,

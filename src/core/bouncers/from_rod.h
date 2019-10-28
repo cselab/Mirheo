@@ -35,7 +35,7 @@ private:
      * Maximum supported number of collisions per step
      * will be #bouncesPerSeg * total number of triangles in mesh
      */
-    const real collisionsPerSeg = 5.0f;
+    const real collisionsPerSeg = 5.0_r;
 
     CollisionTableWrapper<int2> table;
 

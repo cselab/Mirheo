@@ -37,7 +37,7 @@ __global__ void updateUUIDsAndCountInBox(
     // Check if the object crossed the plane.
     auto &info = view.comAndExtents[oid];
     real newSide = plane.x * info.com.x + plane.y * info.com.y + plane.z * info.com.z + plane.w;
-    if (oldSides[oid] < 0.f && newSide >= 0.f)
+    if (oldSides[oid] < 0._r && newSide >= 0._r)
         localUUIDs[oid] = atomicAdd(uuidCounter, 1);
 
     // Update always. It's possible that oldSides > 0 and newSide < 0 due to
@@ -267,7 +267,7 @@ ObjectPortalDestination::ObjectPortalDestination(
     ObjectPortalCommon(
             state, name, ovName, dst, size, tag, interCommExternal,
             [this](const auto &namedDesc) { return packPredicate(namedDesc); }),
-    shift(state->domain.global2local(real3{0.f, 0.f, 0.f}))  // (dst global -> dst local)
+    shift(state->domain.global2local(real3{0._r, 0._r, 0._r}))  // (dst global -> dst local)
 {}
 
 ObjectPortalDestination::~ObjectPortalDestination() = default;

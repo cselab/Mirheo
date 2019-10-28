@@ -10,7 +10,7 @@
 struct OVview : public PVview
 {
     int nObjects {0}, objSize {0};
-    real objMass {0.f}, invObjMass {0.f};
+    real objMass {0._r}, invObjMass {0._r};
 
     COMandExtent *comAndExtents {nullptr};
     int64_t *ids {nullptr};

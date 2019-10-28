@@ -176,7 +176,7 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
 template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
 {
-    auto shift = domain.global2local({0.f, 0.f, 0.f});
+    auto shift = domain.global2local({0._r, 0._r, 0._r});
     for (auto& d : data) TypeShift::apply(d, shift);    
 }
 

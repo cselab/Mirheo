@@ -37,7 +37,7 @@ static real3 getFirstBishop(real3 r0, real3 r1, real3 r2, real3 initialMaterialF
         const real3 t1 = normalize(r2 - r1);
         const real3 b = cross(t0, t1);
         
-        if (length(b) > 1e-6)
+        if (length(b) > 1e-6_r)
         {
             u = b - dot(b, t0) * t0;
         }
@@ -63,7 +63,7 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
     assert(nSegments > 1);
     
     std::vector<real3> positions (5*nSegments + 1);
-    real h = 1.f / nSegments;
+    real h = 1._r / nSegments;
 
     real3 u; // bishop frame
     
@@ -79,7 +79,7 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
         auto r0 = positions[5*(i + 0)];
         auto r1 = positions[5*(i + 1)];
 
-        auto r = 0.5f * (r0 + r1);
+        auto r = 0.5_r * (r0 + r1);
         real cost = math::cos(theta);
         real sint = math::sin(theta);
 
@@ -107,7 +107,7 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
 
             auto l = 0.5 * (length(r1-r0) + length(r2-r1));
             // use trapezoidal rule to integrate the angle
-            theta += l * 0.5 * (torsion((i+0.5f)*h) + torsion((i+1.5f)*h));
+            theta += l * 0.5_r * (torsion((i+0.5_r)*h) + torsion((i+1.5_r)*h));
         }
     }
     
@@ -151,7 +151,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             for (int i = 0; i < objSize; i++)
             {
                 real3 r = Quaternion::rotate(positions[i], q) + com;
-                Particle p {{r.x, r.y, r.z, 0.f}, make_real4(0.f)};
+                Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
                 pos[oldSize + i] = p.r2Real4();
                 vel[oldSize + i] = p.u2Real4();

@@ -8,6 +8,8 @@
 #include <core/utils/folders.h>
 #include <core/xdmf/xdmf.h>
 
+#include <limits>
+
 constexpr const char *RestartOVIdentifier = "OV";
 
 namespace ObjectVectorKernels
@@ -20,9 +22,9 @@ __global__ void minMaxCom(OVview ovView)
     const int laneId = gid % warpSize;
     if (objId >= ovView.nObjects) return;
 
-    real3 mymin = make_real3( 1e+10f);
-    real3 mymax = make_real3(-1e+10f);
-    real3 mycom = make_real3(0);
+    real3 mymin = make_real3(+1e10_r);
+    real3 mymax = make_real3(-1e10_r);
+    real3 mycom = make_real3(0.0_r);
 
 #pragma unroll 3
     for (int i = laneId; i < ovView.objSize; i += warpSize)

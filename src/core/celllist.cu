@@ -91,9 +91,9 @@ CellListInfo::CellListInfo(real rc, real3 localDomainSize) :
     rc(rc),
     localDomainSize(localDomainSize)
 {
-    ncells = make_int3( math::floor(localDomainSize / rc + 1e-6) );
+    ncells = make_int3( math::floor(localDomainSize / rc + 1e-6_r) );
     h = make_real3(localDomainSize) / make_real3(ncells);
-    invh = 1.0f / h;
+    invh = 1.0_r / h;
     this->rc = std::min( {h.x, h.y, h.z} );
 
     totcells = ncells.x * ncells.y * ncells.z;
@@ -101,11 +101,11 @@ CellListInfo::CellListInfo(real rc, real3 localDomainSize) :
 
 CellListInfo::CellListInfo(real3 h, real3 localDomainSize) :
     h(h),
-    invh(1.0f/h),
+    invh(1.0_r/h),
     localDomainSize(localDomainSize)
 {
     rc = std::min( {h.x, h.y, h.z} );
-    ncells = make_int3( math::ceil(localDomainSize / h - 1e-6f) );
+    ncells = make_int3( math::ceil(localDomainSize / h - 1e-6_r) );
     totcells = ncells.x * ncells.y * ncells.z;
 }
 

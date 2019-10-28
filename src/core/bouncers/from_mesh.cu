@@ -104,7 +104,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
                                                     fineTable.collisionTable.devPtr() };
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
-    // and after the collisions detected its i-th element will be t_i-1.0f, where 0 <= t_i <= 1
+    // and after the collisions detected its i-th element will be t_i-1.0_r, where 0 <= t_i <= 1
     // is the collision time, or 0 if no collision with the particle found
     collisionTimes.resize_anew(pv->local()->size());
     collisionTimes.clear(stream);

@@ -28,11 +28,11 @@ public:
         const real3 dist3 = math::min(math::abs(gr - lo), math::abs(hi - gr));
         const real dist = math::min(dist3.x, math::min(dist3.y, dist3.z));
 
-        real sign = 1.0f;
+        real sign = 1.0_r;
         if (lo.x < gr.x && gr.x < hi.x  &&
             lo.y < gr.y && gr.y < hi.y  &&
             lo.z < gr.z && gr.z < hi.z)
-            sign = -1.0f;
+            sign = -1.0_r;
 
         return inside ? sign*dist : -sign*dist;
     }

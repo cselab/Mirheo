@@ -36,9 +36,9 @@ __global__ void addForce(PVview view, DomainInfo domain, real minRadiusSquare, r
     
     real3 force = {r.x * factor,
                     r.y * factor,
-                    0.f};
+                    0._r};
     
-    view.forces[gid] += make_real4(force, 0.0f);
+    view.forces[gid] += make_real4(force, 0.0_r);
 }
 
 __global__ void sumVelocity(PVview view, DomainInfo domain, real minRadiusSquare, real maxRadiusSquare,
@@ -46,7 +46,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, real minRadiusSquare
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    real ur = 0.f;
+    real ur = 0._r;
 
     if (gid < view.size) {
         
@@ -151,7 +151,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
     MPI_Check( MPI_Allreduce(&accumulatedSamples, &nSamples_tot, 1, MPI_UNSIGNED_LONG_LONG,   MPI_SUM, comm) );
     MPI_Check( MPI_Allreduce(&accumulatedVel,     &totVel_tot,   1, MPI_LONG_DOUBLE,          MPI_SUM, comm) );
 
-    currentVel = nSamples_tot ? totVel_tot / nSamples_tot : 0.f;
+    currentVel = nSamples_tot ? totVel_tot / nSamples_tot : 0._r;
     force = pid.update(targetVel - currentVel);
 
     accumulatedVel     = 0;

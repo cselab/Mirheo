@@ -10,8 +10,8 @@ struct ROVview : public OVview
 {
     RigidMotion *motions {nullptr};
 
-    real3 J   {0.f, 0.f, 0.f};
-    real3 J_1 {0.f ,0.f, 0.f};
+    real3 J   {0._r, 0._r, 0._r};
+    real3 J_1 {0._r ,0._r, 0._r};
 
     ROVview(RigidObjectVector *rov, LocalRigidObjectVector *lrov) :
         OVview(rov, lrov)

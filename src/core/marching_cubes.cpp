@@ -76,14 +76,14 @@ static constexpr uint64_t marchingCubeTris[256] =
 static int getConfig(const real vs[8])
 {
     return
-        ((vs[0] < 0.0f) << 0) |
-        ((vs[1] < 0.0f) << 1) |
-        ((vs[2] < 0.0f) << 2) |
-        ((vs[3] < 0.0f) << 3) |
-        ((vs[4] < 0.0f) << 4) |
-        ((vs[5] < 0.0f) << 5) |
-        ((vs[6] < 0.0f) << 6) |
-        ((vs[7] < 0.0f) << 7);
+        ((vs[0] < 0.0_r) << 0) |
+        ((vs[1] < 0.0_r) << 1) |
+        ((vs[2] < 0.0_r) << 2) |
+        ((vs[3] < 0.0_r) << 3) |
+        ((vs[4] < 0.0_r) << 4) |
+        ((vs[5] < 0.0_r) << 5) |
+        ((vs[6] < 0.0_r) << 6) |
+        ((vs[7] < 0.0_r) << 7);
 }
 
 void computeTriangles(DomainInfo domain, real3 resolution,

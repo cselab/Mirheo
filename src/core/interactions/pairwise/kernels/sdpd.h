@@ -39,7 +39,7 @@ public:
         const real rij2 = dot(dr, dr);
 
         if (rij2 > rc2)
-            return make_real3(0.0f);
+            return make_real3(0.0_r);
         
         const real di = dst.d;
         const real dj = src.d;
@@ -47,8 +47,8 @@ public:
         const real pi = pressure(di * dst.m);
         const real pj = pressure(dj * src.m);
 
-        const real inv_disq = 1.f / (di * di);
-        const real inv_djsq = 1.f / (dj * dj);
+        const real inv_disq = 1._r / (di * di);
+        const real inv_djsq = 1._r / (dj * dj);
 
         const real inv_rij = math::rsqrt(rij2);
         const real rij = rij2 * inv_rij;
@@ -77,7 +77,7 @@ protected:
     static constexpr real zeta = 3 + 2;
 
     real inv_rc;
-    real seed {0.f};
+    real seed {0._r};
     PressureEOS pressure;
     DensityKernel densityKernel;
     real fDfact, fRfact;

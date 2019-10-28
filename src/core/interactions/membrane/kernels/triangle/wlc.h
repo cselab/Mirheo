@@ -64,7 +64,7 @@ private:
         const mReal inv_lmax = x0 / l0;
 
         auto wlc = [this, inv_lmax] (mReal x) {
-            return ks * inv_lmax * (4.0_mr*x*x - 9.0_mr*x + 6.0_mr) / ( 4.0f*sqr(1.0_mr - x) );
+            return ks * inv_lmax * (4.0_mr*x*x - 9.0_mr*x + 6.0_mr) / ( 4.0_mr * sqr(1.0_mr - x) );
         };
 
         const mReal IbforceI_wlc = wlc( math::min(lmax - 1e-6_mr, r) * inv_lmax );

@@ -13,7 +13,7 @@ __device__ inline real squaredDistanceToSegment(const real3& r0, const real3& r1
 {
     real3 dr = r1 - r0;
     real alpha = dot(x - r0, dr) / dot(dr, dr);
-    alpha = math::min(1.f, math::max(0.f, alpha));
+    alpha = math::min(1._r, math::max(0._r, alpha));
     real3 p = r0 + alpha * dr;
     real3 dx = x - p;
     return dot(dx, dx);
@@ -40,7 +40,7 @@ void setTagsCell(int pstart, int pend, real radius, const real3& r0, const real3
 __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellListInfo cinfo, BelongingTags *tags)
 {
     // About maximum distance a particle can cover in one step
-    const real tol = 0.25f;
+    const real tol = 0.25_r;
 
     // One thread per segment
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;

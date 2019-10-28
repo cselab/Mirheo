@@ -42,7 +42,7 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
         for (i.y = 0; i.y < resolution.y; ++i.y) {
             for (i.x = 0; i.x < resolution.x; ++i.x) {
                 real3 r {i.x * h.x, i.y * h.y, i.z * h.z};
-                r -= extendedDomainSize*0.5f;
+                r -= extendedDomainSize * 0.5_r;
                 r  = domain.local2global(r);
                 r  = make_periodic(r, domain.globalSize);
                 

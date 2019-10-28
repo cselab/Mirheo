@@ -18,8 +18,8 @@ class ForceStressAccumulator
 public:
 
     __D__ inline ForceStressAccumulator() :
-        frcStress({{0.f, 0.f, 0.f},
-                   {0.f, 0.f, 0.f, 0.f, 0.f, 0.f}})
+        frcStress({{0._r, 0._r, 0._r},
+                   {0._r, 0._r, 0._r, 0._r, 0._r, 0._r}})
     {}
     
     __D__ inline void atomicAddToDst(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const

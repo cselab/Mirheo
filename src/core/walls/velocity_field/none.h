@@ -14,6 +14,6 @@ public:
 
     __D__ inline real3 operator()(__UNUSED real3 coo) const
     {
-        return {0.f, 0.f, 0.f};
+        return {0._r, 0._r, 0._r};
     }
 };

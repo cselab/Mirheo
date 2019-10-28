@@ -28,7 +28,7 @@ public:
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
         if (rij2 > rc2)
-            return 0.0f;
+            return 0.0_r;
 
         const real rij = math::sqrt(rij2);
 

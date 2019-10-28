@@ -18,7 +18,7 @@ public:
 
     void update(std::mt19937& rng)
     {
-        std::uniform_real_distribution<real> dis(0.f, 1.f);
+        std::uniform_real_distribution<real> dis(0._r, 1._r);
         seed1 = dis(rng);
         seed2 = dis(rng);
     }
@@ -48,7 +48,7 @@ public:
 
 private:
 
-    real seed1{0.f};
-    real seed2{0.f};
+    real seed1{0._r};
+    real seed2{0._r};
     real kBT;
 };

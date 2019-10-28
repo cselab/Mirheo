@@ -111,7 +111,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     debug2("Plugin %s is sampling now", name.c_str());
 
-    real3 relativeParams[2] = {make_real3(0.0f), make_real3(0.0f)};
+    real3 relativeParams[2] = {make_real3(0.0_r), make_real3(0.0_r)};
 
     // Find and broadcast the position and velocity of the relative object
     MPI_Request req;
@@ -173,7 +173,7 @@ void AverageRelative3D::extractLocalBlock()
                     int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
                     for (int c = 0; c < ncomponents; c++) {
-                        if (scale == scale_by_density) factor = 1.0f / accumulated_density[scalId];
+                        if (scale == scale_by_density) factor = 1.0_r / accumulated_density[scalId];
                         else                           factor = scale;
 
                         dest[dstId++] = channel[srcId] * factor;

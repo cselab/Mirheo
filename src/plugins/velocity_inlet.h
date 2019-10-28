@@ -45,5 +45,5 @@ private:
     DeviceBuffer<int> workQueue; // contains id of triangle per new particle
 
     std::mt19937 gen {42};
-    std::uniform_real_distribution<real> dist {0.f, 1.f};
+    std::uniform_real_distribution<real> dist {0._r, 1._r};
 };

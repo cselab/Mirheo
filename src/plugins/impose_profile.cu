@@ -53,7 +53,7 @@ __global__ void getRelevantCells(
 
     int3 ind;
     cinfo.decode(cid, ind.x, ind.y, ind.z);
-    real3 botCell = -0.5f*cinfo.localDomainSize + make_real3(ind)*cinfo.h;
+    real3 botCell = -0.5_r * cinfo.localDomainSize + make_real3(ind)*cinfo.h;
     real3 topCell = botCell + cinfo.h;
 
     bool relevant = all_lt(low, topCell) && all_lt(botCell, high);
@@ -118,7 +118,7 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
             getNblocks(nRelevantCells[0], nthreads), nthreads, 0, stream,
 
             cl->cellInfo(), cl->getView<PVview>(), relevantCells.devPtr(), nRelevantCells[0], low, high, targetVel,
-            kBT, 1.0f / pv->mass, drand48(), drand48() );
+            kBT, 1.0_r / pv->mass, drand48(), drand48() );
 }
 
 

@@ -10,7 +10,7 @@ class ForceAccumulator
 public:
 
     __D__ inline ForceAccumulator() :
-        frc({0.f, 0.f, 0.f})
+        frc({0._r, 0._r, 0._r})
     {}
     
     __D__ inline void atomicAddToDst(real3 f, PVview& view, int id) const

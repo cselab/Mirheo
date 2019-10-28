@@ -528,7 +528,7 @@ void Simulation::prepareCellLists()
         auto pvptr = pv.get();
         if (cellListMap[pvptr].empty())
         {
-            const real defaultRc = 1.f;
+            const real defaultRc = 1._r;
             bool primary = true;
 
             // Don't use primary cell-lists with ObjectVectors

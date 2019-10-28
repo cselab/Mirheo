@@ -112,7 +112,7 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
     std::vector<real3> coms;
     coms.reserve(nObjs);
 
-    constexpr real3 zero3 {0.f, 0.f, 0.f};
+    constexpr real3 zero3 {0._r, 0._r, 0._r};
     const real factor = 1.0 / objSize;
     
     for (int i = 0; i < nObjs; ++i)

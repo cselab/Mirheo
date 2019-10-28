@@ -9,7 +9,7 @@ public:
 
     __D__ inline real operator()(real r, real invrc) const
     {
-        const real rm = (1.f - r * invrc) * invrc;
+        const real rm = (1._r - r * invrc) * invrc;
 
         return normalization * rm * rm * invrc;
     }
@@ -23,19 +23,19 @@ public:
     __D__ inline real operator()(real r, real invrc) const
     {
         const real r_ = r * invrc;
-        const real rm = 1.0f - r_;
+        const real rm = 1.0_r - r_;
         const real rm2 = rm * rm;
         const real invrc3 = invrc * invrc * invrc;
         
-        return normalization * invrc3 * rm2 * rm2 * (1.0f + 4.0f * r_);
+        return normalization * invrc3 * rm2 * rm2 * (1.0_r + 4.0_r * r_);
     }
 
     __D__ inline real derivative(real r, real invrc) const
     {
         const real r_ = r * invrc;
-        const real rm = r_ - 1.f;
+        const real rm = r_ - 1._r;
         const real invrc3 = invrc * invrc * invrc;
-        return 20.0f * invrc3 * normalization * r_ * rm*rm*rm * invrc;
+        return 20.0_r * invrc3 * normalization * r_ * rm*rm*rm * invrc;
     }
 };
 

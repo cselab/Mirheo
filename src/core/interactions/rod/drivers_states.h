@@ -101,7 +101,7 @@ template <int Nstates>
 __device__ inline int randomOtherState(int current, real seed)
 {
     real u = Saru::uniform01(seed, threadIdx.x, 123456 * current + 98765 * blockIdx.x );
-    unsigned int r = 4294967295.0f * u;
+    unsigned int r = static_cast<unsigned int>(4294967295.0_r * u);
     int s = r % (Nstates - 1);
     return s >= current ? (s + 1) % Nstates : s;
 }

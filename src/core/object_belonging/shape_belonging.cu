@@ -15,14 +15,14 @@ namespace ShapeBelongingKernels
 template <class Shape>
 __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview pvView, BelongingTags *tags)
 {
-    const real tolerance = 5e-6f;
+    const real tolerance = 5e-6_r;
 
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;
     if (objId >= rsView.nObjects) return;
 
-    const int3 cidLow  = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(rsView.comAndExtents[objId].low  - 1.5f);
-    const int3 cidHigh = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(rsView.comAndExtents[objId].high + 2.5f);
+    const int3 cidLow  = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(rsView.comAndExtents[objId].low  - 1.5_r);
+    const int3 cidHigh = cinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(rsView.comAndExtents[objId].high + 2.5_r);
 
     const int3 span = cidHigh - cidLow + make_int3(1,1,1);
     const int totCells = span.x * span.y * span.z;

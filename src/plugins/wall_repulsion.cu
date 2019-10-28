@@ -23,9 +23,9 @@ __global__ void forceFromSDF(PVview view, const real *sdfs, const real3 *gradien
 
     const real sdf = sdfs[pid];
 
-    if (sdf + h >= 0.0f)
+    if (sdf + h >= 0.0_r)
     {
-        const real3 f = -gradients[pid] * math::min( maxForce, C * math::max(sdf + h, 0.0f) );
+        const real3 f = -gradients[pid] * math::min( maxForce, C * math::max(sdf + h, 0.0_r) );
         atomicAdd(view.forces + pid, f);
     }
 }
@@ -67,7 +67,7 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
     auto sdfs      = pv->local()->dataPerParticle.getData<real>(ChannelNames::sdf);
     auto gradients = pv->local()->dataPerParticle.getData<real3>(ChannelNames::grad_sdf);
 
-    real gradientThreshold = h + 0.1f;
+    const real gradientThreshold = h + 0.1_r;
     
     wall->sdfPerParticle(pv->local(), sdfs, gradients, gradientThreshold, stream);
 

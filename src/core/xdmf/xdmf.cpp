@@ -31,7 +31,7 @@ void write(const std::string& filename, const Grid *grid,
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MPI_Comm comm)
 {
-    constexpr real arbitraryTime = -1.f;
+    constexpr real arbitraryTime = -1._r;
     write(filename, grid, channels, arbitraryTime, comm);
 }
 

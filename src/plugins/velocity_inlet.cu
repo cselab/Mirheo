@@ -37,8 +37,8 @@ __global__ void initLocalFluxes(int n, const real3 *vertices, const real3 *veloc
     v1 = velocities[3*i + 1];
     v2 = velocities[3*i + 2];
 
-    real3 nA = 0.5 * cross(r1 - r0, r2 - r0); // normal times area of triangle
-    real3 v = 0.33333f * (v0 + v1 + v2);
+    real3 nA = 0.5_r * cross(r1 - r0, r2 - r0); // normal times area of triangle
+    real3 v = 0.33333_r * (v0 + v1 + v2);
 
     localFluxes[i] = math::abs(dot(nA, v));
 }
@@ -52,7 +52,7 @@ __global__ void countFromCumulativeFluxes(int n, real dt, real numberDensity, co
     if (i < n) {
         cumulativeFluxes[i] += dt * numberDensity * localFluxes[i];
 
-        if (cumulativeFluxes[i] > 1.f) {
+        if (cumulativeFluxes[i] > 1._r) {
             nLocal = (int) cumulativeFluxes[i];
             cumulativeFluxes[i] -= nLocal;
         }

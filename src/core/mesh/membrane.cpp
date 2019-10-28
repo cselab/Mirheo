@@ -163,7 +163,7 @@ void MembraneMesh::_computeInitialLengths(const PinnedBuffer<real4>& vertices)
 }
 
 static real computeArea(real3 v0, real3 v1, real3 v2) {
-    return 0.5f * length(cross(v1 - v0, v2 - v0));
+    return 0.5_r * length(cross(v1 - v0, v2 - v0));
 }
 
 void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)

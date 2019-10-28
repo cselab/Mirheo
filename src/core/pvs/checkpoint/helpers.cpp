@@ -62,7 +62,7 @@ splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions
 template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
 {
-    auto shift = domain.local2global({0.f, 0.f, 0.f});
+    auto shift = domain.local2global({0._r, 0._r, 0._r});
     for (auto& d : data) TypeShift::apply(d, shift);    
 }
 

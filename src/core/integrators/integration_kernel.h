@@ -42,7 +42,7 @@ __global__ void integrate(PVviewWithOldParticles pvView, const real dt, Transfor
 template<typename Transform>
 static void integrate(ParticleVector *pv, real dt, Transform transform, cudaStream_t stream)
 {
-    int nthreads = 128;
+    constexpr int nthreads = 128;
 
     // New particles now become old
     std::swap(pv->local()->positions(), *pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions));

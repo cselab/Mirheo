@@ -14,7 +14,7 @@ class WallRepulsionPlugin : public SimulationPlugin
 public:
     WallRepulsionPlugin(const MirState *state, std::string name,
                         std::string pvName, std::string wallName,
-                        real C, real h, real maxForce = 1e3f);
+                        real C, real h, real maxForce = 1e3_r);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeIntegration(cudaStream_t stream) override;

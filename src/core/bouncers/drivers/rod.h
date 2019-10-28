@@ -35,13 +35,13 @@ Segment readMatFrame(const real4 *rodPos, int segmentId)
 
 
 
-static constexpr real NoCollision = -1.f;
+static constexpr real NoCollision = -1._r;
 
 __device__ static inline real3 projectionPointOnSegment(const Segment& s, const real3& x)
 {
     const real3 dr = s.r1 - s.r0;
     real alpha = dot(x - s.r0, dr) / dot(dr, dr);
-    alpha = min(1.f, max(0.f, alpha));
+    alpha = math::min(1._r, math::max(0._r, alpha));
     const real3 p = s.r0 + alpha * dr;
     return p;
 }
@@ -82,11 +82,11 @@ real collision(const real radius,
         return dsq - radius*radius;
     };
 
-    constexpr RootFinder::Bounds limits {0.f, 1.f};
+    constexpr RootFinder::Bounds limits {0._r, 1._r};
     
-    if (F(limits.up) > 0.f) return NoCollision;
+    if (F(limits.up) > 0._r) return NoCollision;
 
-    constexpr real tol = 1e-6f;
+    constexpr real tol = 1e-6_r;
     const real alpha = RootFinder::linearSearch(F, limits, tol);
 
     if (alpha >= limits.lo && alpha <= limits.up)
@@ -122,7 +122,7 @@ __global__ void findBounces(RVviewWithOldParticles rvView, real radius,
                             SegmentTable segmentTable, int *collisionTimes)
 {
     // About maximum distance a particle can cover in one step
-    constexpr real tol = 0.25f;
+    constexpr real tol = 0.25_r;
 
     // One thread per segment
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -166,7 +166,7 @@ __global__ void findBounces(RVviewWithOldParticles rvView, real radius,
 
 __device__ static inline auto interpolate(const real3& r0, const real3& r1, real a)
 {
-    return a * r0 + (1.f-a) * r1;
+    return a * r0 + (1._r-a) * r1;
 }
 
 __device__ static inline Segment interpolate(const Segment& s0, const Segment& s1, real a)
@@ -222,14 +222,14 @@ __device__ static inline Forces transferMomentumToSegment(real dt, real partMass
                                                           const Segment& seg, const Segment& mat)
 {
     Forces out;
-    const real3 rc = 0.5f * (seg.r0 + seg.r1);
+    const real3 rc = 0.5_r * (seg.r0 + seg.r1);
     const real3 dx = pos - rc;
     
     const real3 F = (partMass / dt) * dV;
     const real3 T = cross(dx, F);
 
     // linear momentum equaly to everyone
-    out.fr0 = out.fr1 = out.fu0 = out.fu1 = -0.25f * F;
+    out.fr0 = out.fr1 = out.fu0 = out.fu1 = -0.25_r * F;
 
     const real3 dr = seg.r1 - seg.r0;
     const auto t = normalize(dr);
@@ -241,15 +241,15 @@ __device__ static inline Forces transferMomentumToSegment(real dt, real partMass
     const real tdu = dot(du, t);
     const real3 du_ = du - tdu * t;
 
-    const real paraFactor = 1.f / (dot(du, du) + tdu*tdu);
+    const real paraFactor = 1._r / (dot(du, du) + tdu*tdu);
     
-    const real3 fTpara = (0.5f * paraFactor) * cross(du, Tpara);
+    const real3 fTpara = (0.5_r * paraFactor) * cross(du, Tpara);
 
     // the above force gives extra torque in Tperp direction
     // compensate that here
     Tperp -= (paraFactor * tdu*tdu * length(Tpara)) * du_;
     
-    const real3 fTperp = (0.5f / dot(dr, dr)) * cross(dr, Tperp);
+    const real3 fTperp = (0.5_r / dot(dr, dr)) * cross(dr, Tperp);
 
     out.fr0 -= fTperp;
     out.fr1 += fTperp;
@@ -297,7 +297,7 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, real radius,
 
     const real3 colPosNew = localToCartesianCoords(localCoords, segNew, matNew);
     const real3 colPosOld = localToCartesianCoords(localCoords, segOld, matOld);
-    const real3 colVel    = (1.f/dt) * (colPosNew - colPosOld);
+    const real3 colVel    = (1._r/dt) * (colPosNew - colPosOld);
 
     const real3 normal = segmentNormal(segNew, colPosNew);
     const real3 newVel = bounceKernel.newVelocity(p.u, colVel, normal, pvView.mass);

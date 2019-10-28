@@ -16,7 +16,7 @@ __global__ void totalForce(PVview view, double3 *totalForce)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    real3 f {0.f, 0.f, 0.f};
+    real3 f {0._r, 0._r, 0._r};
     
     if (tid < view.size)
         f = make_real3(view.forces[tid]);

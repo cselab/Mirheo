@@ -15,7 +15,7 @@ template <class Shape>
 __device__ static inline real3 rescue(real3 candidate, real dt, real tol, const Shape& shape)
 {
     const int maxIters = 100;
-    const real factor = 50.0f * dt;
+    const real factor = 50.0_r * dt;
 
     for (int i = 0; i < maxIters; i++)
     {
@@ -44,7 +44,7 @@ __device__ static inline void bounceCellArray(
         int objId, const int *validCells, int nCells,
         CellListInfo cinfo, const real dt, const BounceKernel& bounceKernel)
 {
-    const real threshold = 2e-5f;
+    const real threshold = 2e-5_r;
 
     const Shape& shape = ovView.shape;
     
@@ -69,16 +69,16 @@ __device__ static inline void bounceCellArray(
         const real3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
-        if (shape.inOutFunction(coo) > 0.0f) continue;
+        if (shape.inOutFunction(coo) > 0.0_r) continue;
 
         real3 newCoo;
         
         // worst case scenario: was already inside before, we need to rescue the particle
-        if (shape.inOutFunction(oldCoo) <= 0.0f)
+        if (shape.inOutFunction(oldCoo) <= 0.0_r)
         {
             newCoo = rescue(coo, dt, threshold, shape);
 
-            if (shape.inOutFunction(newCoo) < 0.0f)
+            if (shape.inOutFunction(newCoo) < 0.0_r)
             {
                 printf("Bounce-back rescue failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g (rescued: %g).\n",
                        p.getId(),
@@ -95,7 +95,7 @@ __device__ static inline void bounceCellArray(
         else
         {
             // This is intersection point
-            constexpr RootFinder::Bounds limits {0.f, 1.f};
+            constexpr RootFinder::Bounds limits {0._r, 1._r};
             const real alpha = RootFinder::linearSearch( [=] (const real lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
             newCoo = oldCoo + dr*max(alpha, limits.lo);
 
@@ -104,7 +104,7 @@ __device__ static inline void bounceCellArray(
             newCoo += threshold * normal;
 
             // If smth went notoriously bad
-            if (shape.inOutFunction(newCoo) < 0.0f)
+            if (shape.inOutFunction(newCoo) < 0.0_r)
             {
                 printf("Bounce-back failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g to %g, alpha %f. Recovering to old position\n",
                        p.getId(),
@@ -142,9 +142,9 @@ __device__ static inline void bounceCellArray(
 template <class Shape>
 __device__ static inline bool isValidCell(int3 cid3, const RealRigidMotion& motion, CellListInfo cinfo, const Shape& shape)
 {
-    constexpr real threshold = 0.5f;
+    constexpr real threshold = 0.5_r;
 
-    real3 v000 = make_real3(cid3) * cinfo.h - cinfo.localDomainSize*0.5f - motion.r;
+    real3 v000 = make_real3(cid3) * cinfo.h - cinfo.localDomainSize * 0.5_r - motion.r;
     const real4 invq = Quaternion::conjugate(motion.q);
 
     const real3 v001 = Quaternion::rotate( v000 + make_real3(        0,         0, cinfo.h.z), invq );
@@ -174,7 +174,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     // About max travel distance per step + safety
     // Safety comes from the fact that bounce works with the analytical shape,
     //  and extent is computed w.r.t. particles
-    const int tol = 1.5f;
+    const real tol = 1.5_r;
 
     const int objId = blockIdx.x;
     const int tid = threadIdx.x;

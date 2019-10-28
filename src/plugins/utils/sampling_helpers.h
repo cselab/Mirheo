@@ -84,11 +84,11 @@ __global__ static void scaleVec(int n, int fieldComponents, double *field, const
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
-        for (int c=0; c<fieldComponents; c++)
-            if (math::abs(density[id]) > 1e-6f)
+        for (int c = 0; c < fieldComponents; ++c)
+            if (math::abs(density[id]) > 1e-6_r)
                 field[fieldComponents*id + c] /= density[id];
             else
-                field[fieldComponents*id + c] = 0.0f;
+                field[fieldComponents*id + c] = 0.0_r;
 }
 
 __global__ static void correctVelocity(int n, double3 *velocity, const double *density, const real3 correction)

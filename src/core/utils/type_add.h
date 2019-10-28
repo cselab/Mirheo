@@ -33,11 +33,11 @@ __D__ inline void _addVect(T3 *addr, T3 s, real eps)
 template <typename T>
 __D__ inline void apply(__UNUSED T *addr, __UNUSED T s, __UNUSED const real eps = 0._r) {}
 
-__D__ inline void apply(float  *addr, float  s, real eps = 0.f) {_add(addr, s, eps);}
-__D__ inline void apply(double *addr, double s, real eps = 0.f) {_add(addr, s, eps);}
-__D__ inline void apply(Force *addr, Force s,   real eps = 0.f) {_addVect(&addr->f, s.f, eps);}
+__D__ inline void apply(float  *addr, float  s, real eps = 0._r) {_add(addr, s, eps);}
+__D__ inline void apply(double *addr, double s, real eps = 0._r) {_add(addr, s, eps);}
+__D__ inline void apply(Force *addr, Force s,   real eps = 0._r) {_addVect(&addr->f, s.f, eps);}
 
-__D__ inline void apply(Stress *addr, Stress s, real eps = 0.f)
+__D__ inline void apply(Stress *addr, Stress s, real eps = 0._r)
 {
     _add(&addr->xx, s.xx, eps);
     _add(&addr->xy, s.xy, eps);

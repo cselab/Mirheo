@@ -19,14 +19,14 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     real3 vel, myMomentum;
-    real myEnergy = 0.f, myMaxIvelI;
-    vel = myMomentum = make_real3(0.f);
+    real myEnergy = 0._r, myMaxIvelI;
+    vel = myMomentum = make_real3(0._r);
 
     if (tid < view.size)
     {
         vel        = make_real3(view.readVelocity(tid));
         myMomentum = vel * view.mass;
-        myEnergy   = dot(vel, vel) * view.mass * 0.5f;
+        myEnergy   = dot(vel, vel) * view.mass * 0.5_r;
     }
     
     myMomentum = warpReduce(myMomentum, [](real a, real b) { return a+b; });
@@ -93,7 +93,7 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump)
     {
-        real tm = timer.elapsedAndReset() / (state->currentStep < fetchEvery ? 1.0f : fetchEvery);
+        const real tm = timer.elapsedAndReset() / (state->currentStep < fetchEvery ? 1.0_r : fetchEvery);
         waitPrevSend();
         SimpleSerializer::serialize(sendBuffer, tm, state->currentTime, state->currentStep, nparticles, momentum, energy, maxvel);
         send(sendBuffer);

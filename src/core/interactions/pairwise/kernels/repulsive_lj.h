@@ -113,21 +113,21 @@ public:
         epsilon(epsilon),
         sigma(sigma),
         maxForce(maxForce),
-        epsx24_sigma(24.0 * epsilon / sigma),
+        epsx24_sigma(24.0_r * epsilon / sigma),
         awareness(awareness)
     {}
 
     __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
-        constexpr real tolerance = 1e-6f;
+        constexpr real tolerance = 1e-6_r;
         if (!awareness.interact(src.i1, dst.i1))
-            return make_real3(0.0f);
+            return make_real3(0.0_r);
         
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
 
         if (rij2 > rc2 || rij2 < tolerance)
-            return make_real3(0.0f);
+            return make_real3(0.0_r);
 
         const real rs2 = sigma*sigma / rij2;
         const real rs4 = rs2*rs2;
@@ -136,7 +136,7 @@ public:
 
         const real IfI = epsx24_sigma * (2*rs14 - rs8);
 
-        return dr * math::min(math::max(IfI, 0.0f), maxForce);
+        return dr * math::min(math::max(IfI, 0.0_r), maxForce);
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}

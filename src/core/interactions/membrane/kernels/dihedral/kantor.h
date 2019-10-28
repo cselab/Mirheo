@@ -41,9 +41,9 @@ private:
         const mReal overIdzetaI = math::rsqrt(dot(dzeta, dzeta));
 
         const mReal cosTheta = dot(ksi, dzeta) * overIksiI * overIdzetaI;
-        const mReal IsinThetaI2 = 1.0f - cosTheta*cosTheta;
+        const mReal IsinThetaI2 = 1.0_mr - cosTheta*cosTheta;
 
-        const mReal rawST_1 = math::rsqrt(max(IsinThetaI2, 1.0e-6f));
+        const mReal rawST_1 = math::rsqrt(max(IsinThetaI2, 1.0e-6_mr));
         const mReal sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) ); // because the normals look inside
         const mReal beta = cost0kb - cosTheta * sint0kb * sinTheta_1;
 

@@ -26,9 +26,9 @@ __device__ inline real3 fetchPosition(View view, int i)
 
 __device__ inline real3 safeNormalize(real3 u)
 {
-    constexpr real tol = 1e-6f;
+    constexpr real tol = 1e-6_r;
     auto nrm2 = dot(u,u);
-    if (nrm2 < tol) return make_real3(0.f);
+    if (nrm2 < tol) return make_real3(0._r);
     return math::rsqrt(nrm2) * u;
 }
 
@@ -50,9 +50,9 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     auto dr = anchor - r0;
 
     // avoid computing the forces with periodic images
-    if (math::abs(dr.x) > 0.5f * domain.localSize.x) return;
-    if (math::abs(dr.y) > 0.5f * domain.localSize.y) return;
-    if (math::abs(dr.z) > 0.5f * domain.localSize.z) return;
+    if (math::abs(dr.x) > 0.5_r * domain.localSize.x) return;
+    if (math::abs(dr.y) > 0.5_r * domain.localSize.y) return;
+    if (math::abs(dr.z) > 0.5_r * domain.localSize.z) return;
 
     const auto fanchor = -params.kb * safeNormalize(dr);
     const auto e0 = normalize(r1 - r0);
@@ -60,7 +60,7 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     dp = normalize(dp - e0 * dot(e0, dp));
 
     real3 T       = params.T * e0;
-    real3 fu0     = 0.5f * cross(T, dp);
+    real3 fu0     = 0.5_r * cross(T, dp);
     real3 Tanchor = cross(relAnchor, fanchor);
     
     atomicAdd(&rods.forces[start + 0], -fanchor);
@@ -108,7 +108,7 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 
 ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
                                                          real torque, real3 relAnchor, real kBound) :
-    Interaction(state, name, /*rc*/ 1.0f),
+    Interaction(state, name, /*rc*/ 1.0_r),
     torque(torque),
     relAnchor(relAnchor),
     kBound(kBound)

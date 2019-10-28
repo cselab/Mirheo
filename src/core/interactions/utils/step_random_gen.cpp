@@ -2,7 +2,7 @@
 
 StepRandomGen::StepRandomGen(long seed) :
     gen(seed),
-    udistr(0.001f, 1.f)
+    udistr(0.001_r, 1._r)
 {
     lastSample = udistr(gen);
 }
