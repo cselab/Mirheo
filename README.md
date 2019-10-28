@@ -12,7 +12,12 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.3.0
+
+* **Add double precision support**
+  can be compiled with `CMAKE_FLAGS="-DDOUBLE_PRECISION=ON"  mir.make`
 
 * **bug fixes**:
   * fixed cell lists sizes with domain sizes not multiple of rc
