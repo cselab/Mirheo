@@ -624,8 +624,17 @@ void Mirheo::logCompileOptions() const
 #endif
         ;
 
+    const std::string useDoubleOption = 
+#ifdef MIRHEO_DOUBLE_PRECISION
+        "ON"
+#else
+        "OFF"
+#endif
+        ;
+
+    
     const std::string membraneDoubleOption = 
-#ifdef MEMBRANE_DOUBLE
+#ifdef MEMBRANE_FORCES_DOUBLE
         "ON"
 #else
         "OFF"
@@ -633,7 +642,7 @@ void Mirheo::logCompileOptions() const
         ;
     
     const std::string rodDoubleOption = 
-#ifdef ROD_DOUBLE
+#ifdef ROD_FORCES_DOUBLE
         "ON"
 #else
         "OFF"
@@ -643,6 +652,7 @@ void Mirheo::logCompileOptions() const
     
     info("compile time options:");
     info("USE_NVTX        : %s", useNvtxOption       .c_str());
+    info("MIRHEO_DOUBLE   : %s", useDoubleOption     .c_str());
     info("MEMBRANE_DOUBLE : %s", membraneDoubleOption.c_str());
     info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
 }
