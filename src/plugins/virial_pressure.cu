@@ -10,6 +10,7 @@
 #include <core/utils/common.h>
 #include <core/utils/cuda_common.h>
 #include <core/utils/kernel_launch.h>
+#include <core/utils/mpi_types.h>
 
 namespace VirialPressureKernels
 {
@@ -70,10 +71,13 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     const Stress *stress = pv->local()->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
 
     localVirialPressure.clear(stream);
+
+    constexpr int nthreads = 128;
+    const int nblocks = getNblocks(view.size, nthreads);
     
     SAFE_KERNEL_LAUNCH(
         VirialPressureKernels::totalPressure,
-        getNblocks(view.size, 128), 128, 0, stream,
+        nblocks, nthreads, 0, stream,
         view, stress, region.handler(), localVirialPressure.devPtr() );
 
     localVirialPressure.downloadFromDevice(stream, ContainersSynch::Synch);
@@ -100,14 +104,7 @@ void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 VirialPressureDumper::VirialPressureDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(makePath(path))
-{
-    if (std::is_same<VirialPressure::ReductionType, real>::value)
-        mpiReductionType = MPI_FLOAT;
-    else if (std::is_same<VirialPressure::ReductionType, double>::value)
-        mpiReductionType = MPI_DOUBLE;
-    else
-        die("Incompatible type");
-}
+{}
 
 void VirialPressureDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -143,7 +140,8 @@ void VirialPressureDumper::deserialize()
 
     if (!activated) return;
 
-    MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, mpiReductionType, MPI_SUM, 0, comm) );
+    const auto dataType = getMPIFloatType<VirialPressure::ReductionType>();
+    MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm) );
 
     fprintf(fdump.get(), "%g %.6e\n", curTime, totalPressure);
 }

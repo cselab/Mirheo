@@ -58,6 +58,5 @@ private:
     std::string path;
 
     bool activated = true;
-    MPI_Datatype mpiReductionType;
     FileWrapper fdump;
 };
