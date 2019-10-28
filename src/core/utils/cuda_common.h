@@ -291,16 +291,18 @@ __device__ inline void writeNoCache(float4* addr, const float4 val)
 
 __device__ inline double4 readNoCache(const double4* addr)
 {
-    // double4 res;
-    // asm("ld.global.cv.v4.f64 {%0, %1, %2, %3}, [%4];" : "=d"(res.x), "=d"(res.y), "=d"(res.z), "=d"(res.w) : "l"(addr));
-    // return res;
-    return *addr;
+    auto addr2 = reinterpret_cast<const double2*>(addr);
+    double4 res;
+    asm("ld.global.cv.v2.f64 {%0, %1}, [%2];" : "=d"(res.x), "=d"(res.y) : "l"(addr2 + 0));
+    asm("ld.global.cv.v2.f64 {%0, %1}, [%2];" : "=d"(res.z), "=d"(res.w) : "l"(addr2 + 1));
+    return res;
 }
 
 __device__ inline void writeNoCache(double4* addr, const double4 val)
 {
-    // asm("st.global.wt.v4.f64 [%0], {%1, %2, %3, %4};" :: "l"(addr), "d"(val.x), "d"(val.y), "d"(val.z), "d"(val.w));
-    *addr = val;
+    auto addr2 = reinterpret_cast<double2*>(addr);
+    asm("st.global.wt.v2.f64 [%0], {%1, %2};" :: "l"(addr2+0), "d"(val.x), "d"(val.y));
+    asm("st.global.wt.v2.f64 [%0], {%1, %2};" :: "l"(addr2+1), "d"(val.z), "d"(val.w));
 }
 
 
