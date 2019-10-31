@@ -114,7 +114,8 @@ public:
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
-
+        filter.setup(ov);
+        
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
                            triangleInteraction,
@@ -134,6 +135,12 @@ public:
     {
         setPrerequisitesPerEnergy(dihedralParams, pv1, pv2, cl1, cl2);
         setPrerequisitesPerEnergy(triangleParams, pv1, pv2, cl1, cl2);
+
+        if (auto mv = dynamic_cast<MembraneVector*>(pv1))
+            filter.setPrerequisites(mv);
+        else
+            die("Interaction '%s' needs a membrane vector (given '%s')",
+                this->name.c_str(), pv1->name.c_str());
     }
 
     void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)

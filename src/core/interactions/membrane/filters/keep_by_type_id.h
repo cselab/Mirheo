@@ -6,8 +6,18 @@
 class FilterKeepByTypeId
 {
 public:
-    FilterKeepByTypeId(int whiteListTypeId, MembraneVector *mv) :
+    FilterKeepByTypeId(int whiteListTypeId) :
         whiteListTypeId(whiteListTypeId)
+    {}
+
+    void setPrerequisites(MembraneVector *mv) const
+    {
+        mv->requireDataPerObject<int>(ChannelNames::membraneTypeId,
+                                      DataManager::PersistenceMode::Active,
+                                      DataManager::ShiftMode::None);
+    }
+
+    void setup(MembraneVector *mv)
     {
         LocalObjectVector *lmv = mv->local();
         auto typeIdsBuff = lmv->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
@@ -21,6 +31,6 @@ public:
     }
 
 private:
-    int whiteListTypeId;
+    int whiteListTypeId {-1};
     const int *typeIds {nullptr};
 };
