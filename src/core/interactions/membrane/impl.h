@@ -1,9 +1,11 @@
 #pragma once
 
-
 #include "drivers.h"
+#include "filters/keep_all.h"
 #include "kernels/parameters.h"
 #include "prerequisites.h"
+
+
 
 #include <core/interactions/interface.h>
 #include <core/interactions/utils/step_random_gen.h>
@@ -115,11 +117,13 @@ public:
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
 
+        FilterKeepAll filter;
+        
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
                            triangleInteraction,
                            dihedralInteraction, dihedralView,
-                           view, meshView, devParams);
+                           view, meshView, devParams, filter);
 
     }
 

@@ -158,13 +158,14 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
     return f0;
 }
 
-template <class TriangleInteraction, class DihedralInteraction>
+template <class TriangleInteraction, class DihedralInteraction, class Filter>
 __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
                                       DihedralInteraction dihedralInteraction,
                                       typename DihedralInteraction::ViewType dihedralView,
                                       OVviewWithAreaVolume view,
                                       MembraneMeshView mesh,
-                                      GPU_CommonMembraneParameters parameters)
+                                      GPU_CommonMembraneParameters parameters,
+                                      Filter filter)
 {
     // RBC particles are at the same time mesh vertices
     assert(view.objSize == mesh.nvertices);
@@ -174,6 +175,7 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     const int rbcId = pid / mesh.nvertices;
 
     if (pid >= view.nObjects * mesh.nvertices) return;
+    if (!filter.inWhiteList(rbcId)) return;
 
     auto p = fetchParticle(view, pid);
 
