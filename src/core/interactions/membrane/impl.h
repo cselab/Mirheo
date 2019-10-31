@@ -1,11 +1,8 @@
 #pragma once
 
 #include "drivers.h"
-#include "filters/keep_all.h"
 #include "kernels/parameters.h"
 #include "prerequisites.h"
-
-
 
 #include <core/interactions/interface.h>
 #include <core/interactions/utils/step_random_gen.h>
@@ -64,7 +61,7 @@ static void rescaleParameters(CommonMembraneParameters& p, real scale)
 /**
  * Generic mplementation of RBC membrane forces
  */
-template <class TriangleInteraction, class DihedralInteraction>
+template <class TriangleInteraction, class DihedralInteraction, class Filter>
 class MembraneInteractionImpl : public Interaction
 {
 public:
@@ -72,12 +69,13 @@ public:
     MembraneInteractionImpl(const MirState *state, std::string name, CommonMembraneParameters parameters,
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
-                            real growUntil, long seed = 42424242) :
+                            real growUntil, Filter filter, long seed = 42424242) :
         Interaction(state, name, 1.0_r),
         parameters(parameters),
         scaleFromTime( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams),
+        filter(filter),
         stepGen(seed)
     {}
 
@@ -117,8 +115,6 @@ public:
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
 
-        FilterKeepAll filter;
-        
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
                            triangleInteraction,
@@ -167,5 +163,7 @@ protected:
     CommonMembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;
     typename TriangleInteraction::ParametersType triangleParams;
+    Filter filter;
     StepRandomGen stepGen;
+    
 };

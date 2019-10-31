@@ -22,6 +22,8 @@ static const std::string motions     = "motions";
 static const std::string oldMotions  = "old_motions";
 static const std::string comExtents  = "com_extents";
 static const std::string areaVolumes = "area_volumes";
+
+static const std::string membraneTypeId = "membrane_type_id";
     
 // per object, specific to Juelicher bending + ADE    
 static const std::string areas          = "areas";

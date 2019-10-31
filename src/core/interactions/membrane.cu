@@ -1,5 +1,7 @@
 #include "membrane.h"
 
+#include "membrane/filters/keep_all.h"
+#include "membrane/filters/keep_by_type_id.h"
 #include "membrane/kernels/common.h"
 #include "membrane/kernels/dihedral/kantor.h"
 #include "membrane/kernels/dihedral/juelicher.h"
@@ -44,23 +46,26 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
                                          bool stressFree, real growUntil) :
     Interaction(state, name, /* default cutoff rc */ 1.0)
 {
+    FilterKeepAll filter;
+    
     mpark::visit([&](auto bePrms, auto shPrms)
     {                     
+        using FilterType    = decltype(filter);
         using DihedralForce = typename decltype(bePrms)::DihedralForce;
         
         if (stressFree)
         {
             using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Active>;
             
-            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce>>
-                (state, name, commonParams, shPrms, bePrms, growUntil);
+            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>>
+                (state, name, commonParams, shPrms, bePrms, growUntil, filter);
         }
         else                         
         {
             using TriangleForce = typename decltype(shPrms)::TriangleForce <StressFreeState::Inactive>;
             
-            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce>>
-                (state, name, commonParams, shPrms, bePrms, growUntil);
+            impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>>
+                (state, name, commonParams, shPrms, bePrms, growUntil, filter);
         }
         
     }, bendingParams, shearParams);
