@@ -36,10 +36,6 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const real dt)
     // J is the diagonal inertia tensor in the body frame
     auto dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
     omega += dw_dt * dt;
-
-    // Only for output purposes
-    auto L = Quaternion::rotate(omega*ovView.J, motion.q);
-
     omega = Quaternion::rotate(omega, motion.q);
 
     // using OLD q and NEW w ?
