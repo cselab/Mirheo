@@ -1,8 +1,10 @@
+#include "bindings.h"
+#include "class_wrapper.h"
+
 #include <core/integrators/factory.h>
 #include <core/interactions/interface.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
+#include <pybind11/stl.h>
 
 using namespace pybind11::literals;
 
