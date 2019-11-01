@@ -143,13 +143,13 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
 
     for (int i = 0; i < np; ++i)
     {
-        auto com = coms[i];
-        com.com = domain.local2global(com.com);
+        auto com = coms[i].com;
+        com = domain.local2global(com);
 
         ss << ids[i] << " " << curTime << "   "
-                << std::setw(10) << com.com.x << " "
-                << std::setw(10) << com.com.y << " "
-                << std::setw(10) << com.com.z;
+                << std::setw(10) << com.x << " "
+                << std::setw(10) << com.y << " "
+                << std::setw(10) << com.z;
 
         const auto& motion = motions[i];
 
