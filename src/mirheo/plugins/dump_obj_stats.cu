@@ -23,15 +23,15 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
 
     RigidMotion local = {0};
 
-    const auto com = view.comAndExtents[objId].com;
+    const real3 com = view.comAndExtents[objId].com;
     
     for (int i = tid; i < view.objSize; i += blockDim.x)
     {
-        int pid = objId * view.objSize + i;
+        const int pid = objId * view.objSize + i;
         const Particle p = view.readParticle(pid);
-        real3 f = make_real3(view.forces[pid]);
+        const real3 f = make_real3(view.forces[pid]);
 
-        real3 dr = p.r - com;
+        const real3 dr = p.r - com;
         
         local.vel    += p.u;
         local.omega  += cross(dr, p.u);
@@ -67,12 +67,8 @@ ObjStatsPlugin::ObjStatsPlugin(const MirState *state, std::string name, std::str
 void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-
-    ov = dynamic_cast<ObjectVector*>(simulation->getPVbyName(ovName));
-    if (ov == nullptr)
-        die("No such object vector registered: %s", ovName.c_str());
-
-    info("Plugin %s initialized for the following object vectors: %s", name.c_str(), ovName.c_str());
+    ov = simulation->getOVbyNameOrDie(ovName);
+    info("Plugin '%s' initialized for object vector '%s'", name.c_str(), ovName.c_str());
 }
 
 void ObjStatsPlugin::handshake()
@@ -85,12 +81,12 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    ids.copy(  *ov->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
-    coms.copy( *ov->local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream);
+    ids .copy( *ov->local()->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
+    coms.copy( *ov->local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
 
-    if (ov->local()->dataPerObject.checkChannelExists(ChannelNames::oldMotions))
+    if (auto rov = dynamic_cast<RigidObjectVector*>(ov))
     {
-        auto& oldMotions = *ov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions);
+        auto& oldMotions = *rov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions);
         motions.copy(oldMotions, stream);
         isRov = true;
     }
