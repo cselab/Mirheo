@@ -9,6 +9,9 @@
 
 #include <mirheo/core/xdmf/xdmf.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 
@@ -70,3 +73,5 @@ protected:
     std::vector<XDMF::Channel> channels;
     std::vector<std::vector<real>> channelData;
 };
+
+} // namespace mirheo

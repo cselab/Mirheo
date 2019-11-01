@@ -7,6 +7,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class Average3D : public SimulationPlugin
@@ -62,3 +65,4 @@ protected:
     void sampleOnePv(ParticleVector *pv, cudaStream_t stream);
 };
 
+} // namespace mirheo

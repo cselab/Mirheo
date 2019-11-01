@@ -10,6 +10,9 @@
 #include <mirheo/core/pvs/packers/objects.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ObjectHaloExtraExchangerKernels
 {
 template <class PackerHandler>
@@ -166,3 +169,5 @@ void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
             helper->wrapRecvData(), unpackerHandler );
     }, ExchangersCommon::getHandler(unpacker));
 }
+
+} // namespace mirheo

@@ -11,6 +11,9 @@
 #include "class_wrapper.h"
 #include "variant_cast.h"
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 static std::map<std::string, InteractionFactory::VarParam>
@@ -501,3 +504,5 @@ void exportInteractions(py::module& m)
     )");
 }
 
+
+} // namespace mirheo

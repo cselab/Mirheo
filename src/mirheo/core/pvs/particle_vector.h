@@ -12,6 +12,9 @@
 #include <tuple>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 enum class ParticleVectorLocality {
@@ -129,6 +132,4 @@ protected:
     std::unique_ptr<LocalParticleVector> _local, _halo;
 };
 
-
-
-
+} // namespace mirheo

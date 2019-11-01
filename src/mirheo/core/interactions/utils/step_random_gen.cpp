@@ -1,5 +1,8 @@
 #include "step_random_gen.h"
 
+namespace mirheo
+{
+
 StepRandomGen::StepRandomGen(long seed) :
     gen(seed),
     udistr(0.001_r, 1._r)
@@ -35,3 +38,5 @@ std::ifstream& operator>>(std::ifstream& stream, StepRandomGen& srg)
            >> srg.gen;
     return stream;
 }
+
+} // namespace mirheo

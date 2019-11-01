@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 
 /// Structure with information about exchange buffers,
 /// intended to be used on GPU only
@@ -99,3 +102,5 @@ public:
 private:
     ParticlePacker *packer;
 };
+
+} // namespace mirheo

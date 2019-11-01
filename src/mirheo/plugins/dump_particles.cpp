@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/type_map.h>
 
+namespace mirheo
+{
+
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
                                            std::vector<ChannelType> channelTypes) :
@@ -182,5 +185,4 @@ void ParticleDumperPlugin::deserialize()
     XDMF::write(fname, &grid, channels, time, comm);
 }
 
-
-
+} // namespace mirheo

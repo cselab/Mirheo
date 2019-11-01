@@ -7,7 +7,9 @@
 
 #include <random>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 // inline float sqrtLinSearch(float a, float left, float right)
 // {

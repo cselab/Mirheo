@@ -7,6 +7,9 @@
 #include <limits>
 #include <random>
 
+namespace mirheo
+{
+
 const real RodIC::Default = std::numeric_limits<real>::infinity();
 const real3 RodIC::DefaultFrame = {Default, Default, Default};
 
@@ -169,3 +172,5 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     info("Initialized %d '%s' rods", nObjs, rv->name.c_str());
 }
 
+
+} // namespace mirheo

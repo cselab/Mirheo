@@ -6,6 +6,9 @@
 #include <memory>
 #include <vector>
 
+namespace mirheo
+{
+
 class ExchangeHelper;
 
 /**
@@ -84,3 +87,5 @@ public:
     virtual void finalize(cudaStream_t stream) = 0;
     virtual ~ExchangeEngine();
 };
+
+} // namespace mirheo

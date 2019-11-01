@@ -4,6 +4,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 IntegratorConstOmega::IntegratorConstOmega(const MirState *state, std::string name, real3 center, real3 omega) :
     Integrator(state, name),
     center(center), omega(omega)
@@ -38,3 +41,5 @@ void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
     integrate(pv, state->dt, rotate, stream);
     invalidatePV(pv);
 }
+
+} // namespace mirheo

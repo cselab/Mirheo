@@ -2,6 +2,9 @@
 
 #include <functional>
 
+namespace mirheo
+{
+
 using FieldFunction = std::function<real(real3)>;
 
 class FieldFromFunction : public Field
@@ -18,3 +21,5 @@ protected:
     
     FieldFunction func;
 };
+
+} // namespace mirheo

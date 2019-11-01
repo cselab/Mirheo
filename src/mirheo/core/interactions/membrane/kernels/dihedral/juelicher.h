@@ -8,6 +8,9 @@
 
 #include <cmath>
 
+namespace mirheo
+{
+
 class DihedralJuelicher : public VertexFetcherWithMeanCurvatures
 {
 public:    
@@ -101,3 +104,5 @@ private:
     mReal kb, H0, kad_pi, DA0;
     mReal scurv;
 };
+
+} // namespace mirheo

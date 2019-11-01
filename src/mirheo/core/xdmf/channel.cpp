@@ -2,6 +2,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 
@@ -141,3 +144,5 @@ Channel::NumberType infoToNumberType(const std::string& str, int precision)
 }
 
 } // namespace XDMF
+
+} // namespace mirheo

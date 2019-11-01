@@ -4,6 +4,9 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 class LinearPressureEOS
 {
 public:
@@ -52,3 +55,5 @@ private:
 
     real p0, invRhor;
 };
+
+} // namespace mirheo

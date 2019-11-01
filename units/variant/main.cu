@@ -13,7 +13,9 @@
 using VarType    = mpark::variant<int, float>;
 using VarTypePtr = variant::variant<int*, float*>;
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 __HD__ inline int eval(int a)
 {

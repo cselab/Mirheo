@@ -6,6 +6,9 @@
 #include <vector>
 #include <type_traits>
 
+namespace mirheo
+{
+
 // Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported
 // Container size will be serialized too
 class SimpleSerializer
@@ -247,3 +250,4 @@ public:
     }
 };
 
+} // namespace mirheo

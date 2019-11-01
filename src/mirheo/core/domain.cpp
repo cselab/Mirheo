@@ -2,6 +2,9 @@
 
 #include "domain.h"
 
+namespace mirheo
+{
+
 DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize)
 {
     DomainInfo domain;
@@ -18,3 +21,5 @@ DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize)
 
     return domain;
 }
+
+} // namespace mirheo

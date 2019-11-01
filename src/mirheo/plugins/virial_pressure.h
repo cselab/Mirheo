@@ -6,6 +6,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 namespace VirialPressure
@@ -60,3 +63,5 @@ private:
     bool activated = true;
     FileWrapper fdump;
 };
+
+} // namespace mirheo

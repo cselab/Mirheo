@@ -2,6 +2,9 @@
 
 #include <pybind11/pybind11.h>
 
+namespace mirheo
+{
+
 namespace py = pybind11;
 
 void exportVectorTypes(py::module& m);
@@ -15,4 +18,4 @@ void exportBouncers(py::module& m);
 void exportWalls(py::module& m);
 void exportPlugins(py::module& m);
 
-
+} // namespace mirheo

@@ -4,6 +4,9 @@
 #include "../object_vector.h"
 #include "pv.h"
 
+namespace mirheo
+{
+
 /**
  * GPU-compatible struct of all the relevant data
  */
@@ -73,3 +76,5 @@ struct OVviewWithNewOldVertices : public OVview
         vertexForces = reinterpret_cast<real4*>( lov->getMeshForces     (stream)->devPtr() );
     }
 };
+
+} // namespace mirheo

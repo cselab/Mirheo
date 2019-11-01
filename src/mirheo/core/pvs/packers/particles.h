@@ -6,6 +6,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class LocalParticleVector;
 
 struct ParticlePackerHandler
@@ -32,3 +35,5 @@ protected:
     PackPredicate predicate;
     GenericPacker particleData;
 };
+
+} // namespace mirheo

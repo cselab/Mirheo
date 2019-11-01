@@ -5,6 +5,9 @@
 #include <string>
 #include <fstream>
 
+namespace mirheo
+{
+
 inline std::ostream& operator<<(std::ostream& s, const real3& v)
 {
     s << v.x << " " << v.y << " " << v.z;
@@ -62,3 +65,5 @@ bool read(std::string fname, Args&... args)
 }
 
 } // namespace TextIO
+
+} // namespace mirheo

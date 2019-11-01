@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class ObjectVector;
 class CellList;
@@ -24,3 +27,5 @@ public:
     virtual std::vector<std::string> getChannelsToBeExchanged() const;
     virtual ObjectVector* getObjectVector() = 0;
 };
+
+} // namespace mirheo

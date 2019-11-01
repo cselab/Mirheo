@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ExchangePvsFluxPlaneKernels
 {
 
@@ -144,3 +147,4 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     }
 }
 
+} // namespace mirheo

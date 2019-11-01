@@ -12,6 +12,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 class CellList;
 class LocalParticleVector;
 
@@ -122,3 +125,5 @@ protected:
     StepRandomGen stepGen;
     real kBT;
 };
+
+} // namespace mirheo

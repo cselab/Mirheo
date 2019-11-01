@@ -6,6 +6,9 @@
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ParticleDisplacementPluginKernels
 {
 
@@ -84,3 +87,5 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, positions->devPtr(), displacements->devPtr());    
 }
+
+} // namespace mirheo

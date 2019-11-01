@@ -7,6 +7,9 @@
 #include <vector>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 class RigidIC : public InitialConditions
 {
 public:
@@ -24,3 +27,5 @@ private:
     std::vector<real3> coords;
     std::vector<real3> comVelocities;
 };
+
+} // namespace mirheo

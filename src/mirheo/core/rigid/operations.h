@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/views/rov.h>
 
+namespace mirheo
+{
+
 namespace RigidOperations
 {
 enum class ApplyTo { PositionsOnly, PositionsAndVelocities };
@@ -14,3 +17,5 @@ void applyRigidMotion(const ROVview& view, const PinnedBuffer<real4>& initialPos
 void clearRigidForcesFromMotions(const ROVview& view, cudaStream_t stream);
 
 } // namespace RigidOperations
+
+} // namespace mirheo

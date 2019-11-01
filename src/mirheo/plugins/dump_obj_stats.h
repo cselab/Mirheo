@@ -8,6 +8,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ObjStatsPlugin : public SimulationPlugin
 {
 public:
@@ -56,3 +59,5 @@ private:
     bool activated = true;
     MPI_File fout;
 };
+
+} // namespace mirheo

@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/file_wrapper.h>
 #include <mirheo/core/utils/timer.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 namespace Stats
@@ -51,3 +54,5 @@ public:
 private:
     FileWrapper fdump;
 };
+
+} // namespace mirheo

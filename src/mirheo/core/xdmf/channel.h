@@ -5,6 +5,9 @@
 #include <hdf5.h>
 #include <string>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 struct Channel
@@ -41,3 +44,5 @@ int                         numberTypeToPrecision (Channel::NumberType dt);
 Channel::NumberType infoToNumberType(const std::string& str, int precision);
 
 } // namespace XDMF
+
+} // namespace mirheo

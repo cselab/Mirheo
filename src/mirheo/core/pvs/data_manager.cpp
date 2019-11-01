@@ -1,5 +1,8 @@
 #include "data_manager.h"
 
+namespace mirheo
+{
+
 DataManager::DataManager(const DataManager& b)
 {
     for (const auto& entry : b.channelMap)
@@ -195,3 +198,5 @@ void DataManager::deleteChannel(const std::string& name)
         }
     }
 }
+
+} // namespace mirheo

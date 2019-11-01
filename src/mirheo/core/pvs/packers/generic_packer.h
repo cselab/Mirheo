@@ -10,6 +10,9 @@
 #include <cassert>
 #include <functional>
 
+namespace mirheo
+{
+
 using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&) >;
 
 struct GenericPackerHandler
@@ -177,3 +180,5 @@ protected:
     PinnedBuffer<CudaVarPtr> channelData;
     PinnedBuffer<bool> needShiftData;
 };
+
+} // namespace mirheo

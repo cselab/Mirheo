@@ -6,6 +6,9 @@
 #include <vector_types.h>
 #include <vector>
 
+namespace mirheo
+{
+
 class Mesh
 {
 public:
@@ -49,4 +52,4 @@ struct MeshView
     MeshView(const Mesh *m);
 };
 
-
+} // namespace mirheo

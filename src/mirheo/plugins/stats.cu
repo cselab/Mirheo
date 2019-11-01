@@ -10,6 +10,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
 
+namespace mirheo
+{
+
 namespace StatsKernels
 {
 using Stats::ReductionType;
@@ -162,4 +165,4 @@ void PostprocessStats::deserialize()
     }
 }
 
-
+} // namespace mirheo

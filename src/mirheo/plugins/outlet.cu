@@ -10,6 +10,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 using AccumulatedIntType = unsigned long long int;
 
 namespace OutletPluginKernels
@@ -275,3 +278,5 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
             view, isInsideFunc, seed, killProbability);
     }
 }
+
+} // namespace mirheo

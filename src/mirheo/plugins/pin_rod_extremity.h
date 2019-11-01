@@ -6,6 +6,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 class RodVector;
 
 class PinRodExtremityPlugin : public SimulationPlugin
@@ -26,3 +29,5 @@ private:
     real fmagn;
     real3 targetDirection;
 };
+
+} // namespace mirheo

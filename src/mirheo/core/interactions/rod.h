@@ -5,6 +5,9 @@
 
 #include <extern/variant/include/mpark/variant.hpp>
 
+namespace mirheo
+{
+
 using VarSpinParams = mpark::variant<StatesParametersNone,
                                      StatesSmoothingParameters,
                                      StatesSpinParameters>;
@@ -23,3 +26,5 @@ public:
 
     bool isSelfObjectInteraction() const override;
 };
+
+} // namespace mirheo

@@ -5,6 +5,9 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/vec_traits.h>
 
+namespace mirheo
+{
+
 namespace Quaternion
 {
 // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
@@ -85,3 +88,5 @@ __HD__ inline R4 timeDerivative(const R4 q, const R3 omega)
 }
 
 } // namespace Quaternion
+
+} // namespace mirheo

@@ -3,6 +3,9 @@
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 class DensityAccumulator
 {
 public:
@@ -27,3 +30,5 @@ public:
 private:
     real den;
 };
+
+} // namespace mirheo

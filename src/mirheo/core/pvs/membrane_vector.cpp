@@ -1,5 +1,8 @@
 #include "membrane_vector.h"
 
+namespace mirheo
+{
+
 MembraneVector::MembraneVector(const MirState *state, std::string name, real mass, std::shared_ptr<MembraneMesh> mptr, int nObjects) :
     ObjectVector( state, name, mass, mptr->getNvertices(),
                   std::make_unique<LocalObjectVector>(this, mptr->getNvertices(), nObjects),
@@ -9,3 +12,5 @@ MembraneVector::MembraneVector(const MirState *state, std::string name, real mas
 }
 
 MembraneVector::~MembraneVector() = default;
+
+} // namespace mirheo

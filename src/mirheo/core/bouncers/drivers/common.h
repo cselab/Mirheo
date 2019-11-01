@@ -1,5 +1,8 @@
 #pragma once
 
+namespace mirheo
+{
+
 template<typename T>
 struct CollisionTable
 {
@@ -38,3 +41,5 @@ __device__ static inline T fmax_vec(T v, Args... args)
 {
     return math::max(v, fmax_vec(args...));
 }
+
+} // namespace mirheo

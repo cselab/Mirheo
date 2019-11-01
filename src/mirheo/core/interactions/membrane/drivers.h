@@ -2,6 +2,9 @@
 
 #include "kernels/common.h"
 
+namespace mirheo
+{
+
 namespace MembraneForcesKernels
 {
 
@@ -187,3 +190,4 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
 }
 
 } // namespace MembraneInteractionKernels
+} // namespace mirheo

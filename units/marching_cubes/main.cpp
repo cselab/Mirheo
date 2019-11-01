@@ -5,7 +5,9 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 inline void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
 {

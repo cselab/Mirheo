@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
+
 namespace DumpParticlesRodKernels
 {
 
@@ -95,3 +98,5 @@ void ParticleWithRodQuantitiesSenderPlugin::beforeForces(cudaStream_t stream)
         }
     }
 }
+
+} // namespace mirheo

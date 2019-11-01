@@ -2,6 +2,9 @@
 
 #include "dump_particles.h"
 
+namespace mirheo
+{
+
 class RodVector;
 
 class ParticleWithRodQuantitiesSenderPlugin : public ParticleSenderPlugin
@@ -21,3 +24,4 @@ protected:
     std::map<std::string, DeviceBuffer<real>> channelRodData;
 };
 
+} // namespace mirheo

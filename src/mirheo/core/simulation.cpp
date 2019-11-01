@@ -22,6 +22,9 @@
 #include <memory>
 #include <set>
 
+namespace mirheo
+{
+
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \
     _( cellLists                           , "Build cell-lists")        \
@@ -1353,3 +1356,5 @@ void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool curr
         s.saveDependencyGraph_GraphML(fname);
     }
 }
+
+} // namespace mirheo

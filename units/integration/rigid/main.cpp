@@ -6,7 +6,9 @@
 #include <cstdio>
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
 {

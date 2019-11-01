@@ -2,6 +2,9 @@
 
 #include "exchanger_interfaces.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 class ParticlePacker;
@@ -24,3 +27,5 @@ private:
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
 };
+
+} // namespace mirheo

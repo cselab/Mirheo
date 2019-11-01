@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace AnchorParticlesKernels
 {
 
@@ -179,3 +182,5 @@ void AnchorParticlesStatsPlugin::deserialize()
         fflush(fout.get());
     }
 }
+
+} // namespace mirheo

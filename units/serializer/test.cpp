@@ -10,7 +10,9 @@
 
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 void myassert(bool condition, const std::string& message)
 {

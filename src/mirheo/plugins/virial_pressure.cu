@@ -12,6 +12,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
 
+namespace mirheo
+{
+
 namespace VirialPressureKernels
 {
 __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, VirialPressure::ReductionType *pressure)
@@ -146,3 +149,4 @@ void VirialPressureDumper::deserialize()
     fprintf(fdump.get(), "%g %.6e\n", curTime, totalPressure);
 }
 
+} // namespace mirheo

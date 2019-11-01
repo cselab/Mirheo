@@ -3,6 +3,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 MirObject::MirObject(std::string name) :
     name(name)
 {}
@@ -67,3 +70,5 @@ MirSimulationObject::MirSimulationObject(const MirState *state, const std::strin
 {}
 
 MirSimulationObject::~MirSimulationObject() = default;
+
+} // namespace mirheo

@@ -9,6 +9,9 @@
 #include <cassert>
 #include <type_traits>
 
+namespace mirheo
+{
+
 enum class InteractionWith
 {
     Self, Other
@@ -413,3 +416,5 @@ __global__ void computeExternalInteractions_27tpp(
     if (NeedDstAcc == InteractionOut::NeedAcc)
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
+
+} // namespace mirheo

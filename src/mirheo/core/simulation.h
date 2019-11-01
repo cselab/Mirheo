@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -222,3 +225,4 @@ private:
     void checkpointState();
 };
 
+} // namespace mirheo

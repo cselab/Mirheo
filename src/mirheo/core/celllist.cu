@@ -11,6 +11,9 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
+namespace mirheo
+{
+
 namespace CellListKernels
 {
 
@@ -475,3 +478,5 @@ std::string PrimaryCellList::makeName() const
 {
     return "Primary " + CellList::makeName();
 }
+
+} // namespace mirheo

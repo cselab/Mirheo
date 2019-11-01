@@ -1,5 +1,8 @@
 #pragma once
 
+namespace mirheo
+{
+
 enum class StressFreeState
 {
     Active,
@@ -58,3 +61,5 @@ struct JuelicherBendingParameters
     using DihedralForce = DihedralJuelicher;
     real kb, C0, kad, DA0;
 };
+
+} // namespace mirheo

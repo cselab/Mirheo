@@ -2,6 +2,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 struct RodParameters
 {
     real3 kBending; ///< bending force magnitude in that order: (Bxx, Bxy, Byy) (symmetric matrix)
@@ -38,3 +41,5 @@ private:
     std::mt19937 gen;
     std::uniform_real_distribution<real> udistr;
 };
+
+} // namespace mirheo

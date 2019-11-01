@@ -10,6 +10,9 @@
 
 #include <limits>
 
+namespace mirheo
+{
+
 constexpr const char *RestartOVIdentifier = "OV";
 
 namespace ObjectVectorKernels
@@ -248,3 +251,5 @@ void ObjectVector::restart(MPI_Comm comm, const std::string& path)
     
     local()->resize(ms.newSize * objSize, defaultStream);
 }
+
+} // namespace mirheo

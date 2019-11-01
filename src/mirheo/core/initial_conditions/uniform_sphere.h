@@ -4,6 +4,9 @@
 
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 /**
  * Initialize particles uniformly inside or outside a sphere with the given density
  */
@@ -22,3 +25,4 @@ private:
     bool inside;
 };
 
+} // namespace mirheo

@@ -1,5 +1,8 @@
 #include "factory_helper.h"
 
+namespace mirheo
+{
+
 namespace FactoryHelper
 {
 template <> real ParamsReader::makeDefault<real>() const {return defaultReal;}
@@ -248,3 +251,5 @@ VarStressParams readStressParams(ParametersWrap& desc)
 }
 
 } // namespace FactoryHelper
+
+} // namespace mirheo

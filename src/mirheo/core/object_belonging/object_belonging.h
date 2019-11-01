@@ -3,6 +3,9 @@
 #include "interface.h"
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 enum class BelongingTags
 {
     Outside = 0, Inside = 1
@@ -37,3 +40,5 @@ protected:
 
     virtual void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 };
+
+} // namespace mirheo

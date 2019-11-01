@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 class Field;
@@ -114,3 +117,5 @@ protected:
     
     real rate;
 };
+
+} // namespace mirheo

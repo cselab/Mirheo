@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/quaternion.h>
 #include <mirheo/core/utils/root_finder.h>
 
+namespace mirheo
+{
+
 namespace ShapeBounceKernels
 {
 
@@ -229,5 +232,5 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt, bounceKernel);
 }
 
-
 } // namespace EllipsoidBounceKernels
+} // namespace mirheo

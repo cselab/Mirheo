@@ -2,6 +2,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 Plugin::Plugin() :
     comm(MPI_COMM_NULL),
     interComm(MPI_COMM_NULL)
@@ -136,6 +139,4 @@ void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     _setup(comm, interComm);
 }
 
-
-
-
+} // namespace mirheo

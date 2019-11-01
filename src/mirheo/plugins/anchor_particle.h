@@ -8,6 +8,9 @@
 #include <functional>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 using FuncTime3D = std::function<std::vector<real3>(real)>;
@@ -60,3 +63,5 @@ private:
 
     FileWrapper fout;
 };
+
+} // namespace mirheo

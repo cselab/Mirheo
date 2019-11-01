@@ -10,6 +10,9 @@
 #include <vector>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 /**
@@ -30,3 +33,5 @@ private:
     std::vector<ComQ> com_q;
     real globalScale;
 };
+
+} // namespace mirheo

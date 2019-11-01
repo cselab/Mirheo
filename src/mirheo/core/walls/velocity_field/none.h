@@ -4,6 +4,9 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 class VelocityField_None
 {
 public:
@@ -17,3 +20,5 @@ public:
         return {0._r, 0._r, 0._r};
     }
 };
+
+} // namespace mirheo

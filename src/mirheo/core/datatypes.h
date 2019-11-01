@@ -13,6 +13,9 @@
 #include <type_traits>
 #include <utility>
 
+namespace mirheo
+{
+
 #ifdef MIRHEO_DOUBLE_PRECISION
 using real    = double;
 using integer = int64_t;
@@ -359,3 +362,5 @@ struct ComQ
     real3 r;
     real4 q;
 };
+
+} // namespace mirheo

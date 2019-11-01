@@ -4,6 +4,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 /**
  * @param vel Velocity magnitude
  * @param period Sine wave period
@@ -36,3 +39,5 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
     integrate(pv, state->dt, oscillate, stream);
     invalidatePV(pv);
 }
+
+} // namespace mirheo

@@ -9,6 +9,9 @@
 #include <mirheo/core/pvs/packers/objects.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ObjectReverseExchangerKernels
 {
 
@@ -179,3 +182,5 @@ void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
             helper->wrapRecvData());
     }, ExchangersCommon::getHandler(unpacker));
 }
+
+} // namespace mirheo

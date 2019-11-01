@@ -6,6 +6,9 @@
 #include <mpi.h>
 #include <vector>
 
+namespace mirheo
+{
+
 Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
     MirObject("postprocess"),
     comm(comm),
@@ -143,3 +146,5 @@ void Postprocess::checkpoint(int checkpointId)
     for (auto& pl : plugins)
         pl->checkpoint(comm, checkpointFolder, checkpointId);
 }
+
+} // namespace mirheo

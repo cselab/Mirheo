@@ -5,6 +5,9 @@
 #include <vector_types.h>
 #include <vector>
 
+namespace mirheo
+{
+
 class FromArrayIC : public InitialConditions
 {
 public:
@@ -16,3 +19,5 @@ private:
     std::vector<real3> pos, vel;
 };
 
+
+} // namespace mirheo

@@ -4,6 +4,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 class RestartIC : public InitialConditions
 {
 public:
@@ -15,3 +18,5 @@ public:
 private:
     std::string path;
 };
+
+} // namespace mirheo

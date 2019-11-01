@@ -12,6 +12,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class Field;
 
@@ -86,3 +89,5 @@ public:
 private:
     FileWrapper fdump;
 };
+
+} // namespace mirheo

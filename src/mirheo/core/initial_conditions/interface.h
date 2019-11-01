@@ -5,6 +5,9 @@
 #include <mpi.h>
 #include <cuda_runtime.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 /**
@@ -21,3 +24,5 @@ public:
 
     virtual ~InitialConditions() = default;
 };
+
+} // namespace mirheo

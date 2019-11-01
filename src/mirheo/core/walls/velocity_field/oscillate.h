@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class VelocityField_Oscillate
@@ -38,3 +41,5 @@ private:
 
     DomainInfo domain;
 };
+
+} // namespace mirheo

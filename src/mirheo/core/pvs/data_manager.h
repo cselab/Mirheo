@@ -12,6 +12,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 using VarPinnedBufferPtr = mpark::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
     TYPE_TABLE_COMMA(MAKE_WRAPPER)
@@ -191,3 +194,5 @@ private:
     
     void sortChannels();
 };
+
+} // namespace mirheo

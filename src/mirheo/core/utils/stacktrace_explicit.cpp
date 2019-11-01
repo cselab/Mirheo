@@ -3,6 +3,9 @@
 #define BACKWARD_HAS_BFD 1
 #include <extern/backward-cpp/backward.hpp>
 
+namespace mirheo
+{
+
 void pretty_stacktrace(std::ostream& stream)
 {
     using namespace backward;
@@ -20,3 +23,5 @@ void register_signals()
 {
     backward::SignalHandling sh;
 }
+
+} // namespace mirheo

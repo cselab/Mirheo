@@ -9,7 +9,9 @@
 #include <numeric>
 #include <random>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 namespace ReduceKernels
 {

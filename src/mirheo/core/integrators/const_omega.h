@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 /**
  * Rotate the particles around #center (defined in global coordinate system)
  * with the angular velocity #omega. All the forces are disregarded.
@@ -23,3 +26,5 @@ private:
 
     real3 center, omega;
 };
+
+} // namespace mirheo

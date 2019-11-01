@@ -13,6 +13,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 template <class KernelType>
 static std::unique_ptr<Interaction>
 createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
@@ -332,3 +335,5 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     
     desc.checkAllRead();
 }
+
+} // namespace mirheo

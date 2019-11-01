@@ -12,6 +12,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
 
+namespace mirheo
+{
+
 namespace AverageRelativeFlowKernels
 {
 __global__ void sampleRelative(
@@ -233,3 +236,4 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
     send(sendBuffer);
 }
 
+} // namespace mirheo

@@ -7,6 +7,9 @@
 
 #include <cuda_runtime.h>
 
+namespace mirheo
+{
+
 class SDF_basedWall;
 class ParticleVector;
 
@@ -21,3 +24,5 @@ void dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, real3 gridH, DomainInfo d
 double volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank);
 
 } // namespace WallHelpers
+
+} // namespace mirheo

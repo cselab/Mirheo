@@ -6,6 +6,9 @@
 
 #include <numeric>
 
+namespace mirheo
+{
+
 namespace RestartHelpers
 {
 
@@ -238,3 +241,5 @@ void copyAndShiftListData(const DomainInfo domain,
 }
 
 } // namespace RestartHelpers
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class AddForcePlugin : public SimulationPlugin
@@ -20,3 +23,4 @@ private:
     real3 force;
 };
 
+} // namespace mirheo

@@ -26,13 +26,15 @@
 
 #include <mirheo/core/datatypes.h>
 
-
 #if defined(__CUDACC__)
 #include <cuda_runtime.h>
 #else
 #include <cmath>
 #include <cstdlib>
 #endif
+
+namespace mirheo
+{
 
 using uint =  unsigned int;
 using ushort =  unsigned short;
@@ -117,6 +119,19 @@ static inline __HD__ double2 sincos(double x) {return {sin(x), cos(x)};}
 ////////////////////////////////////////////////////////////////////////////////
 // constructors
 ////////////////////////////////////////////////////////////////////////////////
+
+using ::make_float2;
+using ::make_float3;
+using ::make_float4;
+using ::make_double2;
+using ::make_double3;
+using ::make_double4;
+using ::make_int2;
+using ::make_int3;
+using ::make_int4;
+using ::make_uint2;
+using ::make_uint3;
+using ::make_uint4;
 
 static inline __HD__ float2 make_float2(float s)
 {
@@ -394,6 +409,11 @@ static inline __HD__ double4 make_double4(float4 a)
 {
     return make_double4(double(a.x), double(a.y), double(a.z), double(a.w));
 }
+
+} // namespace mirheo
+
+// Note: Operators must stay in the global namespace, because float2 and other
+//       types are also global (argument-dependent lookup doesn't work here).
 
 ////////////////////////////////////////////////////////////////////////////////
 // negate
@@ -1501,6 +1521,11 @@ static inline __HD__ int3 operator/(int3 a, int3 b)
 }
 
 
+
+
+namespace mirheo
+{
+
 ////////////////////////////////////////////////////////////////////////////////
 // dot product
 ////////////////////////////////////////////////////////////////////////////////
@@ -1860,3 +1885,4 @@ static inline __HD__ int4 abs(int4 v)
 
 } // namespace math
 
+} // namespace mirheo

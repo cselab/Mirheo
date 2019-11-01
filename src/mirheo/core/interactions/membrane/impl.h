@@ -16,6 +16,9 @@
 #include <functional>
 #include <random>
 
+namespace mirheo
+{
+
 /**
  * Provide mapping from the model parameters to the parameters
  * used on GPU to compute the forces.
@@ -174,3 +177,5 @@ protected:
     StepRandomGen stepGen;
     
 };
+
+} // namespace mirheo

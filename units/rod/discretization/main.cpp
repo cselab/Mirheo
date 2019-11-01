@@ -9,7 +9,9 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 using Real  = double;
 using Real2 = double2;

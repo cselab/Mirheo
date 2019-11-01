@@ -6,6 +6,9 @@
 #include <mpi.h>
 #include <vector>
 
+namespace mirheo
+{
+
 class Simulation;
 
 class Plugin
@@ -83,7 +86,4 @@ protected:
     int size;    
 };
 
-
-
-
-
+} // namespace mirheo

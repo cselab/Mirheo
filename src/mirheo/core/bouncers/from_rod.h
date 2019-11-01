@@ -7,6 +7,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 class RodVector;
 
 /**
@@ -53,3 +56,5 @@ private:
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;
 };
+
+} // namespace mirheo

@@ -8,7 +8,9 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 #define FMT "%+6e"
 #define SEP "\t"

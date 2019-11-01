@@ -4,6 +4,9 @@
 
 #include "../rod_vector.h"
 
+namespace mirheo
+{
+
 struct RVview : public OVview
 {
     int   nSegments {0};
@@ -35,3 +38,5 @@ struct RVviewWithOldParticles : public RVview
         oldPositions = lrv->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->devPtr();
     }
 };
+
+} // namespace mirheo

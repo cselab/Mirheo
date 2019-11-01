@@ -6,6 +6,9 @@
 #include <mirheo/core/logger.h>
 #include <algorithm>
 
+namespace mirheo
+{
+
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
     exchanger(std::move(exchanger)),
@@ -325,4 +328,4 @@ void MPIExchangeEngine::send(ExchangeHelper *helper, cudaStream_t stream)
     debug("Sent total %d '%s' entities", totSent, pvName.c_str());
 }
 
-
+} // namespace mirheo

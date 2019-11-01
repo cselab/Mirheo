@@ -12,6 +12,9 @@
 
 #include <pybind11/stl.h>
 
+namespace mirheo
+{
+
 namespace py = pybind11;
 using namespace pybind11::literals;
 
@@ -251,3 +254,5 @@ void exportParticleVectors(py::module& m)
                 num_segments: number of elements to discretize the rod
         )");
 }
+
+} // namespace mirheo

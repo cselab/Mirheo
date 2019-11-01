@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 namespace ShapeBelongingKernels
 {
 
@@ -90,3 +93,5 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
 #define INSTANTIATE(Shape) template class ShapeBelongingChecker<Shape>;
 
 ASHAPE_TABLE(INSTANTIATE)
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include "rigid_object_vector.h"
 
+namespace mirheo
+{
+
 template <class Shape>
 class RigidShapedObjectVector : public RigidObjectVector
 {
@@ -17,4 +20,4 @@ public:
     Shape shape;
 };
 
-
+} // namespace mirheo

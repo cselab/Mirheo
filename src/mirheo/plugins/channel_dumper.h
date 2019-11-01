@@ -7,6 +7,9 @@
 #include <mirheo/plugins/interface.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
+namespace mirheo
+{
+
 class UniformCartesianDumper : public PostprocessPlugin
 {
 public:
@@ -35,3 +38,5 @@ protected:
 
     MPI_Comm cartComm {MPI_COMM_NULL};
 };
+
+} // namespace mirheo

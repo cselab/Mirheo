@@ -3,6 +3,9 @@
 #include "helper_math.h"
 #include "cpu_gpu_defines.h"
 
+namespace mirheo
+{
+
 static const cudaStream_t defaultStream = 0;
 
 // shuffle instructions wrappers
@@ -182,6 +185,7 @@ __device__ inline T warpExclusiveScan(T val) {
     return warpInclusiveScan(val) - val;
 }
 
+} // namespace mirheo
 
 //=======================================================================================
 // Atomic functions
@@ -272,6 +276,10 @@ __device__ inline double3 atomicAdd(double4* addr, double3 v)
     res.z = atomicAdd((double*)addr+2, v.z);
     return res;
 }
+
+
+namespace mirheo
+{
 
 //=======================================================================================
 // Read/write through cache
@@ -424,5 +432,4 @@ __HD__ inline float fastPower(const float x, const float k)
     return math::pow(math::abs(x), k);
 }
 
-
-
+} // namespace mirheo

@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 
+namespace mirheo
+{
+
 struct GPU_RodBoundsParameters
 {
     real lcenter, lcross, ldiag, lring;
@@ -228,3 +231,5 @@ __global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
 
 
 } // namespace RodForcesKernels
+
+} // namespace mirheo

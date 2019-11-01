@@ -11,6 +11,9 @@
 #include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 namespace PinObjectKernels
 {
 
@@ -283,3 +286,4 @@ void ReportPinObjectPlugin::deserialize()
     }
 }
 
+} // namespace mirheo

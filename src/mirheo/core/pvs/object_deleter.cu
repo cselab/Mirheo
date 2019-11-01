@@ -3,6 +3,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <extern/cub/cub/device/device_scan.cuh>
 
+namespace mirheo
+{
+
 namespace ObjectDeleterDetails
 {
 
@@ -124,3 +127,5 @@ void ObjectDeleter::deleteObjects(LocalObjectVector *lov, cudaStream_t stream, L
         numOld, nthreads, 0, stream,
         packerSrc.handler(), packerDst.handler(), marks.devPtr(), prefixSum.devPtr(), numOld);
 }
+
+} // namespace mirheo

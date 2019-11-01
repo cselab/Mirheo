@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <memory>
 
+namespace mirheo
+{
+
 template<typename T>
 std::string to_string(const std::vector<T, std::allocator<T>>& v)
 {
@@ -15,3 +18,5 @@ std::string to_string(const std::vector<T, std::allocator<T>>& v)
     
     return s;
 }
+
+} // namespace mirheo

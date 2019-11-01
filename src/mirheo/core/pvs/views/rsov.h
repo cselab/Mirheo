@@ -3,6 +3,9 @@
 #include "rov.h"
 #include <mirheo/core/pvs/rigid_ashape_object_vector.h>
 
+namespace mirheo
+{
+
 template <class Shape>
 struct RSOVview : public ROVview
 {
@@ -25,3 +28,5 @@ struct RSOVviewWithOldMotion : public RSOVview<Shape>
         old_motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
     }
 };
+
+} // namespace mirheo

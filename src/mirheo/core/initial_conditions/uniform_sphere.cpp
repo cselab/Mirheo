@@ -3,6 +3,9 @@
 
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 UniformSphereIC::UniformSphereIC(real density, real3 center, real radius, bool inside) :
     density(density),
     center(center),
@@ -25,3 +28,4 @@ void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_
     addUniformParticles(density, comm, pv, filterSphere, stream);
 }
 
+} // namespace mirheo

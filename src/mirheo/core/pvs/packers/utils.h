@@ -3,6 +3,9 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 template <typename TPadding = real4>
 __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)
 {
@@ -16,3 +19,5 @@ __HD__ static size_t getPaddedSize(int n)
 {
     return getPaddedSize<TPadding>(sizeof(T), n);
 }
+
+} // namespace mirheo

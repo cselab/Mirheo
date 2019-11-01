@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ParticlePortal {
 
 // (*) In the code below, we don't manually check whether particles are marked
@@ -216,3 +219,5 @@ void ParticlePortalDestination::beforeCellLists(cudaStream_t stream)
         getNblocks(numRecv, nthreads), nthreads, 0, stream,
         view, packer.handler(), shift, inBuffer.devPtr(), numExisting, numRecv);
 }
+
+} // namespace mirheo

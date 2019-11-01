@@ -13,6 +13,9 @@
 #include <fstream>
 #include <random>
 
+namespace mirheo
+{
+
 class CellList;
 class LocalParticleVector;
 
@@ -133,3 +136,5 @@ protected:
     real viscosity;
     real kBT;
 };
+
+} // namespace mirheo

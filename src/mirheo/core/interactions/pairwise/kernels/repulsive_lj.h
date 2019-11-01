@@ -9,6 +9,9 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/rod_vector.h>
 
+namespace mirheo
+{
+
 struct LJAwarenessNone
 {
     LJAwarenessNone() = default;
@@ -160,3 +163,5 @@ private:
 
     Awareness awareness;
 };
+
+} // namespace mirheo

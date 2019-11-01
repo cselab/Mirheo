@@ -3,6 +3,9 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/macros.h>
 
+namespace mirheo
+{
+
 Bouncer::Bouncer(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
@@ -36,3 +39,5 @@ std::vector<std::string> Bouncer::getChannelsToBeSentBack() const
 {
     return {};
 }
+
+} // namespace mirheo

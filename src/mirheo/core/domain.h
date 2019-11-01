@@ -7,6 +7,9 @@
 #include <cuda_runtime.h>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 struct DomainInfo
 {
     real3 globalSize, globalStart, localSize;
@@ -36,3 +39,5 @@ struct DomainInfo
 };
 
 DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize);
+
+} // namespace mirheo

@@ -5,6 +5,9 @@
 
 #include <mirheo/core/mirheo_object.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 /**
@@ -52,3 +55,5 @@ public:
 protected:
     void invalidatePV(ParticleVector *pv);
 };
+
+} // namespace mirheo

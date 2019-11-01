@@ -8,6 +8,9 @@
 
 #include <cmath>
 
+namespace mirheo
+{
+
 class DihedralKantor : public VertexFetcher
 {
 public:    
@@ -58,3 +61,5 @@ private:
 
     mReal cost0kb, sint0kb;
 };
+
+} // namespace mirheo

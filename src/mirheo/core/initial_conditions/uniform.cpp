@@ -1,6 +1,9 @@
 #include "uniform.h"
 #include "helpers.h"
 
+namespace mirheo
+{
+
 UniformIC::UniformIC(real density) :
     density(density)
 {}
@@ -36,3 +39,5 @@ void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stre
     
     addUniformParticles(density, comm, pv, filterInKeepAll, stream);
 }
+
+} // namespace mirheo

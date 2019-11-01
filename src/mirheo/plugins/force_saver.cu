@@ -5,6 +5,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/pvs/views/pv.h>
 
+namespace mirheo
+{
+
 const std::string ForceSaverPlugin::fieldName = "forces";
 
 namespace ForceSaverKernels
@@ -51,4 +54,4 @@ void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const
     pv->requireDataPerParticle<real3>(fieldName, DataManager::PersistenceMode::None);
 }
 
-    
+} // namespace mirheo

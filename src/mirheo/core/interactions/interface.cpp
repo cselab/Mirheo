@@ -3,6 +3,9 @@
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/macros.h>
 
+namespace mirheo
+{
+
 Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),
     rc(rc)
@@ -44,3 +47,5 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
 }
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
+
+} // namespace mirheo

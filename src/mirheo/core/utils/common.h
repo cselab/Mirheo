@@ -2,6 +2,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 /**
  * Channel names used in several places of the program
  * names starting with "__" are internal channel names 
@@ -80,3 +83,5 @@ constexpr int stoppingMsg = -1;
 
 // tag used to tell the postprocess side to dump checkpoint 
 constexpr int checkpointTag = 434343;
+
+} // namespace mirheo

@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace IntegrationKernels
 {
 
@@ -53,3 +56,5 @@ static void integrate(ParticleVector *pv, real dt, Transform transform, cudaStre
         getNblocks(pvView.size, nthreads), nthreads, 0, stream,
         pvView, dt, transform );
 }
+
+} // namespace mirheo

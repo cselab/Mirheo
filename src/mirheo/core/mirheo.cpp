@@ -23,6 +23,9 @@
 #include <memory>
 #include <mpi.h>
 
+namespace mirheo
+{
+
 LogInfo::LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash) :
     fileName(fileName),
     verbosityLvl(verbosityLvl),
@@ -656,3 +659,5 @@ void Mirheo::logCompileOptions() const
     info("MEMBRANE_DOUBLE : %s", membraneDoubleOption.c_str());
     info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
 }
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include "object_belonging.h"
 
+namespace mirheo
+{
+
 class MeshBelongingChecker : public ObjectBelongingChecker_Common
 {
 public:
@@ -9,3 +12,5 @@ public:
 
     void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 };
+
+} // namespace mirheo

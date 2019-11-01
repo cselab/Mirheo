@@ -4,7 +4,9 @@
 #include <cstdio>
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 TEST (MAP, Entry_backAndForth)
 {

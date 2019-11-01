@@ -7,6 +7,9 @@
 #include <mirheo/core/object_belonging/mesh_belonging.h>
 #include <mirheo/core/object_belonging/rod_belonging.h>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportObjectBelongingCheckers(py::module& m)
@@ -66,3 +69,5 @@ void exportObjectBelongingCheckers(py::module& m)
             )");
 }
 
+
+} // namespace mirheo

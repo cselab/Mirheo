@@ -4,6 +4,9 @@
 
 #include <extern/variant/include/mpark/variant.hpp>
 
+namespace mirheo
+{
+
 using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
 
 namespace ExchangersCommon
@@ -39,3 +42,5 @@ inline VarPackHandler getHandler(ObjectPacker *packer)
 }
 
 } // namespace ExchangersCommon
+
+} // namespace mirheo

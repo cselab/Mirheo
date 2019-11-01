@@ -7,6 +7,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 class ObjectVector;
 
 
@@ -85,3 +88,4 @@ private:
     PinnedBuffer<int> counters {2};  // [0] = #overwritten, [1] = #overwritten + #new.
 };
 
+} // namespace mirheo

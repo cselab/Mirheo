@@ -1,5 +1,8 @@
 #include "file_wrapper.h"
 
+namespace mirheo
+{
+
 FileWrapper::FileWrapper(bool forceFlushOnClose) :
     forceFlushOnClose(forceFlushOnClose)
 {}
@@ -45,3 +48,5 @@ void FileWrapper::close()
         needClose = false;
     }
 }
+
+} // namespace mirheo

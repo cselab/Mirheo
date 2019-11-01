@@ -4,6 +4,9 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
     com_q(com_q),
     globalScale(globalScale)
@@ -67,3 +70,5 @@ std::vector<int> MembraneIC::createMap(DomainInfo domain) const
     }
     return map;
 }
+
+} // namespace mirheo

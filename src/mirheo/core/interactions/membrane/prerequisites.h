@@ -6,6 +6,9 @@
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 template <class EnergyParams>
 inline void setPrerequisitesPerEnergy(__UNUSED const EnergyParams& params,
                                       __UNUSED ParticleVector *pv1,
@@ -115,3 +118,5 @@ inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, Par
         blocks, threads, 0, stream,
         view, mesh );
 }
+
+} // namespace mirheo

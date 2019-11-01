@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/root_finder.h>
 
+namespace mirheo
+{
+
 namespace BounceKernels
 {
 
@@ -88,3 +91,5 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 }
 
 } // namespace BounceKernels
+
+} // namespace mirheo

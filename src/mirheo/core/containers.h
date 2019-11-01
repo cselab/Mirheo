@@ -12,6 +12,9 @@
 
 #include <cuda_runtime.h>
 
+namespace mirheo
+{
+
 // Some forward declarations
 template<typename T> class PinnedBuffer;
 
@@ -643,4 +646,4 @@ private:
     }
 };
 
-
+} // namespace mirheo

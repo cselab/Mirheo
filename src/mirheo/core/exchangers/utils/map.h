@@ -4,6 +4,9 @@
 
 #include <cstdint>
 
+namespace mirheo
+{
+
 struct __align__(4) MapEntry
 {
     // 27 < 2^5 buffers max
@@ -49,3 +52,5 @@ inline __HD__ int dispatchThreadsPerBuffer(int nBuffers, const int *offsets, int
     }
     return low;
 }
+
+} // namespace mirheo

@@ -3,6 +3,9 @@
 #ifdef USE_NVTX
 #include <functional>
 
+namespace mirheo
+{
+
 namespace NvtxHelpers
 {
 constexpr uint32_t colors[] = { 0xff00ff00, 0xff0000ff, 0xffffff00, 0xffff00ff, 0xff00ffff, 0xffff0000, 0xffffffff };
@@ -31,5 +34,7 @@ NvtxTracer::~NvtxTracer()
 {
     nvtxRangeEnd(id);
 }
+
+} // namespace mirheo
 
 #endif

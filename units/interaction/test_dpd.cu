@@ -14,7 +14,9 @@
 #include <unistd.h>
 #include <memory>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 bool verbose = false;
 

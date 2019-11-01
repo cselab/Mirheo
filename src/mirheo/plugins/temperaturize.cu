@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 __global__ void applyTemperature(PVview view, real kBT, real seed1, real seed2, bool keepVelocity)
 {
     int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,3 +53,4 @@ void TemperaturizePlugin::beforeForces(cudaStream_t stream)
             view, kBT, drand48(), drand48(), keepVelocity );
 }
 
+} // namespace mirheo

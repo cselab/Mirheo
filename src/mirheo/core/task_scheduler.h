@@ -15,6 +15,9 @@
 
 #include <cuda_runtime.h>
 
+namespace mirheo
+{
+
 class TaskScheduler
 {
 public:
@@ -87,3 +90,5 @@ private:
     void logDepsGraph();
 
 };
+
+} // namespace mirheo

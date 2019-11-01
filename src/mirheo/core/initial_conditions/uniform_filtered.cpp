@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 UniformFilteredIC::UniformFilteredIC(real density, PositionFilter filter) :
     density(density),
     filter(filter)
@@ -14,3 +17,5 @@ void UniformFilteredIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStrea
     addUniformParticles(density, comm, pv, filter, stream);
 }
 
+
+} // namespace mirheo

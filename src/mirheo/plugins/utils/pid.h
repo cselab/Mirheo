@@ -4,6 +4,9 @@
 
 #include <fstream>
 
+namespace mirheo
+{
+
 template <typename ControlType>
 class PidControl {
 public:
@@ -45,4 +48,4 @@ private:
     ControlType oldError, sumError;
 };
 
-
+} // namespace mirheo

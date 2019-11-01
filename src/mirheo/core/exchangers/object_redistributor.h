@@ -4,6 +4,9 @@
 
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 class ObjectVector;
 class ObjectPacker;
 
@@ -24,3 +27,5 @@ private:
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
 };
+
+} // namespace mirheo

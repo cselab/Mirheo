@@ -3,6 +3,9 @@
 #include "real.h"
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 class VertexFetcher
 {
 public:
@@ -34,3 +37,5 @@ public:
                 mReal(view.vertexMeanCurvatures[i])};
     }
 };
+
+} // namespace mirheo

@@ -24,6 +24,9 @@
 #include <fstream>
 #include <texture_types.h>
 
+namespace mirheo
+{
+
 enum class QueryMode {
    Query,
    Collect    
@@ -566,6 +569,4 @@ template class SimpleStationaryWall<StationaryWall_SDF>;
 template class SimpleStationaryWall<StationaryWall_Plane>;
 template class SimpleStationaryWall<StationaryWall_Box>;
 
-
-
-
+} // namespace mirheo

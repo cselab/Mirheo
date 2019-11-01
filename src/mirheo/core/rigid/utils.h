@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 #ifndef MIRHEO_DOUBLE_PRECISION
 static inline __HD__ RealRigidMotion toRealMotion(const DoubleRigidMotion& dm)
 {
@@ -34,3 +37,5 @@ inline __HD__ RigidReal4 make_rigidReal4(R4 a)
 {
     return {RigidReal(a.x), RigidReal(a.y), RigidReal(a.z), RigidReal(a.w)};
 }
+
+} // namespace mirheo

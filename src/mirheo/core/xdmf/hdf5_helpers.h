@@ -8,6 +8,9 @@
 
 #include "grids.h"
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 namespace HDF5
@@ -30,3 +33,5 @@ void read (const std::string& filename, MPI_Comm comm, Grid *grid, std::vector<C
 
 } // namespace HDF5
 } // namespace XDMF
+
+} // namespace mirheo

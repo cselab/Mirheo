@@ -14,6 +14,9 @@
 #include <fstream>
 #include <memory>
 
+namespace mirheo
+{
+
 namespace DensityControlPluginKernels
 {
 
@@ -318,3 +321,5 @@ void PostprocessDensityControl::deserialize()
         fflush(fdump.get());
     }
 }
+
+} // namespace mirheo

@@ -1,5 +1,8 @@
 #include "interface.h"
 
+namespace mirheo
+{
+
 ObjectBelongingChecker::ObjectBelongingChecker(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
@@ -10,3 +13,5 @@ std::vector<std::string> ObjectBelongingChecker::getChannelsToBeExchanged() cons
 {
     return {};
 }
+
+} // namespace mirheo

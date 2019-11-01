@@ -11,6 +11,9 @@
 
 #include <regex>
 
+namespace mirheo
+{
+
 MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name), ovName(ovName),
     dumpEvery(dumpEvery)
@@ -179,5 +182,4 @@ void MeshDumper::deserialize()
     }
 }
 
-
-
+} // namespace mirheo

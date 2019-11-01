@@ -6,6 +6,9 @@
 
 #include <limits>
 
+namespace mirheo
+{
+
 namespace FactoryHelper
 {
 constexpr auto defaultReal = std::numeric_limits<real>::infinity();
@@ -47,3 +50,5 @@ SDPDParams      readSDPDParams    (ParametersWrap& desc);
 VarStressParams readStressParams  (ParametersWrap& desc);
 
 } // FactoryHelper
+
+} // namespace mirheo

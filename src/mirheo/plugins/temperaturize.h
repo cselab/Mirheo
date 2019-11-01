@@ -6,6 +6,9 @@
 
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class TemperaturizePlugin : public SimulationPlugin
@@ -25,3 +28,4 @@ private:
     bool keepVelocity;
 };
 
+} // namespace mirheo

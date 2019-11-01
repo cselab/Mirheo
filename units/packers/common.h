@@ -12,6 +12,8 @@
 #include <random>
 #include <vector>
 
+using namespace mirheo;
+
 std::unique_ptr<ParticleVector>
 initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
 {

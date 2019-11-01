@@ -8,6 +8,9 @@
 #include <mirheo/core/xdmf/type_map.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
+namespace mirheo
+{
+
 constexpr const char *RestartROVIdentifier = "ROV";
 constexpr const char *RestartIPIdentifier = "ROV.TEMPLATE";
 
@@ -239,3 +242,5 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
 
     info("Successfully read object infos of '%s'", name.c_str());
 }
+
+} // namespace mirheo

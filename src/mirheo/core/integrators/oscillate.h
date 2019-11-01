@@ -4,6 +4,9 @@
 
 #include <mirheo/core/utils/macros.h>
 
+namespace mirheo
+{
+
 /**
  * Apply periodic sine wave to the particle velocities.
  * Coordinate is computed by Velocity-Verlet scheme (same as
@@ -25,3 +28,5 @@ private:
     real3 vel;    ///< Velocity amplitude
     real period;  ///< Sine wave period
 };
+
+} // namespace mirheo

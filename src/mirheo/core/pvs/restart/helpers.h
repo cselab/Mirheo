@@ -9,6 +9,9 @@
 #include <tuple>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class ObjectVector;
 
@@ -188,3 +191,5 @@ void copyAndShiftListData(const DomainInfo domain,
                           DataManager& dataManager);
 
 } // namespace RestartHelpers
+
+} // namespace mirheo

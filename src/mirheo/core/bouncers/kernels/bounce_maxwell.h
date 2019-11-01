@@ -7,6 +7,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 // reflection with random scattering
 // according to Maxwell distr
 class BounceMaxwell
@@ -52,3 +55,5 @@ private:
     real seed2{0._r};
     real kBT;
 };
+
+} // namespace mirheo

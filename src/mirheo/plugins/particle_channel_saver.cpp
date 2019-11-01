@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/type_map.h>
 
+namespace mirheo
+{
+
 ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const MirState *state, std::string name, std::string pvName,
                                                        std::string channelName, std::string savedName) :
     SimulationPlugin(state, name),
@@ -46,3 +49,5 @@ void ParticleChannelSaverPlugin::setup(Simulation *simulation, const MPI_Comm& c
         pv->requireDataPerParticle<T>(savedName, DataManager::PersistenceMode::Active);
     }, desc.varDataPtr);
 }
+
+} // namespace mirheo

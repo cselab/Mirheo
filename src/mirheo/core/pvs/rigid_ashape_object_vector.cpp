@@ -2,6 +2,9 @@
 
 #include <mirheo/core/analytical_shapes/api.h>
 
+namespace mirheo
+{
+
 template <class Shape> RigidShapedObjectVector<Shape>::
 RigidShapedObjectVector(const MirState *state, std::string name, real mass, int objSize,
                         Shape shape, int nObjects) :
@@ -30,3 +33,4 @@ template <class Shape> RigidShapedObjectVector<Shape>::
 
 ASHAPE_TABLE(INSTANTIATE)
 
+} // namespace mirheo

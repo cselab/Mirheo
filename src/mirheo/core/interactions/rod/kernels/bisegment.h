@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/quaternion.h>
 #include <mirheo/core/pvs/views/rv.h>
 
+namespace mirheo
+{
+
 template<int Nstates>
 struct GPU_RodBiSegmentParameters
 {
@@ -374,6 +377,8 @@ struct BiSegment
         rReal tau;
         computeCurvatures(kappa0, kappa1);
         computeTorsion(tau);
-        return ::computeEnergy(l, kappa0, kappa1, tau, state, params);
+        return mirheo::computeEnergy(l, kappa0, kappa1, tau, state, params);
     }
 };
+
+} // namespace mirheo

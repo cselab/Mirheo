@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 namespace RodBelongingKernels
 {
 
@@ -123,5 +126,4 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
     computeTags(ParticleVectorLocality::Halo);
 }
 
-
-
+} // namespace mirheo

@@ -5,6 +5,9 @@
 #include <mpi.h>
 #include <string>
 
+namespace mirheo
+{
+
 class ExchangeHelper;
 
 /**
@@ -26,3 +29,5 @@ private:
     
     void copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
 };
+
+} // namespace mirheo

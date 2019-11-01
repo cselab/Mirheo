@@ -5,6 +5,9 @@
 #include <mpi.h>
 #include <string>
 
+namespace mirheo
+{
+
 class ExchangeHelper;
 
 /**
@@ -54,3 +57,5 @@ private:
     void wait(ExchangeHelper *helper, cudaStream_t stream);
     void send(ExchangeHelper *helper, cudaStream_t stream);
 };
+
+} // namespace mirheo

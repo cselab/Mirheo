@@ -6,6 +6,8 @@
 
 #include <pybind11/stl.h>
 
+namespace mirheo
+{
 using namespace pybind11::literals;
 
 void exportIntegrators(py::module& m)
@@ -130,3 +132,5 @@ void exportIntegrators(py::module& m)
             )");
 }
 
+
+} // namespace mirheo
