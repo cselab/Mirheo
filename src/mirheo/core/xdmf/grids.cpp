@@ -5,6 +5,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 static hsize_t product(const std::vector<hsize_t>& v)
@@ -284,3 +287,5 @@ void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, std::string h5fi
 const std::string TriangleMeshGrid::triangleChannelName = "triangle";
 
 } // namespace XDMF
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 /**
  * Initialize particles uniformly with the given density
  */
@@ -18,3 +21,5 @@ public:
     ~UniformIC();
 };
 
+
+} // namespace mirheo

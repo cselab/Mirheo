@@ -9,6 +9,9 @@
 #include <vector>
 #include <cuda_runtime.h>
 
+namespace mirheo
+{
+
 class CellList;
 class GPUcontainer;
 
@@ -49,3 +52,5 @@ public:
     virtual void sdfOnGrid(real3 gridH, GPUcontainer* sdfs, cudaStream_t stream) = 0;
     virtual PinnedBuffer<double3>* getCurrentBounceForce() = 0;
 };
+
+} // namespace mirheo

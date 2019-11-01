@@ -4,6 +4,9 @@
 #include <mirheo/core/logger.h>
 #include <algorithm>
 
+namespace mirheo
+{
+
 SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
         exchanger(std::move(exchanger))
 {}
@@ -62,3 +65,5 @@ void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream
     std::swap(helper->recv.buffer,      helper->send.buffer);
 }
 
+
+} // namespace mirheo

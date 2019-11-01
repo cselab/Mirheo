@@ -4,6 +4,9 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportIntegrators(py::module& m)
@@ -128,3 +131,5 @@ void exportIntegrators(py::module& m)
             )");
 }
 
+
+} // namespace mirheo

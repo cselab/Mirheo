@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/simulation.h>
 
+namespace mirheo
+{
+
 // NOTE: Work in progress! Currently, instead of transforming the object to
 // particles, the objects are simply deleted.
 
@@ -65,3 +68,5 @@ void ObjectToParticlesPlugin::afterIntegration(cudaStream_t stream)
     // deleter.deleteObjects(lov, stream, pv->local());
     deleter.deleteObjects(lov, stream);
 }
+
+} // namespace mirheo

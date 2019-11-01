@@ -8,6 +8,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportVectorTypes(py::module& m)
@@ -187,3 +190,5 @@ void exportVectorTypes(py::module& m)
     py::implicitly_convertible<py::tuple, ComQ>();
     py::implicitly_convertible<py::list,  ComQ>();
 }
+
+} // namespace mirheo

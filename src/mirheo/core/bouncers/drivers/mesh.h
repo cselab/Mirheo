@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/root_finder.h>
 
+namespace mirheo
+{
+
 namespace MeshBounceKernels
 {
 
@@ -510,3 +513,4 @@ __global__ void performBouncingTriangle(OVviewWithNewOldVertices objView,
 }
 
 } // namespace MeshBounceKernels
+} // namespace mirheo

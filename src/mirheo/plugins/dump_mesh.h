@@ -6,6 +6,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class ObjectVector;
 class CellList;
@@ -51,3 +54,5 @@ public:
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
 };
+
+} // namespace mirheo

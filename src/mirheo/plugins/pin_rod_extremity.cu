@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace PinRodExtremityKernels
 {
 
@@ -87,3 +90,4 @@ void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
                        view, segmentId, fmagn, targetDirection );
 }
 
+} // namespace mirheo

@@ -24,6 +24,8 @@
 #define COMPILE_DEBUG_LVL 10
 #endif
 
+namespace mirheo
+{
 
 /**
  * Class providing logging functionality with MPI support.
@@ -336,3 +338,4 @@ private:
  */
 extern Logger logger;
 
+} // namespace mirheo

@@ -1,5 +1,8 @@
 #include "xyz.h"
 
+namespace mirheo
+{
+
 void writeXYZ(MPI_Comm comm, std::string fname, const real4 *positions, int np)
 {
     int rank;
@@ -43,3 +46,5 @@ void writeXYZ(MPI_Comm comm, std::string fname, const real4 *positions, int np)
     MPI_Check( MPI_File_write_at_all(f, offset, content.c_str(), len, MPI_CHAR, &status) );
     MPI_Check( MPI_File_close(&f));
 }
+
+} // namespace mirheo

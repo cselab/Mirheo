@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ExchangeHelpersKernels
 {
 // must be executed with only one warp
@@ -176,3 +179,5 @@ BufferOffsetsSizesWrap ExchangeHelper::wrapRecvData()
             recv.offsets.devPtr(), recv.sizes.devPtr(),
             recv.offsetsBytes.devPtr()};
 }
+
+} // namespace mirheo

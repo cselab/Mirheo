@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
@@ -28,3 +31,5 @@ struct VertexChannelsData
 VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, int chunkSize);
 
 } // namespace XDMF
+
+} // namespace mirheo

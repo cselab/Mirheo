@@ -2,6 +2,9 @@
 
 #include <mirheo/core/celllist.h>
 
+namespace mirheo
+{
+
 /**
  * map threads to cell id inside a given face
  * @param gid: global thread id
@@ -64,3 +67,5 @@ __device__ inline bool distributeThreadsToFaceCell(int& cid, int& dx, int& dy, i
 
     return valid;
 }
+
+} // namespace mirheo

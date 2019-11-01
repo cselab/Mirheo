@@ -12,6 +12,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 enum class PackMode
 {
     Query, Pack
@@ -242,3 +245,5 @@ void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
 
     pv->redistValid = true;
 }
+
+} // namespace mirheo

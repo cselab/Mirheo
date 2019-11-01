@@ -7,6 +7,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 #define TYPE_TABLE__(OP, SEP)                   \
     OP(int)          SEP                        \
     OP(int64_t)      SEP                        \
@@ -46,3 +49,5 @@ using CudaVarPtr = cuda_variant::variant<
 
 std::string typeDescriptorToString(const TypeDescriptor& desc);
 TypeDescriptor stringToTypeDescriptor(const std::string& str);
+
+} // namespace mirheo

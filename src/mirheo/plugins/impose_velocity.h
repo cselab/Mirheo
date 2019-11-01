@@ -7,6 +7,9 @@
 
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ImposeVelocityPlugin : public SimulationPlugin
@@ -35,3 +38,4 @@ private:
     PinnedBuffer<double3> totVel{1};
 };
 
+} // namespace mirheo

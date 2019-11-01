@@ -7,6 +7,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 namespace ParticleVectorFactory
 {
 
@@ -63,3 +66,5 @@ createEllipsoidROVWithMesh(const MirState *state, std::string name, real mass, i
 }
 
 } // namespace ParticleVectorFactory
+
+} // namespace mirheo

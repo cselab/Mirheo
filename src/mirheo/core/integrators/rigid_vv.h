@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 /**
  * Integrate motion of the rigid bodies.
  */
@@ -17,3 +20,5 @@ public:
 
     void setPrerequisites(ParticleVector* pv) override;
 };
+
+} // namespace mirheo

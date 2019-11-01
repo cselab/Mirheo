@@ -7,6 +7,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 class ObjectVector;
 class ObjectPacker;
 class MapEntry;
@@ -34,3 +37,5 @@ protected:
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
 };
+
+} // namespace mirheo

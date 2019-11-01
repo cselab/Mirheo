@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 namespace MagneticOrientationPluginKernels
 {
 __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
@@ -58,3 +61,4 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
             view, B, moment);
 }
 
+} // namespace mirheo

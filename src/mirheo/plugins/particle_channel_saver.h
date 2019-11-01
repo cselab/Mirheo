@@ -3,6 +3,9 @@
 #include <string>
 #include "interface.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ParticleChannelSaverPlugin : public SimulationPlugin
@@ -23,7 +26,4 @@ private:
     std::string channelName, savedName;
 };
 
-
-
-
-
+} // namespace mirheo

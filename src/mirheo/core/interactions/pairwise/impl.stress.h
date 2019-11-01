@@ -8,6 +8,9 @@
 
 #include <map>
 
+namespace mirheo
+{
+
 template<class PairwiseKernel>
 class PairwiseInteractionWithStressImpl : public Interaction
 {
@@ -112,3 +115,5 @@ private:
     PairwiseInteractionImpl<PairwiseKernel> interaction;
     PairwiseInteractionImpl<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;
 };
+
+} // namespace mirheo

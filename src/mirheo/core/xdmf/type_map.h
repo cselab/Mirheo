@@ -5,6 +5,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/type_map.h>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 template <typename T> Channel::DataForm inline getDataForm()
@@ -51,3 +54,5 @@ template <> Channel::NumberType inline getNumberType<COMandExtent>             (
 template <> Channel::NumberType inline getNumberType<Force>                    () {return getNumberType<decltype(Force::f)>();}
 
 } // namespace XDMF
+
+} // namespace mirheo

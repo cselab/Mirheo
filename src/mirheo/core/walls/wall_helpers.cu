@@ -13,6 +13,9 @@
 
 #include <curand_kernel.h>
 
+namespace mirheo
+{
+
 namespace WallHelpersKernels
 {
 __global__ void init_sdf(int n, real *sdfs, real val)
@@ -250,3 +253,5 @@ double WallHelpers::volumeInsideWalls(std::vector<SDF_basedWall*> walls, DomainI
     
     return totVolume;
 }
+
+} // namespace mirheo

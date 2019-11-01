@@ -3,6 +3,8 @@
 #include <texture_types.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
 
 Field::Field(const MirState *state, std::string name, real3 hField) :
     MirSimulationObject(state, name),
@@ -64,3 +66,5 @@ void Field::setupArrayTexture(const float *fieldDevPtr)
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
+
+} // namespace mirheo

@@ -6,6 +6,9 @@
 
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 class RigidObjectVector;
 
 class MagneticOrientationPlugin : public SimulationPlugin
@@ -28,3 +31,4 @@ private:
     UniformMagneticFunc magneticFunction;
 };
 
+} // namespace mirheo

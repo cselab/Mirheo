@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <functional>
 
+namespace mirheo
+{
 
 enum class CellListsProjection
 {
@@ -175,4 +177,4 @@ protected:
     std::string makeName() const override;
 };
 
-
+} // namespace mirheo

@@ -3,6 +3,9 @@
 
 #include <mirheo/core/walls/factory.h>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportWalls(py::module& m)
@@ -133,3 +136,4 @@ void exportWalls(py::module& m)
         )");
 }
 
+} // namespace mirheo

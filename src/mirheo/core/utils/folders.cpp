@@ -4,6 +4,9 @@
 
 #include <sstream>
 
+namespace mirheo
+{
+
 std::string getStrZeroPadded(int i, int zeroPadding)
 {
     auto s = std::to_string(i);
@@ -76,3 +79,5 @@ bool createFoldersCollective(const MPI_Comm& comm, std::string path)
 
     return res;
 }
+
+} // namespace mirheo

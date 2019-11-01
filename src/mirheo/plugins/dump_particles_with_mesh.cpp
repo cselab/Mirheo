@@ -4,6 +4,9 @@
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                                            std::vector<std::string> channelNames,
                                                            std::vector<ChannelType> channelTypes) :
@@ -95,3 +98,5 @@ void ParticleWithMeshDumperPlugin::deserialize()
     XDMF::TriangleMeshGrid grid(positions, allTriangles, comm);
     XDMF::write(fname, &grid, channels, time, comm);
 }
+
+} // namespace mirheo

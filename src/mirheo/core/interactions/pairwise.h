@@ -4,6 +4,9 @@
 #include "pairwise/kernels/parameters.h"
 #include "parameters_wrap.h"
 
+namespace mirheo
+{
+
 class PairwiseInteraction : public Interaction
 {
 public:
@@ -31,3 +34,5 @@ private:
     VarPairwiseParams varParams;
     VarStressParams varStressParams;
 };
+
+} // namespace mirheo

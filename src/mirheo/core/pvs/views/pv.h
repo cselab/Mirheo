@@ -5,6 +5,9 @@
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
+
 /**
  * GPU-compatible struct of all the relevant data
  */
@@ -123,3 +126,4 @@ struct PVviewWithStresses : public BasicView
     }
 };
 
+} // namespace mirheo

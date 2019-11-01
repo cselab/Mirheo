@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/root_finder.h>
 
+namespace mirheo
+{
+
 namespace RodBounceKernels
 {
 
@@ -317,5 +320,5 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, real radius,
     atomicAdd(faddr + 5, segF.fr1);
 }
 
-    
 } // namespace RodBounceKernels
+} // namespace mirheo

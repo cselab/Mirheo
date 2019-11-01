@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class VelocityInletPlugin : public SimulationPlugin
@@ -47,3 +50,5 @@ private:
     std::mt19937 gen {42};
     std::uniform_real_distribution<real> dist {0._r, 1._r};
 };
+
+} // namespace mirheo

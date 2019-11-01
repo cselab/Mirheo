@@ -4,6 +4,9 @@
 
 #include <extern/variant/include/mpark/variant.hpp>
 
+namespace mirheo
+{
+
 // forward declaration of pairwise kernels
 
 class PairwiseDPD;
@@ -116,3 +119,5 @@ struct StressActiveParams
 };
 
 using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;
+
+} // namespace mirheo

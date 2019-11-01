@@ -8,6 +8,9 @@
 #include <string>
 #include <memory>
 
+namespace mirheo
+{
+
 UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path(path)
@@ -120,3 +123,4 @@ std::vector<int> UniformCartesianDumper::getLocalResolution() const
     return res;
 }
 
+} // namespace mirheo

@@ -9,6 +9,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ParametersWrap
 {
 public:
@@ -93,3 +96,5 @@ private:
     const MapParams& params;
     std::map<std::string, bool> readParams;
 };
+
+} // namespace mirheo

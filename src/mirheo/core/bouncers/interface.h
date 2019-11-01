@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class CellList;
 class ParticleVector;
 class ObjectVector;
@@ -70,3 +73,5 @@ protected:
      */
     virtual void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) = 0;
 };
+
+} // namespace mirheo

@@ -7,6 +7,9 @@
 #include <mpi.h>
 #include <string>
 
+namespace mirheo
+{
+
 /**
  * Base class for all the objects of Mirheo
  * Only stores name and provides interface for
@@ -42,3 +45,5 @@ public:
 public:
     const MirState *state;
 };
+
+} // namespace mirheo

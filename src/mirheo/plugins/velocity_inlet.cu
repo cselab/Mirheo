@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 enum {
     MAX_NEW_PARTICLE_PER_TRIANGLE = 5
 };
@@ -232,3 +235,4 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
 
 }
 
+} // namespace mirheo

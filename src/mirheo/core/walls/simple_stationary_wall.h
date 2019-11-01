@@ -4,6 +4,9 @@
 
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 class LocalParticleVector;
 class ParticleVector;
 class CellList;
@@ -49,3 +52,5 @@ protected:
     PinnedBuffer<int> nInside{1};
     PinnedBuffer<double3> bounceForce{1};
 };
+
+} // namespace mirheo

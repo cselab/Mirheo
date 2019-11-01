@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/walls/simple_stationary_wall.h>
 
+namespace mirheo
+{
+
 namespace ChannelNames
 {
 static const std::string      sdf =      "sdf";
@@ -78,3 +81,4 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
             view, sdfs->devPtr(), gradients->devPtr(), C, h, maxForce );
 }
 
+} // namespace mirheo

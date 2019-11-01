@@ -5,6 +5,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 /**
  * Implements bounce-back from analytical shapes
  */
@@ -29,3 +32,5 @@ protected:
     VarBounceKernel varBounceKernel;
     std::mt19937 rng {42L};
 };
+
+} // namespace mirheo

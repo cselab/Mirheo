@@ -2,6 +2,9 @@
 
 #include "dump_particles.h"
 
+namespace mirheo
+{
+
 class ParticleWithMeshSenderPlugin : public ParticleSenderPlugin
 {
 public:
@@ -31,3 +34,5 @@ protected:
     int nvertices;
     std::vector<int3> triangles;
 };
+
+} // namespace mirheo

@@ -1,6 +1,9 @@
 #include "restart.h"
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 RestartIC::RestartIC(std::string path) :
     path(path)
 {}
@@ -13,3 +16,5 @@ void RestartIC::exec(const MPI_Comm& comm, ParticleVector *pv, __UNUSED cudaStre
 }
 
 
+
+} // namespace mirheo

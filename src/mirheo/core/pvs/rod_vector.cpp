@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/quaternion.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 inline constexpr int getNumParts(int nSegments)
 {
     return 5 * nSegments + 1;
@@ -52,3 +55,5 @@ RodVector::RodVector(const MirState *state, std::string name, real mass, int nSe
 {}
 
 RodVector::~RodVector() = default;
+
+} // namespace mirheo

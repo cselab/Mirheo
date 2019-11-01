@@ -2,6 +2,9 @@
 
 #include "objects.h"
 
+namespace mirheo
+{
+
 class LocalRodVector;
 
 struct RodPackerHandler : public ObjectPackerHandler
@@ -83,3 +86,5 @@ protected:
     GenericPacker bisegmentData;
     int nBisegments;
 };
+
+} // namespace mirheo

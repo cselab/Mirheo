@@ -3,6 +3,9 @@
 #include <mirheo/core/field/from_file.h>
 #include <memory>
 
+namespace mirheo
+{
+
 class StationaryWall_SDF
 {
 public:
@@ -16,3 +19,5 @@ public:
 private:
     std::unique_ptr<FieldFromFile> impl;
 };
+
+} // namespace mirheo

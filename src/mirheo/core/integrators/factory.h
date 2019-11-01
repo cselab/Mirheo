@@ -14,6 +14,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 namespace IntegratorFactory
 {
 inline std::shared_ptr<IntegratorVV<Forcing_None>>
@@ -73,3 +76,5 @@ createSubStep(const MirState *state, const std::string& name, int substeps, Inte
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }    
 } // namespace IntegratorFactory
+
+} // namespace mirheo

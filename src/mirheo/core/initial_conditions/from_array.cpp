@@ -3,6 +3,9 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 FromArrayIC::FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>& vel) :
     pos(pos),
     vel(vel)
@@ -45,3 +48,5 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     pv->local()->computeGlobalIds(comm, stream);
 }
 
+
+} // namespace mirheo

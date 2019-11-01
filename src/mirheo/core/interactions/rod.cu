@@ -1,6 +1,9 @@
 #include "rod.h"
 #include "rod/impl.h"
 
+namespace mirheo
+{
+
 template <int Nstates>
 auto instantiateImpl(const MirState *state, std::string name, RodParameters parameters, VarSpinParams varSpinParams, bool saveEnergies)
 {
@@ -86,3 +89,5 @@ bool RodInteraction::isSelfObjectInteraction() const
 {
     return true;
 }
+
+} // namespace mirheo

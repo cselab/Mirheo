@@ -10,6 +10,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 template <int Nstates>
 static void updateStatesAndApplyForces(__UNUSED RodVector *rv,
                                        __UNUSED const GPU_RodBiSegmentParameters<Nstates> devParams,
@@ -93,4 +96,4 @@ static void updateStatesAndApplyForces(RodVector *rv,
     }
 }
 
-
+} // namespace mirheo

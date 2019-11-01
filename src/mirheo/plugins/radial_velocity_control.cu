@@ -10,6 +10,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/restart_helpers.h>
 
+namespace mirheo
+{
+
 namespace RadialVelocityControlKernels
 {
 
@@ -210,3 +213,5 @@ void PostprocessRadialVelocityControl::deserialize()
         fflush(fdump.get());
     }
 }
+
+} // namespace mirheo

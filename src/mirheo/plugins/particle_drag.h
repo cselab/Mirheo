@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ParticleDragPlugin : public SimulationPlugin
@@ -20,3 +23,4 @@ private:
     real drag;
 };
 
+} // namespace mirheo

@@ -16,7 +16,7 @@
 #include <random>
 #include <vector>
 
-Logger logger;
+namespace mirheo { Logger logger; }
 
 // move particles no more than rc in random direction
 static void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085)

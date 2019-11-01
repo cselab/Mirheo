@@ -8,6 +8,9 @@
 #include <vector>
 #include <string>
 
+namespace mirheo
+{
+
 class ObjectVector;
 class ObjectPacker;
 class ObjectHaloExchanger;
@@ -30,3 +33,5 @@ protected:
     void combineAndUploadData(int id, cudaStream_t stream) override;
     bool needExchange(int id) override;
 };
+
+} // namespace mirheo

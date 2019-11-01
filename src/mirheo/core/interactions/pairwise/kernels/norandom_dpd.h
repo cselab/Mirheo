@@ -8,6 +8,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 class LocalParticleVector;
 class CellList;
 
@@ -64,3 +67,5 @@ protected:
     real invrc;
 };
 
+
+} // namespace mirheo

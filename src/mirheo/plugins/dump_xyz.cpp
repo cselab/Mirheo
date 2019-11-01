@@ -7,6 +7,9 @@
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 XYZPlugin::XYZPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery) :
     SimulationPlugin(state, name), pvName(pvName),
     dumpEvery(dumpEvery)
@@ -74,5 +77,4 @@ void XYZDumper::deserialize()
         writeXYZ(comm, currentFname, pos.data(), pos.size());
 }
 
-
-
+} // namespace mirheo

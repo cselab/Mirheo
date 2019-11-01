@@ -2,6 +2,9 @@
 
 #include <cmath>
 
+namespace mirheo
+{
+
 class SimpleMDPDDensityKernel
 {
 public:
@@ -39,3 +42,5 @@ public:
     }
 };
 
+
+} // namespace mirheo

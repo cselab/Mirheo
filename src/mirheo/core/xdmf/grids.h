@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 class GridDims
@@ -135,3 +138,5 @@ protected:
 };
 
 } // namespace XDMF
+
+} // namespace mirheo

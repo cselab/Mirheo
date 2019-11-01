@@ -5,6 +5,9 @@
 #include <fstream>
 #include <random>
 
+namespace mirheo
+{
+
 /** \brief A simple random generator wrapper for 
  *         per time step random number generation
  * 
@@ -29,3 +32,5 @@ private:
     std::mt19937 gen;
     std::uniform_real_distribution<real> udistr;
 };
+
+} // namespace mirheo

@@ -24,6 +24,9 @@
 #include <fstream>
 #include <texture_types.h>
 
+namespace mirheo
+{
+
 
 template<typename VelocityField>
 __global__ void imposeVelField(PVview view, const VelocityField velField)
@@ -116,6 +119,4 @@ template class WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>;
 template class WallWithVelocity<StationaryWall_Plane,    VelocityField_Translate>;
 template class WallWithVelocity<StationaryWall_Plane,    VelocityField_Oscillate>;
 
-
-
-
+} // namespace mirheo

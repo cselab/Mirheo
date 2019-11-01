@@ -3,6 +3,9 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/vec_traits.h>
 
+namespace mirheo
+{
+
 #ifdef MEMBRANE_FORCES_DOUBLE
 using mReal  = double;
 #else
@@ -56,3 +59,5 @@ __D__ inline ParticleMReal fetchParticle(View view, int i)
     Particle p(view.readParticle(i));
     return {make_mReal3(p.r), make_mReal3(p.u)};
 }
+
+} // namespace mirheo

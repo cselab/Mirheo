@@ -4,6 +4,9 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/packers/objects.h>
 
+namespace mirheo
+{
+
 class ObjectVector;
 
 class ObjectDeleterHandler
@@ -46,3 +49,5 @@ private:
     ObjectPacker packerDst;
     ParticlePacker partPackerDst;
 };
+
+} // namespace mirheo

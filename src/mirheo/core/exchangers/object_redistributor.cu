@@ -13,6 +13,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
+
 enum class PackMode
 {
     Query, Pack
@@ -242,3 +245,5 @@ void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
     ov->redistValid = true;
     ov->cellListStamp++;
 }
+
+} // namespace mirheo

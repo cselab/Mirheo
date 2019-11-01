@@ -12,6 +12,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
+
 enum class PackMode
 {
     Query, Pack
@@ -276,3 +279,5 @@ DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(int id)
 {
     return maps[id];
 }
+
+} // namespace mirheo

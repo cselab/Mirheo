@@ -15,6 +15,9 @@
 #include <pybind11/stl.h>
 #include <string>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
@@ -307,3 +310,5 @@ void exportMirheo(py::module& m)
              output compile times options in the log
         )");
 }
+
+} // namespace mirheo

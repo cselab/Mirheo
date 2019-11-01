@@ -6,6 +6,9 @@
 
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 
@@ -24,3 +27,5 @@ public:
 protected:
     VelocityField velField;
 };
+
+} // namespace mirheo

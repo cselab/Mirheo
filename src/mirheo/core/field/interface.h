@@ -9,6 +9,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 #ifndef __NVCC__
 template<typename T>
 T tex3D(__UNUSED cudaTextureObject_t t,
@@ -91,3 +94,5 @@ protected:
 
     void setupArrayTexture(const float *fieldDevPtr);
 };
+
+} // namespace mirheo

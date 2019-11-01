@@ -8,6 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
+namespace mirheo
+{
+
 MembraneMesh::MembraneMesh()
 {}
 
@@ -230,3 +233,5 @@ MembraneMeshView::MembraneMeshView(const MembraneMesh *m) :
     initialAreas       (m->initialAreas.devPtr()),
     initialDotProducts (m->initialDotProducts.devPtr())
 {}
+
+} // namespace mirheo

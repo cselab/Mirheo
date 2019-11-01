@@ -2,6 +2,9 @@
 
 #include <chrono>
 
+namespace mirheo
+{
+
 template<typename Ratio>
 class Timer
 {
@@ -57,3 +60,5 @@ public:
 using uTimer = Timer<std::micro>;
 using mTimer = Timer<std::milli>;
 using sTimer = Timer<std::ratio<1, 1>>;
+
+} // namespace mirheo

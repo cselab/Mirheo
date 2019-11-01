@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/type_map.h>
 
+namespace mirheo
+{
+
 namespace TypeAtomicAdd
 {
 
@@ -54,3 +57,5 @@ __D__ inline void apply(RigidMotion *addr, RigidMotion s, real eps = 0._r)
 }
 
 } // namespace TypeAtomicAdd
+
+} // namespace mirheo

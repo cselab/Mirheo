@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ObjStatsPluginKernels
 {
 
@@ -250,5 +253,4 @@ void ObjStatsDumper::deserialize()
         writeStats(comm, domain, fout, curTime, ids, coms, motions, isRov);
 }
 
-
-
+} // namespace mirheo

@@ -1,5 +1,8 @@
 #include "type_map.h"
 
+namespace mirheo
+{
+
 struct VisitorToStr
 {
 #define TYPE2STR(Type) std::string operator()(const DataTypeWrapper<Type>&) const {return #Type ;}
@@ -27,3 +30,4 @@ TypeDescriptor stringToTypeDescriptor(const std::string& str)
     return DataTypeWrapper<float>();
 }
 
+} // namespace mirheo

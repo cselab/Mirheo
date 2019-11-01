@@ -5,6 +5,9 @@
 #include <functional>
 #include <vector>
 
+namespace mirheo
+{
+
 namespace MarchingCubes
 {
 using ImplicitSurfaceFunction = std::function< real(real3) >;
@@ -19,3 +22,5 @@ void computeTriangles(DomainInfo domain, real3 resolution,
                       std::vector<Triangle>& triangles);
 
 } // namespace MarchingCubes
+
+} // namespace mirheo

@@ -9,6 +9,9 @@
 #include <mirheo/core/rigid/operations.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 template <class Shape>
 BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state,
                                                   const std::string& name,
@@ -87,3 +90,4 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
 
 ASHAPE_TABLE(INSTANTIATE)
 
+} // namespace mirheo

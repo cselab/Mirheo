@@ -7,6 +7,9 @@
 
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 
@@ -34,3 +37,4 @@ private:
     DeviceBuffer<int> relevantCells;
 };
 
+} // namespace mirheo

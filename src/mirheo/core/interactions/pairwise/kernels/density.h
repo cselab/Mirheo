@@ -5,6 +5,9 @@
 #include "fetchers.h"
 #include "interface.h"
 
+namespace mirheo
+{
+
 class CellList;
 class LocalParticleVector;
 
@@ -48,3 +51,5 @@ protected:
     real invrc;
     DensityKernel densityKernel;
 };
+
+} // namespace mirheo

@@ -6,6 +6,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ParticleCheckerPlugin : public SimulationPlugin
@@ -35,3 +38,5 @@ private:
     PinnedBuffer<ParticleStatus> statuses;
     std::vector<ParticleVector*> pvs;
 };
+
+} // namespace mirheo

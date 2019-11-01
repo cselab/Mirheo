@@ -2,6 +2,9 @@
 
 #include <mirheo/core/mirheo_state.h>
 
+namespace mirheo
+{
+
 class PairwiseKernel
 {
 public:
@@ -20,3 +23,5 @@ public:
         return true;
     }
 };
+
+} // namespace mirheo

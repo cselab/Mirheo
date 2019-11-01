@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 
+namespace mirheo
+{
+
 struct GPU_SpinParameters
 {
     real J, kBT, beta, seed;
@@ -190,3 +193,5 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 }
 
 } // namespace RodStatesKernels
+
+} // namespace mirheo

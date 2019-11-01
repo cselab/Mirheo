@@ -3,6 +3,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/restart_helpers.h>
 
+namespace mirheo
+{
+
 static const std::string fname = "state.mirheo";
 
 MirState::MirState(DomainInfo domain, real dt) :
@@ -79,3 +82,5 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     domain.globalStart = gst;
     domain.localSize   = lsz;
 }
+
+} // namespace mirheo

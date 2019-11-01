@@ -3,6 +3,9 @@
 #include <cstdio>
 #include <string>
 
+namespace mirheo
+{
+
 class FileWrapper
 {
 public:
@@ -32,3 +35,5 @@ private:
     bool needClose {false};
     bool forceFlushOnClose;
 };
+
+} // namespace mirheo

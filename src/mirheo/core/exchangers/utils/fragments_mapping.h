@@ -2,6 +2,9 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 namespace FragmentMapping
 {
 
@@ -30,3 +33,4 @@ constexpr int numFragments = 27;
 constexpr int bulkId       = 26;
 
 } // namespace FragmentMapping
+} // namespace mirheo

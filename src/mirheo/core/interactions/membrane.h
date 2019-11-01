@@ -7,6 +7,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 using VarBendingParams = mpark::variant<KantorBendingParameters, JuelicherBendingParameters>;
 using VarShearParams   = mpark::variant<WLCParameters, LimParameters>;
 
@@ -38,3 +41,5 @@ protected:
      */
     virtual void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream);
 };
+
+} // namespace mirheo

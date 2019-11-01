@@ -8,6 +8,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class ObjectVector;
 class CellList;
@@ -46,4 +49,4 @@ private:
     void sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream);
 };
 
-
+} // namespace mirheo

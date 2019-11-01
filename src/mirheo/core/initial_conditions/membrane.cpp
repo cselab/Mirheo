@@ -7,6 +7,9 @@
 #include <fstream>
 #include <random>
 
+namespace mirheo
+{
+
 MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
     com_q(com_q),
     globalScale(globalScale)
@@ -84,3 +87,5 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }
 
+
+} // namespace mirheo

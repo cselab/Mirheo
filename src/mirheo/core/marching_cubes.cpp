@@ -2,6 +2,9 @@
 
 #include <cstdint>
 
+namespace mirheo
+{
+
 // inspired from https://github.com/nsf/mc
 
 namespace MarchingCubes
@@ -183,3 +186,5 @@ void computeTriangles(DomainInfo domain, real3 resolution,
 }
 
 } // namespace MarchingCubes
+
+} // namespace mirheo

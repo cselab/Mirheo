@@ -7,6 +7,9 @@
 #include <memory>
 #include <string>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class ParticlePacker;
 
@@ -30,3 +33,4 @@ private:
     std::unique_ptr<ParticlePacker> extra1, extra2;
 };
 
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/object_vector.h>
 
+namespace mirheo
+{
+
 ObjectPacker::ObjectPacker(PackPredicate predicate) :
     ParticlePacker(predicate)
 {}
@@ -33,3 +36,5 @@ size_t ObjectPacker::getSizeBytes(int numElements) const
     return ParticlePacker::getSizeBytes(numElements * objSize) +
         objectData.getSizeBytes(numElements);
 }
+
+} // namespace mirheo

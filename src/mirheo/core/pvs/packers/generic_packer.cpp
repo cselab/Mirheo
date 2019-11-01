@@ -1,5 +1,8 @@
 #include "generic_packer.h"
 
+namespace mirheo
+{
+
 void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicate, cudaStream_t stream)
 {
     nChannels = 0;
@@ -80,3 +83,5 @@ size_t GenericPacker::getSizeBytes(int numElements) const
     }
     return size;
 }
+
+} // namespace mirheo

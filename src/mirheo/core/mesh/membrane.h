@@ -4,6 +4,9 @@
 
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 class MembraneMesh : public Mesh
 {
 public:
@@ -47,3 +50,4 @@ struct MembraneMeshView : public MeshView
     MembraneMeshView(const MembraneMesh *m);
 };
 
+} // namespace mirheo

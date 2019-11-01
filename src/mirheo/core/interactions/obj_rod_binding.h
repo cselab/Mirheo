@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 class RigidObjectVector;
 class RodVector;
 
@@ -27,3 +30,5 @@ protected:
     real3 relAnchor; // relative position with respect to object of attachement point
     real kBound;
 };
+
+} // namespace mirheo

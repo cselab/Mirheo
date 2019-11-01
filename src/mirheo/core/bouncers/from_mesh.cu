@@ -9,6 +9,9 @@
 #include <mirheo/core/rigid/operations.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 /**
  * Create the bouncer
  * @param name unique bouncer name
@@ -180,3 +183,5 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
         RigidOperations::collectRigidForces(view, stream);
     }
 }
+
+} // namespace mirheo

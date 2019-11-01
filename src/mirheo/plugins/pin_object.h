@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class ObjectVector;
 class RigidObjectVector;
 
@@ -59,3 +62,5 @@ private:
     FileWrapper fout;
     std::vector<real4> forces, torques;
 };
+
+} // namespace mirheo

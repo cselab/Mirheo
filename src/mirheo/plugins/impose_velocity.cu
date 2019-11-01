@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ImposeVelocityKernels
 {
 __global__ void addVelocity(PVview view, DomainInfo domain, real3 low, real3 high, real3 extraVel)
@@ -119,3 +122,4 @@ void ImposeVelocityPlugin::setTargetVelocity(real3 v)
     targetVel = v;
 }
 
+} // namespace mirheo

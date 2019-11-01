@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/rod_vector.h>
 
+namespace mirheo
+{
+
 RodPacker::RodPacker(PackPredicate predicate) :
     ObjectPacker(predicate)
 {}
@@ -35,3 +38,5 @@ size_t RodPacker::getSizeBytes(int numElements) const
     return ObjectPacker::getSizeBytes(numElements) +
         bisegmentData.getSizeBytes(nBisegments * numElements);
 }
+
+} // namespace mirheo

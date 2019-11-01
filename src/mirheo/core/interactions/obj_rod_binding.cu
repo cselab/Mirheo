@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/quaternion.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ObjRodBindingKernels
 {
 
@@ -187,3 +190,5 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
         nblocks, nthreads, shMem, stream,
         state->domain, objs, rods, params);
 }
+
+} // namespace mirheo

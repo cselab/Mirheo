@@ -8,6 +8,9 @@
 
 #include <type_traits>
 
+namespace mirheo
+{
+
 class LocalParticleVector;
 class CellList;
 
@@ -73,3 +76,5 @@ public:
 protected:
     HandlerType basicForceWrapperHandler;
 };
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 inline bool isValid_nBlocks(int blocks)
 {
     return blocks > 0;
@@ -31,3 +34,5 @@ do {                                                                          \
         debug4("Kernel "#kernel" not launched, grid is empty");               \
     }                                                                         \
 } while (0)
+
+} // namespace mirheo

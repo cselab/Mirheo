@@ -8,6 +8,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, std::string name, ForcingTerm forcingTerm) :
     Integrator(state, name), forcingTerm(forcingTerm)
@@ -73,3 +76,5 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 template class IntegratorVV<Forcing_None>;
 template class IntegratorVV<Forcing_ConstDP>;
 template class IntegratorVV<Forcing_PeriodicPoiseuille>;
+
+} // namespace mirheo

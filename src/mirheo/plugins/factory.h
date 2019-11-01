@@ -47,6 +47,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 namespace PluginFactory
 {
 template <typename T1, typename T2>
@@ -587,4 +590,6 @@ createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::str
         
     return { simPl, postPl };
 }
+
 } // namespace PluginFactory
+} // namespace mirheo

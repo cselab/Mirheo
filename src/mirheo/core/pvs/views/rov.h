@@ -3,6 +3,9 @@
 #include "../rigid_object_vector.h"
 #include "ov.h"
 
+namespace mirheo
+{
+
 /**
  * GPU-compatible struct of all the relevant data
  */
@@ -34,3 +37,4 @@ struct ROVviewWithOldMotion : public ROVview
     }
 };
 
+} // namespace mirheo

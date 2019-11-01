@@ -1,5 +1,8 @@
 #include "sdf.h"
 
+namespace mirheo
+{
+
 StationaryWall_SDF::StationaryWall_SDF(const MirState *state, std::string sdfFileName, real3 sdfH) :
     impl(new FieldFromFile(state, "field_"+sdfFileName, sdfFileName, sdfH))
 {}
@@ -15,3 +18,5 @@ void StationaryWall_SDF::setup(MPI_Comm& comm, __UNUSED DomainInfo domain)
 {
     return impl->setup(comm);
 }
+
+} // namespace mirheo

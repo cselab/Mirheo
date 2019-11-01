@@ -12,6 +12,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 static auto getBoundParams(const RodParameters& p)
 {
     GPU_RodBoundsParameters dp;
@@ -149,3 +152,5 @@ protected:
     StateParameters stateParameters;
     bool saveEnergies;
 };
+
+} // namespace mirheo

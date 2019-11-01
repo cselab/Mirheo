@@ -15,6 +15,9 @@
 
 #include <unistd.h>
 
+namespace mirheo
+{
+
 enum class PackMode
 {
     Query, Pack
@@ -261,3 +264,5 @@ bool ParticleHaloExchanger::needExchange(int id)
 {
     return !particles[id]->haloValid;
 }
+
+} // namespace mirheo

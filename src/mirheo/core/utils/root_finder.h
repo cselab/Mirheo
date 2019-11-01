@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 namespace RootFinder
 {
 struct RootInfo
@@ -97,3 +100,5 @@ __D__ inline RootInfo newton(F f, F_prime f_prime, real x0, real tolerance = 1e-
     return {x, val};
 }
 } // namespace RootFinder
+
+} // namespace mirheo

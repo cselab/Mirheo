@@ -4,6 +4,9 @@
 #include <cstdlib>
 #include <cstring>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 namespace HDF5
@@ -197,3 +200,5 @@ void read(const std::string& filename, MPI_Comm comm, Grid *grid, std::vector<Ch
 
 } // namespace HDF5
 } // namespace XDMF
+
+} // namespace mirheo

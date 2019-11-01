@@ -13,6 +13,9 @@
 #include <fstream>
 #include <map>
 
+namespace mirheo
+{
+
 /**
  * Implementation of short-range symmetric pairwise interactions
  */
@@ -285,3 +288,5 @@ private:
         }
     }
 };
+
+} // namespace mirheo

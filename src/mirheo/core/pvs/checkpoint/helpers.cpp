@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/type_shift.h>
 #include <mirheo/core/containers.h>
 
+namespace mirheo
+{
+
 namespace CheckpointHelpers
 {
 std::tuple<std::vector<real3>,
@@ -110,4 +113,4 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
 
 } // namespace CheckpointHelpers
 
-
+} // namespace mirheo

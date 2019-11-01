@@ -8,6 +8,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
 {
     CommonMembraneParameters p;
@@ -220,3 +223,5 @@ InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::s
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }
+
+} // namespace mirheo

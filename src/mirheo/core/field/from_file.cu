@@ -6,6 +6,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/mpi_types.h>
 
+namespace mirheo
+{
+
 namespace InterpolateKernels
 {
 __device__ inline float cubicInterpolate1D(float y[4], float mu)
@@ -325,3 +328,5 @@ void FieldFromFile::setup(const MPI_Comm& comm)
 
     setupArrayTexture(fieldRawData.devPtr());
 }
+
+} // namespace mirheo

@@ -5,6 +5,8 @@
 #include <mirheo/core/containers.h>
 #include <mirheo/core/pvs/object_deleter.h>
 
+namespace mirheo
+{
 
 class ObjectToParticlesPlugin : public SimulationPlugin
 {
@@ -26,3 +28,5 @@ protected:
     ObjectDeleter deleter;
     real4 plane;  // Local coordinate system.
 };
+
+} // namespace mirheo

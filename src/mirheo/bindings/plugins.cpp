@@ -8,6 +8,9 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportPlugins(py::module& m)
@@ -949,3 +952,5 @@ void exportPlugins(py::module& m)
     )");
 }
 
+
+} // namespace mirheo

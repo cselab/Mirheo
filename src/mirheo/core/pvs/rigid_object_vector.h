@@ -3,6 +3,9 @@
 #include "object_vector.h"
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 class LocalRigidObjectVector : public LocalObjectVector
 {
 public:
@@ -49,6 +52,4 @@ public:
 
 };
 
-
-
-
+} // namespace mirheo

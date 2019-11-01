@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 /**
  * fetcher that reads positions only
  */
@@ -168,3 +171,5 @@ public:
 
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
 };
+
+} // namespace mirheo

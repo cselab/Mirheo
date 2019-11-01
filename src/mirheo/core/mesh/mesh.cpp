@@ -6,6 +6,9 @@
 #include <fstream>
 #include <vector>
 
+namespace mirheo
+{
+
 Mesh::Mesh()
 {}
 
@@ -156,3 +159,5 @@ MeshView::MeshView(const Mesh *m) :
     ntriangles (m->getNtriangles()),
     triangles  (m->triangles.devPtr())   
 {}
+
+} // namespace mirheo

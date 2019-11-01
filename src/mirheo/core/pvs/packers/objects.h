@@ -2,6 +2,9 @@
 
 #include "particles.h"
 
+namespace mirheo
+{
+
 class LocalObjectVector;
 
 struct ObjectPackerHandler : public ParticlePackerHandler
@@ -168,3 +171,5 @@ protected:
     int objSize;
     GenericPacker objectData;
 };
+
+} // namespace mirheo

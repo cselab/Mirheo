@@ -8,6 +8,9 @@
 #include <mpi.h>
 #include <vector>
 
+namespace mirheo
+{
+
 class CellList;
 class ParticleVector;
 
@@ -110,3 +113,5 @@ protected:
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };
+
+} // namespace mirheo

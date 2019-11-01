@@ -2,6 +2,9 @@
 
 #include "interface.h"
 
+namespace mirheo
+{
+
 class RigidObjectVector;
 
 class AddTorquePlugin : public SimulationPlugin
@@ -20,3 +23,4 @@ private:
     real3 torque;
 };
 
+} // namespace mirheo

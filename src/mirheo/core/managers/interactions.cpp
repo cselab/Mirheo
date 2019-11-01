@@ -5,6 +5,9 @@
 
 #include <set>
 
+namespace mirheo
+{
+
 static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1, Interaction::ActivePredicate p2)
 {
     return [p1, p2]() {return p1() || p2();};
@@ -285,3 +288,4 @@ std::vector<std::string> InteractionManager::_getActiveChannelsFrom(ParticleVect
     return {channels.begin(), channels.end()};
 }
 
+} // namespace mirheo

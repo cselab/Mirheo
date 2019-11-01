@@ -10,6 +10,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/walls/interface.h>
 
+namespace mirheo
+{
+
 namespace WallForceCollector
 {
 __global__ void totalForce(PVview view, double3 *totalForce)
@@ -125,4 +128,4 @@ void WallForceDumperPlugin::deserialize()
     }
 }
 
-
+} // namespace mirheo

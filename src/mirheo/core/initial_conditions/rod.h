@@ -9,6 +9,9 @@
 #include <vector>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 /**
  * Initialize rods.
  */
@@ -34,3 +37,5 @@ private:
     real3 initialMaterialFrame;
     real a;
 };
+
+} // namespace mirheo

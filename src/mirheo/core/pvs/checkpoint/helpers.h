@@ -8,6 +8,9 @@
 #include <tuple>
 #include <vector>
 
+namespace mirheo
+{
+
 namespace XDMF {struct Channel;}
 
 namespace CheckpointHelpers
@@ -30,3 +33,5 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
                                                       const std::set<std::string>& blackList={});
 
 } // namespace CheckpointHelpers
+
+} // namespace mirheo

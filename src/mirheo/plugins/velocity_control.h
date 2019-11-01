@@ -9,6 +9,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class SimulationVelocityControl : public SimulationPlugin
@@ -61,3 +64,5 @@ public:
 private:
     FileWrapper fdump;
 };
+
+} // namespace mirheo

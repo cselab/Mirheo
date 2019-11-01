@@ -15,7 +15,7 @@
 #include <random>
 #include <vector>
 
-Logger logger;
+namespace mirheo { Logger logger; }
 
 __global__ void packParticlesIdentityMap(int n, ParticlePackerHandler packer, char *buffer)
 {

@@ -9,6 +9,9 @@
 
 #include <mpi.h>
 
+namespace mirheo
+{
+
 constexpr const char *RestartPVIdentifier = "PV";
 
 std::string getParticleVectorLocalityStr(ParticleVectorLocality locality)
@@ -350,4 +353,4 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize, defaultStream);
 }
 
-
+} // namespace mirheo

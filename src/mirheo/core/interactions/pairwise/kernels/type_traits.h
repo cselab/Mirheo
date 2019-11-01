@@ -4,6 +4,9 @@
 #include "mdpd.h"
 #include "sdpd.h"
 
+namespace mirheo
+{
+
 template <typename T>
 struct needSelfInteraction
 { static constexpr bool value = false; };
@@ -65,3 +68,5 @@ struct isFinal
     static constexpr bool value = outputsForce<T>::value;
 };
 
+
+} // namespace mirheo

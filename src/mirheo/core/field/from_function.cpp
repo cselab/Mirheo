@@ -2,6 +2,9 @@
 
 #include <mirheo/core/utils/cuda_common.h>
 
+namespace mirheo
+{
+
 FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h) :
     Field(state, name, h),
     func(func)
@@ -55,3 +58,5 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
     
     setupArrayTexture(fieldRawData.devPtr());
 }
+
+} // namespace mirheo

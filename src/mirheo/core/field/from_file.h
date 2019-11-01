@@ -1,5 +1,8 @@
 #include "interface.h"
 
+namespace mirheo
+{
+
 class FieldFromFile : public Field
 {
 public:    
@@ -14,3 +17,5 @@ protected:
     
     std::string fieldFileName;
 };
+
+} // namespace mirheo

@@ -20,6 +20,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 #ifndef __NVCC__
 float __fmaf_rz(float x, float y, float z)
 {
@@ -291,3 +294,5 @@ struct mean0var1_flops_counter {
 };
 
 } // namespace Saru
+
+} // namespace mirheo

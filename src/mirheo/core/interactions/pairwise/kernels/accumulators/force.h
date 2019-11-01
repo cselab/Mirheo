@@ -5,6 +5,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 class ForceAccumulator
 {
 public:
@@ -29,3 +32,5 @@ public:
 private:
     real3 frc;
 };
+
+} // namespace mirheo

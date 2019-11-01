@@ -8,6 +8,9 @@
 
 #include <mirheo/core/celllist.h>
 
+namespace mirheo
+{
+
 namespace ObjectBelongingKernels
 {
 
@@ -187,3 +190,5 @@ ObjectVector* ObjectBelongingChecker_Common::getObjectVector()
 {
     return ov;
 }
+
+} // namespace mirheo

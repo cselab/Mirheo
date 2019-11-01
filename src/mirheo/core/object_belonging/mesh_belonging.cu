@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 namespace MeshBelongingKernels
 {
 
@@ -178,5 +181,4 @@ void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream
     computeTags(ParticleVectorLocality::Halo);
 }
 
-
-
+} // namespace mirheo

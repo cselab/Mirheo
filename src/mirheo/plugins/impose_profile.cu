@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 __device__ inline bool all_lt(real3 a, real3 b)
 {
     return a.x < b.x && a.y < b.y && a.z < b.z;
@@ -121,5 +124,4 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
             kBT, 1.0_r / pv->mass, drand48(), drand48() );
 }
 
-
-
+} // namespace mirheo

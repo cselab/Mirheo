@@ -8,6 +8,9 @@
 #include <fstream>
 #include <random>
 
+namespace mirheo
+{
+
 static std::vector<real3> readXYZ(const std::string& fname)
 {
     std::vector<real3> positions;
@@ -164,3 +167,5 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
     info("Read %d %s objects", nObjs, rov->name.c_str());
 }
 
+
+} // namespace mirheo

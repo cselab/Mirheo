@@ -8,6 +8,9 @@
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/quaternion.h>
 
+namespace mirheo
+{
+
 namespace RigidVVKernels
 {
 
@@ -125,3 +128,4 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     invalidatePV(pv);
 }
 
+} // namespace mirheo

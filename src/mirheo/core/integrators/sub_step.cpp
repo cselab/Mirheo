@@ -10,6 +10,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps, Interaction *fastForces) :
     Integrator(state, name),
     fastForces(fastForces),
@@ -82,3 +85,5 @@ void IntegratorSubStep::updateSubState()
     subState = *state;
     subState.dt = state->dt / substeps;
 }
+
+} // namespace mirheo

@@ -2,6 +2,9 @@
 
 #include "vector_types.h"
 
+namespace mirheo
+{
+
 namespace VecTraits
 {
 
@@ -24,3 +27,5 @@ IMPLEMENT_VEC(int)
 #undef IMPLEMENT_VEC_N
 
 } // namespace VecTraits
+
+} // namespace mirheo

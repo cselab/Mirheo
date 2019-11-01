@@ -9,6 +9,9 @@
 #include <vector>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 class MembraneVector;
 
 class MembraneExtraForcePlugin : public SimulationPlugin
@@ -28,3 +31,4 @@ private:
     DeviceBuffer<Force> forces;
 };
 
+} // namespace mirheo

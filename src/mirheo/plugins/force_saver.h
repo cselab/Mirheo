@@ -3,6 +3,9 @@
 #include <string>
 #include "interface.h"
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ForceSaverPlugin : public SimulationPlugin
@@ -22,7 +25,4 @@ private:
     static const std::string fieldName;
 };
 
-
-
-
-
+} // namespace mirheo

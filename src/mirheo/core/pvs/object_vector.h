@@ -7,6 +7,9 @@
 #include <mirheo/core/mesh/mesh.h>
 #include <mirheo/core/utils/common.h>
 
+namespace mirheo
+{
+
 class LocalObjectVector: public LocalParticleVector
 {
 public:
@@ -91,6 +94,4 @@ private:
     }
 };
 
-
-
-
+} // namespace mirheo

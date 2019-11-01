@@ -3,6 +3,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 template <typename FieldHandler>
 inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)
 {
@@ -19,3 +22,5 @@ inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)
 
     return (1.0_r / (2.0_r*h)) * diff;
 }
+
+} // namespace mirheo

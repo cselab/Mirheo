@@ -7,6 +7,9 @@
 #include <mpi.h>
 #include <string>
 
+namespace mirheo
+{
+
 /**
  * Global quantities accessible by all simulation objects in Mirheo
  */
@@ -37,3 +40,5 @@ public:
     StepType currentStep;
 };
 
+
+} // namespace mirheo

@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+namespace mirheo
+{
+
 class MembraneInteraction;
 class RodInteraction;
 class PairwiseInteraction;
@@ -39,3 +42,5 @@ createInteractionObjRodBinding(const MirState *state, std::string name,
                                real torque, real3 relAnchor, real kBound);
 
 } // namespace InteractionFactory
+
+} // namespace mirheo

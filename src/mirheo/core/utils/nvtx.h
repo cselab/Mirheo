@@ -4,6 +4,9 @@
 #include <string>
 #include <nvToolsExt.h>
 
+namespace mirheo
+{
+
 class NvtxTracer
 {
 public:
@@ -12,6 +15,8 @@ public:
 private:
     nvtxRangeId_t id;
 };
+
+} // namespace mirheo
 
 #define NvtxCreateRange(identifyer, name) NvtxTracer identifyer(name)
 #else

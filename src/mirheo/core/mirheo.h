@@ -8,6 +8,9 @@
 #include <mpi.h>
 #include <vector_types.h>
 
+namespace mirheo
+{
+
 class MirState;
 
 class Simulation;
@@ -126,3 +129,5 @@ private:
     void setup();
     void checkNotInitialized() const;
 };
+
+} // namespace mirheo

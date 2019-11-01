@@ -14,6 +14,9 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 void exportInitialConditions(py::module& m)
@@ -178,3 +181,5 @@ void exportInitialConditions(py::module& m)
                 inside: whether the particles should be inside or outside the sphere
         )");
 }
+
+} // namespace mirheo

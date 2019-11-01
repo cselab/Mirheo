@@ -15,7 +15,10 @@
 
 #include <gtest/gtest.h>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
+
 bool verbose = false;
 
 void test_domain(float3 length, float rc, float density, int nbuilds)

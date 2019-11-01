@@ -11,6 +11,9 @@
 
 #include <hdf5.h>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
@@ -84,3 +87,5 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
 }
 
 } // namespace XDMF
+
+} // namespace mirheo

@@ -10,6 +10,9 @@
 #include <sstream>
 #include <unistd.h>
 
+namespace mirheo
+{
+
 TaskScheduler::TaskScheduler()
 {
     CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
@@ -427,3 +430,5 @@ TaskScheduler::Node::Node(TaskID id, int priority) :
     id(id),
     priority(priority)
 {}
+
+} // namespace mirheo

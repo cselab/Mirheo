@@ -6,6 +6,9 @@
 
 #include <vector>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 
@@ -51,3 +54,5 @@ public:
 
     ~XYZDumper() {};
 };
+
+} // namespace mirheo

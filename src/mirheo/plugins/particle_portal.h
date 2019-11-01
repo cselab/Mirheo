@@ -7,6 +7,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ParticlePortalCommon : public SimulationPlugin
@@ -65,3 +68,5 @@ private:
 
     PinnedBuffer<char> inBuffer;
 };
+
+} // namespace mirheo

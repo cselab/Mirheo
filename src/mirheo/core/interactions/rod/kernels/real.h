@@ -3,6 +3,9 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/vec_traits.h>
 
+namespace mirheo
+{
+
 #ifdef ROD_FORCES_DOUBLE
 using rReal  = double;
 #else
@@ -103,3 +106,5 @@ __D__ inline ParticleRReal fetchParticle(View view, int i)
     Particle p(view.readParticle(i));
     return {make_rReal3(p.r), make_rReal3(p.u)};
 }
+
+} // namespace mirheo

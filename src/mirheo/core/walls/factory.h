@@ -15,6 +15,9 @@
 
 #include <memory>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class CellList;
 
@@ -112,3 +115,4 @@ createOscillatingPlaneWall(const MirState *state, const std::string& name, real3
 }
 } // namespace WallFactory
 
+} // namespace mirheo

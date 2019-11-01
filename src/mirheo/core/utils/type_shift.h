@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/type_map.h>
 
+namespace mirheo
+{
+
 namespace TypeShift
 {
 template <typename T>
@@ -31,3 +34,5 @@ __HD__ inline void apply(COMandExtent& var, real3 shift)
 }
 
 } // namespace TypeShift
+
+} // namespace mirheo

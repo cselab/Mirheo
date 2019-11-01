@@ -4,6 +4,9 @@
 
 #include <string>
 
+namespace mirheo
+{
+
 class ParticleVector;
 
 class ParticleDisplacementPlugin : public SimulationPlugin
@@ -27,3 +30,5 @@ private:
     const std::string displacementChannelName = "displacements";
     const std::string savedPositionChannelName = "saved_positions_displacements";
 };
+
+} // namespace mirheo

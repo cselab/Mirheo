@@ -6,9 +6,14 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/mesh/membrane.h>
 
+namespace mirheo
+{
+
 class MembraneVector: public ObjectVector
 {
 public:
     MembraneVector(const MirState *state, std::string name, real mass, std::shared_ptr<MembraneMesh> mptr, int nObjects = 0);
     ~MembraneVector();
 };
+
+} // namespace mirheo

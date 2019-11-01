@@ -40,4 +40,9 @@ __HD__ inline T get_alternative(const Variant& var)
 
 } // namespace variant
 
+
+namespace mirheo {
+
 namespace cuda_variant = variant;
+
+} // namespace mirheo

@@ -6,6 +6,9 @@
 #include <mirheo/core/pvs/views/rv.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 BounceFromRod::BounceFromRod(const MirState *state,
                              const std::string& name,
                              real radius,
@@ -108,3 +111,5 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
 
     }, varBounceKernel);
 }
+
+} // namespace mirheo

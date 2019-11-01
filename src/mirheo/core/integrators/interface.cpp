@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 Integrator::Integrator(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
@@ -17,3 +20,5 @@ void Integrator::invalidatePV(ParticleVector *pv)
     pv->redistValid = false;
     pv->cellListStamp++;
 }
+
+} // namespace mirheo

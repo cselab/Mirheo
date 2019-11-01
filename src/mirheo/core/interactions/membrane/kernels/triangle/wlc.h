@@ -8,6 +8,9 @@
 
 #include <cmath>
 
+namespace mirheo
+{
+
 template <StressFreeState stressFreeState>
 class TriangleWLCForce
 {
@@ -101,3 +104,5 @@ private:
     mReal length0, area0; ///< only useful when StressFree is false
     mReal lscale;
 };
+
+} // namespace mirheo

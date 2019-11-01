@@ -4,6 +4,9 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 
 /**
  * @param vel Move with this velocity
@@ -27,3 +30,5 @@ void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
     integrate(pv, state->dt, translate, stream);
     invalidatePV(pv);
 }
+
+} // namespace mirheo

@@ -4,6 +4,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
+namespace mirheo
+{
+
 class Cylinder
 {
 public:
@@ -63,3 +66,5 @@ private:
     
     real R, halfL;
 };
+
+} // namespace mirheo

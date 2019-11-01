@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+namespace mirheo
+{
+
 namespace ObjectPortal {
 
 static __device__ bool areBoxesIntersecting(const real3 &lo1, const real3 &hi1,
@@ -357,3 +360,5 @@ void ObjectPortalDestination::afterIntegration(cudaStream_t stream)
         view, packer.handler(), shift,
         inUUIDs.devPtr(), inBuffer.devPtr(), indexPairs.devPtr(), numRecv, localUUIDs.devPtr());
 }
+
+} // namespace mirheo

@@ -10,6 +10,9 @@
 #include <map>
 #include <memory>
 
+namespace mirheo
+{
+
 using namespace pybind11::literals;
 
 static std::map<std::string, real>
@@ -183,3 +186,4 @@ void exportBouncers(py::module& m)
         )");
 }
 
+} // namespace mirheo

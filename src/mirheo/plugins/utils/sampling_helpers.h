@@ -5,6 +5,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+namespace mirheo
+{
+
 template <typename T>
 inline bool checkType(__UNUSED const Average3D::ChannelType& channelType) { return false;}
 
@@ -116,3 +119,5 @@ __global__ static void accumulate(int n, int fieldComponents, const real *src, d
 }
 
 } // namespace SamplingHelpersKernels
+
+} // namespace mirheo

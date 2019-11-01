@@ -4,6 +4,9 @@
 
 #include <mirheo/core/utils/macros.h>
 
+namespace mirheo
+{
+
 /**
  * Make constant particle velocities, regardless force
  * Coordinate is computed by Velocity-Verlet scheme (same as
@@ -23,3 +26,5 @@ public:
 
     real3 vel;   ///< Velocity
 };
+
+} // namespace mirheo

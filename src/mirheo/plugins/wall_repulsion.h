@@ -6,6 +6,9 @@
 
 #include <mirheo/core/utils/folders.h>
 
+namespace mirheo
+{
+
 class ParticleVector;
 class SDF_basedWall;
 
@@ -29,3 +32,4 @@ private:
     real C, h, maxForce;
 };
 
+} // namespace mirheo

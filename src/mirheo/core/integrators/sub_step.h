@@ -5,6 +5,9 @@
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
 
+namespace mirheo
+{
+
 class Interaction;
 
 class IntegratorSubStep : Integrator
@@ -30,3 +33,5 @@ private:
 
     void updateSubState();
 };
+
+} // namespace mirheo

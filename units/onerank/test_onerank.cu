@@ -15,7 +15,9 @@
 
 #include <memory>
 
-Logger logger;
+using namespace mirheo;
+
+namespace mirheo { Logger logger; }
 
 const real dt = 0.0025;
 const real kBT = 0.0; // to get rid of rng

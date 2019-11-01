@@ -7,6 +7,9 @@
 
 #include "helpers.h"
 
+namespace mirheo
+{
+
 using PositionFilter = std::function<bool(real3)>;
 
 static long genSeed(const MPI_Comm& comm, std::string name)
@@ -98,3 +101,5 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
 }
+
+} // namespace mirheo

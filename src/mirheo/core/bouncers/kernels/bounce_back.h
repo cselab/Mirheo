@@ -5,6 +5,9 @@
 
 #include <random>
 
+namespace mirheo
+{
+
 class BounceBack
 {
 public:
@@ -19,3 +22,5 @@ public:
     }
 #endif
 };
+
+} // namespace mirheo

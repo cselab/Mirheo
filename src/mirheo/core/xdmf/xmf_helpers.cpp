@@ -3,6 +3,9 @@
 
 #include <mirheo/core/logger.h>
 
+namespace mirheo
+{
+
 namespace XDMF
 {
 namespace XMF
@@ -28,7 +31,7 @@ void writeDataSet(pugi::xml_node node, const std::string& h5filename,
     globalSize.push_back(channel.nComponents());
             
     auto dataNode = attrNode.append_child("DataItem");
-    dataNode.append_attribute("Dimensions") = ::to_string(globalSize).c_str();
+    dataNode.append_attribute("Dimensions") = mirheo::to_string(globalSize).c_str();
     dataNode.append_attribute("NumberType") = numberTypeToString(channel.numberType).c_str();
     dataNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(channel.numberType)).c_str();
     dataNode.append_attribute("Format") = "HDF";
@@ -137,3 +140,5 @@ read(const std::string& filename, MPI_Comm comm, Grid *grid)
 
 } // namespace XMF
 } // namespace XDMF
+
+} // namespace mirheo

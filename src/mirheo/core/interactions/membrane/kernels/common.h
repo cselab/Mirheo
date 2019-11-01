@@ -9,6 +9,9 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 
+namespace mirheo
+{
+
 __D__ inline mReal triangleArea(mReal3 v0, mReal3 v1, mReal3 v2)
 {
     return 0.5_mr * length(cross(v1 - v0, v2 - v0));
@@ -43,3 +46,5 @@ __D__ inline mReal supplementaryDihedralAngle(mReal3 v0, mReal3 v1, mReal3 v2, m
     theta = dot(v2-v0, nk) < 0 ? theta : -theta;
     return theta;
 }
+
+} // namespace mirheo

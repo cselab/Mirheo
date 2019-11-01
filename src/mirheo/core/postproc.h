@@ -6,6 +6,9 @@
 #include <memory>
 #include <mpi.h>
 
+namespace mirheo
+{
+
 class Postprocess : MirObject
 {
 public:
@@ -33,3 +36,5 @@ private:
 
     std::string checkpointFolder;
 };
+
+} // namespace mirheo
