@@ -10,19 +10,30 @@
 
 #include <memory>
 
-IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps, Interaction *fastForces) :
+IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps,
+                                     const std::vector<Interaction*>& fastForces) :
     Integrator(state, name),
     fastForces(fastForces),
     subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
     subState(*state),
     substeps(substeps)
 {
-    if (!fastForces->isSelfObjectInteraction())
-        die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",
-            name.c_str(), fastForces->name.c_str());
+    std::string ffNames = "";
+
+    if (fastForces.size() == 0)
+        die("Integrator '%s' needs at least one integration", name.c_str());
+    
+    for (auto ff : fastForces)
+    {
+        if (!ff->isSelfObjectInteraction())
+            die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",
+                name.c_str(), ff->name.c_str());
+
+        ffNames += "'" + ff->name + "' ";
+    }
 
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
-          name.c_str(), substeps, subIntegrator->name.c_str(), fastForces->name.c_str());
+          name.c_str(), substeps, subIntegrator->name.c_str(), ffNames.c_str());
 
     updateSubState();
     
@@ -47,15 +58,18 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     updateSubState();
 
     // save fastForces state and reset it afterwards
-    auto *savedStatePtr = fastForces->state;
-    fastForces->state = &subState;
+    auto *savedStatePtr = fastForces[0]->state;
+
+    for (auto& ff : fastForces)
+        ff->state = &subState;
     
     for (int substep = 0; substep < substeps; ++ substep) {
 
         if (substep != 0)
             pv->local()->forces().copy(slowForces, stream);        
 
-        fastForces->local(pv, pv, nullptr, nullptr, stream);
+        for (auto ff : fastForces)
+            ff->local(pv, pv, nullptr, nullptr, stream);
         
         subIntegrator->stage2(pv, stream);
 
@@ -66,7 +80,8 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(previousPositions, stream);
 
     // restore state of fastForces
-    fastForces->state = savedStatePtr;
+    for (auto& ff : fastForces)
+        ff->state = savedStatePtr;
 
     invalidatePV(pv);
 }
@@ -74,7 +89,8 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 {
     // luckily do not need cell lists for self interactions
-    fastForces->setPrerequisites(pv, pv, nullptr, nullptr);
+    for (auto ff : fastForces)
+        ff->setPrerequisites(pv, pv, nullptr, nullptr);
 }
 
 void IntegratorSubStep::updateSubState()

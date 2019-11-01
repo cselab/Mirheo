@@ -68,7 +68,8 @@ createRigidVV(const MirState *state, const std::string& name)
 }
 
 inline std::shared_ptr<IntegratorSubStep>
-createSubStep(const MirState *state, const std::string& name, int substeps, Interaction *fastForces)
+createSubStep(const MirState *state, const std::string& name, int substeps,
+              const std::vector<Interaction*>& fastForces)
 {
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }    

@@ -37,28 +37,28 @@ MembraneIC::~MembraneIC() = default;
 void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
-    auto domain = pv->state->domain;
+    const auto domain = pv->state->domain;
     
     if (ov == nullptr)
         die("RBCs can only be generated out of rbc object vectors");
 
+    LocalObjectVector *lov = ov->local();
+    
     // Local number of objects
-    int nObjs=0;
+    int nObjs = 0;
 
     for (auto& entry : com_q)
     {
-        real3 com = entry.r;
-        real4 q   = entry.q;
-
-        q = normalize(q);
+        real3       com = entry.r;
+        const real4 q   = normalize(entry.q);
 
         if (domain.globalStart.x <= com.x && com.x < domain.globalStart.x + domain.localSize.x &&
             domain.globalStart.y <= com.y && com.y < domain.globalStart.y + domain.localSize.y &&
             domain.globalStart.z <= com.z && com.z < domain.globalStart.z + domain.localSize.z)
         {
             com = domain.global2local(com);
-            const int oldSize = ov->local()->size();
-            ov->local()->resize(oldSize + ov->mesh->getNvertices(), stream);
+            const int oldSize = lov->size();
+            lov->resize(oldSize + ov->mesh->getNvertices(), stream);
 
             auto& pos = ov->local()->positions();
             auto& vel = ov->local()->velocities();
@@ -76,10 +76,10 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
         }
     }
 
-    ov->local()->positions().uploadToDevice(stream);
-    ov->local()->velocities().uploadToDevice(stream);
-    ov->local()->computeGlobalIds(comm, stream);
-    ov->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
+    lov->positions().uploadToDevice(stream);
+    lov->velocities().uploadToDevice(stream);
+    lov->computeGlobalIds(comm, stream);
+    lov->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
     info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
 }

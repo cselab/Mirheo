@@ -120,7 +120,7 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
                     substeps: number of sub steps
-                    fastForces: the fast interaction module. Only accepts :any:`MembraneForces` or :any:`RodForces`
+                    fastForces: a list of fast interactions. Only accepts :any:`MembraneForces` or :any:`RodForces`
                 
                 .. warning::
                     The interaction will be set to the required object vector when setting this integrator to the object vector.
