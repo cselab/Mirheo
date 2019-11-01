@@ -1,5 +1,5 @@
-#include <core/logger.h>
-#include <core/analytical_shapes/api.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/analytical_shapes/api.h>
 
 #include <cstdio>
 #include <gtest/gtest.h>

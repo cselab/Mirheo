@@ -71,10 +71,10 @@ set(CMAKE_CUDA_STANDARD 14)
 
 # Alias some dirs
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
-set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/core/")
-set(PLUGINS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/plugins/")
-set(BINDINGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/bindings/")
-set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo")
+set(CORE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/core/")
+set(PLUGINS_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/plugins/")
+set(BINDINGS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/bindings/")
+set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/extern/cuda_variant/ )
 
 # generate version.cpp

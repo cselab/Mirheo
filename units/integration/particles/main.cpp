@@ -1,5 +1,5 @@
-#include <core/integrators/factory.h>
-#include <core/logger.h>
+#include <mirheo/core/integrators/factory.h>
+#include <mirheo/core/logger.h>
 
 #include <gtest/gtest.h>
 #include <tuple>

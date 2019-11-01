@@ -8,7 +8,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 
 import sys
-sys.path.insert(0, 'src/mirheo')
+sys.path.insert(0, 'mirheo')
 import version
 
 
@@ -42,7 +42,7 @@ setup(
     description='Computational Microfluidics',
     long_description='',
     packages = ['mirheo'],
-    package_dir = {'mirheo' : 'src/mirheo'},
+    package_dir = {'mirheo' : 'mirheo'},
     ext_modules=[BinaryExtension('libmirheo', sourcedir='./')],
     cmdclass=dict(build_ext=CopyLibrary),
     zip_safe=False,

@@ -1,5 +1,5 @@
-#include <core/logger.h>
-#include <core/datatypes.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/datatypes.h>
 
 #include <cstdio>
 #include <gtest/gtest.h>

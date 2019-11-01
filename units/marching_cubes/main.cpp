@@ -1,5 +1,5 @@
-#include <core/logger.h>
-#include <core/marching_cubes.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/marching_cubes.h>
 
 #include <cstdio>
 #include <cmath>

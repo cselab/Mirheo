@@ -1,6 +1,6 @@
-#include <core/logger.h>
-#include <core/datatypes.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/quaternion.h>
 
 #include <cmath>
 #include <cstdio>

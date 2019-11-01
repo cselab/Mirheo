@@ -1,8 +1,8 @@
 #include "../packers/common.h"
 
-#include <core/utils/helper_math.h>
-#include <core/utils/kernel_launch.h>
-#include <core/pvs/object_deleter.cu>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/object_deleter.cu>
 
 #include <gtest/gtest.h>
 

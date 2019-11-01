@@ -1,13 +1,13 @@
 #define protected public
 #define private public
 
-#include <core/pvs/particle_vector.h>
-#include <core/celllist.h>
-#include <core/logger.h>
-#include <core/containers.h>
-#include <core/interactions/pairwise/impl.h>
-#include <core/interactions/pairwise/kernels/norandom_dpd.h>
-#include <core/initial_conditions/uniform.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/interactions/pairwise/impl.h>
+#include <mirheo/core/interactions/pairwise/kernels/norandom_dpd.h>
+#include <mirheo/core/initial_conditions/uniform.h>
 
 #include <gtest/gtest.h>
 

@@ -3,8 +3,8 @@
 #include <vector>
 #include <algorithm>
 
-#include <core/logger.h>
-#include <core/task_scheduler.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/task_scheduler.h>
 
 #include "../timer.h"
 

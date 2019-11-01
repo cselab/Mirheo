@@ -1,8 +1,8 @@
-#include <core/containers.h>
-#include <core/logger.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 #include <gtest/gtest.h>
 #include <extern/variant/include/mpark/variant.hpp>
