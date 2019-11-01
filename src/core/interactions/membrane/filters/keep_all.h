@@ -12,7 +12,7 @@ public:
     void setPrerequisites(__UNUSED MembraneVector *mv) const {}
     void setup           (__UNUSED MembraneVector *mv)       {}
     
-    inline __D__ bool inWhiteList(long membraneId) const
+    inline __D__ bool inWhiteList(__UNUSED long membraneId) const
     {
         return true;
     }

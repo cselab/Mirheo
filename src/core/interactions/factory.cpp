@@ -81,29 +81,40 @@ static JuelicherBendingParameters readJuelicherParameters(ParametersWrap& desc)
     return p;
 }
 
+static FilterKeepByTypeId readFilterKeepByTypeId(ParametersWrap& desc)
+{
+    const int typeId = static_cast<int>(desc.read<real>("type_id"));
+    return FilterKeepByTypeId{typeId};
+}
+
 std::shared_ptr<MembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
-                                              const MapParams& parameters,
+                                              std::string filterDesc, const MapParams& parameters,
                                               bool stressFree, real growUntil)
 {
-    VarBendingParams bendingParams;
-    VarShearParams shearParams;
+    VarBendingParams varBendingParams;
+    VarShearParams varShearParams;
+    VarMembraneFilter varFilter = FilterKeepAll(); // TODO
     ParametersWrap desc {parameters};    
     
     auto commonPrms = readCommonParameters(desc);
 
-    if      (shearDesc == "wlc") shearParams = readWLCParameters(desc);
-    else if (shearDesc == "Lim") shearParams = readLimParameters(desc);
+    if      (shearDesc == "wlc") varShearParams = readWLCParameters(desc);
+    else if (shearDesc == "Lim") varShearParams = readLimParameters(desc);
     else                         die("No such shear parameters: '%s'", shearDesc.c_str());
 
-    if      (bendingDesc == "Kantor")    bendingParams = readKantorParameters(desc);
-    else if (bendingDesc == "Juelicher") bendingParams = readJuelicherParameters(desc);
+    if      (bendingDesc == "Kantor")    varBendingParams = readKantorParameters(desc);
+    else if (bendingDesc == "Juelicher") varBendingParams = readJuelicherParameters(desc);
     else                                 die("No such bending parameters: '%s'", bendingDesc.c_str());
 
+    if      (filterDesc == "keep_all")   varFilter = FilterKeepAll{};
+    else if (filterDesc == "by_type_id") varFilter = readFilterKeepByTypeId(desc);
+    else                                 die("No such filter parameters: '%s'", filterDesc.c_str());
+    
     desc.checkAllRead();
     return std::make_shared<MembraneInteraction>
-        (state, name, commonPrms, bendingParams, shearParams, stressFree, growUntil);
+        (state, name, commonPrms, varBendingParams, varShearParams, stressFree, growUntil, varFilter);
 }
 
 static RodParameters readRodParameters(ParametersWrap& desc)

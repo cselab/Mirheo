@@ -27,7 +27,7 @@ createPairwiseInteraction(const MirState *state, std::string name, real rc, cons
 std::shared_ptr<MembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
-                          const MapParams& parameters,
+                          std::string filterDesc, const MapParams& parameters,
                           bool stressFree, real growUntil);
 
 std::shared_ptr<RodInteraction>

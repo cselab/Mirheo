@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interface.h"
+#include "membrane/filters/api.h"
 #include "membrane/kernels/parameters.h"
 
 #include <extern/variant/include/mpark/variant.hpp>
@@ -19,7 +20,8 @@ class MembraneInteraction : public Interaction
 public:
 
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
-                        VarBendingParams bendingParams, VarShearParams shearParams, bool stressFree, real growUntil);
+                        VarBendingParams varBendingParams, VarShearParams varShearParams,
+                        bool stressFree, real growUntil, VarMembraneFilter varFilter);
     ~MembraneInteraction();
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
