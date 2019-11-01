@@ -95,7 +95,7 @@ InteractionFactory::createInteractionMembrane(const MirState *state, std::string
 {
     VarBendingParams varBendingParams;
     VarShearParams varShearParams;
-    VarMembraneFilter varFilter = FilterKeepAll(); // TODO
+    VarMembraneFilter varFilter;
     ParametersWrap desc {parameters};    
     
     auto commonPrms = readCommonParameters(desc);

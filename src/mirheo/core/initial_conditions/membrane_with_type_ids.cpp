@@ -17,23 +17,20 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
 
     auto ov = static_cast<MembraneVector*>(pv);
     const auto domain = pv->state->domain;
-    LocalObjectVector *lov = ov->local();
-
     const auto map = createMap(domain);
     const int nObjsLocal = map.size();
 
     ov->requireDataPerObject<int>(ChannelNames::membraneTypeId, DataManager::PersistenceMode::Active);
+    LocalObjectVector *lov = ov->local();
 
-    auto typeIdsBuff = lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
+    auto& typeIdsBuff = *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
 
-    typeIdsBuff->resize_anew(nObjsLocal);
-
-    for (size_t objId = 0; objId < map.size(); ++objId)
+    for (int objId = 0; objId < nObjsLocal; ++objId)
     {
         const int srcId = map[objId];
         typeIdsBuff[objId] = typeIds[srcId];
     }
-    typeIdsBuff->uploadToDevice(stream);
+    typeIdsBuff.uploadToDevice(stream);
 
     info("Initialized %d '%s' membrane type ids", nObjsLocal, ov->name.c_str());
 }
