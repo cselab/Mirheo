@@ -4,6 +4,7 @@
 #include <core/initial_conditions/from_array.h>
 #include <core/initial_conditions/interface.h>
 #include <core/initial_conditions/membrane.h>
+#include <core/initial_conditions/membrane_with_type_ids.h>
 #include <core/initial_conditions/restart.h>
 #include <core/initial_conditions/rigid.h>
 #include <core/initial_conditions/rod.h>
@@ -33,12 +34,13 @@ void exportInitialConditions(py::module& m)
                 vel: array of velocities
         )");
         
-    py::handlers_class<MembraneIC>(m, "Membrane", pyic, R"(
+    py::handlers_class<MembraneIC> pyMembraneIC(m, "Membrane", pyic, R"(
         Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
         according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided initial conditions.
-    )")
-        .def(py::init<const std::vector<ComQ>&, real>(),
-             "com_q"_a, "global_scale"_a=1.0, R"(
+    )");
+
+    pyMembraneIC.def(py::init<const std::vector<ComQ>&, real>(),
+                     "com_q"_a, "global_scale"_a=1.0, R"(
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
@@ -46,6 +48,27 @@ void exportInitialConditions(py::module& m)
                     Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
+                global_scale:
+                    All the membranes will be scaled by that value. Useful to implement membranes growth so that they
+                    can fill the space with high volume fraction                                        
+    )");
+
+    py::handlers_class<MembraneWithTypeIdsIC>(m, "MembraneWithTypeId", pyMembraneIC, R"(
+        Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
+        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided 
+        initial conditions. An additional field is reuired to distinguish membranes with different properties.
+    )")
+        .def(py::init<const std::vector<ComQ>&, const std::vector<int>&, real>(),
+             "com_q"_a, "type_ids"_a, "global_scale"_a=1.0, R"(
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                type_ids:
+                    list of type ids. Each entry corresponds to the id of the group to which the corresponding membrane belongs.
                 global_scale:
                     All the membranes will be scaled by that value. Useful to implement membranes growth so that they
                     can fill the space with high volume fraction                                        
