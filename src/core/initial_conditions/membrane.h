@@ -3,6 +3,7 @@
 #include "interface.h"
 
 #include <core/datatypes.h>
+#include <core/domain.h>
 
 #include <mpi.h>
 #include <string>
@@ -22,6 +23,9 @@ public:
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
+protected:
+    std::vector<int> createMap(DomainInfo domain) const;
+    
 private:
     std::vector<ComQ> com_q;
     real globalScale;

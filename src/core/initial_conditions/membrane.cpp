@@ -4,9 +4,6 @@
 #include <core/pvs/particle_vector.h>
 #include <core/utils/quaternion.h>
 
-#include <fstream>
-#include <random>
-
 MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
     com_q(com_q),
     globalScale(globalScale)
@@ -14,26 +11,6 @@ MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
 
 MembraneIC::~MembraneIC() = default;
 
-/**
- * Read mesh topology and initial vertices (vertices are same as particles for RBCs)
- *
- * Then read the center of mass coordinates of the cells and their orientation
- * quaternions from file #icfname.
- *
- * The format of the initial conditions file is such that each line defines
- * one RBC with the following 7 numbers separated by spaces:
- * <tt>COM.x COM.y COM.z  Q.x Q.y Q.z Q.w</tt>
- * \sa quaternion.h
- *
- * To generate an RBC from the IC file, the initial coordinate pattern will be
- * shifted to the COM and rotated according to Q.
- *
- * The RBCs with COM outside of an MPI process's domain will be discarded on
- * that process.
- *
- * Set unique id to all the particles and also write unique cell ids into
- * 'ids' per-object channel
- */
 void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
@@ -43,44 +20,50 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
         die("RBCs can only be generated out of rbc object vectors");
 
     LocalObjectVector *lov = ov->local();
+
+    const auto map = createMap(domain);
     
-    // Local number of objects
-    int nObjs = 0;
+    const int nObjsLocal = map.size();
+    const int nVerticesPerObject = ov->mesh->getNvertices();
+    
+    lov->resize_anew(nObjsLocal * nVerticesPerObject);
+    auto& pos = ov->local()->positions();
+    auto& vel = ov->local()->velocities();
 
-    for (auto& entry : com_q)
+    for (size_t objId = 0; objId < map.size(); ++objId)
     {
-        real3       com = entry.r;
-        const real4 q   = normalize(entry.q);
+        const int srcId = map[objId];
+        const real3 com = domain.global2local(com_q[srcId].r);
+        const real4 q   = normalize(com_q[srcId].q);
 
-        if (domain.globalStart.x <= com.x && com.x < domain.globalStart.x + domain.localSize.x &&
-            domain.globalStart.y <= com.y && com.y < domain.globalStart.y + domain.localSize.y &&
-            domain.globalStart.z <= com.z && com.z < domain.globalStart.z + domain.localSize.z)
+        for (int i = 0; i < nVerticesPerObject; ++i)
         {
-            com = domain.global2local(com);
-            const int oldSize = lov->size();
-            lov->resize(oldSize + ov->mesh->getNvertices(), stream);
+            const real3 r = Quaternion::rotate(make_real3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+            const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
-            auto& pos = ov->local()->positions();
-            auto& vel = ov->local()->velocities();
+            const int dstPid = objId * nVerticesPerObject + i;
             
-            for (int i = 0; i < ov->mesh->getNvertices(); i++)
-            {
-                const real3 r = Quaternion::rotate(make_real3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
-                const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
-
-                pos[oldSize + i] = p.r2Real4();
-                vel[oldSize + i] = p.u2Real4();
-            }
-
-            nObjs++;
+            pos[dstPid] = p.r2Real4();
+            vel[dstPid] = p.u2Real4();
         }
     }
 
-    lov->positions().uploadToDevice(stream);
+    lov->positions() .uploadToDevice(stream);
     lov->velocities().uploadToDevice(stream);
     lov->computeGlobalIds(comm, stream);
     lov->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
-    info("Initialized %d '%s' membranes", nObjs, ov->name.c_str());
+    info("Initialized %d '%s' membranes", nObjsLocal, ov->name.c_str());
 }
 
+std::vector<int> MembraneIC::createMap(DomainInfo domain) const
+{
+    std::vector<int> map;
+    for (size_t i = 0; i < com_q.size(); ++i)
+    {
+        const real3 com = com_q[i].r;
+        if (domain.inSubDomain(com))
+            map.push_back(i);
+    }
+    return map;
+}
