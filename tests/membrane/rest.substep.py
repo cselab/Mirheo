@@ -27,7 +27,7 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 prm_rbc = lina_parameters(1.0)
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=args.stress_free)
 
-integrator = mir.Integrators.SubStep('substep_membrane', substeps, int_rbc)
+integrator = mir.Integrators.SubStep('substep_membrane', substeps, [int_rbc])
 u.registerIntegrator(integrator)
 u.setIntegrator(integrator, pv_rbc)
 

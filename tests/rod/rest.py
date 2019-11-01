@@ -65,7 +65,7 @@ if sub_steps == 1:
     u.setInteraction(int_rod, rv, rv)
     u.setIntegrator(vv, rv)
 else:
-    vv = mir.Integrators.SubStep('vv', sub_steps, int_rod)
+    vv = mir.Integrators.SubStep('vv', sub_steps, [int_rod])
     u.registerIntegrator(vv)
     u.setIntegrator(vv, rv)
 

@@ -42,7 +42,7 @@ int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc,
 u.registerInteraction(dpd)
 
 if args.substep:
-    integrator = mir.Integrators.SubStep('substep_membrane', substeps, int_rbc)
+    integrator = mir.Integrators.SubStep('substep_membrane', substeps, [int_rbc])
     u.registerIntegrator(integrator)
     u.setIntegrator(integrator, pv_rbc)
 else:
