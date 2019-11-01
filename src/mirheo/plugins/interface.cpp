@@ -34,7 +34,7 @@ int Plugin::_dataTag() const {_checkTag(); return 2 * tag + 1;}
 
 void Plugin::_checkTag() const
 {
-    if (tag == UNINITIALIZED_TAG)
+    if (tag == invalidTag)
         die("plugin tag is uninitialized");
 }
 

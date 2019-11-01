@@ -29,8 +29,8 @@ protected:
 
 private:
     void _checkTag() const;
-    enum {UNINITIALIZED_TAG = -1};
-    int tag {UNINITIALIZED_TAG};
+    static constexpr int invalidTag = -1;
+    int tag {invalidTag};
 };
 
 class SimulationPlugin : public Plugin, public MirSimulationObject
