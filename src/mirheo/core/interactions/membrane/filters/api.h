@@ -5,5 +5,10 @@
 
 #include <extern/variant/include/mpark/variant.hpp>
 
+namespace mirheo
+{
+
 using VarMembraneFilter = mpark::variant<FilterKeepAll,
                                          FilterKeepByTypeId>;
+
+} // namespace mirheo

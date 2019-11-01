@@ -3,6 +3,9 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 
+namespace mirheo
+{
+
 class FilterKeepByTypeId
 {
 public:
@@ -34,3 +37,5 @@ private:
     int whiteListTypeId {-1};
     const int *typeIds {nullptr};
 };
+
+} // namespace mirheo

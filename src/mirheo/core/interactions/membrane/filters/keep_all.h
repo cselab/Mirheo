@@ -2,6 +2,9 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+namespace mirheo
+{
+
 class MembraneVector;
 
 class FilterKeepAll
@@ -17,3 +20,5 @@ public:
         return true;
     }
 };
+
+} // namespace mirheo

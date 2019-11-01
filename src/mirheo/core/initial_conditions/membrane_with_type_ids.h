@@ -2,6 +2,9 @@
 
 #include "membrane.h"
 
+namespace mirheo
+{
+
 class MembraneWithTypeIdsIC : public MembraneIC
 {
 public:
@@ -13,3 +16,5 @@ public:
 private:
     std::vector<int> typeIds;
 };
+
+} // namespace mirheo

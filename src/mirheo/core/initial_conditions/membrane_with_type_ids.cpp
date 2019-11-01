@@ -2,6 +2,9 @@
 
 #include <mirheo/core/pvs/membrane_vector.h>
 
+namespace mirheo
+{
+
 MembraneWithTypeIdsIC::MembraneWithTypeIdsIC(const std::vector<ComQ>& com_q,
                                              const std::vector<int>& typeIds,
                                              real globalScale) :
@@ -35,3 +38,4 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     info("Initialized %d '%s' membrane type ids", nObjsLocal, ov->name.c_str());
 }
 
+} // namespace mirheo
