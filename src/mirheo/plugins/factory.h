@@ -40,10 +40,10 @@
 #include "wall_force_collector.h"
 #include "wall_repulsion.h"
 
-#include <core/pvs/object_vector.h>
-#include <core/pvs/rod_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/walls/interface.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/walls/interface.h>
 
 #include <memory>
 

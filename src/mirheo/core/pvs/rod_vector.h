@@ -2,8 +2,8 @@
 
 #include "object_vector.h"
 
-#include <core/containers.h>
-#include <core/datatypes.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
 
 class LocalRodVector : public LocalObjectVector
 {

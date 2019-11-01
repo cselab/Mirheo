@@ -2,9 +2,9 @@
 
 #include "accumulators/forceStress.h"
 
-#include <core/datatypes.h>
-#include <core/utils/common.h>
-#include <core/mirheo_state.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/common.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <type_traits>
 

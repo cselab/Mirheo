@@ -1,7 +1,7 @@
 #include "from_array.h"
 
-#include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 FromArrayIC::FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>& vel) :
     pos(pos),

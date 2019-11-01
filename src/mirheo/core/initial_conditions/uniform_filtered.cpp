@@ -1,6 +1,6 @@
 #include "uniform_filtered.h"
 
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 UniformFilteredIC::UniformFilteredIC(real density, PositionFilter filter) :
     density(density),

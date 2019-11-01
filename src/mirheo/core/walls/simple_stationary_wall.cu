@@ -8,16 +8,16 @@
 #include "stationary_walls/sphere.h"
 #include "velocity_field/none.h"
 
-#include <core/celllist.h>
-#include <core/field/utils.h>
-#include <core/logger.h>
-#include <core/pvs/packers/objects.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/root_finder.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/field/utils.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/packers/objects.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/root_finder.h>
 
 #include <cassert>
 #include <cmath>

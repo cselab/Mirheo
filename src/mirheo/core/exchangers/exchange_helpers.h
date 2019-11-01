@@ -2,8 +2,8 @@
 
 #include "utils/fragments_mapping.h"
 
-#include <core/containers.h>
-#include <core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 #include <mpi.h>
 #include <string>

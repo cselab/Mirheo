@@ -1,6 +1,6 @@
 #include "interface.h"
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 
 Plugin::Plugin() :
     comm(MPI_COMM_NULL),

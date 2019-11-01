@@ -1,8 +1,8 @@
 #include "object_to_particles.h"
 
-#include <core/pvs/views/ov.h>
-#include <core/utils/kernel_launch.h>
-#include <core/simulation.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/simulation.h>
 
 // NOTE: Work in progress! Currently, instead of transforming the object to
 // particles, the objects are simply deleted.

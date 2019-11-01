@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/containers.h>
-#include <core/logger.h>
-#include <core/utils/type_map.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/type_map.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 

@@ -3,10 +3,10 @@
 #include "rigid_object_vector.h"
 #include "views/rov.h"
 
-#include <core/rigid/operations.h>
-#include <core/utils/folders.h>
-#include <core/xdmf/type_map.h>
-#include <core/xdmf/xdmf.h>
+#include <mirheo/core/rigid/operations.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/xdmf/type_map.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 constexpr const char *RestartROVIdentifier = "ROV";
 constexpr const char *RestartIPIdentifier = "ROV.TEMPLATE";

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/containers.h>
-#include <core/field/from_function.h>
-#include <core/utils/file_wrapper.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/field/from_function.h>
+#include <mirheo/core/utils/file_wrapper.h>
 
 #include "interface.h"
 

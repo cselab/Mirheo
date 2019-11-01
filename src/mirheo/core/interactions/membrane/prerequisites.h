@@ -2,9 +2,9 @@
 
 #include "kernels/parameters.h"
 
-#include <core/pvs/membrane_vector.h>
-#include <core/celllist.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/membrane_vector.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 template <class EnergyParams>
 inline void setPrerequisitesPerEnergy(__UNUSED const EnergyParams& params,

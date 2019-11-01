@@ -1,12 +1,12 @@
 #include "velocity_inlet.h"
 
-#include <core/marching_cubes.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/marching_cubes.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 enum {
     MAX_NEW_PARTICLE_PER_TRIANGLE = 5

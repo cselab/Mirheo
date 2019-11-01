@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/pvs/packers/rods.h>
+#include <mirheo/core/pvs/packers/rods.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 

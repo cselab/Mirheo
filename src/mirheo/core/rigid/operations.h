@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/pvs/views/rov.h>
+#include <mirheo/core/pvs/views/rov.h>
 
 namespace RigidOperations
 {

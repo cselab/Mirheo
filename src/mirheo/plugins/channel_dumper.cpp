@@ -1,9 +1,9 @@
 #include "channel_dumper.h"
 #include "utils/simple_serializer.h"
 
-#include <core/simulation.h>
-#include <core/utils/folders.h>
-#include <core/xdmf/type_map.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/xdmf/type_map.h>
 
 #include <string>
 #include <memory>

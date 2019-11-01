@@ -1,7 +1,7 @@
 #include "interface.h"
 
-#include <core/utils/common.h>
-#include <core/utils/macros.h>
+#include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/macros.h>
 
 Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),

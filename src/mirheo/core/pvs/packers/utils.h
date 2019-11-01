@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 template <typename TPadding = real4>
 __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)

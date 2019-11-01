@@ -2,12 +2,12 @@
 #include "drivers/mesh.h"
 #include "kernels/api.h"
 
-#include <core/celllist.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/rigid/operations.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/rigid/operations.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 /**
  * Create the bouncer

@@ -71,7 +71,6 @@ set(CMAKE_CUDA_STANDARD 14)
 
 # Alias some dirs
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/ )
 set(CORE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/core/")
 set(PLUGINS_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/plugins/")
 set(BINDINGS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/bindings/")

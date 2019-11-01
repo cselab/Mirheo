@@ -3,7 +3,7 @@
 #include "hdf5_helpers.h"
 #include "type_map.h"
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 
 namespace XDMF
 {

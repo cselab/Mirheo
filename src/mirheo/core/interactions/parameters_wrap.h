@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/logger.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/logger.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 

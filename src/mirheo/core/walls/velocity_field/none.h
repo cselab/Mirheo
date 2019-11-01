@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/datatypes.h>
+#include <mirheo/core/datatypes.h>
 
-#include <core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 class VelocityField_None
 {

@@ -3,11 +3,11 @@
 #include "kernels/real.h"
 #include "kernels/bisegment.h"
 
-#include <core/pvs/rod_vector.h>
-#include <core/pvs/views/rv.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/views/rv.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
 
 struct GPU_RodBoundsParameters
 {

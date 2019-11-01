@@ -1,15 +1,15 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/initial_conditions/from_array.h>
-#include <core/initial_conditions/interface.h>
-#include <core/initial_conditions/membrane.h>
-#include <core/initial_conditions/restart.h>
-#include <core/initial_conditions/rigid.h>
-#include <core/initial_conditions/rod.h>
-#include <core/initial_conditions/uniform.h>
-#include <core/initial_conditions/uniform_filtered.h>
-#include <core/initial_conditions/uniform_sphere.h>
+#include <mirheo/core/initial_conditions/from_array.h>
+#include <mirheo/core/initial_conditions/interface.h>
+#include <mirheo/core/initial_conditions/membrane.h>
+#include <mirheo/core/initial_conditions/restart.h>
+#include <mirheo/core/initial_conditions/rigid.h>
+#include <mirheo/core/initial_conditions/rod.h>
+#include <mirheo/core/initial_conditions/uniform.h>
+#include <mirheo/core/initial_conditions/uniform_filtered.h>
+#include <mirheo/core/initial_conditions/uniform_sphere.h>
 
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>

@@ -2,8 +2,8 @@
 
 #include "interface.h"
 
-#include <core/containers.h>
-#include <core/utils/file_wrapper.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/utils/file_wrapper.h>
 
 #include <functional>
 #include <vector>

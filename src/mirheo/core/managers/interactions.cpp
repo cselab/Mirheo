@@ -1,7 +1,7 @@
 #include "interactions.h"
 
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 #include <set>
 

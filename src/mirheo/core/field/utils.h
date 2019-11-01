@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/helper_math.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/helper_math.h>
 
 template <typename FieldHandler>
 inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)

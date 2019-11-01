@@ -6,9 +6,9 @@
 #include "interface.h"
 #include "pressure_EOS.h"
 
-#include <core/interactions/utils/step_random_gen.h>
-#include <core/utils/restart_helpers.h>
-#include <core/mirheo_state.h>
+#include <mirheo/core/interactions/utils/step_random_gen.h>
+#include <mirheo/core/utils/restart_helpers.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <fstream>
 #include <random>

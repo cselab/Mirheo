@@ -2,9 +2,9 @@
 
 #include <fstream>
 #include <texture_types.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/mpi_types.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/mpi_types.h>
 
 namespace InterpolateKernels
 {

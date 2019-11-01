@@ -2,10 +2,10 @@
 
 #include "real.h"
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/quaternion.h>
-#include <core/pvs/views/rv.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/quaternion.h>
+#include <mirheo/core/pvs/views/rv.h>
 
 template<int Nstates>
 struct GPU_RodBiSegmentParameters

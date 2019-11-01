@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/logger.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/vec_traits.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/vec_traits.h>
 
 #include <algorithm>
 #include <cassert>

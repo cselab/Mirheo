@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/pvs/data_manager.h>
-#include <core/xdmf/xdmf.h>
+#include <mirheo/core/pvs/data_manager.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 #include <set>
 #include <string>

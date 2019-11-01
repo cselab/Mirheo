@@ -1,10 +1,10 @@
 #include "helpers.h"
 
-#include <core/xdmf/type_map.h>
-#include <core/xdmf/xdmf.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/type_shift.h>
-#include <core/containers.h>
+#include <mirheo/core/xdmf/type_map.h>
+#include <mirheo/core/xdmf/xdmf.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/type_shift.h>
+#include <mirheo/core/containers.h>
 
 namespace CheckpointHelpers
 {

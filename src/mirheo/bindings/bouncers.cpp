@@ -1,11 +1,11 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/analytical_shapes/api.h>
-#include <core/bouncers/from_mesh.h>
-#include <core/bouncers/from_rod.h>
-#include <core/bouncers/from_shape.h>
-#include <core/bouncers/interface.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/bouncers/from_mesh.h>
+#include <mirheo/core/bouncers/from_rod.h>
+#include <mirheo/core/bouncers/from_shape.h>
+#include <mirheo/core/bouncers/interface.h>
 
 #include <map>
 #include <memory>

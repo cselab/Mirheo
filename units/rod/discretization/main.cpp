@@ -1,9 +1,9 @@
-#include <core/logger.h>
-#include <core/utils/helper_math.h>
-#include <core/utils/cuda_common.h>
-#include <core/initial_conditions/rod.h>
-#include <core/pvs/rod_vector.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/initial_conditions/rod.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/utils/quaternion.h>
 
 #include <vector>
 #include <functional>

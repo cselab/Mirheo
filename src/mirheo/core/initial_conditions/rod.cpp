@@ -1,7 +1,7 @@
 #include "rod.h"
 
-#include <core/pvs/rod_vector.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/utils/quaternion.h>
 
 #include <fstream>
 #include <limits>

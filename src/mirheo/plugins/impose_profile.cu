@@ -1,12 +1,12 @@
 #include "impose_profile.h"
 
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 __device__ inline bool all_lt(real3 a, real3 b)
 {

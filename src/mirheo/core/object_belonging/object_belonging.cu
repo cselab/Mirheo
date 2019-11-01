@@ -1,12 +1,12 @@
 #include "object_belonging.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/packers/particles.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/packers/particles.h>
 
-#include <core/celllist.h>
+#include <mirheo/core/celllist.h>
 
 namespace ObjectBelongingKernels
 {

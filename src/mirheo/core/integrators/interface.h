@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <mpi.h>
 
-#include "core/mirheo_object.h"
+#include <mirheo/core/mirheo_object.h>
 
 class ParticleVector;
 

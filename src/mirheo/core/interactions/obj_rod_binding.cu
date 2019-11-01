@@ -1,11 +1,11 @@
 #include "obj_rod_binding.h"
 
-#include <core/pvs/views/rov.h>
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/rod_vector.h>
-#include <core/rigid/utils.h>
-#include <core/utils/quaternion.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/views/rov.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/rigid/utils.h>
+#include <mirheo/core/utils/quaternion.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace ObjRodBindingKernels
 {

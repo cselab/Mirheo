@@ -2,12 +2,12 @@
 
 #include "real.h"
 
-#include <core/mesh/membrane.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
+#include <mirheo/core/mesh/membrane.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
 
 __D__ inline mReal triangleArea(mReal3 v0, mReal3 v1, mReal3 v2)
 {

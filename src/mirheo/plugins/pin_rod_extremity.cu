@@ -1,10 +1,10 @@
 #include "pin_rod_extremity.h"
 
-#include <core/pvs/rod_vector.h>
-#include <core/pvs/views/rv.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/views/rv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace PinRodExtremityKernels
 {

@@ -1,8 +1,8 @@
 #include "oscillate.h"
 #include "integration_kernel.h"
 
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 /**
  * @param vel Velocity magnitude

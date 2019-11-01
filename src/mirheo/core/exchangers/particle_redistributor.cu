@@ -5,12 +5,12 @@
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
 
-#include <core/celllist.h>
-#include <core/pvs/packers/particles.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/packers/particles.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 enum class PackMode
 {

@@ -1,8 +1,8 @@
 #include "exchange_helpers.h"
 
-#include <core/pvs/packers/rods.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/packers/rods.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace ExchangeHelpersKernels
 {

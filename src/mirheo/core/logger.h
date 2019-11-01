@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/utils/file_wrapper.h>
-#include <core/utils/folders.h>
-#include <core/utils/macros.h>
-#include <core/utils/stacktrace_explicit.h>
+#include <mirheo/core/utils/file_wrapper.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/macros.h>
+#include <mirheo/core/utils/stacktrace_explicit.h>
 
 #include <algorithm>
 #include <array>

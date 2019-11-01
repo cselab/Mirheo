@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/pvs/views/pv.h>
-#include <core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 class DensityAccumulator
 {

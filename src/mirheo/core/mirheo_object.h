@@ -2,7 +2,7 @@
 
 #include "mirheo_state.h"
 
-#include <core/utils/common.h>
+#include <mirheo/core/utils/common.h>
 
 #include <mpi.h>
 #include <string>

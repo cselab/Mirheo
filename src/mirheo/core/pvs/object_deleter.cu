@@ -1,6 +1,6 @@
 #include "object_deleter.h"
 
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/utils/kernel_launch.h>
 #include <extern/cub/cub/device/device_scan.cuh>
 
 namespace ObjectDeleterDetails

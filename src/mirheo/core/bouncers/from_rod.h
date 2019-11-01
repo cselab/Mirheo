@@ -3,7 +3,7 @@
 #include "interface.h"
 #include "kernels/api.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 #include <random>
 

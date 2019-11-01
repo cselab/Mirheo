@@ -1,7 +1,7 @@
 #include "interface.h"
 
-#include <core/pvs/particle_vector.h>
-#include <core/utils/macros.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/macros.h>
 
 Bouncer::Bouncer(const MirState *state, std::string name) :
     MirSimulationObject(state, name)

@@ -1,7 +1,7 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/datatypes.h>
+#include <mirheo/core/datatypes.h>
 
 #include <pybind11/stl.h>
 #include <vector_types.h>

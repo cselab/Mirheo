@@ -2,7 +2,7 @@
 
 #include "grids.h"
 
-#include <core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
 
 #include <memory>
 #include <mpi.h>

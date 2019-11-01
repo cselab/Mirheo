@@ -1,8 +1,8 @@
 #include "dump_particles_with_mesh.h"
 #include "utils/simple_serializer.h"
 
-#include <core/simulation.h>
-#include <core/utils/folders.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/folders.h>
 
 ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                                            std::vector<std::string> channelNames,

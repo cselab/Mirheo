@@ -1,6 +1,6 @@
 #include "rods.h"
 
-#include <core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
 
 RodPacker::RodPacker(PackPredicate predicate) :
     ObjectPacker(predicate)

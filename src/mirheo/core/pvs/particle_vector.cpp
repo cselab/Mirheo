@@ -2,10 +2,10 @@
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
-#include <core/utils/cuda_common.h>
-#include <core/utils/folders.h>
-#include <core/xdmf/type_map.h>
-#include <core/xdmf/xdmf.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/xdmf/type_map.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 #include <mpi.h>
 

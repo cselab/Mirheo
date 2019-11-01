@@ -2,12 +2,12 @@
 #include "drivers/shape.h"
 #include "kernels/api.h"
 
-#include <core/analytical_shapes/api.h>
-#include <core/celllist.h>
-#include <core/pvs/rigid_ashape_object_vector.h>
-#include <core/pvs/views/rsov.h>
-#include <core/rigid/operations.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/rigid_ashape_object_vector.h>
+#include <mirheo/core/pvs/views/rsov.h>
+#include <mirheo/core/rigid/operations.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 template <class Shape>
 BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state,

@@ -2,7 +2,7 @@
 
 #include "exchanger_interfaces.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 class ObjectVector;
 class ObjectPacker;

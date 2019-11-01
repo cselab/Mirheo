@@ -3,11 +3,11 @@
 #include <vector>
 #include <string>
 
-#include <plugins/interface.h>
-#include <core/containers.h>
-#include <core/datatypes.h>
+#include <mirheo/plugins/interface.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
 
-#include <core/xdmf/xdmf.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 class ParticleVector;
 class CellList;

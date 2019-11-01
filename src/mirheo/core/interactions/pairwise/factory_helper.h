@@ -2,7 +2,7 @@
 
 #include "kernels/parameters.h"
 
-#include <core/interactions/parameters_wrap.h>
+#include <mirheo/core/interactions/parameters_wrap.h>
 
 #include <limits>
 

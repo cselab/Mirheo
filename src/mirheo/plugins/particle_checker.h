@@ -1,8 +1,8 @@
 #pragma once
 
-#include <plugins/interface.h>
-#include <core/containers.h>
-#include <core/datatypes.h>
+#include <mirheo/plugins/interface.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
 
 #include <vector>
 

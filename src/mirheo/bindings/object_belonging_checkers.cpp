@@ -1,11 +1,11 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/analytical_shapes/api.h>
-#include <core/object_belonging/shape_belonging.h>
-#include <core/object_belonging/interface.h>
-#include <core/object_belonging/mesh_belonging.h>
-#include <core/object_belonging/rod_belonging.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/object_belonging/shape_belonging.h>
+#include <mirheo/core/object_belonging/interface.h>
+#include <mirheo/core/object_belonging/mesh_belonging.h>
+#include <mirheo/core/object_belonging/rod_belonging.h>
 
 using namespace pybind11::literals;
 

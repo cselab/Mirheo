@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 #include <fstream>
 

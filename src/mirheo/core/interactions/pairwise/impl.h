@@ -2,13 +2,13 @@
 
 #include "drivers.h"
 
-#include <core/celllist.h>
-#include <core/interactions/interface.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 #include <fstream>
 #include <map>

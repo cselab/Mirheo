@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/domain.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/type_map.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/type_map.h>
 
 namespace TypeShift
 {

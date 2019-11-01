@@ -4,8 +4,8 @@
 #include <memory>
 #include <mpi.h>
 
-#include <plugins/interface.h>
-#include <core/xdmf/xdmf.h>
+#include <mirheo/plugins/interface.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 class UniformCartesianDumper : public PostprocessPlugin
 {

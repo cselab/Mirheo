@@ -1,10 +1,10 @@
 #include "from_rod.h"
 #include "drivers/rod.h"
 
-#include <core/celllist.h>
-#include <core/pvs/rod_vector.h>
-#include <core/pvs/views/rv.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/views/rv.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 BounceFromRod::BounceFromRod(const MirState *state,
                              const std::string& name,

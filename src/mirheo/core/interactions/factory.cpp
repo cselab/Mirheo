@@ -6,7 +6,7 @@
 #include "pairwise/factory_helper.h"
 #include "rod.h"
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 
 static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
 {

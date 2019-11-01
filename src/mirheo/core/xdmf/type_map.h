@@ -2,8 +2,8 @@
 
 #include "channel.h"
 
-#include <core/logger.h>
-#include <core/utils/type_map.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/type_map.h>
 
 namespace XDMF
 {

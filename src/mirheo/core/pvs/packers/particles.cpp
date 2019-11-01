@@ -1,6 +1,6 @@
 #include "particles.h"
 
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 ParticlePacker::ParticlePacker(PackPredicate predicate) :
     predicate(predicate)

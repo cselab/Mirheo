@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rov.h"
-#include <core/pvs/rigid_ashape_object_vector.h>
+#include <mirheo/core/pvs/rigid_ashape_object_vector.h>
 
 template <class Shape>
 struct RSOVview : public ROVview

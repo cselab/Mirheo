@@ -5,9 +5,9 @@
 #include "interface.h"
 #include "parameters.h"
 
-#include <core/mirheo_state.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/rod_vector.h>
+#include <mirheo/core/mirheo_state.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
 
 struct LJAwarenessNone
 {

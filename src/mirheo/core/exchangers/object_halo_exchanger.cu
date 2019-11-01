@@ -4,13 +4,13 @@
 #include "utils/common.h"
 #include "utils/fragments_mapping.h"
 
-#include <core/utils/kernel_launch.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/rod_vector.h>
-#include <core/pvs/packers/objects.h>
-#include <core/pvs/views/ov.h>
-#include <core/logger.h>
-#include <core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/pvs/packers/objects.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/cuda_common.h>
 
 enum class PackMode
 {

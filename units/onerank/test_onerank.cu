@@ -3,13 +3,13 @@
 
 #include "../timer.h"
 
-#include <core/celllist.h>
-#include <core/domain.h>
-#include <core/exchangers/api.h>
-#include <core/integrators/factory.h>
-#include <core/interactions/pairwise.h>
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/exchangers/api.h>
+#include <mirheo/core/integrators/factory.h>
+#include <mirheo/core/interactions/pairwise.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 #include <gtest/gtest.h>
 

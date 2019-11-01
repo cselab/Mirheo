@@ -1,5 +1,5 @@
-#include <core/logger.h>
-#include <core/utils/root_finder.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/root_finder.h>
 
 #include <cmath>
 #include <cstdio>

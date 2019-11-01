@@ -8,10 +8,10 @@
 #include <cassert>
 #include <algorithm>
 
-#include <core/pvs/particle_vector.h>
-#include <core/celllist.h>
-#include <core/logger.h>
-#include <core/initial_conditions/uniform.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/initial_conditions/uniform.h>
 
 #include <gtest/gtest.h>
 

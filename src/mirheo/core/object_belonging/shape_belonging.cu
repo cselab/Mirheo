@@ -1,13 +1,13 @@
 #include "shape_belonging.h"
 
-#include <core/analytical_shapes/api.h>
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_ashape_object_vector.h>
-#include <core/pvs/views/rsov.h>
-#include <core/rigid/utils.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_ashape_object_vector.h>
+#include <mirheo/core/pvs/views/rsov.h>
+#include <mirheo/core/rigid/utils.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/quaternion.h>
 
 namespace ShapeBelongingKernels
 {

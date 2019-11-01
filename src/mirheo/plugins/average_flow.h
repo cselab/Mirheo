@@ -2,8 +2,8 @@
 
 #include "interface.h"
 
-#include <core/containers.h>
-#include <core/domain.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/domain.h>
 
 #include <vector>
 

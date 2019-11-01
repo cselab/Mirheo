@@ -1,11 +1,11 @@
 #pragma once
 
-#include <core/celllist.h>
-#include <core/pvs/views/pv.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
-#include <core/utils/helper_math.h>
-#include <core/utils/root_finder.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/root_finder.h>
 
 namespace BounceKernels
 {

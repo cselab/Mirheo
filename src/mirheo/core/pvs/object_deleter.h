@@ -1,8 +1,8 @@
 #pragma once
 
-#include <core/containers.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/packers/objects.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/packers/objects.h>
 
 class ObjectVector;
 

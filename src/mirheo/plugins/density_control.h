@@ -3,9 +3,9 @@
 #include "interface.h"
 #include "utils/pid.h"
 
-#include <core/containers.h>
-#include <core/datatypes.h>
-#include <core/utils/file_wrapper.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/file_wrapper.h>
 
 #include <functional>
 #include <memory>

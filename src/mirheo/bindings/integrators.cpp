@@ -1,5 +1,5 @@
-#include <core/integrators/factory.h>
-#include <core/interactions/interface.h>
+#include <mirheo/core/integrators/factory.h>
+#include <mirheo/core/interactions/interface.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"

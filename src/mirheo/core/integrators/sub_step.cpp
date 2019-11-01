@@ -3,10 +3,10 @@
 #include "forcing_terms/none.h"
 #include "vv.h"
 
-#include <core/interactions/interface.h>
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/common.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/common.h>
 
 #include <memory>
 

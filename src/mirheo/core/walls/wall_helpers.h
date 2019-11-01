@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <mpi.h>
-#include <core/domain.h>
+#include <mirheo/core/domain.h>
 
 #include <cuda_runtime.h>
 

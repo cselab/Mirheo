@@ -1,7 +1,7 @@
 #include "postproc.h"
 
-#include <core/logger.h>
-#include <core/utils/common.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/common.h>
 
 #include <mpi.h>
 #include <vector>

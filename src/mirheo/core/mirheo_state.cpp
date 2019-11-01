@@ -1,7 +1,7 @@
 #include "mirheo_state.h"
 
-#include <core/logger.h>
-#include <core/utils/restart_helpers.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/restart_helpers.h>
 
 static const std::string fname = "state.mirheo";
 

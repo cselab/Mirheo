@@ -4,7 +4,7 @@
 #include "fetchers.h"
 #include "interface.h"
 
-#include <core/mirheo_state.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <random>
 

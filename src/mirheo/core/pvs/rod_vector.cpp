@@ -1,8 +1,8 @@
 #include "rod_vector.h"
 #include "views/rv.h"
 
-#include <core/utils/quaternion.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/utils/quaternion.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 inline constexpr int getNumParts(int nSegments)
 {

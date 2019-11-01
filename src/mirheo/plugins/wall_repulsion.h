@@ -1,10 +1,10 @@
 #pragma once
 
-#include <plugins/interface.h>
-#include <core/containers.h>
+#include <mirheo/plugins/interface.h>
+#include <mirheo/core/containers.h>
 #include <string>
 
-#include <core/utils/folders.h>
+#include <mirheo/core/utils/folders.h>
 
 class ParticleVector;
 class SDF_basedWall;

@@ -1,11 +1,11 @@
 #include "operations.h"
 #include "utils.h"
 
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/views/rov.h>
-#include <core/utils/quaternion.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/views/rov.h>
+#include <mirheo/core/utils/quaternion.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace RigidOperationsKernels
 {

@@ -2,8 +2,8 @@
 
 #include "../average_flow.h"
 
-#include <core/utils/cuda_common.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 template <typename T>
 inline bool checkType(__UNUSED const Average3D::ChannelType& channelType) { return false;}

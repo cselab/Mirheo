@@ -1,7 +1,7 @@
 #include "uniform_sphere.h"
 #include "helpers.h"
 
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 UniformSphereIC::UniformSphereIC(real density, real3 center, real radius, bool inside) :
     density(density),

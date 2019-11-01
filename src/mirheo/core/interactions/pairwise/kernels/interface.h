@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/mirheo_state.h>
+#include <mirheo/core/mirheo_state.h>
 
 class PairwiseKernel
 {

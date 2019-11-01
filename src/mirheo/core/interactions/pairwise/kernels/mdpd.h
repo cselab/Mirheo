@@ -5,10 +5,10 @@
 #include "interface.h"
 #include "parameters.h"
 
-#include <core/interactions/utils/step_random_gen.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/restart_helpers.h>
-#include <core/mirheo_state.h>
+#include <mirheo/core/interactions/utils/step_random_gen.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/restart_helpers.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <random>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/field/from_file.h>
+#include <mirheo/core/field/from_file.h>
 #include <memory>
 
 class StationaryWall_SDF

@@ -1,6 +1,6 @@
 #include "objects.h"
 
-#include <core/pvs/object_vector.h>
+#include <mirheo/core/pvs/object_vector.h>
 
 ObjectPacker::ObjectPacker(PackPredicate predicate) :
     ParticlePacker(predicate)

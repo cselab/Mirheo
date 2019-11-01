@@ -1,7 +1,7 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/walls/factory.h>
+#include <mirheo/core/walls/factory.h>
 
 using namespace pybind11::literals;
 

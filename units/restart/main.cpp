@@ -1,10 +1,10 @@
-#include <core/analytical_shapes/api.h>
-#include <core/initial_conditions/rigid.h>
-#include <core/initial_conditions/uniform.h>
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_ashape_object_vector.h>
-#include <core/utils/cuda_common.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/initial_conditions/rigid.h>
+#include <mirheo/core/initial_conditions/uniform.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_ashape_object_vector.h>
+#include <mirheo/core/utils/cuda_common.h>
 
 #include <gtest/gtest.h>
 

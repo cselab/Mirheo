@@ -2,7 +2,7 @@
 
 #include "mesh.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 class MembraneMesh : public Mesh
 {

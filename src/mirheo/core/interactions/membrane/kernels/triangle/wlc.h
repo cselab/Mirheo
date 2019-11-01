@@ -2,9 +2,9 @@
 
 #include "../parameters.h"
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/helper_math.h>
-#include <core/mesh/membrane.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/mesh/membrane.h>
 
 #include <cmath>
 

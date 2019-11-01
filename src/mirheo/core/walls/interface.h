@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/mirheo_object.h"
-#include <core/containers.h>
-#include <core/domain.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/mirheo_object.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 #include <mpi.h>
 #include <vector>

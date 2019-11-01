@@ -1,9 +1,9 @@
 #pragma once
 
-#include <core/domain.h>
-#include <core/utils/type_shift.h>
-#include <core/utils/type_map.h>
-#include <core/pvs/data_manager.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/utils/type_shift.h>
+#include <mirheo/core/utils/type_map.h>
+#include <mirheo/core/pvs/data_manager.h>
 
 #include <mpi.h>
 #include <tuple>

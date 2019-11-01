@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/interactions/interface.h>
+#include <mirheo/core/interactions/interface.h>
 
 #include <map>
 #include <string>

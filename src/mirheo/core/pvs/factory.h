@@ -2,8 +2,8 @@
 
 #include "rigid_ashape_object_vector.h"
 
-#include <core/analytical_shapes/api.h>
-#include <core/utils/pytypes.h>
+#include <mirheo/core/analytical_shapes/api.h>
+#include <mirheo/core/utils/pytypes.h>
 
 #include <memory>
 

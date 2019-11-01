@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include <core/datatypes.h>
+#include <mirheo/core/datatypes.h>
 
 #include <mpi.h>
 #include <string>

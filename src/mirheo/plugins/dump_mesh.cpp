@@ -2,12 +2,12 @@
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"
 
-#include <core/celllist.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/folders.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/folders.h>
 
 #include <regex>
 

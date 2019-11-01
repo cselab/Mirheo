@@ -1,7 +1,7 @@
 #include "mirheo_object.h"
 
-#include <core/logger.h>
-#include <core/utils/folders.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/folders.h>
 
 MirObject::MirObject(std::string name) :
     name(name)

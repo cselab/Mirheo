@@ -1,10 +1,10 @@
 #include "particle_portal.h"
 
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace ParticlePortal {
 

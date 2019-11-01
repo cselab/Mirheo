@@ -1,15 +1,15 @@
-#include <core/utils/restart_helpers.h>
+#include <mirheo/core/utils/restart_helpers.h>
 
 #include "velocity_control.h"
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"
 
-#include <core/datatypes.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace VelocityControlKernels
 {

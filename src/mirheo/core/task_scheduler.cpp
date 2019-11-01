@@ -1,6 +1,6 @@
-#include <core/task_scheduler.h>
-#include <core/logger.h>
-#include <core/utils/nvtx.h>
+#include <mirheo/core/task_scheduler.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/utils/nvtx.h>
 
 #include <extern/pugixml/src/pugixml.hpp>
 

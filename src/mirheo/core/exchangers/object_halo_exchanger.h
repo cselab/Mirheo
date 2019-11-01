@@ -3,7 +3,7 @@
 #include "exchanger_interfaces.h"
 #include "utils/map.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 #include <memory>
 

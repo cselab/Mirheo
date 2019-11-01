@@ -1,11 +1,11 @@
 #pragma once
 
-#include <core/domain.h>
-#include <core/containers.h>
-#include <core/mirheo_object.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/mirheo_object.h>
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/helper_math.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/helper_math.h>
 
 #include <vector>
 

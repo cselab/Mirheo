@@ -2,9 +2,9 @@
 
 #include "kernels/type_traits.h"
 
-#include <core/celllist.h>
-#include <core/utils/cuda_common.h>
-#include <core/pvs/views/pv.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/pvs/views/pv.h>
 
 #include <cassert>
 #include <type_traits>

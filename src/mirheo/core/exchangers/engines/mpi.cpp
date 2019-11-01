@@ -2,8 +2,8 @@
 #include "../exchange_helpers.h"
 #include "../utils/fragments_mapping.h"
 
-#include <core/utils/timer.h>
-#include <core/logger.h>
+#include <mirheo/core/utils/timer.h>
+#include <mirheo/core/logger.h>
 #include <algorithm>
 
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,

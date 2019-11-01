@@ -1,21 +1,21 @@
 #include "simulation.h"
 
-#include <core/bouncers/interface.h>
-#include <core/celllist.h>
-#include <core/initial_conditions/interface.h>
-#include <core/integrators/interface.h>
-#include <core/interactions/interface.h>
-#include <core/managers/interactions.h>
-#include <core/exchangers/api.h>
-#include <core/object_belonging/interface.h>
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/task_scheduler.h>
-#include <core/utils/folders.h>
-#include <core/utils/restart_helpers.h>
-#include <core/walls/interface.h>
-#include <core/mirheo_state.h>
-#include <plugins/interface.h>
+#include <mirheo/core/bouncers/interface.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/initial_conditions/interface.h>
+#include <mirheo/core/integrators/interface.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/managers/interactions.h>
+#include <mirheo/core/exchangers/api.h>
+#include <mirheo/core/object_belonging/interface.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/task_scheduler.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/restart_helpers.h>
+#include <mirheo/core/walls/interface.h>
+#include <mirheo/core/mirheo_state.h>
+#include <mirheo/plugins/interface.h>
 
 #include <algorithm>
 #include <cuda_profiler_api.h>

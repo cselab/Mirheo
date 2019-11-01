@@ -1,5 +1,5 @@
 #include "restart.h"
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 RestartIC::RestartIC(std::string path) :
     path(path)

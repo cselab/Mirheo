@@ -1,12 +1,12 @@
 #pragma once
 
-#include <core/celllist.h>
-#include <core/pvs/views/rsov.h>
-#include <core/rigid/utils.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/cuda_rng.h>
-#include <core/utils/quaternion.h>
-#include <core/utils/root_finder.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/views/rsov.h>
+#include <mirheo/core/rigid/utils.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_rng.h>
+#include <mirheo/core/utils/quaternion.h>
+#include <mirheo/core/utils/root_finder.h>
 
 namespace ShapeBounceKernels
 {

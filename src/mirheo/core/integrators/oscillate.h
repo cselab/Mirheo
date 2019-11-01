@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include <core/utils/macros.h>
+#include <mirheo/core/utils/macros.h>
 
 /**
  * Apply periodic sine wave to the particle velocities.

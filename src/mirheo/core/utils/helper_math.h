@@ -24,7 +24,7 @@
 
 #include "cpu_gpu_defines.h"
 
-#include <core/datatypes.h>
+#include <mirheo/core/datatypes.h>
 
 
 #if defined(__CUDACC__)

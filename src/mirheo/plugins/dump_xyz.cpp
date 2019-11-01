@@ -3,9 +3,9 @@
 #include "utils/time_stamp.h"
 #include "utils/xyz.h"
 
-#include <core/pvs/particle_vector.h>
-#include <core/simulation.h>
-#include <core/utils/folders.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/folders.h>
 
 XYZPlugin::XYZPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery) :
     SimulationPlugin(state, name), pvName(pvName),

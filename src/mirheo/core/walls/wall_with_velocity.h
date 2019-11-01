@@ -4,7 +4,7 @@
 
 #include "interface.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 class ParticleVector;
 class CellList;

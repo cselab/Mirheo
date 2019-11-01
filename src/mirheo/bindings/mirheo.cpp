@@ -1,16 +1,16 @@
 #include "bindings.h"
 #include "class_wrapper.h"
 
-#include <core/bouncers/interface.h>
-#include <core/initial_conditions/interface.h>
-#include <core/integrators/interface.h>
-#include <core/interactions/interface.h>
-#include <core/mirheo.h>
-#include <core/object_belonging/interface.h>
-#include <core/pvs/object_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/walls/interface.h>
-#include <plugins/interface.h>
+#include <mirheo/core/bouncers/interface.h>
+#include <mirheo/core/initial_conditions/interface.h>
+#include <mirheo/core/integrators/interface.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/mirheo.h>
+#include <mirheo/core/object_belonging/interface.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/walls/interface.h>
+#include <mirheo/plugins/interface.h>
 
 #include <pybind11/stl.h>
 #include <string>

@@ -1,6 +1,6 @@
 #include "folders.h"
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 
 #include <sstream>
 

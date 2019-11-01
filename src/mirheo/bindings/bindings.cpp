@@ -1,4 +1,4 @@
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 #include "bindings.h"
 #include <mpi.h>
 

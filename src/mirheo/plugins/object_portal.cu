@@ -1,11 +1,11 @@
 #include "object_portal.h"
 
-#include <core/pvs/object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/simulation.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/helper_math.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/object_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace ObjectPortal {
 

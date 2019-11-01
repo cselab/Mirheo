@@ -2,10 +2,10 @@
 
 #include "particle_vector.h"
 
-#include <core/containers.h>
-#include <core/logger.h>
-#include <core/mesh/mesh.h>
-#include <core/utils/common.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/mesh/mesh.h>
+#include <mirheo/core/utils/common.h>
 
 class LocalObjectVector: public LocalParticleVector
 {

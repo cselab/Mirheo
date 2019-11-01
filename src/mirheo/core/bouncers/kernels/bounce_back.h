@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/macros.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/macros.h>
 
 #include <random>
 

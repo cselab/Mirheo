@@ -1,8 +1,8 @@
 #include "membrane.h"
 
-#include <core/pvs/membrane_vector.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/pvs/membrane_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/quaternion.h>
 
 #include <fstream>
 #include <random>

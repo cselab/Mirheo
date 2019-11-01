@@ -2,8 +2,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/functional.h>
 
-#include <plugins/factory.h>
-#include <core/xdmf/channel.h>
+#include <mirheo/plugins/factory.h>
+#include <mirheo/core/xdmf/channel.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"

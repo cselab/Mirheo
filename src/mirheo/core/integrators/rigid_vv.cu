@@ -1,12 +1,12 @@
 #include "rigid_vv.h"
 
-#include <core/logger.h>
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/views/rov.h>
-#include <core/rigid/operations.h>
-#include <core/rigid/utils.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/quaternion.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/views/rov.h>
+#include <mirheo/core/rigid/operations.h>
+#include <mirheo/core/rigid/utils.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/quaternion.h>
 
 namespace RigidVVKernels
 {

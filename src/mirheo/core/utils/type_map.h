@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/utils/cuda_variant.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/cuda_variant.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 

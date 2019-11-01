@@ -5,13 +5,13 @@
 #include "kernels/parameters.h"
 #include "prerequisites.h"
 
-#include <core/interactions/interface.h>
-#include <core/interactions/utils/step_random_gen.h>
-#include <core/pvs/membrane_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/restart_helpers.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/interactions/utils/step_random_gen.h>
+#include <mirheo/core/pvs/membrane_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/restart_helpers.h>
 
 #include <cmath>
 #include <functional>

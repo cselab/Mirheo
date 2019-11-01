@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 
 inline bool isValid_nBlocks(int blocks)
 {

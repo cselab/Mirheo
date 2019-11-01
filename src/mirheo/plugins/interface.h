@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/logger.h>
-#include <core/mirheo_object.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/mirheo_object.h>
 
 #include <mpi.h>
 #include <vector>

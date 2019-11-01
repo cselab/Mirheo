@@ -1,5 +1,5 @@
-#include <core/logger.h>
-#include <core/exchangers/utils/map.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/exchangers/utils/map.h>
 
 #include <cstdio>
 #include <gtest/gtest.h>

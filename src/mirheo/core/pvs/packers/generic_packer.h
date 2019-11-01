@@ -2,10 +2,10 @@
 
 #include "utils.h"
 
-#include <core/pvs/data_manager.h>
-#include <core/utils/cpu_gpu_defines.h>
-#include <core/utils/type_add.h>
-#include <core/utils/type_shift.h>
+#include <mirheo/core/pvs/data_manager.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/type_add.h>
+#include <mirheo/core/utils/type_shift.h>
 
 #include <cassert>
 #include <functional>

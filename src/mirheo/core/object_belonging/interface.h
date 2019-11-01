@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/mirheo_object.h>
+#include <mirheo/core/mirheo_object.h>
 
 #include <cuda_runtime.h>
 #include <mpi.h>

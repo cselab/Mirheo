@@ -1,10 +1,10 @@
 #include "rod_belonging.h"
 
-#include <core/celllist.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/rv.h>
-#include <core/utils/kernel_launch.h>
-#include <core/utils/helper_math.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/rv.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/helper_math.h>
 
 namespace RodBelongingKernels
 {

@@ -2,12 +2,12 @@
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"
 
-#include <core/pvs/rigid_object_vector.h>
-#include <core/pvs/views/ov.h>
-#include <core/simulation.h>
-#include <core/utils/folders.h>
-#include <core/utils/helper_math.h>
-#include <core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/kernel_launch.h>
 
 namespace ObjStatsPluginKernels
 {

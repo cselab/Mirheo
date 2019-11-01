@@ -1,9 +1,9 @@
 #include "force_saver.h"
 
-#include <core/simulation.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/kernel_launch.h>
-#include <core/pvs/views/pv.h>
+#include <mirheo/core/simulation.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/pvs/views/pv.h>
 
 const std::string ForceSaverPlugin::fieldName = "forces";
 

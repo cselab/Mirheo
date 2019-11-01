@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/datatypes.h>
-#include <core/utils/vec_traits.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/vec_traits.h>
 
 #ifdef ROD_FORCES_DOUBLE
 using rReal  = double;

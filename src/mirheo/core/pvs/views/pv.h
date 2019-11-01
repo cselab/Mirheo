@@ -2,8 +2,8 @@
 
 #include "../particle_vector.h"
 
-#include <core/utils/common.h>
-#include <core/utils/cuda_common.h>
+#include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/cuda_common.h>
 
 /**
  * GPU-compatible struct of all the relevant data

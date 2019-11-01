@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/datatypes.h>
+#include <mirheo/core/datatypes.h>
 
 #include <cuda_runtime.h>
 #include <memory>

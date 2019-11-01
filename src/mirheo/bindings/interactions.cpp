@@ -1,11 +1,11 @@
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
-#include <core/interactions/pairwise.h>
-#include <core/interactions/factory.h>
-#include <core/interactions/interface.h>
-#include <core/interactions/membrane.h>
-#include <core/interactions/obj_rod_binding.h>
-#include <core/interactions/rod.h>
+#include <mirheo/core/interactions/pairwise.h>
+#include <mirheo/core/interactions/factory.h>
+#include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/interactions/membrane.h>
+#include <mirheo/core/interactions/obj_rod_binding.h>
+#include <mirheo/core/interactions/rod.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"

@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include <core/utils/macros.h>
+#include <mirheo/core/utils/macros.h>
 
 /**
  * Make constant particle velocities, regardless force

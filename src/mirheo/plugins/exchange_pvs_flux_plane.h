@@ -2,7 +2,7 @@
 
 #include "interface.h"
 
-#include <core/containers.h>
+#include <mirheo/core/containers.h>
 
 #include <memory>
 #include <string>

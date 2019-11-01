@@ -3,8 +3,8 @@
 #include "impl.h"
 #include "kernels/stress_wrapper.h"
 
-#include <core/datatypes.h>
-#include <core/interactions/interface.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/interactions/interface.h>
 
 #include <map>
 

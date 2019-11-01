@@ -5,8 +5,8 @@
 #include "forcing_terms/const_dp.h"
 #include "forcing_terms/periodic_poiseuille.h"
 
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, std::string name, ForcingTerm forcingTerm) :

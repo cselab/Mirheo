@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/celllist.h>
+#include <mirheo/core/celllist.h>
 
 /**
  * map threads to cell id inside a given face

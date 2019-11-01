@@ -1,6 +1,6 @@
 #include "from_function.h"
 
-#include <core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_common.h>
 
 FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h) :
     Field(state, name, h),

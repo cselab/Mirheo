@@ -1,10 +1,10 @@
 #pragma once
 
-#include <plugins/interface.h>
+#include <mirheo/plugins/interface.h>
 #include <string>
 #include <functional>
 
-#include <core/utils/folders.h>
+#include <mirheo/core/utils/folders.h>
 
 class RigidObjectVector;
 

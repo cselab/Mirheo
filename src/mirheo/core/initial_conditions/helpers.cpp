@@ -1,9 +1,9 @@
 #include <functional>
 #include <random>
 
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/utils/common.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/common.h>
 
 #include "helpers.h"
 

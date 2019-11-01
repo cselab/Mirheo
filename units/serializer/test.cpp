@@ -1,7 +1,7 @@
-#include <core/containers.h>
-#include <core/datatypes.h>
-#include <core/logger.h>
-#include <plugins/utils/simple_serializer.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/plugins/utils/simple_serializer.h>
 
 #include <vector>
 #include <string>

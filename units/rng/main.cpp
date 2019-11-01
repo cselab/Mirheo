@@ -1,7 +1,7 @@
-#include <core/logger.h>
-#include <core/interactions/utils/step_random_gen.h>
-#include <core/domain.h>
-#include <core/mirheo_state.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/interactions/utils/step_random_gen.h>
+#include <mirheo/core/domain.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <cmath>
 #include <cstdio>

@@ -2,7 +2,7 @@
 
 #include "parameters_wrap.h"
 
-#include <core/mirheo_state.h>
+#include <mirheo/core/mirheo_state.h>
 
 #include <extern/variant/include/mpark/variant.hpp>
 #include <map>

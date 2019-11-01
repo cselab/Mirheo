@@ -2,8 +2,8 @@
 
 #include "interface.h"
 
-#include <core/containers.h>
-#include <core/pvs/object_deleter.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/pvs/object_deleter.h>
 
 
 class ObjectToParticlesPlugin : public SimulationPlugin

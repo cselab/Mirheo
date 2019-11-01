@@ -1,7 +1,7 @@
 #include "single_node.h"
 #include "../exchange_helpers.h"
 
-#include <core/logger.h>
+#include <mirheo/core/logger.h>
 #include <algorithm>
 
 SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :

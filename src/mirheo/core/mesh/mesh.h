@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/containers.h>
-#include <core/utils/pytypes.h>
+#include <mirheo/core/containers.h>
+#include <mirheo/core/utils/pytypes.h>
 
 #include <vector_types.h>
 #include <vector>

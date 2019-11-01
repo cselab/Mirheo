@@ -1,9 +1,9 @@
 #include "rigid.h"
 
-#include <core/integrators/rigid_vv.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/rigid_object_vector.h>
-#include <core/rigid/utils.h>
+#include <mirheo/core/integrators/rigid_vv.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/rigid/utils.h>
 
 #include <fstream>
 #include <random>

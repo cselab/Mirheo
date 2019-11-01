@@ -1,7 +1,7 @@
 #include "interface.h"
 
 #include <texture_types.h>
-#include <core/utils/cuda_common.h>
+#include <mirheo/core/utils/cuda_common.h>
 
 
 Field::Field(const MirState *state, std::string name, real3 hField) :

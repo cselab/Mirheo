@@ -1,15 +1,15 @@
 #include "wall_helpers.h"
 
-#include <core/celllist.h>
-#include <core/logger.h>
-#include <core/pvs/particle_vector.h>
-#include <core/pvs/views/pv.h>
-#include <core/utils/cuda_common.h>
-#include <core/utils/folders.h>
-#include <core/utils/kernel_launch.h>
-#include <core/walls/simple_stationary_wall.h>
-#include <core/xdmf/type_map.h>
-#include <core/xdmf/xdmf.h>
+#include <mirheo/core/celllist.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/walls/simple_stationary_wall.h>
+#include <mirheo/core/xdmf/type_map.h>
+#include <mirheo/core/xdmf/xdmf.h>
 
 #include <curand_kernel.h>
 
