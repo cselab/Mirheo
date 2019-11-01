@@ -129,12 +129,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real curTime, const std::vector<int64_t>& ids,
                        const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov)
 {
-    int rank;
-    MPI_Check( MPI_Comm_rank(comm, &rank) );
-
-    int np = ids.size();
-    int n = np;
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &n, &n, 1, MPI_INT, MPI_SUM, 0, comm) );
+    const int np = ids.size();
 
     std::stringstream ss;
     ss.setf(std::ios::fixed, std::ios::floatfield);
@@ -181,17 +176,16 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
         ss << std::endl;
     }
 
-    std::string content = ss.str();
+    const std::string content = ss.str();
 
     MPI_Offset offset = 0, size;
     MPI_Check( MPI_File_get_size(fout, &size) );
     MPI_Check( MPI_Barrier(comm) );
 
-    MPI_Offset len = content.size();
+    const MPI_Offset len = content.size();
     MPI_Check( MPI_Exscan(&len, &offset, 1, MPI_OFFSET, MPI_SUM, comm) );
 
-    MPI_Status status;
-    MPI_Check( MPI_File_write_at_all(fout, offset + size, content.c_str(), len, MPI_CHAR, &status) );
+    MPI_Check( MPI_File_write_at_all(fout, offset + size, content.c_str(), len, MPI_CHAR, MPI_STATUS_IGNORE) );
     MPI_Check( MPI_Barrier(comm) );
 }
 
@@ -226,7 +220,7 @@ void ObjStatsDumper::handshake()
 
     if (activated)
     {
-        auto fname = path + ovName + ".txt";
+        const std::string fname = path + ovName + ".txt";
         MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout) );
         MPI_Check( MPI_File_close(&fout) );
         MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout) );
