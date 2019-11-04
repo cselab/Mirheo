@@ -19,6 +19,9 @@ For more information, please refer to the online documentation: http://mirheo.re
   * ObjStats plugin dumps additional type id field if activated
 * add membrane with type id IC
 * add filtered membrane forces, which can be used in coordination with the type ids field
+* make Mirheo more usable as a library:
+  * changed the directory structure
+  * added namespace `mirheo`
 
 ### v1.3.0
 
