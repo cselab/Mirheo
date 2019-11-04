@@ -82,7 +82,7 @@ u.setInteraction(int_rod, rv, rv)
 dump_every = 1
 
 u.registerPlugins(mir.Plugins.createForceSaver("forceSaver", rv))
-u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, [["forces", "vector"]], 'h5/rod-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, ["forces"], 'h5/rod-'))
 
 u.run(2)
 

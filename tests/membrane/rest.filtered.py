@@ -42,7 +42,11 @@ u.setIntegrator(vv, pv_rbc)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
+
+type_ids_str = "type_ids"
+u.registerPlugins(mir.Plugins.createScatterObjectData("type_id_copier", pv_rbc, "membrane_type_id", type_ids_str))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh("mesh_dump", pv_rbc, 150, [type_ids_str], "h5/mesh-"))
+#u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
 
 u.run(5000)
 

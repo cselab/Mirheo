@@ -31,7 +31,7 @@ dump_every = 20
 update_every = dump_every
 
 u.registerPlugins(mir.Plugins.createParticleDisplacement('disp', pv, update_every))
-u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, [["displacements", "vector"]], 'h5/solvent_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, ["displacements"], 'h5/solvent_particles-'))
 
 u.run(100)
 

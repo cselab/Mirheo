@@ -72,9 +72,9 @@ if args.bounce_back:
 
 dump_every=500
 u.registerPlugins(mir.Plugins.createParticleChannelSaver("density_saver", pv_ell, "densities", "den"))
-u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, dump_every, [["den", "scalar"]], 'h5/ell_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, dump_every, ["den"], 'h5/ell_particles-'))
 u.registerPlugins(mir.Plugins.createParticleChannelSaver("density_saver_sol", pv_sol, "densities", "den"))
-u.registerPlugins(mir.Plugins.createDumpParticles('partDump_sol', pv_sol, dump_every, [["den", "scalar"]], 'h5/sol_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticles('partDump_sol', pv_sol, dump_every, ["den"], 'h5/sol_particles-'))
 
 u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats"))
 

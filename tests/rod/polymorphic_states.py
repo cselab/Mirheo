@@ -72,7 +72,7 @@ u.setIntegrator(vv, rv)
 u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', rv, drag))
 
 dump_every = int (t_dump_every/dt)
-u.registerPlugins(mir.Plugins.createDumpParticlesWithRodData('rod_dump', rv, dump_every, [("states", "scalar")], 'h5/rod_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithRodData('rod_dump', rv, dump_every, ["states"], 'h5/rod_particles-'))
 
 u.run(int (t_end / dt))
 

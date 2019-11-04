@@ -44,7 +44,7 @@ u.registerPlugins(mir.Plugins.createForceSaver("forceSaver", pv_rbc))
 u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh("meshdump",
                                                           pv_rbc,
                                                           dump_every,
-                                                          [["forces", "vector"]],
+                                                          ["forces"],
                                                           "h5/rbc-"))
 
 u.run(2)

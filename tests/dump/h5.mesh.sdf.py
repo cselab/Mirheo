@@ -31,7 +31,7 @@ u.registerWall(plates, 0)
 u.registerPlugins(mir.Plugins.createWallRepulsion("wallRepulsion", pv_rbc, plates, C=500, h=rc, max_force=500))
 
 dump_every = 1
-u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dump_every, [["sdf", "scalar"]], 'h5/rbc-'))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dump_every, ["sdf"], 'h5/rbc-'))
 
 u.run(2)
 
