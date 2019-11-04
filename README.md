@@ -17,6 +17,7 @@ For more information, please refer to the online documentation: http://mirheo.re
 * **interface changes**
   * substep integrator now takes a list of interactions 
   * ObjStats plugin dumps additional type id field if activated
+  * dump particles plugin does not need type infos
 * add membrane with type id IC
 * add filtered membrane forces, which can be used in coordination with the type ids field
 * make Mirheo more usable as a library:
