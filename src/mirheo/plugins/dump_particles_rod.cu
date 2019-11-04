@@ -17,13 +17,13 @@ template <typename T>
 __global__ void copyRodQuantities(int numBiSegmentsPerObject, int objSize, int nObjects, const T *rodData, T *particleData)
 {
     constexpr int stride = 5;
-    int pid = threadIdx.x + blockIdx.x * blockDim.x;
+    const int pid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    int objId        = pid / objSize;
-    int localPartId  = pid % objSize;
-    int localBisegId = math::min(localPartId / stride, numBiSegmentsPerObject); // min because of last particle
+    const int objId        = pid / objSize;
+    const int localPartId  = pid % objSize;
+    const int localBisegId = math::min(localPartId / stride, numBiSegmentsPerObject); // min because of last particle
 
-    int bid = objId * numBiSegmentsPerObject + localBisegId;
+    const int bid = objId * numBiSegmentsPerObject + localBisegId;
 
     if (objId < nObjects)
         particleData[pid] = rodData[bid];
@@ -46,6 +46,10 @@ void ParticleWithRodQuantitiesSenderPlugin::setup(Simulation *simulation, const 
 
     rv = dynamic_cast<RodVector*>(pv);
 
+    if (rv == nullptr)
+        die("Plugin '%s' expects a rod vector; given '%s'",
+            name.c_str(), pvName.c_str());
+    
     info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
 }
 
@@ -76,14 +80,14 @@ void ParticleWithRodQuantitiesSenderPlugin::beforeForces(cudaStream_t stream)
             {
                 using Type = typename std::remove_pointer<decltype(srcPinnedBuffer)>::type::value_type;
 
-                int nparticles = rv->local()->size();
-                int objSize  = rv->objSize;
-                int nObjects = rv->local()->nObjects;
+                const int nparticles = rv->local()->size();
+                const int objSize  = rv->objSize;
+                const int nObjects = rv->local()->nObjects;
                 
-                size_t sizeReals = pv->local()->size() * sizeof(Type) / sizeof(real);
+                const size_t sizeReals = pv->local()->size() * sizeof(Type) / sizeof(real);
                 partData.resize_anew(sizeReals);
 
-                const int nthreads = 128;
+                constexpr int nthreads = 128;
                 const int nblocks = getNblocks(nparticles, nthreads);
                 
                 SAFE_KERNEL_LAUNCH(
