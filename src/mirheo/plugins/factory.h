@@ -32,6 +32,7 @@
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
 #include "radial_velocity_control.h"
+#include "scatter_object_data.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
@@ -524,6 +525,14 @@ createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::
         std::make_shared<PostprocessRadialVelocityControl> (name, filename);
 
     return { simPl, postPl };
+}
+
+inline pair_shared< ScatterObjectDataPlugin, PostprocessPlugin >
+createScatterObjectDataPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,
+                              std::string channelName, std::string savedName)
+{
+    auto simPl  = computeTask ? std::make_shared<ScatterObjectDataPlugin> (state, name, ov->name, channelName, savedName) : nullptr;
+    return { simPl, nullptr };
 }
 
 inline pair_shared< SimulationStats, PostprocessStats >

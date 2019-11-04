@@ -342,7 +342,7 @@ public:
     }
     
     
-    /// Copy data from an arbitrary CPUcontainer, no need to know the type.
+    /// Copy data from an arbitrary GPUcontainer, no need to know the type.
     /// Note the type sizes must be compatible (equal or multiple of each other)
     void genericCopy(const GPUcontainer* cont, cudaStream_t stream)
     {
@@ -350,7 +350,7 @@ public:
             die("Incompatible underlying datatype sizes when copying: %d %% %d != 0",
                 cont->datatype_size(), sizeof(T));
         
-        int typeSizeFactor = cont->datatype_size() / sizeof(T);
+        const int typeSizeFactor = cont->datatype_size() / sizeof(T);
         
         resize(cont->size() * typeSizeFactor);
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont->genericDevPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );

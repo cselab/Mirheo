@@ -64,7 +64,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
     {
         auto name = channelNames[i];
         auto srcContainer = pv->local()->dataPerParticle.getGenericData(name);
-        channelData[i].genericCopy(srcContainer, stream); 
+        channelData[i].genericCopy(srcContainer, stream);
     }
 }
 
@@ -80,7 +80,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
         p.x = r.x; p.y = r.y; p.z = r.z;
     }
 
-    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    const MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
     
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), positions.size());
     waitPrevSend();

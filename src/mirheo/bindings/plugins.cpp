@@ -302,6 +302,10 @@ void exportPlugins(py::module& m)
         Responsible for performing the I/O.
     )");
 
+    py::handlers_class<ScatterObjectDataPlugin>(m, "ScatterObjectData", pysim, R"(
+        This plugin copies object data to particles (hence duplicates it for each object.
+        This duplication is useful for visualization purpose, e.g. when dumping into h5 format (see :any:`ParticleSenderPlugin`).
+    )");
 
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
@@ -318,6 +322,13 @@ void exportPlugins(py::module& m)
     )");
 
     
+    py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
+        This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
+        It can operate under two modes: `keepVelocity = True`, in which case it adds a term drawn from a Maxwell distribution to the current velocity;
+        `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
+    )");
+
+
     py::handlers_class<SimulationVelocityControl>(m, "VelocityControl", pysim, R"(
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
@@ -329,13 +340,6 @@ void exportPlugins(py::module& m)
     )");
 
     
-    py::handlers_class<TemperaturizePlugin>(m, "Temperaturize", pysim, R"(
-        This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
-        It can operate under two modes: `keepVelocity = True`, in which case it adds a term drawn from a Maxwell distribution to the current velocity;
-        `keepVelocity = False`, in which case it sets the velocity to a term drawn from a Maxwell distribution.
-    )");
-
-
     py::handlers_class<VelocityInletPlugin>(m, "VelocityInlet", pysim, R"(
         This plugin inserts particles in a given :any:`ParticleVector`.
         The particles are inserted on a given surface with given velocity inlet. 
@@ -859,6 +863,18 @@ void exportPlugins(py::module& m)
             target_vel: the target mean velocity of the particles at :math:`r=1`
             Kp, Ki, Kd: PID controller coefficients
     )");
+
+    m.def("__createScatterObjectData", &PluginFactory::createScatterObjectDataPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "channel_name"_a, "saved_name"_a, R"(
+        Create :any:`ScatterObjectData` plugin
+
+        Args:
+            name: name of the plugin
+            ov: the concerned :any:`ObjectVector`
+            channel_name: The channel (data per object) to be copied
+            saved_name: the name of the new channel per particle to be saved. Must not overlap with already existing name.
+    )");
+
 
     m.def("__createStats", &PluginFactory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
