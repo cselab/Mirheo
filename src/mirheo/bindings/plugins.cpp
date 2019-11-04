@@ -573,29 +573,20 @@ void exportPlugins(py::module& m)
 
     m.def("__createDumpParticles", &PluginFactory::createDumpParticlesPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "dump_every"_a,
-          "channels"_a, "path"_a, R"(
+          "channel_names"_a, "path"_a, R"(
         Create :any:`ParticleSenderPlugin` plugin
         
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             dump_every: write files every this many time-steps 
+            channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:                                                                             
-                                                                                                                
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
-                
     )");
 
     m.def("__createDumpParticlesWithRodData", &PluginFactory::createDumpParticlesWithRodDataPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "rv"_a, "dump_every"_a,
-          "channels"_a, "path"_a, R"(
+          "channel_names"_a, "path"_a, R"(
         Create :any:`ParticleSenderWithRodDataPlugin` plugin
         The interface is the same as :any:`createDumpParticles`
 
@@ -603,38 +594,21 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             rv: :any:`RodVector` that we'll work with
             dump_every: write files every this many time-steps 
+            channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:
-
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
     )");
 
     m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a,
-          "channels"_a, "path"_a, R"(
+          "channel_names"_a, "path"_a, R"(
         Create :any:`ParticleWithMeshSenderPlugin` plugin
         
         Args:
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps 
+            channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:                                                                             
-                                                                                                                
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
-                
     )");
     
     m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 

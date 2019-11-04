@@ -78,23 +78,6 @@ static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector
         pvNames.push_back(pv->name);
 }
 
-static void extractChannelInfos(const std::vector< std::pair<std::string, std::string> >& channels,
-                                std::vector<std::string>& names, std::vector<ParticleSenderPlugin::ChannelType>& types)
-{
-    for (auto& p : channels) {
-        names.push_back(p.first);
-        std::string typeStr = p.second;
-
-        if      (typeStr == "scalar")    types.push_back(ParticleSenderPlugin::ChannelType::Scalar);
-        else if (typeStr == "vector")    types.push_back(ParticleSenderPlugin::ChannelType::Vector);
-        else if (typeStr == "tensor6")   types.push_back(ParticleSenderPlugin::ChannelType::Tensor6);
-        else die("Unable to get parse channel type '%s'", typeStr.c_str());
-    }
-}
-
-    
-
-    
 inline pair_shared< AddForcePlugin, PostprocessPlugin >
 createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
@@ -250,14 +233,9 @@ createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name, 
 
 inline pair_shared< ParticleSenderPlugin, ParticleDumperPlugin >
 createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
-                          std::vector< std::pair<std::string, std::string> > channels, std::string path)
+                          const std::vector<std::string>& channelNames, std::string path)
 {
-    std::vector<std::string> names;
-    std::vector<ParticleSenderPlugin::ChannelType> types;
-
-    extractChannelInfos(channels, names, types);
-        
-    auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->name, dumpEvery, names, types) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->name, dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
     return { simPl, postPl };
@@ -265,14 +243,9 @@ createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string n
 
 inline pair_shared< ParticleWithRodQuantitiesSenderPlugin, ParticleDumperPlugin >
 createDumpParticlesWithRodDataPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
-                                     std::vector< std::pair<std::string, std::string> > channels, std::string path)
+                                     const std::vector<std::string>& channelNames, std::string path)
 {
-    std::vector<std::string> names;
-    std::vector<ParticleSenderPlugin::ChannelType> types;
-
-    extractChannelInfos(channels, names, types);
-        
-    auto simPl  = computeTask ? std::make_shared<ParticleWithRodQuantitiesSenderPlugin> (state, name, pv->name, dumpEvery, names, types) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleWithRodQuantitiesSenderPlugin> (state, name, pv->name, dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
     return { simPl, postPl };
@@ -280,14 +253,9 @@ createDumpParticlesWithRodDataPlugin(bool computeTask, const MirState *state, st
 
 inline pair_shared< ParticleWithMeshSenderPlugin, ParticleWithMeshDumperPlugin >
 createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
-                                  std::vector< std::pair<std::string, std::string> > channels, std::string path)
+                                  const std::vector<std::string>& channelNames, std::string path)
 {
-    std::vector<std::string> names;
-    std::vector<ParticleSenderPlugin::ChannelType> types;
-
-    extractChannelInfos(channels, names, types);
-        
-    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->name, dumpEvery, names, types) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->name, dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithMeshDumperPlugin> (name, path);
 
     return { simPl, postPl };

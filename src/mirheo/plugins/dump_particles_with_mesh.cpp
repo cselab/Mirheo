@@ -8,9 +8,8 @@ namespace mirheo
 {
 
 ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
-                                                           std::vector<std::string> channelNames,
-                                                           std::vector<ChannelType> channelTypes) :
-    ParticleSenderPlugin(state, name, pvName, dumpEvery, channelNames, channelTypes)
+                                                           const std::vector<std::string>& channelNames) :
+    ParticleSenderPlugin(state, name, pvName, dumpEvery, channelNames)
 {}
 
 void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

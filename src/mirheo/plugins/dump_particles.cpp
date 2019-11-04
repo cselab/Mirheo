@@ -11,8 +11,7 @@ namespace mirheo
 {
 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
-                                           std::vector<std::string> channelNames,
-                                           __UNUSED std::vector<ChannelType> channelTypes) :
+                                           const std::vector<std::string>& channelNames) :
     SimulationPlugin(state, name),
     pvName(pvName),
     dumpEvery(dumpEvery),
