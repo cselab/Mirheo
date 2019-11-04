@@ -24,10 +24,11 @@ void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)
     const auto& srcDesc = dataManager.getChannelDescOrDie(channelName);
     const auto& dstDesc = dataManager.getChannelDescOrDie(savedName);
 
-    mpark::visit([&](auto srcBufferPtr) {
-                     auto dstBufferPtr = mpark::get<decltype(srcBufferPtr)>(dstDesc.varDataPtr);
-                     dstBufferPtr->copyDeviceOnly(*srcBufferPtr, stream);
-                 }, srcDesc.varDataPtr);
+    mpark::visit([&](auto srcBufferPtr)
+    {
+        auto dstBufferPtr = mpark::get<decltype(srcBufferPtr)>(dstDesc.varDataPtr);
+        dstBufferPtr->copyDeviceOnly(*srcBufferPtr, stream);
+    }, srcDesc.varDataPtr);
 }
     
 bool ParticleChannelSaverPlugin::needPostproc()
