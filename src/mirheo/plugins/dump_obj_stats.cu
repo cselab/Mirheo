@@ -81,8 +81,10 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    ids .copy( *ov->local()->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
-    coms.copy( *ov->local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
+    auto lov = ov->local();
+    
+    ids .copy( *lov->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
+    coms.copy( *lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
 
     if (auto rov = dynamic_cast<RigidObjectVector*>(ov))
     {
@@ -93,7 +95,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
     else
     {
         const int nthreads = 128;
-        OVview view(ov, ov->local());
+        OVview view(ov, lov);
         motionStats.resize_anew(view.nObjects);
 
         motionStats.clear(stream);
@@ -105,6 +107,12 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 
         motions.copy(motionStats, stream);
         isRov = false;
+    }
+
+    if (lov->dataPerObject.checkChannelExists(ChannelNames::membraneTypeId))
+    {
+        typeIds.copy( *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId), stream);
+        hasTypeIds = true;
     }
     
     savedTime = state->currentTime;
@@ -118,7 +126,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, isRov, ids, coms, motions);
+    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
     send(sendBuffer);
     
     needToSend=false;
@@ -127,7 +135,8 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 //=================================================================================
 
 static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real curTime, const std::vector<int64_t>& ids,
-                       const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov)
+                       const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov,
+                       bool hasTypeIds, const std::vector<int>& typeIds)
 {
     const int np = ids.size();
 
@@ -141,9 +150,9 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
         com = domain.local2global(com);
 
         ss << ids[i] << " " << curTime << "   "
-                << std::setw(10) << com.x << " "
-                << std::setw(10) << com.y << " "
-                << std::setw(10) << com.z;
+           << std::setw(10) << com.x << " "
+           << std::setw(10) << com.y << " "
+           << std::setw(10) << com.z;
 
         const auto& motion = motions[i];
 
@@ -172,6 +181,9 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
            << std::setw(10) << motion.torque.x << " "
            << std::setw(10) << motion.torque.y << " "
            << std::setw(10) << motion.torque.z;
+
+        if (hasTypeIds)
+            ss << "    "  << typeIds[i];
 
         ss << std::endl;
     }
@@ -235,12 +247,14 @@ void ObjStatsDumper::deserialize()
     std::vector<int64_t> ids;
     std::vector<COMandExtent> coms;
     std::vector<RigidMotion> motions;
+    std::vector<int> typeIds;
     bool isRov;
+    bool hasTypeIds;
 
-    SimpleSerializer::deserialize(data, curTime, domain, isRov, ids, coms, motions);
+    SimpleSerializer::deserialize(data, curTime, domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
 
     if (activated)
-        writeStats(comm, domain, fout, curTime, ids, coms, motions, isRov);
+        writeStats(comm, domain, fout, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
 }
 
 } // namespace mirheo

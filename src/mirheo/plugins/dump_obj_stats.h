@@ -27,14 +27,16 @@ public:
 private:
     std::string ovName;
     int dumpEvery;
-    bool needToSend = false;
+    bool needToSend {false};
     
     HostBuffer<int64_t> ids;
     HostBuffer<COMandExtent> coms;
     HostBuffer<RigidMotion> motions;
     DeviceBuffer<RigidMotion> motionStats;
+    HostBuffer<int> typeIds;
     MirState::TimeType savedTime = 0;
     bool isRov {false};
+    bool hasTypeIds {false};
 
     std::vector<char> sendBuffer;
 
