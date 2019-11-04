@@ -2,13 +2,48 @@
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"
 
-#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/xdmf/type_map.h>
 
 namespace mirheo
 {
+
+namespace DumpParticlesKernels
+{
+
+template <typename T>
+__global__ void copyObjectDataToParticles(int objSize, int nObjects, const T *srcObjData, T *dstParticleData)
+{
+    const int pid   = threadIdx.x + blockIdx.x * blockDim.x;
+    const int objId = pid / objSize;
+
+    if (objId >= nObjects) return;
+
+    dstParticleData[pid] = srcObjData[objId];
+}
+
+template <typename T>
+__global__ void copyRodDataToParticles(int numBiSegmentsPerObject, int objSize, int nObjects, const T *rodData, T *particleData)
+{
+    constexpr int stride = 5;
+    const int pid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    const int objId        = pid / objSize;
+    const int localPartId  = pid % objSize;
+    const int localBisegId = math::min(localPartId / stride, numBiSegmentsPerObject); // min because of last particle
+
+    const int bid = objId * numBiSegmentsPerObject + localBisegId;
+
+    if (objId < nObjects)
+        particleData[pid] = rodData[bid];
+}
+
+} // namespace DumpParticlesKernels
+
 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            const std::vector<std::string>& channelNames) :
@@ -35,22 +70,112 @@ void ParticleSenderPlugin::handshake()
     std::vector<XDMF::Channel::NumberType> numberTypes;
     std::vector<std::string> typeDescriptorsStr;
 
-    for (const auto& name : channelNames)
+    auto pushChannelInfos = [&dataForms, &numberTypes, &typeDescriptorsStr](const DataManager::ChannelDescription& desc)
     {
-        const auto& desc = pv->local()->dataPerParticle.getChannelDescOrDie(name);
-
-        mpark::visit([&](auto pinnedBufferPtr)
+        mpark::visit([&dataForms, &numberTypes, &typeDescriptorsStr](auto pinnedBufferPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
             dataForms         .push_back(XDMF::getDataForm  <T>());
             numberTypes       .push_back(XDMF::getNumberType<T>());
             typeDescriptorsStr.push_back(typeDescriptorToString(DataTypeWrapper<T>{}));
         }, desc.varDataPtr);
+    };
+    
+    auto ov = dynamic_cast<ObjectVector*>(pv);
+    auto rv = dynamic_cast<RodVector*>(pv);
+
+    for (const auto& name : channelNames)
+    {
+        if (pv->local()->dataPerParticle.checkChannelExists(name))
+        {
+            const auto& desc = pv->local()->dataPerParticle.getChannelDescOrDie(name);
+            pushChannelInfos(desc);
+        }
+        else if (ov != nullptr && ov->local()->dataPerObject.checkChannelExists(name))
+        {
+            const auto& desc = ov->local()->dataPerObject.getChannelDescOrDie(name);
+            pushChannelInfos(desc);
+        }
+        else if (rv != nullptr && rv->local()->dataPerBisegment.checkChannelExists(name))
+        {
+            const auto& desc = rv->local()->dataPerBisegment.getChannelDescOrDie(name);
+            pushChannelInfos(desc);
+        }
+        else
+        {
+            die("Channel not found: '%s' in particle vector '%s'",
+                name.c_str(), pv->name.c_str());
+        }
     }
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, channelNames, dataForms, numberTypes, typeDescriptorsStr);
     send(sendBuffer);
+}
+
+static inline void copyData(ParticleVector *pv, const std::string& channelName, HostBuffer<char>& dst, cudaStream_t stream)
+{
+    auto srcContainer = pv->local()->dataPerParticle.getGenericData(channelName);
+    dst.genericCopy(srcContainer, stream);
+}
+
+static inline void copyData(ObjectVector *ov, const std::string& channelName, HostBuffer<char>& dst, DeviceBuffer<char>& workSpace, cudaStream_t stream)
+{
+    auto lov = ov->local();
+
+    const auto& srcDesc = lov->dataPerObject.getChannelDescOrDie(channelName);
+
+    const int objSize  = lov->objSize;
+    const int nObjects = lov->nObjects;
+
+    mpark::visit([&](auto srcBufferPtr)
+    {
+        using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
+        
+        constexpr int nthreads = 128;
+        const int nParts = objSize * nObjects;
+        const int nblocks = getNblocks(nParts, nthreads);
+
+        workSpace.resize_anew(nParts * sizeof(T));
+    
+        SAFE_KERNEL_LAUNCH(
+            DumpParticlesKernels::copyObjectDataToParticles,
+            nblocks, nthreads, 0, stream,
+            objSize, nObjects, srcBufferPtr->devPtr(),
+            reinterpret_cast<T*>(workSpace.devPtr()));
+    }, srcDesc.varDataPtr);
+
+    dst.genericCopy(&workSpace, stream);
+}
+
+static inline void copyData(RodVector *rv, const std::string& channelName, HostBuffer<char>& dst, DeviceBuffer<char>& workSpace, cudaStream_t stream)
+{
+    auto lrv = rv->local();
+
+    const auto& srcDesc = lrv->dataPerBisegment.getChannelDescOrDie(channelName);
+
+    const int objSize  = lrv->objSize;
+    const int nObjects = lrv->nObjects;
+    const int numBiSegmentsPerObject = lrv->getNumSegmentsPerRod() - 1;
+
+    mpark::visit([&](auto srcBufferPtr)
+    {
+        using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
+        
+        constexpr int nthreads = 128;
+        const int nParts = objSize * nObjects;
+        const int nblocks = getNblocks(nParts, nthreads);
+
+        workSpace.resize_anew(nParts * sizeof(T));
+    
+        SAFE_KERNEL_LAUNCH(
+            DumpParticlesKernels::copyRodDataToParticles,
+            nblocks, nthreads, 0, stream,
+            numBiSegmentsPerObject, objSize, nObjects, srcBufferPtr->devPtr(),
+            reinterpret_cast<T*>(workSpace.devPtr()));
+    }, srcDesc.varDataPtr);
+
+    dst.genericCopy(&workSpace, stream);
 }
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
@@ -60,11 +185,30 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
     positions .genericCopy(&pv->local()->positions() , stream);
     velocities.genericCopy(&pv->local()->velocities(), stream);
 
+    auto ov = dynamic_cast<ObjectVector*>(pv);
+    auto rv = dynamic_cast<RodVector*>(pv);
+
     for (size_t i = 0; i < channelNames.size(); ++i)
     {
         auto name = channelNames[i];
-        auto srcContainer = pv->local()->dataPerParticle.getGenericData(name);
-        channelData[i].genericCopy(srcContainer, stream);
+
+        if (pv->local()->dataPerParticle.checkChannelExists(name))
+        {
+            copyData(pv, name, channelData[i], stream);
+        }
+        else if (ov != nullptr && ov->local()->dataPerObject.checkChannelExists(name))
+        {
+            copyData(ov, name, channelData[i], workSpace, stream);
+        }
+        else if (rv != nullptr && rv->local()->dataPerBisegment.checkChannelExists(name))
+        {
+            copyData(rv, name, channelData[i], workSpace, stream);
+        }
+        else
+        {
+            die("Channel not found: '%s' in particle vector '%s'",
+                name.c_str(), pv->name.c_str());
+        }
     }
 }
 

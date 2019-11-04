@@ -37,6 +37,7 @@ protected:
 
     HostBuffer<real4> positions, velocities;
     std::vector<std::string> channelNames;
+    DeviceBuffer<char> workSpace;
     std::vector<HostBuffer<char>> channelData;
 
     std::vector<char> sendBuffer;
