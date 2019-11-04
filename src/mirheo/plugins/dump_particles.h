@@ -43,8 +43,7 @@ protected:
 
     HostBuffer<real4> positions, velocities;
     std::vector<std::string> channelNames;
-    std::vector<ChannelType> channelTypes;
-    std::vector<HostBuffer<real>> channelData;
+    std::vector<HostBuffer<char>> channelData;
 
     std::vector<char> sendBuffer;
 };
@@ -71,7 +70,7 @@ protected:
     std::shared_ptr<std::vector<real3>> positions;
 
     std::vector<XDMF::Channel> channels;
-    std::vector<std::vector<real>> channelData;
+    std::vector<std::vector<char>> channelData;
 };
 
 } // namespace mirheo

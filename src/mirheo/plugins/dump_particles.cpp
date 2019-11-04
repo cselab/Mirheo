@@ -12,12 +12,11 @@ namespace mirheo
 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            std::vector<std::string> channelNames,
-                                           std::vector<ChannelType> channelTypes) :
+                                           __UNUSED std::vector<ChannelType> channelTypes) :
     SimulationPlugin(state, name),
     pvName(pvName),
     dumpEvery(dumpEvery),
-    channelNames(channelNames),
-    channelTypes(channelTypes)
+    channelNames(channelNames)
 {
     channelData.resize(channelNames.size());
 }
@@ -33,23 +32,25 @@ void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
 void ParticleSenderPlugin::handshake()
 {
-    std::vector<int> sizes;
+    std::vector<XDMF::Channel::DataForm> dataForms;
+    std::vector<XDMF::Channel::NumberType> numberTypes;
+    std::vector<std::string> typeDescriptorsStr;
 
-    for (auto t : channelTypes)
-        switch (t) {
-        case ChannelType::Scalar:
-            sizes.push_back(1);
-            break;
-        case ChannelType::Vector:
-            sizes.push_back(3);
-            break;
-        case ChannelType::Tensor6:
-            sizes.push_back(6);
-            break;
-        }
+    for (const auto& name : channelNames)
+    {
+        const auto& desc = pv->local()->dataPerParticle.getChannelDescOrDie(name);
+
+        mpark::visit([&](auto pinnedBufferPtr)
+        {
+            using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
+            dataForms         .push_back(XDMF::getDataForm  <T>());
+            numberTypes       .push_back(XDMF::getNumberType<T>());
+            typeDescriptorsStr.push_back(typeDescriptorToString(DataTypeWrapper<T>{}));
+        }, desc.varDataPtr);
+    }
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, sizes, channelNames);
+    SimpleSerializer::serialize(sendBuffer, channelNames, dataForms, numberTypes, typeDescriptorsStr);
     send(sendBuffer);
 }
 
@@ -103,52 +104,54 @@ void ParticleDumperPlugin::handshake()
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     recv();
 
-    std::vector<int> sizes;
     std::vector<std::string> names;
-    SimpleSerializer::deserialize(data, sizes, names);
+    std::vector<XDMF::Channel::DataForm> dataForms;
+    std::vector<XDMF::Channel::NumberType> numberTypes;
+    std::vector<std::string> typeDescriptorsStr;
+
+    SimpleSerializer::deserialize(data, names, dataForms, numberTypes, typeDescriptorsStr);
     
-    auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str,
-                            XDMF::Channel::NumberType numberType = XDMF::getNumberType<real>(),
-                            TypeDescriptor datatype = DataTypeWrapper<real>(),
-                            XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
+    auto initChannel = [] (const std::string& name, XDMF::Channel::DataForm dataForm,
+                           XDMF::Channel::NumberType numberType, TypeDescriptor datatype,
+                           XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
     {
-        return XDMF::Channel(str, nullptr, dataForm, numberType, datatype, needShift);
+        return XDMF::Channel(name, nullptr, dataForm, numberType, datatype, needShift);
     };
 
     // Velocity and id are special channels which are always present
-    std::string allNames = "velocity, id";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Vector, "velocity", XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "id", XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
+    std::string allNames = "'velocity', 'id'";
+    channels.push_back(initChannel("velocity", XDMF::Channel::DataForm::Vector, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
+    channels.push_back(initChannel("id",       XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
-    for (size_t i = 0; i < sizes.size(); ++i)
+    for (size_t i = 0; i < names.size(); ++i)
     {
-        allNames += ", " + names[i];
-        switch (sizes[i])
-        {
-            case 1: channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  names[i])); break;
-            case 3: channels.push_back(init_channel(XDMF::Channel::DataForm::Vector,  names[i])); break;
-            case 6: channels.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, names[i])); break;
+        const std::string& name = names[i];
+        const auto dataForm   = dataForms[i];
+        const auto numberType = numberTypes[i];
+        const auto dataType   = stringToTypeDescriptor(typeDescriptorsStr[i]);
+        
+        const auto channel = initChannel(name, dataForm, numberType, dataType);
 
-            default:
-                die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());
-        }
+        channels.push_back(channel);
+        allNames += ", '" + name + "'";
     }
     
     // Create the required folder
     createFoldersCollective(comm, parentPath(path));
 
-    debug2("Plugin '%s' was set up to dump channels %s. Path is %s", name.c_str(), allNames.c_str(), path.c_str());
+    debug2("Plugin '%s' was set up to dump channels %s. Path is %s",
+           name.c_str(), allNames.c_str(), path.c_str());
 }
 
 static void unpackParticles(const std::vector<real4> &pos4, const std::vector<real4> &vel4,
                             std::vector<real3> &pos, std::vector<real3> &vel, std::vector<int64_t> &ids)
 {
-    int n = pos4.size();
+    const size_t n = pos4.size();
     pos.resize(n);
     vel.resize(n);
     ids.resize(n);
 
-    for (int i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i)
     {
         auto p = Particle(pos4[i], vel4[i]);
         pos[i] = p.r;
