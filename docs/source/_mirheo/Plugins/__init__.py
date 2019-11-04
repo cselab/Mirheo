@@ -225,12 +225,7 @@ class ParticleSenderPlugin(SimulationPlugin):
     r"""
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
-    
-    """
-class ParticleSenderWithRodDataPlugin(SimulationPlugin):
-    r"""
-        Extension of :any:`ParticleSenderPlugin` to support bisegment data.
-        If a field of optional data is per bisegment data (for a rod) this plugin will first scatter this data to particles.
+        If a channel from object data or bisegment data is provided, the data will be scattered to particles before being dumped as normal particle data.
     
     """
 class ParticleWithMeshDumperPlugin(PostprocessPlugin):
@@ -597,7 +592,7 @@ def createDumpObjectStats():
     pass
 
 def createDumpParticles():
-    r"""createDumpParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderPlugin, Plugins.ParticleDumperPlugin]
+    r"""createDumpParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.ParticleSenderPlugin, Plugins.ParticleDumperPlugin]
 
 
         Create :any:`ParticleSenderPlugin` plugin
@@ -606,24 +601,15 @@ def createDumpParticles():
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             dump_every: write files every this many time-steps 
+            channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:                                                                             
-                                                                                                                
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
-                
     
 
     """
     pass
 
 def createDumpParticlesWithMesh():
-    r"""createDumpParticlesWithMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleWithMeshSenderPlugin, Plugins.ParticleWithMeshDumperPlugin]
+    r"""createDumpParticlesWithMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.ParticleWithMeshSenderPlugin, Plugins.ParticleWithMeshDumperPlugin]
 
 
         Create :any:`ParticleWithMeshSenderPlugin` plugin
@@ -632,43 +618,8 @@ def createDumpParticlesWithMesh():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps 
+            channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:                                                                             
-                                                                                                                
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
-                
-    
-
-    """
-    pass
-
-def createDumpParticlesWithRodData():
-    r"""createDumpParticlesWithRodData(state: MirState, name: str, rv: ParticleVectors.ParticleVector, dump_every: int, channels: List[Tuple[str, str]], path: str) -> Tuple[Plugins.ParticleSenderWithRodDataPlugin, Plugins.ParticleDumperPlugin]
-
-
-        Create :any:`ParticleSenderWithRodDataPlugin` plugin
-        The interface is the same as :any:`createDumpParticles`
-
-        Args:
-            name: name of the plugin
-            rv: :any:`RodVector` that we'll work with
-            dump_every: write files every this many time-steps 
-            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name.
-                The "velocity" and "id" channels are always activated.
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Available types are:
-
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
     
 
     """
