@@ -232,11 +232,7 @@ void exportPlugins(py::module& m)
     py::handlers_class<ParticleSenderPlugin>(m, "ParticleSenderPlugin", pysim, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
         The data is dumped into hdf5 format. An additional xdfm file is dumped to describe the data and make it readable by visualization tools. 
-    )");
-
-    py::handlers_class<ParticleWithRodQuantitiesSenderPlugin>(m, "ParticleSenderWithRodDataPlugin", pysim, R"(
-        Extension of :any:`ParticleSenderPlugin` to support bisegment data.
-        If a field of optional data is per bisegment data (for a rod) this plugin will first scatter this data to particles.
+        If a channel from object data or bisegment data is provided, the data will be scattered to particles before being dumped as normal particle data.
     )");
 
 
@@ -300,11 +296,6 @@ void exportPlugins(py::module& m)
     py::handlers_class<PostprocessRadialVelocityControl>(m, "PostprocessRadialVelocityControl", pypost, R"(
         Postprocess side plugin of :any:`RadialVelocityControl`.
         Responsible for performing the I/O.
-    )");
-
-    py::handlers_class<ScatterObjectDataPlugin>(m, "ScatterObjectData", pysim, R"(
-        This plugin copies object data to particles (hence duplicates it for each object.
-        This duplication is useful for visualization purpose, e.g. when dumping into h5 format (see :any:`ParticleSenderPlugin`).
     )");
 
     py::handlers_class<SimulationStats>(m, "SimulationStats", pysim, R"(
@@ -584,20 +575,6 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     )");
 
-    m.def("__createDumpParticlesWithRodData", &PluginFactory::createDumpParticlesWithRodDataPlugin, 
-          "compute_task"_a, "state"_a, "name"_a, "rv"_a, "dump_every"_a,
-          "channel_names"_a, "path"_a, R"(
-        Create :any:`ParticleSenderWithRodDataPlugin` plugin
-        The interface is the same as :any:`createDumpParticles`
-
-        Args:
-            name: name of the plugin
-            rv: :any:`RodVector` that we'll work with
-            dump_every: write files every this many time-steps 
-            channel_names: list of channel names to be dumped.
-            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-    )");
-
     m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a,
           "channel_names"_a, "path"_a, R"(
@@ -836,17 +813,6 @@ void exportPlugins(py::module& m)
             center: center of the radial coordinates
             target_vel: the target mean velocity of the particles at :math:`r=1`
             Kp, Ki, Kd: PID controller coefficients
-    )");
-
-    m.def("__createScatterObjectData", &PluginFactory::createScatterObjectDataPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "channel_name"_a, "saved_name"_a, R"(
-        Create :any:`ScatterObjectData` plugin
-
-        Args:
-            name: name of the plugin
-            ov: the concerned :any:`ObjectVector`
-            channel_name: The channel (data per object) to be copied
-            saved_name: the name of the new channel per particle to be saved. Must not overlap with already existing name.
     )");
 
 

@@ -14,7 +14,6 @@
 #include "dump_mesh.h"
 #include "dump_obj_stats.h"
 #include "dump_particles.h"
-#include "dump_particles_rod.h"
 #include "dump_particles_with_mesh.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
@@ -32,7 +31,6 @@
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
 #include "radial_velocity_control.h"
-#include "scatter_object_data.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
@@ -236,16 +234,6 @@ createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string n
                           const std::vector<std::string>& channelNames, std::string path)
 {
     auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->name, dumpEvery, channelNames) : nullptr;
-    auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
-
-    return { simPl, postPl };
-}
-
-inline pair_shared< ParticleWithRodQuantitiesSenderPlugin, ParticleDumperPlugin >
-createDumpParticlesWithRodDataPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
-                                     const std::vector<std::string>& channelNames, std::string path)
-{
-    auto simPl  = computeTask ? std::make_shared<ParticleWithRodQuantitiesSenderPlugin> (state, name, pv->name, dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
     return { simPl, postPl };
@@ -493,14 +481,6 @@ createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::
         std::make_shared<PostprocessRadialVelocityControl> (name, filename);
 
     return { simPl, postPl };
-}
-
-inline pair_shared< ScatterObjectDataPlugin, PostprocessPlugin >
-createScatterObjectDataPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,
-                              std::string channelName, std::string savedName)
-{
-    auto simPl  = computeTask ? std::make_shared<ScatterObjectDataPlugin> (state, name, ov->name, channelName, savedName) : nullptr;
-    return { simPl, nullptr };
 }
 
 inline pair_shared< SimulationStats, PostprocessStats >
