@@ -7,7 +7,7 @@ Overloaded function.
 
 1. __init__(arg0: float, arg1: float, arg2: float, arg3: float, arg4: float, arg5: float, arg6: float) -> None
 
-2. __init__(arg0: float3, arg1: float4) -> None
+2. __init__(arg0: real3, arg1: real4) -> None
 
 3. __init__(arg0: tuple) -> None
 
@@ -27,7 +27,7 @@ class Mirheo:
     
     """
     def __init__():
-        r"""__init__(nranks: int3, domain: float3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+        r"""__init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
                 Create the Mirheo coordinator.
@@ -75,7 +75,7 @@ class Mirheo:
         pass
 
     def applyObjectBelongingChecker():
-        r"""applyObjectBelongingChecker(checker: ObjectBelongingChecker, pv: ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '') -> ParticleVector
+        r"""applyObjectBelongingChecker(checker: mirheo::ObjectBelongingChecker, pv: mirheo::ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '') -> mirheo::ParticleVector
 
 
                 Apply the **checker** to the given particle vector.
@@ -99,7 +99,7 @@ class Mirheo:
         pass
 
     def computeVolumeInsideWalls():
-        r"""computeVolumeInsideWalls(walls: List[Wall], nSamplesPerRank: int = 100000) -> float
+        r"""computeVolumeInsideWalls(walls: List[mirheo::Wall], nSamplesPerRank: int = 100000) -> float
 
 
                 Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
@@ -114,7 +114,7 @@ class Mirheo:
         pass
 
     def dumpWalls2XDMF():
-        r"""dumpWalls2XDMF(walls: List[Wall], h: float3, filename: str = 'xdmf/wall') -> None
+        r"""dumpWalls2XDMF(walls: List[mirheo::Wall], h: real3, filename: str = 'xdmf/wall') -> None
 
 
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
@@ -163,7 +163,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: ObjectBelongingChecker, shape: ObjectVector, icShape: InitialConditions, interactions: List[Interaction], integrator: Integrator, number_density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, nsteps: int = 1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside object.
@@ -190,7 +190,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[Wall], interactions: List[Interaction], integrator: Integrator, number_density: float, nsteps: int = 1000) -> ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, nsteps: int = 1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -216,7 +216,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerBouncer():
-        r"""registerBouncer(bouncer: Bouncer) -> None
+        r"""registerBouncer(bouncer: mirheo::Bouncer) -> None
 
 
                Register Object Bouncer
@@ -229,7 +229,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerIntegrator():
-        r"""registerIntegrator(integrator: Integrator) -> None
+        r"""registerIntegrator(integrator: mirheo::Integrator) -> None
 
 
                 Register an :any:`Integrator` to the coordinator
@@ -242,7 +242,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerInteraction():
-        r"""registerInteraction(interaction: Interaction) -> None
+        r"""registerInteraction(interaction: mirheo::Interaction) -> None
 
 
                 Register an :any:`Interaction` to the coordinator
@@ -255,7 +255,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerObjectBelongingChecker():
-        r"""registerObjectBelongingChecker(checker: ObjectBelongingChecker, ov: ObjectVector) -> None
+        r"""registerObjectBelongingChecker(checker: mirheo::ObjectBelongingChecker, ov: mirheo::ObjectVector) -> None
 
 
                 Register Object Belonging Checker
@@ -269,7 +269,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerParticleVector():
-        r"""registerParticleVector(pv: ParticleVector, ic: InitialConditions = None) -> None
+        r"""registerParticleVector(pv: mirheo::ParticleVector, ic: mirheo::InitialConditions = None) -> None
 
 
             Register particle vector
@@ -283,7 +283,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerPlugins():
-        r"""registerPlugins(arg0: SimulationPlugin, arg1: PostprocessPlugin) -> None
+        r"""registerPlugins(arg0: mirheo::SimulationPlugin, arg1: mirheo::PostprocessPlugin) -> None
 
 Register Plugins
 
@@ -291,7 +291,7 @@ Register Plugins
         pass
 
     def registerWall():
-        r"""registerWall(wall: Wall, check_every: int = 0) -> None
+        r"""registerWall(wall: mirheo::Wall, check_every: int = 0) -> None
 
 
                Register a :any:`Wall`.
@@ -354,7 +354,7 @@ Register Plugins
         pass
 
     def setBouncer():
-        r"""setBouncer(bouncer: Bouncer, ov: ObjectVector, pv: ParticleVector) -> None
+        r"""setBouncer(bouncer: mirheo::Bouncer, ov: mirheo::ObjectVector, pv: mirheo::ParticleVector) -> None
 
 
                 Assign a :any:`Bouncer` between an :any:`ObjectVector` and a :any:`ParticleVector`.
@@ -369,7 +369,7 @@ Register Plugins
         pass
 
     def setIntegrator():
-        r"""setIntegrator(integrator: Integrator, pv: ParticleVector) -> None
+        r"""setIntegrator(integrator: mirheo::Integrator, pv: mirheo::ParticleVector) -> None
 
 
                Set a specific :any:`Integrator` to a given :any:`ParticleVector`
@@ -383,7 +383,7 @@ Register Plugins
         pass
 
     def setInteraction():
-        r"""setInteraction(interaction: Interaction, pv1: ParticleVector, pv2: ParticleVector) -> None
+        r"""setInteraction(interaction: mirheo::Interaction, pv1: mirheo::ParticleVector, pv2: mirheo::ParticleVector) -> None
 
 
                 Forces between two instances of :any:`ParticleVector` (they can be the same) will be computed according to the defined interaction.
@@ -399,7 +399,7 @@ Register Plugins
         pass
 
     def setWall():
-        r"""setWall(wall: Wall, pv: ParticleVector, maximum_part_travel: float = 0.25) -> None
+        r"""setWall(wall: mirheo::Wall, pv: mirheo::ParticleVector, maximum_part_travel: float = 0.25) -> None
 
 
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
@@ -431,7 +431,23 @@ Tells nvprof to stop recording timeline
         """
         pass
 
-class float2:
+class int3:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: int, arg1: int, arg2: int) -> None
+
+2. __init__(arg0: tuple) -> None
+
+3. __init__(arg0: list) -> None
+
+        """
+        pass
+
+class real2:
     r"""None
     """
     def __init__():
@@ -459,7 +475,7 @@ Overloaded function.
         """
         pass
 
-class float3:
+class real3:
     r"""None
     """
     def __init__():
@@ -493,7 +509,7 @@ Overloaded function.
         """
         pass
 
-class float4:
+class real4:
     r"""None
     """
     def __init__():
@@ -530,22 +546,6 @@ Overloaded function.
     @property
     def z():
         r"""
-        """
-        pass
-
-class int3:
-    r"""None
-    """
-    def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(arg0: int, arg1: int, arg2: int) -> None
-
-2. __init__(arg0: tuple) -> None
-
-3. __init__(arg0: list) -> None
-
         """
         pass
 

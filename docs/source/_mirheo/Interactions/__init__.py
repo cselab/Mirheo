@@ -79,13 +79,14 @@ class MembraneForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, shear_desc: str, bending_desc: str, stress_free: bool = False, grow_until: float = 0.0, **kwargs) -> None
+        r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str = 'keep_all', stress_free: bool = False, grow_until: float = 0.0, **kwargs) -> None
 
  
              Args:
                  name: name of the interaction
                  shear_desc: a string describing what shear force is used
                  bending_desc: a string describing what bending force is used
+                 filter_desc: a string describing which membranes are concerned
                  stress_free: if True, stress Free shape is used for the shear parameters
                  grow_until: the size increases linearly in time from half of the provided mesh 
                              to its full size after that time; the parameters are scaled accordingly with time
@@ -127,6 +128,16 @@ class MembraneForces(Interaction):
                  * **C0**:  spontaneous curvature
                  * **kad**: area difference energy magnitude
                  * **DA0**: area difference at relaxed state divided by the offset of the leaflet midplanes
+
+             **filter_desc** = "keep_all":
+
+                 The interaction will be applied to all membranes 
+
+             **filter_desc** = "by_type_id":
+
+                 The interaction will be applied membranes with a given **type_id** (see :class:`~InitialConditions.MembraneWithTypeId`)
+
+                 * **type_id**: the type id that the interaction applies to 
     
 
         """
@@ -138,7 +149,7 @@ class ObjRodBinding(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, torque: float, rel_anchor: float3, k_bound: float) -> None
+        r"""__init__(name: str, torque: float, rel_anchor: real3, k_bound: float) -> None
 
 
             Args:
@@ -422,15 +433,15 @@ class RodForces(Interaction):
 
              kwargs:
 
-                 * **a0** (float):           equilibrium length between 2 opposite cross vertices
-                 * **l0** (float):           equilibrium length between 2 consecutive vertices on the centerline 
-                 * **k_s_center** (float):   elastic force magnitude for centerline
-                 * **k_s_frame** (float):    elastic force magnitude for material frame particles
-                 * **k_bending** (float3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
-                 * **kappa0** (float2):      Spontaneous curvatures along the two material frames :math:`\overline{\kappa}`
-                 * **k_twist** (float):      Twist energy magnitude :math:`k_\mathrm{twist}`
-                 * **tau0** (float):         Spontaneous twist :math:`\overline{\tau}`
-                 * **E0** (float):           (optional) energy ground state
+                 * **a0** (real):           equilibrium length between 2 opposite cross vertices
+                 * **l0** (real):           equilibrium length between 2 consecutive vertices on the centerline 
+                 * **k_s_center** (real):   elastic force magnitude for centerline
+                 * **k_s_frame** (real):    elastic force magnitude for material frame particles
+                 * **k_bending** (real3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`
+                 * **kappa0** (real2):      Spontaneous curvatures along the two material frames :math:`\overline{\kappa}`
+                 * **k_twist** (real):      Twist energy magnitude :math:`k_\mathrm{twist}`
+                 * **tau0** (real):         Spontaneous twist :math:`\overline{\tau}`
+                 * **E0** (real):           (optional) energy ground state
 
              state update parameters, for **state_update** = 'smoothing':
 

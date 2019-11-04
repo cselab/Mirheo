@@ -16,7 +16,7 @@ Overloaded function.
             off_filename: path of the OFF file
     
 
-2. __init__(vertices: List[float3], faces: List[int3]) -> None
+2. __init__(vertices: List[real3], faces: List[int3]) -> None
 
 
         Create a mesh by giving coordinates and connectivity
@@ -72,7 +72,7 @@ class ParticleVector:
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -83,7 +83,7 @@ class ParticleVector:
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -94,7 +94,7 @@ class ParticleVector:
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -112,33 +112,33 @@ class ParticleVector:
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -175,7 +175,7 @@ Overloaded function.
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
         
 
-3. __init__(vertices: List[float3], faces: List[int3]) -> None
+3. __init__(vertices: List[real3], faces: List[int3]) -> None
 
 
             Create a mesh by giving coordinates and connectivity
@@ -185,7 +185,7 @@ Overloaded function.
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         
 
-4. __init__(vertices: List[float3], stress_free_vertices: List[float3], faces: List[int3]) -> None
+4. __init__(vertices: List[real3], stress_free_vertices: List[real3], faces: List[int3]) -> None
 
 
             Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
@@ -239,7 +239,7 @@ class ObjectVector(ParticleVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -250,7 +250,7 @@ class ObjectVector(ParticleVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -261,7 +261,7 @@ class ObjectVector(ParticleVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -279,33 +279,33 @@ class ObjectVector(ParticleVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -335,7 +335,7 @@ class MembraneVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -346,7 +346,7 @@ class MembraneVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -357,7 +357,7 @@ class MembraneVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -375,33 +375,33 @@ class MembraneVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -414,7 +414,7 @@ class RigidObjectVector(ObjectVector):
     
     """
     def __init__():
-        r"""__init__(name: str, mass: float, inertia: float3, object_size: int, mesh: ParticleVectors.Mesh) -> None
+        r"""__init__(name: str, mass: float, inertia: real3, object_size: int, mesh: ParticleVectors.Mesh) -> None
 
  
 
@@ -434,7 +434,7 @@ class RigidObjectVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -445,7 +445,7 @@ class RigidObjectVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -456,7 +456,7 @@ class RigidObjectVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -474,33 +474,33 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -530,7 +530,7 @@ class RodVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -541,7 +541,7 @@ class RodVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -552,7 +552,7 @@ class RodVector(ObjectVector):
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -570,33 +570,33 @@ class RodVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -646,7 +646,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -657,7 +657,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -668,7 +668,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -686,33 +686,33 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -760,7 +760,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -771,7 +771,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -782,7 +782,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -800,33 +800,33 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -842,7 +842,7 @@ class RigidEllipsoidVector(RigidObjectVector):
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(name: str, mass: float, object_size: int, semi_axes: float3) -> None
+1. __init__(name: str, mass: float, object_size: int, semi_axes: real3) -> None
 
 
 
@@ -853,7 +853,7 @@ Overloaded function.
                 semi_axes: ellipsoid principal semi-axes
         
 
-2. __init__(name: str, mass: float, object_size: int, semi_axes: float3, mesh: ParticleVectors.Mesh) -> None
+2. __init__(name: str, mass: float, object_size: int, semi_axes: real3, mesh: ParticleVectors.Mesh) -> None
 
 
 
@@ -875,7 +875,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
@@ -886,7 +886,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
@@ -897,7 +897,7 @@ Overloaded function.
 
 
             Returns: 
-                A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """
@@ -915,33 +915,33 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[float3]) -> None
+        r"""setCoordinates(coordinates: List[real3]) -> None
 
 
             Args:
-                coordinates: A list of :math:`N \times 3` floats: 3 components of coordinate for every of the N particles
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
         """
         pass
 
     def setForces():
-        r"""setForces(forces: List[float3]) -> None
+        r"""setForces(forces: List[real3]) -> None
 
 
             Args:
-                forces: A list of :math:`N \times 3` floats: 3 components of force for every of the N particles
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
         """
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[float3]) -> None
+        r"""setVelocities(velocities: List[real3]) -> None
 
 
             Args:
-                velocities: A list of :math:`N \times 3` floats: 3 components of velocity for every of the N particles
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
         """

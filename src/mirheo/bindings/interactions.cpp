@@ -413,7 +413,7 @@ void exportInteractions(py::module& m)
 
              **filter_desc** = "by_type_id":
 
-                 The interaction will be applied membranes with a given **type_id**
+                 The interaction will be applied membranes with a given **type_id** (see :class:`~libmirheo.InitialConditions.MembraneWithTypeId`)
 
                  * **type_id**: the type id that the interaction applies to 
     )");

@@ -15,7 +15,7 @@ class Oscillate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, velocity: float3, period: float) -> None
+        r"""__init__(name: str, velocity: real3, period: float) -> None
 
 
                 Args:
@@ -50,7 +50,7 @@ class Rotate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, center: float3, omega: float3) -> None
+        r"""__init__(name: str, center: real3, omega: real3) -> None
 
 
                 Args:
@@ -71,13 +71,13 @@ class SubStep(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, substeps: int, fastForces: Interactions.Interaction) -> None
+        r"""__init__(name: str, substeps: int, fastForces: List[Interactions.Interaction]) -> None
 
 
                 Args:
                     name: name of the integrator
                     substeps: number of sub steps
-                    fastForces: the fast interaction module. Only accepts :any:`MembraneForces` or :any:`RodForces`
+                    fastForces: a list of fast interactions. Only accepts :any:`MembraneForces` or :any:`RodForces`
                 
                 .. warning::
                     The interaction will be set to the required object vector when setting this integrator to the object vector.
@@ -93,7 +93,7 @@ class Translate(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, velocity: float3) -> None
+        r"""__init__(name: str, velocity: real3) -> None
 
 
                 Args:
@@ -139,7 +139,7 @@ class VelocityVerlet_withConstForce(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, force: float3) -> None
+        r"""__init__(name: str, force: real3) -> None
 
 
 

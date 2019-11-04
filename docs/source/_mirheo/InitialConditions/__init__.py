@@ -14,7 +14,7 @@ class FromArray(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(pos: List[float3], vel: List[float3]) -> None
+        r"""__init__(pos: List[real3], vel: List[real3]) -> None
 
 
             Args:
@@ -39,13 +39,13 @@ class Membrane(InitialConditions):
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 global_scale:
                     All the membranes will be scaled by that value. Useful to implement membranes growth so that they
                     can fill the space with high volume fraction                                        
-        
+    
 
         """
         pass
@@ -85,7 +85,7 @@ Overloaded function.
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 xyz_filename:
@@ -96,14 +96,14 @@ Overloaded function.
                     in the corresponding PV
         
 
-2. __init__(com_q: List[ComQ], coords: List[float3]) -> None
+2. __init__(com_q: List[ComQ], coords: List[real3]) -> None
 
 
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 coords:
@@ -113,14 +113,14 @@ Overloaded function.
                     in the corresponding PV
         
 
-3. __init__(com_q: List[ComQ], coords: List[float3], init_vels: List[float3]) -> None
+3. __init__(com_q: List[ComQ], coords: List[real3], init_vels: List[real3]) -> None
 
 
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 coords:
@@ -130,7 +130,7 @@ Overloaded function.
                     in the corresponding PV
                 com_q:
                     List specifying initial Center-Of-Mass velocities of the bodies.               
-                    One entry (list of 3 floats) in the list corresponds to one object 
+                    One entry (list of 3 reals) in the list corresponds to one object 
         
 
         """
@@ -145,14 +145,14 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], float3], torsion: Callable[[float], float], a: float, initial_frame: float3 = float3(inf, inf, inf)) -> None
+        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], real3], torsion: Callable[[float], float], a: float, initial_frame: real3 = real3(inf, inf, inf)) -> None
 
 
             Args:
                 com_q:
                     List describing location and rotation of the created objects.               
                     One entry in the list corresponds to one object created.                          
-                    Each entry consist of 7 floats: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
                     *com* is the center of mass of the object, *q* is the quaternion of its rotation,
                     not necessarily normalized 
                 center_line:
@@ -195,7 +195,7 @@ class UniformFiltered(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(number_density: float, filter: Callable[[float3], bool]) -> None
+        r"""__init__(number_density: float, filter: Callable[[real3], bool]) -> None
 
 
             Args:
@@ -214,7 +214,7 @@ class UniformSphere(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(number_density: float, center: float3, radius: float, inside: bool) -> None
+        r"""__init__(number_density: float, center: real3, radius: float, inside: bool) -> None
 
 
             Args:
@@ -222,6 +222,33 @@ class UniformSphere(InitialConditions):
                 center: center of the sphere
                 radius: radius of the sphere
                 inside: whether the particles should be inside or outside the sphere
+        
+
+        """
+        pass
+
+class MembraneWithTypeId(Membrane):
+    r"""
+        Same as :class:`~InitialConditions.Membrane` with an additional `type id` field which distinguish membranes with different properties.
+        This is may be used with :class:`~Interactions.MembraneForces` with the corresponding filter.
+    
+    """
+    def __init__():
+        r"""__init__(com_q: List[ComQ], type_ids: List[int], global_scale: float = 1.0) -> None
+
+
+            Args:
+                com_q:
+                    List describing location and rotation of the created objects.
+                    One entry in the list corresponds to one object created.                          
+                    Each entry consist of 7 reals: *<com_x> <com_y> <com_z>  <q_x> <q_y> <q_z> <q_w>*, where    
+                    *com* is the center of mass of the object, *q* is the quaternion of its rotation,
+                    not necessarily normalized 
+                type_ids:
+                    list of type ids. Each entry corresponds to the id of the group to which the corresponding membrane belongs.
+                global_scale:
+                    All the membranes will be scaled by that value. Useful to implement membranes growth so that they
+                    can fill the space with high volume fraction                                        
         
 
         """

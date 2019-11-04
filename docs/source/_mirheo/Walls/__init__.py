@@ -26,7 +26,7 @@ class Box(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, low: float3, high: float3, inside: bool = False) -> None
+        r"""__init__(name: str, low: real3, high: real3, inside: bool = False) -> None
 
 
             Args:
@@ -56,7 +56,7 @@ class Cylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: float2, radius: float, axis: str, inside: bool = False) -> None
+        r"""__init__(name: str, center: real2, radius: float, axis: str, inside: bool = False) -> None
 
 
             Args:
@@ -89,7 +89,7 @@ class MovingPlane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: float3, pointThrough: float3, velocity: float3) -> None
+        r"""__init__(name: str, normal: real3, pointThrough: real3, velocity: real3) -> None
 
 
             Args:
@@ -122,7 +122,7 @@ class OscillatingPlane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: float3, pointThrough: float3, velocity: float3, period: float) -> None
+        r"""__init__(name: str, normal: real3, pointThrough: real3, velocity: real3, period: float) -> None
 
 
             Args:
@@ -154,7 +154,7 @@ class Plane(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, normal: float3, pointThrough: float3) -> None
+        r"""__init__(name: str, normal: real3, pointThrough: real3) -> None
 
 
             Args:
@@ -183,7 +183,7 @@ class RotatingCylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: float2, radius: float, axis: str, omega: float, inside: bool = False) -> None
+        r"""__init__(name: str, center: real2, radius: float, axis: str, omega: float, inside: bool = False) -> None
 
 
             Args:
@@ -216,14 +216,14 @@ class SDF(Wall):
         
         First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
-        Next the :math:`Nx \times Ny \times Nz` single precision floating point values are written (in binary representation).
+        Next the :math:`Nx \times Ny \times Nz` single precision realing point values are written (in binary representation).
         
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
     
     """
     def __init__():
-        r"""__init__(name: str, sdfFilename: str, h: float3 = float3(0.25, 0.25, 0.25)) -> None
+        r"""__init__(name: str, sdfFilename: str, h: real3 = real3(0.25, 0.25, 0.25)) -> None
 
 
             Args:
@@ -255,7 +255,7 @@ class Sphere(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: float3, radius: float, inside: bool = False) -> None
+        r"""__init__(name: str, center: real3, radius: float, inside: bool = False) -> None
 
 
             Args:

@@ -165,10 +165,11 @@ void exportPlugins(py::module& m)
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
         If the objects are rigid bodies, also will be written the quaternion describing the rotation.
+        The `type id` field is also dumped if the objects have this field activated (see :class:`~libmirheo.InitialConditions.MembraneWithTypeId`).
         
         The file format is the following:
         
-        <object id> <simulation time> <COM>x3 [<quaternion>x4] <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3
+        <object id> <simulation time> <COM>x3 [<quaternion>x4] <velocity>x3 <angular velocity>x3 <force>x3 <torque>x3 [<type id>]
         
         .. note::
             Note that all the written values are *instantaneous*

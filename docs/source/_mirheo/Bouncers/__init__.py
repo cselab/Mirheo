@@ -13,7 +13,7 @@ class Bouncer:
 
         * **kernel** = "bounce_maxwell":
             Reinsert particle at the collision point with a velocity drawn from a maxwellian distribution.
-            Need the additional parameter **kBT (float)**.
+            Need the additional parameter **kBT (real)**.
             The new velocity of the particle is given by:
 
             .. math::

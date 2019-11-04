@@ -57,9 +57,8 @@ void exportInitialConditions(py::module& m)
     )");
 
     py::handlers_class<MembraneWithTypeIdsIC>(m, "MembraneWithTypeId", pyMembraneIC, R"(
-        Can only be used with Membrane Object Vector, see :ref:`user-ic`. These IC will initialize the particles of each object
-        according to the mesh associated with Membrane, and then the objects will be translated/rotated according to the provided 
-        initial conditions. An additional field is reuired to distinguish membranes with different properties.
+        Same as :class:`~libmirheo.InitialConditions.Membrane` with an additional `type id` field which distinguish membranes with different properties.
+        This is may be used with :class:`~libmirheo.Interactions.MembraneForces` with the corresponding filter.
     )")
         .def(py::init<const std::vector<ComQ>&, const std::vector<int>&, real>(),
              "com_q"_a, "type_ids"_a, "global_scale"_a=1.0, R"(
