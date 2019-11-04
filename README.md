@@ -12,7 +12,9 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.3.1
 
 * **interface changes**
   * substep integrator now takes a list of interactions 
