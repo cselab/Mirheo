@@ -8,30 +8,23 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(version)
+
+getMirheoVersion(MIR_VERSION)
+getMirheoSHA1(MIR_SHA1)
+
 # compile options for Mirheo library
 option(DOUBLE_PRECISION "use double precision everywhere; will also enable MEMBRANE_DOUBLE and ROD_DOUBLE" OFF)
 option(MEMBRANE_DOUBLE  "compute membrane forces in double precision" OFF)
 option(ROD_DOUBLE       "compute rod forces in double precision" OFF)
 option(USE_NVTX "enable NVTX profiling" OFF)
 
-project(Mirheo LANGUAGES C CXX CUDA)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+string(REPLACE "v" "" MIR_VERSION_CMAKE_FORMAT ${MIR_VERSION})
+project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
+
 set(MIR "libmirheo")
 set(MIR_MAIN "mirheo_main")
-
-# version
-execute_process(COMMAND
-  git describe --abbrev=0
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE MIR_VERSION
-  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-# the commit's SHA1, and whether the building workspace was dirty or not
-execute_process(COMMAND
-  git describe --match=NeVeRmAtCh --always --abbrev=40 --dirty
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  OUTPUT_VARIABLE GIT_SHA1
-  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # Add pybind11
 add_subdirectory(src/extern/pybind11)
