@@ -81,7 +81,7 @@ IntegratorVVRigid::~IntegratorVVRigid() = default;
  * Can only be applied to RigidObjectVector and requires it to have
  * \c old_motions data channel per particle
  */
-void IntegratorVVRigid::setPrerequisites(ParticleVector* pv)
+void IntegratorVVRigid::setPrerequisites(ParticleVector *pv)
 {
     auto ov = dynamic_cast<RigidObjectVector*> (pv);
     if (ov == nullptr)
