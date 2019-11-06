@@ -179,35 +179,35 @@ struct BiSegment
     __device__ inline void computeTwistForces(int state, const GPU_RodBiSegmentParameters<Nstates>& params,
                                               rReal3& fr0, rReal3& fr2, rReal3& fpm0, rReal3& fpm1) const
     {
-        rReal4  Q = Quaternion::getFromVectorPair(t0, t1);
-        rReal3 u0 = normalize(anyOrthogonal(t0));
-        rReal3 u1 = normalize(Quaternion::rotate(u0, Q));
+        const auto Q = Quaternion<rReal>::createFromVectors(t0, t1);
+        const rReal3 u0 = normalize(anyOrthogonal(t0));
+        const rReal3 u1 = normalize(Q.rotate(u0));
         
-        auto v0 = cross(t0, u0);
-        auto v1 = cross(t1, u1);
+        const auto v0 = cross(t0, u0);
+        const auto v1 = cross(t1, u1);
 
-        rReal dpu0 = dot(dp0, u0);
-        rReal dpv0 = dot(dp0, v0);
+        const rReal dpu0 = dot(dp0, u0);
+        const rReal dpv0 = dot(dp0, v0);
 
-        rReal dpu1 = dot(dp1, u1);
-        rReal dpv1 = dot(dp1, v1);
+        const rReal dpu1 = dot(dp1, u1);
+        const rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = math::atan2(dpv0, dpu0);
-        rReal theta1 = math::atan2(dpv1, dpu1);
+        const rReal theta0 = math::atan2(dpv0, dpu0);
+        const rReal theta1 = math::atan2(dpv1, dpu1);
     
-        rReal tau = safeDiffTheta(theta0, theta1) * linv;
-        rReal dtau = tau - params.tauEq[state];
+        const rReal tau = safeDiffTheta(theta0, theta1) * linv;
+        const rReal dtau = tau - params.tauEq[state];
 
         // contribution from segment length on center line:
         
-        rReal ftwistLFactor = 0.5_rr * params.kTwist * dtau * (tau + params.tauEq[state]);
+        const rReal ftwistLFactor = 0.5_rr * params.kTwist * dtau * (tau + params.tauEq[state]);
         
         fr0 -= 0.5_rr * ftwistLFactor * t0;
         fr2 += 0.5_rr * ftwistLFactor * t1;
 
         // contribution from theta on center line:
         
-        rReal dthetaFFactor = dtau * params.kTwist;
+        const rReal dthetaFFactor = dtau * params.kTwist;
         
         fr0 += (0.5_rr * dthetaFFactor * e0inv) * bicur;
         fr2 -= (0.5_rr * dthetaFFactor * e1inv) * bicur;
@@ -243,21 +243,21 @@ struct BiSegment
 
     __device__ inline void computeTorsion(rReal& tau) const
     {
-        rReal4  Q = Quaternion::getFromVectorPair(t0, t1);
-        rReal3 u0 = normalize(anyOrthogonal(t0));
-        rReal3 u1 = normalize(Quaternion::rotate(u0, Q));
+        const auto Q = Quaternion<rReal>::createFromVectors(t0, t1);
+        const rReal3 u0 = normalize(anyOrthogonal(t0));
+        const rReal3 u1 = normalize(Q.rotate(u0));
 
-        auto v0 = cross(t0, u0);
-        auto v1 = cross(t1, u1);
+        const auto v0 = cross(t0, u0);
+        const auto v1 = cross(t1, u1);
 
-        rReal dpu0 = dot(dp0, u0);
-        rReal dpv0 = dot(dp0, v0);
+        const rReal dpu0 = dot(dp0, u0);
+        const rReal dpv0 = dot(dp0, v0);
 
-        rReal dpu1 = dot(dp1, u1);
-        rReal dpv1 = dot(dp1, v1);
+        const rReal dpu1 = dot(dp1, u1);
+        const rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = math::atan2(dpv0, dpu0);
-        rReal theta1 = math::atan2(dpv1, dpu1);
+        const rReal theta0 = math::atan2(dpv0, dpu0);
+        const rReal theta1 = math::atan2(dpv1, dpu1);
     
         tau = safeDiffTheta(theta0, theta1) * linv;
     }
@@ -337,23 +337,23 @@ struct BiSegment
     __device__ inline void computeTorsionGradients(rReal3& gradr0, rReal3& gradr2,
                                                    rReal3& gradpm0, rReal3& gradpm1) const
     {
-        rReal4  Q = Quaternion::getFromVectorPair(t0, t1);
-        rReal3 u0 = normalize(anyOrthogonal(t0));
-        rReal3 u1 = normalize(Quaternion::rotate(u0, Q));
+        const auto Q = Quaternion<rReal>::createFromVectors(t0, t1);
+        const rReal3 u0 = normalize(anyOrthogonal(t0));
+        const rReal3 u1 = normalize(Q.rotate(u0));
         
-        auto v0 = cross(t0, u0);
-        auto v1 = cross(t1, u1);
+        const auto v0 = cross(t0, u0);
+        const auto v1 = cross(t1, u1);
 
-        rReal dpu0 = dot(dp0, u0);
-        rReal dpv0 = dot(dp0, v0);
+        const rReal dpu0 = dot(dp0, u0);
+        const rReal dpv0 = dot(dp0, v0);
 
-        rReal dpu1 = dot(dp1, u1);
-        rReal dpv1 = dot(dp1, v1);
+        const rReal dpu1 = dot(dp1, u1);
+        const rReal dpv1 = dot(dp1, v1);
 
-        rReal theta0 = math::atan2(dpv0, dpu0);
-        rReal theta1 = math::atan2(dpv1, dpu1);
+        const rReal theta0 = math::atan2(dpv0, dpu0);
+        const rReal theta1 = math::atan2(dpv1, dpu1);
     
-        rReal tau = safeDiffTheta(theta0, theta1) * linv;
+        const rReal tau = safeDiffTheta(theta0, theta1) * linv;
 
         // contribution from segment length on center line:
 

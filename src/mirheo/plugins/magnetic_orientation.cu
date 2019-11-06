@@ -17,9 +17,9 @@ __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.nObjects) return;
 
-    const auto q = view.motions[gid].q;
+    const auto q = static_cast<Quaternion<real>>(view.motions[gid].q);
 
-    M = Quaternion::rotate(M, q);
+    M = q.rotate(M);
 
     const real3 T = cross(M, B);
     

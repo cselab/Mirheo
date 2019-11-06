@@ -95,20 +95,20 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
         real3 mu =  cost * u + sint * v;
         real3 mv = -sint * u + cost * v;
             
-        positions[5*i + 1] = r - 0.5 * a * mu;
-        positions[5*i + 2] = r + 0.5 * a * mu;
-        positions[5*i + 3] = r - 0.5 * a * mv;
-        positions[5*i + 4] = r + 0.5 * a * mv;
+        positions[5*i + 1] = r - 0.5_r * a * mu;
+        positions[5*i + 2] = r + 0.5_r * a * mu;
+        positions[5*i + 3] = r - 0.5_r * a * mv;
+        positions[5*i + 4] = r + 0.5_r * a * mv;
 
         if (i < nSegments - 1)
         {
             auto r2 = positions[5*(i + 2)];
             auto t1 = normalize(r2-r1);
 
-            auto q = Quaternion::getFromVectorPair(t0, t1);
-            u = normalize(Quaternion::rotate(u, q));
+            const auto q = Quaternion<real>::createFromVectors(t0, t1);
+            u = normalize(q.rotate(u));
 
-            auto l = 0.5 * (length(r1-r0) + length(r2-r1));
+            auto l = 0.5_r * (length(r1-r0) + length(r2-r1));
             // use trapezoidal rule to integrate the angle
             theta += l * 0.5_r * (torsion((i+0.5_r)*h) + torsion((i+1.5_r)*h));
         }
@@ -136,9 +136,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     for (auto& entry : com_q)
     {
         real3 com = entry.r;
-        real4 q   = entry.q;;
-
-        q = normalize(q);        
+        const auto q = Quaternion<real>::createFromComponents(entry.q).normalized();
 
         if (domain.globalStart.x <= com.x && com.x < domain.globalStart.x + domain.localSize.x &&
             domain.globalStart.y <= com.y && com.y < domain.globalStart.y + domain.localSize.y &&
@@ -153,8 +151,8 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
             
             for (int i = 0; i < objSize; i++)
             {
-                real3 r = Quaternion::rotate(positions[i], q) + com;
-                Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
+                const real3 r = com + q.rotate(positions[i]);
+                const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
                 pos[oldSize + i] = p.r2Real4();
                 vel[oldSize + i] = p.u2Real4();

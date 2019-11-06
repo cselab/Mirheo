@@ -44,7 +44,7 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
             const Particle p(pvView.readParticle(pid));
             const auto motion = toRealMotion(rsView.motions[objId]);
 
-            const real3 coo = Quaternion::rotate(p.r - motion.r, Quaternion::conjugate(motion.q));
+            const real3 coo = motion.q.inverseRotate(p.r - motion.r);
 
             const real v = rsView.shape.inOutFunction(coo);
 

@@ -165,7 +165,7 @@ combineMotions(const std::vector<real3>& pos,
     {
         RigidMotion m;
         m.r      = make_rigidReal3(pos[i]);
-        m.q      = quaternion[i];
+        m.q      = Quaternion<RigidReal>::createFromComponents(quaternion[i]);
         m.vel    = vel       [i];
         m.omega  = omega     [i];
         m.force  = force     [i];

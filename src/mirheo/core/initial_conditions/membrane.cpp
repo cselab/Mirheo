@@ -37,11 +37,12 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     {
         const int srcId = map[objId];
         const real3 com = domain.global2local(com_q[srcId].r);
-        const real4 q   = normalize(com_q[srcId].q);
+        const auto q = Quaternion<real>::createFromComponents(normalize(com_q[srcId].q));
 
         for (int i = 0; i < nVerticesPerObject; ++i)
         {
-            const real3 r = Quaternion::rotate(make_real3( ov->mesh->vertexCoordinates[i] * globalScale ), q) + com;
+            const real3 dr0 = make_real3( ov->mesh->vertexCoordinates[i] * globalScale);
+            const real3 r = com + q.rotate(dr0);
             const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
             const int dstPid = objId * nVerticesPerObject + i;

@@ -12,7 +12,7 @@ static inline __HD__ RealRigidMotion toRealMotion(const DoubleRigidMotion& dm)
 {
     RealRigidMotion sm;
     sm.r      = make_real3(dm.r);
-    sm.q      = make_real4(dm.q);
+    sm.q      = static_cast<Quaternion<real>>(dm.q);
     sm.vel    = make_real3(dm.vel);
     sm.omega  = make_real3(dm.omega);
     sm.force  = make_real3(dm.force);

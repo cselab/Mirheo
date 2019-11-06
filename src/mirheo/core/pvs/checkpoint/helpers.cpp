@@ -46,7 +46,7 @@ splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions
     {
         auto m = motions[i];
         pos[i] = domain.local2global(make_real3(m.r));
-        quaternion[i] = m.q;
+        quaternion[i] = static_cast<RigidReal4>(m.q);
         vel[i] = m.vel;
         omega[i] = m.omega;
         force[i] = m.force;

@@ -41,7 +41,7 @@ __device__ void applyBindingForce(const DomainInfo& domain,
                                   const BindingParams& params)
 {
     const auto motion = toRealMotion(objs.motions[i]);
-    const real3 relAnchor = Quaternion::rotate( params.relPos, motion.q );
+    const real3 relAnchor = motion.q.rotate(params.relPos);
     const real3 anchor = motion.r + relAnchor;
 
     const int start = j * rods.objSize; 

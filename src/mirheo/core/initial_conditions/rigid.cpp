@@ -110,8 +110,8 @@ static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
         RigidMotion motion{};
         
         motion.r = make_rigidReal3( entry.r );
-        motion.q = make_rigidReal4( entry.q );
-        motion.q = normalize(motion.q);
+        motion.q = Quaternion<RigidReal>::createFromComponents(make_rigidReal4( entry.q ));
+        motion.q.normalize();
         
         if (i < comVelocities.size())
             motion.vel = {comVelocities[i].x, comVelocities[i].y, comVelocities[i].z};

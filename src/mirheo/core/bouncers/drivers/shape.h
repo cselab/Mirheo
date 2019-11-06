@@ -67,8 +67,8 @@ __device__ static inline void bounceCellArray(
         const auto rOld = pvView.readOldPosition(pid);
 
         // Go to the obj frame of reference
-        const real3 coo    = Quaternion::rotate(p.r     - motion.r,  Quaternion::conjugate(    motion.q));
-        const real3 oldCoo = Quaternion::rotate(rOld - old_motion.r, Quaternion::conjugate(old_motion.q));
+        const real3 coo    =     motion.q.inverseRotate(p.r  -     motion.r);
+        const real3 oldCoo = old_motion.q.inverseRotate(rOld - old_motion.r);
         const real3 dr = coo - oldCoo;
 
         // If the particle is outside - skip it, it's fine
@@ -125,8 +125,8 @@ __device__ static inline void bounceCellArray(
         real3 normal = shape.normal(newCoo);
         
         // Return to the original frame
-        newCoo = Quaternion::rotate(newCoo, motion.q) + motion.r;
-        normal = Quaternion::rotate(normal, motion.q);
+        newCoo = motion.q.rotate(newCoo) + motion.r;
+        normal = motion.q.rotate(normal);
 
         // Change velocity's frame to the object frame, correct for rotation as well
         const real3 vObj = motion.vel + cross( motion.omega, newCoo-motion.r );
@@ -148,17 +148,16 @@ __device__ static inline bool isValidCell(int3 cid3, const RealRigidMotion& moti
     constexpr real threshold = 0.5_r;
 
     real3 v000 = make_real3(cid3) * cinfo.h - cinfo.localDomainSize * 0.5_r - motion.r;
-    const real4 invq = Quaternion::conjugate(motion.q);
 
-    const real3 v001 = Quaternion::rotate( v000 + make_real3(        0,         0, cinfo.h.z), invq );
-    const real3 v010 = Quaternion::rotate( v000 + make_real3(        0, cinfo.h.y,         0), invq );
-    const real3 v011 = Quaternion::rotate( v000 + make_real3(        0, cinfo.h.y, cinfo.h.z), invq );
-    const real3 v100 = Quaternion::rotate( v000 + make_real3(cinfo.h.x,         0,         0), invq );
-    const real3 v101 = Quaternion::rotate( v000 + make_real3(cinfo.h.x,         0, cinfo.h.z), invq );
-    const real3 v110 = Quaternion::rotate( v000 + make_real3(cinfo.h.x, cinfo.h.y,         0), invq );
-    const real3 v111 = Quaternion::rotate( v000 + make_real3(cinfo.h.x, cinfo.h.y, cinfo.h.z), invq );
+    const real3 v001 = motion.q.inverseRotate( v000 + make_real3(        0,         0, cinfo.h.z) );
+    const real3 v010 = motion.q.inverseRotate( v000 + make_real3(        0, cinfo.h.y,         0) );
+    const real3 v011 = motion.q.inverseRotate( v000 + make_real3(        0, cinfo.h.y, cinfo.h.z) );
+    const real3 v100 = motion.q.inverseRotate( v000 + make_real3(cinfo.h.x,         0,         0) );
+    const real3 v101 = motion.q.inverseRotate( v000 + make_real3(cinfo.h.x,         0, cinfo.h.z) );
+    const real3 v110 = motion.q.inverseRotate( v000 + make_real3(cinfo.h.x, cinfo.h.y,         0) );
+    const real3 v111 = motion.q.inverseRotate( v000 + make_real3(cinfo.h.x, cinfo.h.y, cinfo.h.z) );
 
-    v000 = Quaternion::rotate( v000, invq );
+    v000 = motion.q.inverseRotate( v000 );
 
     return ( shape.inOutFunction(v000) < threshold ||
              shape.inOutFunction(v001) < threshold ||

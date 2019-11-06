@@ -67,8 +67,7 @@ __global__ void applyRigidMotion(ROVview ovView, const real4 *initialPositions)
     Particle p;
     ovView.readPosition(p, pid);
 
-    // Some explicit conversions for double precision
-    p.r = motion.r + Quaternion::rotate( make_real3(initialPositions[locId]), motion.q );
+    p.r = motion.r + motion.q.rotate( make_real3(initialPositions[locId]) );
 
     if (action == RigidOperations::ApplyTo::PositionsAndVelocities)
     {

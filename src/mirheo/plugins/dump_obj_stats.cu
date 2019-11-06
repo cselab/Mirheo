@@ -159,10 +159,10 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
         if (isRov)
         {
             ss << "    "
+               << std::setw(10) << motion.q.w << " "
                << std::setw(10) << motion.q.x << " "
                << std::setw(10) << motion.q.y << " "
-               << std::setw(10) << motion.q.z << " "
-               << std::setw(10) << motion.q.w;
+               << std::setw(10) << motion.q.z;
         }
 
         ss << "    "   

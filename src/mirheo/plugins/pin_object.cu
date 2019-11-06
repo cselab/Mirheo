@@ -106,7 +106,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
     if (targetOmega.z != PinObjectPlugin::Unrestricted) adjustedTargetOmega.z = targetOmega.z;
     
     // Next compute the corrected dq_dt and revert if necessary
-    auto dq_dt = Quaternion::timeDerivative(old_motion.q, adjustedTargetOmega);
+    auto dq_dt = old_motion.q.timeDerivative(adjustedTargetOmega);
 #define OMEGA_PER_DIM(dim)                                   \
     if (targetOmega.dim != PinObjectPlugin::Unrestricted)    \
     {                                                        \
@@ -121,7 +121,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
     
 #undef OMEGA_PER_DIM
     
-    motion.q = normalize(motion.q);
+    motion.q.normalize();
     view.motions[objId] = motion;
 }
 

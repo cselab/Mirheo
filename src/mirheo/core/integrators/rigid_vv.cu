@@ -32,26 +32,26 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const real dt)
     auto q = motion.q;
 
     // Update angular velocity in the body frame
-    auto omega = Quaternion::rotate(motion.omega,  Quaternion::conjugate(q));
-    auto tau   = Quaternion::rotate(motion.torque, Quaternion::conjugate(q));
+    auto omega = q.inverseRotate(motion.omega);
+    auto tau   = q.inverseRotate(motion.torque);
 
     // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
     // J is the diagonal inertia tensor in the body frame
-    auto dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
+    const RigidReal3 dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
     omega += dw_dt * dt;
-    omega = Quaternion::rotate(omega, motion.q);
+    omega = q.rotate(omega);
 
     // using OLD q and NEW w ?
     // d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
-    auto dq_dt = Quaternion::timeDerivative(q, omega);
-    auto d2q_dt2 = 0.5 * (Quaternion::multiply(Quaternion::f3toQ(dw_dt), q) +
-                          Quaternion::multiply(Quaternion::f3toQ(omega), dq_dt));
+    auto dq_dt = q.timeDerivative(omega);
+    auto d2q_dt2 = 0.5 * (Quaternion<RigidReal>::pureVector(dw_dt) * q +
+                          Quaternion<RigidReal>::pureVector(omega) * dq_dt);
 
     dq_dt += d2q_dt2 * dt;
     q     += dq_dt   * dt;
 
     // Normalize q
-    q = normalize(q);
+    q.normalize();
 
     motion.omega = omega;
     motion.q     = q;

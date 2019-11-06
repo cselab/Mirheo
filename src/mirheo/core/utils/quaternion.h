@@ -8,85 +8,205 @@
 namespace mirheo
 {
 
-namespace Quaternion
-{
 // http://www.iri.upc.edu/people/jsola/JoanSola/objectes/notes/kinematics.pdf
 // https://arxiv.org/pdf/0811.2889.pdf
 
-template <typename R3>
-__HD__ inline auto f3toQ(const R3& vec)
+template<class Real>
+class __align__(16) Quaternion
 {
-    using RealType  = decltype(vec.x);
-    using RealType4 = typename VecTraits::Vec<RealType, 4>::Type;
-    
-    return RealType4 {static_cast<RealType>(0.0), vec.x, vec.y, vec.z};
-}
+ public:
+    using Real3 = typename VecTraits::Vec<Real, 3>::Type;
+    using Real4 = typename VecTraits::Vec<Real, 4>::Type;
 
-template<class R4>
-__HD__ inline R4 conjugate(const R4 q)
-{
-    return {q.x, -q.y, -q.z, -q.w};
-}
-
-// https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-template <typename R3>
-__HD__ inline auto getFromVectorPair(R3 u, R3 v)
-{
-    using RealType  = decltype(u.x);
-    using RealType4 = typename VecTraits::Vec<RealType, 4>::Type;
-
-    auto kCosTheta = dot(u, v);
-    auto k = math::sqrt(dot(u,u) * dot(v,v));
-
-    if (math::abs(kCosTheta + k) < 1e-6)
+    __HD__ static inline Quaternion createFromComponents(Real w, Real x, Real y, Real z)
     {
-        // 180 degree rotation around any orthogonal vector
-        return f3toQ( normalize(anyOrthogonal(u)) );
+        return {w, x, y, z};
     }
-    auto uv = cross(u, v);
-    RealType4 q {kCosTheta + k, uv.x, uv.y, uv.z};
-    return normalize(q);
-}
+
+    __HD__ static inline Quaternion createFromComponents(Real w, Real3 v)
+    {
+        return {w, v};
+    }
+
+    __HD__ static inline Quaternion createFromComponents(Real4 v)
+    {
+        return {v.x, v.y, v.z, v.w};
+    }
+
+    __HD__ static inline Quaternion pureVector(Real3 v)
+    {
+        return {static_cast<Real>(0), v.x, v.y, v.z};
+    }
+
+    __HD__ static inline Quaternion createFromRotation(Real angle, Real3 axis)
+    {
+        const Real alpha = static_cast<Real>(0.5) * angle;
+        const Real3 u = math::rsqrt(dot(axis, axis)) * axis;
+        return {std::cos(alpha), std::sin(alpha) * u};
+    }
+
+    __HD__ static inline Quaternion createFromVectors(Real3 from, Real3 to)
+    {
+        return {from, to};
+    }
+
+    Quaternion() = default;
+    Quaternion(const Quaternion& q) = default;
+    Quaternion& operator=(const Quaternion& q) = default;
+    ~Quaternion() = default;
 
 
-template<class R4>
-__HD__ inline R4 multiply(const R4 q1, const R4 q2)
-{
-    R4 res;
-    res.x =  q1.x * q2.x - q1.y * q2.y - q1.z * q2.z - q1.w * q2.w;
-    res.y =  q1.x * q2.y + q1.y * q2.x + q1.z * q2.w - q1.w * q2.z;
-    res.z =  q1.x * q2.z - q1.y * q2.w + q1.z * q2.x + q1.w * q2.y;
-    res.w =  q1.x * q2.w + q1.y * q2.z - q1.z * q2.y + q1.w * q2.x;
-    return res;
-}
+    template <class T>
+    __HD__ explicit operator Quaternion<T>() const
+    {
+        return Quaternion<T>::createFromComponents(static_cast<T>(w),
+                                                   static_cast<T>(x),
+                                                   static_cast<T>(y),
+                                                   static_cast<T>(z));
+    }
 
-// rotate a point v in 3D space around the origin using this quaternion
-template<class R4, class R3>
-__HD__ inline R3 rotate(const R3 x, const R4 q)
-{
-    using QRealType = decltype(R4::x);
-    using VRealType = decltype(R3::x);
+    __HD__ explicit operator float4() const
+    {
+        return {static_cast<float>(w),
+                static_cast<float>(x),
+                static_cast<float>(y),
+                static_cast<float>(z)};
+    }
+
+    __HD__ explicit operator double4() const
+    {
+        return {static_cast<double>(w),
+                static_cast<double>(x),
+                static_cast<double>(y),
+                static_cast<double>(z)};
+    }
+        
+    __HD__ inline Real realPart() const {return w;}
+    __HD__ inline Real3 vectorPart() const {return {x, y, z};}
+
+    __HD__ inline Quaternion<Real> conjugate() const {return {w, -x, -y, -z};}
+
+    __HD__ inline Real norm() const {return math::sqrt(w*w + x*x + y*y + z*z);}
+
+    __HD__ inline Quaternion& normalize()
+    {
+        const Real factor = math::rsqrt(w*w + x*x + y*y + z*z);
+        return *this *= factor;
+    }
     
-    R4 qX = { static_cast<QRealType>(0.0),
-              static_cast<QRealType>(x.x),
-              static_cast<QRealType>(x.y),
-              static_cast<QRealType>(x.z) };
+    __HD__ inline Quaternion normalized() const
+    {
+        Quaternion ret = *this;
+        ret.normalize();
+        return ret;
+    }
 
-    qX = multiply(multiply(q, qX), conjugate(q));
+    __HD__ inline Quaternion& operator+=(const Quaternion& q)
+    {
+        x += q.x;
+        y += q.y;
+        z += q.z;
+        w += q.w;
+        return *this;
+    }
 
-    return { static_cast<VRealType>(qX.y),
-             static_cast<VRealType>(qX.z),
-             static_cast<VRealType>(qX.w) };
-}
+    __HD__ inline Quaternion& operator-=(const Quaternion& q)
+    {
+        x -= q.x;
+        y -= q.y;
+        z -= q.z;
+        w -= q.w;
+        return *this;
+    }
 
-template<class R4, class R3>
-__HD__ inline R4 timeDerivative(const R4 q, const R3 omega)
-{
-    using RealType = decltype(R4::x);
-    constexpr RealType half = static_cast<RealType>(0.5);
-    return half * multiply(f3toQ(omega), q);
-}
+    __HD__ inline Quaternion& operator*=(Real a)
+    {
+        x *= a;
+        y *= a;
+        z *= a;
+        w *= a;
+        return *this;
+    }
 
-} // namespace Quaternion
+    __HD__ friend inline Quaternion operator+(Quaternion q1, const Quaternion& q2) {q1 += q2; return q1;}
+    __HD__ friend inline Quaternion operator-(Quaternion q1, const Quaternion& q2) {q1 -= q2; return q1;}
+
+    __HD__ friend inline Quaternion operator*(Real a, Quaternion q) {q *= a; return q;}
+    __HD__ friend inline Quaternion operator*(Quaternion q, Real a) {return a * q;}
+
+    __HD__ friend inline Quaternion operator*(const Quaternion& q1, const Quaternion& q2)
+    {
+        return {q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z,
+                q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y,
+                q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x,
+                q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w};
+    }
+    
+    __HD__ inline Quaternion& operator*=(const Quaternion& q)
+    {
+        *this = (*this) * q;
+        return *this;
+    }
+
+    __HD__ inline Real3 rotate(Real3 v) const
+    {
+        const auto qv = pureVector(v);
+        const auto& q = *this;
+        return (q * qv * q.conjugate()).vectorPart();
+    }
+
+    __HD__ inline Real3 inverseRotate(Real3 v) const
+    {
+        const auto qv = pureVector(v);
+        const auto& q = *this;
+        return (q.conjugate() * qv * q).vectorPart();
+    }
+
+    __HD__ inline Quaternion timeDerivative(Real3 omega) const
+    {
+        constexpr Real half = static_cast<Real>(0.5);
+        return half * pureVector(omega) * *this;
+    }
+
+    
+ public:
+    
+    Real w;       // real part
+    Real x, y, z; // vector part
+    
+ private:
+    __HD__ Quaternion(Real w, Real x, Real y, Real z) :
+        w(w), x(x), y(y), z(z)
+    {}
+
+    __HD__ Quaternion(Real w, Real3 u) :
+        w(w), x(u.x), y(u.y), z(u.z)
+    {}
+    
+    // https://stackoverflow.com/a/11741520/11630848
+    __HD__ Quaternion(Real3 u, Real3 v)
+    {
+        const Real k_cos_theta = dot(u, v);
+        const Real k = math::sqrt(dot(u, u) * dot(v, v));
+
+        if (math::abs(k_cos_theta + k) < 1e-6) // opposite directions
+        {
+            w = static_cast<Real>(0);
+            const Real3 n = anyOrthogonal(u);
+            x = n.x;
+            y = n.y;
+            z = n.z;
+        }
+        else
+        {
+            w = k_cos_theta + k;
+            const Real3 n = cross(u, v);
+            x = n.x;
+            y = n.y;
+            z = n.z;
+        }
+        this->normalize();
+    }
+};
 
 } // namespace mirheo
