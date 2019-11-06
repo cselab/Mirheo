@@ -44,15 +44,15 @@ static void initialFlagellum(int n, std::vector<Real3>& positions, CenterLineFun
     positions[5*n] = centerLine(1.f);
 }
 
-static void getTransformation(Real3 t0, Real3 t1, Real4& Q)
+static void getTransformation(Real3 t0, Real3 t1, Quaternion<Real>& Q)
 {
-    Q = Quaternion::getFromVectorPair(t0, t1);
+    Q = Quaternion<Real>::createFromVectors(t0, t1);
     auto t0t1 = cross(t0, t1);
     if (length(t0t1) > 1e-6)
         t0t1 = normalize(t0t1);
 
-    Real err_t0_t1   = length(t1 - Quaternion::rotate(t0, Q));
-    Real err_t01_t01 = length(t0t1 - Quaternion::rotate(t0t1, Q));
+    Real err_t0_t1   = length(t1 - Q.rotate(t0));
+    Real err_t01_t01 = length(t0t1 - Q.rotate(t0t1));
 
     ASSERT_LE(err_t01_t01, 1e-6f);
     ASSERT_LE(err_t0_t1, 1e-6);
@@ -79,10 +79,10 @@ static void transportBishopFrame(const std::vector<Real3>& positions, std::vecto
         auto t0 = normalize(r1-r0);
         auto t1 = normalize(r2-r1);
 
-        Real4 Q;
+        Quaternion<Real> Q;
         getTransformation(t0, t1, Q);
         auto u0 = frames[2*(i-1) + 0];
-        auto u1 = Quaternion::rotate(u0, Q);
+        auto u1 = Q.rotate(u0);
         auto v1 = cross(t1, u1);
         frames[2*i + 0] = u1;
         frames[2*i + 1] = v1;
@@ -173,9 +173,9 @@ static Real twistEnergy(const std::vector<Real3>& positions, Real kTwist, Real t
         auto t0 = normalize(e0);
         auto t1 = normalize(e1); 
         
-        auto  Q = Quaternion::getFromVectorPair(t0, t1);
+        auto  Q = Quaternion<Real>::createFromVectors(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
-        auto u1 = normalize(Quaternion::rotate(u0, Q));
+        auto u1 = normalize(Q.rotate(u0));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
@@ -228,9 +228,9 @@ static Real smoothingEnergy(const std::vector<Real3>& positions, Real kSmoothing
         Real dp0Perpinv = 1.0 / length(dp0Perp);
         Real dp1Perpinv = 1.0 / length(dp1Perp);
 
-        auto  Q = Quaternion::getFromVectorPair(t0, t1);
+        auto  Q = Quaternion<Real>::createFromVectors(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
-        auto u1 = normalize(Quaternion::rotate(u0, Q));
+        auto u1 = normalize(Q.rotate(u0));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);

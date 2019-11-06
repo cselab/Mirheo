@@ -147,7 +147,7 @@ inline bool areEquals(RigidMotion a, RigidMotion b)
 {
     return
         areEquals(a.r, b.r) &&
-        areEquals(a.q, b.q) &&
+        areEquals(static_cast<RigidReal4>(a.q), static_cast<RigidReal4>(b.q)) &&
         areEquals(a.vel, b.vel) &&
         areEquals(a.omega, b.omega) &&
         areEquals(a.force, b.force) &&

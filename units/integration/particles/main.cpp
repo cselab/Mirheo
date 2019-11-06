@@ -9,8 +9,6 @@ using namespace mirheo;
 
 namespace mirheo { Logger logger; }
 
-cudaStream_t defaultStream = 0;
-
 static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirState *state)
 {
     integrator->setPrerequisites(pv);

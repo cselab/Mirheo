@@ -85,9 +85,9 @@ static std::vector<Real> computeTorsions(const float4 *positions, int nSegments)
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
         
-        Real4  Q = Quaternion::getFromVectorPair(t0, t1);
+        const auto Q = Quaternion<Real>::createFromVectors(t0, t1);
         Real3 u0 = normalize(anyOrthogonal(t0));
-        Real3 u1 = normalize(Quaternion::rotate(u0, Q));
+        Real3 u1 = normalize(Q.rotate(u0));
 
         auto dp0 = pp0 - pm0;
         auto dp1 = pp1 - pm1;

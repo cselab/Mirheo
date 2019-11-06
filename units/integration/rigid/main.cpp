@@ -1,5 +1,6 @@
-#include <mirheo/core/logger.h>
 #include <mirheo/core/datatypes.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/rigid/rigid_motion.h>
 #include <mirheo/core/utils/quaternion.h>
 
 #include <cmath>
@@ -16,11 +17,11 @@ inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
     const double dt_half = 0.5 * dt;
 
     const auto q0 = motion.q;
-    const auto invq0 = Quaternion::conjugate(q0);
-    const auto omegaB  = Quaternion::rotate(motion.omega,  invq0);
-    const auto torqueB = Quaternion::rotate(motion.torque, invq0);
+    const auto invq0 = q0.conjugate();
+    const auto omegaB  = invq0.rotate(motion.omega);
+    const auto torqueB = invq0.rotate(motion.torque);
     const auto LB = J * omegaB;
-    const auto L0 = Quaternion::rotate(LB, q0);
+    const auto L0 = q0.rotate(LB);
 
     const auto L_half = L0 + dt_half * motion.torque;
 
@@ -32,16 +33,16 @@ inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
     auto LB_half     = LB + dt_half * dLB0_dt;
     auto omegaB_half = Jinv * LB_half;
 
-    auto dq_dt_half = Quaternion::timeDerivative(q0, omegaB_half);
-    auto q_half     = normalize(q0 + dt_half * dq_dt_half);
+    auto dq_dt_half = q0.timeDerivative(omegaB_half);
+    auto q_half     = (q0 + dt_half * dq_dt_half).normalized();
 
     auto performIteration = [&]()
     {
-        LB_half     = Quaternion::rotate(L_half, Quaternion::conjugate(q_half));
+        LB_half     = q_half.inverseRotate(L_half);
         omegaB_half = Jinv * LB_half;
 
-        dq_dt_half = Quaternion::timeDerivative(q_half, omegaB_half);
-        q_half     = normalize(q0 + dt_half * dq_dt_half);
+        dq_dt_half = q_half.timeDerivative(omegaB_half);
+        q_half     = (q0 + dt_half * dq_dt_half).normalized();
     };
 
     performIteration();
@@ -51,12 +52,12 @@ inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
     while (err > tolerance)
     {
         performIteration();
-        err = length(q_half - q_half_prev);
+        err = (q_half - q_half_prev).norm();
         q_half_prev = q_half;
     }
 
-    motion.q = normalize(q0 + dt * dq_dt_half);
-    motion.omega = Quaternion::rotate(omegaB_half, motion.q);
+    motion.q = (q0 + dt * dq_dt_half).normalized();
+    motion.omega = motion.q.rotate(omegaB_half);
 }
 
 inline void stage2(RigidMotion& motion, float dt, float3 J, float3 Jinv)
@@ -64,14 +65,13 @@ inline void stage2(RigidMotion& motion, float dt, float3 J, float3 Jinv)
     const double dt_half = 0.5 * dt;
 
     const auto q = motion.q;
-    const auto invq = Quaternion::conjugate(q);
-    auto omegaB  = Quaternion::rotate(motion.omega,  invq);
+    auto omegaB  = q.inverseRotate(motion.omega);
     auto LB = J * omegaB;
-    auto L  = Quaternion::rotate(motion.omega, q);
+    auto L  = q.rotate(motion.omega);
     L += dt_half * motion.torque;
-    LB = Quaternion::rotate(L, invq);
+    LB = q.inverseRotate(L);
     omegaB = Jinv * LB;
-    motion.omega = Quaternion::rotate(omegaB, q);
+    motion.omega = q.rotate(omegaB);
 }
 
 TEST (Integration_rigids, Analytic)

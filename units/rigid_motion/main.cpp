@@ -61,10 +61,9 @@ static inline std::unique_ptr<RigidObjectVector> makeRigidVector(const MirState 
     for (auto& m : motions)
     {
         constexpr RigidReal3 zero3 {0.0_r, 0.0_r, 0.0_r};
-        constexpr RigidReal4 qIdentity {1.0_r, 0.0_r, 0.0_r, 0.0_r};
         
         m.r = m.vel = m.force = m.torque = zero3;
-        m.q = qIdentity;
+        m.q = Quaternion<RigidReal>::createFromComponents(1.0, 0.0, 0.0, 0.0);
         m.omega = make_rigidReal3(omega);
     }
     motions.uploadToDevice(stream);
