@@ -139,6 +139,63 @@ static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, Ri
     motion.r += vel*dt;
 }
 
+
+
+static inline void advanceOneStepConsistentQ(real dt, real3 J, real3 invJ, real invMass, RigidMotion& motion)
+{
+    // rotation
+
+    constexpr RigidReal tol = 1e-8;
+    
+    const RigidReal dt_half = 0.5 * dt;
+    auto q = motion.q;
+
+    const RigidReal3 omegaB  = q.inverseRotate(motion.omega);
+    const RigidReal3 torqueB = q.inverseRotate(motion.torque);
+
+    const RigidReal3 LB0   = omegaB * make_rigidReal3(J);
+    const RigidReal3 L0    = q.rotate(LB0);
+    const RigidReal3 Lhalf = L0 + dt_half * motion.torque;
+
+    const RigidReal3 dLB0_dt = torqueB - cross(omegaB, LB0);
+    RigidReal3 LBhalf     = LB0 + dt_half * dLB0_dt;
+    RigidReal3 omegaBhalf = make_rigidReal3(invJ) * LBhalf;
+
+    // iteration: find consistent dqhalf_dt such that it is self consistent
+    auto dqhalf_dt = 0.5 * q * RigiQuaternion::pureVector(omegaBhalf);
+    auto qhalf = (q + dt_half * dqhalf_dt).normalized();
+
+    RigidReal err = tol + 1.0; // to make sure we are above the tolerance
+    while (err > tol)
+    {
+        const auto qhalf_prev = qhalf;
+        LBhalf     = qhalf.inverseRotate(Lhalf);
+        omegaBhalf = make_rigidReal3(invJ) * LBhalf;
+        dqhalf_dt  =  0.5 * qhalf * RigiQuaternion::pureVector(omegaBhalf);
+        qhalf      = (q + dt_half * dqhalf_dt).normalized();
+
+        err = (qhalf - qhalf_prev).norm();
+    }
+
+    q += dt * dqhalf_dt;
+    q.normalize();
+
+    const RigidReal3 dw_dt = invJ * (torqueB - cross(omegaB, J * omegaB));
+    const RigidReal3 omegaB1 = omegaB + dw_dt * dt;
+    motion.omega = q.rotate(omegaB1);
+    motion.q = q;
+
+    // translation
+
+    const auto force = motion.force;
+    auto vel   = motion.vel;
+    vel += force*dt * invMass;
+
+    motion.vel = vel;
+    motion.r += vel*dt;
+}
+
+
 static inline RigidMotion advanceCPU(const Params& p, RigidMotion m)
 {
     using TimeType = MirState::TimeType;
@@ -233,74 +290,6 @@ TEST (Integration_Rigid, L_is_conserved)
         Lprev = L;
     }
 }
-
-static inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
-{
-    // http://lab.pdebuyl.be/rmpcdmd/algorithms/quaternions.html
-    const double dt_half = 0.5 * dt;
-
-    const auto q0 = motion.q;
-    const auto invq0 = q0.conjugate();
-    const auto omegaB  = invq0.rotate(motion.omega);
-    const auto torqueB = invq0.rotate(motion.torque);
-    const auto LB = J * omegaB;
-    const auto L0 = q0.rotate(LB);
-
-    const auto L_half = L0 + dt_half * motion.torque;
-
-    const auto dLB0_dt = torqueB - cross(omegaB, LB);
-
-    
-    constexpr RigidReal tolerance = 1e-6;
-
-    auto LB_half     = LB + dt_half * dLB0_dt;
-    auto omegaB_half = Jinv * LB_half;
-
-    auto dq_dt_half = q0.timeDerivative(omegaB_half);
-    auto q_half     = (q0 + dt_half * dq_dt_half).normalized();
-
-    auto performIteration = [&]()
-    {
-        LB_half     = q_half.inverseRotate(L_half);
-        omegaB_half = Jinv * LB_half;
-
-        dq_dt_half = q_half.timeDerivative(omegaB_half);
-        q_half     = (q0 + dt_half * dq_dt_half).normalized();
-    };
-
-    performIteration();
-    auto q_half_prev = q_half;
-    RigidReal err = 1.0 + tolerance;
-
-    while (err > tolerance)
-    {
-        performIteration();
-        err = (q_half - q_half_prev).norm();
-        q_half_prev = q_half;
-    }
-
-    motion.q = (q0 + dt * dq_dt_half).normalized();
-    motion.omega = motion.q.rotate(omegaB_half);
-}
-
-static inline void stage2(RigidMotion& motion, float dt, float3 J, float3 Jinv)
-{
-    const double dt_half = 0.5 * dt;
-
-    const auto q = motion.q;
-    auto omegaB  = q.inverseRotate(motion.omega);
-    auto LB = J * omegaB;
-    auto L  = q.rotate(motion.omega);
-    L += dt_half * motion.torque;
-    LB = q.inverseRotate(L);
-    omegaB = Jinv * LB;
-    motion.omega = q.rotate(omegaB);
-}
-
-// TEST (Integration_rigids, Analytic)
-// {
-//     // TODO
-// }
 
 int main(int argc, char **argv)
 {
