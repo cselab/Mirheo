@@ -139,12 +139,10 @@ static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, Ri
     motion.r += vel*dt;
 }
 
-static inline RigidMotion advanceCPU(const Params& p)
+static inline RigidMotion advanceCPU(const Params& p, RigidMotion m)
 {
     using TimeType = MirState::TimeType;
     const TimeType dt = p.dt;
-
-    auto m = initMotion(p.omega);
 
     const real3 invJ = 1.0_r / p.J;
     const real invMass = 1.0 / p.mass;
@@ -155,7 +153,14 @@ static inline RigidMotion advanceCPU(const Params& p)
     return m;
 }
 
-TEST (RIGID_MOTION, GPU_CPU_compare)
+static inline RigidMotion advanceCPU(const Params& p)
+{
+    auto m = initMotion(p.omega);
+    return advanceCPU(p, m);
+}
+
+
+TEST (Integration_Rigid, GPU_CPU_compare)
 {
     Params p;
     p.J     = make_real3(1.0_r, 2.0_r, 3.0_r);
@@ -176,7 +181,58 @@ TEST (RIGID_MOTION, GPU_CPU_compare)
 }
 
 
+TEST (Integration_Rigid, Analytic_CPU_compare_principal_axes)
+{
+    auto check = [](real3 omega)
+    {
+        Params p;
+        p.J     = make_real3(1.0_r, 2.0_r, 3.0_r);
+        p.omega = omega;
 
+        const auto cpuM = advanceCPU(p);
+        
+        constexpr real tol = 1e-6;
+        ASSERT_NEAR(omega.x, cpuM.omega.x, tol);
+        ASSERT_NEAR(omega.y, cpuM.omega.y, tol);
+        ASSERT_NEAR(omega.z, cpuM.omega.z, tol);
+    };
+
+    check({12.0_r, 0.0_r, 0.0_r});
+    check({0.0_r, 10.0_r, 0.0_r});
+    check({0.0_r, 0.0_r, -2.0_r});
+}
+
+static inline real3 computeAngularMomentum(real3 J, const RigidMotion& m)
+{
+    const auto omega = m.q.inverseRotate(m.omega);
+    const auto L = omega * make_rigidReal3(J);
+    return make_real3(m.q.rotate(L));
+}
+
+TEST (Integration_Rigid, L_is_conserved)
+{
+    Params p;
+    p.J     = make_real3(20.0_r, 30.0_r, 10.0_r);
+    p.omega = make_real3(-2.0_r, 5.0_r, -1.4_r);
+
+    p.tend = 1.0_r;
+    p.dt = 1e-5_r;
+    const int nsteps = 10;
+    RigidMotion motion = advanceCPU(p);
+
+    real3 Lprev = computeAngularMomentum(p.J, motion);
+
+    for (int i = 0; i < nsteps; ++i)
+    {
+        motion = advanceCPU(p, motion);
+        const real3 L = computeAngularMomentum(p.J, motion);
+
+        const real err = length(L - Lprev) / length(L);
+        ASSERT_LE(err, 1e-4_r);
+        // printf("%g %g %g %g\n", err, L.x, L.y, L.z);
+        Lprev = L;
+    }
+}
 
 static inline void stage1(RigidMotion& motion, float dt, float3 J, float3 Jinv)
 {
@@ -241,10 +297,10 @@ static inline void stage2(RigidMotion& motion, float dt, float3 J, float3 Jinv)
     motion.omega = q.rotate(omegaB);
 }
 
-TEST (Integration_rigids, Analytic)
-{
-    // TODO
-}
+// TEST (Integration_rigids, Analytic)
+// {
+//     // TODO
+// }
 
 int main(int argc, char **argv)
 {
