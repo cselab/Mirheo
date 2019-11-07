@@ -37,7 +37,7 @@ static void checkRef(const PinnedBuffer<real4>& pos,
                      const PinnedBuffer<real4>& vel,
                      real3 L)
 {
-    constexpr real eps = 1e-6f;
+    constexpr real eps = 1e-6_r;
     for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = make_real3(pos[i]);
@@ -85,9 +85,9 @@ static void checkHalo(const PinnedBuffer<real4>& lpos,
             if (ix == 0 && iy == 0 && iz == 0) continue;
 
             real4 r = {r0.x - ix * L.x,
-                        r0.y - iy * L.y,
-                        r0.z - iz * L.z,
-                        r0.w};
+                       r0.y - iy * L.y,
+                       r0.z - iz * L.z,
+                       r0.w};
 
             auto less = [](real4 a_, real4 b_)
             {
@@ -124,13 +124,13 @@ static void checkHalo(const PinnedBuffer<real4>& lpos,
 
 TEST (PACKERS_EXCHANGE, particles)
 {
-    real dt = 0.f;
-    real rc = 1.f;
-    real L  = 48.f;
-    real density = 8.f;
+    real dt = 0.0_r;
+    real rc = 1.0_r;
+    real L  = 48.0_r;
+    real density = 8.0_r;
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
     MirState state(domain, dt);
     auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
@@ -178,15 +178,15 @@ template <class ForceCont>
 static void clearForces(ForceCont& forces)
 {
     for (auto& f : forces)
-        f.f = make_real3(0.f);
+        f.f = make_real3(0.0_r);
 }
 
 inline bool isInside(real3 r, real3 L)
 {
     return
-        (r.x >= - 0.5f * L.x && r.x < 0.5f * L.x) &&
-        (r.y >= - 0.5f * L.y && r.y < 0.5f * L.y) &&
-        (r.z >= - 0.5f * L.z && r.z < 0.5f * L.z);
+        (r.x >= - 0.5_r * L.x && r.x < 0.5_r * L.x) &&
+        (r.y >= - 0.5_r * L.y && r.y < 0.5_r * L.y) &&
+        (r.z >= - 0.5_r * L.z && r.z < 0.5_r * L.z);
 }
 
 inline Force getField(real3 r)
@@ -221,8 +221,8 @@ static void applyFieldPeriodic(const PinnedBuffer<real4>& pos,
         for (int iz = -1; iz < 2; ++iz)
         {
             real3 r {r0.x + ix * L.x,
-                      r0.y + iy * L.y,
-                      r0.z + iz * L.z};
+                     r0.y + iy * L.y,
+                     r0.z + iz * L.z};
         
             if (isInside(r, L))
                 forces[i] += getField(r);
@@ -256,7 +256,7 @@ static void checkForces(const PinnedBuffer<real4>& pos,
     {
         const auto r0 = make_real3(pos[i]);
         const auto f0 = forces[i].f;
-        real err = 1e9f;
+        real err = 1e9_r;
 
         for (int ix = -1; ix < 2; ++ix)
         for (int iy = -1; iy < 2; ++iy)
@@ -264,14 +264,14 @@ static void checkForces(const PinnedBuffer<real4>& pos,
         {
             if (ix == 0 && iy == 0 && iz == 0) continue;
 
-            real3 r {r0.x + ix * L.x,
-                      r0.y + iy * L.y,
-                      r0.z + iz * L.z};
-            auto f = getField(r).f;
+            const real3 r {r0.x + ix * L.x,
+                           r0.y + iy * L.y,
+                           r0.z + iz * L.z};
+            const auto f = getField(r).f;
             
             err = std::min(err, linf(f0, f));
         }
-        ASSERT_LE(err, 1e-6f);
+        ASSERT_LE(err, 1e-6_r);
     }
 }
 
@@ -284,7 +284,7 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
         auto fB = forcesB[i].f;
         
         auto err = linf(fA, fB);
-        ASSERT_LE(err, 1e-6f);
+        ASSERT_LE(err, 1e-6_r);
 
         // ASSERT_TRUE(areEquals(fA, fB));
     }
@@ -294,15 +294,15 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
 
 TEST (PACKERS_EXCHANGE, objects_exchange)
 {
-    real dt = 0.f;
-    real rc = 1.f;
-    real L  = 48.f;
+    real dt = 0.0_r;
+    real rc = 1.0_r;
+    real L  = 48.0_r;
     int nObjs = 1024;
     int objSize = 555;
 
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
     MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
@@ -343,15 +343,15 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
 
 TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 {
-    real dt = 0.f;
-    real rc = 1.f;
-    real L  = 48.f;
+    real dt = 0.0_r;
+    real rc = 1.0_r;
+    real L  = 48.0_r;
     int nObjs = 1024;
     int objSize = 555;
 
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
     MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
@@ -406,15 +406,15 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 
 TEST (PACKERS_EXCHANGE, objects_extra_exchange)
 {
-    real dt = 0.f;
-    real rc = 1.f;
-    real L  = 48.f;
+    real dt = 0.0_r;
+    real rc = 1.0_r;
+    real L  = 48.0_r;
     int nObjs = 1024;
     int objSize = 555;
 
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0.0_r, 0.0_r, 0.0_r};
     domain.localSize   = {L, L, L};
     MirState state(domain, dt);
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
