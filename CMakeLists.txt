@@ -20,8 +20,13 @@ message("Compiling libmirheo version ${MIR_VERSION_CMAKE_FORMAT}")
 
 project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 
-set(MIR "libmirheo")
-set(MIR_MAIN "mirheo_main")
+set(LIB_MIR_CORE "mirheoCore")
+set(LIB_MIR_CORE_AND_PLUGINS "mirheoCoreAndPlugins")
+set(LIB_MIR "libmirheo")
+
+add_library(${LIB_MIR_CORE}             STATIC)
+add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC)
+add_library(${LIB_MIR}                  MODULE)
 
 # Add pybind11
 add_subdirectory(src/extern/pybind11)
@@ -37,7 +42,7 @@ find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
 # MPI
-find_package(MPI  REQUIRED)
+find_package(MPI REQUIRED)
 
 # On CRAY systems things are complicated
 # This workaround should work to supply
@@ -79,25 +84,27 @@ configure_file(
   "${PYTHON_LIB_DIR}/version.py"
   )
 
-# Find sources
-file(GLOB_RECURSE SOURCES_BINDINGS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
-file(GLOB_RECURSE SOURCES_MAIN      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-     "${CORE_DIR}/*.cu" "${PLUGINS_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${PLUGINS_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
-   
-# Define the main library
-add_library(main_compiled OBJECT ${SOURCES_MAIN})
-set_property(TARGET main_compiled PROPERTY POSITION_INDEPENDENT_CODE 1)
+# Find sources and add them to the libraries
+file(GLOB_RECURSE SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
+file(GLOB_RECURSE SOURCES_PLUGINS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cu" "${PLUGINS_DIR}/*.cpp")
+file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
 
-add_library(${MIR_MAIN} SHARED $<TARGET_OBJECTS:main_compiled>)
+target_sources(${LIB_MIR_CORE}             PRIVATE ${SOURCES_CORE})
+target_sources(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${SOURCES_PLUGINS})
+target_sources(${LIB_MIR}                  PRIVATE ${SOURCES_BINDINGS})
 
-add_library(${MIR} MODULE ${SOURCES_BINDINGS} $<TARGET_OBJECTS:main_compiled>)
-target_link_libraries(${MIR} PRIVATE pybind11::module)
-set_target_properties(${MIR} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-                                        SUFFIX "${PYTHON_MODULE_EXTENSION}")
+set_property(TARGET ${LIB_MIR_CORE_AND_PLUGINS} PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-target_link_libraries(${MIR} PRIVATE ${CUDA_LIBRARIES})
-target_link_libraries(${MIR_MAIN} PRIVATE ${CUDA_LIBRARIES})
-target_link_libraries(${MIR_MAIN} PRIVATE mpark_variant)
+target_link_libraries(${LIB_MIR} PRIVATE pybind11::module)
+set_target_properties(${LIB_MIR} PROPERTIES
+  PREFIX "${PYTHON_MODULE_PREFIX}"
+  SUFFIX "${PYTHON_MODULE_EXTENSION}")
+
+target_link_libraries(${LIB_MIR_CORE} PUBLIC ${CUDA_LIBRARIES})
+target_link_libraries(${LIB_MIR_CORE} PUBLIC mpark_variant)
+
+target_link_libraries(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${LIB_MIR_CORE})
+target_link_libraries(${LIB_MIR}                 PRIVATE ${LIB_MIR_CORE_AND_PLUGINS})
 
 #######################################################
 # Optional packages
@@ -114,18 +121,18 @@ if (DEFINED ENV{CRAY_HDF5_DIR})
 endif()
 
 if (${HDF5_FOUND})
-  include_directories(${HDF5_INCLUDE_DIRS})
-  target_link_libraries(${MIR} PRIVATE ${HDF5_LIBRARIES})
-  target_link_libraries(${MIR_MAIN} PRIVATE ${HDF5_LIBRARIES})
+  target_include_directories(${LIB_MIR_CORE}             PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(${LIB_MIR_CORE}             PRIVATE ${HDF5_LIBRARIES})
+  target_link_libraries(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${HDF5_LIBRARIES})
 endif()
 
 
 # For pretty stacktrace in case of a crash
 find_package(LIBBFD REQUIRED)
 if (${LIBBFD_FOUND})
-  include_directories(${LIBBFD_INCLUDE_DIRS})
-  target_link_libraries(${MIR} PRIVATE ${LIBBFD_BFD_LIBRARY})
-  target_link_libraries(${MIR_MAIN} PRIVATE ${LIBBFD_BFD_LIBRARY})
+  target_include_directories(${LIB_MIR_CORE} PUBLIC ${LIBBFD_INCLUDE_DIRS})
+  target_link_libraries(${LIB_MIR_CORE} PUBLIC ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
 
@@ -156,8 +163,7 @@ endif()
 
 if (USE_NVTX)
   add_definitions(-DUSE_NVTX)
-  target_link_libraries(${MIR} PRIVATE "-lnvToolsExt")
-  target_link_libraries(${MIR_MAIN} PRIVATE "-lnvToolsExt")
+  target_link_libraries(${LIB_MIR_CORE} PUBLIC "-lnvToolsExt")
   message("compiling with USE_NVTX ON")
 endif()
 
@@ -174,6 +180,9 @@ unset(CUDA_ARCH_NAME CACHE)
 string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
 string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
+
+set_property(TARGET ${LIB_MIR_CORE_AND_PLUGINS} PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET ${LIB_MIR_CORE}             PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Linker flags
 set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
