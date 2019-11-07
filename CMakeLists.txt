@@ -9,18 +9,15 @@ if(POLICY CMP0074)
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(options)
 include(version)
 
-getMirheoVersion(MIR_VERSION)
+getMirheoVersion(MIR_VERSION MIR_VERSION_CMAKE_FORMAT)
 getMirheoSHA1(MIR_SHA1)
 
-# compile options for Mirheo library
-option(DOUBLE_PRECISION "use double precision everywhere; will also enable MEMBRANE_DOUBLE and ROD_DOUBLE" OFF)
-option(MEMBRANE_DOUBLE  "compute membrane forces in double precision" OFF)
-option(ROD_DOUBLE       "compute rod forces in double precision" OFF)
-option(USE_NVTX "enable NVTX profiling" OFF)
+message("Compiling libmirheo version ${MIR_VERSION_CMAKE_FORMAT}")
 
-string(REPLACE "v" "" MIR_VERSION_CMAKE_FORMAT ${MIR_VERSION})
 project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 
 set(MIR "libmirheo")
