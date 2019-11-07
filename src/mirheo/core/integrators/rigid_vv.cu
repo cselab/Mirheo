@@ -14,30 +14,17 @@ namespace mirheo
 namespace RigidVVKernels
 {
 
-/**
- * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
- * Velocity-Verlet fused is used at the moment
- */
-__global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const real dt)
+__device__ static inline void performRotation(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
-    const int objId = threadIdx.x + blockDim.x * blockIdx.x;
-    if (objId >= ovView.nObjects) return;
-
-    auto motion = ovView.motions[objId];
-    ovView.old_motions[objId] = motion;
-
-    //**********************************************************************************
-    // Rotation
-    //**********************************************************************************
     auto q = motion.q;
 
     // Update angular velocity in the body frame
-    auto omega = q.inverseRotate(motion.omega);
-    auto tau   = q.inverseRotate(motion.torque);
+    auto omega     = q.inverseRotate(motion.omega);
+    const auto tau = q.inverseRotate(motion.torque);
 
     // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
     // J is the diagonal inertia tensor in the body frame
-    const RigidReal3 dw_dt = ovView.J_1 * (tau - cross(omega, ovView.J*omega));
+    const RigidReal3 dw_dt = invJ * (tau - cross(omega, J * omega));
     omega += dw_dt * dt;
     omega = q.rotate(omega);
 
@@ -55,18 +42,32 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion ovView, const real dt)
 
     motion.omega = omega;
     motion.q     = q;
+}
 
-    //**********************************************************************************
-    // Translation
-    //**********************************************************************************
-    auto force = motion.force;
-    auto vel   = motion.vel;
-    vel += force*dt * ovView.invObjMass;
+__device__ static inline void performTranslation(real dt, real invMass, RigidMotion& motion)
+{
+    const auto force = motion.force;
+    motion.vel += (dt * invMass) * force;
+    motion.r   += dt * motion.vel;
+}
 
-    motion.vel = vel;
-    motion.r += vel*dt;
 
-    ovView.motions[objId] = motion;
+/**
+ * J is the diagonal moment of inertia tensor, J_1 is its inverse (simply 1/Jii)
+ * Velocity-Verlet fused is used at the moment
+ */
+__global__ void integrateRigidMotion(ROVviewWithOldMotion view, real dt)
+{
+    const int objId = threadIdx.x + blockDim.x * blockIdx.x;
+    if (objId >= view.nObjects) return;
+
+    auto motion = view.motions[objId];
+    view.old_motions[objId] = motion;
+
+    performRotation   (dt, view.J, view.J_1, motion);
+    performTranslation(dt, view.invObjMass,  motion);
+    
+    view.motions[objId] = motion;
 }
 
 } // namespace RigidVVKernels
