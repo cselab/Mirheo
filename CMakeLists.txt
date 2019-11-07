@@ -53,22 +53,10 @@ add_subdirectory(src/extern/variant)
 #set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(CUDA REQUIRED)
 
-# MPI
-find_package(MPI REQUIRED)
+include(mpi)
 
-# On CRAY systems things are complicated
-# This workaround should work to supply
-# nvcc with correct mpi paths
-# Libraries should not be needed here as
-# we link with MPI wrapper anyways
-if (DEFINED ENV{CRAY_MPICH_DIR})
-  set(MPI_C_INCLUDE_DIRS   "$ENV{CRAY_MPICH_DIR}/include")
-  set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
-endif()
-
-set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
-set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
-set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
+target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
+target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 
 # Require c++14
 set(PYBIND11_CPP_STANDARD -std=c++14)
@@ -113,16 +101,7 @@ target_link_libraries(${LIB_MIR}                 PRIVATE ${LIB_MIR_CORE_AND_PLUG
 #######################################################
 # Optional packages
 # For field dumps
-set(HDF5_PREFER_PARALLEL ON)
-find_package(HDF5 REQUIRED)
-
-# On CRAY systems things are complicated
-# This workaround should work to supply
-# nvcc with correct hdf paths
-if (DEFINED ENV{CRAY_HDF5_DIR})
-  set(HDF5_INCLUDE_DIRS "$ENV{HDF5_DIR}/include")
-  set(HDF5_LIBRARIES    "$ENV{HDF5_DIR}/lib/libhdf5.so")
-endif()
+include(hdf5)
 
 if (${HDF5_FOUND})
   target_include_directories(${LIB_MIR_CORE}             PRIVATE ${HDF5_INCLUDE_DIRS})
@@ -130,7 +109,6 @@ if (${HDF5_FOUND})
   target_link_libraries(${LIB_MIR_CORE}             PRIVATE ${HDF5_LIBRARIES})
   target_link_libraries(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${HDF5_LIBRARIES})
 endif()
-
 
 # For pretty stacktrace in case of a crash
 find_package(LIBBFD REQUIRED)
