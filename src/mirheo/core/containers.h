@@ -546,7 +546,7 @@ public:
     	debug4("Clearing host memory of PinnedBuffer<%s>, size %d x %d",
     	                typeid(T).name(), _size, datatype_size());
 
-        if (_size > 0) memset(hostptr, 0, sizeof(T) * _size);
+        if (_size > 0) memset(static_cast<void*>(hostptr), 0, sizeof(T) * _size);
     }
 
     /// Copy data from a DeviceBuffer of the same template type
@@ -560,7 +560,7 @@ public:
     void copy(const HostBuffer<T>& cont)
     {
         resize_anew(cont.size());
-        memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
+        memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
     }
 
     /// Copy data from a PinnedBuffer of the same template type
@@ -571,7 +571,7 @@ public:
         if (_size > 0)
         {
             CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
-            memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
+            memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
         }
     }
 
@@ -592,7 +592,7 @@ public:
         if (_size > 0)
         {
             CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
-            memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
+            memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
         }
     }
 
@@ -631,7 +631,7 @@ private:
 
         if (copy && hold != nullptr && oldsize > 0)
         {
-            memcpy(hostptr, hold, sizeof(T) * oldsize);
+            memcpy(static_cast<void*>(hostptr), static_cast<void*>(hold), sizeof(T) * oldsize);
             CUDA_Check( cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream) );
             CUDA_Check( cudaStreamSynchronize(stream) );
         }
