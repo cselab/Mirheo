@@ -8,7 +8,7 @@ LOCAL_CMAKE_FLAGS += "-DINSTALL_GTEST=OFF"
 
 build:
 	(mkdir -p $(BUILD) && \
-	 cd $(BUILD) && cmake $(LOCAL_CMAKE_FLAGS) .. && \
+	 cd $(BUILD) && cmake ${CMAKE_FLAGS} $(LOCAL_CMAKE_FLAGS) .. && \
 	 make -j)
 
 test:
