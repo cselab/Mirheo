@@ -109,8 +109,9 @@ static inline RigidMotion advanceGPU(const Params& p)
     return motions[0];
 }
 
+enum class RotationScheme {Original, ConsistentQ};
 
-static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, RigidMotion& motion)
+static inline void advanceRotation(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
     auto q = motion.q;
 
@@ -130,21 +131,10 @@ static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, Ri
 
     motion.omega = omega;
     motion.q     = q.normalized();
-
-    const auto force = motion.force;
-    auto vel   = motion.vel;
-    vel += force*dt * invMass;
-
-    motion.vel = vel;
-    motion.r += vel*dt;
 }
 
-
-
-static inline void advanceOneStepConsistentQ(real dt, real3 J, real3 invJ, real invMass, RigidMotion& motion)
+static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
-    // rotation
-
     constexpr RigidReal tol = 1e-8;
     
     const RigidReal dt_half = 0.5 * dt;
@@ -184,9 +174,10 @@ static inline void advanceOneStepConsistentQ(real dt, real3 J, real3 invJ, real 
     const RigidReal3 omegaB1 = omegaB + dw_dt * dt;
     motion.omega = q.rotate(omegaB1);
     motion.q = q;
+}
 
-    // translation
-
+static inline void advanceTranslation(real dt, real invMass, RigidMotion& motion)
+{
     const auto force = motion.force;
     auto vel   = motion.vel;
     vel += force*dt * invMass;
@@ -195,7 +186,18 @@ static inline void advanceOneStepConsistentQ(real dt, real3 J, real3 invJ, real 
     motion.r += vel*dt;
 }
 
+template <RotationScheme rotScheme>
+static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, RigidMotion& motion)
+{
+    if (rotScheme == RotationScheme::ConsistentQ)
+        advanceRotationConsistentQ(dt, J, invJ, motion);
+    else
+        advanceRotation(dt, J, invJ, motion);
+    
+    advanceTranslation(dt, invMass, motion);
+}
 
+template <RotationScheme rotScheme>
 static inline RigidMotion advanceCPU(const Params& p, RigidMotion m)
 {
     using TimeType = MirState::TimeType;
@@ -205,15 +207,16 @@ static inline RigidMotion advanceCPU(const Params& p, RigidMotion m)
     const real invMass = 1.0 / p.mass;
     
     for (TimeType t = 0; t < p.tend; t += dt)
-        advanceOneStep(dt, p.J, invJ, invMass, m);
+        advanceOneStep<rotScheme>(dt, p.J, invJ, invMass, m);
 
     return m;
 }
 
+template <RotationScheme rotScheme>
 static inline RigidMotion advanceCPU(const Params& p)
 {
     auto m = initMotion(p.omega);
-    return advanceCPU(p, m);
+    return advanceCPU<rotScheme>(p, m);
 }
 
 
@@ -224,7 +227,7 @@ TEST (Integration_Rigid, GPU_CPU_compare)
     p.omega = make_real3(10.0_r, 5.0_r, 4.0_r);
 
     const auto gpuM = advanceGPU(p);
-    const auto cpuM = advanceCPU(p);
+    const auto cpuM = advanceCPU<RotationScheme::Original>(p);
 
     constexpr real tol = 1e-6;
     ASSERT_NEAR(gpuM.q.w, cpuM.q.w, tol);
@@ -246,7 +249,7 @@ TEST (Integration_Rigid, Analytic_CPU_compare_principal_axes)
         p.J     = make_real3(1.0_r, 2.0_r, 3.0_r);
         p.omega = omega;
 
-        const auto cpuM = advanceCPU(p);
+        const auto cpuM = advanceCPU<RotationScheme::Original>(p);
         
         constexpr real tol = 1e-6;
         ASSERT_NEAR(omega.x, cpuM.omega.x, tol);
@@ -275,13 +278,13 @@ TEST (Integration_Rigid, L_is_conserved)
     p.tend = 1.0_r;
     p.dt = 1e-5_r;
     const int nsteps = 10;
-    RigidMotion motion = advanceCPU(p);
+    RigidMotion motion = advanceCPU<RotationScheme::Original>(p);
 
     real3 Lprev = computeAngularMomentum(p.J, motion);
 
     for (int i = 0; i < nsteps; ++i)
     {
-        motion = advanceCPU(p, motion);
+        motion = advanceCPU<RotationScheme::Original>(p, motion);
         const real3 L = computeAngularMomentum(p.J, motion);
 
         const real err = length(L - Lprev) / length(L);
