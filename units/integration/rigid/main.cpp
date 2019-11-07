@@ -83,6 +83,7 @@ struct Params
     real tend {10.0_r};
     real mass {1.0_r};
     real3 J, omega;
+    real3 torque {0.0_r, 0.0_r, 0.0_r};
 };
 
 static inline RigidMotion advanceGPU(const Params& p)
@@ -216,6 +217,7 @@ template <RotationScheme rotScheme>
 static inline RigidMotion advanceCPU(const Params& p)
 {
     auto m = initMotion(p.omega);
+    m.torque = make_rigidReal3(p.torque);
     return advanceCPU<rotScheme>(p, m);
 }
 
@@ -293,6 +295,32 @@ TEST (Integration_Rigid, L_is_conserved)
         // printf("%g %g %g %g\n", err, L.x, L.y, L.z);
         Lprev = L;
     }
+}
+
+TEST (Integration_Rigid, constantTorquePrincipalAxis)
+{
+    // assume two components are 0
+    auto check = [](real3 torque)
+    {
+        Params p;
+        p.J     = make_real3(5.0_r, 2.0_r, 3.0_r);
+        p.omega = make_real3(0.0_r, 0.0_r, 0.0_r);
+        p.torque = torque;
+
+        const auto cpuM = advanceCPU<RotationScheme::ConsistentQ>(p);
+
+        const real3 invJ = 1.0_r / p.J;
+        const auto omegaRef = p.tend * invJ * torque;
+        
+        const real3 tol = math::abs(1e-6_r * omegaRef);
+        ASSERT_NEAR(omegaRef.x, cpuM.omega.x, tol.x);
+        ASSERT_NEAR(omegaRef.y, cpuM.omega.y, tol.y);
+        ASSERT_NEAR(omegaRef.z, cpuM.omega.z, tol.z);
+    };
+
+    check({12.0_r, 0.0_r, 0.0_r});
+    check({0.0_r, 10.0_r, 0.0_r});
+    check({0.0_r, 0.0_r, -2.0_r});
 }
 
 int main(int argc, char **argv)
