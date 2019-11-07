@@ -54,7 +54,9 @@ if (DEFINED ENV{CRAY_MPICH_DIR})
   set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
 
-include_directories(${MPI_CXX_INCLUDE_DIRS})
+target_include_directories(${LIB_MIR_CORE}             PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
@@ -65,12 +67,15 @@ set(CMAKE_CXX_STANDARD  14)
 set(CMAKE_CUDA_STANDARD 14)
 
 # Alias some dirs
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/ )
-set(CORE_DIR       "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/core/")
-set(PLUGINS_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/plugins/")
-set(BINDINGS_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/src/mirheo/bindings/")
+set(SRC_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(CORE_DIR       "${SRC_DIR}/mirheo/core/")
+set(PLUGINS_DIR    "${SRC_DIR}/mirheo/plugins/")
+set(BINDINGS_DIR   "${SRC_DIR}/mirheo/bindings/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src/extern/cuda_variant/ )
+
+target_include_directories(${LIB_MIR_CORE}             PUBLIC ${SRC_DIR} )
+target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${SRC_DIR} )
+target_include_directories(${LIB_MIR_CORE}             PUBLIC ${SRC_DIR}/extern/cuda_variant/ )
 
 # generate version.cpp
 configure_file(
@@ -92,8 +97,6 @@ file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDI
 target_sources(${LIB_MIR_CORE}             PRIVATE ${SOURCES_CORE})
 target_sources(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${SOURCES_PLUGINS})
 target_sources(${LIB_MIR}                  PRIVATE ${SOURCES_BINDINGS})
-
-set_property(TARGET ${LIB_MIR_CORE_AND_PLUGINS} PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_link_libraries(${LIB_MIR} PRIVATE pybind11::module)
 set_target_properties(${LIB_MIR} PROPERTIES
