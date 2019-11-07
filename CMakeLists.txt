@@ -24,9 +24,22 @@ set(LIB_MIR_CORE "mirheoCore")
 set(LIB_MIR_CORE_AND_PLUGINS "mirheoCoreAndPlugins")
 set(LIB_MIR "libmirheo")
 
-add_library(${LIB_MIR_CORE}             STATIC)
-add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC)
-add_library(${LIB_MIR}                  MODULE)
+
+# Alias some dirs
+set(SRC_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(CORE_DIR       "${SRC_DIR}/mirheo/core/")
+set(PLUGINS_DIR    "${SRC_DIR}/mirheo/plugins/")
+set(BINDINGS_DIR   "${SRC_DIR}/mirheo/bindings/")
+set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
+
+# Find sources and add them to the libraries
+file(GLOB_RECURSE SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
+file(GLOB_RECURSE SOURCES_PLUGINS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cu" "${PLUGINS_DIR}/*.cpp")
+file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
+
+add_library(${LIB_MIR_CORE}             STATIC ${SOURCES_CORE})
+add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC ${SOURCES_PLUGINS})
+add_library(${LIB_MIR}                  MODULE ${SOURCES_BINDINGS})
 
 # Add pybind11
 add_subdirectory(src/extern/pybind11)
@@ -39,7 +52,6 @@ add_subdirectory(src/extern/variant)
 # but it seriously affects other code aspects (maybe stream polling?)
 #set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
 find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
 
 # MPI
 find_package(MPI REQUIRED)
@@ -54,9 +66,6 @@ if (DEFINED ENV{CRAY_MPICH_DIR})
   set(MPI_CXX_INCLUDE_DIRS "$ENV{CRAY_MPICH_DIR}/include")
 endif()
 
-target_include_directories(${LIB_MIR_CORE}             PUBLIC ${MPI_CXX_INCLUDE_DIRS})
-target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
-
 set(CMAKE_C_COMPILER   ${MPI_C_COMPILER})
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
@@ -66,16 +75,17 @@ set(PYBIND11_CPP_STANDARD -std=c++14)
 set(CMAKE_CXX_STANDARD  14)
 set(CMAKE_CUDA_STANDARD 14)
 
-# Alias some dirs
-set(SRC_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(CORE_DIR       "${SRC_DIR}/mirheo/core/")
-set(PLUGINS_DIR    "${SRC_DIR}/mirheo/plugins/")
-set(BINDINGS_DIR   "${SRC_DIR}/mirheo/bindings/")
-set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 
 target_include_directories(${LIB_MIR_CORE}             PUBLIC ${SRC_DIR} )
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${SRC_DIR} )
 target_include_directories(${LIB_MIR_CORE}             PUBLIC ${SRC_DIR}/extern/cuda_variant/ )
+
+target_include_directories(${LIB_MIR_CORE}             PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+
+target_include_directories(${LIB_MIR_CORE}             PUBLIC ${CUDA_INCLUDE_DIRS})
+target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${CUDA_INCLUDE_DIRS})
+
 
 # generate version.cpp
 configure_file(
@@ -88,15 +98,6 @@ configure_file(
   "${PYTHON_LIB_DIR}/version.py.in"
   "${PYTHON_LIB_DIR}/version.py"
   )
-
-# Find sources and add them to the libraries
-file(GLOB_RECURSE SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
-file(GLOB_RECURSE SOURCES_PLUGINS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cu" "${PLUGINS_DIR}/*.cpp")
-file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
-
-target_sources(${LIB_MIR_CORE}             PRIVATE ${SOURCES_CORE})
-target_sources(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE ${SOURCES_PLUGINS})
-target_sources(${LIB_MIR}                  PRIVATE ${SOURCES_BINDINGS})
 
 target_link_libraries(${LIB_MIR} PRIVATE pybind11::module)
 set_target_properties(${LIB_MIR} PROPERTIES
