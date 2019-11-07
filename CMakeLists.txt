@@ -145,24 +145,24 @@ set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
 
 if (DOUBLE_PRECISION)
-  add_definitions(-DMIRHEO_DOUBLE_PRECISION)
+  target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_DOUBLE_PRECISION)
   message("compiling with DOUBLE_PRECISION ON")
   set(MEMBRANE_DOUBLE ON)
   set(ROD_DOUBLE ON)
 endif()
 
 if (MEMBRANE_DOUBLE)
-  add_definitions(-DMEMBRANE_FORCES_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MEMBRANE_FORCES_DOUBLE)
   message("compiling with MEMBRANE_DOUBLE ON")
 endif()
 
 if (ROD_DOUBLE)
-  add_definitions(-DROD_FORCES_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE ROD_FORCES_DOUBLE)
   message("compiling with ROD_DOUBLE ON")
 endif()
 
 if (USE_NVTX)
-  add_definitions(-DUSE_NVTX)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE USE_NVTX)
   target_link_libraries(${LIB_MIR_CORE} PUBLIC "-lnvToolsExt")
   message("compiling with USE_NVTX ON")
 endif()
