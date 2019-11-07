@@ -14,34 +14,48 @@ namespace mirheo
 namespace RigidVVKernels
 {
 
+// http://lab.pdebuyl.be/rmpcdmd/algorithms/quaternions.html
 __device__ static inline void performRotation(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
+    constexpr RigidReal tol = 1e-10;
+
+    const RigidReal dt_half = 0.5 * dt;
     auto q = motion.q;
 
-    // Update angular velocity in the body frame
-    auto omega     = q.inverseRotate(motion.omega);
-    const auto tau = q.inverseRotate(motion.torque);
+    const RigidReal3 omegaB  = q.inverseRotate(motion.omega);
+    const RigidReal3 torqueB = q.inverseRotate(motion.torque);
 
-    // tau = J dw/dt + w x Jw  =>  dw/dt = J_1*tau - J_1*(w x Jw)
-    // J is the diagonal inertia tensor in the body frame
-    const RigidReal3 dw_dt = invJ * (tau - cross(omega, J * omega));
-    omega += dw_dt * dt;
-    omega = q.rotate(omega);
+    const RigidReal3 LB0   = omegaB * make_rigidReal3(J);
+    const RigidReal3 L0    = q.rotate(LB0);
+    const RigidReal3 Lhalf = L0 + dt_half * motion.torque;
 
-    // using OLD q and NEW w ?
-    // d^2q / dt^2 = 1/2 * (dw/dt*q + w*dq/dt)
-    auto dq_dt = q.timeDerivative(omega);
-    auto d2q_dt2 = 0.5 * (Quaternion<RigidReal>::pureVector(dw_dt) * q +
-                          Quaternion<RigidReal>::pureVector(omega) * dq_dt);
+    const RigidReal3 dLB0_dt = torqueB - cross(omegaB, LB0);
+    RigidReal3 LBhalf     = LB0 + dt_half * dLB0_dt;
+    RigidReal3 omegaBhalf = make_rigidReal3(invJ) * LBhalf;
 
-    dq_dt += d2q_dt2 * dt;
-    q     += dq_dt   * dt;
+    // iteration: find consistent dqhalf_dt such that it is self consistent
+    auto dqhalf_dt = 0.5 * q * RigiQuaternion::pureVector(omegaBhalf);
+    auto qhalf     = (q + dt_half * dqhalf_dt).normalized();
 
-    // Normalize q
+    RigidReal err = tol + 1.0; // to make sure we are above the tolerance
+    while (err > tol)
+    {
+        const auto qhalf_prev = qhalf;
+        LBhalf     = qhalf.inverseRotate(Lhalf);
+        omegaBhalf = make_rigidReal3(invJ) * LBhalf;
+        dqhalf_dt  = 0.5 * qhalf * RigiQuaternion::pureVector(omegaBhalf);
+        qhalf      = (q + dt_half * dqhalf_dt).normalized();
+
+        err = (qhalf - qhalf_prev).norm();
+    }
+
+    q += dt * dqhalf_dt;
     q.normalize();
 
-    motion.omega = omega;
-    motion.q     = q;
+    const RigidReal3 dw_dt = invJ * (torqueB - cross(omegaB, J * omegaB));
+    const RigidReal3 omegaB1 = omegaB + dw_dt * dt;
+    motion.omega = q.rotate(omegaB1);
+    motion.q = q;
 }
 
 __device__ static inline void performTranslation(real dt, real invMass, RigidMotion& motion)

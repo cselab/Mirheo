@@ -227,7 +227,7 @@ TEST (Integration_Rigid, GPU_CPU_compare)
     p.omega = make_real3(10.0_r, 5.0_r, 4.0_r);
 
     const auto gpuM = advanceGPU(p);
-    const auto cpuM = advanceCPU<RotationScheme::Original>(p);
+    const auto cpuM = advanceCPU<RotationScheme::ConsistentQ>(p);
 
     constexpr real tol = 1e-6;
     ASSERT_NEAR(gpuM.q.w, cpuM.q.w, tol);
@@ -249,7 +249,7 @@ TEST (Integration_Rigid, Analytic_CPU_compare_principal_axes)
         p.J     = make_real3(1.0_r, 2.0_r, 3.0_r);
         p.omega = omega;
 
-        const auto cpuM = advanceCPU<RotationScheme::Original>(p);
+        const auto cpuM = advanceCPU<RotationScheme::ConsistentQ>(p);
         
         constexpr real tol = 1e-6;
         ASSERT_NEAR(omega.x, cpuM.omega.x, tol);
@@ -271,7 +271,7 @@ static inline real3 computeAngularMomentum(real3 J, const RigidMotion& m)
 
 TEST (Integration_Rigid, L_is_conserved)
 {
-    constexpr auto rotScheme = RotationScheme::Original;
+    constexpr auto rotScheme = RotationScheme::ConsistentQ;
     Params p;
     p.J     = make_real3(20.0_r, 30.0_r, 10.0_r);
     p.omega = make_real3(-2.0_r, 5.0_r, -1.4_r);
