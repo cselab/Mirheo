@@ -135,7 +135,7 @@ static inline void advanceRotation(real dt, real3 J, real3 invJ, RigidMotion& mo
 
 static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
-    constexpr RigidReal tol = 1e-8;
+    constexpr RigidReal tol = 1e-12;
     
     const RigidReal dt_half = 0.5 * dt;
     auto q = motion.q;
@@ -161,7 +161,7 @@ static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, Rigi
         const auto qhalf_prev = qhalf;
         LBhalf     = qhalf.inverseRotate(Lhalf);
         omegaBhalf = make_rigidReal3(invJ) * LBhalf;
-        dqhalf_dt  =  0.5 * qhalf * RigiQuaternion::pureVector(omegaBhalf);
+        dqhalf_dt  = 0.5 * qhalf * RigiQuaternion::pureVector(omegaBhalf);
         qhalf      = (q + dt_half * dqhalf_dt).normalized();
 
         err = (qhalf - qhalf_prev).norm();
@@ -271,6 +271,7 @@ static inline real3 computeAngularMomentum(real3 J, const RigidMotion& m)
 
 TEST (Integration_Rigid, L_is_conserved)
 {
+    constexpr auto rotScheme = RotationScheme::Original;
     Params p;
     p.J     = make_real3(20.0_r, 30.0_r, 10.0_r);
     p.omega = make_real3(-2.0_r, 5.0_r, -1.4_r);
@@ -278,13 +279,13 @@ TEST (Integration_Rigid, L_is_conserved)
     p.tend = 1.0_r;
     p.dt = 1e-5_r;
     const int nsteps = 10;
-    RigidMotion motion = advanceCPU<RotationScheme::Original>(p);
+    RigidMotion motion = advanceCPU<rotScheme>(p);
 
     real3 Lprev = computeAngularMomentum(p.J, motion);
 
     for (int i = 0; i < nsteps; ++i)
     {
-        motion = advanceCPU<RotationScheme::Original>(p, motion);
+        motion = advanceCPU<rotScheme>(p, motion);
         const real3 L = computeAngularMomentum(p.J, motion);
 
         const real err = length(L - Lprev) / length(L);
