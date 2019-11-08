@@ -4,6 +4,6 @@ namespace mirheo
 {
 
 const std::string Version::mir_version = "@MIR_VERSION@";
-const std::string Version::git_SHA1    = "@GIT_SHA1@";
+const std::string Version::git_SHA1    = "@MIR_SHA1@";
 
 } // namespace mirheo
