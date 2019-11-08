@@ -53,7 +53,7 @@ clean:
 
 html:
 	#doxygen
-	(cd source/; python mock_modules.py)
+	(cd source/ && python mock_modules.py)
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

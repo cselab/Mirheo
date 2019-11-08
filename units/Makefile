@@ -12,7 +12,7 @@ build:
 	 make -j)
 
 test:
-	(cd $(BUILD); make test -s)
+	(cd $(BUILD) && make test -s)
 
 clean: ; rm -rf $(BUILD)
 

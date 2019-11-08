@@ -11,15 +11,15 @@ test: test.postprocess \
       test.restart
 
 
-install.modules:;     @(cd modules;     make install)
-install.compile:;     @(cd compile;     make install)
-install.run:;         @(cd run;         make install)
-install.postprocess:; @(cd postprocess; make install)
-install.restart:;     @(cd restart;     make install)
+install.modules:;     @(cd modules     && make install)
+install.compile:;     @(cd compile     && make install)
+install.run:;         @(cd run         && make install)
+install.postprocess:; @(cd postprocess && make install)
+install.restart:;     @(cd restart     && make install)
 
-test.postprocess:;    @(cd postprocess; make test)
-test.run:;            @(cd run;         make test)
-test.restart:;        @(cd restart;     make test)
+test.postprocess:;    @(cd postprocess && make test)
+test.run:;            @(cd run         && make test)
+test.restart:;        @(cd restart     && make test)
 
 .PHONY: install install.modules install.postprocess install.restart \
 	test test.postprocess test.run test.restart
