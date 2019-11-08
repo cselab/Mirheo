@@ -58,6 +58,8 @@ include(mpi)
 target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 
+set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
+
 # Require c++14
 set(PYBIND11_CPP_STANDARD -std=c++14)
 
