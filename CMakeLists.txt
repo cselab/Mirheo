@@ -60,8 +60,10 @@ target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 
 # Require c++14
 set(PYBIND11_CPP_STANDARD -std=c++14)
-set(CMAKE_CXX_STANDARD  14)
-set(CMAKE_CUDA_STANDARD 14)
+
+target_compile_features(${LIB_MIR_CORE}             PUBLIC cxx_std_14)
+target_compile_features(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC cxx_std_14)
+target_compile_features(${LIB_MIR}                  PUBLIC cxx_std_14)
 
 
 target_include_directories(${LIB_MIR_CORE}             PUBLIC ${SRC_DIR} )
