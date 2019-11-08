@@ -77,6 +77,8 @@ public:
 
     MirState* getState();
     const MirState* getState() const;
+    Simulation* getSimulation();
+    const Simulation* getSimulation() const;
     std::shared_ptr<MirState> getMirState();
 
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, const std::string& filename);
