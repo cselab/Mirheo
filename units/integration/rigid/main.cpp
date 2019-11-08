@@ -137,6 +137,7 @@ static inline void advanceRotation(real dt, real3 J, real3 invJ, RigidMotion& mo
 static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, RigidMotion& motion)
 {
     constexpr RigidReal tol = 1e-12;
+    constexpr int maxIter = 50;
     
     const RigidReal dt_half = 0.5 * dt;
     auto q = motion.q;
@@ -157,7 +158,7 @@ static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, Rigi
     auto qhalf = (q + dt_half * dqhalf_dt).normalized();
 
     RigidReal err = tol + 1.0; // to make sure we are above the tolerance
-    while (err > tol)
+    for (int iter  = 0; iter < maxIter && err > tol; ++iter)
     {
         const auto qhalf_prev = qhalf;
         LBhalf     = qhalf.inverseRotate(Lhalf);
