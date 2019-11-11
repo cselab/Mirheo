@@ -4,9 +4,14 @@ if(POLICY CMP0060)
   cmake_policy(SET CMP0060 NEW)
 endif()
 
+if(POLICY CMP0069) # for INTERPROCEDURAL_OPTIMIZATION
+  cmake_policy(SET CMP0069 NEW)
+endif()
+
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
+
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -121,6 +126,12 @@ if (${LIBBFD_FOUND})
   target_link_libraries(${LIB_MIR_CORE} PUBLIC ${LIBBFD_BFD_LIBRARY})
 endif()
 ########################################################
+
+
+# link time optimization
+set_target_properties(${LIB_MIR_CORE}             PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+set_target_properties(${LIB_MIR_CORE_AND_PLUGINS} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+set_target_properties(${LIB_MIR}                  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # Setup compiler flags
 set(WARNING_FLAGS "-Wall -Wextra -Wno-unknown-pragmas -Werror")
