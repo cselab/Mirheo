@@ -4,6 +4,10 @@ if (POLICY CMP0060)
   cmake_policy(SET CMP0060 NEW)
 endif()
 
+if(POLICY CMP0069) # for INTERPROCEDURAL_OPTIMIZATION
+  cmake_policy(SET CMP0069 NEW)
+endif()
+
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
