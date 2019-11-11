@@ -5,7 +5,6 @@
 #include <extern/pugixml/src/pugixml.hpp>
 
 #include <cuda_runtime.h>
-#include <hdf5.h>
 #include <memory>
 #include <mpi.h>
 #include <string>

@@ -3,7 +3,6 @@
 #include "interface.h"
 
 #include <mirheo/core/containers.h>
-#include <mirheo/core/domain.h>
 
 #include <vector>
 

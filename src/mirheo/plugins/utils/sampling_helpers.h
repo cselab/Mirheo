@@ -15,7 +15,7 @@ template <> inline bool checkType<real> (const Average3D::ChannelType& channelTy
 template <> inline bool checkType<real3>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_real3;}
 template <> inline bool checkType<real4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_real4;}
 template <> inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
-template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<real4> (channelType);;}
+template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<real4> (channelType);}
 
 static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
 {
