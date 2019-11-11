@@ -314,6 +314,16 @@ const MirState* Mirheo::getState() const
     return state.get();
 }
 
+Simulation* Mirheo::getSimulation()
+{
+    return sim.get();
+}
+
+const Simulation* Mirheo::getSimulation() const
+{
+    return sim.get();
+}
+
 std::shared_ptr<MirState> Mirheo::getMirState()
 {
     return state;

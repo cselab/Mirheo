@@ -3,7 +3,7 @@ CMAKE_FLAGS ?= ""
 
 build:
 	mkdir -p build/
-	(cd build/;	cmake ${CMAKE_FLAGS} ../)
+	(cd build/ && cmake ${CMAKE_FLAGS} ../)
 	make -C build/ -j 12
 	cd ..
 
@@ -26,7 +26,7 @@ docs:
 	make -C docs/
 
 test: install
-	(cd tests; mir.make test)
+	(cd tests && mir.make test)
 
 clean:; rm -rf build
 

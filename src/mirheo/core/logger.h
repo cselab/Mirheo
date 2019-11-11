@@ -327,10 +327,14 @@ private:
 #endif
 
 /// Check an MPI call, call #die() if it fails
-#define  MPI_Check(command) logger._MPI_Check (__FILE__, __LINE__, command)
+#define MIRHEO_MPI_CHECK(command) logger._MPI_Check (__FILE__, __LINE__, command)
 
 /// Check a CUDA call, call #die() if it fails
-#define CUDA_Check(command) logger._CUDA_Check(__FILE__, __LINE__, command)
+#define MIRHEO_CUDA_CHECK(command) logger._CUDA_Check(__FILE__, __LINE__, command)
+
+/// Shorthands for the macros above.
+#define MPI_Check   MIRHEO_MPI_CHECK
+#define CUDA_Check  MIRHEO_CUDA_CHECK
 
 /**
  * Inform all the object files that there is one Logger defined somewhere,

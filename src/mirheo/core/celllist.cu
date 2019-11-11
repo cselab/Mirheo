@@ -310,8 +310,8 @@ static void accumulateIfHasAddOperator(__UNUSED GPUcontainer *src,
 }
 
 // use SFINAE to choose between additionable types 
-template <typename T, typename = std::void_t<decltype(std::declval<T>() +
-                                                      std::declval<T>())>>
+template <typename T, typename = void_t<decltype(std::declval<T>() +
+                                                 std::declval<T>())>>
 static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
                                        PinnedBuffer<T> *dst,
                                        int n, CellListInfo cinfo,

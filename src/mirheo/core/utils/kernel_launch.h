@@ -17,7 +17,7 @@ inline bool isValid_nBlocks(dim3 blocks)
 
 #define COMMA ,
 
-#define  SAFE_KERNEL_LAUNCH(kernel, blocks, threads, shmem, stream, ...)      \
+#define MIRHEO_SAFE_KERNEL_LAUNCH(kernel, blocks, threads, shmem, stream, ...)  \
 do {                                                                          \
     if (isValid_nBlocks(blocks))                                              \
     {                                                                         \
@@ -34,5 +34,8 @@ do {                                                                          \
         debug4("Kernel "#kernel" not launched, grid is empty");               \
     }                                                                         \
 } while (0)
+
+/// Macros shorthands.
+#define SAFE_KERNEL_LAUNCH  MIRHEO_SAFE_KERNEL_LAUNCH
 
 } // namespace mirheo
