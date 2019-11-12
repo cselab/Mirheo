@@ -1,5 +1,7 @@
 #include "data_manager.h"
 
+#include <algorithm>
+
 namespace mirheo
 {
 

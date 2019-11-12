@@ -4,8 +4,6 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/vec_traits.h>
 
-#include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cuda.h>

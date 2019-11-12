@@ -9,6 +9,8 @@
 #include <mirheo/core/pvs/packers/objects.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+#include <algorithm>
+
 namespace mirheo
 {
 

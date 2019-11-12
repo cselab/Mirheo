@@ -1,6 +1,8 @@
 #include "hdf5_helpers.h"
 
 #include <mirheo/core/logger.h>
+
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 

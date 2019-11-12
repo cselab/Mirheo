@@ -11,6 +11,8 @@
 
 #include <extern/cub/cub/device/device_scan.cuh>
 
+#include <algorithm>
+
 namespace mirheo
 {
 

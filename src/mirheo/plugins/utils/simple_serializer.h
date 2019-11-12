@@ -1,10 +1,12 @@
 #pragma once
 
 #include <mirheo/core/containers.h>
-#include <string>
+
+#include <cassert>
 #include <cstring>
-#include <vector>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 namespace mirheo
 {

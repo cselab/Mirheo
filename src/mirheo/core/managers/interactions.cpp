@@ -3,6 +3,7 @@
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
+#include <algorithm>
 #include <set>
 
 namespace mirheo

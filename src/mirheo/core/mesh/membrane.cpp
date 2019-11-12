@@ -83,11 +83,11 @@ MembraneMesh& MembraneMesh::operator=(MembraneMesh&&) = default;
 MembraneMesh::~MembraneMesh() = default;
 
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;
-static const int NOT_SET = -1;
+constexpr int invalidId = -1;
 
 static void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degrees)
 {
-    int nvertices = adjacentPairs.size();
+    const int nvertices = adjacentPairs.size();
     degrees.resize_anew(nvertices);
     
     for (int i = 0; i < nvertices; ++i)
@@ -96,10 +96,10 @@ static void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>
 
 static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree, PinnedBuffer<int>& adjacent)
 {
-    int nvertices = adjacentPairs.size();
+    const int nvertices = adjacentPairs.size();
 
     adjacent.resize_anew(nvertices * maxDegree);
-    std::fill(adjacent.begin(), adjacent.end(), NOT_SET);
+    std::fill(adjacent.begin(), adjacent.end(), invalidId);
 
     for (int v = 0; v < nvertices; ++v)
     {
@@ -112,7 +112,9 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
         {
             const int current = myadjacent[i-1];
             
-            assert(l.find(current) != l.end());
+            if (l.find(current) == l.end())
+                die("Unexpected adjacent pairs. This might come from a bad connectivity of the input mesh");
+            
             myadjacent[i] =  l.find(current)->second;
         }
     }
@@ -158,7 +160,7 @@ void MembraneMesh::_computeInitialLengths(const PinnedBuffer<real4>& vertices)
     initialLengths.resize_anew(nvertices * maxDegree);
 
     for (int i = 0; i < nvertices * maxDegree; i++) {
-        if (adjacent[i] != NOT_SET)
+        if (adjacent[i] != invalidId)
             initialLengths[i] = length(vertices[i / maxDegree] - vertices[adjacent[i]]);
     }
 
@@ -176,15 +178,13 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
     real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < nvertices; ++id0) {
-        int degree = degrees[id0];
-        int startId = id0 * maxDegree;
+        const int degree = degrees[id0];
+        const int startId = id0 * maxDegree;
         v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
-            int id1 = adjacent[startId + j];
-            int id2 = adjacent[startId + (j + 1) % degree];
-
-            assert(id2 != NOT_SET);
+            const int id1 = adjacent[startId + j];
+            const int id2 = adjacent[startId + (j + 1) % degree];
 
             v1 = make_real3(vertices[id1]);
             v2 = make_real3(vertices[id2]);
@@ -203,15 +203,13 @@ void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<real4>& vertice
     real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < nvertices; ++id0) {
-        int degree = degrees[id0];
-        int startId = id0 * maxDegree;
+        const int degree = degrees[id0];
+        const int startId = id0 * maxDegree;
         v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j) {
-            int id1 = adjacent[startId + j];
-            int id2 = adjacent[startId + (j + 1) % degree];
-
-            assert(id2 != NOT_SET);
+            const int id1 = adjacent[startId + j];
+            const int id2 = adjacent[startId + (j + 1) % degree];
 
             v1 = make_real3(vertices[id1]);
             v2 = make_real3(vertices[id2]);

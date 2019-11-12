@@ -12,6 +12,8 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/cuda_common.h>
 
+#include <algorithm>
+
 namespace mirheo
 {
 

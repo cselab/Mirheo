@@ -1,5 +1,6 @@
 #include "from_file.h"
 
+#include <cassert>
 #include <fstream>
 #include <texture_types.h>
 #include <mirheo/core/utils/kernel_launch.h>
