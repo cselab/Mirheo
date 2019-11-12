@@ -28,7 +28,8 @@ static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, 
     {
         const auto& contDesc = lpv->dataPerParticle.getChannelDescOrDie(name);
 
-        return mpark::visit([&](auto pinnedBuff) {
+        return mpark::visit([&](auto pinnedBuff)
+        {
             using T = typename std::remove_reference< decltype(*pinnedBuff->hostPtr()) >::type;
             if (!checkType<T>(channelType))
                 die("incompatible type for channel '%s'", name.c_str());

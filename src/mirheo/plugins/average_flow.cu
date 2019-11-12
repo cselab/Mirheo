@@ -48,8 +48,11 @@ Average3D::Average3D(const MirState *state, std::string name,
                      std::vector<std::string> pvNames,
                      std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
                      int sampleEvery, int dumpEvery, real3 binSize) :
-    SimulationPlugin(state, name), pvNames(pvNames),
-    sampleEvery(sampleEvery), dumpEvery(dumpEvery), binSize(binSize),
+    SimulationPlugin(state, name),
+    pvNames(pvNames),
+    sampleEvery(sampleEvery),
+    dumpEvery(dumpEvery),
+    binSize(binSize),
     nSamples(0)
 {
     channelsInfo.n = channelTypes.size();
@@ -60,13 +63,13 @@ Average3D::Average3D(const MirState *state, std::string name,
 
     accumulated_average.resize(channelsInfo.n);
 
-    for (int i=0; i<channelsInfo.n; i++)
+    for (int i = 0; i < channelsInfo.n; ++i)
         channelsInfo.types[i] = channelTypes[i];
 
     channelsInfo.names = channelNames;
 }
 
-void Average3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -165,7 +168,8 @@ void Average3D::afterIntegration(cudaStream_t stream)
 
     debug2("Plugin %s is sampling now", name.c_str());
 
-    for (auto& pv : pvs) sampleOnePv(pv, stream);
+    for (auto& pv : pvs)
+        sampleOnePv(pv, stream);
 
     accumulateSampledAndClear(stream);
     
@@ -193,9 +197,9 @@ void Average3D::scaleSampled(cudaStream_t stream)
     }
 
     SAFE_KERNEL_LAUNCH(
-            SamplingHelpersKernels::scaleDensity,
-            getNblocks(ncells, nthreads), nthreads, 0, stream,
-            ncells, accumulated_density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+        SamplingHelpersKernels::scaleDensity,
+        getNblocks(ncells, nthreads), nthreads, 0, stream,
+        ncells, accumulated_density.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
 
     accumulated_density.downloadFromDevice(stream, ContainersSynch::Synch);
     accumulated_density.clearDevice(stream);
