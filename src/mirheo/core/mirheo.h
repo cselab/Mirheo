@@ -7,6 +7,7 @@
 #include <memory>
 #include <mpi.h>
 #include <vector_types.h>
+#include <vector>
 
 namespace mirheo
 {

@@ -1,15 +1,12 @@
 #pragma once
 
 #include <mirheo/core/utils/file_wrapper.h>
-#include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/macros.h>
-#include <mirheo/core/utils/stacktrace_explicit.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <cuda_runtime.h>
-#include <iomanip>
 #include <mpi.h>
+#include <stdexcept>
 #include <string>
 
 #ifndef COMPILE_DEBUG_LVL
@@ -144,6 +141,8 @@ public:
         return std::string(buffer);
     }
 
+    void printStacktrace() const;
+    
     /**
      * Special wrapper around log() that kills the application on
      * a fatal error
@@ -155,12 +154,8 @@ public:
     inline void _die [[noreturn]] (Args ... args) const
     {
         log<0>("", args...);
-        
-        // print stacktrace
-        std::ostringstream strace;
-        pretty_stacktrace(strace);
-        fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout.get());
 
+        printStacktrace();
         fout.close();
 
         throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"

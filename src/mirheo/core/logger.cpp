@@ -1,8 +1,10 @@
 #include "logger.h"
 
+#include <mirheo/core/utils/stacktrace_explicit.h>
+#include <mirheo/core/utils/folders.h>
+
 #include <chrono>
 #include <iomanip>
-
 
 namespace mirheo
 {
@@ -67,6 +69,13 @@ std::string Logger::makeIntro(const char *fname, int lnum, const char *pattern) 
         + fname + ":" + std::to_string(lnum) + "  " + pattern + "\n";
 
     return intro;
+}
+
+void Logger::printStacktrace() const
+{
+    std::ostringstream strace;
+    pretty_stacktrace(strace);
+    fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout.get());
 }
 
 } // namespace mirheo

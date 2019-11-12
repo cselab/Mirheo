@@ -5,6 +5,8 @@
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
 
+#include <vector>
+
 namespace mirheo
 {
 

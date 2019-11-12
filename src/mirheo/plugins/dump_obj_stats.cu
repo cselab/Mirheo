@@ -9,6 +9,8 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+#include <iomanip>
+
 namespace mirheo
 {
 
