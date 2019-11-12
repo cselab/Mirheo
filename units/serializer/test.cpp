@@ -14,17 +14,6 @@ using namespace mirheo;
 
 namespace mirheo { Logger logger; }
 
-void myassert(bool condition, const std::string& message)
-{
-    if (!condition) {
-        fprintf(stderr, "%s\n", message.c_str());
-        fflush(stdout);
-    }
-        
-    ASSERT_TRUE(condition);
-}
-
-
 template <class Cont, class Vec, typename Cmp>
 void test(Vec vals, Cmp cmp)
 {
@@ -42,7 +31,7 @@ void test(Vec vals, Cmp cmp)
     SimpleSerializer::deserialize(buf, dst);
     
     for (size_t i = 0; i < vals.size(); ++i)
-        myassert(cmp(dst[i], vals[i]), "mismatch on " + std::to_string(i));
+        ASSERT_TRUE(cmp(dst[i], vals[i])) << "mismatch on " + std::to_string(i);
 }
 
 TEST(Serializer, VectorOfString)
@@ -80,16 +69,15 @@ TEST(Serializer, Mixed)
     SimpleSerializer::serialize  (buf, s1,s2,s3,s4,s5);
     SimpleSerializer::deserialize(buf, d1,d2,d3,d4,d5);
     
-    myassert(s1==d1, "mismatch on 1");
-    myassert(s2==d2, "mismatch on 2");
-    myassert(s3==d3, "mismatch on 3");
+    ASSERT_EQ(s1, d1) << "mismatch on 1";
+    ASSERT_EQ(s2, d2) << "mismatch on 2";
+    ASSERT_EQ(s3, d3) << "mismatch on 3";
 
     for (size_t i = 0; i < s4.size(); i++)
-        myassert(s4[i] == d4[i], "mismatch on 4[" + std::to_string(i) + "]"); 
+        ASSERT_EQ(s4[i], d4[i]) << "mismatch on 4[" + std::to_string(i) + "]"; 
     
     for (size_t i = 0; i < s5.size(); i++)
-        myassert(s5[i] == d5[i], "mismatch on 5[" + std::to_string(i) + "]");
-
+        ASSERT_EQ(s5[i], d5[i]) << "mismatch on 5[" + std::to_string(i) + "]";
 }
 
 int main(int argc, char **argv)
