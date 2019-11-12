@@ -4,6 +4,7 @@
 
 #include <extern/pugixml/src/pugixml.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <memory>
 #include <queue>

@@ -5,8 +5,6 @@
 #include <mirheo/core/utils/macros.h>
 #include <mirheo/core/utils/stacktrace_explicit.h>
 
-#include <algorithm>
-#include <array>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -120,18 +118,18 @@ public:
               << std::setfill('0') << std::setw(3) << ms.count();
 
         std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
-            + fname + ":" + std::to_string(lnum) + "  " +pattern + "\n";
+            + fname + ":" + std::to_string(lnum) + "  " + pattern + "\n";
 
         fprintf(fout.get(), intro.c_str(), rank, key, args...);
 
         bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
                            COMPILE_DEBUG_LVL >= flushThreshold;
-        needToFlush = needToFlush || (now - lastFlushed > flushPeriod);
+        needToFlush = needToFlush || (numLogsSinceLastFlush > numLogsBetweenFlushes);
 
         if (needToFlush)
         {
             fflush(fout.get());
-            lastFlushed = now;
+            numLogsSinceLastFlush = 0;
         }
     }
 
@@ -215,11 +213,12 @@ public:
 
 private:
     int runtimeDebugLvl {0};  ///< debug level defined at runtime through setDebugLvl
+
     static constexpr int flushThreshold = 8; ///< value of debug level starting with which every
                                              ///< message will be flushed to disk immediately
 
-    mutable std::chrono::system_clock::time_point lastFlushed;
-    const std::chrono::seconds flushPeriod{2};
+    static constexpr int numLogsBetweenFlushes = 32;
+    mutable int numLogsSinceLastFlush {0};
 
     mutable FileWrapper fout {true};
     int rank {-1};
