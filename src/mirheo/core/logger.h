@@ -59,28 +59,7 @@ public:
      * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, const std::string& fname, int debugLvl = 3)
-    {
-        MPI_Comm_rank(comm, &rank);
-        constexpr int zeroPadding = 5;
-        std::string rankStr = getStrZeroPadded(rank, zeroPadding);
-
-        auto pos   = fname.find_last_of('.');
-        auto start = fname.substr(0, pos);
-        auto end   = fname.substr(pos);
-
-        auto status = fout.open(start+"_"+rankStr+end, "w");
-
-        if (status != FileWrapper::Status::Success)
-        {
-            fprintf(stderr, "Logger file '%s' could not be open.\n", fname.c_str());
-            exit(1);
-        }
-
-        setDebugLvl(debugLvl);
-
-        register_signals();
-    }
+    void init(MPI_Comm comm, const std::string& fname, int debugLvl = 3);
 
     /**
      * Set logger to write to a certain, already opened file.
@@ -89,15 +68,7 @@ public:
      * @param fout file handler, must be opened, typically \e stdout or \e stderr
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3)
-    {
-        MPI_Comm_rank(comm, &rank);
-        this->fout = std::move(fout);
-
-        setDebugLvl(debugLvl);
-        lastFlushed = std::chrono::system_clock::now();
-    }
-
+    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
   
     /**
      * Main logging function.
@@ -126,8 +97,7 @@ public:
      * @param args other relevant arguments to \e printf
      */
     template<int importance, class ... Args>
-    inline void log(const char *key,
-                    const char *fname, const int lnum, const char *pattern, Args... args) const
+    inline void log(const char *key, const char *fname, const int lnum, const char *pattern, Args... args) const
     {
         if (importance > runtimeDebugLvl) return;
 
@@ -190,7 +160,7 @@ public:
      * @param args forwarded to log()
      */
     template<class ... Args>
-    inline void _die [[noreturn]] (Args ... args)
+    inline void _die [[noreturn]] (Args ... args) const
     {
         log<0>("", args...);
         
@@ -229,20 +199,8 @@ public:
         }
     }
 
-    int getDebugLvl() const
-    {
-        return runtimeDebugLvl;
-    }
-
-    /// set debug level between 0 and #COMPILE_DEBUG_LVL
-    void setDebugLvl(int debugLvl)
-    {
-        runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-        log<1>("INFO", __FILE__, __LINE__,
-               "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-        log<1>("INFO", __FILE__, __LINE__,
-               "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
-    }
+    int getDebugLvl() const;
+    void setDebugLvl(int debugLvl);
 
     /**
      * @param fname name of the current source file
