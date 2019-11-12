@@ -5,7 +5,6 @@
 #include <mirheo/core/utils/macros.h>
 #include <mirheo/core/utils/stacktrace_explicit.h>
 
-#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cuda_runtime.h>
@@ -67,7 +66,10 @@ public:
      * @param debugLvl debug level
      */
     void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
-  
+
+    int getDebugLvl() const;
+    void setDebugLvl(int debugLvl);
+
     /**
      * Main logging function.
      * First, check message importance against debug level and return
@@ -95,7 +97,7 @@ public:
      * @param args other relevant arguments to \e printf
      */
     template<int importance, class ... Args>
-    inline void log(const char *key, const char *fname, const int lnum, const char *pattern, Args... args) const
+    inline void log(const char *key, const char *fname, int lnum, const char *pattern, Args... args) const
     {
         if (importance > runtimeDebugLvl) return;
 
@@ -108,17 +110,7 @@ public:
             exit(1);
         }
 
-        using namespace std::chrono;
-        auto now   = system_clock::now();
-        auto now_c = system_clock::to_time_t(now);
-        auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-
-        std::ostringstream tmout;
-        tmout << std::put_time(std::localtime(&now_c), "%T") << ':'
-              << std::setfill('0') << std::setw(3) << ms.count();
-
-        std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
-            + fname + ":" + std::to_string(lnum) + "  " + pattern + "\n";
+        const std::string intro = makeIntro(fname, lnum, pattern);
 
         fprintf(fout.get(), intro.c_str(), rank, key, args...);
 
@@ -132,6 +124,8 @@ public:
             numLogsSinceLastFlush = 0;
         }
     }
+
+    std::string makeIntro(const char *fname, int lnum, const char *pattern) const;
 
     /**
      * Create a short error message for throwing an exception
@@ -185,7 +179,7 @@ public:
      * @param lnum  line number of the source file
      * @param code  error code (returned by MPI call)
      */
-    inline void _MPI_Check(const char* fname, const int lnum, const int code)
+    inline void _MPI_Check(const char* fname, const int lnum, const int code) const
     {
         if (code != MPI_SUCCESS)
         {
@@ -197,15 +191,12 @@ public:
         }
     }
 
-    int getDebugLvl() const;
-    void setDebugLvl(int debugLvl);
-
     /**
      * @param fname name of the current source file
      * @param lnum  line number of the source file
      * @param code  error code (returned by CUDA call)
      */
-    inline void _CUDA_Check(const char *fname, const int lnum, cudaError_t code)
+    inline void _CUDA_Check(const char *fname, const int lnum, cudaError_t code) const
     {
         if (code != cudaSuccess)
             _die(fname, lnum, cudaGetErrorString(code));
