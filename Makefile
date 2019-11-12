@@ -1,10 +1,12 @@
 PIP ?= python -m pip
 CMAKE_FLAGS ?= ""
 
+JOBJS ?= 12
+
 build:
 	mkdir -p build/
 	(cd build/ && cmake ${CMAKE_FLAGS} ../)
-	make -C build/ -j 12
+	make -C build/ -j $(JOBS)
 	cd ..
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
@@ -16,7 +18,7 @@ install: build
 # the `cmake` step and shortens the long `pip install . --upgrade` step. This
 # won't detect new files or any changes to `.py` files.
 compile_and_copy:
-	(cd build && make -j 12)
+	(cd build && make -j $(JOBS))
 	cp $(shell python -c "import os, mirheo; p = mirheo._libmirheo_file; print(os.path.join('build', os.path.basename(p)), p)")
 
 uninstall:
