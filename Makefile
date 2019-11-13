@@ -16,18 +16,19 @@ install: build
 # the `cmake` step and shortens the long `pip install . --upgrade` step. This
 # won't detect new files or any changes to `.py` files.
 compile_and_copy:
-	(cd build && make -j $(JOBS))
+	(cd build && $(MAKE))
 	cp $(shell python -c "import os, mirheo; p = mirheo._libmirheo_file; print(os.path.join('build', os.path.basename(p)), p)")
 
 uninstall:
 	$(PIP) uninstall mirheo
 
 docs:
-	make -C docs/
+	$(MAKE) -C docs/
 
 test: install
 	(cd tests && mir.make test)
 
-clean:; rm -rf build
+clean:
+	rm -rf build
 
 .PHONY: install uninstall build test clean docs
