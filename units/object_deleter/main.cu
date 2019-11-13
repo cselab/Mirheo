@@ -8,8 +8,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 bool verbose = false;
 
 __global__ void setIds(int64_t *ids, int N, int factor)

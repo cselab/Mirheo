@@ -12,8 +12,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 template <class Cont, class Vec, typename Cmp>
 void test(Vec vals, Cmp cmp)
 {

@@ -10,8 +10,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 template<typename Gen>
 static std::vector<float> generateSamples(Gen gen, float dt, long n)
 {

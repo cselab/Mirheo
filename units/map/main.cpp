@@ -6,8 +6,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 TEST (MAP, Entry_backAndForth)
 {
     const int ntries = 10000;

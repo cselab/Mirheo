@@ -15,8 +15,6 @@ using VarTypePtr = variant::variant<int*, float*>;
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 __HD__ inline int eval(int a)
 {
     return a * a;

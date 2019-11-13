@@ -13,8 +13,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 using Real  = double;
 using Real2 = double2;
 using Real3 = double3;

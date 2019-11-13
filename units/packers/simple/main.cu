@@ -15,8 +15,6 @@
 #include <random>
 #include <vector>
 
-namespace mirheo { Logger logger; }
-
 __global__ void packParticlesIdentityMap(int n, ParticlePackerHandler packer, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;

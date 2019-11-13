@@ -7,8 +7,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 constexpr real3 ex {1.0_r, 0.0_r, 0.0_r};
 constexpr real3 ey {0.0_r, 1.0_r, 0.0_r};
 constexpr real3 ez {0.0_r, 0.0_r, 1.0_r};

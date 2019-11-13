@@ -10,8 +10,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 #define FMT "%+6e"
 #define SEP "\t"
 #define EXPAND(v) v.x, v.y, v.z

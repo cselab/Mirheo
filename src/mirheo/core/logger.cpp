@@ -13,6 +13,9 @@
 namespace mirheo
 {
 
+Logger logger;
+
+
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
     MPI_Comm_rank(comm, &rank);
@@ -65,8 +68,10 @@ void Logger::log(const char *key, const char *filename, int line, const char *fm
 void Logger::logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
     if (!fout.get())
     {
-        fprintf(stderr, "Logger file is not set but tried to be used at %s:%d"
-                " with the following message:\n", filename, line);
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        fprintf(stderr, "Logger file is not set but tried to be used at %s:%d from rank %d"
+                " with the following message:\n", filename, line, world_rank);
         vfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
         exit(1);

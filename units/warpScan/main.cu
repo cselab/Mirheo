@@ -10,8 +10,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 // assume only one block of 32 threads
 __global__ void inclusiveScan(int *data)
 {

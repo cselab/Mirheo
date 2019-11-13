@@ -17,8 +17,6 @@
 #include <random>
 #include <vector>
 
-namespace mirheo { Logger logger; }
-
 // create the reference data
 // will let us test 2 things:
 // - correct reordering

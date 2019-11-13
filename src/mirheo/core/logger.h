@@ -154,8 +154,8 @@ private:
 /// Log with a runtime check of importance
 #define MIRHEO_LOG_IMPL(LEVEL, KEY, ...) \
     do { \
-        if (logger.getDebugLvl() >= (LEVEL)) \
-            logger.log((KEY), __FILE__, __LINE__, ##__VA_ARGS__); \
+        if (::mirheo::logger.getDebugLvl() >= (LEVEL)) \
+            ::mirheo::logger.log((KEY), __FILE__, __LINE__, ##__VA_ARGS__); \
     } while (0)
 
 /// Unconditionally print to log, debug level is not checked here
@@ -163,9 +163,9 @@ private:
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort
-#define   die(...)  logger._die(__FILE__, __LINE__, ##__VA_ARGS__)
+#define   MIRHEO_DIE(...)  ::mirheo::logger._die(__FILE__, __LINE__, ##__VA_ARGS__)
 #else
-#define   die(...)  do { } while(0)
+#define   MIRHEO_DIE(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 1
@@ -218,18 +218,19 @@ private:
 #endif
 
 /// Check an MPI call, call #die() if it fails
-#define MIRHEO_MPI_CHECK(command)  logger._MPI_Check (__FILE__, __LINE__, command)
+#define MIRHEO_MPI_CHECK(command)  ::mirheo::logger._MPI_Check (__FILE__, __LINE__, command)
 
 /// Check a CUDA call, call #die() if it fails
-#define MIRHEO_CUDA_CHECK(command) logger._CUDA_Check(__FILE__, __LINE__, command)
+#define MIRHEO_CUDA_CHECK(command) ::mirheo::logger._CUDA_Check(__FILE__, __LINE__, command)
 
 /// Shorthands for the macros above.
+#define die         MIRHEO_DIE
 #define MPI_Check   MIRHEO_MPI_CHECK
 #define CUDA_Check  MIRHEO_CUDA_CHECK
 
 /**
- * Inform all the object files that there is one Logger defined somewhere,
- * that they will be using to log stuff
+ * A common `Logger` object for all Mirheo and all potential extension files.
+ * The instance is defined in `logger.cpp`.
  */
 extern Logger logger;
 

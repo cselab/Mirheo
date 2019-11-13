@@ -11,8 +11,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 static inline RigidMotion initMotion(real3 omega)
 {
     constexpr RigidReal3 zero3 {0.0_r, 0.0_r, 0.0_r};

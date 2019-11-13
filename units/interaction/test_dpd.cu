@@ -16,8 +16,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 bool verbose = false;
 
 void makeCells(const float4 *inputPos, const float4 *inputVel,

@@ -15,8 +15,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 const std::string restartPath = "./"; // no need to create folder
 
 constexpr int cartMaxdims = 3;

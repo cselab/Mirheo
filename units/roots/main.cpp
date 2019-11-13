@@ -9,8 +9,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 // inline float sqrtLinSearch(float a, float left, float right)
 // {
 //     auto f      = [&](float x) {return x*x - a;};

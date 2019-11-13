@@ -2,13 +2,6 @@
 #include "bindings.h"
 #include <mpi.h>
 
-namespace mirheo
-{
-
-Logger logger;
-
-} // namespace mirheo
-
 PYBIND11_MODULE(libmirheo, m)
 {
     using namespace mirheo;

@@ -6,8 +6,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 TEST (ID64, backAndForth)
 {
     int64_t id = (42l << 32) + 13l;

@@ -8,8 +8,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 TEST (PID, PidEquilibrates)
 {
     float target, Kp, Ki, Kd;

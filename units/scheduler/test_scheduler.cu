@@ -12,8 +12,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 void verifyDep(const std::string& before, const std::string& after,
                const std::vector<std::string>& messages)
 {

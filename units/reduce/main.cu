@@ -11,8 +11,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 namespace ReduceKernels
 {
 __global__ void reduce(int n, const float *data, float *result)

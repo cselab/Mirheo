@@ -7,8 +7,6 @@
 
 using namespace mirheo;
 
-namespace mirheo { Logger logger; }
-
 template<class Shape>
 static float3 inertiaTensorMC(long nsamples, const Shape& shape, float3 low, float3 high)
 {
