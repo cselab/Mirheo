@@ -2,14 +2,12 @@
 
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/domain.h>
+#include <mirheo/core/mirheo_object.h>
 #include <mirheo/core/pvs/data_manager.h>
 #include <mirheo/core/utils/pytypes.h>
-#include <mirheo/core/mirheo_object.h>
 
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace mirheo

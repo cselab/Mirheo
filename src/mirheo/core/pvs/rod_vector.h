@@ -2,9 +2,6 @@
 
 #include "object_vector.h"
 
-#include <mirheo/core/containers.h>
-#include <mirheo/core/datatypes.h>
-
 namespace mirheo
 {
 

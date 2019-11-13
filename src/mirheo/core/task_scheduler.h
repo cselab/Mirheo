@@ -5,13 +5,13 @@
  *      Author: alexeedm
  */
 
-#include <string>
-#include <vector>
 #include <functional>
 #include <list>
-#include <queue>
-#include <unordered_map>
 #include <memory>
+#include <queue>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <cuda_runtime.h>
 

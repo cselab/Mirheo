@@ -3,7 +3,6 @@
 #include "particle_vector.h"
 
 #include <mirheo/core/containers.h>
-#include <mirheo/core/logger.h>
 #include <mirheo/core/mesh/mesh.h>
 #include <mirheo/core/utils/common.h>
 

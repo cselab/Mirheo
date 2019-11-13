@@ -5,11 +5,7 @@
 #include <mirheo/core/utils/vec_traits.h>
 
 #include <cstdint>
-#include <cstdlib>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <type_traits>
-#include <utility>
 
 namespace mirheo
 {

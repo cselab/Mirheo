@@ -2,8 +2,6 @@
 
 #include "object_vector.h"
 
-#include <mirheo/core/containers.h>
-#include <mirheo/core/datatypes.h>
 #include <mirheo/core/mesh/membrane.h>
 
 namespace mirheo
