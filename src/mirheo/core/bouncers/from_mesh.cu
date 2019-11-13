@@ -4,7 +4,7 @@
 
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/pvs/object_vector.h>
-#include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/rigid/operations.h>
 #include <mirheo/core/utils/kernel_launch.h>

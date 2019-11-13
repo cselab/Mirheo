@@ -1,35 +1,20 @@
 #pragma once
 
-#include "../particle_vector.h"
-
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/cuda_common.h>
 
 namespace mirheo
 {
 
+class ParticleVector;
+class LocalParticleVector;
+
 /**
  * GPU-compatible struct of all the relevant data
  */
 struct PVview
 {
-    int size {0};
-    real4 *positions  {nullptr};
-    real4 *velocities {nullptr};
-    real4 *forces     {nullptr};
-
-    real mass {0._r}, invMass {0._r};
-
-    PVview(ParticleVector *pv, LocalParticleVector *lpv)
-    {
-        size = lpv->size();
-        positions  = lpv->positions() .devPtr();
-        velocities = lpv->velocities().devPtr();
-        forces     = reinterpret_cast<real4*>(lpv->forces().devPtr());
-
-        mass = pv->mass;
-        invMass = 1.0 / mass;
-    }
+    PVview(ParticleVector *pv, LocalParticleVector *lpv);
 
     __HD__ inline real4 readPosition(int id) const
     {
@@ -82,48 +67,34 @@ struct PVview
         positions [id] = p.r2Real4();
         velocities[id] = p.u2Real4();
     }
+
+    int size {0};
+    real4 *positions  {nullptr};
+    real4 *velocities {nullptr};
+    real4 *forces     {nullptr};
+
+    real mass {0._r}, invMass {0._r};
 };
 
 
 struct PVviewWithOldParticles : public PVview
 {
-    real4 *oldPositions {nullptr};
-
-    PVviewWithOldParticles(ParticleVector *pv, LocalParticleVector *lpv) :
-        PVview(pv, lpv)
-    {
-        if (lpv != nullptr)
-            oldPositions = lpv->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->devPtr();
-    }
+    PVviewWithOldParticles(ParticleVector *pv, LocalParticleVector *lpv);
 
     __HD__ inline real3 readOldPosition(int id) const
     {
         const auto r = oldPositions[id];
         return {r.x, r.y, r.z};
     }
+
+    real4 *oldPositions {nullptr};
 };
 
 struct PVviewWithDensities : public PVview
 {
+    PVviewWithDensities(ParticleVector *pv, LocalParticleVector *lpv);
+
     real *densities {nullptr};
-
-    PVviewWithDensities(ParticleVector *pv, LocalParticleVector *lpv) :
-        PVview(pv, lpv)
-    {
-        densities = lpv->dataPerParticle.getData<real>(ChannelNames::densities)->devPtr();
-    }
-};
-
-template <typename BasicView> 
-struct PVviewWithStresses : public BasicView
-{
-    Stress *stresses {nullptr};
-
-    PVviewWithStresses(ParticleVector *pv, LocalParticleVector *lpv) :
-        BasicView(pv, lpv)
-    {
-        stresses = lpv->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
-    }
 };
 
 } // namespace mirheo

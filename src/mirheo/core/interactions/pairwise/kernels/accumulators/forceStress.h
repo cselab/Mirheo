@@ -2,6 +2,7 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/pvs/views/pv_with_stresses.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>

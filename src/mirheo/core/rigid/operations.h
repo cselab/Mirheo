@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mirheo/core/pvs/views/rov.h>
+#include <mirheo/core/containers.h>
 
 namespace mirheo
 {

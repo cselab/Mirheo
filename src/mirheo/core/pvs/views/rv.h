@@ -2,41 +2,26 @@
 
 #include "ov.h"
 
-#include "../rod_vector.h"
-
 namespace mirheo
 {
 
+class RodVector;
+class LocalRodVector;
+
 struct RVview : public OVview
 {
+    RVview(RodVector *rv, LocalRodVector *lrv);
+    
     int   nSegments {0};
     int   *states   {nullptr};
     real *energies {nullptr};
-
-    RVview(RodVector *rv, LocalRodVector *lrv) :
-        OVview(rv, lrv)
-    {
-        nSegments = lrv->getNumSegmentsPerRod();
-
-        auto& data = lrv->dataPerBisegment;
-        
-        if (data.checkChannelExists(ChannelNames::polyStates))
-            states = data.getData<int>(ChannelNames::polyStates)->devPtr();
-        
-        if (data.checkChannelExists(ChannelNames::energies))
-            energies = data.getData<real>(ChannelNames::energies)->devPtr();
-    }
 };
 
 struct RVviewWithOldParticles : public RVview
 {
+    RVviewWithOldParticles(RodVector *rv, LocalRodVector *lrv);
+    
     real4 *oldPositions {nullptr};
-
-    RVviewWithOldParticles(RodVector *rv, LocalRodVector *lrv) :
-        RVview(rv, lrv)
-    {
-        oldPositions = lrv->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->devPtr();
-    }
 };
 
 } // namespace mirheo

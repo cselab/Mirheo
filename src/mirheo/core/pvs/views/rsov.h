@@ -9,24 +9,24 @@ namespace mirheo
 template <class Shape>
 struct RSOVview : public ROVview
 {
-    Shape shape;
-    
     RSOVview(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         ROVview(rsov, lrov),
         shape(rsov->shape)
     {}
+
+    Shape shape;
 };
 
 template <class Shape>
 struct RSOVviewWithOldMotion : public RSOVview<Shape>
 {
-    RigidMotion *old_motions {nullptr};
-
     RSOVviewWithOldMotion(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         RSOVview<Shape>(rsov, lrov)
     {
         old_motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
     }
+
+    RigidMotion *old_motions {nullptr};
 };
 
 } // namespace mirheo
