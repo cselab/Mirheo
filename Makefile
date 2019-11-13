@@ -1,12 +1,10 @@
 PIP ?= python -m pip
 CMAKE_FLAGS ?= ""
 
-JOBJS ?= 12
-
 build:
 	mkdir -p build/
 	(cd build/ && cmake ${CMAKE_FLAGS} ../)
-	make -C build/ -j $(JOBS)
+	$(MAKE) -C build/
 	cd ..
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
