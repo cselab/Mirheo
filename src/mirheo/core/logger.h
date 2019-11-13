@@ -3,10 +3,8 @@
 #include <mirheo/core/utils/file_wrapper.h>
 #include <mirheo/core/utils/macros.h>
 
-#include <cstdio>
 #include <cuda_runtime.h>
 #include <mpi.h>
-#include <stdexcept>
 #include <string>
 
 #ifndef COMPILE_DEBUG_LVL
@@ -50,10 +48,10 @@ public:
      * Set logger to write to files
      *
      * @param comm  relevant MPI communicator, typically \e MPI_COMM_WORLD
-     * @param fname log files will be prefixed with \e fname: e.g. \e fname_<rank_with_leading_zeros>.log
+     * @param filename log files will be prefixed with \e filename: e.g. \e fname_<rank_with_leading_zeros>.log
      * @param debugLvl debug level
      */
-    void init(MPI_Comm comm, const std::string& fname, int debugLvl = 3);
+    void init(MPI_Comm comm, const std::string& filename, int debugLvl = 3);
 
     /**
      * Set logger to write to a certain, already opened file.
@@ -64,18 +62,18 @@ public:
      */
     void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
 
-    int getDebugLvl() const;
+    int getDebugLvl() const noexcept {
+        return runtimeDebugLvl;
+    }
     void setDebugLvl(int debugLvl);
 
     /**
      * Main logging function.
-     * First, check message importance against debug level and return
-     * if importance is too low (bigger number means lower importance)
      *
-     * Then, construct a logger entry with time prefix, importance string,
-     * filename and line number, and finally the message itself.
+     * Construct a logger entry with time prefix, importance string,
+     * filename and line number, and the message itself.
      *
-     * And finally print output it to the file.
+     * And finally print the output to the file.
      *
      * This function is not supposed to be called directly, use appropriate
      * macros instead, e.g. #say(), #error(), #debug(), etc.
@@ -87,59 +85,13 @@ public:
      *    increase the runtime SIGNIFICANTLY and only recommended to debug crashes
      * \endrst
      *
-     * @tparam importance message importance
-     * @param fname name of the current source file
-     * @param lnum  line number of the source file
-     * @param pattern message pattern to be passed to \e printf
-     * @param args other relevant arguments to \e printf
+     * @param filename name of the current source file
+     * @param line     line number of the source file
+     * @param pattern  message pattern to be passed to \e printf
+     * @param args     other relevant arguments to \e printf
      */
-    template<int importance, class ... Args>
-    inline void log(const char *key, const char *fname, int lnum, const char *pattern, Args... args) const
-    {
-        if (importance > runtimeDebugLvl) return;
-
-        if (!fout.get())
-        {
-            fprintf(stderr, "Logger file is not set but tried to be used at %s : %d"
-                    " with the following message:\n", fname, lnum);
-            fprintf(stderr, pattern, args...);
-            fprintf(stderr, "\n");
-            exit(1);
-        }
-
-        const std::string intro = makeIntro(fname, lnum, pattern);
-
-        fprintf(fout.get(), intro.c_str(), rank, key, args...);
-
-        bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
-                           COMPILE_DEBUG_LVL >= flushThreshold;
-        needToFlush = needToFlush || (numLogsSinceLastFlush > numLogsBetweenFlushes);
-
-        if (needToFlush)
-        {
-            fflush(fout.get());
-            numLogsSinceLastFlush = 0;
-        }
-    }
-
-    std::string makeIntro(const char *fname, int lnum, const char *pattern) const;
-
-    /**
-     * Create a short error message for throwing an exception
-     *
-     */
-    template<class ... Args>
-    std::string makeSimpleErrString(__UNUSED const char* fname, __UNUSED const int lnum,
-                                    const char* pattern, Args... args) const
-    {
-        constexpr int maxSize = 10000;
-        char buffer[maxSize];
-        
-        std::string intro = "%s" + std::string(pattern); // shut up compiler warning
-        snprintf(buffer, maxSize, intro.c_str(), "", args...);
-        
-        return std::string(buffer);
-    }
+    void log(const char *key, const char *filename, int line, const char *pattern, ...) const;
+    void logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
 
     void printStacktrace() const;
     
@@ -150,51 +102,40 @@ public:
      *
      * @param args forwarded to log()
      */
-    template<class ... Args>
-    inline void _die [[noreturn]] (Args ... args) const
-    {
-        log<0>("", args...);
+    void _die [[noreturn]](const char *filename, int line, const char *fmt, ...) const;
 
-        printStacktrace();
-        fout.close();
-
-        throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"
-                                 "The error message follows, and more details can be found in the log\n"
-                                 "***************************************\n"
-                                 "\t" + makeSimpleErrString(args...) + "\n"
-                                 "***************************************");
-
-    }
+    /**
+     * Wrapper around _die() that prints the current MPI error.
+     *
+     * @param filename name of the current source file
+     * @param line  line number of the source file
+     * @param code  error code (returned by MPI call)
+     */
+    void _MPI_die [[noreturn]](const char *filename, int line, int code) const;
 
     /**
      * Check the return code of an MPI function. Default error checking of MPI
      * should be turned off
      *
-     * @param fname name of the current source file
-     * @param lnum  line number of the source file
+     * @param filename name of the current source file
+     * @param line  line number of the source file
      * @param code  error code (returned by MPI call)
      */
-    inline void _MPI_Check(const char* fname, const int lnum, const int code) const
+    inline void _MPI_Check(const char *filename, const int line, const int code) const
     {
         if (code != MPI_SUCCESS)
-        {
-            char buf[MPI_MAX_ERROR_STRING];
-            int nchar;
-            MPI_Error_string(code, buf, &nchar);
-
-            _die(fname, lnum, buf);
-        }
+            _MPI_die(filename, line, code);
     }
 
     /**
-     * @param fname name of the current source file
-     * @param lnum  line number of the source file
+     * @param filename name of the current source file
+     * @param line  line number of the source file
      * @param code  error code (returned by CUDA call)
      */
-    inline void _CUDA_Check(const char *fname, const int lnum, cudaError_t code) const
+    inline void _CUDA_Check(const char *filename, const int line, cudaError_t code) const
     {
         if (code != cudaSuccess)
-            _die(fname, lnum, cudaGetErrorString(code));
+            _die(filename, line, "%s", cudaGetErrorString(code));
     }
 
 private:
@@ -210,67 +151,74 @@ private:
     int rank {-1};
 };
 
+/// Log with a runtime check of importance
+#define MIRHEO_LOG_IMPL(LEVEL, KEY, ...) \
+    do { \
+        if (logger.getDebugLvl() >= (LEVEL)) \
+            logger.log((KEY), __FILE__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+
 /// Unconditionally print to log, debug level is not checked here
-#define   say(...)  logger.log<1>    ("INFO", __FILE__, __LINE__, ##__VA_ARGS__)
+#define   say(...)  MIRHEO_LOG_IMPL(1, "INFO", ##__VA_ARGS__)
 
 #if COMPILE_DEBUG_LVL >= 0
 /// Report a fatal error and abort
-#define   die(...)  logger._die      (__FILE__, __LINE__, ##__VA_ARGS__)
+#define   die(...)  logger._die(__FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define   die(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 1
 /// Report a serious error
-#define error(...)  logger.log<1>    ("ERROR", __FILE__, __LINE__, ##__VA_ARGS__)
+#define error(...)  MIRHEO_LOG_IMPL(1, "ERROR", ##__VA_ARGS__)
 #else
 #define error(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 2
 /// Report a warning
-#define  warn(...)  logger.log<2>    ("WARNING", __FILE__, __LINE__, ##__VA_ARGS__)
+#define  warn(...)  MIRHEO_LOG_IMPL(2, "WARNING", ##__VA_ARGS__)
 #else
 #define  warn(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 3
 /// Report certain valuable information
-#define  info(...)  logger.log<3>    ("INFO", __FILE__, __LINE__, ##__VA_ARGS__)
+#define  info(...)  MIRHEO_LOG_IMPL(3, "INFO", ##__VA_ARGS__)
 #else
 #define  info(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 4
 /// Print debug output
-#define debug(...)  logger.log<4>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug(...)  MIRHEO_LOG_IMPL(4, "DEBUG", ##__VA_ARGS__)
 #else
 #define debug(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 5
 /// Print more debug
-#define debug2(...) logger.log<5>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug2(...)  MIRHEO_LOG_IMPL(5, "DEBUG", ##__VA_ARGS__)
 #else
 #define debug2(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 6
 /// Print yet more debug
-#define debug3(...) logger.log<6>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug3(...)  MIRHEO_LOG_IMPL(6, "DEBUG", ##__VA_ARGS__)
 #else
 #define debug3(...)  do { } while(0)
 #endif
 
 #if COMPILE_DEBUG_LVL >= 7
 /// Print ultimately verbose debug. God help you scrambling through all the output
-#define debug4(...) logger.log<7>    ("DEBUG", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug4(...)  MIRHEO_LOG_IMPL(7, "DEBUG", ##__VA_ARGS__)
 #else
 #define debug4(...)  do { } while(0)
 #endif
 
 /// Check an MPI call, call #die() if it fails
-#define MIRHEO_MPI_CHECK(command) logger._MPI_Check (__FILE__, __LINE__, command)
+#define MIRHEO_MPI_CHECK(command)  logger._MPI_Check (__FILE__, __LINE__, command)
 
 /// Check a CUDA call, call #die() if it fails
 #define MIRHEO_CUDA_CHECK(command) logger._CUDA_Check(__FILE__, __LINE__, command)

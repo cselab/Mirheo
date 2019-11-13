@@ -3,8 +3,12 @@
 #include <mirheo/core/utils/stacktrace_explicit.h>
 #include <mirheo/core/utils/folders.h>
 
+#include <cassert>
 #include <chrono>
-#include <iomanip>
+#include <cstdarg>
+#include <ctime>
+#include <sstream>
+#include <stdexcept>
 
 namespace mirheo
 {
@@ -36,39 +40,109 @@ void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
 {
     MPI_Comm_rank(comm, &rank);
     this->fout = std::move(fout);
-    
-    setDebugLvl(debugLvl);
-}
 
-int Logger::getDebugLvl() const
-{
-    return runtimeDebugLvl;
+    setDebugLvl(debugLvl);
 }
 
 void Logger::setDebugLvl(int debugLvl)
 {
     runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-    log<1>("INFO", __FILE__, __LINE__,
-           "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
-    log<1>("INFO", __FILE__, __LINE__,
-           "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+    if (runtimeDebugLvl >= 1) {
+        log("INFO", __FILE__, __LINE__,
+            "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
+        log("INFO", __FILE__, __LINE__,
+            "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+    }
 }
 
-std::string Logger::makeIntro(const char *fname, int lnum, const char *pattern) const
-{
+void Logger::log(const char *key, const char *filename, int line, const char *fmt, ...) const {
+    va_list args;
+    va_start(args, fmt);
+    logImpl(key, filename, line, fmt, args);
+    va_end(args);
+}
+
+void Logger::logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
+    if (!fout.get())
+    {
+        fprintf(stderr, "Logger file is not set but tried to be used at %s:%d"
+                " with the following message:\n", filename, line);
+        vfprintf(stderr, fmt, args);
+        fprintf(stderr, "\n");
+        exit(1);
+    }
+
     using namespace std::chrono;
     auto now   = system_clock::now();
     auto now_c = system_clock::to_time_t(now);
     auto ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
 
-    std::ostringstream tmout;
-    tmout << std::put_time(std::localtime(&now_c), "%T") << ':'
-          << std::setfill('0') << std::setw(3) << ms.count();
+    char time[16];    // "%T" --> "HH:MM:SS".
+    size_t len = std::strftime(time, sizeof(time), "%T", std::localtime(&now_c));
+    (void)len;
+    assert(len > 0);  // Returns 0 if the format does not fit, which is impossible here.
 
-    const std::string intro = tmout.str() + "   " + std::string("Rank %04d %7s at ")
-        + fname + ":" + std::to_string(lnum) + "  " + pattern + "\n";
+    // It's not really possible to extend a va_list, so we have to add an
+    // fprintf before and after to print extra formatting. It may be necessary
+    // to replace this with first constructing a string with (v)s(n)printf and
+    // then fprintf-ing it once.
+    fprintf(fout.get(), "%s:%03d  Rank %04d %7s at %s:%d ",
+            time, (int)ms.count(), rank, key, filename, line);
+    vfprintf(fout.get(), fmt, args);
+    fprintf(fout.get(), "\n");
 
-    return intro;
+    bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
+                       COMPILE_DEBUG_LVL >= flushThreshold;
+    needToFlush = needToFlush || (numLogsSinceLastFlush > numLogsBetweenFlushes);
+
+    if (needToFlush)
+    {
+        fflush(fout.get());
+        numLogsSinceLastFlush = 0;
+    }
+}
+
+/// std::string variant of vsprintf.
+static std::string vstrprintf(const char *fmt, va_list args) {
+    va_list args2;
+    va_copy(args2, args);
+
+    const int size = vsnprintf(nullptr, 0, fmt, args) + 1;
+
+    std::string result(size, '_');
+    vsnprintf(&result[0], size + 1, fmt, args2);
+    return result;
+}
+
+void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, ...) const
+{
+    va_list args;
+    va_start(args, fmt);
+    logImpl("", filename, line, fmt, args);
+    va_end(args);
+
+    printStacktrace();
+    fout.close();
+
+    // http://stackoverflow.com/a/26221725  (modified)
+    va_start(args, fmt);
+    std::string error = vstrprintf(fmt, args);
+    va_end(args);
+
+    throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"
+                             "The error message follows, and more details can be found in the log\n"
+                             "***************************************\n"
+                             "\t" + error + "\n"
+                             "***************************************");
+}
+
+void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) const
+{
+    char buf[MPI_MAX_ERROR_STRING];
+    int nchar;
+    MPI_Error_string(code, buf, &nchar);
+
+    _die(filename, line, "%s", buf);
 }
 
 void Logger::printStacktrace() const
