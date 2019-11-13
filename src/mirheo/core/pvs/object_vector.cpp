@@ -1,10 +1,9 @@
 #include "object_vector.h"
-#include "views/ov.h"
-#include "restart/helpers.h"
-#include "checkpoint/helpers.h"
 
-#include <mirheo/core/utils/kernel_launch.h>
-#include <mirheo/core/utils/cuda_common.h>
+#include "checkpoint/helpers.h"
+#include "restart/helpers.h"
+#include "utils/compute_com_extents.h"
+
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
@@ -15,45 +14,10 @@ namespace mirheo
 
 constexpr const char *RestartOVIdentifier = "OV";
 
-namespace ObjectVectorKernels
-{
-
-__global__ void minMaxCom(OVview ovView)
-{
-    const int gid    = threadIdx.x + blockDim.x * blockIdx.x;
-    const int objId  = gid / warpSize;
-    const int laneId = gid % warpSize;
-    if (objId >= ovView.nObjects) return;
-
-    real3 mymin = make_real3(+1e10_r);
-    real3 mymax = make_real3(-1e10_r);
-    real3 mycom = make_real3(0.0_r);
-
-#pragma unroll 3
-    for (int i = laneId; i < ovView.objSize; i += warpSize)
-    {
-        const int offset = objId * ovView.objSize + i;
-
-        const real3 coo = make_real3(ovView.readPosition(offset));
-
-        mymin = math::min(mymin, coo);
-        mymax = math::max(mymax, coo);
-        mycom += coo;
-    }
-
-    mycom = warpReduce( mycom, [] (real a, real b) { return a+b; } );
-    mymin = warpReduce( mymin, [] (real a, real b) { return math::min(a, b); } );
-    mymax = warpReduce( mymax, [] (real a, real b) { return math::max(a, b); } );
-
-    if (laneId == 0)
-        ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
-}
-
-} // namespace ObjectVectorKernels
-
-
 LocalObjectVector::LocalObjectVector(ParticleVector *pv, int objSize, int nObjects) :
-    LocalParticleVector(pv, objSize*nObjects), objSize(objSize), nObjects(nObjects)
+    LocalParticleVector(pv, objSize*nObjects),
+    nObjects(nObjects),
+    objSize(objSize)
 {
     if (objSize <= 0)
         die("Object vector should contain at least one particle per object instead of %d", objSize);
@@ -161,16 +125,7 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality 
     debug("Computing COM and extent OV '%s' (%s)",
           name.c_str(), getParticleVectorLocalityStr(locality).c_str());
 
-    OVview view(this, lov);
-    
-    constexpr int warpSize = 32;
-    const int nthreads = 128;
-    const int nblocks = getNblocks(view.nObjects * warpSize, nthreads);
-    
-    SAFE_KERNEL_LAUNCH(
-            ObjectVectorKernels::minMaxCom,
-            nblocks, nthreads, 0, stream,
-            view );
+    computeComExtents(this, lov, stream);
 }
 
 static std::vector<real3> getCom(DomainInfo domain,
