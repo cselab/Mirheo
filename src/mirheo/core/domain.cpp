@@ -1,5 +1,3 @@
-#include <mirheo/core/logger.h>
-
 #include "domain.h"
 
 namespace mirheo

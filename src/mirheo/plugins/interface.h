@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo_object.h>
 
 #include <mpi.h>

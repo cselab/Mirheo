@@ -14,7 +14,7 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
         
         if (!predicate(nameDesc)) continue;
 
-        debug2("Packer: adding channel '%s' (id %d)\n",
+        debug2("Packer: adding channel '%s' (id %d)",
                nameDesc.first.c_str(), nChannels);
 
         auto varPtr = getDevPtr(desc->varDataPtr);

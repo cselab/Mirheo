@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <vector_types.h>
 
 namespace mirheo
 {

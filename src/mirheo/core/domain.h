@@ -4,7 +4,6 @@
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
 #include <mpi.h>
-#include <cuda_runtime.h>
 #include <vector_types.h>
 
 namespace mirheo

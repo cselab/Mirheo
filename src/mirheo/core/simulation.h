@@ -2,8 +2,6 @@
 
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/domain.h>
-#include <mirheo/core/logger.h>
 #include <mirheo/core/exchangers/exchanger_interfaces.h>
 #include <mirheo/core/mirheo_object.h>
 
