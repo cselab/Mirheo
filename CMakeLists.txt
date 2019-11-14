@@ -141,12 +141,32 @@ endif()
 # set_target_properties(${LIB_MIR}                  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 # Setup compiler flags
-set(WARNING_FLAGS "-Wall -Wextra -Wno-unknown-pragmas -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g ${WARNING_FLAGS} -pedantic ")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda  --compiler-options \"${WARNING_FLAGS}\"")
-set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG --use_fast_math -lineinfo -g")
-set(CMAKE_CUDA_FLAGS_DEBUG "-O0 -G -g")
 
+set(cxx_flags -g)
+set(cuda_flags --expt-extended-lambda)
+
+set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -Werror -pedantic)
+set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror")
+
+target_compile_options(${LIB_MIR_CORE} PRIVATE
+  $<$<COMPILE_LANGUAGE:CXX>:${cxx_private_flags}>
+  $<$<COMPILE_LANGUAGE:CUDA>:${cuda_private_flags}>
+  )
+
+target_compile_options(${LIB_MIR_CORE_AND_PLUGINS} PRIVATE
+  $<$<COMPILE_LANGUAGE:CXX>:${cxx_private_flags}>
+  $<$<COMPILE_LANGUAGE:CUDA>:${cuda_private_flags}>
+  )
+
+target_compile_options(${LIB_MIR_CORE} PUBLIC
+  $<$<COMPILE_LANGUAGE:CXX>:${cxx_flags}>
+  $<$<COMPILE_LANGUAGE:CUDA>:${cuda_flags}
+                             $<$<CONFIG:DEBUG>:-O0;-g;-G>
+			     $<$<CONFIG:RELEASE>:-g;-DNDEBUG;--use_fast_math;-lineinfo>
+			     >
+  )
+
+# Set options
 
 if (DOUBLE_PRECISION)
   target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_DOUBLE_PRECISION)
@@ -198,4 +218,4 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # uncomment to profile time for each target
-#set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E /usr/bin/time")
+#set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
