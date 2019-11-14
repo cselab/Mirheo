@@ -12,7 +12,7 @@ Bulk Solvent
 ============
 
 Periodic Poiseuille flow in a periodic domain in every direction, with solvent only.
-Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+Timings are based on the average time-step wall time, measured from the :any:`createStats` plugin.
 
 .. figure:: ../images/strong_solvent.png
     :figclass: align-center
@@ -35,7 +35,7 @@ Bulk Blood
 ==========
 
 Periodic Poiseuille flow for blood with 45% Hematocrite in a periodic domain in every direction.
-Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+Timings are based on the average time-step wall time, measured from the :any:`createStats` plugin.
 
 .. figure:: ../images/strong_blood.png
     :figclass: align-center
@@ -64,7 +64,7 @@ Poiseuille Flow
 ===============
 
 Poiseuille flow between two plates (walls), with solvent only.
-Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+Timings are based on the average time-step wall time, measured from the :any:`createStats` plugin.
 
 .. figure:: ../images/strong_walls.png
     :figclass: align-center
@@ -85,7 +85,7 @@ Rigid Objects suspension
 ========================
 
 Periodic Poiseuille flow for rigid suspensions in a periodic domain.
-Timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin.
+Timings are based on the average time-step wall time, measured from the :any:`createStats` plugin.
 
 .. figure:: ../images/strong_rigids.png
     :figclass: align-center
@@ -106,7 +106,7 @@ I/O overlap with computation
 ============================
 
 Data dump every 100 steps for the periodic Poiseuille flow benchmark.
-Computation timings are based on the average time-step wall time, measured from the :any:`SimulationStats` plugin when no I/O is performed.
+Computation timings are based on the average time-step wall time, measured from the :any:`createStats` plugin when no I/O is performed.
 The I/O timings are extracted from the log files.
 The total timings are based on the average time-step wall time when I/O is active.
 

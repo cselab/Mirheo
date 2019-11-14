@@ -464,7 +464,9 @@ void exportPlugins(py::module& m)
     )");
 
          
-    py::handlers_class<PluginFactory::PinObjectMock>(m, "PinObject", pysim)
+    py::handlers_class<PluginFactory::PinObjectMock>(m, "PinObject", pysim, R"(
+        Contains the special value `Unrestricted` for unrestricted axes in :any:`createPinObject`.
+    )")
         .def_property_readonly_static("Unrestricted", [](py::object) { return PluginFactory::PinObjectMock::Unrestricted; }, R"(
         Unrestricted
     )");

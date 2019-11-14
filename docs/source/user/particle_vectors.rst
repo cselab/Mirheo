@@ -11,7 +11,7 @@ apply integrators, plugins, etc. to the PVs.
 Each particle in the PV keeps its coordinate, velocity and force.
 Additional quantities may also be stored in a form of extra channels.
 These quantities are usually added and used by specific handlers, and can in principle be written
-in XDMF format (:any:`Average3D`), see more details in the Developer documentation.
+in XDMF format (:any:`createDumpParticles`), see more details in the Developer documentation.
 
 A common special case of a :any:`ParticleVector` is an :any:`ObjectVector` (or OV).
 The OV **is** a Particle Vector with the particles separated into groups (objects) of the same size.
