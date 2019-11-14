@@ -22,7 +22,7 @@ constexpr int tag = 4243;
 
 using VarVector = mpark::variant<
 #define MAKE_WRAPPER(a) std::vector<a>
-    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 

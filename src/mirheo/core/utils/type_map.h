@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-#define TYPE_TABLE__(OP, SEP)                   \
+#define MIRHEO_TYPE_TABLE__(OP, SEP)            \
     OP(int)          SEP                        \
     OP(int64_t)      SEP                        \
     OP(float)        SEP                        \
@@ -28,9 +28,9 @@ namespace mirheo
     OP(Force)
 
 
-#define TYPE_TABLE(OP) TYPE_TABLE__(OP, )
+#define MIRHEO_TYPE_TABLE(OP) MIRHEO_TYPE_TABLE__(OP, )
 #define COMMA ,
-#define TYPE_TABLE_COMMA(OP) TYPE_TABLE__(OP, COMMA)
+#define MIRHEO_TYPE_TABLE_COMMA(OP) MIRHEO_TYPE_TABLE__(OP, COMMA)
 
 
 template<class T>
@@ -38,13 +38,13 @@ struct DataTypeWrapper {using type = T;};
 
 using TypeDescriptor = mpark::variant<
 #define MAKE_WRAPPER(a) DataTypeWrapper<a>
-    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 
 using CudaVarPtr = cuda_variant::variant<
 #define MAKE_WRAPPER(a) a*
-    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 

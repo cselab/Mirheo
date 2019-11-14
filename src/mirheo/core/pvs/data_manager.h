@@ -17,7 +17,7 @@ namespace mirheo
 
 using VarPinnedBufferPtr = mpark::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
-    TYPE_TABLE_COMMA(MAKE_WRAPPER)
+    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 

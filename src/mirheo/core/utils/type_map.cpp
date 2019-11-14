@@ -7,7 +7,7 @@ struct VisitorToStr
 {
 #define TYPE2STR(Type) std::string operator()(const DataTypeWrapper<Type>&) const {return #Type ;}
 
-    TYPE_TABLE(TYPE2STR)
+    MIRHEO_TYPE_TABLE(TYPE2STR)
     
 #undef TYPE2STR
 };
@@ -21,7 +21,7 @@ TypeDescriptor stringToTypeDescriptor(const std::string& str)
 {
 #define IF_ENTRY(Type) if (str == #Type) return { DataTypeWrapper<Type>() };
 
-    TYPE_TABLE(IF_ENTRY);
+    MIRHEO_TYPE_TABLE(IF_ENTRY);
 
 #undef IF_ENTRY
 
