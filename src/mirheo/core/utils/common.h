@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 
 namespace mirheo
@@ -11,6 +12,9 @@ namespace mirheo
  */
 namespace ChannelNames
 {
+    
+// per entity fields (particles or objects)
+static const std::string globalIds   = "ids";
 
 // per particle fields
 static const std::string positions     = "__positions";
@@ -19,6 +23,9 @@ static const std::string forces        = "__forces";
 static const std::string stresses      = "stresses";
 static const std::string densities     = "densities";
 static const std::string oldPositions  = "old_positions";
+
+static const std::vector<std::string> reservedParticleFields =
+    {globalIds, positions, velocities, forces, stresses, densities, oldPositions};
 
 // per object fields
 static const std::string motions     = "motions";
@@ -33,15 +40,18 @@ static const std::string areas          = "areas";
 static const std::string meanCurvatures = "meanCurvatures";
 static const std::string lenThetaTot    = "lenThetaTot";
 
+static const std::vector<std::string> reservedObjectFields =
+    {globalIds, motions, oldMotions, comExtents, areaVolumes, membraneTypeId,
+     areas, meanCurvatures, lenThetaTot};
+
 // per bisegment data
 static const std::string polyStates    = "states";
 static const std::string energies      = "energies";
 static const std::string rodKappa      = "biseg_kappa";
 static const std::string rodTau_l      = "biseg_tau_l";
 
-    
-// per entity (particles or objects)
-static const std::string globalIds   = "ids";
+static const std::vector<std::string> reservedBisegmentFields =
+    {polyStates, energies, rodKappa, rodTau_l};
 
 
 namespace XDMF
