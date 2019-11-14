@@ -6,7 +6,6 @@
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
-#include <mirheo/core/utils/type_map.h>
 #include <mirheo/core/utils/type_traits.h>
 
 #include <extern/cub/cub/device/device_scan.cuh>

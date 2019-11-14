@@ -2,11 +2,6 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/rigid/rigid_motion.h>
-#include <mirheo/core/utils/cuda_variant.h>
-
-#include <extern/variant/include/mpark/variant.hpp>
-
-#include <string>
 
 namespace mirheo
 {
@@ -29,26 +24,7 @@ namespace mirheo
 
 
 #define MIRHEO_TYPE_TABLE(OP) MIRHEO_TYPE_TABLE__(OP, )
-#define MIRHEO_COMMA ,
-#define MIRHEO_TYPE_TABLE_COMMA(OP) MIRHEO_TYPE_TABLE__(OP, MIRHEO_COMMA)
-
-
-template<class T>
-struct DataTypeWrapper {using type = T;};
-
-using TypeDescriptor = mpark::variant<
-#define MAKE_WRAPPER(a) DataTypeWrapper<a>
-    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
-#undef MAKE_WRAPPER
-    >;
-
-using CudaVarPtr = cuda_variant::variant<
-#define MAKE_WRAPPER(a) a*
-    MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
-#undef MAKE_WRAPPER
-    >;
-
-std::string typeDescriptorToString(const TypeDescriptor& desc);
-TypeDescriptor stringToTypeDescriptor(const std::string& str);
+#define COMMA ,
+#define MIRHEO_TYPE_TABLE_COMMA(OP) MIRHEO_TYPE_TABLE__(OP, COMMA)
 
 } // namespace mirheo

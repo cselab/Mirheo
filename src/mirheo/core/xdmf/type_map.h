@@ -3,7 +3,7 @@
 #include "channel.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/type_map.h>
+#include <mirheo/core/types/type_list.h>
 
 namespace mirheo
 {

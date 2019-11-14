@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mirheo/core/utils/type_map.h>
+#include <mirheo/core/types/variant_type_wrapper.h>
 
 #include <hdf5.h>
 #include <string>

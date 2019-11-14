@@ -2,7 +2,6 @@
 
 #include <mirheo/core/domain.h>
 #include <mirheo/core/utils/type_shift.h>
-#include <mirheo/core/utils/type_map.h>
 #include <mirheo/core/pvs/data_manager.h>
 
 #include <mpi.h>
