@@ -12,7 +12,14 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* prepend macros with `MIRHEO_`
+* **internal changes**
+  * more modern CMakeLists
+  * remove unneeded includes
+  * reduce compilation time: do not include `std::chrono`
+  * reduce compilation time: do not bind all plugin classes
 
 ### v1.3.1
 
