@@ -29,8 +29,8 @@ namespace mirheo
 
 
 #define MIRHEO_TYPE_TABLE(OP) MIRHEO_TYPE_TABLE__(OP, )
-#define COMMA ,
-#define MIRHEO_TYPE_TABLE_COMMA(OP) MIRHEO_TYPE_TABLE__(OP, COMMA)
+#define MIRHEO_COMMA ,
+#define MIRHEO_TYPE_TABLE_COMMA(OP) MIRHEO_TYPE_TABLE__(OP, MIRHEO_COMMA)
 
 
 template<class T>
