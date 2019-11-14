@@ -19,9 +19,7 @@ namespace mirheo
 template <class KernelType>
 static std::unique_ptr<Interaction>
 createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
-                         const KernelType& kernel,
-                         const VarStressParams& varStressParams,
-                         __UNUSED typename std::enable_if<outputsForce<KernelType>::value, int>::type enabler = 0)
+                         const KernelType& kernel,const VarStressParams& varStressParams)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
@@ -36,10 +34,8 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, real rc
 
 template <class KernelType>
 static std::unique_ptr<Interaction>
-createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
-                         const KernelType& kernel,
-                         const VarStressParams& varStressParams,
-                         __UNUSED typename std::enable_if<!outputsForce<KernelType>::value, int>::type enabler = 0)
+createPairwiseFromKernelNoStress(const MirState *state, const std::string& name, real rc,
+                         const KernelType& kernel, const VarStressParams& varStressParams)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
@@ -83,7 +79,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
         DensityKernelType densityKernel;
         PairwiseDensity<DensityKernelType> density(rc, densityKernel);
 
-        return createPairwiseFromKernel(state, name, rc, density, varStressParams);
+        return createPairwiseFromKernelNoStress(state, name, rc, density, varStressParams);
     }, params.varDensityKernelParams);
 }
 
@@ -219,8 +215,7 @@ struct SpecificPairInfo
 };
 
 template <class KernelType>
-static void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info,
-                                  __UNUSED typename std::enable_if<outputsForce<KernelType>::value, int>::type enabler = 0)
+static void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
     {
@@ -247,8 +242,7 @@ static void setSpecificFromKernel(const KernelType& kernel, const VarStressParam
 }
 
 template <class KernelType>
-static  void setSpecificFromKernel(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info,
-                                   __UNUSED typename std::enable_if<!outputsForce<KernelType>::value, int>::type enabler = 0)
+static void setSpecificFromKernelNoStress(const KernelType& kernel, const VarStressParams& varStressParams, SpecificPairInfo info)
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: can not output stresses.");
@@ -298,7 +292,7 @@ static void setSpecificFromParams(__UNUSED const MirState *state, real rc, const
         DensityKernelType densityKernel;
         PairwiseDensity<DensityKernelType> density(rc, densityKernel);
 
-        setSpecificFromKernel(density, varStressParams, info);
+        setSpecificFromKernelNoStress(density, varStressParams, info);
     }, params.varDensityKernelParams);
 }
 
