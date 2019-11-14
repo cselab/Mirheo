@@ -16,7 +16,7 @@ class Average3D : public SimulationPlugin
 public:
     enum class ChannelType : int
     {
-        Scalar, Vector_real3, Vector_real4, Tensor6
+     Scalar, Vector_real3, Vector_real4, Tensor6, None
     };
 
     struct HostChannelsInfo
@@ -42,21 +42,22 @@ public:
 
 protected:
     std::vector<std::string> pvNames;
-    int nSamples;
+    std::vector<ParticleVector*> pvs;
+
+    int nSamples {0};
     int sampleEvery, dumpEvery;
     int3 resolution;
     real3 binSize;
     int3 rank3D, nranks3D;
 
     DeviceBuffer<real>   density;
-    PinnedBuffer<double>  accumulated_density;
-    std::vector<char> sendBuffer;
-
-    std::vector<ParticleVector*> pvs;
+    PinnedBuffer<double> accumulated_density;
 
     HostChannelsInfo channelsInfo;
     std::vector<PinnedBuffer<double>> accumulated_average;
-    
+
+    std::vector<char> sendBuffer;
+
     int getNcomponents(ChannelType type) const;
     void accumulateSampledAndClear(cudaStream_t stream);
     void scaleSampled(cudaStream_t stream);

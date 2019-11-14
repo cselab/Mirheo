@@ -50,27 +50,66 @@ Average3D::Average3D(const MirState *state, std::string name,
     pvNames(pvNames),
     sampleEvery(sampleEvery),
     dumpEvery(dumpEvery),
-    binSize(binSize),
-    nSamples(0)
+    binSize(binSize)
 {
-    channelsInfo.n = channelTypes.size();
-    channelsInfo.types.resize_anew(channelsInfo.n);
-    channelsInfo.average.resize(channelsInfo.n);
-    channelsInfo.averagePtrs.resize_anew(channelsInfo.n);
-    channelsInfo.dataPtrs.resize_anew(channelsInfo.n);
+    const size_t n = channelNames.size();
+    
+    channelsInfo.n = n;
+    channelsInfo.types      .resize_anew(n);
+    channelsInfo.averagePtrs.resize_anew(n);
+    channelsInfo.dataPtrs   .resize_anew(n);
+    channelsInfo.average    .resize     (n);
+    accumulated_average     .resize     (n);
 
-    accumulated_average.resize(channelsInfo.n);
-
-    for (int i = 0; i < channelsInfo.n; ++i)
+    for (size_t i = 0; i < n; ++i)
         channelsInfo.types[i] = channelTypes[i];
 
-    channelsInfo.names = channelNames;
+    channelsInfo.names = std::move(channelNames);
+}
+
+namespace average3DDetails
+{
+template <typename T>
+static Average3D::ChannelType getChannelType(T) {return Average3D::ChannelType::None;}
+static Average3D::ChannelType getChannelType(real )  {return Average3D::ChannelType::Scalar;}
+static Average3D::ChannelType getChannelType(real3)  {return Average3D::ChannelType::Vector_real3;}
+static Average3D::ChannelType getChannelType(real4)  {return Average3D::ChannelType::Vector_real4;}
+static Average3D::ChannelType getChannelType(Force)  {return Average3D::ChannelType::Vector_real4;}
+static Average3D::ChannelType getChannelType(Stress) {return Average3D::ChannelType::Tensor6;}
+} // average3DDetails
+
+static Average3D::ChannelType getChannelTypeFromChannelDesc(const DataManager::ChannelDescription& desc)
+{
+    auto type = mpark::visit([](auto *pinnedBufferPtr)
+    {
+        using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
+        return average3DDetails::getChannelType(T());
+    }, desc.varDataPtr);
+
+    if (type == Average3D::ChannelType::None)
+        die ("Invalid channel type"); // TODO
+
+    return type;
 }
 
 void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    for (const auto& pvName : pvNames)
+        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
+
+    // setup types from available channels
+    for (int i = 0; i < channelsInfo.n; ++i)
+    {
+        const std::string& channelName = channelsInfo.names[i];
+        const LocalParticleVector *lpv = pvs[i]->local();
+        const auto& desc = lpv->dataPerParticle.getChannelDescOrDie(channelName);
+        
+        const ChannelType type = getChannelTypeFromChannelDesc(desc);
+        channelsInfo.types[i] = type;
+    }
+    
     rank3D   = simulation->rank3D;
     nranks3D = simulation->nranks3D;
     
@@ -88,12 +127,13 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     density.clear(defaultStream);
 
     accumulated_density.resize_anew(total);
-    accumulated_density.clear(0);
+    accumulated_density.clear(defaultStream);
     
     std::string allChannels("density");
 
-    for (int i = 0; i < channelsInfo.n; i++) {
-        int components = getNcomponents(channelsInfo.types[i]);
+    for (int i = 0; i < channelsInfo.n; ++i)
+    {
+        const int components = getNcomponents(channelsInfo.types[i]);
         
         channelsInfo.average[i].resize_anew(components * total);
         accumulated_average [i].resize_anew(components * total);
@@ -108,9 +148,6 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
 
     channelsInfo.averagePtrs.uploadToDevice(defaultStream);
     channelsInfo.types.uploadToDevice(defaultStream);
-
-    for (const auto& pvName : pvNames)
-        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
          name.c_str(), pvs.size(), allChannels.c_str(),
@@ -148,7 +185,7 @@ void Average3D::accumulateSampledAndClear(cudaStream_t stream)
 
     for (int i = 0; i < channelsInfo.n; i++) {
 
-        int components = getNcomponents(channelsInfo.types[i]);
+        const int components = getNcomponents(channelsInfo.types[i]);
 
         accumulateOneArray
             (ncells, components,
@@ -183,7 +220,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
     for (int i = 0; i < channelsInfo.n; i++) {
         auto& data = accumulated_average[i];
 
-        int components = getNcomponents(channelsInfo.types[i]);
+        const int components = getNcomponents(channelsInfo.types[i]);
 
         SAFE_KERNEL_LAUNCH
             (SamplingHelpersKernels::scaleVec,
