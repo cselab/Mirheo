@@ -17,19 +17,17 @@ namespace mirheo
 namespace AverageFlowKernels
 {
 
-__global__ void sample(
-        PVview pvView, CellListInfo cinfo,
-        real* avgDensity,
-        ChannelsInfo channelsInfo)
+__global__ void sample(PVview pvView, CellListInfo cinfo,
+                       real *avgDensity, ChannelsInfo channelsInfo)
 {
     const int pid = threadIdx.x + blockIdx.x*blockDim.x;
     if (pid >= pvView.size) return;
 
-    Particle p(pvView.readParticle(pid));
+    const Particle p(pvView.readParticle(pid));
 
-    int cid = cinfo.getCellId(p.r);
+    const int cid = cinfo.getCellId(p.r);
 
-    atomicAdd(avgDensity + cid, 1);
+    atomicAdd(avgDensity + cid, 1.0_r);
 
     SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
 }
@@ -173,14 +171,14 @@ void Average3D::afterIntegration(cudaStream_t stream)
 
     accumulateSampledAndClear(stream);
     
-    nSamples++;
+    ++nSamples;
 }
 
 void Average3D::scaleSampled(cudaStream_t stream)
 {
-    const int nthreads = 128;
+    constexpr int nthreads = 128;
     const int ncells = accumulated_density.size();
-    // Order is important here! First channels, only then dens
+    // Order is important here! First channels, only then density 
 
     for (int i = 0; i < channelsInfo.n; i++) {
         auto& data = accumulated_average[i];
@@ -214,7 +212,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     
     scaleSampled(stream);
 
-    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
+    const MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
     
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
