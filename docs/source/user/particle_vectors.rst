@@ -21,11 +21,14 @@ membrane.
 Objects are assumed to be spatially localized, so they always fully reside within a single
 MPI process. OV can be used in most of the places where a regular PV can be used, and more
 
+
+Reserved names
+==============
+
 A list of name are reserved by Mirheo.
 When a user provides a custom channel name, it needs to be different than these reserved fields:
 
 .. include:: reserved_fields.rst
-
 
 
 Summary
