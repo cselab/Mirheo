@@ -19,23 +19,15 @@ template <> inline bool checkType<Force> (const Average3D::ChannelType& channelT
 
 static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
 {
-    if (name == "velocity") {
-        if (channelType != Average3D::ChannelType::Vector_real4)
-            die("incompatible type for channel '%s'", name.c_str());
-        return (real*) lpv->velocities().devPtr();
-    }
-    else
-    {
-        const auto& contDesc = lpv->dataPerParticle.getChannelDescOrDie(name);
+    const auto& contDesc = lpv->dataPerParticle.getChannelDescOrDie(name);
 
-        return mpark::visit([&](auto pinnedBuff)
-        {
-            using T = typename std::remove_reference< decltype(*pinnedBuff->hostPtr()) >::type;
-            if (!checkType<T>(channelType))
-                die("incompatible type for channel '%s'", name.c_str());
-            return (real*) pinnedBuff->devPtr();
-        }, contDesc.varDataPtr);
-    }
+    return mpark::visit([&](auto pinnedBuff)
+    {
+        using T = typename std::remove_reference< decltype(*pinnedBuff->hostPtr()) >::type;
+        if (!checkType<T>(channelType))
+            die("incompatible type for channel '%s'", name.c_str());
+        return (real*) pinnedBuff->devPtr();
+    }, contDesc.varDataPtr);
 }
 
 struct ChannelsInfo
