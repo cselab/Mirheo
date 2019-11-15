@@ -4,6 +4,7 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/macros.h>
 
 namespace mirheo
 {

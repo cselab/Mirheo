@@ -2,6 +2,7 @@
 
 #include <mirheo/core/domain.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/macros.h>
 #include <mirheo/core/types/type_list.h>
 
 namespace mirheo

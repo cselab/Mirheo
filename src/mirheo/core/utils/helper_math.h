@@ -26,9 +26,8 @@
 
 #include <mirheo/core/datatypes.h>
 
-#if defined(__CUDACC__)
 #include <cuda_runtime.h>
-#else
+#ifndef __CUDACC__
 #include <cmath>
 #include <cstdlib>
 #endif

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mirheo/core/logger.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/vec_traits.h>
 
