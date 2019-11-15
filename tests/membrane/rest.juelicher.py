@@ -46,7 +46,7 @@ u.registerPlugins(mir.Plugins.createForceSaver("forceSaver", pv_rbc))
 u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh("meshdump",
                                                           pv_rbc,
                                                           dump_every,
-                                                          ["areas", "meanCurvatures", "forces"],
+                                                          ["areas", "mean_curvatures", "forces"],
                                                           "h5/rbc-"))
 
 u.run(5000)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 
 namespace mirheo
@@ -7,58 +8,64 @@ namespace mirheo
 
 /**
  * Channel names used in several places of the program
- * names starting with "__" are internal channel names 
  */
 namespace ChannelNames
 {
 
+// per entity fields (particles or objects)
+extern const std::string globalIds;
+
 // per particle fields
-static const std::string positions     = "__positions";
-static const std::string velocities    = "__velocities";
-static const std::string forces        = "__forces";
-static const std::string stresses      = "stresses";
-static const std::string densities     = "densities";
-static const std::string oldPositions  = "old_positions";
+extern const std::string positions;
+extern const std::string velocities;
+extern const std::string forces;
+extern const std::string stresses;
+extern const std::string densities;
+extern const std::string oldPositions;
 
 // per object fields
-static const std::string motions     = "motions";
-static const std::string oldMotions  = "old_motions";
-static const std::string comExtents  = "com_extents";
-static const std::string areaVolumes = "area_volumes";
+extern const std::string motions;
+extern const std::string oldMotions;
+extern const std::string comExtents;
+extern const std::string areaVolumes;
 
-static const std::string membraneTypeId = "membrane_type_id";
+extern const std::string membraneTypeId;
     
 // per object, specific to Juelicher bending + ADE    
-static const std::string areas          = "areas";
-static const std::string meanCurvatures = "meanCurvatures";
-static const std::string lenThetaTot    = "lenThetaTot";
+extern const std::string areas;
+extern const std::string meanCurvatures;
+extern const std::string lenThetaTot;
 
 // per bisegment data
-static const std::string polyStates    = "states";
-static const std::string energies      = "energies";
-static const std::string rodKappa      = "biseg_kappa";
-static const std::string rodTau_l      = "biseg_tau_l";
+extern const std::string polyStates;
+extern const std::string energies;
+extern const std::string rodKappa;
+extern const std::string rodTau_l;
 
-    
-// per entity (particles or objects)
-static const std::string globalIds   = "ids";
+extern const std::vector<std::string> reservedParticleFields;
+extern const std::vector<std::string> reservedObjectFields;
+extern const std::vector<std::string> reservedBisegmentFields;
 
+bool isReserved    (const std::string& name, const std::vector<std::string>& reservedNames);
+void failIfReserved(const std::string& name, const std::vector<std::string>& reservedNames);
 
+// channel names used in the xdmf format
 namespace XDMF
 {
-static const std::string position = "position";
-static const std::string velocity = "velocity";
-static const std::string ids      = "ids";
+extern const std::string position;
+extern const std::string velocity;
+extern const std::string ids;
 namespace Motions
 {
-static const std::string quaternion = "quaternion";
-static const std::string velocity   = "velocity";
-static const std::string omega      = "omega";
-static const std::string force      = "force";
-static const std::string torque     = "torque";
+extern const std::string quaternion;
+extern const std::string velocity;
+extern const std::string omega;
+extern const std::string force;
+extern const std::string torque;
 } // namespace Motions
 } // namespace XDMF
 } // namespace ChannelNames
+
 
 
 enum class CheckpointIdAdvanceMode

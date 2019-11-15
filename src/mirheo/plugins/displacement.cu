@@ -48,12 +48,15 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
+    ChannelNames::failIfReserved(displacementChannelName,  ChannelNames::reservedParticleFields);
+    ChannelNames::failIfReserved(savedPositionChannelName, ChannelNames::reservedParticleFields);
+
     pv->requireDataPerParticle<real3>(displacementChannelName,
-                                       DataManager::PersistenceMode::Active);
+                                      DataManager::PersistenceMode::Active);
 
     pv->requireDataPerParticle<real4>(savedPositionChannelName,
-                                       DataManager::PersistenceMode::Active,
-                                       DataManager::ShiftMode::Active);
+                                      DataManager::PersistenceMode::Active,
+                                      DataManager::ShiftMode::Active);
 
     PVview view(pv, pv->local());
     const int nthreads = 128;    

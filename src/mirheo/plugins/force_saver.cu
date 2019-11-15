@@ -2,6 +2,7 @@
 
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/pvs/views/pv.h>
 
@@ -51,6 +52,8 @@ void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
+    ChannelNames::failIfReserved(fieldName, ChannelNames::reservedParticleFields);
+    
     pv->requireDataPerParticle<real3>(fieldName, DataManager::PersistenceMode::None);
 }
 

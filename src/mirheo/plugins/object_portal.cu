@@ -146,6 +146,8 @@ ObjectPortalCommon::ObjectPortalCommon(
     interCommExternal(interCommExternal),
     packer(std::move(packPredicate))
 {
+    ChannelNames::failIfReserved(uuidChannelName, ChannelNames::reservedObjectFields);
+
     int flag;
     MPI_Check( MPI_Comm_test_inter(interCommExternal, &flag) );
     if (!flag)
@@ -186,6 +188,7 @@ ObjectPortalSource::ObjectPortalSource(
     shift(state->domain.local2global(dst - src))  // (src local --> src global shift)
                                                   // + (src global --> dst global)
 {
+    ChannelNames::failIfReserved(oldSideChannelName, ChannelNames::reservedObjectFields);
     uuidCounter.clearDevice(defaultStream);
 }
 

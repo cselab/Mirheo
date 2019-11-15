@@ -3,6 +3,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
 namespace mirheo
@@ -15,7 +16,9 @@ ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const MirState *state, st
     pv(nullptr),
     channelName(channelName),
     savedName(savedName)
-{}
+{
+    ChannelNames::failIfReserved(savedName, ChannelNames::reservedParticleFields);
+}
 
 void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)
 {
