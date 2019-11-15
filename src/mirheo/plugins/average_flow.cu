@@ -96,11 +96,15 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     for (const auto& pvName : pvNames)
         pvs.push_back(simulation->getPVbyNameOrDie(pvName));
 
+    if (pvs.size() == 0)
+        die("Plugin '%s' needs at least one particle vector", name.c_str());
+
+    const LocalParticleVector *lpv = pvs[0]->local();
+    
     // setup types from available channels
     for (int i = 0; i < channelsInfo.n; ++i)
     {
         const std::string& channelName = channelsInfo.names[i];
-        const LocalParticleVector *lpv = pvs[i]->local();
         const auto& desc = lpv->dataPerParticle.getChannelDescOrDie(channelName);
         
         const ChannelType type = getChannelTypeFromChannelDesc(desc);

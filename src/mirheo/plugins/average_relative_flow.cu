@@ -197,11 +197,13 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
     if (!isTimeEvery(state, dumpEvery)) return;
 
-    for (int i = 0; i < channelsInfo.n; i++) {
+    for (int i = 0; i < channelsInfo.n; ++i)
+    {
         auto& data = accumulated_average[i];
 
-        if (channelsInfo.names[i] == "velocity") {
-            const int nthreads = 128;
+        if (channelsInfo.names[i] == ChannelNames::velocities)
+        {
+            constexpr int nthreads = 128;
 
             SAFE_KERNEL_LAUNCH
                 (SamplingHelpersKernels::correctVelocity,
@@ -211,7 +213,6 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
             averageRelativeVelocity = make_real3(0);
         }
     }
-
         
     accumulated_density.downloadFromDevice(stream, ContainersSynch::Asynch);
     accumulated_density.clearDevice(stream);
