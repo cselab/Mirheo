@@ -141,13 +141,18 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
                              "***************************************");
 }
 
+void Logger::_CUDA_die [[noreturn]](const char *filename, int line, cudaError_t code) const
+{
+    _die(filename, line, "CUDA Error on rank %d: %s", rank, cudaGetErrorString(code));
+}
+
 void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) const
 {
     char buf[MPI_MAX_ERROR_STRING];
     int nchar;
     MPI_Error_string(code, buf, &nchar);
 
-    _die(filename, line, "%s", buf);
+    _die(filename, line, "MPI Error on rank %d: %s", rank, buf);
 }
 
 void Logger::printStacktrace() const
