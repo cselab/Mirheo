@@ -8,18 +8,17 @@ namespace mirheo
 
 /**
  * Channel names used in several places of the program
- * names starting with "__" are internal channel names 
  */
 namespace ChannelNames
 {
-    
+
 // per entity fields (particles or objects)
 static const std::string globalIds   = "ids";
 
 // per particle fields
-static const std::string positions     = "__positions";
-static const std::string velocities    = "__velocities";
-static const std::string forces        = "__forces";
+static const std::string positions     = "positions";
+static const std::string velocities    = "velocities";
+static const std::string forces        = "__forces"; // forces are special, as they are not available directly for dump
 static const std::string stresses      = "stresses";
 static const std::string densities     = "densities";
 static const std::string oldPositions  = "old_positions";
@@ -34,8 +33,8 @@ static const std::string membraneTypeId = "membrane_type_id";
     
 // per object, specific to Juelicher bending + ADE    
 static const std::string areas          = "areas";
-static const std::string meanCurvatures = "meanCurvatures";
-static const std::string lenThetaTot    = "lenThetaTot";
+static const std::string meanCurvatures = "mean_curvatures";
+static const std::string lenThetaTot    = "len_theta_tot";
 
 // per bisegment data
 static const std::string polyStates    = "states";
@@ -50,18 +49,19 @@ extern const std::vector<std::string> reservedBisegmentFields;
 bool isReserved    (const std::string& name, const std::vector<std::string>& reservedNames);
 void failIfReserved(const std::string& name, const std::vector<std::string>& reservedNames);
 
+// channel names used in the xdmf format
 namespace XDMF
 {
-static const std::string position = "position";
-static const std::string velocity = "velocity";
+static const std::string position = "positions";
+static const std::string velocity = "velocities";
 static const std::string ids      = "ids";
 namespace Motions
 {
-static const std::string quaternion = "quaternion";
-static const std::string velocity   = "velocity";
-static const std::string omega      = "omega";
-static const std::string force      = "force";
-static const std::string torque     = "torque";
+static const std::string quaternion = "quaternions";
+static const std::string velocity   = "velocities";
+static const std::string omega      = "omegas";
+static const std::string force      = "forces";
+static const std::string torque     = "torques";
 } // namespace Motions
 } // namespace XDMF
 } // namespace ChannelNames
