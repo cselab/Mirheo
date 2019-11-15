@@ -1,4 +1,5 @@
 #include "xyz.h"
+#include <mirheo/core/logger.h>
 
 #include <sstream>
 #include <iomanip>
