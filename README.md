@@ -15,7 +15,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 ### unreleased
 
 * prepend macros with `MIRHEO_`
-* **internal changes**
+* **interface changes**:
+  * average flow plugins: does not need type
+  * changed channel names to a more consistent version
+  * add list of reserved channel names into docs
+* **internal changes**:
   * more modern CMakeLists
   * remove unneeded includes
   * reduce compilation time: do not include `std::chrono`
