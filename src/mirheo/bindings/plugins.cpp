@@ -141,21 +141,7 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of pairs name - type.
-                Name is the channel (per particle) name. Always available channels are:
-                    
-                * 'velocity' with type "real4"
-                
-                Type is to provide the type of quantity to extract from the channel.                                            
-                Type can also define a simple transformation from the channel internal structure                 
-                to the datatype supported in HDF5 (i.e. scalar, vector, tensor)                                  
-                Available types are:                                                                             
-                                                                                                                
-                * 'scalar': 1 real per particle
-                * 'vector': 3 reals per particle
-                * 'vector_from_float4': 4 reals per particle. 3 first reals will form the resulting vector
-                * 'tensor6': 6 reals per particle, symmetric tensor in order xx, xy, xz, yy, yz, zz
-                
+            channels: list of channel names. See `Reserved names`_.
     )");
 
     m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
@@ -175,9 +161,16 @@ void exportPlugins(py::module& m)
         .. note::
             This plugin is inactive if postprocess is disabled
                 
-        The arguments are the same as for createDumpAverage() with a few additions
+        The arguments are the same as for createDumpAverage() with a few additions:
         
         Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` that we'll work with
+            sample_every: sample quantities every this many time-steps
+            dump_every: write files every this many time-steps 
+            bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+            channels: list of channel names. See `Reserved names`_.
             relative_to_ov: take an object governing the frame of reference from this :any:`ObjectVector`
             relative_to_id: take an object governing the frame of reference with the specific ID
     )");

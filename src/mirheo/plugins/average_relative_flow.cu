@@ -41,12 +41,11 @@ __global__ void sampleRelative(
 
 AverageRelative3D::AverageRelative3D(
     const MirState *state, std::string name, std::vector<std::string> pvNames,
-    std::vector<std::string> channelNames,
-    std::vector<Average3D::ChannelType> channelTypes, int sampleEvery,
+    std::vector<std::string> channelNames, int sampleEvery,
     int dumpEvery, real3 binSize, std::string relativeOVname, int relativeID) :
-    Average3D(state, name, pvNames, channelNames, channelTypes, sampleEvery,
-              dumpEvery, binSize),
-    relativeOVname(relativeOVname), relativeID(relativeID)
+    Average3D(state, name, pvNames, channelNames, sampleEvery, dumpEvery, binSize),
+    relativeOVname(relativeOVname),
+    relativeID(relativeID)
 {}
 
 void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

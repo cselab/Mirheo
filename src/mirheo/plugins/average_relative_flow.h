@@ -21,7 +21,6 @@ public:
     AverageRelative3D(const MirState *state, std::string name,
                       std::vector<std::string> pvNames,
                       std::vector<std::string> channelNames,
-                      std::vector<Average3D::ChannelType> channelTypes,
                       int sampleEvery, int dumpEvery, real3 binSize,
                       std::string relativeOVname, int relativeID);
 

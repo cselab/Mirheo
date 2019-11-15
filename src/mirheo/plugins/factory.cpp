@@ -42,21 +42,6 @@ namespace mirheo
 namespace PluginFactory
 {
 
-static void extractChannelsInfos(const std::vector< std::pair<std::string, std::string> >& channels,
-                                 std::vector<std::string>& names, std::vector<Average3D::ChannelType>& types)
-{
-    for (auto& p : channels) {
-        names.push_back(p.first);
-        std::string typeStr = p.second;
-
-        if      (typeStr == "scalar")             types.push_back(Average3D::ChannelType::Scalar);
-        else if (typeStr == "vector")             types.push_back(Average3D::ChannelType::Vector_real3);
-        else if (typeStr == "vector_from_float4") types.push_back(Average3D::ChannelType::Vector_real4);
-        else if (typeStr == "tensor6")            types.push_back(Average3D::ChannelType::Tensor6);
-        else die("Unable to get parse channel type '%s'", typeStr.c_str());
-    }
-}
-
 static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
 {
     pvNames.reserve(pvs.size());
@@ -156,18 +141,14 @@ PairPlugin createRateOutletPlugin(bool computeTask, const MirState *state, std::
 
 PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                    int sampleEvery, int dumpEvery, real3 binSize,
-                                   std::vector< std::pair<std::string, std::string> > channels,
-                                   std::string path)
+                                   std::vector<std::string> channelNames, std::string path)
 {
-    std::vector<std::string> names, pvNames;
-    std::vector<Average3D::ChannelType> types;
-
-    extractChannelsInfos(channels, names, types);
+    std::vector<std::string> pvNames;
         
     if (computeTask) extractPVsNames(pvs, pvNames);
         
     auto simPl  = computeTask ?
-        std::make_shared<Average3D> (state, name, pvNames, names, types, sampleEvery, dumpEvery, binSize) :
+        std::make_shared<Average3D> (state, name, pvNames, channelNames, sampleEvery, dumpEvery, binSize) :
         nullptr;
 
     auto postPl = computeTask ? nullptr : std::make_shared<UniformCartesianDumper> (name, path);
@@ -178,19 +159,15 @@ PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std:
 PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                            ObjectVector* relativeToOV, int relativeToId,
                                            int sampleEvery, int dumpEvery, real3 binSize,
-                                           std::vector< std::pair<std::string, std::string> > channels,
-                                           std::string path)
+                                           std::vector<std::string> channelNames, std::string path)
 {
-    std::vector<std::string> names, pvNames;
-    std::vector<Average3D::ChannelType> types;
-
-    extractChannelsInfos(channels, names, types);
+    std::vector<std::string> pvNames;
 
     if (computeTask) extractPVsNames(pvs, pvNames);
     
     auto simPl  = computeTask ?
         std::make_shared<AverageRelative3D> (state, name, pvNames,
-                                             names, types, sampleEvery, dumpEvery,
+                                             channelNames, sampleEvery, dumpEvery,
                                              binSize, relativeToOV->name, relativeToId) :
         nullptr;
 

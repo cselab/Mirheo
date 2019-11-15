@@ -29,8 +29,7 @@ public:
     };
 
     Average3D(const MirState *state, std::string name,
-              std::vector<std::string> pvNames,
-              std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
+              std::vector<std::string> pvNames, std::vector<std::string> channelNames,
               int sampleEvery, int dumpEvery, real3 binSize);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

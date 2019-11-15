@@ -44,7 +44,7 @@ int Average3D::getNcomponents(Average3D::ChannelType type) const
 
 Average3D::Average3D(const MirState *state, std::string name,
                      std::vector<std::string> pvNames,
-                     std::vector<std::string> channelNames, std::vector<Average3D::ChannelType> channelTypes,
+                     std::vector<std::string> channelNames,
                      int sampleEvery, int dumpEvery, real3 binSize) :
     SimulationPlugin(state, name),
     pvNames(pvNames),
@@ -60,9 +60,6 @@ Average3D::Average3D(const MirState *state, std::string name,
     channelsInfo.dataPtrs   .resize_anew(n);
     channelsInfo.average    .resize     (n);
     accumulated_average     .resize     (n);
-
-    for (size_t i = 0; i < n; ++i)
-        channelsInfo.types[i] = channelTypes[i];
 
     channelsInfo.names = std::move(channelNames);
 }
@@ -146,8 +143,8 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
         allChannels += ", " + channelsInfo.names[i];
     }
 
-    channelsInfo.averagePtrs.uploadToDevice(defaultStream);
-    channelsInfo.types.uploadToDevice(defaultStream);
+    channelsInfo.averagePtrs .uploadToDevice(defaultStream);
+    channelsInfo.types       .uploadToDevice(defaultStream);
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
          name.c_str(), pvs.size(), allChannels.c_str(),

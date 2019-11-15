@@ -46,15 +46,12 @@ PairPlugin createRateOutletPlugin(bool computeTask, const MirState *state, std::
                                   real rate, std::function<real(real3)> region, real3 resolution);
 
 PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                                   int sampleEvery, int dumpEvery, real3 binSize,
-                                   std::vector< std::pair<std::string, std::string> > channels,
-                                   std::string path);
+                                   int sampleEvery, int dumpEvery, real3 binSize, std::vector<std::string> channelNames, std::string path);
 
 PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                            ObjectVector* relativeToOV, int relativeToId,
                                            int sampleEvery, int dumpEvery, real3 binSize,
-                                           std::vector< std::pair<std::string, std::string> > channels,
-                                           std::string path);
+                                           std::vector<std::string> channelNames, std::string path);
 
 PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path);
 
