@@ -43,9 +43,7 @@ bin_size     = (1., 1., 1.)
 u.registerPlugins(mir.Plugins.createStats('stats', every=500))
 
 # Create and register XDMF plugin
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv],
-                                                sample_every, dump_every, bin_size,
-                                                [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 # Run 5002 time-steps
 u.run(5002)

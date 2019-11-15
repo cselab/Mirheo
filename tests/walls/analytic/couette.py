@@ -63,7 +63,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (8., 8., 1.0)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 u.run((int)(tend/dt))
 
@@ -71,10 +71,10 @@ u.run((int)(tend/dt))
 # cd walls/analytic
 # rm -rf h5
 # mir.run --runargs "-n 2" ./couette.py --type stationary
-# mir.avgh5 xy velocity h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xy velocities h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt
 
 # nTEST: walls.analytic.couette.oscillating
 # cd walls/analytic
 # rm -rf h5
 # mir.run --runargs "-n 2" ./couette.py --type oscillating
-# mir.avgh5 xy velocity h5/solvent-00009.h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xy velocities h5/solvent-00009.h5 | awk '{print $1}' > profile.out.txt

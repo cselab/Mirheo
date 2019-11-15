@@ -37,7 +37,7 @@ sample_every = 5
 dump_every   = 100
 bin_size     = (1., 1., 1.)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv2], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv2], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 u.run(1010)
 
@@ -46,4 +46,4 @@ u.run(1010)
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./impose_velocity.py
-# mir.avgh5 yz velocity h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 yz velocities h5/solvent-0000[7-9].h5 | awk '{print $1}' > profile.out.txt

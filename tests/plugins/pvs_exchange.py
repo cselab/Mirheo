@@ -45,7 +45,7 @@ dump_every   = 1000
 bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv1], sample_every, dump_every, bin_size,
-                                                [("velocity", "vector_from_float4")], 'h5/solvent-'))
+                                                ["velocities"], 'h5/solvent-'))
 u.registerPlugins(mir.Plugins.createExchangePVSFluxPlane("color_exchanger", pv1, pv2, (1., 0., 0., 0.)))
 
 u.run(5002)

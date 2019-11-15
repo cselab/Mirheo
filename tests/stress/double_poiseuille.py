@@ -27,9 +27,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size,
-                                                [("velocity", "vector_from_float4"),
-                                                 ("stresses", "tensor6")],
-                                                'h5/solvent-'))
+                                                ["velocities", "stresses"], 'h5/solvent-'))
 
 u.run(5002)
 

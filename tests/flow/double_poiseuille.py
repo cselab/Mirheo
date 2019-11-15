@@ -26,7 +26,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 1.)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 u.run(5002)
 
@@ -34,4 +34,4 @@ u.run(5002)
 # cd flow
 # rm -rf h5
 # mir.run --runargs "-n 2" ./double_poiseuille.py
-# mir.avgh5 xz velocity h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xz velocities h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt

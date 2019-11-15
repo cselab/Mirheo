@@ -58,7 +58,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 1.0)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 u.run(7002)
 
@@ -66,10 +66,10 @@ u.run(7002)
 # cd walls/analytic
 # rm -rf h5
 # mir.run --runargs "-n 2" ./obstacle.py --type cylinder
-# mir.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
+# mir.avgh5 z velocities h5/solvent-0000[4-7].h5 > profile.out.txt
 
 # nTEST: walls.analytic.obstacle.sphere
 # cd walls/analytic
 # rm -rf h5
 # mir.run --runargs "-n 2" ./obstacle.py --type sphere
-# mir.avgh5 z velocity h5/solvent-0000[4-7].h5 > profile.out.txt
+# mir.avgh5 z velocities h5/solvent-0000[4-7].h5 > profile.out.txt

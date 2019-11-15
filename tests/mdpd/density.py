@@ -37,7 +37,7 @@ grid_sample_every = 2
 grid_dump_every   = 1000
 grid_bin_size     = (1., 1., 1.)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, [(density_channel, "scalar")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, [density_channel], 'h5/solvent-'))
 
 u.run(5002)
 

@@ -49,7 +49,7 @@ grid_sample_every = 2
 grid_dump_every   = 1000
 grid_bin_size     = (1., 1., 0.5)
 
-u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, ["velocities"], 'h5/solvent-'))
 
 
 factor = 0.08
@@ -69,4 +69,4 @@ u.run(20002)
 # cd mdpd
 # rm -rf h5
 # mir.run --runargs "-n 2" ./poiseuille.py
-# mir.avgh5 xy velocity h5/solvent-0001[5-9].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xy velocities h5/solvent-0001[5-9].h5 | awk '{print $1}' > profile.out.txt

@@ -21,7 +21,7 @@ args = parser.parse_args()
 
 
 f = fopen(args.file)
-pos = f["position"]
+pos    = f["position"]
 forces = f["forces"][()]
 (n, dim) = pos.shape
 

@@ -40,7 +40,7 @@ bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverageRelative(
     'field', [pv], pv_ell, 0,
-    sample_every, dump_every, bin_size, [("velocity", "vector_from_float4")], 'h5/solvent-'))
+    sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 u.run(5010)
 
@@ -50,6 +50,6 @@ u.run(5010)
 # cd plugins
 # rm -rf h5/
 # mir.run --runargs "-n 2" ./relative_flow.py
-# mir.avgh5 xy velocity h5/solvent-0000[2-4].h5 >  profile.out.txt
-# mir.avgh5 yz velocity h5/solvent-0000[2-4].h5 >> profile.out.txt
-# mir.avgh5 zx velocity h5/solvent-0000[2-4].h5 >> profile.out.txt
+# mir.avgh5 xy velocities h5/solvent-0000[2-4].h5 >  profile.out.txt
+# mir.avgh5 yz velocities h5/solvent-0000[2-4].h5 >> profile.out.txt
+# mir.avgh5 zx velocities h5/solvent-0000[2-4].h5 >> profile.out.txt
