@@ -2,6 +2,7 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <cstddef>
 
 namespace mirheo
 {

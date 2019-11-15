@@ -4,10 +4,9 @@ CMAKE_FLAGS ?= ""
 .PHONY: build install compile_and_copy uninstall docs test clean
 
 build:
-	mkdir -p build/
-	(cd build/ && cmake ${CMAKE_FLAGS} ../)
-	$(MAKE) -C build/
-	cd ..
+	mkdir -p build
+	(cd build && cmake ${CMAKE_FLAGS} ../)
+	(cd build && $(MAKE))
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
 # The --user argument is given only if we are not inside a virtualenv.

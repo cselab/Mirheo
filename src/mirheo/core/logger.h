@@ -105,13 +105,33 @@ public:
     void _die [[noreturn]](const char *filename, int line, const char *fmt, ...) const;
 
     /**
+     * Wrapper around _die() that prints the current CUDA error.
+     *
+     * @param filename name of the current source file
+     * @param line  line number of the source file
+     * @param code  error code (returned by a CUDA call)
+     */
+    void _CUDA_die [[noreturn]](const char *filename, int line, cudaError_t code) const;
+
+    /**
      * Wrapper around _die() that prints the current MPI error.
      *
      * @param filename name of the current source file
      * @param line  line number of the source file
-     * @param code  error code (returned by MPI call)
+     * @param code  error code (returned by an MPI call)
      */
     void _MPI_die [[noreturn]](const char *filename, int line, int code) const;
+
+    /**
+     * @param filename name of the current source file
+     * @param line  line number of the source file
+     * @param code  error code (returned by a CUDA call)
+     */
+    inline void _CUDA_Check(const char *filename, const int line, cudaError_t code) const
+    {
+        if (code != cudaSuccess)
+            _CUDA_die(filename, line, code);
+    }
 
     /**
      * Check the return code of an MPI function. Default error checking of MPI
@@ -119,23 +139,12 @@ public:
      *
      * @param filename name of the current source file
      * @param line  line number of the source file
-     * @param code  error code (returned by MPI call)
+     * @param code  error code (returned by an MPI call)
      */
     inline void _MPI_Check(const char *filename, const int line, const int code) const
     {
         if (code != MPI_SUCCESS)
             _MPI_die(filename, line, code);
-    }
-
-    /**
-     * @param filename name of the current source file
-     * @param line  line number of the source file
-     * @param code  error code (returned by CUDA call)
-     */
-    inline void _CUDA_Check(const char *filename, const int line, cudaError_t code) const
-    {
-        if (code != cudaSuccess)
-            _die(filename, line, "%s", cudaGetErrorString(code));
     }
 
 private:

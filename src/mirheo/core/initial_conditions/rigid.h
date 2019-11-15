@@ -4,6 +4,7 @@
 
 #include <mirheo/core/datatypes.h>
 
+#include <string>
 #include <vector>
 #include <vector_types.h>
 
