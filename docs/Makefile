@@ -190,4 +190,4 @@ pseudoxml:
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
-.PHGONY: prepare
+.PHONY: prepare
