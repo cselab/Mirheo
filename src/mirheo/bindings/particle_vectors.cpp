@@ -20,6 +20,15 @@ using namespace pybind11::literals;
 
 void exportParticleVectors(py::module& m)
 {
+    m.def("getReservedParticleChannels", []() {return ChannelNames::reservedParticleFields;},
+          "Return a list of reserved channel names for per particle fields");
+
+    m.def("getReservedObjectChannels", []() {return ChannelNames::reservedObjectFields;},
+          "Return a list of reserved channel names for per object fields");
+
+    m.def("getReservedBisegmentChannels", []() {return ChannelNames::reservedBisegmentFields;},
+          "Return a list of reserved channel names for per bisegment fields");
+    
     py::handlers_class<ParticleVector> pypv(m, "ParticleVector", R"(
         Basic particle vector, consists of identical disconnected particles.
     )");
