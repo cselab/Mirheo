@@ -21,6 +21,11 @@ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 default: html
 
+prepare:
+	#doxygen
+	(cd source && python mock_modules.py)
+	(cd source && python list_mirheo_reserved_field_names.py > user/reserved_fields.rst)
+
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html       to make standalone HTML files"
@@ -51,9 +56,7 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 
-html:
-	#doxygen
-	(cd source/ && python mock_modules.py)
+html: prepare
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
@@ -186,3 +189,5 @@ pseudoxml:
 	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
+
+.PHGONY: prepare
