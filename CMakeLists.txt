@@ -1,8 +1,7 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 
 if ("3.12.0" VERSION_LESS_EQUAL ${CMAKE_VERSION} AND ${CMAKE_VERSION} VERSION_LESS "3.13.0")
-  # Or if you manage to fix this somehow, go for it...
-  message(FATAL_ERROR "CUDA is broken in 3.12 due to incorrect linker flags (current version is ${CMAKE_VERSION}). \
+  message(FATAL_ERROR "CUDA is broken in CMake 3.12 due to incorrect linker flags (current version is ${CMAKE_VERSION}). \
 Please use an older or a newer version of CMake.\n\
 For more info see the following: \
 https://gitlab.kitware.com/cmake/cmake/commit/e768d96c74579c79e184027775e51b08cd77fe45")

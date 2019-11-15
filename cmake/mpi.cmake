@@ -1,4 +1,12 @@
+set(MPI_DETERMINE_LIBRARY_VERSION TRUE)
 find_package(MPI REQUIRED)
+
+if ("${MPI_CXX_LIBRARY_VERSION_STRING}" MATCHES "MPICH[^0-9\n]*3.3[\r\n\t ]")
+    message(FATAL_ERROR
+            "CONFIG ERROR: mpich 3.3 has a known bug that causes Mirheo to deadlock, "
+            "use another version instead.\nVersion output:\n"
+            "${MPI_CXX_LIBRARY_VERSION_STRING}")
+endif()
 
 # On CRAY systems things are complicated
 # This workaround should work to supply
