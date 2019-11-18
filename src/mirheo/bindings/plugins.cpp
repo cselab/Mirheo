@@ -141,7 +141,7 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of channel names. See `Reserved names`_.
+            channels: list of channel names. See :ref:`user-pv-reserved`.
     )");
 
     m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
@@ -170,7 +170,7 @@ void exportPlugins(py::module& m)
             dump_every: write files every this many time-steps 
             bin_size: bin size for sampling. The resulting quantities will be *cell-centered*
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
-            channels: list of channel names. See `Reserved names`_.
+            channels: list of channel names. See :ref:`user-pv-reserved`.
             relative_to_ov: take an object governing the frame of reference from this :any:`ObjectVector`
             relative_to_id: take an object governing the frame of reference with the specific ID
     )");
