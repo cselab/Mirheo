@@ -40,6 +40,8 @@ public:
     bool needPostproc() override { return true; }
 
 protected:
+    static const std::string numberDensityChannelName;
+    
     std::vector<std::string> pvNames;
     std::vector<ParticleVector*> pvs;
 

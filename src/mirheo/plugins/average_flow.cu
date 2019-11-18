@@ -130,7 +130,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     accumulatedNumberDensity.resize_anew(total);
     accumulatedNumberDensity.clear(defaultStream);
     
-    std::string allChannels("density");
+    std::string allChannels = numberDensityChannelName;
 
     for (int i = 0; i < channelsInfo.n; ++i)
     {
@@ -266,8 +266,10 @@ void Average3D::handshake()
     for (auto t : channelsInfo.types)
         sizes.push_back(getNcomponents(t));
     
-    SimpleSerializer::serialize(sendBuffer, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names);
+    SimpleSerializer::serialize(sendBuffer, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names, numberDensityChannelName);
     send(sendBuffer);
 }
+
+const std::string Average3D::numberDensityChannelName = "density";
 
 } // namespace mirheo

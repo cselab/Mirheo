@@ -27,14 +27,14 @@ protected:
     std::vector<XDMF::Channel> channels;
     std::unique_ptr<XDMF::UniformGrid> grid;
 
-    std::vector<double> recv_density;
-    std::vector<std::vector<double>> recv_containers;
+    std::vector<double> recvNumberDnsity;
+    std::vector<std::vector<double>> recvContainers;
     
-    std::vector<real> density;
+    std::vector<real> numberDnsity;
     std::vector<std::vector<real>> containers;
     
     std::string path;
-    const int zeroPadding = 5;
+    static constexpr int zeroPadding = 5;
 
     MPI_Comm cartComm {MPI_COMM_NULL};
 };

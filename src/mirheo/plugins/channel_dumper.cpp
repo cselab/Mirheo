@@ -33,7 +33,8 @@ void UniformCartesianDumper::handshake()
     real3 h;
     std::vector<int> sizes;
     std::vector<std::string> names;
-    SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes, names);
+    std::string numberDensityChannelName;
+    SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes, names, numberDensityChannelName);
         
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {0, 0, 0};
@@ -47,8 +48,8 @@ void UniformCartesianDumper::handshake()
     };
     
     // Density is a special channel which is always present
-    std::string allNames = "density";
-    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, "density"));
+    std::string allNames = numberDensityChannelName;
+    channels.push_back(init_channel(XDMF::Channel::DataForm::Scalar, numberDensityChannelName));
     
     for (size_t i = 0; i < sizes.size(); ++i)
     {
@@ -82,23 +83,23 @@ void UniformCartesianDumper::deserialize()
 {
     MirState::TimeType t;
     MirState::StepType timeStamp;
-    SimpleSerializer::deserialize(data, t, timeStamp, recv_density, recv_containers);
+    SimpleSerializer::deserialize(data, t, timeStamp, recvNumberDnsity, recvContainers);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
            name.c_str(), t, timeStamp);
 
-    convert(recv_density, density);    
-    channels[0].data = density.data();
+    convert(recvNumberDnsity, numberDnsity);    
+    channels[0].data = numberDnsity.data();
 
-    containers.resize(recv_containers.size());
+    containers.resize(recvContainers.size());
     
-    for (size_t i = 0; i < recv_containers.size(); ++i)
+    for (size_t i = 0; i < recvContainers.size(); ++i)
     {
-        convert(recv_containers[i], containers[i]);
+        convert(recvContainers[i], containers[i]);
         channels[i+1].data = containers[i].data();
     }
 
-    std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
+    const std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
     XDMF::write(fname, grid.get(), channels, t, cartComm);
 }
 
