@@ -124,12 +124,13 @@ void exportPlugins(py::module& m)
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = real3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
-        perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
+        perform time-averaging of the grid and dump it in `XDMF <http://www.xdmf.org/index.php/XDMF_Model_and_Format>`_ format 
+        with `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ backend.
         The quantities of interest are represented as *channels* associated with particles vectors.
         Some interactions, integrators, etc. and more notable plug-ins can add to the Particle Vectors per-particles arrays to hold different values.
         These arrays are called *channels*.
         Any such channel may be used in this plug-in, however, user must explicitely specify the type of values that the channel holds.
-        Particle number density is used to correctly average the values, so it will be sampled and written in any case.
+        Particle number density is used to correctly average the values, so it will be sampled and written in any case into the field "number_densities".
         
         .. note::
             This plugin is inactive if postprocess is disabled
@@ -177,7 +178,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
-        This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
+        This plugin will write the meshes of all the object of the specified Object Vector in a `PLY format <https://en.wikipedia.org/wiki/PLY_(file_format)>`_.
    
         .. note::
             This plugin is inactive if postprocess is disabled

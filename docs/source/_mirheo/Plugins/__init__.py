@@ -115,12 +115,13 @@ def createDumpAverage():
 
 
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
-        perform time-averaging of the grid and dump it in XDMF (LINK) format with HDF5 (LINK) backend.
+        perform time-averaging of the grid and dump it in `XDMF <http://www.xdmf.org/index.php/XDMF_Model_and_Format>`_ format 
+        with `HDF5 <https://www.hdfgroup.org/solutions/hdf5/>`_ backend.
         The quantities of interest are represented as *channels* associated with particles vectors.
         Some interactions, integrators, etc. and more notable plug-ins can add to the Particle Vectors per-particles arrays to hold different values.
         These arrays are called *channels*.
         Any such channel may be used in this plug-in, however, user must explicitely specify the type of values that the channel holds.
-        Particle number density is used to correctly average the values, so it will be sampled and written in any case.
+        Particle number density is used to correctly average the values, so it will be sampled and written in any case into the field "number_densities".
         
         .. note::
             This plugin is inactive if postprocess is disabled
@@ -174,7 +175,7 @@ def createDumpMesh():
     r"""createDumpMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
-        This plugin will write the meshes of all the object of the specified Object Vector in a PLY format (LINK).
+        This plugin will write the meshes of all the object of the specified Object Vector in a `PLY format <https://en.wikipedia.org/wiki/PLY_(file_format)>`_.
    
         .. note::
             This plugin is inactive if postprocess is disabled
