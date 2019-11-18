@@ -75,7 +75,7 @@ static Average3D::ChannelType getChannelType(Force)  {return Average3D::ChannelT
 static Average3D::ChannelType getChannelType(Stress) {return Average3D::ChannelType::Tensor6;}
 } // average3DDetails
 
-static Average3D::ChannelType getChannelTypeFromChannelDesc(const DataManager::ChannelDescription& desc)
+static Average3D::ChannelType getChannelTypeFromChannelDesc(const std::string& name, const DataManager::ChannelDescription& desc)
 {
     auto type = mpark::visit([](auto *pinnedBufferPtr)
     {
@@ -84,7 +84,7 @@ static Average3D::ChannelType getChannelTypeFromChannelDesc(const DataManager::C
     }, desc.varDataPtr);
 
     if (type == Average3D::ChannelType::None)
-        die ("Invalid channel type"); // TODO
+        die ("Channel '%s' is not supported for average flow plugin", name.c_str());
 
     return type;
 }
@@ -107,7 +107,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
         const std::string& channelName = channelsInfo.names[i];
         const auto& desc = lpv->dataPerParticle.getChannelDescOrDie(channelName);
         
-        const ChannelType type = getChannelTypeFromChannelDesc(desc);
+        const ChannelType type = getChannelTypeFromChannelDesc(channelName, desc);
         channelsInfo.types[i] = type;
     }
     
