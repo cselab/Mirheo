@@ -32,7 +32,7 @@ public:
   bool needPostproc() override { return true; }
 
 private:
-    ObjectVector* relativeOV{nullptr};
+    ObjectVector *relativeOV {nullptr};
     std::string relativeOVname;
     int relativeID;
 
@@ -41,7 +41,7 @@ private:
     int3 localResolution;
 
     std::vector<std::vector<double>> localChannels;
-    std::vector<double> localDensity;
+    std::vector<double> localNumberDensity;
 
     void extractLocalBlock();
 

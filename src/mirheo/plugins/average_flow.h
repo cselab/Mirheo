@@ -49,11 +49,11 @@ protected:
     real3 binSize;
     int3 rank3D, nranks3D;
 
-    DeviceBuffer<real>   density;
-    PinnedBuffer<double> accumulated_density;
+    DeviceBuffer<real>   numberDensity;
+    PinnedBuffer<double> accumulatedNumberDensity;
 
     HostChannelsInfo channelsInfo;
-    std::vector<PinnedBuffer<double>> accumulated_average;
+    std::vector<PinnedBuffer<double>> accumulatedAverage;
 
     std::vector<char> sendBuffer;
 

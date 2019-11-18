@@ -52,23 +52,24 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 {
     Average3D::setup(simulation, comm, interComm);
 
-    int local_size = density.size();
+    int local_size = numberDensity.size();
     int global_size = local_size * nranks;
     
-    localDensity.resize(local_size);
-    density.resize_anew(global_size);
-    accumulated_density.resize_anew(global_size);
-    density.clear(0);
+    localNumberDensity      .resize(local_size);
+    numberDensity           .resize_anew(global_size);
+    accumulatedNumberDensity.resize_anew(global_size);
+    numberDensity.clear(defaultStream);
 
     localChannels.resize(channelsInfo.n);
 
-    for (int i = 0; i < channelsInfo.n; i++) {
-        local_size = channelsInfo.average[i].size();
+    for (int i = 0; i < channelsInfo.n; ++i)
+    {
+        local_size  = channelsInfo.average[i].size();
         global_size = local_size * nranks;
         localChannels[i].resize(local_size);
         channelsInfo.average[i].resize_anew(global_size);
-        accumulated_average [i].resize_anew(global_size);
-        channelsInfo.average[i].clear(0);
+        accumulatedAverage  [i].resize_anew(global_size);
+        channelsInfo.average[i].clear(defaultStream);
         channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
     }
 
@@ -101,7 +102,7 @@ void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cud
     SAFE_KERNEL_LAUNCH
         (AverageRelativeFlowKernels::sampleRelative,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, cinfo, density.devPtr(), gpuInfo, relativeParam);
+         pvView, cinfo, numberDensity.devPtr(), gpuInfo, relativeParam);
 }
 
 void AverageRelative3D::afterIntegration(cudaStream_t stream)
@@ -175,7 +176,7 @@ void AverageRelative3D::extractLocalBlock()
                     int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
                     for (int c = 0; c < ncomponents; c++) {
-                        if (scale == scale_by_density) factor = 1.0_r / accumulated_density[scalId];
+                        if (scale == scale_by_density) factor = 1.0_r / accumulatedNumberDensity[scalId];
                         else                           factor = scale;
 
                         dest[dstId++] = channel[srcId] * factor;
@@ -187,10 +188,10 @@ void AverageRelative3D::extractLocalBlock()
     };
 
     // Order is important! Density comes first
-    oneChannel(accumulated_density, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localDensity);
+    oneChannel(accumulatedNumberDensity, Average3D::ChannelType::Scalar, 1.0 / (nSamples * binSize.x*binSize.y*binSize.z), localNumberDensity);
 
-    for (int i = 0; i < channelsInfo.n; i++)
-        oneChannel(accumulated_average[i], channelsInfo.types[i], scale_by_density, localChannels[i]);
+    for (int i = 0; i < channelsInfo.n; ++i)
+        oneChannel(accumulatedAverage[i], channelsInfo.types[i], scale_by_density, localChannels[i]);
 }
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
@@ -199,25 +200,27 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     for (int i = 0; i < channelsInfo.n; ++i)
     {
-        auto& data = accumulated_average[i];
+        auto& data = accumulatedAverage[i];
 
         if (channelsInfo.names[i] == ChannelNames::velocities)
         {
             constexpr int nthreads = 128;
-
+            const int numVec3 = data.size() / 3;
+            
             SAFE_KERNEL_LAUNCH
                 (SamplingHelpersKernels::correctVelocity,
-                 getNblocks(data.size() / 3, nthreads), nthreads, 0, stream,
-                 data.size() / 3, (double3*)data.devPtr(), accumulated_density.devPtr(), averageRelativeVelocity / (real) nSamples);
-
-            averageRelativeVelocity = make_real3(0);
+                 getNblocks(numVec3, nthreads), nthreads, 0, stream,
+                 numVec3, reinterpret_cast<double3*> (data.devPtr()),
+                 accumulatedNumberDensity.devPtr(), averageRelativeVelocity / static_cast<real>(nSamples));
+        
+            averageRelativeVelocity = make_real3(0.0_r);
         }
     }
         
-    accumulated_density.downloadFromDevice(stream, ContainersSynch::Asynch);
-    accumulated_density.clearDevice(stream);
+    accumulatedNumberDensity.downloadFromDevice(stream, ContainersSynch::Asynch);
+    accumulatedNumberDensity.clearDevice(stream);
     
-    for (auto& data : accumulated_average)
+    for (auto& data : accumulatedAverage)
     {
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
@@ -232,7 +235,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, timeStamp, localDensity, localChannels);
+    SimpleSerializer::serialize(sendBuffer, state->currentTime, timeStamp, localNumberDensity, localChannels);
     send(sendBuffer);
 }
 

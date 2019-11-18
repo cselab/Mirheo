@@ -57,7 +57,7 @@ namespace SamplingHelpersKernels
 
 __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
 {
-    for (int i=0; i<channelsInfo.n; i++)
+    for (int i = 0; i < channelsInfo.n; ++i)
     {
         if (channelsInfo.types[i] == Average3D::ChannelType::Scalar)
             atomicAdd(channelsInfo.average[i] + cid, channelsInfo.data[i][pid]);
@@ -76,32 +76,37 @@ __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInf
     }
 }
 
-__global__ static void scaleVec(int n, int fieldComponents, double *field, const double *density)
-{
-    const int id = threadIdx.x + blockIdx.x*blockDim.x;
-    if (id < n)
-        for (int c = 0; c < fieldComponents; ++c)
-            if (math::abs(density[id]) > 1e-6_r)
-                field[fieldComponents*id + c] /= density[id];
-            else
-                field[fieldComponents*id + c] = 0.0_r;
-}
-
-__global__ static void correctVelocity(int n, double3 *velocity, const double *density, const real3 correction)
+__global__ static void scaleVec(int n, int fieldComponents, double *field, const double *numberDensity)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id >= n) return;
 
-    velocity[id].x -= density[id] * correction.x;
-    velocity[id].y -= density[id] * correction.y;
-    velocity[id].z -= density[id] * correction.z;
+    const double nd = numberDensity[id];
+    
+    for (int c = 0; c < fieldComponents; ++c)
+        if (math::abs(nd) > 1e-6_r)
+            field[fieldComponents*id + c] /= nd;
+        else
+            field[fieldComponents*id + c] = 0.0_r;
 }
 
-__global__ static void scaleDensity(int n, double *density, const real factor)
+__global__ static void correctVelocity(int n, double3 *velocity, const double *numberDensity, const real3 correction)
+{
+    const int id = threadIdx.x + blockIdx.x*blockDim.x;
+    if (id >= n) return;
+
+    const double nd = numberDensity[id];
+
+    velocity[id].x -= nd * correction.x;
+    velocity[id].y -= nd * correction.y;
+    velocity[id].z -= nd * correction.z;
+}
+
+__global__ static void scaleDensity(int n, double *numberDensity, const real factor)
 {
     const int id = threadIdx.x + blockIdx.x*blockDim.x;
     if (id < n)
-        density[id] *= factor;
+        numberDensity[id] *= factor;
 }
 
 __global__ static void accumulate(int n, int fieldComponents, const real *src, double *dst)
