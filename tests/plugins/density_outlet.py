@@ -44,5 +44,5 @@ del (u)
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./density_outlet.py --max_density 0.0
-# mir.avgh5 yz density h5/solvent-00009.h5 > profile.out.txt
+# mir.avgh5 yz number_densities h5/solvent-00009.h5 > profile.out.txt
 

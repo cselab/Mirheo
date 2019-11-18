@@ -93,16 +93,16 @@ del (u)
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./velocity_inlet.py --geometry sphere  > /dev/null
-# mir.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.avgh5 yz number_densities h5/solvent-0000*.h5 > profile.out.txt
 
 # nTEST: plugins.velocity_inlet.cylinder
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./velocity_inlet.py --geometry cylinder  > /dev/null
-# mir.avgh5 yz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.avgh5 yz number_densities h5/solvent-0000*.h5 > profile.out.txt
 
 # nTEST: plugins.velocity_inlet.plane
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./velocity_inlet.py --geometry plane  > /dev/null
-# mir.avgh5 xz density h5/solvent-0000*.h5 > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-0000*.h5 > profile.out.txt

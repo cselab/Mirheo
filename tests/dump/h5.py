@@ -28,10 +28,10 @@ u.run(2)
 # cd dump
 # rm -rf h5
 # mir.run --runargs "-n 2" ./h5.py --ranks 1 1 1 
-# mir.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-00000.h5 > profile.out.txt
 
 # TEST: dump.h5.mpi
 # cd dump
 # rm -rf h5
 # mir.run --runargs "-n 4" ./h5.py --ranks 1 2 1
-# mir.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-00000.h5 > profile.out.txt

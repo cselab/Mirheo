@@ -47,5 +47,5 @@ del(u)
 # cd mdpd
 # rm -rf stats.txt
 # mir.run --runargs "-n 2" ./drop.py
-# mir.avgh5 xz density h5/solvent-00000.h5 > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-00000.h5 > profile.out.txt
 

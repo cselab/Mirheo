@@ -56,17 +56,17 @@ del(u)
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 2" ./pvs_exchange.py
-# mir.avgh5 xz density h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
 
 # nTEST: plugins.pvs_exchange.mpi
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 4" ./pvs_exchange.py --ranks 2 1 1
-# mir.avgh5 xz density h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
 
 # nTEST: plugins.pvs_exchange.mpi.zero
 # cd plugins
 # rm -rf h5
 # mir.run --runargs "-n 4" ./pvs_exchange.py --ranks 2 1 1 --fraction 0.0
-# mir.avgh5 xz density h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
+# mir.avgh5 xz number_densities h5/solvent-0000[2-4].h5 | awk '{print $1}' > profile.out.txt
 

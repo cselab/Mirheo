@@ -270,6 +270,6 @@ void Average3D::handshake()
     send(sendBuffer);
 }
 
-const std::string Average3D::numberDensityChannelName = "density";
+const std::string Average3D::numberDensityChannelName = "number_densities";
 
 } // namespace mirheo
