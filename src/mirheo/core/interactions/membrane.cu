@@ -59,7 +59,7 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
             impl = std::make_unique<MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>>
                 (state, name, commonParams, shearParams, bendingParams, growUntil, filter);
         }
-        else                         
+        else
         {
             using TriangleForce = typename decltype(shearParams)::TriangleForce <StressFreeState::Inactive>;
             

@@ -53,7 +53,7 @@ __device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
 }
 
 __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
-                                const GPU_CommonMembraneParameters& parameters)
+                                 const GPU_CommonMembraneParameters& parameters)
 {
     if (!parameters.fluctuationForces)
         return make_mReal3(0.0_mr);

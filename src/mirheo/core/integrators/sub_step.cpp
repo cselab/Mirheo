@@ -76,6 +76,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
         subIntegrator->stage2(pv, stream);
 
         subState.currentTime += subState.dt;
+        subState.currentStep ++;
     }
     
     // restore previous positions into old_particles channel
