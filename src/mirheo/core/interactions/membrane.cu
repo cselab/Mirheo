@@ -105,12 +105,6 @@ void MembraneInteraction::halo(ParticleVector *pv1,
           pv1->name.c_str());
 }
 
-void MembraneInteraction::setState(const MirState *state)
-{
-    MirSimulationObject::setState(state);
-    impl->setState(state);
-}
-
 bool MembraneInteraction::isSelfObjectInteraction() const
 {
     return true;

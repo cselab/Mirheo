@@ -29,6 +29,12 @@ std::vector<Interaction::InteractionChannel> Interaction::getOutputChannels() co
     return {{ChannelNames::forces, alwaysActive}};
 }
 
+void Interaction::setState(const MirState *state)
+{
+    MirSimulationObject::setState(state);
+    if (impl) impl->setState(state);
+}
+
 bool Interaction::isSelfObjectInteraction() const
 {
     return false;
