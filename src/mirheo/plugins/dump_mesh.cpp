@@ -65,10 +65,11 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 template<typename T>
 static MPI_Offset writeToMPI(const std::vector<T>& data, MPI_File f, MPI_Offset base, MPI_Comm comm)
 {    
-    MPI_Offset offset = 0, nbytes = data.size()*sizeof(T);
+    MPI_Offset offset = 0;
+    const MPI_Offset nbytes = data.size() * sizeof(T);
     MPI_Check( MPI_Exscan(&nbytes, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
 
-    MPI_Check( MPI_File_write_at_all(f, base + offset, data.data(), nbytes, MPI_CHAR, MPI_STATUS_IGNORE));
+    MPI_Check( MPI_File_write_at_all(f, base + offset, data.data(), nbytes, MPI_BYTE, MPI_STATUS_IGNORE));
 
     MPI_Offset ntotal = 0;
     MPI_Check( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_OFFSET, MPI_SUM, comm) );
@@ -120,7 +121,7 @@ static void writePLY(
         ss <<  "property list int int vertex_index\n";
         ss <<  "end_header\n";
 
-        std::string content = ss.str();
+        const std::string content = ss.str();
         headerSize = content.length();
         MPI_Check( MPI_File_write_at(f, fileOffset, content.c_str(), headerSize, MPI_CHAR, MPI_STATUS_IGNORE) );
     }
@@ -135,10 +136,10 @@ static void writePLY(
     MPI_Check( MPI_Exscan(&nvertices, &verticesOffset, 1, MPI_INT, MPI_SUM, comm));
 
     std::vector<int4> connectivity;
-    for(int j = 0; j < nObjects; ++j)
-        for(int i = 0; i < ntrianglesPerObject; ++i)
+    for (int j = 0; j < nObjects; ++j)
+        for (int i = 0; i < ntrianglesPerObject; ++i)
         {
-            int3 vertIds = mesh[i] + nverticesPerObject * j + verticesOffset;
+            const int3 vertIds = mesh[i] + nverticesPerObject * j + verticesOffset;
             connectivity.push_back({3, vertIds.x, vertIds.y, vertIds.z});
         }
 
