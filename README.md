@@ -12,8 +12,11 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
 
+### v1.3.2
+
+* **bug fix**: pass substep with random fluctuations had bias rng
 * prepend macros with `MIRHEO_`
 * **interface changes**:
   * average flow plugins: does not need type
