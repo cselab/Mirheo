@@ -103,9 +103,25 @@ Compile Options
 
 Additional compile options are provided through ``cmake``:
 
-* ``MEMBRANE_DOUBLE:BOOL=OFF``: Computes membrane forces (see :any:`MembraneForces`) in double prcision if set to ``ON``; default: single precision
-* ``ROD_DOUBLE:BOOL=OFF``:  Computes rod forces (see :any:`RodForces`) in double prcision if set to ``ON``; default: single precision
+* ``MEMBRANE_DOUBLE:BOOL=OFF``: Computes membrane forces (see :any:`MembraneForces`) in double precision if set to ``ON``; default: single precision
+* ``ROD_DOUBLE:BOOL=OFF``:  Computes rod forces (see :any:`RodForces`) in double precision if set to ``ON``; default: single precision
+* ``DOUBLE_PRECISION:BOOL=OFF``:  Set all the data in double precision if set to ``ON``, including force and rod forces; default: single precision
 * ``USE_NVTX:BOOL=OFF``: Add NVIDIA Tools Extension (NVTX) trace support for more profiling informations if set to ``ON``; default: no NVTX
+
+.. note::
+
+   Compile options can be passed by using the ``-D`` prefix:
+
+   .. code-block:: console
+
+      cmake -DDOUBLE_PRECISION=ON
+
+   When using the `Tools`_, the compile options can be passed using the ``CMAKE_FLAGS`` variable:
+
+   .. code-block:: console
+   
+      CMAKE_FLAGS="-DDOUBLE_PRECISION=ON" mir.make
+   
 
 
 Tools
