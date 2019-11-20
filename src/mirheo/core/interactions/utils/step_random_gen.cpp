@@ -14,10 +14,10 @@ StepRandomGen::~StepRandomGen() = default;
 
 real StepRandomGen::generate(const MirState *state)
 {        
-    if (state->currentStep != lastIteration)
+    if (state->currentTime != lastTime)
     {
-        lastIteration = state->currentStep;
-        lastSample    = udistr(gen);
+        lastTime   = state->currentTime;
+        lastSample = udistr(gen);
     }
     
     return lastSample;
@@ -25,15 +25,15 @@ real StepRandomGen::generate(const MirState *state)
     
 std::ofstream& operator<<(std::ofstream& stream, const StepRandomGen& srg)
 {
-    stream << srg.lastIteration << std::endl
-           << srg.lastSample    << std::endl
-           << srg.gen           << std::endl;
+    stream << srg.lastTime    << std::endl
+           << srg.lastSample  << std::endl
+           << srg.gen         << std::endl;
     return stream;
 }
 
 std::ifstream& operator>>(std::ifstream& stream, StepRandomGen& srg)
 {
-    stream >> srg.lastIteration
+    stream >> srg.lastTime
            >> srg.lastSample
            >> srg.gen;
     return stream;

@@ -42,6 +42,8 @@ public:
     MirSimulationObject(const MirState *state, const std::string& name);
     ~MirSimulationObject();
 
+    virtual void setState(const MirState *state);
+    
 public:
     const MirState *state;
 };

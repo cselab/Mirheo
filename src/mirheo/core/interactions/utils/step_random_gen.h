@@ -27,7 +27,7 @@ public:
     friend std::ifstream& operator>>(std::ifstream& stream,       StepRandomGen& gen);
     
 private:
-    MirState::StepType lastIteration {-1};
+    MirState::TimeType lastTime {-1};
     real lastSample;
     std::mt19937 gen;
     std::uniform_real_distribution<real> udistr;

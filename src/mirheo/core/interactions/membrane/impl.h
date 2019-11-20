@@ -42,7 +42,8 @@ static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const Commo
 
     devP.fluctuationForces = p.fluctuationForces;
 
-    if (devP.fluctuationForces) {
+    if (devP.fluctuationForces)
+    {
         const auto dt = state->dt;
         devP.seed = stepGen.generate(state);
         devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
@@ -84,11 +85,11 @@ public:
 
     ~MembraneInteractionImpl() = default;
     
-    void local (ParticleVector *pv1,
-                __UNUSED ParticleVector *pv2,
-                __UNUSED CellList *cl1,
-                __UNUSED CellList *cl2,
-                cudaStream_t stream) override
+    void local(ParticleVector *pv1,
+               __UNUSED ParticleVector *pv2,
+               __UNUSED CellList *cl1,
+               __UNUSED CellList *cl2,
+               cudaStream_t stream) override
     {
         this->precomputeQuantities(pv1, stream);
         
@@ -102,7 +103,7 @@ public:
               ov->local()->nObjects, ov->name.c_str());
 
         auto currentParams = parameters;
-        real scale = scaleFromTime(state->currentTime);
+        const real scale = scaleFromTime(state->currentTime);
         rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
@@ -113,7 +114,7 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        auto devParams = setParams(currentParams, stepGen, state);
+        const auto devParams = setParams(currentParams, stepGen, state);
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);

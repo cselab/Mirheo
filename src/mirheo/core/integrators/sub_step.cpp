@@ -63,10 +63,10 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     auto *savedStatePtr = fastForces[0]->state;
 
     for (auto& ff : fastForces)
-        ff->state = &subState;
+        ff->setState(&subState);
     
-    for (int substep = 0; substep < substeps; ++ substep) {
-
+    for (int substep = 0; substep < substeps; ++substep)
+    {
         if (substep != 0)
             pv->local()->forces().copy(slowForces, stream);        
 
@@ -83,7 +83,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 
     // restore state of fastForces
     for (auto& ff : fastForces)
-        ff->state = savedStatePtr;
+        ff->setState(savedStatePtr);
 
     invalidatePV(pv);
 }
