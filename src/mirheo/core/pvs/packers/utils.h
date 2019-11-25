@@ -16,7 +16,7 @@ __HD__ constexpr static size_t getPaddedSize(size_t datumSize, int n)
 }
 
 template <typename T, typename TPadding = real4>
-__HD__ static size_t getPaddedSize(int n)
+__HD__ constexpr static size_t getPaddedSize(int n)
 {
     return getPaddedSize<TPadding>(sizeof(T), n);
 }

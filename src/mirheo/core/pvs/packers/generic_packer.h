@@ -17,6 +17,10 @@ using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&)
 
 struct GenericPackerHandler
 {
+    /// Alignment sufficient for all types used in channels. Useful for
+    /// external codes that operate with Mirheo's packing functions. 
+    static constexpr size_t alignment = getPaddedSize<char>(1);
+
     inline __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
