@@ -1,10 +1,10 @@
 #pragma once
 
-#include <mirheo/plugins/interface.h>
-#include <string>
-#include <functional>
-
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/utils/folders.h>
+
+#include <functional>
+#include <string>
 
 namespace mirheo
 {

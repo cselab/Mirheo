@@ -1,8 +1,7 @@
 #pragma once
 
-#include "interface.h"
-
 #include <mirheo/core/containers.h>
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/utils/file_wrapper.h>
 
 #include <functional>

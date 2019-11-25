@@ -7,10 +7,10 @@
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/object_belonging/interface.h>
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/walls/interface.h>
-#include <mirheo/plugins/interface.h>
 
 #include <pybind11/stl.h>
 #include <string>

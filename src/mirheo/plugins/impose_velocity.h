@@ -1,11 +1,11 @@
 #pragma once
 
-#include <mirheo/plugins/interface.h>
 #include <mirheo/core/containers.h>
-#include <vector>
-#include <string>
-
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/core/plugins.h>
+
+#include <string>
+#include <vector>
 
 namespace mirheo
 {

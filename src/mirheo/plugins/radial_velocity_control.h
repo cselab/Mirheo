@@ -1,6 +1,6 @@
 #pragma once
 
-#include "interface.h"
+#include <mirheo/core/plugins.h>
 #include "utils/pid.h"
 
 #include <mirheo/core/containers.h>

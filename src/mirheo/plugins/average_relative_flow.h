@@ -1,10 +1,10 @@
 #pragma once
 
-#include <mirheo/plugins/interface.h>
-#include <mirheo/plugins/channel_dumper.h>
-#include <mirheo/plugins/average_flow.h>
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
+#include <mirheo/core/plugins.h>
+#include <mirheo/plugins/average_flow.h>
+#include <mirheo/plugins/channel_dumper.h>
 
 #include <vector>
 

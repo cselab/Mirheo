@@ -1,13 +1,10 @@
 #pragma once
 
-#include "interface.h"
-
 #include <mirheo/core/containers.h>
+#include <mirheo/core/plugins.h>
 
 #include <functional>
 #include <random>
-#include <string>
-#include <vector>
 
 namespace mirheo
 {

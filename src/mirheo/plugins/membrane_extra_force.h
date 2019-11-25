@@ -2,7 +2,7 @@
 
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
-#include <mirheo/plugins/interface.h>
+#include <mirheo/core/plugins.h>
 
 #include <array>
 #include <string>

@@ -1,4 +1,4 @@
-#include "interface.h"
+#include "plugins.h"
 
 #include <mirheo/core/logger.h>
 

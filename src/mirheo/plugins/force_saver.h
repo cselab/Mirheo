@@ -1,7 +1,7 @@
 #pragma once
 
+#include <mirheo/core/plugins.h>
 #include <string>
-#include "interface.h"
 
 namespace mirheo
 {

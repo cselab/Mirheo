@@ -2,20 +2,20 @@
 
 #include <mirheo/core/bouncers/interface.h>
 #include <mirheo/core/celllist.h>
+#include <mirheo/core/exchangers/api.h>
 #include <mirheo/core/initial_conditions/interface.h>
 #include <mirheo/core/integrators/interface.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/managers/interactions.h>
-#include <mirheo/core/exchangers/api.h>
+#include <mirheo/core/mirheo_state.h>
 #include <mirheo/core/object_belonging/interface.h>
-#include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/task_scheduler.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/restart_helpers.h>
 #include <mirheo/core/walls/interface.h>
-#include <mirheo/core/mirheo_state.h>
-#include <mirheo/plugins/interface.h>
 
 #include <algorithm>
 #include <cuda_profiler_api.h>

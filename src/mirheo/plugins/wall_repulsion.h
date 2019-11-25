@@ -1,9 +1,7 @@
 #pragma once
 
-#include <mirheo/plugins/interface.h>
 #include <mirheo/core/containers.h>
-#include <string>
-
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/utils/folders.h>
 
 namespace mirheo

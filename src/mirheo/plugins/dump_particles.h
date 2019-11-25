@@ -1,13 +1,13 @@
 #pragma once
 
-#include <vector>
-#include <string>
-
-#include <mirheo/plugins/interface.h>
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
+#include <mirheo/core/plugins.h>
 
 #include <mirheo/core/xdmf/xdmf.h>
+
+#include <vector>
+#include <string>
 
 namespace mirheo
 {

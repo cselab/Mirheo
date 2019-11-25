@@ -1,7 +1,6 @@
 #pragma once
 
-#include "interface.h"
-
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>

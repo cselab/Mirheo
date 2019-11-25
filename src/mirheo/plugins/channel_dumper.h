@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
+#include <mirheo/core/plugins.h>
+#include <mirheo/core/xdmf/xdmf.h>
+
 #include <memory>
 #include <mpi.h>
-
-#include <mirheo/plugins/interface.h>
-#include <mirheo/core/xdmf/xdmf.h>
+#include <vector>
 
 namespace mirheo
 {

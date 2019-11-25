@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mirheo/core/mirheo_object.h>
-#include <mirheo/plugins/interface.h>
+#include <mirheo/core/plugins.h>
 
 #include <memory>
 #include <mpi.h>

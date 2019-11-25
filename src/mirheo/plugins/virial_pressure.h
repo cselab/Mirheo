@@ -2,9 +2,8 @@
 
 #include <mirheo/core/containers.h>
 #include <mirheo/core/field/from_function.h>
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/utils/file_wrapper.h>
-
-#include "interface.h"
 
 namespace mirheo
 {

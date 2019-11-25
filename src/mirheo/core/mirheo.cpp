@@ -7,6 +7,7 @@
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/object_belonging/interface.h>
+#include <mirheo/core/plugins.h>
 #include <mirheo/core/postproc.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
@@ -17,7 +18,6 @@
 #include <mirheo/core/walls/interface.h>
 #include <mirheo/core/walls/simple_stationary_wall.h>
 #include <mirheo/core/walls/wall_helpers.h>
-#include <mirheo/plugins/interface.h>
 
 #include <cuda_runtime.h>
 #include <memory>
