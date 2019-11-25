@@ -623,6 +623,11 @@ private:
         const int conservative_estimate = static_cast<int>(std::ceil(1.1 * n + 10));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
+        debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
+                typeid(T).name(),
+                oldsize, datatype_size(),
+                _size,   datatype_size());
+
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
         CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
 
@@ -635,11 +640,6 @@ private:
 
         CUDA_Check(cudaFreeHost(hold));
         CUDA_Check(cudaFree(dold));
-
-        debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
-                typeid(T).name(),
-                oldsize, datatype_size(),
-                _size,   datatype_size());
     }
 };
 
