@@ -84,4 +84,9 @@ CheckpointInfo::CheckpointInfo(int every, const std::string& folder,
     mode(mode)
 {}
 
+bool CheckpointInfo::needDump() const
+{
+    return every != 0;
+}
+
 } // namespace mirheo

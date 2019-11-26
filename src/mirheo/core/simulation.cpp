@@ -127,7 +127,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     interactionsFinal(std::make_unique<InteractionManager>()),
     gpuAwareMPI(gpuAwareMPI)
 {
-    createFoldersCollective(cartComm, checkpointInfo.folder);
+    if (checkpointInfo.needDump())
+        createFoldersCollective(cartComm, checkpointInfo.folder);
 
     state->reinitTime();
     

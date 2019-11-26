@@ -79,6 +79,8 @@ struct CheckpointInfo
     CheckpointInfo(int every = 0, const std::string& folder = "restart/",
                    CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
 
+    bool needDump() const;
+
     int every;
     std::string folder;
     CheckpointIdAdvanceMode mode;
