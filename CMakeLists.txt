@@ -51,6 +51,7 @@ file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDI
 add_library(${LIB_MIR_CORE}             STATIC ${SOURCES_CORE})
 add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC ${SOURCES_PLUGINS})
 add_library(${LIB_MIR}                  MODULE ${SOURCES_BINDINGS})
+add_library(mirheo::core                ALIAS  ${LIB_MIR_CORE})  # :: to prevent from typos when using mirheo as a dependency.
 
 # Add pybind11
 add_subdirectory(src/extern/pybind11)
