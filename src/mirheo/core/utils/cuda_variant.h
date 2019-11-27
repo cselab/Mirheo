@@ -2,7 +2,10 @@
 
 #include "cpu_gpu_defines.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
 #include <extern/cuda_variant/variant/variant.h>
+#pragma GCC diagnostic pop
 
 #include <type_traits>
 

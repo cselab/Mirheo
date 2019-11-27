@@ -34,19 +34,19 @@ public:
     GPUcontainer& operator=(GPUcontainer&&) = delete;
     virtual ~GPUcontainer() = default;
     
-    virtual size_t size() const = 0;                                   ///< @return number of stored elements
-    virtual size_t datatype_size() const = 0;                          ///< @return sizeof( element )
+    virtual size_t size() const = 0;                                ///< @return number of stored elements
+    virtual size_t datatype_size() const = 0;                       ///< @return sizeof( element )
 
-    virtual void* genericDevPtr() const = 0;                           ///< @return device pointer to the data
+    virtual void* genericDevPtr() const = 0;                        ///< @return device pointer to the data
 
-    virtual void resize_anew(const int n) = 0;                         ///< Resize container, don't care about the data. @param n new size, must be >= 0
-    virtual void resize     (const int n, cudaStream_t stream) = 0;    ///< Resize container, keep stored data
-                                                                       ///< @param n new size, must be >= 0
-                                                                       ///< @param stream data will be copied on that CUDA stream
+    virtual void resize_anew(size_t n) = 0;                         ///< Resize container, don't care about the data. @param n new size, must be >= 0
+    virtual void resize     (size_t n, cudaStream_t stream) = 0;    ///< Resize container, keep stored data
+                                                                    ///< @param n new size, must be >= 0
+                                                                    ///< @param stream data will be copied on that CUDA stream
 
     virtual void clearDevice(cudaStream_t stream) = 0;
     
-    virtual GPUcontainer* produce() const = 0;                         ///< Create a new instance of the concrete container implementation
+    virtual GPUcontainer* produce() const = 0;                      ///< Create a new instance of the concrete container implementation
 };
 
 //==================================================================================================================
@@ -66,7 +66,7 @@ public:
 
     using value_type = T;
     
-    DeviceBuffer(int n = 0)
+    DeviceBuffer(size_t n = 0)
     {
         resize_anew(n);
     }
@@ -124,8 +124,8 @@ public:
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
-    inline void resize     (const int n, cudaStream_t stream) final { _resize(n, stream, true);  }
-    inline void resize_anew(const int n)                      final { _resize(n, 0,      false); }
+    inline void resize     (size_t n, cudaStream_t stream) final { _resize(n, stream, true);  }
+    inline void resize_anew(size_t n)                      final { _resize(n, 0,      false); }
 
     inline GPUcontainer* produce() const final { return new DeviceBuffer<T>(); }
 
@@ -188,8 +188,8 @@ public:
     }
 
 private:
-    int capacity   {0}; ///< Storage buffer size
-    int _size      {0}; ///< Number of elements stored now
+    size_t capacity   {0}; ///< Storage buffer size
+    size_t _size      {0}; ///< Number of elements stored now
     T* devptr{nullptr}; ///< Device pointer to data
 
     /**
@@ -202,16 +202,15 @@ private:
      * @param stream data will be copied on that CUDA stream
      * @param copy if we need to copy old data
      */
-    void _resize(const int n, cudaStream_t stream, bool copy)
+    void _resize(size_t n, cudaStream_t stream, bool copy)
     {
         T * dold = devptr;
-        int oldsize = _size;
+        const size_t oldsize = _size;
 
-        if (n < 0) die("Requested negative size %d", n);
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = static_cast<int>(std::ceil(1.1 * n + 10));
+        const size_t conservative_estimate = static_cast<size_t>(std::ceil(1.1 * static_cast<double>(n) + 10.0));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
@@ -246,7 +245,7 @@ template<typename T>
 class HostBuffer
 {
 public:
-    HostBuffer(int n = 0) { resize_anew(n); }
+    HostBuffer(size_t n = 0) { resize_anew(n); }
 
     HostBuffer           (const HostBuffer& b)
     {
@@ -298,11 +297,11 @@ public:
     inline T* hostPtr() const { return hostptr; }
     inline T* data()    const { return hostptr; } /// For uniformity with std::vector
 
-    inline       T& operator[](int i)       { return hostptr[i]; }
-    inline const T& operator[](int i) const { return hostptr[i]; }
+    inline       T& operator[](size_t i)       { return hostptr[i]; }
+    inline const T& operator[](size_t i) const { return hostptr[i]; }
 
-    inline void resize     (const int n) { _resize(n, true);  }
-    inline void resize_anew(const int n) { _resize(n, false); }
+    inline void resize     (size_t n) { _resize(n, true);  }
+    inline void resize_anew(size_t n) { _resize(n, false); }
 
     inline       T* begin()       { return hostptr; }          /// To support range-based loops
     inline       T* end()         { return hostptr + _size; }  /// To support range-based loops
@@ -347,15 +346,15 @@ public:
             die("Incompatible underlying datatype sizes when copying: %d %% %d != 0",
                 cont->datatype_size(), sizeof(T));
         
-        const int typeSizeFactor = cont->datatype_size() / sizeof(T);
+        const size_t typeSizeFactor = cont->datatype_size() / sizeof(T);
         
         resize(cont->size() * typeSizeFactor);
         if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont->genericDevPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
     }
     
 private:
-    int capacity     {0}; ///< Storage buffer size
-    int _size        {0}; ///< Number of elements stored now
+    size_t capacity  {0}; ///< Storage buffer size
+    size_t _size     {0}; ///< Number of elements stored now
     T* hostptr {nullptr}; ///< Host pointer to data
 
     /**
@@ -367,16 +366,15 @@ private:
      * @param n new size, must be >= 0
      * @param copy if we need to copy old data
      */
-    void _resize(const int n, bool copy)
+    void _resize(size_t n, bool copy)
     {
         T * hold = hostptr;
-        int oldsize = _size;
+        const size_t oldsize = _size;
 
-        if (n < 0) die("Requested negative size %d", n);
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = static_cast<int> (std::ceil(1.1 * n + 10));
+        const size_t conservative_estimate = static_cast<size_t> (std::ceil(1.1 * n + 10));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
@@ -419,7 +417,7 @@ public:
 
     using value_type = T;
     
-    PinnedBuffer(int n = 0)
+    PinnedBuffer(size_t n = 0)
     {
         resize_anew(n);
     }
@@ -477,8 +475,8 @@ public:
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
-    inline void resize     (const int n, cudaStream_t stream) final { _resize(n, stream, true);  }
-    inline void resize_anew(const int n)                      final { _resize(n, 0,      false); }
+    inline void resize     (size_t n, cudaStream_t stream) final { _resize(n, stream, true);  }
+    inline void resize_anew(size_t n)                      final { _resize(n, 0,      false); }
 
     inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
@@ -486,8 +484,8 @@ public:
     inline T* data()    const { return hostptr; }  /// For uniformity with std::vector
     inline T* devPtr()  const { return devptr; }   ///< @return typed device pointer to data
 
-    inline       T& operator[](int i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
-    inline const T& operator[](int i) const { return hostptr[i]; }
+    inline       T& operator[](size_t i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
+    inline const T& operator[](size_t i) const { return hostptr[i]; }
 
     
     inline       T* begin()       { return hostptr; }          /// To support range-based loops
@@ -594,8 +592,8 @@ public:
     }
 
 private:
-    int capacity     {0}; ///< Storage buffers size
-    int _size        {0}; ///< Number of elements stored now
+    size_t capacity  {0}; ///< Storage buffers size
+    size_t _size     {0}; ///< Number of elements stored now
     T* hostptr {nullptr}; ///< Host pointer to data
     T* devptr  {nullptr}; ///< Device pointer to data
 
@@ -610,17 +608,16 @@ private:
      * @param stream data will be copied on that CUDA stream
      * @param copy if we need to copy old data
      */
-    void _resize(const int n, cudaStream_t stream, bool copy)
+    void _resize(size_t n, cudaStream_t stream, bool copy)
     {
         T * hold = hostptr;
         T * dold = devptr;
-        int oldsize = _size;
+        size_t oldsize = _size;
 
-        if (n < 0) die("Requested negative size %d", n);
         _size = n;
         if (capacity >= n) return;
 
-        const int conservative_estimate = static_cast<int>(std::ceil(1.1 * n + 10));
+        const size_t conservative_estimate = static_cast<size_t>(std::ceil(1.1 * static_cast<double>(n) + 10.0));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
