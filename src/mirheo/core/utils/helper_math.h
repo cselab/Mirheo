@@ -42,8 +42,8 @@ namespace math
 {
 static inline __HD__ float  abs(float x)  {return ::fabsf(x);}
 static inline __HD__ double abs(double x) {return ::fabs (x);}
-static inline __HD__ float  abs(int x)  {return ::abs(x);}
-static inline __HD__ double abs(long x) {return ::abs(x);}
+static inline __HD__ int    abs(int x)    {return std::abs(x);}
+static inline __HD__ long   abs(long x)   {return std::abs(x);}
 
 static inline __HD__ float  sqrt(float x)  {return ::sqrtf(x);}
 static inline __HD__ double sqrt(double x) {return ::sqrt (x);}
