@@ -131,7 +131,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 
     auto positions = createRodTemplate(nSegments, a, initialMaterialFrame, centerLine, torsion);
 
-    assert(objSize == positions.size());
+    assert(objSize == (int)positions.size());
     
     for (auto& entry : com_q)
     {
