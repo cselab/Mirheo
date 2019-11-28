@@ -69,7 +69,7 @@ static MPI_Offset writeToMPI(const std::vector<T>& data, MPI_File f, MPI_Offset 
     const MPI_Offset nbytes = data.size() * sizeof(T);
     MPI_Check( MPI_Exscan(&nbytes, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
 
-    MPI_Check( MPI_File_write_at_all(f, base + offset, data.data(), nbytes, MPI_BYTE, MPI_STATUS_IGNORE));
+    MPI_Check( MPI_File_write_at_all(f, base + offset, data.data(), static_cast<int>(nbytes), MPI_BYTE, MPI_STATUS_IGNORE));
 
     MPI_Offset ntotal = 0;
     MPI_Check( MPI_Allreduce(&nbytes, &ntotal, 1, MPI_OFFSET, MPI_SUM, comm) );
@@ -122,7 +122,7 @@ static void writePLY(
         ss <<  "end_header\n";
 
         const std::string content = ss.str();
-        headerSize = content.length();
+        headerSize = static_cast<int>(content.length());
         MPI_Check( MPI_File_write_at(f, fileOffset, content.c_str(), headerSize, MPI_CHAR, MPI_STATUS_IGNORE) );
     }
 
@@ -174,7 +174,7 @@ void MeshDumper::deserialize()
 
     if (activated)
     {
-        int nObjects = vertices.size() / nvertices;
+        const int nObjects = static_cast<int>(vertices.size()) / nvertices;
         writePLY(comm, currentFname,
                 nvertices*nObjects, nvertices,
                 ntriangles*nObjects, ntriangles,

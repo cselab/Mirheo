@@ -66,7 +66,7 @@ private:
     
     static int sizeOfOne(const std::string& s)
     {
-        return (int)s.length() + sizeof(int);
+        return static_cast<int>(s.length() + sizeof(int));
     }
 
     template<typename Arg>
@@ -112,7 +112,7 @@ private:
     template<typename Vec, EnableIfNonPod<ValType<Vec>> = nullptr>
     static void packVec(char* buf, const Vec& v)
     {
-        *((int*)buf) = v.size();
+        *((int*)buf) = static_cast<int>(v.size());
         buf += sizeof(int);
         
         for (auto& element : v)

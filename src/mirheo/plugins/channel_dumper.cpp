@@ -76,7 +76,7 @@ static void convert(const std::vector<double> &src, std::vector<real> &dst)
 {
     dst.resize(src.size());
     for (size_t i = 0; i < src.size(); ++i)
-        dst[i] = src[i];
+        dst[i] = static_cast<real>(src[i]);
 }
 
 void UniformCartesianDumper::deserialize()
@@ -119,7 +119,7 @@ std::vector<int> UniformCartesianDumper::getLocalResolution() const
 {
     std::vector<int> res;
     for (auto v : grid->getGridDims()->getLocalSize())
-        res.push_back(v);
+        res.push_back(static_cast<int>(v));
     
     return res;
 }

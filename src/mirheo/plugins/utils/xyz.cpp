@@ -47,7 +47,7 @@ void writeXYZ(MPI_Comm comm, std::string fname, const real4 *positions, int np)
     MPI_Check( MPI_Exscan(&len, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
 
     MPI_Status status;
-    MPI_Check( MPI_File_write_at_all(f, offset, content.c_str(), len, MPI_CHAR, &status) );
+    MPI_Check( MPI_File_write_at_all(f, offset, content.c_str(), static_cast<int>(len), MPI_CHAR, &status) );
     MPI_Check( MPI_File_close(&f));
 }
 

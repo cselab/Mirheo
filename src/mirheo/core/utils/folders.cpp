@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-std::string getStrZeroPadded(int i, int zeroPadding)
+std::string getStrZeroPadded(long long i, int zeroPadding)
 {
     auto s = std::to_string(i);
     if (zeroPadding < static_cast<int>(s.size()))

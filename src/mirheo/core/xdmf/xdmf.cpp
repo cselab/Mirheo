@@ -17,7 +17,7 @@ namespace mirheo
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, real time, MPI_Comm comm)
+           const std::vector<Channel>& channels, MirState::TimeType time, MPI_Comm comm)
 {        
     std::string h5Filename  = filename + ".h5";
     std::string xmfFilename = filename + ".xmf";
@@ -34,7 +34,7 @@ void write(const std::string& filename, const Grid *grid,
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MPI_Comm comm)
 {
-    constexpr real arbitraryTime = -1._r;
+    constexpr MirState::TimeType arbitraryTime = -1.0;
     write(filename, grid, channels, arbitraryTime, comm);
 }
 

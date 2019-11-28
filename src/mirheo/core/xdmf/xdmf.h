@@ -15,9 +15,9 @@ namespace mirheo
 namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels, real time, MPI_Comm comm);
+           const std::vector<Channel>& channels, MirState::TimeType time, MPI_Comm comm);
 void write(const std::string& filename, const Grid *grid,
-           const std::vector<Channel>& channels,             MPI_Comm comm);
+           const std::vector<Channel>& channels,            MPI_Comm comm);
 
 
 struct VertexChannelsData

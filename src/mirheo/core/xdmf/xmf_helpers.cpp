@@ -51,7 +51,7 @@ static bool isMasterRank(MPI_Comm comm)
     return (rank == 0);
 }
         
-void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, real time)
+void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, MirState::TimeType time)
 {
     if (isMasterRank(comm)) {
         pugi::xml_document doc;

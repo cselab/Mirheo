@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-std::string getStrZeroPadded(int i, int zeroPadding = 5);
+std::string getStrZeroPadded(long long i, int zeroPadding = 5);
 
 std::vector<std::string> splitByDelim(std::string str, char delim = ',');
 

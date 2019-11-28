@@ -74,7 +74,7 @@ void XYZDumper::deserialize()
     std::string currentFname = path + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
 
     if (activated)
-        writeXYZ(comm, currentFname, pos.data(), pos.size());
+        writeXYZ(comm, currentFname, pos.data(), static_cast<int>(pos.size()));
 }
 
 } // namespace mirheo
