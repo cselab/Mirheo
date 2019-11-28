@@ -9,7 +9,7 @@ template <class Shape> RigidShapedObjectVector<Shape>::
 RigidShapedObjectVector(const MirState *state, std::string name, real mass, int objSize,
                         Shape shape, int nObjects) :
     RigidObjectVector(state, name, mass,
-                      shape.inertiaTensor(mass * objSize),
+                      shape.inertiaTensor(mass * static_cast<real>(objSize)),
                       objSize,
                       std::make_shared<Mesh>(),
                       nObjects),
@@ -20,7 +20,7 @@ template <class Shape> RigidShapedObjectVector<Shape>::
 RigidShapedObjectVector(const MirState *state, std::string name, real mass, int objSize,
                         Shape shape, std::shared_ptr<Mesh> mesh, int nObjects) :
     RigidObjectVector(state, name, mass,
-                      shape.inertiaTensor(mass * objSize),
+                      shape.inertiaTensor(mass * static_cast<real>(objSize)),
                       objSize, std::move(mesh), nObjects),
     shape(shape)
 {}

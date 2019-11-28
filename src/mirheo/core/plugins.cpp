@@ -85,17 +85,17 @@ void SimulationPlugin::send(const std::vector<char>& data)
     send(data.data(), data.size());
 }
 
-void SimulationPlugin::send(const void* data, int sizeInBytes)
+void SimulationPlugin::send(const void *data, size_t sizeInBytes)
 {
     // So that async Isend of the size works on
     // valid address
-    localSendSize = sizeInBytes;
+    localSendSize = static_cast<int>(sizeInBytes);
 
     waitPrevSend();
         
     debug2("Plugin '%s' is sending the data (%d bytes)", name.c_str(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT,  rank, _sizeTag(), interComm, &sizeReq) );
-    MPI_Check( MPI_Issend(data, sizeInBytes, MPI_BYTE, rank, _dataTag(), interComm, &dataReq) );
+    MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank, _dataTag(), interComm, &dataReq) );
 }
 
 

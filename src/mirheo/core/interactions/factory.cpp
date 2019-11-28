@@ -174,7 +174,7 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 {
     StatesSpinParameters p;
 
-    p.nsteps = desc.read<real>("nsteps");
+    p.nsteps = static_cast<int>(desc.read<real>("nsteps"));
     p.kBT    = desc.read<real>("kBT");
     p.J      = desc.read<real>("J");
     return p;

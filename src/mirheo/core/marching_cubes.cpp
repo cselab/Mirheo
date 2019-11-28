@@ -97,9 +97,9 @@ void computeTriangles(DomainInfo domain, real3 resolution,
             int (domain.localSize.y / resolution.y),
             int (domain.localSize.z / resolution.z)};
 
-    real3 h {domain.localSize.x / N.x,
-             domain.localSize.y / N.y,
-             domain.localSize.z / N.z};
+    real3 h {domain.localSize.x / static_cast<real>(N.x),
+             domain.localSize.y / static_cast<real>(N.y),
+             domain.localSize.z / static_cast<real>(N.z)};
 
     std::vector<real3> vertices;
     std::vector<int> indices;
@@ -113,9 +113,9 @@ void computeTriangles(DomainInfo domain, real3 resolution,
         for (int iy = 0; iy < N.y; ++iy) {
             for (int iz = 0; iz < N.z; ++iz) {
 
-                real3 r {domain.globalStart.x + ix * h.x,
-                          domain.globalStart.y + iy * h.y,
-                          domain.globalStart.z + iz * h.z};
+                real3 r {domain.globalStart.x + static_cast<real>(ix) * h.x,
+                         domain.globalStart.y + static_cast<real>(iy) * h.y,
+                         domain.globalStart.z + static_cast<real>(iz) * h.z};
 
                 const real vs[8] =
                     {field(r               ),
@@ -142,7 +142,7 @@ void computeTriangles(DomainInfo domain, real3 resolution,
                     
                     real3 v = base;
                     v += axis * va / (va - vb);
-                    edgeIndices[edgeId] = vertices.size();
+                    edgeIndices[edgeId] = static_cast<int>(vertices.size());
                     vertices.push_back(v);
                 };
 

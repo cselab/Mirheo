@@ -22,10 +22,10 @@ private:
     std::vector<ParticleVector*> particles;
     std::vector<std::unique_ptr<ParticlePacker>> packers, unpackers;
 
-    void prepareSizes(int id, cudaStream_t stream) override;
-    void prepareData (int id, cudaStream_t stream) override;
-    void combineAndUploadData(int id, cudaStream_t stream) override;
-    bool needExchange(int id) override;
+    void prepareSizes(size_t id, cudaStream_t stream) override;
+    void prepareData (size_t id, cudaStream_t stream) override;
+    void combineAndUploadData(size_t id, cudaStream_t stream) override;
+    bool needExchange(size_t id) override;
 };
 
 } // namespace mirheo

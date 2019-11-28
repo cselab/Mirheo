@@ -222,7 +222,7 @@ real Simulation::getCurrentDt() const
 
 real Simulation::getCurrentTime() const
 {
-    return state->currentTime;
+    return static_cast<real>(state->currentTime);
 }
 
 real Simulation::getMaxEffectiveCutoff() const
@@ -274,7 +274,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     }
 
     particleVectors.push_back(std::move(pv));
-    pvIdMap[name] = particleVectors.size() - 1;
+    pvIdMap[name] = static_cast<int>(particleVectors.size()) - 1;
 }
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
@@ -1206,7 +1206,7 @@ void Simulation::run(int nsteps)
     scheduler->forceExec( tasks->objClearLocalForces,  defaultStream );
     execSplitters();
 
-    MirState::TimeType begin = state->currentStep, end = state->currentStep + nsteps;
+    MirState::StepType begin = state->currentStep, end = state->currentStep + nsteps;
 
     info("Will run %d iterations now", nsteps);
 

@@ -66,12 +66,12 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
     assert(nSegments > 1);
     
     std::vector<real3> positions (5*nSegments + 1);
-    real h = 1._r / nSegments;
+    real h = 1._r / static_cast<real>(nSegments);
 
     real3 u; // bishop frame
     
     for (int i = 0; i <= nSegments; ++i)
-        positions[i*5] = make_real3(centerLine(i*h));
+        positions[i*5] = make_real3(centerLine(static_cast<real>(i)*h));
 
     u = getFirstBishop(positions[0], positions[5], positions[10], initialMaterialFrame);
 
@@ -83,8 +83,8 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
         auto r1 = positions[5*(i + 1)];
 
         auto r = 0.5_r * (r0 + r1);
-        real cost = math::cos(theta);
-        real sint = math::sin(theta);
+        real cost = static_cast<real>(math::cos(theta));
+        real sint = static_cast<real>(math::sin(theta));
 
         auto t0 = normalize(r1-r0);
 
@@ -110,7 +110,7 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
 
             auto l = 0.5_r * (length(r1-r0) + length(r2-r1));
             // use trapezoidal rule to integrate the angle
-            theta += l * 0.5_r * (torsion((i+0.5_r)*h) + torsion((i+1.5_r)*h));
+            theta += l * 0.5_r * (torsion((static_cast<real>(i)+0.5_r)*h) + torsion((static_cast<real>(i)+1.5_r)*h));
         }
     }
     

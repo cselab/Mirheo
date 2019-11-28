@@ -10,8 +10,8 @@ OVview::OVview(ObjectVector *ov, LocalObjectVector *lov) :
 {
     nObjects = lov->nObjects;
     objSize  = ov->objSize;
-    objMass  = objSize * mass;
-    invObjMass = 1.0 / objMass;
+    objMass  = static_cast<real>(objSize) * mass;
+    invObjMass = 1.0_r / objMass;
 
     comAndExtents = lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
     ids           = lov->dataPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();

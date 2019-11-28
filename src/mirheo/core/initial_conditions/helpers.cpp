@@ -25,9 +25,9 @@ static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& doma
                             std::uniform_real_distribution<float>& udistr, std::mt19937& gen)
 {
     Particle p;
-    p.r.x = i*h.x - 0.5_r * domain.localSize.x + udistr(gen);
-    p.r.y = j*h.y - 0.5_r * domain.localSize.y + udistr(gen);
-    p.r.z = k*h.z - 0.5_r * domain.localSize.z + udistr(gen);
+    p.r.x = static_cast<real>(i)*h.x - 0.5_r * domain.localSize.x + udistr(gen);
+    p.r.y = static_cast<real>(j)*h.y - 0.5_r * domain.localSize.y + udistr(gen);
+    p.r.z = static_cast<real>(k)*h.z - 0.5_r * domain.localSize.z + udistr(gen);
 
     p.u.x = 0.0_r * (udistr(gen) - 0.5_r);
     p.u.y = 0.0_r * (udistr(gen) - 0.5_r);
@@ -43,8 +43,8 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
     int3 ncells = make_int3( math::ceil(domain.localSize) );
     real3 h    = domain.localSize / make_real3(ncells);
 
-    int wholeInCell = math::floor(density);
-    real fracInCell = density - wholeInCell;
+    const int wholeInCell = static_cast<int>(math::floor(density));
+    real fracInCell = density - static_cast<real>(wholeInCell);
 
     auto seed = genSeed(comm, pv->name);
     std::mt19937 gen(seed);
@@ -53,15 +53,16 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
     double3 avgMomentum{0,0,0};
     int mycount = 0;
 
-    for (int i = 0; i < ncells.x; i++) {
-        for (int j = 0; j < ncells.y; j++) {
-            for (int k = 0; k < ncells.z; k++) {
+    for (int i = 0; i < ncells.x; ++i) {
+        for (int j = 0; j < ncells.y; ++j) {
+            for (int k = 0; k < ncells.z; ++k) {
 
                 int nparts = wholeInCell;
-                if (udistr(gen) < fracInCell) nparts++;
+                if (udistr(gen) < fracInCell)
+                    ++nparts;
 
-                for (int p = 0; p < nparts; p++) {
-
+                for (int p = 0; p < nparts; ++p)
+                {
                     auto part = genParticle(h, i, j, k, domain, udistr, gen);
 
                     if (! filterIn(domain.local2global(part.r)))
@@ -88,10 +89,11 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
     avgMomentum.y /= mycount;
     avgMomentum.z /= mycount;
 
-    for (auto& vel : pv->local()->velocities()) {
-        vel.x -= avgMomentum.x;
-        vel.y -= avgMomentum.y;
-        vel.z -= avgMomentum.z;
+    for (auto& vel : pv->local()->velocities())
+    {
+        vel.x -= static_cast<real>(avgMomentum.x);
+        vel.y -= static_cast<real>(avgMomentum.y);
+        vel.z -= static_cast<real>(avgMomentum.z);
     }
 
     pv->local()->positions() .uploadToDevice(stream);

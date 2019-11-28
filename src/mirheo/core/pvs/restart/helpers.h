@@ -105,8 +105,7 @@ static std::vector<std::vector<T>> splitData(const ExchMap& map, int chunkSize,
 }
 
 template<typename T>
-static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& sendBufs,
-                                         MPI_Comm comm)
+static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& sendBufs, MPI_Comm comm)
 {
     std::vector<MPI_Request> reqs;
     
@@ -114,8 +113,8 @@ static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& send
     {
         MPI_Request req;
         debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
-        MPI_Check( MPI_Isend(sendBufs[i].data(), sendBufs[i].size() * sizeof(T),
-                             MPI_BYTE, i, tag, comm, &req) );
+        MPI_Check( MPI_Isend(sendBufs[i].data(), static_cast<int>(sendBufs[i].size() * sizeof(T)),
+                             MPI_BYTE, (int) i, tag, comm, &req) );
         reqs.push_back(req);
     }
     return reqs;
@@ -134,7 +133,7 @@ static std::vector<T> recvData(int numProcs, MPI_Comm comm)
         MPI_Check( MPI_Probe(i, tag, comm, &status) );
         MPI_Check( MPI_Get_count(&status, MPI_BYTE, &sizeBytes) );
 
-        const int size = sizeBytes / sizeof(T);
+        const int size = sizeBytes / (int) sizeof(T);
 
         if (static_cast<int>(size * sizeof(T)) != sizeBytes)
             die("unexpected received size: got %ld bytes, expected multiple of %ld",
@@ -170,7 +169,7 @@ static void exchangeData(MPI_Comm comm, const ExchMap& map,
     auto sendReqs = details::sendData(sendBufs, comm);
     data          = details::recvData<T>(numProcs, comm);
 
-    MPI_Check( MPI_Waitall(sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
+    MPI_Check( MPI_Waitall((int) sendReqs.size(), sendReqs.data(), MPI_STATUSES_IGNORE) );
 }
 
 void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int chunkSize = 1);

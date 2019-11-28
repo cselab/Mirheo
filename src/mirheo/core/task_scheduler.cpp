@@ -40,7 +40,7 @@ TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
     if (id != invalidTaskId)
         die("Task '%s' already exists", label.c_str());
 
-    id = tasks.size();
+    id = static_cast<int>(tasks.size());
     label2taskId[label] = id;
 
     Task task(label, id, cudaPriorityLow);
@@ -286,7 +286,7 @@ void TaskScheduler::run()
     }
 
     int completed = 0;
-    const int total = nodes.size();
+    const int total = static_cast<int>(nodes.size());
 
     while (true)
     {

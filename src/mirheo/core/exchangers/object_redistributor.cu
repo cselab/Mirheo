@@ -78,14 +78,14 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId, PackerHandl
 ObjectRedistributor::ObjectRedistributor() = default;
 ObjectRedistributor::~ObjectRedistributor() = default;
 
-bool ObjectRedistributor::needExchange(int id)
+bool ObjectRedistributor::needExchange(size_t id)
 {
     return !objects[id]->redistValid;
 }
 
 void ObjectRedistributor::attach(ObjectVector *ov)
 {
-    const int id = objects.size();
+    const size_t id = objects.size();
     objects.push_back(ov);
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
@@ -106,7 +106,7 @@ void ObjectRedistributor::attach(ObjectVector *ov)
 }
 
 
-void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
+void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
@@ -153,7 +153,7 @@ void ObjectRedistributor::prepareSizes(int id, cudaStream_t stream)
     }
 }
 
-void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
+void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
@@ -209,7 +209,7 @@ void ObjectRedistributor::prepareData(int id, cudaStream_t stream)
     helper->resizeSendBuf(); // relying here on the fact that bulkId is the last one
 }
 
-void ObjectRedistributor::combineAndUploadData(int id, cudaStream_t stream)
+void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov     = objects[id];
     auto lov    = ov->local();

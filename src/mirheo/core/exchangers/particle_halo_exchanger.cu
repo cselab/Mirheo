@@ -142,7 +142,7 @@ ParticleHaloExchanger::~ParticleHaloExchanger() = default;
 
 void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames)
 {
-    const int id = particles.size();
+    const size_t id = particles.size();
     particles.push_back(pv);
     cellLists.push_back(cl);
 
@@ -170,7 +170,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
          pv->name.c_str(), cl->rc, msg_channels.c_str());
 }
 
-void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
+void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
@@ -201,7 +201,7 @@ void ParticleHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     helper->computeSendOffsets_Dev2Dev(stream);
 }
 
-void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
+void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
@@ -232,7 +232,7 @@ void ParticleHaloExchanger::prepareData(int id, cudaStream_t stream)
     }
 }
 
-void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
+void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto helper   = helpers  [id].get();
@@ -261,7 +261,7 @@ void ParticleHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     pv->haloValid = true;
 }
 
-bool ParticleHaloExchanger::needExchange(int id)
+bool ParticleHaloExchanger::needExchange(size_t id)
 {
     return !particles[id]->haloValid;
 }

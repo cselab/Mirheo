@@ -37,12 +37,12 @@ std::tuple<std::vector<real3>, std::vector<RigidReal4>,
            std::vector<RigidReal3>, std::vector<RigidReal3>>
 splitAndShiftMotions(DomainInfo domain, const PinnedBuffer<RigidMotion>& motions)
 {
-    const int n = motions.size();
+    const size_t n = motions.size();
     std::vector<real3> pos(n);
     std::vector<RigidReal4> quaternion(n);
     std::vector<RigidReal3> vel(n), omega(n), force(n), torque(n);
 
-    for (int i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i)
     {
         auto m = motions[i];
         pos[i] = domain.local2global(make_real3(m.r));

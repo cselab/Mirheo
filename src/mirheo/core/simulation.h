@@ -155,7 +155,7 @@ private:
     
     MirState *state;
     
-    static constexpr real rcTolerance = 1e-5;
+    static constexpr real rcTolerance = 1e-5_r;
 
     int checkpointId {0};
     const CheckpointInfo checkpointInfo;

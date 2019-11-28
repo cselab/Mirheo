@@ -40,7 +40,7 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
         }
     }
 
-    pv->local()->resize_anew(positions.size());
+    pv->local()->resize_anew(static_cast<int>(positions.size()));
     std::copy(positions .begin(), positions .end(), pv->local()->positions() .begin());
     std::copy(velocities.begin(), velocities.end(), pv->local()->velocities().begin());
     pv->local()->positions() .uploadToDevice(stream);

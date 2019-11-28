@@ -125,7 +125,7 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler pac
 } // namespace ObjectHaloExchangeKernels
 
 
-bool ObjectHaloExchanger::needExchange(int id)
+bool ObjectHaloExchanger::needExchange(size_t id)
 {
     return !objects[id]->haloValid;
 }
@@ -135,7 +135,7 @@ ObjectHaloExchanger::~ObjectHaloExchanger() = default;
 
 void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<std::string>& extraChannelNames)
 {
-    const int id = objects.size();
+    const size_t id = objects.size();
     objects.push_back(ov);
     rcs.push_back(rc);
 
@@ -176,7 +176,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
          ov->name.c_str(), rc, allChannelNames.c_str());
 }
 
-void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
+void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
@@ -209,7 +209,7 @@ void ObjectHaloExchanger::prepareSizes(int id, cudaStream_t stream)
     helper->computeSendOffsets_Dev2Dev(stream);
 }
 
-void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
+void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov  = objects[id];
     auto lov = ov->local();
@@ -241,7 +241,7 @@ void ObjectHaloExchanger::prepareData(int id, cudaStream_t stream)
     }
 }
 
-void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
+void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov       = objects[id];
     auto hov      = ov->halo();
@@ -267,17 +267,17 @@ void ObjectHaloExchanger::combineAndUploadData(int id, cudaStream_t stream)
     }, ExchangersCommon::getHandler(unpacker));
 }
 
-PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(int id)
+PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(size_t id)
 {
     return helpers[id]->send.offsets;
 }
 
-PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(int id)
+PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(size_t id)
 {
     return helpers[id]->recv.offsets;
 }
 
-DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(int id)
+DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(size_t id)
 {
     return maps[id];
 }

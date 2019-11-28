@@ -26,7 +26,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
 
     const auto map = createMap(domain);
     
-    const int nObjsLocal = map.size();
+    const int nObjsLocal = static_cast<int>(map.size());
     const int nVerticesPerObject = ov->mesh->getNvertices();
     
     lov->resize_anew(nObjsLocal * nVerticesPerObject);
@@ -45,7 +45,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
             const real3 r = com + q.rotate(dr0);
             const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
-            const int dstPid = objId * nVerticesPerObject + i;
+            const size_t dstPid = objId * nVerticesPerObject + i;
             
             pos[dstPid] = p.r2Real4();
             vel[dstPid] = p.u2Real4();
@@ -67,7 +67,7 @@ std::vector<int> MembraneIC::createMap(DomainInfo domain) const
     {
         const real3 com = com_q[i].r;
         if (domain.inSubDomain(com))
-            map.push_back(i);
+            map.push_back(static_cast<int>(i));
     }
     return map;
 }

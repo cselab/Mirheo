@@ -5,6 +5,7 @@
 
 #include <mirheo/core/rigid/operations.h>
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/xdmf/type_map.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
@@ -125,8 +126,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
         f.open(filename, "rb");
         fread(positions.data(), sizeof(positions[0]), objSize, f.get());
     }
-    MPI_Check(MPI_Bcast(positions.data(), objSize * sizeof(positions[0]),
-                        MPI_BYTE, root, comm));
+    MPI_Check(MPI_Bcast(positions.data(), objSize, getMPIFloatType<real>(), root, comm));
 
     positions.uploadToDevice(defaultStream);
     return positions;

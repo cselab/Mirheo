@@ -60,7 +60,7 @@ protected:
 
     void waitPrevSend();
     void send(const std::vector<char>& data);
-    void send(const void *data, int sizeInBytes);
+    void send(const void *data, size_t sizeInBytes);
 };
 
 

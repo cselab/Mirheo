@@ -71,7 +71,7 @@ ObjectReverseExchanger::~ObjectReverseExchanger() = default;
 
 void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> channelNames)
 {
-    const int id = objects.size();
+    const size_t id = objects.size();
     objects.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
@@ -111,12 +111,12 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
          ov->name.c_str(), allChannelNames.c_str());
 }
 
-bool ObjectReverseExchanger::needExchange(__UNUSED int id)
+bool ObjectReverseExchanger::needExchange(__UNUSED size_t id)
 {
     return true;
 }
 
-void ObjectReverseExchanger::prepareSizes(int id, __UNUSED cudaStream_t stream)
+void ObjectReverseExchanger::prepareSizes(size_t id, __UNUSED cudaStream_t stream)
 {
     auto  helper  = helpers[id].get();
     auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
@@ -125,7 +125,7 @@ void ObjectReverseExchanger::prepareSizes(int id, __UNUSED cudaStream_t stream)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
 }
 
-void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
+void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov     = objects[id];
     auto hov    = ov->halo();
@@ -159,7 +159,7 @@ void ObjectReverseExchanger::prepareData(int id, cudaStream_t stream)
     debug2("Will send back data for %d objects", nSendObj);
 }
 
-void ObjectReverseExchanger::combineAndUploadData(int id, cudaStream_t stream)
+void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov       = objects[id];
     auto lov      = ov->local();

@@ -62,14 +62,14 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
 
     h5filename = makePath(parentPath(filename)) + h5filename;
 
-    long nElements = getLocalNumElements(grid.getGridDims());
-    int  nChannels = vertexData.descriptions.size();
+    const size_t nElements = getLocalNumElements(grid.getGridDims());
+    const size_t  nChannels = vertexData.descriptions.size();
     
     vertexData.data.resize(nChannels);
 
-    debug("Got %d channels with %ld items each", nChannels, nElements);
+    debug("Got %lud channels with %ld items each", nChannels, nElements);
 
-    for (int i = 0; i < nChannels; ++i)
+    for (size_t i = 0; i < nChannels; ++i)
     {
         auto& data = vertexData.data[i];
         auto& desc = vertexData.descriptions[i];

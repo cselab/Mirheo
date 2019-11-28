@@ -131,10 +131,11 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality 
 static std::vector<real3> getCom(DomainInfo domain,
                                   const PinnedBuffer<COMandExtent>& com_extents)
 {
-    int n = com_extents.size();
+    const size_t n = com_extents.size();
     std::vector<real3> pos(n);
 
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i)
+    {
         auto r = com_extents[i].com;
         pos[i] = domain.local2global(r);
     }

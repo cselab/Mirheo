@@ -41,18 +41,18 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
 {
     int index;
     MPI_Status stat;
-    MPI_Check( MPI_Waitany(requests.size(), requests.data(), &index, &stat) );
+    MPI_Check( MPI_Waitany((int) requests.size(), requests.data(), &index, &stat) );
     statuses[index] = stat;    
 
     std::vector<int> mask(requests.size(), 0);
     mask[index] = 1;
-    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, mask.data(), mask.size(), MPI_INT, MPI_MAX, comm) );
+    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, mask.data(), (int) mask.size(), MPI_INT, MPI_MAX, comm) );
 
     std::vector<int> ids;
     for (size_t i = 0; i < mask.size(); ++i)
         if (mask[i] > 0)
         {
-            ids.push_back(i);
+            ids.push_back(static_cast<int>(i));
             if (requests[i] != MPI_REQUEST_NULL)
                 MPI_Check( MPI_Wait(&requests[i], &statuses[i]) );
         }
@@ -77,10 +77,10 @@ void Postprocess::run()
     for (auto& pl : plugins)
         requests.push_back(pl->waitData());
 
-    const int stoppingReqIndex = requests.size();
+    const int stoppingReqIndex = static_cast<int>(requests.size());
     requests.push_back( listenSimulation(stoppingTag, &endMsg) );
 
-    const int checkpointReqIndex = requests.size();
+    const int checkpointReqIndex = static_cast<int>(requests.size());
     requests.push_back( listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());

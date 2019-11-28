@@ -26,8 +26,8 @@ Mesh::Mesh(const std::string& fname)
 
 Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces)
 {
-    nvertices  = vertices.size();
-    ntriangles = faces.size();
+    nvertices  = static_cast<int>(vertices.size());
+    ntriangles = static_cast<int>(faces   .size());
 
     vertexCoordinates.resize_anew(nvertices);
     triangles.resize_anew(ntriangles);

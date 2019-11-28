@@ -92,7 +92,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
     // Wait for completion of the previous sends
     for (size_t i = 0; i < helpers.size(); ++i)
         if (exchanger->needExchange(i))
-            MPI_Check( MPI_Waitall(helpers[i]->send.requests.size(),
+            MPI_Check( MPI_Waitall((int) helpers[i]->send.requests.size(),
                                    helpers[i]->send.requests.data(),
                                    MPI_STATUSES_IGNORE) );
 
@@ -181,7 +181,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
     mTimer tm;
     tm.start();
     // MPI_Check( MPI_Waitall(helper->recvRequests.size(), helper->recvRequests.data(), MPI_STATUSES_IGNORE) );
-    safeWaitAll(helper->recv.requests.size(), helper->recv.requests.data());
+    safeWaitAll((int) helper->recv.requests.size(), helper->recv.requests.data());
     debug("Waiting for sizes of '%s' took %f ms", pvName.c_str(), tm.elapsed());
 
     // Prepare offsets and resize
@@ -206,7 +206,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
         {
             auto ptr = gpuAwareMPI ? helper->recv.buffer.devPtr() : helper->recv.buffer.hostPtr();
             
-            MPI_Check( MPI_Irecv(ptr + rOffsetsBytes[i], rSizesBytes[i],
+            MPI_Check( MPI_Irecv(ptr + rOffsetsBytes[i], (int) rSizesBytes[i],
                                  MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
             helper->recv.requests  .push_back(req);
@@ -240,7 +240,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
     {
         tm.start();
         // MPI_Check( MPI_Waitall(helper->recvRequests.size(), helper->recvRequests.data(), MPI_STATUSES_IGNORE) );
-        safeWaitAll(helper->recv.requests.size(), helper->recv.requests.data());
+        safeWaitAll((int) helper->recv.requests.size(), helper->recv.requests.data());
         waitTime = tm.elapsed();
         if (!gpuAwareMPI)
             helper->recv.buffer.uploadToDevice(stream);
@@ -252,7 +252,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
         {
             int idx;
             tm.start();
-            MPI_Check( MPI_Waitany(helper->recv.requests.size(), helper->recv.requests.data(), &idx, MPI_STATUS_IGNORE) );
+            MPI_Check( MPI_Waitany((int) helper->recv.requests.size(), helper->recv.requests.data(), &idx, MPI_STATUS_IGNORE) );
             waitTime += tm.elapsedAndReset();
 
             int from = helper->recvRequestIdxs[idx];
@@ -316,7 +316,7 @@ void MPIExchangeEngine::send(ExchangeHelper *helper, cudaStream_t stream)
                 CUDA_Check( cudaStreamSynchronize(stream) );
             }
 
-            MPI_Check( MPI_Isend(ptr + sOffsetsBytes[i], sSizesBytes[i],
+            MPI_Check( MPI_Isend(ptr + sOffsetsBytes[i], (int) sSizesBytes[i],
                                  MPI_BYTE, dir2rank[i], tag, haloComm, &req) );
 
             helper->send.requests.push_back(req);

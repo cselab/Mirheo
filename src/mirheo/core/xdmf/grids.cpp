@@ -20,7 +20,7 @@ static hsize_t product(const std::vector<hsize_t>& v)
     
 bool GridDims::localEmpty()  const { return product(getLocalSize ()) == 0; }
 bool GridDims::globalEmpty() const { return product(getGlobalSize()) == 0; }
-int  GridDims::getDims()     const { return getLocalSize().size();         }
+int  GridDims::getDims()     const { return (int) getLocalSize().size();   }
     
 //
 // Uniform Grid

@@ -22,9 +22,9 @@ public:
 
     void attach(ObjectVector *ov, real rc, const std::vector<std::string>& extraChannelNames);
 
-    PinnedBuffer<int>& getSendOffsets(int id);
-    PinnedBuffer<int>& getRecvOffsets(int id);
-    DeviceBuffer<MapEntry>& getMap   (int id);
+    PinnedBuffer<int>& getSendOffsets(size_t id);
+    PinnedBuffer<int>& getRecvOffsets(size_t id);
+    DeviceBuffer<MapEntry>& getMap   (size_t id);
 
 protected:
     std::vector<real> rcs;
@@ -32,10 +32,10 @@ protected:
     std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;
     std::vector<DeviceBuffer<MapEntry>> maps;
 
-    void prepareSizes(int id, cudaStream_t stream) override;
-    void prepareData (int id, cudaStream_t stream) override;
-    void combineAndUploadData(int id, cudaStream_t stream) override;
-    bool needExchange(int id) override;
+    void prepareSizes(size_t id, cudaStream_t stream) override;
+    void prepareData (size_t id, cudaStream_t stream) override;
+    void combineAndUploadData(size_t id, cudaStream_t stream) override;
+    bool needExchange(size_t id) override;
 };
 
 } // namespace mirheo

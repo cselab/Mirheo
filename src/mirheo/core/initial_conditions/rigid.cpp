@@ -153,7 +153,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
             rov->name.c_str(), rov->objSize, rov->initialPositions.size());
 
     const auto motions = createMotions(domain, com_q, comVelocities);
-    const auto nObjs = motions.size();
+    const auto nObjs = static_cast<int>(motions.size());
     
     lrov->resize_anew(nObjs * rov->objSize);
 

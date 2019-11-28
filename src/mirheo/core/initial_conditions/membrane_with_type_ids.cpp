@@ -21,7 +21,7 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     auto ov = static_cast<MembraneVector*>(pv);
     const auto domain = pv->state->domain;
     const auto map = createMap(domain);
-    const int nObjsLocal = map.size();
+    const int nObjsLocal = static_cast<int>(map.size());
 
     ov->requireDataPerObject<int>(ChannelNames::membraneTypeId, DataManager::PersistenceMode::Active);
     LocalObjectVector *lov = ov->local();

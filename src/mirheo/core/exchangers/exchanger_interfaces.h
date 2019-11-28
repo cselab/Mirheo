@@ -42,7 +42,7 @@ public:
      *
      * @param id helper id that will be filled with data
      */
-    virtual void prepareSizes(int id, cudaStream_t stream) = 0;
+    virtual void prepareSizes(size_t id, cudaStream_t stream) = 0;
 
     /**
      * This function has to provide data that has to be communicated in
@@ -55,7 +55,7 @@ public:
      *
      * @param id helper id that will be filled with data
      */
-    virtual void prepareData (int id, cudaStream_t stream) = 0;
+    virtual void prepareData (size_t id, cudaStream_t stream) = 0;
 
     /**
      * This function has to unpack the received data. Similarly to
@@ -66,7 +66,7 @@ public:
      *
      * @param id helper id that is filled with the received data
      */
-    virtual void combineAndUploadData(int id, cudaStream_t stream) = 0;
+    virtual void combineAndUploadData(size_t id, cudaStream_t stream) = 0;
 
     /**
      * If the ParticleVector didn't change since the last similar MPI
@@ -75,7 +75,7 @@ public:
      * @param id of the ParticleVector and associated ExchangeHelper
      * @return true if exchange is required, false - if not
      */
-    virtual bool needExchange(int id) = 0;    
+    virtual bool needExchange(size_t id) = 0;    
 };
 
 

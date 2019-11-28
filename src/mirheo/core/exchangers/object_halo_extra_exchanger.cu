@@ -69,14 +69,14 @@ ObjectExtraExchanger::ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExc
 
 ObjectExtraExchanger::~ObjectExtraExchanger() = default;
 
-bool ObjectExtraExchanger::needExchange(__UNUSED int id)
+bool ObjectExtraExchanger::needExchange(__UNUSED size_t id)
 {
     return true;
 }
 
 void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::string>& extraChannelNames)
 {
-    int id = objects.size();
+    size_t id = objects.size();
     objects.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
@@ -109,7 +109,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     helpers  .push_back(std::move(  helper));
 }
 
-void ObjectExtraExchanger::prepareSizes(int id, cudaStream_t stream)
+void ObjectExtraExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto helper = helpers[id].get();
     auto packer = packers[id].get();
@@ -123,7 +123,7 @@ void ObjectExtraExchanger::prepareSizes(int id, cudaStream_t stream)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
 }
 
-void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
+void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov     = objects[id];
     auto helper = helpers[id].get();
@@ -145,7 +145,7 @@ void ObjectExtraExchanger::prepareData(int id, cudaStream_t stream)
     }, ExchangersCommon::getHandler(packer));
 }
 
-void ObjectExtraExchanger::combineAndUploadData(int id, cudaStream_t stream)
+void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov       = objects[id];
     auto hov      = ov->halo();

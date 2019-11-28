@@ -36,9 +36,9 @@ public:
         auto access = [this, &texcoord] (int dx, int dy, int dz)
         {
             const auto val = tex3D<float>(fieldTex,
-                                          static_cast<float>(texcoord.x + dx),
-                                          static_cast<float>(texcoord.y + dy),
-                                          static_cast<float>(texcoord.z + dz));
+                                          static_cast<float>(texcoord.x + static_cast<real>(dx)),
+                                          static_cast<float>(texcoord.y + static_cast<real>(dy)),
+                                          static_cast<float>(texcoord.z + static_cast<real>(dz)));
             return static_cast<real>(val);
         };
         

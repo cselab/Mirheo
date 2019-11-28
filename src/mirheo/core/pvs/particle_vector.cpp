@@ -320,7 +320,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     RestartHelpers::exchangeListData(comm, map, listData, chunkSize);
     RestartHelpers::requireExtraDataPerParticle(listData, this);
     
-    const int newSize = pos4.size() / chunkSize;
+    const int newSize = static_cast<int>(pos4.size()) / chunkSize;
 
     auto& dataPerParticle = local()->dataPerParticle;
     dataPerParticle.resize_anew(newSize * chunkSize);

@@ -87,21 +87,21 @@ constexpr int invalidId = -1;
 
 static void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>& degrees)
 {
-    const int nvertices = adjacentPairs.size();
+    const size_t nvertices = adjacentPairs.size();
     degrees.resize_anew(nvertices);
     
-    for (int i = 0; i < nvertices; ++i)
-        degrees[i] = adjacentPairs[i].size();
+    for (size_t i = 0; i < nvertices; ++i)
+        degrees[i] = static_cast<int>(adjacentPairs[i].size());
 }
 
 static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int maxDegree, PinnedBuffer<int>& adjacent)
 {
-    const int nvertices = adjacentPairs.size();
+    const size_t nvertices = adjacentPairs.size();
 
     adjacent.resize_anew(nvertices * maxDegree);
     std::fill(adjacent.begin(), adjacent.end(), invalidId);
 
-    for (int v = 0; v < nvertices; ++v)
+    for (size_t v = 0; v < nvertices; ++v)
     {
         auto& l = adjacentPairs[v];
         auto myadjacent = &adjacent[maxDegree*v];
@@ -115,7 +115,7 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
             if (l.find(current) == l.end())
                 die("Unexpected adjacent pairs. This might come from a bad connectivity of the input mesh");
             
-            myadjacent[i] =  l.find(current)->second;
+            myadjacent[i] = l.find(current)->second;
         }
     }
 }

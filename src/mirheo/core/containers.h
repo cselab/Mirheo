@@ -374,7 +374,7 @@ private:
         _size = n;
         if (capacity >= n) return;
 
-        const size_t conservative_estimate = static_cast<size_t> (std::ceil(1.1 * n + 10));
+        const size_t conservative_estimate = static_cast<size_t> (std::ceil(1.1 * static_cast<double>(n) + 10.0));
         capacity = 128 * ((conservative_estimate + 127) / 128);
 
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));

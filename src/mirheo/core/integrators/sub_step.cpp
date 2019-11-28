@@ -99,7 +99,7 @@ void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 void IntegratorSubStep::updateSubState()
 {
     subState = *state;
-    subState.dt = state->dt / substeps;
+    subState.dt = state->dt / static_cast<real>(substeps);
 }
 
 } // namespace mirheo

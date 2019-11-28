@@ -130,14 +130,14 @@ __global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
 ParticleRedistributor::ParticleRedistributor() = default;
 ParticleRedistributor::~ParticleRedistributor() = default;
 
-bool ParticleRedistributor::needExchange(int id)
+bool ParticleRedistributor::needExchange(size_t id)
 {
     return !particles[id]->redistValid;
 }
 
 void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 {
-    const int id = particles.size();
+    const size_t id = particles.size();
     particles.push_back(pv);
     cellLists.push_back(cl);
 
@@ -158,7 +158,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
 
-void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
+void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
@@ -188,7 +188,7 @@ void ParticleRedistributor::prepareSizes(int id, cudaStream_t stream)
     helper->computeSendOffsets_Dev2Dev(stream);
 }
 
-void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
+void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto cl = cellLists[id];
@@ -218,7 +218,7 @@ void ParticleRedistributor::prepareData(int id, cudaStream_t stream)
     }
 }
 
-void ParticleRedistributor::combineAndUploadData(int id, cudaStream_t stream)
+void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto pv = particles[id];
     auto helper = helpers[id].get();
