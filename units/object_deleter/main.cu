@@ -91,7 +91,7 @@ void test_delete(const std::vector<int> &mask, const int objSize)
     ObjectData oldData{ov->local(), defaultStream};
 
     // Mark which to delete and delete.
-    PinnedBuffer<int> maskBuffer{numObjects};
+    PinnedBuffer<int> maskBuffer(numObjects);
     for (int i = 0; i < numObjects; ++i)
         maskBuffer[i] = mask[i];
     maskBuffer.uploadToDevice(defaultStream);
