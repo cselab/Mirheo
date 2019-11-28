@@ -63,7 +63,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
 
     // Set maximum possible number of collisions with segments
     // In case of crash, the estimate should be increased
-    const int maxCollisions = collisionsPerSeg * totalSegments;
+    const int maxCollisions = static_cast<int>(collisionsPerSeg * static_cast<real>(totalSegments));
     table.collisionTable.resize_anew(maxCollisions);
     table.nCollisions.clear(stream);
     RodBounceKernels::SegmentTable devCollisionTable { maxCollisions,

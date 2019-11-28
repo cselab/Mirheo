@@ -214,13 +214,14 @@ static std::vector<float> readSdf(const std::string& fileName, const MPI_Comm& c
     MPI_File fh;
     MPI_Status status;
     MPI_Check( MPI_File_open(comm, fileName.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &fh) );  // TODO: MPI_Info
-    MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), readEnd - readStart, MPI_BYTE, &status) );
+    MPI_Check( MPI_File_read_at_all(fh, readStart, readBuffer.data(), static_cast<int>(readEnd - readStart), MPI_BYTE, &status) );
     // TODO: check that we read just what we asked
     // MPI_Get_count only return int though
 
     const size_t n = readPerProc_byte * nranks / sizeof(float); // May be bigger than fullSdfSize, to make gather easier
     std::vector<float> fullSdfData(n);
-    MPI_Check( MPI_Allgather(readBuffer.data(), readPerProc_byte, MPI_BYTE, fullSdfData.data(), readPerProc_byte, MPI_BYTE, comm) );
+    MPI_Check( MPI_Allgather(readBuffer.data(), static_cast<int>(readPerProc_byte), MPI_BYTE,
+                             fullSdfData.data(), static_cast<int>(readPerProc_byte), MPI_BYTE, comm) );
 
     MPI_Check( MPI_File_close(&fh) );
 

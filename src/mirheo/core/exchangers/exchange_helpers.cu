@@ -73,11 +73,11 @@ static void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
 template <typename T>
 static void prefixSum(const PinnedBuffer<T>& sz, PinnedBuffer<T>& of)
 {
-    int n = sz.size();
+    const size_t n = sz.size();
     if (n == 0) return;
 
     of[0] = 0;
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
         of[i+1] = of[i] + sz[i];
 }
 

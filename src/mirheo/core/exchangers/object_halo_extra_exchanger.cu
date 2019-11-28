@@ -135,11 +135,13 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
     helper->resizeSendBuf();
 
     const int nthreads = 256;
+    const int nblocks = static_cast<int>(map.size());
+    
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExtraExchangerKernels::pack,
-            map.size(), nthreads, 0, stream,
+            nblocks, nthreads, 0, stream,
             ov->state->domain, packerHandler, map.devPtr(),
             helper->wrapSendData() );
     }, ExchangersCommon::getHandler(packer));

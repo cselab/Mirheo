@@ -52,8 +52,9 @@ void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cud
 template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    real t = state->currentTime;
-    real dt = state->dt;
+    const auto t  = static_cast<real>(state->currentTime);
+    const auto dt = static_cast<real>(state->dt);
+    
     static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
             "Forcing term functor must provide member"
             "void setup(ParticleVector*, real)");
@@ -63,10 +64,10 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 
     auto st2 = [_fterm] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
 
-        real3 modF = _fterm(f, p);
+        const real3 modF = _fterm(f, p);
 
-        p.u += modF*invm*dt;
-        p.r += p.u*dt;
+        p.u += modF * invm * dt;
+        p.r += p.u * dt;
     };
 
     integrate(pv, dt, st2, stream);

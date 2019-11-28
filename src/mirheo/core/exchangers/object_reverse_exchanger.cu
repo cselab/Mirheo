@@ -179,7 +179,7 @@ void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream
     {
         SAFE_KERNEL_LAUNCH(
             ObjectReverseExchangerKernels::reverseUnpackAndAdd,
-            map.size(), nthreads, 0, stream,
+            static_cast<int>(map.size()), nthreads, 0, stream,
             unpackerHandler, map.devPtr(),
             helper->wrapRecvData());
     }, ExchangersCommon::getHandler(unpacker));

@@ -92,14 +92,14 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased
-    const int maxCoarseCollisions = coarseCollisionsPerTri * totalTriangles;
+    const int maxCoarseCollisions = static_cast<int>(coarseCollisionsPerTri * static_cast<real>(totalTriangles));
     coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
     coarseTable.nCollisions.clear(stream);
     MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
                                                       coarseTable.nCollisions.devPtr(),
                                                       coarseTable.collisionTable.devPtr() };
     
-    int maxFineCollisions = fineCollisionsPerTri * totalTriangles;
+    const int maxFineCollisions = static_cast<int>(fineCollisionsPerTri * static_cast<real>(totalTriangles));
     fineTable.collisionTable.resize_anew(maxFineCollisions);
     fineTable.nCollisions.clear(stream);
     MeshBounceKernels::TriangleTable devFineTable { maxFineCollisions,

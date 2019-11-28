@@ -149,7 +149,7 @@ endif()
 set(cxx_flags -g)
 set(cuda_flags --expt-extended-lambda)
 
-set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -Werror -pedantic -Wconversion)
+set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion -Werror)
 set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror")
 
 target_compile_options(${LIB_MIR_CORE} PRIVATE

@@ -13,7 +13,8 @@ namespace mirheo
  */
 IntegratorOscillate::IntegratorOscillate(const MirState *state, std::string name, real3 vel, real period) :
     Integrator(state, name),
-    vel(vel), period(period)
+    vel(vel),
+    period(period)
 {
     if (period <= 0)
         die("Oscillating period should be strictly positive");
@@ -26,10 +27,12 @@ IntegratorOscillate::~IntegratorOscillate() = default;
  */
 void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    real t = state->currentTime;
+    const auto t = static_cast<real>(state->currentTime);
     
     const auto _vel = vel;
-    real cosOmega = math::cos(2*M_PI * t / period);
+    constexpr auto two_pi = static_cast<real>(2.0 * M_PI);
+    
+    const real cosOmega = math::cos(two_pi * t / period);
 
     auto oscillate = [_vel, cosOmega] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
         p.u = _vel * cosOmega;

@@ -60,7 +60,7 @@ struct KISS {
 
     real get_real()
     {
-        return get_int() / real( std::numeric_limits<intType>::max() );
+        return static_cast<real>(get_int()) / static_cast<real>(std::numeric_limits<intType>::max());
     }
 
     intType get_int()
@@ -71,8 +71,8 @@ struct KISS {
         y ^= ( y >> 17 );
         y ^= ( y << 5 ); /* y must never be set to zero! */
         t = a * z + c;
-        c = ( t >> 32 ); /* Also avoid setting z=c=0! */
-        return x + y + ( z = t );
+        c = static_cast<intType>( t >> 32 ); /* Also avoid setting z=c=0! */
+        return x + y + ( z = static_cast<intType>(t) );
     }
 };
 
