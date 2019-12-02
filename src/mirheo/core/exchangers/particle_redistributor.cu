@@ -182,7 +182,7 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
             ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(),
-            pv->state->domain, packer->handler(),
+            pv->getState()->domain, packer->handler(),
             helper->wrapSendData() );
     }
     helper->computeSendOffsets_Dev2Dev(stream);
@@ -213,7 +213,7 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
             ParticleRedistributorKernels::getExitingParticles<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(),
-            pv->state->domain, packer->handler(),
+            pv->getState()->domain, packer->handler(),
             helper->wrapSendData() );
     }
 }

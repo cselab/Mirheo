@@ -150,7 +150,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
     std::vector<RigidReal3> vel, omega, force, torque;
     
     std::tie(*positions, quaternion, vel, omega, force, torque)
-        = CheckpointHelpers::splitAndShiftMotions(state->domain, *motions);
+        = CheckpointHelpers::splitAndShiftMotions(getState()->domain, *motions);
 
     XDMF::VertexGrid grid(positions, comm);    
 
@@ -158,7 +158,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
 
     const std::set<std::string> blackList {ChannelNames::motions};
     
-    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerObject,
                                                                   blackList);
 
@@ -227,9 +227,9 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
 
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
-    copyAndShiftListData(state->domain, listData, dataPerObject);
+    copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
-    shiftElementsGlobal2Local(motions, state->domain);
+    shiftElementsGlobal2Local(motions, getState()->domain);
 
     auto& dstMotions = *dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 

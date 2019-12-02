@@ -108,7 +108,7 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 {
-    DomainInfo domain = state->domain;
+    const DomainInfo domain = getState()->domain;
     PVviewWithOldParticles view1(pv1, pv1->local());
     PVview                 view2(pv2, pv2->local());
     const int nthreads = 128;

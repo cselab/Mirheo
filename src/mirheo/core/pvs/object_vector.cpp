@@ -155,11 +155,11 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
-    auto positions = std::make_shared<std::vector<real3>>(getCom(state->domain, *coms_extents));
+    auto positions = std::make_shared<std::vector<real3>>(getCom(getState()->domain, *coms_extents));
 
     XDMF::VertexGrid grid(positions, comm);
 
-    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerObject);
     
     XDMF::write(filename, &grid, channels, comm);
@@ -189,7 +189,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
 
-    RestartHelpers::copyAndShiftListData(state->domain, listData, dataPerObject);
+    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
     info("Successfully read object infos of '%s'", name.c_str());
 }

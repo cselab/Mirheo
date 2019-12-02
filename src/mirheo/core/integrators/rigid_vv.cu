@@ -126,7 +126,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cud
 
 void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    const real dt = state->dt;
+    const real dt = getState()->dt;
     auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",

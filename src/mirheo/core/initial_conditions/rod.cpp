@@ -120,7 +120,7 @@ std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMateria
 void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto rv = dynamic_cast<RodVector*>(pv);
-    auto domain = pv->state->domain;
+    auto domain = pv->getState()->domain;
     
     if (rv == nullptr)
         die("rods can only be generated out of rod vectors; provided '%s'", pv->name.c_str());

@@ -39,7 +39,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, in
 
     updateSubState();
     
-    subIntegrator->state = &subState;
+    subIntegrator->setState(&subState);
 }
 
 IntegratorSubStep::~IntegratorSubStep() = default;
@@ -60,7 +60,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
     updateSubState();
 
     // save fastForces state and reset it afterwards
-    auto *savedStatePtr = fastForces[0]->state;
+    auto *savedStatePtr = fastForces[0]->getState();
 
     for (auto& ff : fastForces)
         ff->setState(&subState);
@@ -98,8 +98,8 @@ void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 
 void IntegratorSubStep::updateSubState()
 {
-    subState = *state;
-    subState.dt = state->dt / static_cast<real>(substeps);
+    subState = *getState();
+    subState.dt = getState()->dt / static_cast<real>(substeps);
 }
 
 } // namespace mirheo

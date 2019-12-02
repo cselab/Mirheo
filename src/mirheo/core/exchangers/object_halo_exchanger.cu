@@ -201,7 +201,7 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                 ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
-                ov->state->domain, ovView, nullptr, rc,
+                ov->getState()->domain, ovView, nullptr, rc,
                 packerHandler, helper->wrapSendData() );
         }, ExchangersCommon::getHandler(packer));
     }
@@ -235,7 +235,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                 ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
-                ov->state->domain, ovView, map.devPtr(), rc,
+                ov->getState()->domain, ovView, map.devPtr(), rc,
                 packerHandler, helper->wrapSendData());
         }, ExchangersCommon::getHandler(packer));
     }

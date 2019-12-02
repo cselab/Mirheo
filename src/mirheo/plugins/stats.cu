@@ -66,7 +66,7 @@ void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const 
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, fetchEvery)) return;
+    if (!isTimeEvery(getState(), fetchEvery)) return;
 
     momentum.clear(stream);
     energy  .clear(stream);
@@ -96,9 +96,9 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump)
     {
-        const real tm = timer.elapsedAndReset() / (state->currentStep < fetchEvery ? 1.0_r : fetchEvery);
+        const real tm = timer.elapsedAndReset() / (getState()->currentStep < fetchEvery ? 1.0_r : fetchEvery);
         waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer, tm, state->currentTime, state->currentStep, nparticles, momentum, energy, maxvel);
+        SimpleSerializer::serialize(sendBuffer, tm, getState()->currentTime, getState()->currentStep, nparticles, momentum, energy, maxvel);
         send(sendBuffer);
         needToDump = false;
     }

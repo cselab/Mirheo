@@ -112,7 +112,7 @@ void SimulationRadialVelocityControl::beforeForces(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH
             (RadialVelocityControlKernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
-             view, state->domain, minRadiusSquare, maxRadiusSquare, center, force );
+             view, getState()->domain, minRadiusSquare, maxRadiusSquare, center, force );
     }
 }
 
@@ -123,12 +123,12 @@ void SimulationRadialVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream
     SAFE_KERNEL_LAUNCH
         (RadialVelocityControlKernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, state->domain, minRadiusSquare, maxRadiusSquare, center, totVel.devPtr(), nSamples.devPtr());
+         pvView, getState()->domain, minRadiusSquare, maxRadiusSquare, center, totVel.devPtr(), nSamples.devPtr());
 }
 
 void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(state, sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery))
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -145,7 +145,7 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedSamples += nSamples[0];
     }
     
-    if (!isTimeEvery(state, tuneEvery)) return;
+    if (!isTimeEvery(getState(), tuneEvery)) return;
     
     
     unsigned long long nSamples_tot = 0;
@@ -163,11 +163,11 @@ void SimulationRadialVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationRadialVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery))
+    if (!isTimeEvery(getState(), dumpEvery))
         return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, getState()->currentStep, currentVel, force);
     send(sendBuffer);
 }
 

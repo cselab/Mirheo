@@ -60,8 +60,8 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm)
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    this->insideWallChecker.setup(comm, this->state->domain);
-    velField.setup(this->state->currentTime, this->state->domain);
+    this->insideWallChecker.setup(comm, this->getState()->domain);
+    velField.setup(this->getState()->currentTime, this->getState()->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -84,10 +84,10 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVe
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t stream)
 {
-    real t  = this->state->currentTime;
-    real dt = this->state->dt;
+    real t  = this->getState()->currentTime;
+    real dt = this->getState()->dt;
     
-    velField.setup(t, this->state->domain);
+    velField.setup(t, this->getState()->domain);
     this->bounceForce.clear(stream);
 
     for (size_t i = 0; i < this->particleVectors.size(); ++i)

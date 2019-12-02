@@ -180,7 +180,7 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     positions .genericCopy(&pv->local()->positions() , stream);
     velocities.genericCopy(&pv->local()->velocities(), stream);
@@ -214,21 +214,21 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 
 void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
     
     for (auto& p : positions)
     {
-        auto r = state->domain.local2global(make_real3(p));
+        auto r = getState()->domain.local2global(make_real3(p));
         p.x = r.x; p.y = r.y; p.z = r.z;
     }
 
-    const MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
     
     debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), positions.size());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, state->currentTime, positions, velocities, channelData);
+    SimpleSerializer::serialize(sendBuffer, timeStamp, getState()->currentTime, positions, velocities, channelData);
     send(sendBuffer);
 }
 

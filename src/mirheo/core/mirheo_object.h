@@ -42,9 +42,10 @@ public:
     MirSimulationObject(const MirState *state, const std::string& name);
     ~MirSimulationObject();
 
+    const MirState* getState() const {return state;}
     virtual void setState(const MirState *state);
     
-public:
+private:
     const MirState *state;
 };
 

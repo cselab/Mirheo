@@ -142,7 +142,7 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ObjectHaloExtraExchangerKernels::pack,
             nblocks, nthreads, 0, stream,
-            ov->state->domain, packerHandler, map.devPtr(),
+            ov->getState()->domain, packerHandler, map.devPtr(),
             helper->wrapSendData() );
     }, ExchangersCommon::getHandler(packer));
 }

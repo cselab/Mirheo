@@ -171,7 +171,7 @@ void ObjectRodBindingInteraction::_local(RigidObjectVector *rov, RodVector *rv, 
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,
-        state->domain, objs, rods, params);
+        getState()->domain, objs, rods, params);
 }
 
 void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, cudaStream_t stream) const
@@ -188,7 +188,7 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,
-        state->domain, objs, rods, params);
+        getState()->domain, objs, rods, params);
 }
 
 } // namespace mirheo

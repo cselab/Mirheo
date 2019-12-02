@@ -19,7 +19,7 @@ void IntegratorConstOmega::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStre
 
 void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    const auto domain = state->domain;
+    const auto domain = getState()->domain;
     const auto _center = center;
     const auto _omega = omega;
 
@@ -38,7 +38,7 @@ void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
         p.r  = domain.global2local(gr_c + _center);
     };
 
-    integrate(pv, state->dt, rotate, stream);
+    integrate(pv, getState()->dt, rotate, stream);
     invalidatePV(pv);
 }
 

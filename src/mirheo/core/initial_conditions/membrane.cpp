@@ -17,7 +17,7 @@ MembraneIC::~MembraneIC() = default;
 void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
-    const auto domain = pv->state->domain;
+    const auto domain = pv->getState()->domain;
     
     if (ov == nullptr)
         die("RBCs can only be generated out of rbc object vectors");

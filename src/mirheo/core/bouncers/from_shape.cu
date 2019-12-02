@@ -80,7 +80,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
         SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,
             nblocks, nthreads, smem, stream,
-            ovView, pvView, cl->cellInfo(), state->dt,
+            ovView, pvView, cl->cellInfo(), getState()->dt,
             bounceKernel);
         
     }, varBounceKernel);

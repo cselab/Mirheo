@@ -115,8 +115,8 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     nranks3D = simulation->nranks3D;
     
     // TODO: this should be reworked if the domains are allowed to have different size
-    resolution = make_int3( math::floor(state->domain.localSize / binSize) );
-    binSize = state->domain.localSize / make_real3(resolution);
+    resolution = make_int3( math::floor(getState()->domain.localSize / binSize) );
+    binSize = getState()->domain.localSize / make_real3(resolution);
 
     if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)
     	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
@@ -157,7 +157,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
 
 void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
 {
-    CellListInfo cinfo(binSize, state->domain.localSize);
+    CellListInfo cinfo(binSize, getState()->domain.localSize);
     PVview pvView(pv, pv->local());
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
@@ -200,7 +200,7 @@ void Average3D::accumulateSampledAndClear(cudaStream_t stream)
 
 void Average3D::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, sampleEvery)) return;
+    if (!isTimeEvery(getState(), sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -246,16 +246,16 @@ void Average3D::scaleSampled(cudaStream_t stream)
 
 void Average3D::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
     if (nSamples == 0) return;
     
     scaleSampled(stream);
 
-    const MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1;  // -1 to start from 0
+    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery) - 1;  // -1 to start from 0
     
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, timeStamp, accumulatedNumberDensity, accumulatedAverage);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, timeStamp, accumulatedNumberDensity, accumulatedAverage);
     send(sendBuffer);
 }
 

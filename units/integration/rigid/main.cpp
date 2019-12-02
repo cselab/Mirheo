@@ -48,7 +48,7 @@ static void setParticlesFromMotions(RigidObjectVector *rov, cudaStream_t stream)
     // use rigid object integrator to set up the particles positions, velocities and old positions
     rov->local()->forces().clear(stream);
     const real dummyDt = 0._r;
-    const MirState dummyState(rov->state->domain, dummyDt);
+    const MirState dummyState(rov->getState()->domain, dummyDt);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
     integrator.stage2(rov, stream);
 }

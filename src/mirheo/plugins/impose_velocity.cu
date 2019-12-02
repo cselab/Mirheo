@@ -84,7 +84,7 @@ void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 
 void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(state, every))
+    if (isTimeEvery(getState(), every))
     {
         const int nthreads = 128;
 
@@ -95,7 +95,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                     ImposeVelocityKernels::averageVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
-                    PVview(pv, pv->local()), state->domain, low, high, totVel.devPtr(), nSamples.devPtr() );
+                    PVview(pv, pv->local()), getState()->domain, low, high, totVel.devPtr(), nSamples.devPtr() );
 
         totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
         nSamples.downloadFromDevice(stream);
@@ -109,7 +109,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                     ImposeVelocityKernels::addVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
-                    PVview(pv, pv->local()), state->domain, low, high, targetVel - avgVel);
+                    PVview(pv, pv->local()), getState()->domain, low, high, targetVel - avgVel);
     }
 }
 

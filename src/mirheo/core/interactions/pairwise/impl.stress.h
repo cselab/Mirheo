@@ -37,7 +37,7 @@ public:
 
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        const real t = state->currentTime;
+        const real t = getState()->currentTime;
         
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -54,7 +54,7 @@ public:
     
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        const real t = state->currentTime;
+        const real t = getState()->currentTime;
     
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
@@ -86,7 +86,7 @@ public:
         
         auto activePredicateStress = [this]()
         {
-            const real t = state->currentTime;
+            const real t = getState()->currentTime;
             return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
         };
 

@@ -266,7 +266,7 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    insideWallChecker.setup(comm, state->domain);
+    insideWallChecker.setup(comm, getState()->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -440,7 +440,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 {
-    real dt = this->state->dt;
+    const real dt = this->getState()->dt;
 
     bounceForce.clear(stream);
     
@@ -547,14 +547,14 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer* s
         die("Incompatible datatype size of container for SDF values: %d (sampling sdf on a grid)",
             sdfs->datatype_size());
         
-    CellListInfo gridInfo(h, state->domain.localSize);
+    const CellListInfo gridInfo(h, getState()->domain.localSize);
     sdfs->resize_anew(gridInfo.totcells);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
         StationaryWallsKernels::computeSdfOnGrid,
         getNblocks(gridInfo.totcells, nthreads), nthreads, 0, stream,
-        gridInfo, (real*)sdfs->genericDevPtr(), insideWallChecker.handler() );
+        gridInfo, (real*) sdfs->genericDevPtr(), insideWallChecker.handler() );
 }
 
 template<class InsideWallChecker>

@@ -27,7 +27,7 @@ void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
         p.r += p.u*dt;
     };
 
-    integrate(pv, state->dt, translate, stream);
+    integrate(pv, getState()->dt, translate, stream);
     invalidatePV(pv);
 }
 

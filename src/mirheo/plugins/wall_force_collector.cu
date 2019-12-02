@@ -61,7 +61,7 @@ void WallForceCollectorPlugin::setup(Simulation *simulation, const MPI_Comm& com
 
 void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
 {   
-    if (isTimeEvery(state, sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery))
     {
         pvForceBuffer.clear(stream);
 
@@ -82,7 +82,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
         ++nsamples;
     }
     
-    needToDump = (isTimeEvery(state, dumpEvery) && nsamples > 0);
+    needToDump = (isTimeEvery(getState(), dumpEvery) && nsamples > 0);
 }
 
 void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
@@ -90,7 +90,7 @@ void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     if (needToDump)
     {
         waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer, state->currentTime, nsamples, totalForce);
+        SimpleSerializer::serialize(sendBuffer, getState()->currentTime, nsamples, totalForce);
         send(sendBuffer);
         needToDump = false;
         nsamples   = 0;

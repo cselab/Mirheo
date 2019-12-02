@@ -81,7 +81,7 @@ void ObjStatsPlugin::handshake()
 
 void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     auto lov = ov->local();
     
@@ -117,7 +117,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
         hasTypeIds = true;
     }
     
-    savedTime = state->currentTime;
+    savedTime = getState()->currentTime;
     needToSend = true;
 }
 
@@ -128,7 +128,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     debug2("Plugin %s is sending now data", name.c_str());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, state->domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
+    SimpleSerializer::serialize(sendBuffer, savedTime, getState()->domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
     send(sendBuffer);
     
     needToSend=false;

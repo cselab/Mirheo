@@ -288,7 +288,7 @@ void FieldFromFile::setup(const MPI_Comm& comm)
 {
     info("Setting up field from %s", fieldFileName.c_str());
 
-    const auto domain = state->domain;
+    const auto domain = getState()->domain;
     
     CUDA_Check( cudaDeviceSynchronize() );
 

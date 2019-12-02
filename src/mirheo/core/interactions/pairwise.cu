@@ -324,7 +324,7 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     mpark::visit([&](auto& params)
     {
         readSpecificParams(params, desc);
-        setSpecificFromParams(state, rc, params, varStressParams, info);
+        setSpecificFromParams(getState(), rc, params, varStressParams, info);
     }, varParamsSpecific);
     
     desc.checkAllRead();

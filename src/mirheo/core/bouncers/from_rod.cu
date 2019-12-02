@@ -107,7 +107,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
             RodBounceKernels::performBouncing,
             getNblocks(nCollisions, nthreads), nthreads, 0, stream,
             rvView, radius, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
-            state->dt, bounceKernel);
+            getState()->dt, bounceKernel);
 
     }, varBounceKernel);
 }

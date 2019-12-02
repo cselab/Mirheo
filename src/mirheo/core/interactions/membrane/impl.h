@@ -103,7 +103,7 @@ public:
               ov->local()->nObjects, ov->name.c_str());
 
         auto currentParams = parameters;
-        const real scale = scaleFromTime(state->currentTime);
+        const real scale = scaleFromTime(getState()->currentTime);
         rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
@@ -114,7 +114,7 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        const auto devParams = setParams(currentParams, stepGen, state);
+        const auto devParams = setParams(currentParams, stepGen, getState());
 
         DihedralInteraction dihedralInteraction(dihedralParams, scale);
         TriangleInteraction triangleInteraction(triangleParams, mesh, scale);

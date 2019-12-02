@@ -71,6 +71,7 @@ MirSimulationObject::MirSimulationObject(const MirState *state, const std::strin
 
 MirSimulationObject::~MirSimulationObject() = default;
 
+
 void MirSimulationObject::setState(const MirState *state)
 {
     this->state = state;

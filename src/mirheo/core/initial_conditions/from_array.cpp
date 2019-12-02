@@ -17,7 +17,7 @@ FromArrayIC::FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>
 void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     std::vector<real4> positions, velocities;
-    auto domain = pv->state->domain;
+    auto domain = pv->getState()->domain;
 
     const size_t n = pos.size();
     positions .reserve(n);

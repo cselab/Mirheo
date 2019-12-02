@@ -216,7 +216,7 @@ private:
         auto& pair = getPairwiseKernel(pv1->name, pv2->name);
         using ViewType = typename PairwiseKernel::ViewType;
 
-        pair.setup(pv1->local(), pv2->local(), cl1, cl2, state);
+        pair.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
 
         /*  Self interaction */
         if (pv1 == pv2)
@@ -256,7 +256,7 @@ private:
         auto& pair = getPairwiseKernel(pv1->name, pv2->name);
         using ViewType = typename PairwiseKernel::ViewType;
 
-        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, state);
+        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, getState());
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();

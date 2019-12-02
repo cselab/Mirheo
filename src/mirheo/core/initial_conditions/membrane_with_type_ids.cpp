@@ -19,7 +19,7 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     MembraneIC::exec(comm, pv, stream);
 
     auto ov = static_cast<MembraneVector*>(pv);
-    const auto domain = pv->state->domain;
+    const auto domain = pv->getState()->domain;
     const auto map = createMap(domain);
     const int nObjsLocal = static_cast<int>(map.size());
 

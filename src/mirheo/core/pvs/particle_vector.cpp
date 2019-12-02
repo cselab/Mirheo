@@ -151,7 +151,7 @@ PyTypes::VectorOfReal3 ParticleVector::getCoordinates_vector()
     for (size_t i = 0; i < pos.size(); i++)
     {
         real3 r = make_real3(pos[i]);
-        r = state->domain.local2global(r);
+        r = getState()->domain.local2global(r);
         res[i] = { r.x, r.y, r.z };
     }
     
@@ -201,7 +201,7 @@ void ParticleVector::setCoordinates_vector(const std::vector<real3>& coordinates
     for (size_t i = 0; i < coordinates.size(); i++)
     {
         real3 r = coordinates[i];
-        r = state->domain.global2local(r);
+        r = getState()->domain.global2local(r);
         pos[i].x = r.x;
         pos[i].y = r.y;
         pos[i].z = r.z;
@@ -265,7 +265,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
     std::vector<real3> velocities;
     std::vector<int64_t> ids;
     
-    std::tie(*positions, velocities, ids) = CheckpointHelpers::splitAndShiftPosVel(state->domain,
+    std::tie(*positions, velocities, ids) = CheckpointHelpers::splitAndShiftPosVel(getState()->domain,
                                                                                    pos4, vel4);
 
     XDMF::VertexGrid grid(positions, comm);
@@ -273,7 +273,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
     // do not dump positions and velocities, they are already there
     const std::set<std::string> blackList {{ChannelNames::positions, ChannelNames::velocities}};
 
-    auto channels = CheckpointHelpers::extractShiftPersistentData(state->domain,
+    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerParticle,
                                                                   blackList);
 
@@ -313,7 +313,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     std::vector<real4> pos4, vel4;
     std::tie(pos4, vel4) = RestartHelpers::combinePosVelIds(pos, vel, ids);
 
-    auto map = RestartHelpers::getExchangeMap(comm, state->domain, chunkSize, pos);
+    auto map = RestartHelpers::getExchangeMap(comm, getState()->domain, chunkSize, pos);
 
     RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
     RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
@@ -328,7 +328,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     auto& positions  = local()->positions();
     auto& velocities = local()->velocities();
 
-    RestartHelpers::shiftElementsGlobal2Local(pos4, state->domain);
+    RestartHelpers::shiftElementsGlobal2Local(pos4, getState()->domain);
     
     std::copy(pos4.begin(), pos4.end(), positions .begin());
     std::copy(vel4.begin(), vel4.end(), velocities.begin());
@@ -336,7 +336,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     positions .uploadToDevice(defaultStream);
     velocities.uploadToDevice(defaultStream);
 
-    RestartHelpers::copyAndShiftListData(state->domain, listData, dataPerParticle);
+    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerParticle);
 
     return {map, newSize};
 }

@@ -101,7 +101,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH
             (VelocityControlKernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
-             view, state->domain, low, high, force );
+             view, getState()->domain, low, high, force );
     }
 }
 
@@ -112,12 +112,12 @@ void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t str
     SAFE_KERNEL_LAUNCH
         (VelocityControlKernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, state->domain, low, high, totVel.devPtr(), nSamples.devPtr());
+         pvView, getState()->domain, low, high, totVel.devPtr(), nSamples.devPtr());
 }
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(state, sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery))
     {
         debug2("Velocity control %s is sampling now", name.c_str());
 
@@ -129,7 +129,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedTotVel.z += totVel[0].z;
     }
     
-    if (!isTimeEvery(state, tuneEvery)) return;
+    if (!isTimeEvery(getState(), tuneEvery)) return;
     
     nSamples.downloadFromDevice(stream);
     nSamples.clearDevice(stream);
@@ -149,10 +149,10 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
 void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, currentVel, force);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, getState()->currentStep, currentVel, force);
     send(sendBuffer);
 }
 

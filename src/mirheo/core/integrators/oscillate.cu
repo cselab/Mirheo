@@ -27,7 +27,7 @@ IntegratorOscillate::~IntegratorOscillate() = default;
  */
 void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    const auto t = static_cast<real>(state->currentTime);
+    const auto t = static_cast<real>(getState()->currentTime);
     
     const auto _vel = vel;
     constexpr auto two_pi = static_cast<real>(2.0 * M_PI);
@@ -39,7 +39,7 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
         p.r += p.u*dt;
     };
 
-    integrate(pv, state->dt, oscillate, stream);
+    integrate(pv, getState()->dt, oscillate, stream);
     invalidatePV(pv);
 }
 

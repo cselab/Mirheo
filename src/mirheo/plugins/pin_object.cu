@@ -203,7 +203,7 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 PinObjectKernels::restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, translation, rotation, state->dt,
+                view, translation, rotation, getState()->dt,
                 forces.devPtr(), torques.devPtr() );
     }
 }
@@ -218,7 +218,7 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
         torques.downloadFromDevice(stream);
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, reportEvery, forces, torques);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, reportEvery, forces, torques);
     send(sendBuffer);
 
     forces.clearDevice(stream);

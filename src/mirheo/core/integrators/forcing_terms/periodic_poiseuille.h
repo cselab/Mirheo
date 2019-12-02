@@ -38,7 +38,7 @@ public:
 
     void setup(ParticleVector* pv, __UNUSED real t)
     {
-        domain = pv->state->domain;
+        domain = pv->getState()->domain;
     }
 
     /**

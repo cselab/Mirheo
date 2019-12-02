@@ -80,14 +80,14 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 {
     PVview view(pv, pv->local());
 
-    int n = pids.size();
+    const int n = pids.size();
     const int nthreads = 32;
     const int nblocks = getNblocks(pids.size(), nthreads);
 
     if (view.size == 0) return;
 
-    real t = (real) state->currentTime;
-    const auto& domain = state->domain;
+    const real t = (real) getState()->currentTime;
+    const auto& domain = getState()->domain;
 
     auto poss = positions(t);
     auto vels = velocities(t);
@@ -117,13 +117,13 @@ void AnchorParticlesPlugin::handshake()
 
 void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, reportEvery)) return;
+    if (!isTimeEvery(getState(), reportEvery)) return;
 
     forces.downloadFromDevice(stream);
 
     waitPrevSend();
 
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, nsamples, forces);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, nsamples, forces);
     send(sendBuffer);
 
     nsamples = 0;

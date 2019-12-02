@@ -38,7 +38,7 @@ static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& doma
 
 void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
 {
-    auto domain = pv->state->domain;
+    auto domain = pv->getState()->domain;
 
     int3 ncells = make_int3( math::ceil(domain.localSize) );
     real3 h    = domain.localSize / make_real3(ncells);

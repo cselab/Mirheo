@@ -80,7 +80,7 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
 
         real seed = udistr(gen);
 
-        auto isInsideFunc = [plane = this->plane, domain = state->domain] __device__ (real3 r) {
+        auto isInsideFunc = [plane = this->plane, domain = getState()->domain] __device__ (real3 r) {
             r = domain.local2global(r);
             return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0._r;
         };
@@ -168,7 +168,7 @@ void RegionOutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, con
 
 double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) const
 {
-    auto domain = state->domain;
+    auto domain = getState()->domain;
 
     double totVolume = domain.localSize.x * domain.localSize.y * domain.localSize.z;
 
@@ -262,8 +262,8 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
     {
         PVview view(pv, pv->local());
 
-        real seed = udistr(gen);
-        real QTimesdt = rate * state->dt * view.invMass;
+        const real seed = udistr(gen);
+        const real QTimesdt = rate * getState()->dt * view.invMass;
 
         auto isInsideFunc = [field = outletRegion->handler()] __device__ (const real3& r) {
             return RegionOutletPluginKernels::isInsideRegion(field, r);

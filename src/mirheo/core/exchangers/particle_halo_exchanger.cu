@@ -194,7 +194,7 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ParticleHaloExchangersKernels::getHalo<PackMode::Query>,
             nblocks, nthreads, 0, stream,
-            cl->cellInfo(), pv->state->domain,
+            cl->cellInfo(), pv->getState()->domain,
             packer->handler(), helper->wrapSendData() );
     }
 
@@ -227,7 +227,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             ParticleHaloExchangersKernels::getHalo<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
-            cl->cellInfo(), pv->state->domain,
+            cl->cellInfo(), pv->getState()->domain,
             packer->handler(), helper->wrapSendData() );
     }
 }

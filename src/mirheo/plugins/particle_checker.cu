@@ -85,13 +85,13 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
 
 void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, checkEvery)) return;
+    if (!isTimeEvery(getState(), checkEvery)) return;
 
     const int nthreads = 128;
 
-    const real dt     = state->dt;
+    const real dt     = getState()->dt;
     const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
-    const auto domain = state->domain;
+    const auto domain = getState()->domain;
     
     for (size_t i = 0; i < pvs.size(); ++i)
     {

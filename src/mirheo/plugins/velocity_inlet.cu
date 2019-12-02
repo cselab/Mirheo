@@ -150,9 +150,9 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     pv = simulation->getPVbyNameOrDie(pvName);
 
     std::vector<MarchingCubes::Triangle> triangles;
-    MarchingCubes::computeTriangles(state->domain, resolution, implicitSurface, triangles);
+    MarchingCubes::computeTriangles(getState()->domain, resolution, implicitSurface, triangles);
 
-    int nTriangles = triangles.size();
+    const int nTriangles = triangles.size();
     
     surfaceTriangles.resize_anew(nTriangles * 3);
     surfaceVelocity .resize_anew(nTriangles * 3);
@@ -169,7 +169,7 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
 
     for (size_t i = 0; i < surfaceTriangles.size(); ++i)
     {
-        real3 r = state->domain.local2global(surfaceTriangles[i]);
+        const real3 r = getState()->domain.local2global(surfaceTriangles[i]);
         surfaceVelocity[i] = velocityField(r);
     }
 
@@ -210,7 +210,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::countFromCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, stream,
-        nTriangles, state->dt, numberDensity, localFluxes.devPtr(),
+        nTriangles, getState()->dt, numberDensity, localFluxes.devPtr(),
         cumulativeFluxes.devPtr(), nNewParticles.devPtr(), workQueue.devPtr());
 
         

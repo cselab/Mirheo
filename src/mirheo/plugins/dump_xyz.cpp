@@ -26,25 +26,25 @@ void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     positions.copy(pv->local()->positions(), stream);
 }
 
 void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     debug2("Plugin %s is sending now data", name.c_str());
 
     for (auto& r : positions)
     {
         auto r3 = make_real3(r);
-        r3 = state->domain.local2global(r3);
+        r3 = getState()->domain.local2global(r3);
         r.x = r3.x; r.y = r3.y; r.z = r3.z;
     }
 
-    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
     
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, timeStamp, pv->name, positions);

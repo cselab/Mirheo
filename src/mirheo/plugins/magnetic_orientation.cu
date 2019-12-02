@@ -52,7 +52,7 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
     ROVview view(rov, rov->local());
     const int nthreads = 128;
 
-    const auto t = state->currentTime;
+    const auto t = getState()->currentTime;
     const auto B = magneticFunction(t);
     
     SAFE_KERNEL_LAUNCH(

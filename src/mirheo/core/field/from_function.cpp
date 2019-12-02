@@ -33,7 +33,7 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
 {
     info("Setting up field '%s'", name.c_str());
 
-    const auto domain = state->domain;
+    const auto domain = getState()->domain;
     
     CUDA_Check( cudaDeviceSynchronize() );
     

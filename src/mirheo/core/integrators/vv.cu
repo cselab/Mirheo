@@ -52,8 +52,8 @@ void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cud
 template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
 {
-    const auto t  = static_cast<real>(state->currentTime);
-    const auto dt = static_cast<real>(state->dt);
+    const auto t  = static_cast<real>(getState()->currentTime);
+    const auto dt = static_cast<real>(getState()->dt);
     
     static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
             "Forcing term functor must provide member"

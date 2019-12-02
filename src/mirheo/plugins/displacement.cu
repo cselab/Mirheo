@@ -75,7 +75,7 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
 void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, updateEvery)) return;
+    if (!isTimeEvery(getState(), updateEvery)) return;
 
     auto& manager = pv->local()->dataPerParticle;
     

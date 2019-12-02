@@ -94,7 +94,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 
 void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream)
 {
-    CellListInfo cinfo(binSize, state->domain.globalSize);
+    const CellListInfo cinfo(binSize, getState()->domain.globalSize);
     PVview pvView(pv, pv->local());
     ChannelsInfo gpuInfo(channelsInfo, pv, stream);
 
@@ -110,7 +110,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     const int TAG = 22;
     const int NCOMPONENTS = 2 * sizeof(real3) / sizeof(real);
     
-    if (!isTimeEvery(state, sampleEvery)) return;
+    if (!isTimeEvery(getState(), sampleEvery)) return;
 
     debug2("Plugin %s is sampling now", name.c_str());
 
@@ -131,9 +131,9 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
         if ((*ids)[i] == relativeID)
         {
             real3 params[2] = { make_real3( (*motions)[i].r   ),
-                                 make_real3( (*motions)[i].vel ) };
+                                make_real3( (*motions)[i].vel ) };
 
-            params[0] = state->domain.local2global(params[0]);
+            params[0] = getState()->domain.local2global(params[0]);
 
             for (int r = 0; r < nranks; r++)
                 MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm);
@@ -144,7 +144,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
 
-    relativeParams[0] = state->domain.global2local(relativeParams[0]);
+    relativeParams[0] = getState()->domain.global2local(relativeParams[0]);
 
     for (auto& pv : pvs) sampleOnePv(relativeParams[0], pv, stream);
 
@@ -196,7 +196,7 @@ void AverageRelative3D::extractLocalBlock()
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     for (int i = 0; i < channelsInfo.n; ++i)
     {
@@ -231,11 +231,11 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
     extractLocalBlock();
     nSamples = 0;
 
-    MirState::StepType timeStamp = getTimeStamp(state, dumpEvery) - 1; // -1 to start from 0
+    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery) - 1; // -1 to start from 0
 
     debug2("Plugin '%s' is now packing the data", name.c_str());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, timeStamp, localNumberDensity, localChannels);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, timeStamp, localNumberDensity, localChannels);
     send(sendBuffer);
 }
 

@@ -129,7 +129,7 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     spaceDecompositionField->setup(comm);
 
-    int nLevelSets = (levelBounds.hi - levelBounds.lo) / levelBounds.space;
+    const int nLevelSets = (levelBounds.hi - levelBounds.lo) / levelBounds.space;
     levelBounds.space = (levelBounds.hi - levelBounds.lo) / nLevelSets;
     
     nInsides     .resize_anew(nLevelSets);    
@@ -152,10 +152,10 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
 void DensityControlPlugin::beforeForces(cudaStream_t stream)
 {
-    if (isTimeEvery(state, tuneEvery))
+    if (isTimeEvery(getState(), tuneEvery))
         updatePids(stream);
 
-    if (isTimeEvery(state, sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery))
         sample(stream);
 
     applyForces(stream);
@@ -163,10 +163,10 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
 
 void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(state, dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery)) return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, state->currentTime, state->currentStep, densities, forces);
+    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, getState()->currentStep, densities, forces);
     send(sendBuffer);
 }
 
@@ -174,9 +174,9 @@ void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
-    real seed = 0.42424242_r + rank * 17;
-    auto domain = state->domain;    
-    int nLevelSets = nInsides.size();
+    const real seed = 0.42424242_r + rank * 17;
+    const auto domain = getState()->domain;    
+    const int nLevelSets = nInsides.size();
 
     PinnedBuffer<double> localVolumes(nLevelSets);
     
@@ -189,8 +189,8 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
         MCnSamples, domain, spaceDecompositionField->handler(),
         levelBounds, seed, nInsides.devPtr());
 
-    real3 L = domain.localSize;
-    double subdomainVolume = L.x * L.y * L.z;
+    const real3 L = domain.localSize;
+    const double subdomainVolume = L.x * L.y * L.z;
 
     SAFE_KERNEL_LAUNCH(
         DensityControlPluginKernels::computeVolumes,

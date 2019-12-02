@@ -102,7 +102,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
               pvOut->name.c_str(), src->name.c_str());
 
     {
-        PrimaryCellList cl(src, 1.0_r, state->domain.localSize);
+        PrimaryCellList cl(src, 1.0_r, getState()->domain.localSize);
         cl.build(stream);
         checkInner(src, &cl, stream);
     }
