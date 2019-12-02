@@ -13,9 +13,10 @@ namespace TypeShift
 template <typename T>
 __HD__ inline void _add(T& v, real3 s)
 {
-    v.x += s.x;
-    v.y += s.y;
-    v.z += s.z;
+    using RealType = decltype(v.x);
+    v.x += static_cast<RealType>(s.x);
+    v.y += static_cast<RealType>(s.y);
+    v.z += static_cast<RealType>(s.z);
 }
 
 template <typename T>
