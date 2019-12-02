@@ -12,7 +12,12 @@ For more information, please refer to the online documentation: http://mirheo.re
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Do not create checkpoint folder when not needed
+* **internal changes**
+  * state is private
+  * add -Wconversion for `.cpp` files (not `.cu` for now because of thrust)
 
 ### v1.3.2
 
