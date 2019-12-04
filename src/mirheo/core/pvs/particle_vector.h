@@ -32,7 +32,7 @@ public:
     template <typename T>
     friend void swap(LocalParticleVector &, T &) = delete;  // Disallow implicit upcasts.
     
-    int size() { return np; }
+    int size() const { return np; }
     virtual void resize(int n, cudaStream_t stream);
     virtual void resize_anew(int n);    
 
