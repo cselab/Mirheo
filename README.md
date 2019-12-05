@@ -9,6 +9,13 @@ The code uses Dissipative Particle Dynamics method to describe the liquid and it
 
 For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
+## Installation
+
+```sh
+git clone --recursive https://github.com/cselab/Mirheo
+cd Mirheo
+make install
+```
 
 ## Changelog
 
