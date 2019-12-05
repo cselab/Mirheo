@@ -168,7 +168,7 @@ void computeTriangles(DomainInfo domain, real3 resolution,
                 int offset = 4;
 
                 for (int i = 0; i < nIndices; i++) {
-                    const int edge = (config >> offset) & 0xF;
+                    const int edge = static_cast<int>((config >> offset) & 0xF);
                     indices.push_back(edgeIndices[edge]);
                     offset += 4;
                 }

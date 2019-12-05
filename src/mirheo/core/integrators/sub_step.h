@@ -12,7 +12,7 @@ namespace mirheo
 
 class Interaction;
 
-class IntegratorSubStep : Integrator
+class IntegratorSubStep : public Integrator
 {
 public:
     IntegratorSubStep(const MirState *state, std::string name, int substeps,
