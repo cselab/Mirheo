@@ -468,9 +468,11 @@ void exportPlugins(py::module& m)
     m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
-        If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
-        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported.
-            
+        If the objects are rigid bodies, rotation may be restricted with this plugin as well.
+        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported in the dumped file, with the following format:
+        
+        <object id> <simulation time> <force>x3 [<torque>x3]
+
         .. note::
             This plugin is inactive if postprocess is disabled
         

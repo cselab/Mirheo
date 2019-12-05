@@ -554,9 +554,11 @@ def createPinObject():
 
 
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
-        If the objects are rigid bodies, rotatation may be restricted with this plugin as well.
-        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported.
-            
+        If the objects are rigid bodies, rotation may be restricted with this plugin as well.
+        The *time-averaged* force and/or torque required to impose the velocities and rotations are reported in the dumped file, with the following format:
+        
+        <object id> <simulation time> <force>x3 [<torque>x3]
+
         .. note::
             This plugin is inactive if postprocess is disabled
         
