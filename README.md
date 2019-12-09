@@ -244,8 +244,8 @@ Work in progress:
 ### v0.12.3
 
 * **interface changes**
-  * use checkpoint instead of restart in Mirheo coordinator constructor
-  * add checkpoint_mode parameter to Mirheo coordinator constructor
+  * use checkpoint instead of restart in Ymero coordinator constructor
+  * add checkpoint_mode parameter to Ymero coordinator constructor
 * checkpoint/restart mechanism is more uniform
 
 ### v0.12.2
@@ -419,7 +419,7 @@ Work in progress:
 
 ### v0.9.0
 
-* Add common MirState object.
+* Add common YmrState object.
 * **interface change**:
   * the time step is now passed to the coordinator constructor
   * the time step is not passed to any other object
@@ -435,7 +435,7 @@ Work in progress:
 
 ### v0.7.0
 
-* reorganise memebrane interaction kernels:
+* reorganise membrane interaction kernels:
   * bending force kernels now separated from other
   * 2 parameter strctures
 * add Juelicher bending model 
@@ -443,7 +443,7 @@ Work in progress:
 
 ### v0.6.1
 
-* rename uDeviceX to Mirheo
+* rename uDeviceX to Ymero
 * synchronzation bug fix
 
 ### v0.6.0
