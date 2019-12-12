@@ -36,10 +36,12 @@ __D__ constexpr inline mReal3 make_mReal3(double a)
             static_cast<mReal>(a)};
 }
 
-__D__ constexpr inline mReal operator "" _mr (const long double a)
-{
-    return static_cast<mReal>(a);
-}
+inline namespace unit_literals {
+    __D__ constexpr inline mReal operator "" _mr (const long double a)
+    {
+        return static_cast<mReal>(a);
+    }
+} // namespace unit_literals
 
 struct ParticleMReal
 {

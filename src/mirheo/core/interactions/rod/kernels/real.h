@@ -83,10 +83,12 @@ __D__ constexpr inline rReal4 make_rReal4(double a)
             static_cast<rReal>(a)};
 }
 
-__D__ constexpr inline rReal operator "" _rr (const long double a)
-{
-    return static_cast<rReal>(a);
-}
+inline namespace unit_literals {
+    __D__ constexpr inline rReal operator "" _rr (const long double a)
+    {
+        return static_cast<rReal>(a);
+    }
+} // namespace unit_literals
 
 struct ParticleRReal
 {

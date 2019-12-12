@@ -21,10 +21,12 @@ using real2 = VecTraits::Vec<real, 2>::Type;
 using real3 = VecTraits::Vec<real, 3>::Type;
 using real4 = VecTraits::Vec<real, 4>::Type;
 
-__HD__ constexpr inline real operator "" _r (const long double a)
-{
-    return static_cast<real>(a);
-}
+inline namespace unit_literals {
+    __HD__ constexpr inline real operator "" _r (const long double a)
+    {
+        return static_cast<real>(a);
+    }
+} // namespace unit_literals
 
 static inline __HD__ real2 make_real2(real x, real y)
 {
