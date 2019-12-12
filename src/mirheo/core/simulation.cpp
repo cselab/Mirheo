@@ -131,11 +131,16 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
         createFoldersCollective(cartComm, checkpointInfo.folder);
 
     state->reinitTime();
-    
+
+    const auto &domain = state->domain;
+    if (domain.globalSize.x <= 0 || domain.globalSize.y <= 0 || domain.globalSize.z <= 0) {
+        die("Invalid domain size: [%f %f %f]",
+            domain.globalSize.x, domain.globalSize.y, domain.globalSize.z);
+    }
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
-         state->domain.localSize.x, state->domain.localSize.y, state->domain.localSize.z,
-         state->domain.globalStart.x, state->domain.globalStart.y, state->domain.globalStart.z);    
+         domain.localSize.x, domain.localSize.y, domain.localSize.z,
+         domain.globalStart.x, domain.globalStart.y, domain.globalStart.z);
 }
 
 Simulation::~Simulation() = default;
