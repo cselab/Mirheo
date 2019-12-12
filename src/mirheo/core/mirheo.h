@@ -28,6 +28,9 @@ class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
 
+using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
+                             std::shared_ptr<PostprocessPlugin>>;
+
 struct LogInfo
 {
     LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash = false);
@@ -68,6 +71,7 @@ public:
     void registerBouncer                (const std::shared_ptr<Bouncer>& bouncer);
     void registerPlugins                (const std::shared_ptr<SimulationPlugin>& simPlugin,
                                          const std::shared_ptr<PostprocessPlugin>& postPlugin);
+    void registerPlugins                (const PairPlugin &plugins);
     
     void registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov);
  

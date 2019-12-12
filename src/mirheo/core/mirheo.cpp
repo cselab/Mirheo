@@ -272,6 +272,10 @@ void Mirheo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin,
     }
 }
 
+void Mirheo::registerPlugins(const PairPlugin &plugins) {
+    registerPlugins(plugins.first, plugins.second);
+}
+
 void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 {
     checkNotInitialized();

@@ -145,7 +145,10 @@ void exportMirheo(py::module& m)
                    wall: the :any:`Wall` to register
                    check_every: if positive, check every this many time steps if particles penetrate the walls 
         )")
-        .def("registerPlugins",  &Mirheo::registerPlugins, "Register Plugins")
+        .def("registerPlugins",
+             (void(Mirheo::*)(const std::shared_ptr<SimulationPlugin> &,
+                              const std::shared_ptr<PostprocessPlugin> &))&Mirheo::registerPlugins,
+             "Register Plugins")
 
         .def("setIntegrator",  &Mirheo::setIntegrator,
              "integrator"_a, "pv"_a, R"(
