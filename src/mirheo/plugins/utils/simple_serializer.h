@@ -16,6 +16,12 @@ namespace mirheo
 class SimpleSerializer
 {
 private:
+
+    static constexpr int padded(int size, int pad = sizeof(int))
+    {
+        const int n = (size + pad - 1) / pad;
+        return n * pad;
+    }
     
     // Some template shorthand definitions    
     
@@ -50,14 +56,14 @@ private:
         for (auto& element : v)
             tot += sizeOfOne(element);
         
-        return tot;
+        return padded(tot);
     }
     
     /// Overload for the vectors of plain old data
     template<typename Vec, EnableIfPod<ValType<Vec>> = nullptr>
     static int sizeOfVec(const Vec& v)
     {        
-        return v.size() * sizeof(ValType<Vec>) + sizeof(int);
+        return padded(v.size() * sizeof(ValType<Vec>) + sizeof(int));
     }
     
     template<typename T> static int sizeOfOne(const std::vector <T>& v) { return sizeOfVec(v); }
@@ -66,13 +72,13 @@ private:
     
     static int sizeOfOne(const std::string& s)
     {
-        return static_cast<int>(s.length() + sizeof(int));
+        return padded(static_cast<int>(s.length() + sizeof(int)));
     }
 
     template<typename Arg>
     static int sizeOfOne(__UNUSED const Arg& arg)
     {
-        return sizeof(Arg);
+        return padded(sizeof(Arg));
     }
 
     //============================================================================
@@ -136,7 +142,7 @@ private:
     template<typename T>
     static void packOne(char* buf, const T& v)
     {
-        memcpy(buf, &v, sizeOfOne(v));
+        memcpy(buf, &v, sizeof(v));
     }
 
     //============================================================================
@@ -201,7 +207,7 @@ private:
     template<typename T>
     static void unpackOne(const char* buf, T& v)
     {
-        memcpy(&v, buf, sizeOfOne(v));
+        memcpy(&v, buf, sizeof(v));
     }
 
     //============================================================================
