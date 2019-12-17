@@ -301,19 +301,19 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
 {
     CUDA_Check( cudaDeviceSynchronize() );
     
-    auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
+    const auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
     info("Restarting particle data from file %s", name.c_str(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, chunkSize);
 
-    auto pos = RestartHelpers::extractChannel<real3> (ChannelNames::XDMF::position, listData);
-    auto vel = RestartHelpers::extractChannel<real3> (ChannelNames::XDMF::velocity, listData);
+    auto pos = RestartHelpers::extractChannel<real3>  (ChannelNames::XDMF::position, listData);
+    auto vel = RestartHelpers::extractChannel<real3>  (ChannelNames::XDMF::velocity, listData);
     auto ids = RestartHelpers::extractChannel<int64_t>(ChannelNames::XDMF::ids,      listData);
     
     std::vector<real4> pos4, vel4;
     std::tie(pos4, vel4) = RestartHelpers::combinePosVelIds(pos, vel, ids);
 
-    auto map = RestartHelpers::getExchangeMap(comm, getState()->domain, chunkSize, pos);
+    const auto map = RestartHelpers::getExchangeMap(comm, getState()->domain, chunkSize, pos);
 
     RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
     RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
@@ -349,7 +349,7 @@ void ParticleVector::checkpoint(MPI_Comm comm, const std::string& path, int chec
 void ParticleVector::restart(MPI_Comm comm, const std::string& path)
 {
     constexpr int particleChunkSize = 1;
-    auto ms = _restartParticleData(comm, path, particleChunkSize);
+    const auto ms = _restartParticleData(comm, path, particleChunkSize);
     local()->resize(ms.newSize, defaultStream);
 }
 

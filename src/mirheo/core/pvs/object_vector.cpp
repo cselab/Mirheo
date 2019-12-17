@@ -202,7 +202,7 @@ void ObjectVector::checkpoint(MPI_Comm comm, const std::string& path, int checkp
 
 void ObjectVector::restart(MPI_Comm comm, const std::string& path)
 {
-    auto ms = _restartParticleData(comm, path, objSize);
+    const auto ms = _restartParticleData(comm, path, objSize);
     _restartObjectData(comm, path, ms);
     
     local()->resize(ms.newSize * objSize, defaultStream);

@@ -226,7 +226,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
 
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
-    copyAndShiftListData(getState()->domain, listData, dataPerObject);
+    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
     RestartHelpers::shiftElementsGlobal2Local(motions, getState()->domain);
 
