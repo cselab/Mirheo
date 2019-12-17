@@ -201,27 +201,26 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
                                            const RigidObjectVector::ExchMapSize& ms)
 {
-    using namespace RestartHelpers;
     constexpr int objChunkSize = 1; // only one datum per object
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, RestartROVIdentifier, "xmf");
     info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
 
-    auto listData = readData(filename, comm, objChunkSize);
+    auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
     namespace ChNames = ChannelNames::XDMF;
-    auto pos        = extractChannel<real3>     (ChNames::position,            listData);
-    auto quaternion = extractChannel<RigidReal4> (ChNames::Motions::quaternion, listData);
-    auto vel        = extractChannel<RigidReal3> (ChNames::Motions::velocity,   listData);
-    auto omega      = extractChannel<RigidReal3> (ChNames::Motions::omega,      listData);
-    auto force      = extractChannel<RigidReal3> (ChNames::Motions::force,      listData);
-    auto torque     = extractChannel<RigidReal3> (ChNames::Motions::torque,     listData);
+    auto pos        = RestartHelpers::extractChannel<real3>      (ChNames::position,            listData);
+    auto quaternion = RestartHelpers::extractChannel<RigidReal4> (ChNames::Motions::quaternion, listData);
+    auto vel        = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::velocity,   listData);
+    auto omega      = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::omega,      listData);
+    auto force      = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::force,      listData);
+    auto torque     = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::torque,     listData);
 
-    auto motions = combineMotions(pos, quaternion, vel, omega, force, torque);
+    auto motions = RestartHelpers::combineMotions(pos, quaternion, vel, omega, force, torque);
     
-    exchangeData    (comm, ms.map, motions,  objChunkSize);
-    exchangeListData(comm, ms.map, listData, objChunkSize);
+    RestartHelpers::exchangeData    (comm, ms.map, motions,  objChunkSize);
+    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
 
     requireExtraDataPerObject(listData, this);
 
@@ -229,7 +228,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     dataPerObject.resize_anew(ms.newSize);
     copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
-    shiftElementsGlobal2Local(motions, getState()->domain);
+    RestartHelpers::shiftElementsGlobal2Local(motions, getState()->domain);
 
     auto& dstMotions = *dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
