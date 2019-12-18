@@ -54,14 +54,14 @@ if args.restart and pv:
         np.savetxt("parts.txt", data)
     
 
-# TEST: restart.particleVector
+# TEST: restart.particle_vector
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
 # mir.run --runargs "-n 1" ./particle_vector.py --ranks 1 1 1
 # mir.run --runargs "-n 1" ./particle_vector.py --ranks 1 1 1 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
-# TEST: restart.particleVector.mpi
+# TEST: restart.particle_vector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
 # mir.run --runargs "-n 4" ./particle_vector.py --ranks 1 2 2

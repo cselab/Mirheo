@@ -51,14 +51,14 @@ if args.restart:
 u.run(7)
 
 
-# TEST: restart.rigidVector
+# TEST: restart.rigid_vector
 # cd restart
 # rm -rf restart stats stats.rigid*txt
 # mir.run --runargs "-n 1" ./rigid_vector.py --ranks 1 1 1
 # mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 1 --restart
 # cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 
-# TEST: restart.rigidVector.mpi
+# TEST: restart.rigid_vector.mpi
 # cd restart
 # rm -rf restart stats stats.rigid*txt
 # mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 2
