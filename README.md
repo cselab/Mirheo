@@ -22,6 +22,7 @@ make install
 ### unreleased
 
 * Do not create checkpoint folder when not needed
+* **bug fix** 
 * **internal changes**
   * state is private
   * add -Wconversion for `.cpp` files (not `.cu` for now because of thrust)
