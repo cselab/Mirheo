@@ -71,7 +71,7 @@ if args.restart:
 
 u.run(nsteps)
 
-# snTEST: restart.contact.rigid.ellipsoid
+# nTEST: restart.contact.rigid.ellipsoid
 # set -eu
 # cd restart
 # rm -rf stats rigid.out.txt
