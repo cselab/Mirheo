@@ -119,6 +119,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     constexpr int root = 0;
+    constexpr int nRealsPerPosition = sizeof(positions[0] / sizeof(real));
 
     if (rank == root)
     {
@@ -126,7 +127,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
         f.open(filename, "rb");
         fread(positions.data(), sizeof(positions[0]), objSize, f.get());
     }
-    MPI_Check(MPI_Bcast(positions.data(), objSize, getMPIFloatType<real>(), root, comm));
+    MPI_Check(MPI_Bcast(positions.data(), objSize * nRealsPerPosition, getMPIFloatType<real>(), root, comm));
 
     positions.uploadToDevice(defaultStream);
     return positions;
