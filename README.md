@@ -22,7 +22,7 @@ make install
 ### unreleased
 
 * Do not create checkpoint folder when not needed
-* **bug fix** 
+* **bug fix** restart for rigid object vector in multi-rank
 * **internal changes**
   * state is private
   * add -Wconversion for `.cpp` files (not `.cu` for now because of thrust)
