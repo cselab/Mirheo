@@ -9,14 +9,14 @@ parser.add_argument('--axes', type=float, nargs=3)
 parser.add_argument('--coords', type=str)
 parser.add_argument('--xorigin', type=float, default = 0)
 parser.add_argument('--vis', action='store_true', default=False)
+parser.add_argument("--ranks", type=int, nargs=3, default = [1,1,1])
 args = parser.parse_args()
 
-ranks  = (1, 1, 1)
 domain = [8., 8., 8.]
 
 dt   = 0.001
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(args.ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 100
 np.random.seed(42)
@@ -83,6 +83,17 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
+# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+
+# nTEST: bounce.rigid.ellipsoid.mpi
+# set -eu
+# cd bounce/rigid
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# rho=8.0; ax=1.0; ay=2.0; az=1.0
+# rm -rf pos*.txt vel*.txt
+# cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# mir.run --runargs "-n 4" ./ellipsoid.py --axes $ax $ay $az --coords $f --ranks 2 1 1
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.ellipsoid.exchange
