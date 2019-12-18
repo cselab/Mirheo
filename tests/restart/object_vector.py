@@ -63,14 +63,14 @@ if args.restart and pv:
 # TEST: restart.objectVector
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# mir.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1
-# mir.run --runargs "-n 1" ./objectVector.py --ranks 1 1 1 --restart
+# mir.run --runargs "-n 1" ./object_vector.py --ranks 1 1 1
+# mir.run --runargs "-n 1" ./object_vector.py --ranks 1 1 1 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
 # TEST: restart.objectVector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# mir.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2
-# mir.run --runargs "-n 2" ./objectVector.py --ranks 1 1 2 --restart
+# mir.run --runargs "-n 2" ./object_vector.py --ranks 1 1 2
+# mir.run --runargs "-n 2" ./object_vector.py --ranks 1 1 2 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 

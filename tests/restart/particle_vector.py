@@ -57,14 +57,14 @@ if args.restart and pv:
 # TEST: restart.particleVector
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# mir.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1
-# mir.run --runargs "-n 1" ./particleVector.py --ranks 1 1 1 --restart
+# mir.run --runargs "-n 1" ./particle_vector.py --ranks 1 1 1
+# mir.run --runargs "-n 1" ./particle_vector.py --ranks 1 1 1 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 
 # TEST: restart.particleVector.mpi
 # cd restart
 # rm -rf restart parts.out.txt parts.txt
-# mir.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2
-# mir.run --runargs "-n 4" ./particleVector.py --ranks 1 2 2 --restart
+# mir.run --runargs "-n 4" ./particle_vector.py --ranks 1 2 2
+# mir.run --runargs "-n 4" ./particle_vector.py --ranks 1 2 2 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
 

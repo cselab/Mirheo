@@ -56,7 +56,7 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
         const bool needShift = desc.needShift == XDMF::Channel::NeedShift::True;
         const int ncomp      = XDMF::dataFormToNcomponents(desc.dataForm);
         auto varVec = mpark::visit(details::getVarTypeVisitor{ncomp}, desc.type);
-        
+
         mpark::visit([&](auto& dstVec)
         {
             using T = typename std::remove_reference<decltype(dstVec)>::type::value_type;
@@ -120,9 +120,9 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
     
     for (int i = 0; i < nObjs; ++i)
     {
-        real3 com = factor * std::accumulate(positions.data() + (i + 0) * objSize,
-                                              positions.data() + (i + 1) * objSize,
-                                              zero3);
+        const real3 com = factor * std::accumulate(positions.data() + (i + 0) * objSize,
+                                                   positions.data() + (i + 1) * objSize,
+                                                   zero3);
         coms.push_back(com);
     }
 

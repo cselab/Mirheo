@@ -54,14 +54,14 @@ u.run(7)
 # TEST: restart.rigidVector
 # cd restart
 # rm -rf restart stats stats.rigid*txt
-# mir.run --runargs "-n 1" ./rigidVector.py --ranks 1 1 1
-# mir.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 1 --restart
+# mir.run --runargs "-n 1" ./rigid_vector.py --ranks 1 1 1
+# mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 1 --restart
 # cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 
 # TEST: restart.rigidVector.mpi
 # cd restart
-# : rm -rf restart stats stats.rigid*txt
-# : mir.run --runargs "-n 2" ./rigidVector.py --ranks 1 1 2
-# mir.run --runargs "-n 4" ./rigidVector.py --ranks 1 1 2 --restart
+# rm -rf restart stats stats.rigid*txt
+# mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 2
+# mir.run --runargs "-n 4" ./rigid_vector.py --ranks 1 1 2 --restart
 # cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 
