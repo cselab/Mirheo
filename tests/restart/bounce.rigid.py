@@ -14,7 +14,7 @@ parser.add_argument("--ranks", type=int, nargs=3, default = [1,1,1])
 args = parser.parse_args()
 
 ranks  = args.ranks
-domain = [8., 8., 8.]
+domain = [16., 8., 8.]
 
 dt   = 0.001
 t_end = 2.5 + dt # time for one restart batch
@@ -24,7 +24,7 @@ u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log',
 
 nparts = 100
 np.random.seed(42)
-pos = np.random.normal(loc   = [0.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
+pos = np.random.normal(loc   = [0.5 * domain[0] - 3.5 + args.xorigin, 0.5 * domain[1] + 1.0, 0.5 * domain[2]],
                        scale = [0.1, 0.3, 0.3],
                        size  = (nparts, 3))
 
@@ -102,6 +102,6 @@ u.run(niters)
 # rho=8.0; ax=1.0; ay=2.0; az=1.0
 # rm -rf pos*.txt vel*.txt
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# mir.run --runargs "-n 8" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 4 1 1 --vis
-# mir.run --runargs "-n 8" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 4 1 1 --vis --restart
+# mir.run --runargs "-n 4" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 2 1 1 --vis
+# mir.run --runargs "-n 4" ./bounce.rigid.py --axes $ax $ay $az --coords $f --ranks 2 1 1 --vis --restart
 # cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100  > rigid.out.txt
