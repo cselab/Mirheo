@@ -85,12 +85,3 @@ if args.restart and u.isComputeTask():
 # mir.run --runargs "-n 2" ./bounce.py --vis
 # mir.run --runargs "-n 2" ./bounce.py --vis --restart
 # mv pos.rbc.txt pos.rbc.out.txt
-
-# nTEST: restart.bounce.mpi
-# set -eu
-# cd restart
-# rm -rf pos.rbc.txt pos.rbc.out.txt restart 
-# cp ../../data/rbc_mesh.off .
-# mir.run --runargs "-n 4" ./bounce.py --ranks 2 1 1 --vis
-# mir.run --runargs "-n 4" ./bounce.py --ranks 2 1 1 --vis --restart
-# mv pos.rbc.txt pos.rbc.out.txt
