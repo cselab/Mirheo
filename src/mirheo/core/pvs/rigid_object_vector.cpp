@@ -119,7 +119,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     constexpr int root = 0;
-    constexpr int nRealsPerPosition = sizeof(positions[0] / sizeof(real));
+    constexpr int nRealsPerPosition = sizeof(positions[0]) / sizeof(real);
 
     if (rank == root)
     {
