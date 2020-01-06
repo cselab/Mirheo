@@ -26,17 +26,16 @@ EOF
     exit 1
 }
 
-if test $# -ne 0 && test "$1" = -h; then usage; fi
+if test $# -ne 0 && test "$1" = -h;     then usage; fi
+if test $# -ne 0 && test "$1" = --help; then usage; fi
+
+command=$1; shift
 
 . $EXE_PREFIX.load.post
 
-execcmd () {
-    if   test ! -z "${DRYRUN+x}"
-    then	
-	echo "$@"
-    else
-	exec "$@"
-    fi
-}
-
-execcmd $@
+if   test ! -z "${DRYRUN+x}"
+then	
+    echo $command "$@"
+else
+    exec $command "$@"
+fi
