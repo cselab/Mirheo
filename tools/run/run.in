@@ -62,29 +62,22 @@ if test ! -z "${MIR_RUNARGS+x}"; then
     RUNARGS="$RUNARGS $MIR_RUNARGS"
 fi
 
-exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }
+command=$1; shift
 
-exe_cuda_memcheck () { exe_cmn "${EXE_CUDA_MEMCHECK}" "${MEM}"        "$@"; }
-exe_valgrind      () { exe_cmn "${EXE_VALGRIND}"      "${VAL}"        "$@"; }
-exe_nvprof        () { exe_cmn "${EXE_NVPROF}"        "${PROF}"       "$@"; }
-exe_cuda_gdb      () { exe_cmn "${EXE_CUDA_GDB}"      "${GDB}" --args "$@"; }
-exe_direct        () { exe_cmn                                        "$@"; }
+if   test ! -z "${MEM+x}" ; then CMD_PREFIX="${EXE_CUDA_MEMCHECK} ${MEM}"
+elif test ! -z "${VAL+x}" ; then CMD_PREFIX="${EXE_VALGRIND} ${VAL}"
+elif test ! -z "${PROF+x}"; then CMD_PREFIX="${EXE_NVPROF} ${PROF}"
+elif test ! -z "${GDB+x}" ; then CMD_PREFIX="${EXE_CUDA_GDB} ${GDB} --args "
+else                             CMD_PREFIX=""
+fi
+
+exe_cmn () { echo $RUN_CMD $RUNARGS "$@"; }
 
 . $EXE_PREFIX.load
 
-
-execcmd () {
-    if   test ! -z "${DRYRUN+x}"
-    then	
-	echo "$@"
-    else
-	exec "$@"
-    fi
-}
-
-if   test ! -z "${MEM+x}" ; then execcmd `exe_cuda_memcheck "$@"`
-elif test ! -z "${VAL+x}" ; then execcmd `exe_valgrind      "$@"`
-elif test ! -z "${PROF+x}"; then execcmd `exe_nvprof        "$@"`
-elif test ! -z "${GDB+x}" ; then execcmd `exe_cuda_gdb      "$@"`
-else                             execcmd `exe_direct        "$@"`
+if   test ! -z "${DRYRUN+x}"
+then	
+    echo $CMD_PREFIX $RUN_CMD $RUNARGS $command "$@"
+else
+    exec $CMD_PREFIX $RUN_CMD $RUNARGS $command "$@"
 fi
