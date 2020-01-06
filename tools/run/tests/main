@@ -4,6 +4,9 @@ mir.run --runargs "-n 1" echo 1 > echo.out.txt
 # TEST: run.echo.2
 mir.run --runargs "-n 2" echo 1 > echo.out.txt
 
+# TEST: run.echo.spaces
+mir.run echo '1    2' > echo.out.txt
+
 # TEST: run.echo.ENV
 MIR_RUNARGS="-n 2" mir.run echo 1 > echo.out.txt
 
