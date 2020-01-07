@@ -28,16 +28,16 @@ __device__ inline bool withinBounds(real3 v, real3 bounds)
 
 __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
 {
-    int pid = blockIdx.x * blockDim.x + threadIdx.x;
+    const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (pid >= view.size) return;
 
-    auto pos = make_real3(view.readPosition(pid));
-    auto vel = make_real3(view.readVelocity(pid));
+    const auto pos = make_real3(view.readPosition(pid));
+    const auto vel = make_real3(view.readVelocity(pid));
 
     if (!checkFinite(pos) || !checkFinite(vel))
     {
-        auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
 
         if (tag == ParticleCheckerPlugin::GOOD)
         {
@@ -47,12 +47,12 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
         return;
     }
 
-    real3 boundsPos = 1.5_r  * domain.localSize; // particle should not be further that in a neighbouring domain
-    real3 boundsVel = dtInv * domain.localSize; // particle should not travel more than one domain size per iteration
+    const real3 boundsPos = 1.5_r  * domain.localSize; // particle should not be further than one neighbouring domain
+    const real3 boundsVel = dtInv * domain.localSize; // particle should not travel more than one domain size per iteration
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
-        auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
 
         if (tag == ParticleCheckerPlugin::GOOD)
         {
@@ -117,13 +117,18 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         lpv->positions ().downloadFromDevice(stream, ContainersSynch::Asynch);
         lpv->velocities().downloadFromDevice(stream, ContainersSynch::Synch);
 
-        auto p = Particle(lpv->positions ()[s.id],
-                          lpv->velocities()[s.id]);
+        const auto p = Particle(lpv->positions ()[s.id],
+                                lpv->velocities()[s.id]);
 
         const char *infoStr = s.info == Info::Nan ? "non finite number" : "out of bounds";
+
+        const real3 lr = p.r;
+        const real3 gr = domain.local2global(lr);
         
-        die("Bad particle in '%s' with id %ld, position %g %g %g, velocity %g %g %g : %s",
-            pv->name.c_str(), p.getId(), p.r.x, p.r.y, p.r.z, p.u.x, p.u.y, p.u.z, infoStr);
+        die("Bad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s",
+            pv->name.c_str(), p.getId(),
+            lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
+            p.u.x, p.u.y, p.u.z, infoStr);
     }
 }
 
