@@ -112,7 +112,7 @@ static std::string vstrprintf(const char *fmt, va_list args) {
     va_list args2;
     va_copy(args2, args);
 
-    const int size = vsnprintf(nullptr, 0, fmt, args) + 1;
+    const int size = vsnprintf(nullptr, 0, fmt, args);
 
     std::string result(size, '_');
     vsnprintf(&result[0], size + 1, fmt, args2);
@@ -133,7 +133,6 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     va_start(args, fmt);
     std::string error = vstrprintf(fmt, args);
     va_end(args);
-    error.pop_back(); // remove '\0'
 
     throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"
                              "The error message follows, and more details can be found in the log\n"
