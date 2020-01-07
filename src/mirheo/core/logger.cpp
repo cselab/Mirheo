@@ -133,6 +133,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     va_start(args, fmt);
     std::string error = vstrprintf(fmt, args);
     va_end(args);
+    error.pop_back(); // remove '\0'
 
     throw std::runtime_error("Mirheo has encountered a fatal error and will quit now.\n"
                              "The error message follows, and more details can be found in the log\n"
