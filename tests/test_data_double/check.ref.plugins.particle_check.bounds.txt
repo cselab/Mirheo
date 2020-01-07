@@ -1,1 +1,1 @@
-	Bad particle in 'pv' with id 2, position 101.2 201.5 301.8, velocity 1 2 3 : out of bounds
+	Bad particle in 'pv' with id 2, local position 101.2 201.5 301.8, global position 103.2 204 304.8, velocity 1 2 3 : out of bounds
