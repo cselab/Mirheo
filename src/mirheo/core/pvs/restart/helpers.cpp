@@ -112,6 +112,9 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
     if (positions.size() % objSize != 0)
         die("expected a multiple of %d, got %d", objSize, (int)positions.size());
 
+    if (objSize == 1)
+        return getExchangeMapFromPos(comm, domain, positions);
+    
     std::vector<real3> coms;
     coms.reserve(nObjs);
 
