@@ -290,7 +290,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
 {
     if (pv == frozen)
     {
-        warn("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
+        info("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
              pv->name.c_str(), name.c_str());
         return;
     }
