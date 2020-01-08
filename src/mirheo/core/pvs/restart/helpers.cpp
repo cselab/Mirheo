@@ -68,12 +68,24 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     return listData;
 }
 
+// allows the particle to be at most one rank away
+// so that redistribution can do the job; we need to clamp it though
+// because of shift
+// otherwise we do not keep it
 static inline bool isValidProcCoords(int3 c, const int dims[])
 {
     return
-        (c.x >= 0) && (c.x < dims[0]) &&
-        (c.y >= 0) && (c.y < dims[1]) &&
-        (c.z >= 0) && (c.z < dims[2]);
+        (c.x >= -1) && (c.x <= dims[0]) &&
+        (c.y >= -1) && (c.y <= dims[1]) &&
+        (c.z >= -1) && (c.z <= dims[2]);
+}
+
+static inline int3 clampProcId(int3 c, const int dims[])
+{
+    auto clamp = [](int a, int b) {return std::min(std::max(a, 0), b-1);};
+    return {clamp(c.x, dims[0]),
+            clamp(c.y, dims[1]),
+            clamp(c.z, dims[2])};
 }
 
 static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
@@ -88,16 +100,19 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
     
     for (auto r : positions)
     {
-        const int3 procId3 = make_int3(math::floor(r / domain.localSize));
+        int3 procId3 = make_int3(math::floor(r / domain.localSize));
 
         if (isValidProcCoords(procId3, dims))
         {
+            procId3 = clampProcId(procId3, dims);
             int procId;
-            MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
+            MPI_Check( MPI_Cart_rank(comm, reinterpret_cast<const int*>(&procId3), &procId) );
             map.push_back(procId);
         }
         else
         {
+            warn("invalid proc %d %d %d for position %g %g %g\n",
+                  procId3.x, procId3.y, procId3.z, r.x, r.y, r.z);
             map.push_back(InvalidProc);
             ++ numberInvalid;
         }
