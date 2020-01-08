@@ -68,6 +68,14 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     return listData;
 }
 
+static inline bool isValidProcCoords(int3 c, const int dims[])
+{
+    return
+        (c.x >= 0) && (c.x < dims[0]) &&
+        (c.y >= 0) && (c.y < dims[1]) &&
+        (c.z >= 0) && (c.z < dims[2]);
+}
+
 static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
                                      const std::vector<real3>& positions)
 {
@@ -80,21 +88,18 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
     
     for (auto r : positions)
     {
-        int3 procId3 = make_int3(math::floor(r / domain.localSize));
+        const int3 procId3 = make_int3(math::floor(r / domain.localSize));
 
-        if (procId3.x >= dims[0] ||
-            procId3.y >= dims[1] ||
-            procId3.z >= dims[2])
-        {
-            map.push_back(InvalidProc);
-            ++ numberInvalid;
-            continue;
-        }
-        else
+        if (isValidProcCoords(procId3, dims))
         {
             int procId;
             MPI_Check( MPI_Cart_rank(comm, (int*)&procId3, &procId) );
             map.push_back(procId);
+        }
+        else
+        {
+            map.push_back(InvalidProc);
+            ++ numberInvalid;
         }
     }
 
