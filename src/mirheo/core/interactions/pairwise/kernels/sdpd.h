@@ -37,11 +37,12 @@ public:
     {}
 
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
-    {        
+    {
+        constexpr real eps = 1e-6_r;
         const real3 dr = dst.p.r - src.p.r;
         const real rij2 = dot(dr, dr);
 
-        if (rij2 > rc2)
+        if (rij2 > rc2 || rij2 < eps)
             return make_real3(0.0_r);
         
         const real di = dst.d;
