@@ -114,11 +114,10 @@ public:
     PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
         ParticleFetcher(rc),
         epsilon(epsilon),
-        sigma(sigma),
+        sigma2(sigma*sigma),
         maxForce(maxForce),
         epsx24_sigma2(24.0_r * epsilon / (sigma * sigma)),
         awareness(awareness)
-    {}
     {
         constexpr real sigma_factor = 1.1224620483_r; // 2^(1/6)
         const real rm = sigma_factor * sigma; // F(rm) = 0
@@ -143,10 +142,10 @@ public:
         if (dr2 > rc2 || dr2 < tolerance)
             return make_real3(0.0_r);
 
-        const real rs2 = sigma*sigma / dr2;
+        const real rs2 = sigma2 / dr2;
         const real rs4 = rs2*rs2;
         const real rs8 = rs4*rs4;
-        const real rs14 = rs8*rs4*rs2;
+        const real rs14 = rs8*(rs4*rs2);
 
         const real IfI = epsx24_sigma2 * (2*rs14 - rs8);
 
@@ -169,7 +168,7 @@ public:
     
 private:
 
-    real epsilon, sigma, maxForce;
+    real epsilon, sigma2, maxForce;
     real epsx24_sigma2;
 
     Awareness awareness;
