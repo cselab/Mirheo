@@ -248,7 +248,7 @@ class Pairwise(Interaction):
         
             .. math::
             
-                \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{14} - \left( \frac{\sigma}{r_{ij}} \right)^{8} \right) \right]
+                \mathbf{F}_{ij} = \max \left[ 0.0, \frac{24 \epsilon}{r} \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{13} - \left( \frac{\sigma}{r_{ij}} \right)^{7} \right) \right]
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 
