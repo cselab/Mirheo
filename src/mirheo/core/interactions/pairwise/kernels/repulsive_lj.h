@@ -119,6 +119,17 @@ public:
         epsx24_sigma2(24.0_r * epsilon / (sigma * sigma)),
         awareness(awareness)
     {}
+    {
+        constexpr real sigma_factor = 1.1224620483_r; // 2^(1/6)
+        const real rm = sigma_factor * sigma; // F(rm) = 0
+
+        if (rm > rc)
+        {
+            const real max_sigma = rc / sigma_factor;
+            die("RepulsiveLJ: rm = %g > rc = %g; sigma must be lower than %g or rc must be larger than %g",
+                rm, rc, max_sigma, rm);
+        }
+    }
 
     __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
