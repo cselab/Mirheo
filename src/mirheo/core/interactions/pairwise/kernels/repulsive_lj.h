@@ -116,7 +116,7 @@ public:
         epsilon(epsilon),
         sigma(sigma),
         maxForce(maxForce),
-        epsx24_sigma(24.0_r * epsilon / sigma),
+        epsx24_sigma2(24.0_r * epsilon / (sigma * sigma)),
         awareness(awareness)
     {}
 
@@ -127,17 +127,17 @@ public:
             return make_real3(0.0_r);
         
         const real3 dr = dst.r - src.r;
-        const real rij2 = dot(dr, dr);
+        const real dr2 = dot(dr, dr);
 
-        if (rij2 > rc2 || rij2 < tolerance)
+        if (dr2 > rc2 || dr2 < tolerance)
             return make_real3(0.0_r);
 
-        const real rs2 = sigma*sigma / rij2;
+        const real rs2 = sigma*sigma / dr2;
         const real rs4 = rs2*rs2;
         const real rs8 = rs4*rs4;
         const real rs14 = rs8*rs4*rs2;
 
-        const real IfI = epsx24_sigma * (2*rs14 - rs8);
+        const real IfI = epsx24_sigma2 * (2*rs14 - rs8);
 
         return dr * math::min(math::max(IfI, 0.0_r), maxForce);
     }
@@ -159,7 +159,7 @@ public:
 private:
 
     real epsilon, sigma, maxForce;
-    real epsx24_sigma;
+    real epsx24_sigma2;
 
     Awareness awareness;
 };
