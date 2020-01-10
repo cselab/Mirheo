@@ -22,7 +22,7 @@ ic = mir.InitialConditions.Uniform(number_density=4)
 u.registerParticleVector(pv, ic)
 
 if args.non_primary:
-    null_lj = mir.Interactions.Pairwise('fake', rc, kind="RepulsiveLJ", epsilon=0.0, sigma=rc_fake, max_force=1000.0)
+    null_lj = mir.Interactions.Pairwise('fake', rc, kind="RepulsiveLJ", epsilon=0.0, sigma=rc / (2**(1/6)), max_force=1000.0)
     u.registerInteraction(null_lj)
     u.setInteraction(null_lj, pv, pv)
 

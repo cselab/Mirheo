@@ -22,7 +22,7 @@ ic_solvent = mir.InitialConditions.Uniform(number_density)
 
 dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.01, power=0.5)
 # repulsive LJ to avoid overlap between spheres
-cnt = mir.Interactions.Pairwise('cnt', rc, kind="RepulsiveLJ", epsilon=0.35, sigma=0.8, max_force=400.0)
+cnt = mir.Interactions.Pairwise('cnt', rc, kind="RepulsiveLJ", epsilon=0.28, sigma=0.8, max_force=400.0)
 
 vv = mir.Integrators.VelocityVerlet_withPeriodicForce('vv', force=1.0, direction="x")
 
