@@ -19,11 +19,14 @@ make install
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.3.3
 
 * Do not create checkpoint folder when not needed
 * **bug fix** restart for rigid object vector in multi-rank
 * **bug fix** restart: initial processor assignment; shift relies on redistribution
+* **bug fix** repulsive LJ: missing factor; add an additional check so the force is continuous at rc
 * **internal changes**
   * state is private
   * add -Wconversion for `.cpp` files (not `.cu` for now because of thrust)
