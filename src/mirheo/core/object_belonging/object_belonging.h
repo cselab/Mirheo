@@ -11,7 +11,7 @@ enum class BelongingTags
     Outside = 0, Inside = 1
 };
 
-class ObjectBelongingChecker_Common : ObjectBelongingChecker
+class ObjectBelongingChecker_Common : public ObjectBelongingChecker
 {
 public:
     std::string name;
