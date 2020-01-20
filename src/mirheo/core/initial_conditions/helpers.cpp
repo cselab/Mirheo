@@ -38,7 +38,7 @@ static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& doma
 
 void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
 {
-    auto domain = pv->getState()->domain;
+    const auto domain = pv->getState()->domain;
 
     int3 ncells = make_int3( math::ceil(domain.localSize) );
     real3 h    = domain.localSize / make_real3(ncells);
@@ -53,6 +53,10 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
     double3 avgMomentum{0,0,0};
     int mycount = 0;
 
+    std::vector<float4> pos, vel;
+    pos.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(density)));
+    vel.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(density)));
+    
     for (int i = 0; i < ncells.x; ++i) {
         for (int j = 0; j < ncells.y; ++j) {
             for (int k = 0; k < ncells.z; ++k) {
@@ -63,17 +67,13 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
 
                 for (int p = 0; p < nparts; ++p)
                 {
-                    auto part = genParticle(h, i, j, k, domain, udistr, gen);
+                    const Particle part = genParticle(h, i, j, k, domain, udistr, gen);
 
                     if (! filterIn(domain.local2global(part.r)))
                         continue;
 
-                    pv->local()->resize(mycount+1,  stream);
-                    auto pos = pv->local()->positions ().hostPtr();
-                    auto vel = pv->local()->velocities().hostPtr();
-
-                    pos[mycount] = part.r2Real4();
-                    vel[mycount] = part.u2Real4();
+                    pos.push_back(part.r2Real4());
+                    vel.push_back(part.u2Real4());
 
                     avgMomentum.x += part.u.x;
                     avgMomentum.y += part.u.y;
@@ -85,6 +85,10 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
         }
     }
 
+    pv->local()->resize(mycount, stream);
+    std::copy(pos.begin(), pos.end(), pv->local()->positions ().begin());
+    std::copy(vel.begin(), vel.end(), pv->local()->velocities().begin());
+    
     avgMomentum.x /= mycount;
     avgMomentum.y /= mycount;
     avgMomentum.z /= mycount;
