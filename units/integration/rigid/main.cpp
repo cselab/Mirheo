@@ -22,7 +22,7 @@ static inline RigidMotion initMotion(real3 omega)
     return m;
 }
 
-static inline std::vector<float3> makeTemplate(real x = 1.0_r, real y = 1.0_r, real z = 1.0_r)
+static inline std::vector<real3> makeTemplate(real x = 1.0_r, real y = 1.0_r, real z = 1.0_r)
 {
     return {{+x, 0.0_r, 0.0_r},
             {-x, 0.0_r, 0.0_r},

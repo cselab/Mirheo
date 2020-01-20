@@ -23,15 +23,15 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirS
     pv->local()->velocities().downloadFromDevice(defaultStream, ContainersSynch::Synch);
 }
 
-static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
-                    const std::vector<Force>& forces, int nsteps, float dt, float mass)
+static void run_cpu(std::vector<real4>& pos, std::vector<real4>& vel,
+                    const std::vector<Force>& forces, int nsteps, real dt, real mass)
 {
-    float dt_m = dt / mass;
+    real dt_m = dt / mass;
     
     for (int step = 0; step < nsteps; ++step) {
         for (size_t i = 0; i < pos.size(); ++i) {
-            float4& r = pos[i];
-            float4& v = vel[i];
+            real4& r = pos[i];
+            real4& v = vel[i];
             Force   f = forces[i];
 
             v.x += dt_m * f.f.x;
@@ -45,10 +45,10 @@ static void run_cpu(std::vector<float4>& pos, std::vector<float4>& vel,
     }
 }
 
-static std::tuple<std::vector<float4>, std::vector<float4>>
+static std::tuple<std::vector<real4>, std::vector<real4>>
 initializeParticles(ParticleVector *pv)
 {
-    std::vector<float4> hostPositions, hostVelocities;
+    std::vector<real4> hostPositions, hostVelocities;
     
     auto& pos = pv->local()->positions();
     auto& vel = pv->local()->velocities();
@@ -92,8 +92,8 @@ static std::vector<Force> initializeForces(ParticleVector *pv)
 
 static std::tuple<double, double>
 computeError(int n,
-             const float4 *pos1, const float4 *vel1,
-             const float4 *pos2, const float4 *vel2)
+             const real4 *pos1, const real4 *vel1,
+             const real4 *pos2, const real4 *vel2)
 {
     double l2 {0.};
     double linf {-1.};
@@ -126,7 +126,7 @@ computeError(int n,
     return {l2, linf};
 }
 
-static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps, double tolerance)
+static void testVelocityVerlet(real dt, real mass, int nparticles, int nsteps, double tolerance)
 {
     double l2, linf;
     DomainInfo domain; // dummy domain
@@ -135,7 +135,7 @@ static void testVelocityVerlet(float dt, float mass, int nparticles, int nsteps,
     auto vv = IntegratorFactory::createVV(&state, "vv");
     ParticleVector pv(&state, "pv", mass, nparticles);
 
-    std::vector<float4> hostPositions, hostVelocities;
+    std::vector<real4> hostPositions, hostVelocities;
     
     std::tie(hostPositions, hostVelocities) = initializeParticles(&pv);
     const auto hostForces = initializeForces(&pv);

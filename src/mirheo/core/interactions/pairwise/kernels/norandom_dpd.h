@@ -47,7 +47,7 @@ public:
         const real3 du = dst.u - src.u;
         const real rdotv = dot(dr_r, du);
 
-        const real myrandnr = ((math::min(src.i1, dst.i1) ^ math::max(src.i1, dst.i1)) % 13) - 6;
+        const real myrandnr = ((math::min((int)src.i1, (int)dst.i1) ^ math::max((int)src.i1, (int)dst.i1)) % 13) - 6;
 
         const real strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
 

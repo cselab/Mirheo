@@ -19,12 +19,12 @@ const std::string restartPath = "./"; // no need to create folder
 
 constexpr int cartMaxdims = 3;
 const int cartDims[] = {2, 2, 1}; // assume 4 nodes for this test
-constexpr float mass = 1;
+constexpr real mass = 1;
 
 static std::unique_ptr<ParticleVector> initializeRandomPV(const MPI_Comm& comm,
                                                           const std::string& pvName,
                                                           const MirState *state,
-                                                          float density)
+                                                          real density)
 {
     auto pv = std::make_unique<ParticleVector> (state, pvName, mass);
     UniformIC ic(density);
@@ -87,9 +87,9 @@ TEST (RESTART, pv)
 {
     const std::string pvName = "pv";
     auto comm = createCart();
-    float dt = 0.f;
-    float L = 64.f;
-    float density = 4.f;
+    real dt = 0.f;
+    real L = 64.f;
+    real density = 4.f;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
     MirState state(domain, dt);
     auto pv0 = initializeRandomPV(comm, pvName, &state, density);
@@ -107,42 +107,42 @@ TEST (RESTART, pv)
 }
 
 // rejection sampling for particles inside ellipsoid
-static auto generateUniformEllipsoid(int n, float3 axes, long seed = 424242)
+static auto generateUniformEllipsoid(int n, real3 axes, long seed = 424242)
 {
-    std::vector<float3> pos;
+    std::vector<real3> pos;
     pos.reserve(n);
 
     Ellipsoid ell(axes);
     
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(-axes.x, axes.x);
-    std::uniform_real_distribution<float> dy(-axes.y, axes.y);
-    std::uniform_real_distribution<float> dz(-axes.z, axes.z);
+    std::uniform_real_distribution<real> dx(-axes.x, axes.x);
+    std::uniform_real_distribution<real> dy(-axes.y, axes.y);
+    std::uniform_real_distribution<real> dz(-axes.z, axes.z);
     
     while (static_cast<int>(pos.size()) < n)
     {
-        const float3 r {dx(gen), dy(gen), dz(gen)};
+        const real3 r {dx(gen), dy(gen), dz(gen)};
         if (ell.inOutFunction(r) < 0.f)
             pos.push_back(r);
     }
     return pos;
 }
 
-static auto generateObjectComQ(int n, float3 L, long seed=12345)
+static auto generateObjectComQ(int n, real3 L, long seed=12345)
 {
     std::vector<ComQ> com_q;
     com_q.reserve(n);
 
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(0.f, L.x);
-    std::uniform_real_distribution<float> dy(0.f, L.y);
-    std::uniform_real_distribution<float> dz(0.f, L.z);
+    std::uniform_real_distribution<real> dx(0.f, L.x);
+    std::uniform_real_distribution<real> dy(0.f, L.y);
+    std::uniform_real_distribution<real> dz(0.f, L.z);
 
-    float3 com {0.f, 0.f, 0.f};
+    real3 com {0.f, 0.f, 0.f};
     for (int i = 0; i < n; ++i)
     {
-        const float3 r {dx(gen), dy(gen), dz(gen)};
-        const float4 q {1.f, 0.f, 0.f, 0.f};
+        const real3 r {dx(gen), dy(gen), dz(gen)};
+        const real4 q {1.f, 0.f, 0.f, 0.f};
         com += r;
         com_q.push_back({r, q});
     }
@@ -157,7 +157,7 @@ static auto generateObjectComQ(int n, float3 L, long seed=12345)
 static std::unique_ptr<RigidShapedObjectVector<Ellipsoid>>
 initializeRandomREV(const MPI_Comm& comm, const std::string& ovName, const MirState *state, int nObjs, int objSize)
 {
-    float3 axes {1.f, 1.f, 1.f};
+    real3 axes {1.f, 1.f, 1.f};
     Ellipsoid ellipsoid(axes);
 
     auto rev = std::make_unique<RigidShapedObjectVector<Ellipsoid>>
@@ -176,8 +176,8 @@ TEST (RESTART, rov)
 {
     const std::string rovName = "rov";
     auto comm = createCart();
-    const float dt = 0.f;
-    const float L = 64.f;
+    const real dt = 0.f;
+    const real L = 64.f;
     const int nObjs = 512;
     const int objSize = 666;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});

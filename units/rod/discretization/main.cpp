@@ -16,18 +16,18 @@ using Real2 = double2;
 using Real3 = double3;
 using Real4 = double4;
 
-inline Real2 make_Real2(float2 v) { return {(Real) v.x, (Real) v.y}; }
-inline Real3 make_Real3(float3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
-inline Real3 make_Real3(float4 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
+inline Real2 make_Real2(real2 v) { return {(Real) v.x, (Real) v.y}; }
+inline Real3 make_Real3(real3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
+inline Real3 make_Real3(real4 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
 
 using CenterLineFunc = std::function<Real3(Real)>;
 using CurvatureFunc  = std::function<Real(Real)>;
 using TorsionFunc    = std::function<Real(Real)>;
 
-constexpr float a = 0.05f;
-constexpr float dt = 0.f;
+constexpr real a = 0.05f;
+constexpr real dt = 0.f;
 
-static std::vector<Real> computeCurvatures(const float4 *positions, int nSegments)
+static std::vector<Real> computeCurvatures(const real4 *positions, int nSegments)
 {
     std::vector<Real> curvatures;
     curvatures.reserve(nSegments-1);
@@ -61,7 +61,7 @@ inline Real safeDiffTheta(Real t0, Real t1)
     return dth;
 }
 
-static std::vector<Real> computeTorsions(const float4 *positions, int nSegments)
+static std::vector<Real> computeTorsions(const real4 *positions, int nSegments)
 {
     std::vector<Real> torsions;
     torsions.reserve(nSegments-1);
@@ -116,27 +116,27 @@ static std::vector<Real> computeTorsions(const float4 *positions, int nSegments)
 
 static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int nSegments, CurvatureFunc ref)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](__UNUSED float s)
+    RodIC::MappingFunc1D mirTorsion = [&](__UNUSED real s)
     {
         return 0.f;
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32._r;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1._r;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
-    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);
@@ -163,27 +163,27 @@ static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
 
 static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
-        return (float) torsion(s);
+        return (real) torsion(s);
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32._r;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
-    ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
+    ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     ic.exec(comm, &rv, defaultStream);

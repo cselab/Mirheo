@@ -35,13 +35,13 @@ struct ObjectData
         objIds        .copy(*lov->dataPerObject.getData<int64_t>(ChannelNames::globalIds), stream);
     }
 
-    HostBuffer<float4> partPositions;
-    HostBuffer<float4> partVelocities;
+    HostBuffer<real4> partPositions;
+    HostBuffer<real4> partVelocities;
     HostBuffer<int64_t> partIds;
     HostBuffer<int64_t> objIds;
 };
 
-bool operator==(float4 a, float4 b) {
+bool operator==(real4 a, real4 b) {
     return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
@@ -66,9 +66,9 @@ void compareObjects(const ObjectData &a, const ObjectData &b, int aId, int bId)
 void test_delete(const std::vector<int> &mask, const int objSize)
 {
     const int nthreads = 128;
-    const float3 length{100.f, 100.f, 100.f};
+    const real3 length{100.f, 100.f, 100.f};
     const DomainInfo domain{length, {0, 0, 0}, length};
-    const float dt = 0;  // dummy
+    const real dt = 0;  // dummy
     MirState state(domain, dt);
 
     const int numObjects = (int)mask.size();

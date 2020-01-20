@@ -15,9 +15,9 @@
 using namespace mirheo;
 
 std::unique_ptr<ParticleVector>
-initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
+initializeRandomPV(const MPI_Comm& comm, const MirState *state, real density)
 {
-    float mass = 1;
+    real mass = 1;
     auto pv = std::make_unique<ParticleVector> (state, "pv", mass);
     UniformIC ic(density);
     ic.exec(comm, pv.get(), defaultStream);
@@ -25,41 +25,41 @@ initializeRandomPV(const MPI_Comm& comm, const MirState *state, float density)
 }
 
 // rejection sampling for particles inside ellipsoid
-static auto generateUniformEllipsoid(size_t n, float3 axes, long seed = 424242)
+static auto generateUniformEllipsoid(size_t n, real3 axes, long seed = 424242)
 {
-    std::vector<float3> pos;
+    std::vector<real3> pos;
     pos.reserve(n);
 
     Ellipsoid ell(axes);
     
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(-axes.x, axes.x);
-    std::uniform_real_distribution<float> dy(-axes.y, axes.y);
-    std::uniform_real_distribution<float> dz(-axes.z, axes.z);
+    std::uniform_real_distribution<real> dx(-axes.x, axes.x);
+    std::uniform_real_distribution<real> dy(-axes.y, axes.y);
+    std::uniform_real_distribution<real> dz(-axes.z, axes.z);
     
     while (pos.size() < n)
     {
-        const float3 r {dx(gen), dy(gen), dz(gen)};
-        if (ell.inOutFunction(r) < 0.f)
+        const real3 r {dx(gen), dy(gen), dz(gen)};
+        if (ell.inOutFunction(r) < 0._r)
             pos.push_back(r);
     }
     return pos;
 }
 
-static auto generateObjectComQ(int n, float3 L, long seed=12345)
+static auto generateObjectComQ(int n, real3 L, long seed=12345)
 {
     std::vector<ComQ> com_q;
     com_q.reserve(n);
 
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(0.f, L.x);
-    std::uniform_real_distribution<float> dy(0.f, L.y);
-    std::uniform_real_distribution<float> dz(0.f, L.z);
+    std::uniform_real_distribution<real> dx(0._r, L.x);
+    std::uniform_real_distribution<real> dy(0._r, L.y);
+    std::uniform_real_distribution<real> dz(0._r, L.z);
 
     for (int i = 0; i < n; ++i)
     {
-        const float3 r {dx(gen), dy(gen), dz(gen)};
-        const float4 q {1.f, 0.f, 0.f, 0.f};
+        const real3 r {dx(gen), dy(gen), dz(gen)};
+        const real4 q {1._r, 0._r, 0._r, 0._r};
         com_q.push_back({r, q});
     }
     
@@ -69,8 +69,8 @@ static auto generateObjectComQ(int n, float3 L, long seed=12345)
 std::unique_ptr<RigidShapedObjectVector<Ellipsoid>>
 initializeRandomREV(const MPI_Comm& comm, const MirState *state, int nObjs, int objSize)
 {
-    float mass = 1;
-    float3 axes {1.f, 1.f, 1.f};
+    real mass = 1;
+    real3 axes {1._r, 1._r, 1._r};
     Ellipsoid ellipsoid(axes);
 
     auto rev = std::make_unique<RigidShapedObjectVector<Ellipsoid>>
@@ -88,16 +88,16 @@ initializeRandomREV(const MPI_Comm& comm, const MirState *state, int nObjs, int 
 std::unique_ptr<RodVector>
 initializeRandomRods(const MPI_Comm& comm, const MirState *state, int nObjs, int numSegments)
 {
-    float mass = 1.f;
-    float a = 0.1f;
-    float L = 4.f;
+    real mass = 1._r;
+    real a = 0.1_r;
+    real L = 4._r;
     
-    auto centerLine = [&](float s)
+    auto centerLine = [&](real s)
     {
-        return float3 {0.f, 0.f, L * (s-0.5f)};
+        return real3 {0._r, 0._r, L * (s-0.5_r)};
     };
 
-    auto torsion = [](__UNUSED float s) {return 0.f;};
+    auto torsion = [](__UNUSED real s) {return 0._r;};
     
     auto rv = std::make_unique<RodVector> (state, "rv", mass, numSegments);
 

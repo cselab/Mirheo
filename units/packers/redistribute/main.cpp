@@ -17,11 +17,11 @@
 #include <vector>
 
 // move particles no more than rc in random direction
-static void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085)
+static void moveParticles(real rc, PinnedBuffer<real4>& pos, long seed = 80085)
 {
-    float frac = 0.9f;
+    real frac = 0.9f;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> distr(-frac*rc, frac*rc);
+    std::uniform_real_distribution<real> distr(-frac*rc, frac*rc);
 
     for (auto& r : pos)
     {
@@ -33,20 +33,20 @@ static void moveParticles(float rc, PinnedBuffer<float4>& pos, long seed = 80085
 }
 
 // move objects no more than domainSize in random direction
-static void moveObjects(float3 L, PinnedBuffer<float4>& pos,
+static void moveObjects(real3 L, PinnedBuffer<real4>& pos,
                         PinnedBuffer<RigidMotion>& mot, long seed = 80085)
 {
-    float frac = 0.5f * 0.9f;
+    real frac = 0.5f * 0.9f;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(-frac * L.x, frac * L.x);
-    std::uniform_real_distribution<float> dy(-frac * L.y, frac * L.y);
-    std::uniform_real_distribution<float> dz(-frac * L.z, frac * L.z);
+    std::uniform_real_distribution<real> dx(-frac * L.x, frac * L.x);
+    std::uniform_real_distribution<real> dy(-frac * L.y, frac * L.y);
+    std::uniform_real_distribution<real> dz(-frac * L.z, frac * L.z);
 
     int objSize = pos.size() / mot.size();
 
     for (size_t i = 0; i < mot.size(); ++i)
     {
-        float3 shift {dx(gen), dy(gen), dz(gen)};
+        real3 shift {dx(gen), dy(gen), dz(gen)};
         mot[i].r += shift;
 
         for (int j = 0; j < objSize; ++j)
@@ -62,19 +62,19 @@ static void moveObjects(float3 L, PinnedBuffer<float4>& pos,
 }
 
 // move rods no more than domainSize in random direction
-static void moveRods(int nObjs, float3 L, PinnedBuffer<float4>& pos, long seed = 80085)
+static void moveRods(int nObjs, real3 L, PinnedBuffer<real4>& pos, long seed = 80085)
 {
-    float frac = 0.5f * 0.9f;
+    real frac = 0.5f * 0.9f;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> dx(-frac * L.x, frac * L.x);
-    std::uniform_real_distribution<float> dy(-frac * L.y, frac * L.y);
-    std::uniform_real_distribution<float> dz(-frac * L.z, frac * L.z);
+    std::uniform_real_distribution<real> dx(-frac * L.x, frac * L.x);
+    std::uniform_real_distribution<real> dy(-frac * L.y, frac * L.y);
+    std::uniform_real_distribution<real> dz(-frac * L.z, frac * L.z);
 
     int objSize = pos.size() / nObjs;
 
     for (int i = 0; i < nObjs; ++i)
     {
-        float3 shift {dx(gen), dy(gen), dz(gen)};
+        real3 shift {dx(gen), dy(gen), dz(gen)};
         for (int j = 0; j < objSize; ++j)
         {
             int id = i * objSize + j;
@@ -86,7 +86,7 @@ static void moveRods(int nObjs, float3 L, PinnedBuffer<float4>& pos, long seed =
     pos.uploadToDevice(defaultStream);
 }
 
-inline void backToDomain(float& x, float L)
+inline void backToDomain(real& x, real L)
 {
     if      (x < -0.5f * L) x += L;
     else if (x >= 0.5f * L) x -= L;
@@ -97,8 +97,8 @@ inline void backToDomain(float& x, float L)
 // - correct reordering
 // - correct shift
 // by copying corrected positions to velocities
-static void createRefParticles(const PinnedBuffer<float4>& pos,
-                               PinnedBuffer<float4>& vel, float3 L)
+static void createRefParticles(const PinnedBuffer<real4>& pos,
+                               PinnedBuffer<real4>& vel, real3 L)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
@@ -118,14 +118,14 @@ static void createRefParticles(const PinnedBuffer<float4>& pos,
 // - correct reordering
 // - correct shift
 // by copying corrected positions to velocities
-static void createRefObjects(int objSize, const PinnedBuffer<float4>& pos,
-                             PinnedBuffer<float4>& vel, float3 L)
+static void createRefObjects(int objSize, const PinnedBuffer<real4>& pos,
+                             PinnedBuffer<real4>& vel, real3 L)
 {
     int nObj = pos.size() / objSize;
     
     for (int i = 0; i < nObj; ++i)
     {
-        float3 com {0.f, 0.f, 0.f};
+        real3 com {0.f, 0.f, 0.f};
 
         for (int j = 0; j < objSize; ++j)
         {
@@ -135,13 +135,13 @@ static void createRefObjects(int objSize, const PinnedBuffer<float4>& pos,
             com.z += pos[id].z;
         }
         com *= (1.0 / objSize);
-        float3 scom = com;
+        real3 scom = com;
         
         backToDomain(scom.x, L.x);
         backToDomain(scom.y, L.y);
         backToDomain(scom.z, L.z);
 
-        float3 shift = scom - com;
+        real3 shift = scom - com;
 
         for (int j = 0; j < objSize; ++j)
         {
@@ -162,9 +162,9 @@ static void createRefObjects(int objSize, const PinnedBuffer<float4>& pos,
 // - correct reordering of bisegment data
 // by copying corrected positions to velocities
 static void createRefRods(int objSize,
-                          const PinnedBuffer<float4>& pos,
-                          PinnedBuffer<float4>& vel, PinnedBuffer<int64_t>& data,
-                          float3 L)
+                          const PinnedBuffer<real4>& pos,
+                          PinnedBuffer<real4>& vel, PinnedBuffer<int64_t>& data,
+                          real3 L)
 {
     const int nObj = pos.size() / objSize;
     const int numSegments = (objSize - 1) / 5;
@@ -173,7 +173,7 @@ static void createRefRods(int objSize,
     
     for (int i = 0; i < nObj; ++i)
     {
-        float3 com {0.f, 0.f, 0.f};
+        real3 com {0.f, 0.f, 0.f};
 
         for (int j = 0; j < objSize; ++j)
         {
@@ -183,13 +183,13 @@ static void createRefRods(int objSize,
             com.z += pos[id].z;
         }
         com *= (1.0 / objSize);
-        float3 scom = com;
+        real3 scom = com;
         
         backToDomain(scom.x, L.x);
         backToDomain(scom.y, L.y);
         backToDomain(scom.z, L.z);
 
-        float3 shift = scom - com;
+        real3 shift = scom - com;
 
         for (int j = 0; j < objSize; ++j)
         {
@@ -210,7 +210,7 @@ static void createRefRods(int objSize,
     data.uploadToDevice(defaultStream);
 }
 
-static void checkInsideParticles(const PinnedBuffer<float4>& pos, float3 L)
+static void checkInsideParticles(const PinnedBuffer<real4>& pos, real3 L)
 {
     for (const auto& r : pos)
     {
@@ -224,8 +224,8 @@ static void checkInsideParticles(const PinnedBuffer<float4>& pos, float3 L)
     }
 }
 
-static void checkRefParticles(const PinnedBuffer<float4>& pos,
-                                  const PinnedBuffer<float4>& vel)
+static void checkRefParticles(const PinnedBuffer<real4>& pos,
+                                  const PinnedBuffer<real4>& vel)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
@@ -238,13 +238,13 @@ static void checkRefParticles(const PinnedBuffer<float4>& pos,
     }
 }
 
-static void checkInsideObjects(int objSize, const PinnedBuffer<float4>& pos, float3 L)
+static void checkInsideObjects(int objSize, const PinnedBuffer<real4>& pos, real3 L)
 {
     int nObj = pos.size() / objSize;
     
     for (int i = 0; i < nObj; ++i)
     {
-        float3 com {0.f, 0.f, 0.f};
+        real3 com {0.f, 0.f, 0.f};
 
         for (int j = 0; j < objSize; ++j)
         {
@@ -265,8 +265,8 @@ static void checkInsideObjects(int objSize, const PinnedBuffer<float4>& pos, flo
     }
 }
 
-static void checkRefObjects(const PinnedBuffer<float4>& pos,
-                            const PinnedBuffer<float4>& vel)
+static void checkRefObjects(const PinnedBuffer<real4>& pos,
+                            const PinnedBuffer<real4>& vel)
 {
     for (size_t i = 0; i < pos.size(); ++i)
     {
@@ -280,8 +280,8 @@ static void checkRefObjects(const PinnedBuffer<float4>& pos,
 }
 
 static void checkRefRods(int numBiSegments, int objSize,
-                         const PinnedBuffer<float4>& pos,
-                         const PinnedBuffer<float4>& vel,
+                         const PinnedBuffer<real4>& pos,
+                         const PinnedBuffer<real4>& vel,
                          const PinnedBuffer<int64_t>& data)
 {
     int nObjs = data.size() / numBiSegments;
@@ -308,10 +308,10 @@ static void checkRefRods(int numBiSegments, int objSize,
 
 TEST (PACKERS_REDISTRIBUTE, particles)
 {
-    float dt = 0.f;
-    float rc = 1.f;
-    float L  = 48.f;
-    float density = 8.f;
+    real dt = 0.f;
+    real rc = 1.f;
+    real L  = 48.f;
+    real density = 8.f;
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
@@ -349,8 +349,8 @@ TEST (PACKERS_REDISTRIBUTE, particles)
 
 TEST (PACKERS_REDISTRIBUTE, objects)
 {
-    float dt = 0.f;
-    float L  = 64.f;
+    real dt = 0.f;
+    real L  = 64.f;
     int nObjs = 128;
     int objSize = 555;
 
@@ -388,8 +388,8 @@ TEST (PACKERS_REDISTRIBUTE, objects)
 TEST (PACKERS_REDISTRIBUTE, rods)
 {
     const std::string channelName = "my_extra_data";
-    const float dt = 0.f;
-    const float L  = 64.f;
+    const real dt = 0.f;
+    const real L  = 64.f;
     const int nObjs = 128;
     const int numSegments = 42;
     const int numBisegments = numSegments - 1;

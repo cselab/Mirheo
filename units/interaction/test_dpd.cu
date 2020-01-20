@@ -18,8 +18,8 @@ using namespace mirheo;
 
 bool verbose = false;
 
-void makeCells(const float4 *inputPos, const float4 *inputVel,
-               float4 *outputPos, float4 *outputVel,
+void makeCells(const real4 *inputPos, const real4 *inputVel,
+               real4 *outputPos, real4 *outputVel,
                int *cellsStartSize, int *cellsSize,
                int *order, int np, CellListInfo cinfo)
 {
@@ -27,7 +27,7 @@ void makeCells(const float4 *inputPos, const float4 *inputVel,
         cellsSize[i] = 0;
 
     for (int i = 0; i < np; i++)
-        cellsSize[cinfo.getCellId(make_float3(inputPos[i]))]++;
+        cellsSize[cinfo.getCellId(make_real3(inputPos[i]))]++;
 
     cellsStartSize[0] = 0;
     for (int i = 1; i <= cinfo.totcells; i++)
@@ -35,7 +35,7 @@ void makeCells(const float4 *inputPos, const float4 *inputVel,
 
     for (int i = 0; i < np; i++)
     {
-        const int cid = cinfo.getCellId(make_float3(inputPos[i]));
+        const int cid = cinfo.getCellId(make_real3(inputPos[i]));
         outputPos[cellsStartSize[cid]] = inputPos[i];
         outputVel[cellsStartSize[cid]] = inputVel[i];
         order[cellsStartSize[cid]] = i;
@@ -47,14 +47,14 @@ void makeCells(const float4 *inputPos, const float4 *inputVel,
         cellsStartSize[i] -= cellsSize[i];
 }
 
-void execute(MPI_Comm comm, float3 length)
+void execute(MPI_Comm comm, real3 length)
 {
     DomainInfo domain{length, {0,0,0}, length};
-    const float dt = 0.002;
+    const real dt = 0.002;
     
     MirState state(domain, dt);
 
-    const float rc = 1.0f;
+    const real rc = 1.0f;
     ParticleVector dpds1(&state, "dpd1", 1.0f);
     ParticleVector dpds2(&state, "dpd2", 1.0f);
 
@@ -103,7 +103,7 @@ void execute(MPI_Comm comm, float3 length)
     vel1.uploadToDevice(defaultStream);
     vel2.uploadToDevice(defaultStream);
 
-    std::vector<float4> initialPos(np), initialVel(np), rearrangedPos(np), rearrangedVel(np);
+    std::vector<real4> initialPos(np), initialVel(np), rearrangedPos(np), rearrangedVel(np);
     for (int i = 0; i < np; i++)
     {
         bool from1 = i < static_cast<int>(pos1.size());
@@ -112,12 +112,12 @@ void execute(MPI_Comm comm, float3 length)
         initialVel[i] = from1 ? vel1[i] : vel2[i-vel1.size()];
     }
 
-    const float k = 1;    
-    const float kbT = 1.0f;
-    const float gammadpd = 20;
-    const float sigmadpd = math::sqrt(2 * gammadpd * kbT);
-    const float sigma_dt = sigmadpd / math::sqrt(dt);
-    const float adpd = 50;
+    const real k = 1;    
+    const real kbT = 1.0f;
+    const real gammadpd = 20;
+    const real sigmadpd = math::sqrt(2 * gammadpd * kbT);
+    const real sigma_dt = sigmadpd / math::sqrt(dt);
+    const real adpd = 50;
 
     PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
     std::unique_ptr<Interaction> inter = std::make_unique<PairwiseInteractionImpl<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdInt);
@@ -177,34 +177,34 @@ void execute(MPI_Comm comm, float3 length)
     {
         Particle pdst(rearrangedPos[dstId], rearrangedVel[dstId]);
         Particle psrc(rearrangedPos[srcId], rearrangedVel[srcId]);
-        const float _xr = pdst.r.x - psrc.r.x;
-        const float _yr = pdst.r.y - psrc.r.y;
-        const float _zr = pdst.r.z - psrc.r.z;
+        const real _xr = pdst.r.x - psrc.r.x;
+        const real _yr = pdst.r.y - psrc.r.y;
+        const real _zr = pdst.r.z - psrc.r.z;
 
-        const float rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
+        const real rij2 = _xr * _xr + _yr * _yr + _zr * _zr;
 
         if (rij2 > 1.0f) return;
         //assert(rij2 < 1);
 
-        const float invrij = 1.0f / math::sqrt(rij2);
-        const float rij = rij2 * invrij;
-        const float argwr = 1.0f - rij;
-        const float wr = argwr;
+        const real invrij = 1.0f / math::sqrt(rij2);
+        const real rij = rij2 * invrij;
+        const real argwr = 1.0f - rij;
+        const real wr = argwr;
 
-        const float xr = _xr * invrij;
-        const float yr = _yr * invrij;
-        const float zr = _zr * invrij;
+        const real xr = _xr * invrij;
+        const real yr = _yr * invrij;
+        const real zr = _zr * invrij;
 
-        const float rdotv =
+        const real rdotv =
         xr * (pdst.u.x - psrc.u.x) +
         yr * (pdst.u.y - psrc.u.y) +
         zr * (pdst.u.z - psrc.u.z);
 
         int sid = psrc.i1;
         int did = pdst.i1;
-        const float myrandnr = ((min(sid, did) ^ max(sid, did)) % 13) - 6;
+        const real myrandnr = ((min(sid, did) ^ max(sid, did)) % 13) - 6;
 
-        const float strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
+        const real strength = adpd * argwr - (gammadpd * wr * rdotv + sigma_dt * myrandnr) * wr;
 
         a.f.x += strength * xr;
         a.f.y += strength * yr;
@@ -295,13 +295,13 @@ void execute(MPI_Comm comm, float3 length)
 
 TEST(Interactions, smallDomain)
 {
-    float3 length{3, 4, 5};
+    real3 length{3, 4, 5};
     execute(MPI_COMM_WORLD, length);
 }
 
 TEST(Interactions, largerDomain)
 {
-    float3 length{80, 64, 29};
+    real3 length{80, 64, 29};
     execute(MPI_COMM_WORLD, length);
 }
 

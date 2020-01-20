@@ -32,18 +32,18 @@ inline void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
 
 TEST (MARCHING_CUBES, Sphere)
 {
-    float R = 1.0;
-    float L = 2.5 * R;
+    real R = 1.0;
+    real L = 2.5 * R;
     
     DomainInfo domain;    
-    domain.globalStart = make_float3(0, 0, 0);
-    domain.localSize   = make_float3(L, L, L);
+    domain.globalStart = make_real3(0, 0, 0);
+    domain.localSize   = make_real3(L, L, L);
     domain.globalSize  = domain.localSize;
 
-    float3 center = domain.globalStart + 0.5 * domain.globalSize;
-    // float3 center = domain.globalStart;
+    real3 center = domain.globalStart + 0.5 * domain.globalSize;
+    // real3 center = domain.globalStart;
 
-    auto sphereSurface = [&] (float3 r)
+    auto sphereSurface = [&] (real3 r)
     {
         r -= center;
         return math::sqrt(dot(r, r)) - R;
@@ -51,18 +51,18 @@ TEST (MARCHING_CUBES, Sphere)
 
     std::vector<MarchingCubes::Triangle> triangles;
 
-    float h = 0.1;
-    float3 resolution {h, h, h};
+    real h = 0.1;
+    real3 resolution {h, h, h};
     
     MarchingCubes::computeTriangles(domain, resolution, sphereSurface, triangles);
 
-    float maxVal  = 0.0;
-    float meanVal = 0.0;
+    real maxVal  = 0.0;
+    real meanVal = 0.0;
 
     // dump_off(triangles);
     
     for (auto& t : triangles) {
-        float va, vb, vc;
+        real va, vb, vc;
         va = sphereSurface( domain.local2global(t.a) );
         vb = sphereSurface( domain.local2global(t.b) );
         vc = sphereSurface( domain.local2global(t.c) );

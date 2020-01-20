@@ -18,18 +18,18 @@ using Real2 = double2;
 using Real3 = double3;
 using Real4 = double4;
 
-inline Real2 make_Real2(float2 v) { return {(Real) v.x, (Real) v.y}; }
-inline Real3 make_Real3(float3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
-inline Real3 make_Real3(float4 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
+inline Real2 make_Real2(real2 v) { return {(Real) v.x, (Real) v.y}; }
+inline Real3 make_Real3(real3 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
+inline Real3 make_Real3(real4 v) { return {(Real) v.x, (Real) v.y, (Real) v.z}; }
 
-static float2 make_float2(Real2 v) {return {(float) v.x, (float) v.y}; }
+static real2 make_real2(Real2 v) {return {(real) v.x, (real) v.y}; }
 
 using CenterLineFunc = std::function<Real3(Real)>;
 using EnergyFunc     = std::function<Real(Real)>;
 using TorsionFunc    = std::function<Real(Real)>;
 
-constexpr float a = 0.05f;
-constexpr float dt = 0.f;
+constexpr real a = 0.05f;
+constexpr real dt = 0._r;
 
 enum class EnergyMode {Density, Absolute};
 enum class CheckMode {Detail, Total};
@@ -41,7 +41,7 @@ inline Real2 symmetricMatMult(const Real3& A, const Real2& x)
 }
 
 template <EnergyMode Emode>
-static std::vector<Real> computeBendingEnergies(const float4 *positions, int nSegments, Real3 kBending, Real2 kappaEq)
+static std::vector<Real> computeBendingEnergies(const real4 *positions, int nSegments, Real3 kBending, Real2 kappaEq)
 {
     std::vector<Real> energies;
     energies.reserve(nSegments-1);
@@ -118,7 +118,7 @@ inline Real safeDiffTheta(Real t0, Real t1)
 }
 
 template <EnergyMode Emode>
-static std::vector<Real> computeTwistEnergies(const float4 *positions, int nSegments, Real kTwist, Real tauEq)
+static std::vector<Real> computeTwistEnergies(const real4 *positions, int nSegments, Real kTwist, Real tauEq)
 {
     std::vector<Real> energies;
     energies.reserve(nSegments-1);
@@ -183,23 +183,23 @@ template <CheckMode checkMode>
 static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                Real3 kBending, Real2 kappaEq, EnergyFunc ref, Real EtotRef)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
-        return (float) torsion(s);;
+        return (real) torsion(s);;
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32.f;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
@@ -245,23 +245,23 @@ static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
 static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                   Real3 kBending, Real2 kappaEq)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
-        return (float) torsion(s);;
+        return (real) torsion(s);;
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32.f;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
@@ -269,15 +269,15 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
 
     RodParameters params;
-    params.kBending = make_float3(kBending);
-    params.kappaEq  = {make_float2(kappaEq)};
-    params.kTwist   = 0.f;
-    params.tauEq    = {0.f};
-    params.groundE  = {0.f};
-    params.l0       = 0.f;
-    params.a0       = 0.f;
-    params.ksCenter = 0.f;
-    params.ksFrame  = 0.f;
+    params.kBending = make_real3(kBending);
+    params.kappaEq  = {make_real2(kappaEq)};
+    params.kTwist   = 0._r;
+    params.tauEq    = {0._r};
+    params.groundE  = {0._r};
+    params.l0       = 0._r;
+    params.a0       = 0._r;
+    params.ksCenter = 0._r;
+    params.ksFrame  = 0._r;
     RodInteraction gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
@@ -287,7 +287,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto  cpuEnergies = computeBendingEnergies<EnergyMode::Absolute>
@@ -313,23 +313,23 @@ template <CheckMode checkMode>
 static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                              Real kTwist, Real tauEq, EnergyFunc ref, Real EtotRef)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
-        return (float) torsion(s);;
+        return (real) torsion(s);;
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32.f;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
@@ -377,23 +377,23 @@ static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
 static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, TorsionFunc torsion, int nSegments,
                                 Real kTwist, Real tauEq)
 {
-    RodIC::MappingFunc3D mirCenterLine = [&](float s)
+    RodIC::MappingFunc3D mirCenterLine = [&](real s)
     {
         auto r = centerLine(s);
-        return float3({(float) r.x, (float) r.y, (float) r.z});
+        return real3({(real) r.x, (real) r.y, (real) r.z});
     };
     
-    RodIC::MappingFunc1D mirTorsion = [&](float s)
+    RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
-        return (float) torsion(s);;
+        return (real) torsion(s);;
     };
 
     DomainInfo domain;
-    float L = 32.f;
+    real L = 32.f;
     domain.globalSize  = {L, L, L};
-    domain.globalStart = {0.f, 0.f, 0.f};
+    domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
-    float mass = 1.f;
+    real mass = 1.f;
     MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
@@ -401,15 +401,15 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
     
     RodParameters params;
-    params.kBending = make_float3(0.f);
-    params.kappaEq  = {make_float2(0.f)};
-    params.kTwist   = (float) kTwist;
-    params.tauEq    = {(float) tauEq};
-    params.groundE  = {0.f};
-    params.l0       = 0.f;
-    params.a0       = 0.f;
-    params.ksCenter = 0.f;
-    params.ksFrame  = 0.f;
+    params.kBending = make_real3(0._r);
+    params.kappaEq  = {make_real2(0._r)};
+    params.kTwist   = (real) kTwist;
+    params.tauEq    = {(real) tauEq};
+    params.groundE  = {0._r};
+    params.l0       = 0._r;
+    params.a0       = 0._r;
+    params.ksCenter = 0._r;
+    params.ksFrame  = 0._r;
     RodInteraction gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
@@ -419,7 +419,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     rv.local()->forces().clear(defaultStream);
     gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<float>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto cpuEnergies = computeTwistEnergies<EnergyMode::Absolute>

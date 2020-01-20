@@ -19,11 +19,11 @@ using namespace mirheo;
 
 bool verbose = false;
 
-void test_domain(float3 length, float rc, float density, int nbuilds)
+void test_domain(real3 length, real rc, real density, int nbuilds)
 {
     bool success = true;
     DomainInfo domain{length, {0,0,0}, length};
-    float dt = 0; // dummy dt
+    real dt = 0; // dummy dt
     MirState state(domain, dt);
 
     ParticleVector dpds(&state, "dpd", 1.0f);
@@ -33,7 +33,7 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
     ic.exec(MPI_COMM_WORLD, &dpds, 0);
 
     const int np = dpds.local()->size();
-    HostBuffer<float4> initialPos(np), initialVel(np);
+    HostBuffer<real4> initialPos(np), initialVel(np);
 
     std::copy(dpds.local()->positions ().begin(), dpds.local()->positions ().end(), initialPos.begin());
     std::copy(dpds.local()->velocities().begin(), dpds.local()->velocities().end(), initialVel.begin());
@@ -60,7 +60,7 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
     int total = 0;
     for (size_t pid = 0; pid < initialPos.size(); ++pid)
     {
-        auto coo = make_float3(initialPos[pid]);
+        auto coo = make_real3(initialPos[pid]);
 
         int actCid = cells->getCellId(coo);
         if (actCid >= 0)
@@ -101,7 +101,7 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
             auto coo = p.r;
             auto vel = p.u;
             
-            const float diff = std::max({
+            const real diff = std::max({
                 fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
                 fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
 
@@ -125,17 +125,17 @@ void test_domain(float3 length, float rc, float density, int nbuilds)
 
 TEST (CELLLISTS, DomainVaries)
 {
-    float rc = 1.0, density = 7.5;
+    real rc = 1.0, density = 7.5;
     int ncalls = 1;
     
-    test_domain(make_float3(64, 64, 64), rc, density, ncalls);
-    test_domain(make_float3(64, 32, 16), rc, density, ncalls);
+    test_domain(make_real3(64, 64, 64), rc, density, ncalls);
+    test_domain(make_real3(64, 32, 16), rc, density, ncalls);
 }
 
 TEST (CELLLISTS, rcVaries)
 {
-    float3 domain = make_float3(32, 32, 32);
-    float density = 7.5;
+    real3 domain = make_real3(32, 32, 32);
+    real density = 7.5;
     int ncalls = 1;
     
     test_domain(domain, 0.5, density, ncalls);
@@ -144,8 +144,8 @@ TEST (CELLLISTS, rcVaries)
 
 TEST (CELLLISTS, DensityVaries)
 {
-    float3 domain = make_float3(32, 32, 32);
-    float rc = 1.0;
+    real3 domain = make_real3(32, 32, 32);
+    real rc = 1.0;
     int ncalls = 1;
     
     test_domain(domain, rc, 2.0, ncalls);

@@ -8,20 +8,20 @@
 using namespace mirheo;
 
 template<class Shape>
-static float3 inertiaTensorMC(long nsamples, const Shape& shape, float3 low, float3 high)
+static real3 inertiaTensorMC(long nsamples, const Shape& shape, real3 low, real3 high)
 {
     double V, xx, yy, zz, xy, xz, yz;
     V = xx = xy = xz = yy = yz = zz = 0;
 
     const long seed = 424242424242;
     std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> distx(low.x, high.x);
-    std::uniform_real_distribution<float> disty(low.y, high.y);
-    std::uniform_real_distribution<float> distz(low.z, high.z);
+    std::uniform_real_distribution<real> distx(low.x, high.x);
+    std::uniform_real_distribution<real> disty(low.y, high.y);
+    std::uniform_real_distribution<real> distz(low.z, high.z);
     
     for (long i = 0; i < nsamples; ++i)
     {
-        float3 r {distx(gen), disty(gen), distz(gen)};
+        real3 r {distx(gen), disty(gen), distz(gen)};
 
         if (shape.inOutFunction(r) < 0.f)
         {
@@ -47,24 +47,24 @@ static float3 inertiaTensorMC(long nsamples, const Shape& shape, float3 low, flo
     printf("V = %g\n", V * B.x * B.y * B.z / nsamples);
     printf("%g %g %g\n", xy / nsamples, xz / nsamples, yz / nsamples);
     
-    float3 I {float(yy + zz),
-              float(xx + zz),
-              float(xx + yy)};
+    real3 I {real(yy + zz),
+              real(xx + zz),
+              real(xx + yy)};
     return I;
 }
 
-static float Lmax(float3 a, float3 b)
+static real Lmax(real3 a, real3 b)
 {
     return math::max(math::max(math::abs(a.x-b.x), math::abs(a.y-b.y)), math::abs(a.z-b.z));
 }
 
 TEST (InertiaTensor, Ellipsoid)
 {
-    float3 axes {1.f, 2.f, 3.f};
+    real3 axes {1._r, 2._r, 3._r};
     Ellipsoid ell(axes);
 
-    float3 Iref = inertiaTensorMC(1000000, ell, -axes, axes);
-    float3 I    = ell.inertiaTensor(1.0);
+    real3 Iref = inertiaTensorMC(1000000, ell, -axes, axes);
+    real3 I    = ell.inertiaTensor(1.0);
 
     // printf("%g %g %g   %g %g %g\n",
     //        Iref.x, Iref.y, Iref.z,
@@ -75,13 +75,13 @@ TEST (InertiaTensor, Ellipsoid)
 
 TEST (InertiaTensor, Cylinder)
 {
-    float L = 5.0;
-    float R = 3.0;
-    float3 lim {R, R, 0.55f * L};
+    real L = 5.0_r;
+    real R = 3.0_r;
+    real3 lim {R, R, 0.55_r * L};
     Cylinder cyl(R, L);
 
-    float3 Iref = inertiaTensorMC(1000000, cyl, -lim, lim);
-    float3 I    = cyl.inertiaTensor(1.0);
+    real3 Iref = inertiaTensorMC(1000000, cyl, -lim, lim);
+    real3 I    = cyl.inertiaTensor(1.0);
 
     // printf("%g %g %g   %g %g %g\n",
     //        Iref.x, Iref.y, Iref.z,
@@ -92,13 +92,13 @@ TEST (InertiaTensor, Cylinder)
 
 TEST (InertiaTensor, Capsule)
 {
-    float L = 5.0;
-    float R = 3.0;
-    float3 lim {R, R, 0.55f * L + R};
+    real L = 5.0_r;
+    real R = 3.0_r;
+    real3 lim {R, R, 0.55_r * L + R};
     Capsule cap(R, L);
 
-    float3 Iref = inertiaTensorMC(10000000, cap, -lim, lim);
-    float3 I    = cap.inertiaTensor(1.0);
+    real3 Iref = inertiaTensorMC(10000000, cap, -lim, lim);
+    real3 I    = cap.inertiaTensor(1.0);
 
     printf("%g %g %g   %g %g %g\n",
            Iref.x, Iref.y, Iref.z,

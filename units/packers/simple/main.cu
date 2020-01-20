@@ -26,7 +26,7 @@ __global__ void packParticlesIdentityMap(int n, ParticlePackerHandler packer, ch
     packer.particles.pack(srcId, dstId, buffer, n);
 }
 
-__global__ void packShiftParticlesIdentityMap(int n, float3 shift, ParticlePackerHandler packer, char *buffer)
+__global__ void packShiftParticlesIdentityMap(int n, real3 shift, ParticlePackerHandler packer, char *buffer)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= n) return;
@@ -87,9 +87,9 @@ __global__ void unpackObjectsIdentityMap(int nObjects, const char *buffer, Objec
 
 TEST (PACKERS_SIMPLE, particles)
 {
-    float dt = 0.f;
-    float L = 8.f;
-    float density = 4.f;
+    real dt = 0.f;
+    real L = 8.f;
+    real density = 4.f;
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
@@ -101,8 +101,8 @@ TEST (PACKERS_SIMPLE, particles)
     auto& pos = lpv->positions();
     auto& vel = lpv->velocities();
     
-    const std::vector<float4> pos_cpy(pos.begin(), pos.end());
-    const std::vector<float4> vel_cpy(vel.begin(), vel.end());
+    const std::vector<real4> pos_cpy(pos.begin(), pos.end());
+    const std::vector<real4> vel_cpy(vel.begin(), vel.end());
 
     int n = lpv->size();
 
@@ -142,10 +142,10 @@ TEST (PACKERS_SIMPLE, particles)
 
 TEST (PACKERS_SIMPLE, particlesShift)
 {
-    float dt = 0.f;
-    float L = 8.f;
-    float density = 4.f;
-    float3 shift {42.0f, 43.0f, 44.0f};
+    real dt = 0.f;
+    real L = 8.f;
+    real density = 4.f;
+    real3 shift {42.0f, 43.0f, 44.0f};
     DomainInfo domain;
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
@@ -157,8 +157,8 @@ TEST (PACKERS_SIMPLE, particlesShift)
     auto& pos = lpv->positions();
     auto& vel = lpv->velocities();
     
-    std::vector<float4> pos_cpy(pos.begin(), pos.end());
-    std::vector<float4> vel_cpy(vel.begin(), vel.end());
+    std::vector<real4> pos_cpy(pos.begin(), pos.end());
+    std::vector<real4> vel_cpy(vel.begin(), vel.end());
 
     for (auto& r : pos_cpy)
     {
@@ -205,8 +205,8 @@ TEST (PACKERS_SIMPLE, particlesShift)
 
 TEST (PACKERS_SIMPLE, objects)
 {
-    float dt = 0.f;
-    float L   = 64.f;
+    real dt = 0.f;
+    real L   = 64.f;
     int nObjs = 128;
     int objSize = 666;
 
@@ -226,8 +226,8 @@ TEST (PACKERS_SIMPLE, objects)
     vel .downloadFromDevice(defaultStream);
     mot->downloadFromDevice(defaultStream);
 
-    const std::vector<float4> pos_cpy(pos.begin(), pos.end());
-    const std::vector<float4> vel_cpy(vel.begin(), vel.end());
+    const std::vector<real4> pos_cpy(pos.begin(), pos.end());
+    const std::vector<real4> vel_cpy(vel.begin(), vel.end());
     const std::vector<RigidMotion> mot_cpy(mot->begin(), mot->end());
 
     int n = lrev->size();
