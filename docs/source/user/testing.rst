@@ -65,7 +65,7 @@ Double precision
 ****************
 
 If compiled with ``DOUBLE_PRECISION=ON`` (see :ref:`user-install`), the reference files for the regression tests are inside the ``tests/test_data_double`` folder.
-The tests can be run by
+The tests can be run by typing:
 
   .. code-block:: console
 
