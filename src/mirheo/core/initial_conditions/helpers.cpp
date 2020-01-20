@@ -36,26 +36,29 @@ static Particle genParticle(real3 h, int i, int j, int k, const DomainInfo& doma
     return p;
 }
 
-void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
+void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterIn, cudaStream_t stream)
 {
     const auto domain = pv->getState()->domain;
 
-    const int3 ncells = make_int3( math::ceil(domain.localSize) );
-    const real3 h    = domain.localSize / make_real3(ncells);
+    const int3 ncells     = make_int3( math::ceil(domain.localSize) );
+    const real3 h         = domain.localSize / make_real3(ncells);
+    const real cellVolume = h.x * h.y * h.z;
 
-    const int wholeInCell = static_cast<int>(math::floor(density));
-    const real fracInCell = density - static_cast<real>(wholeInCell);
+    const real numPartsPerCell = cellVolume * numberDensity;
+
+    const int wholeInCell = static_cast<int>(math::floor(numPartsPerCell));
+    const real fracInCell = numPartsPerCell - static_cast<real>(wholeInCell);
 
     const auto seed = genSeed(comm, pv->name);
     std::mt19937 gen(seed);
     std::uniform_real_distribution<float> udistr(0, 1); // use float to get the same refs for tests
 
-    double3 avgMomentum{0,0,0};
-    int mycount = 0;
+    double3 avgMomentum {0,0,0};
+    int mycount {0};
 
     std::vector<float4> pos, vel;
-    pos.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(density)));
-    vel.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(density)));
+    pos.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
+    vel.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
     
     for (int i = 0; i < ncells.x; ++i) {
         for (int j = 0; j < ncells.y; ++j) {
