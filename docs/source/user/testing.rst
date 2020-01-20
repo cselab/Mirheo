@@ -59,3 +59,15 @@ The library must be built in the ``build`` folder (see :ref:`user-install`).
   .. note::
 
      You need to install the tools before running the tests
+
+
+Double precision
+****************
+
+If compiled with ``DOUBLE_PRECISION=ON`` (see :ref:`user-install`), the reference files for the regression tests are inside the ``tests/test_data_double`` folder.
+The tests can be run by
+
+  .. code-block:: console
+
+     $ cd tests
+     $ make test_double
