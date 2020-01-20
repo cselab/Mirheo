@@ -2,9 +2,14 @@
 
 import numpy as np
 import mirheo as mir
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--domain", type=float, nargs=3, default=[4., 2., 3.])
+args = parser.parse_args()
 
 ranks  = (1, 1, 1)
-domain = [4., 2., 3.]
+domain = args.domain
 density = 8
 
 u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
@@ -26,4 +31,10 @@ if pv:
 # cd ic
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./uniform.py
+# paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt
+
+# TEST: ic.uniform.no_integer_domain
+# cd ic
+# rm -rf pos*.txt vel*.txt
+# mir.run --runargs "-n 2" ./uniform.py --domain 4.33 2.5 3.9
 # paste pos.ic.txt vel.ic.txt | LC_ALL=en_US.utf8 sort > ic.out.txt

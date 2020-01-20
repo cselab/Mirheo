@@ -12,6 +12,6 @@ using PositionFilter = std::function<bool(real3)>;
 
 class ParticleVector;
 
-void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterOut, cudaStream_t stream);
+void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVector *pv, PositionFilter filterOut, cudaStream_t stream);
 
 } // namespace mirheo
