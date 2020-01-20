@@ -11,10 +11,10 @@
 using namespace mirheo;
 
 template<typename Gen>
-static std::vector<float> generateSamples(Gen gen, float dt, long n)
+static std::vector<real> generateSamples(Gen gen, real dt, long n)
 {
     DomainInfo domain;
-    std::vector<float> samples (n);
+    std::vector<real> samples (n);
     MirState state(domain, dt);
     state.currentTime = 0;    
 
@@ -30,7 +30,7 @@ static std::vector<float> generateSamples(Gen gen, float dt, long n)
 using Real = long double;
 
 template<typename Gen>
-static Real computeAutoCorrelation(Gen gen, float dt, long n)
+static Real computeAutoCorrelation(Gen gen, real dt, long n)
 {
     auto samples = generateSamples(gen, dt, n);
     
@@ -50,13 +50,13 @@ static Real computeAutoCorrelation(Gen gen, float dt, long n)
 class GenFromTime
 {
 public:
-    float generate(const MirState *state)
+    real generate(const MirState *state)
     {
-        const float t = state->currentTime;
-        const float *pt = &t;
+        const real t = state->currentTime;
+        const real *pt = &t;
         const int v = *reinterpret_cast<const int*>(pt);
         std::mt19937 gen(v);
-        std::uniform_real_distribution<float> udistr(0.001, 1);
+        std::uniform_real_distribution<real> udistr(0.001, 1);
         return udistr(gen);
     }
 };
@@ -64,7 +64,7 @@ public:
 TEST (RNG, autoCorrelationGenFromTime)
 {
     GenFromTime gen;
-    float dt = 1e-3;
+    real dt = 1e-3;
     
     auto corr = computeAutoCorrelation(gen, dt, 10000);
 
@@ -76,13 +76,13 @@ TEST (RNG, autoCorrelationGenFromTime)
 TEST (RNG, autoCorrelationGenFromMT)
 {
     StepRandomGen gen(424242);
-    float dt = 1e-3;
+    real dt = 1e-3;
     
     auto corr = computeAutoCorrelation(gen, dt, 10000);
 
     printf("from MT: %g\n", (double) corr);
                                        
-    ASSERT_LE(std::abs(corr), 1e-3);
+    ASSERT_LE(std::abs(corr), 2e-3);
 }
 
 int main(int argc, char **argv)

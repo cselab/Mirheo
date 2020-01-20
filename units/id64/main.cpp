@@ -24,9 +24,13 @@ TEST (ID64, subids)
 
     Particle p;
     p.setId(id);
-    
+
+#ifdef MIRHEO_DOUBLE_PRECISION
+    ASSERT_EQ(p.i1, id);
+#else
     ASSERT_EQ(p.i1, low);
     ASSERT_EQ(p.i2, high);
+#endif    
 }
 
 int main(int argc, char **argv)
