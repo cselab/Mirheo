@@ -56,7 +56,7 @@ void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     double3 avgMomentum {0,0,0};
     int mycount {0};
 
-    std::vector<float4> pos, vel;
+    std::vector<real4> pos, vel;
     pos.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
     vel.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
     
