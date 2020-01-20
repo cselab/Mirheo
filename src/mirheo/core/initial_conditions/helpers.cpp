@@ -12,7 +12,7 @@ namespace mirheo
 
 using PositionFilter = std::function<bool(real3)>;
 
-static long genSeed(const MPI_Comm& comm, std::string name)
+static long genSeed(const MPI_Comm& comm, const std::string& name)
 {
     int rank;
     std::hash<std::string> nameHash;
@@ -40,13 +40,13 @@ void addUniformParticles(real density, const MPI_Comm& comm, ParticleVector *pv,
 {
     const auto domain = pv->getState()->domain;
 
-    int3 ncells = make_int3( math::ceil(domain.localSize) );
-    real3 h    = domain.localSize / make_real3(ncells);
+    const int3 ncells = make_int3( math::ceil(domain.localSize) );
+    const real3 h    = domain.localSize / make_real3(ncells);
 
     const int wholeInCell = static_cast<int>(math::floor(density));
-    real fracInCell = density - static_cast<real>(wholeInCell);
+    const real fracInCell = density - static_cast<real>(wholeInCell);
 
-    auto seed = genSeed(comm, pv->name);
+    const auto seed = genSeed(comm, pv->name);
     std::mt19937 gen(seed);
     std::uniform_real_distribution<float> udistr(0, 1); // use float to get the same refs for tests
 
