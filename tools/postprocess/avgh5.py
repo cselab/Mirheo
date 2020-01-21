@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(description='Compute the average of grid data a
 parser.add_argument('directions',       type=str, help='a string containing the directions to reduce: [xyz], e.g. xy to retain only the z direction')
 parser.add_argument('field',            type=str, help='field name to reduce, e.g. "velocities"')
 parser.add_argument('files', nargs='+', type=str, help='input h5 files')
-#parser.add_argument('--verbose', action='store_true', default=False, type=bool, help='add progress status if enabled')
+parser.add_argument('--verbose', action='store_true', default=False, help='add progress status if enabled')
 args = parser.parse_args()
 
 argv = sys.argv
@@ -43,7 +43,7 @@ all_fname  = args.files
 val_avg = []
 first = True
 
-for sample in all_fname:
+for sample_id, sample in enumerate(all_fname):
     f = fopen(sample)
     field = f[key]
     (nz, ny, nx, dim) = field.shape
@@ -59,6 +59,9 @@ for sample in all_fname:
     else:
         val_avg += val_reduced
     f.close()
+
+    if args.verbose:
+        sys.stderr.write("{} out of {} done.{}".format(sample_id+1, len(all_fname), '\r' if sample_id < len(all_fname)-1 else '\n'))
 
 val_avg = val_avg / len(all_fname)
 val_avg = val_avg.reshape(val_avg.shape[0], -1)
