@@ -1,11 +1,10 @@
 #! /usr/bin/env python
 
-import sys
+import argparse, sys
 import numpy as np
 import h5py as h5
 
 def err(s): sys.stderr.write(s)
-def shift(a): return a.pop(0)
 
 def fopen(fname):
     try:
@@ -25,19 +24,21 @@ def decode(code):
         
     return rdir
 
+
+
+parser = argparse.ArgumentParser(description='Compute the average of grid data along given direction(s).')
+parser.add_argument('directions',       type=str, help='a string containing the directions to reduce: [xyz], e.g. xy to retain only the z direction')
+parser.add_argument('field',            type=str, help='field name to reduce, e.g. "velocities"')
+parser.add_argument('files', nargs='+', type=str, help='input h5 files')
+#parser.add_argument('--verbose', action='store_true', default=False, type=bool, help='add progress status if enabled')
+args = parser.parse_args()
+
 argv = sys.argv
 
-if len(argv) < 4:
-    err("usage: %s <[xyz]> <field> <file0.h5> <file1.h5> ... \n"
-        "\t xyz   : reduced directions\n"
-        "\t field : field name e.g 'velocity'\n"% argv[0])
-    exit(1)
-
-shift(argv)
-code = shift(argv)
-key  = shift(argv)
-rdir = decode(code)
-all_fname = argv
+directions = args.directions
+key        = args.field
+rdir       = decode(directions)
+all_fname  = args.files
 
 val_avg = []
 first = True
