@@ -112,10 +112,11 @@ public:
     /// Release resources and report if debug level is high enough
     ~DeviceBuffer()
     {
+        debug4("Destroying DeviceBuffer<%s> of capacity %d X %d",
+               typeid(T).name(), capacity, sizeof(T));
         if (devptr != nullptr)
         {
             CUDA_Check(cudaFree(devptr));
-            debug4("Destroying DeviceBuffer<%s>", typeid(T).name());
         }
     }
 
@@ -287,8 +288,9 @@ public:
     /// Release resources and report if debug level is high enough
     ~HostBuffer()
     {
+        debug4("Destroying HostBuffer<%s> of capacity %d X %d",
+               typeid(T).name(), capacity, sizeof(T));
         CUDA_Check(cudaFreeHost(hostptr));
-        debug4("Destroying HostBuffer<%s>", typeid(T).name());
     }
 
     inline size_t datatype_size() const { return sizeof(T); }
@@ -462,11 +464,12 @@ public:
     /// Release resources and report if debug level is high enough
     ~PinnedBuffer()
     {
+        debug4("Destroying PinnedBuffer<%s> of capacity %d X %d",
+               typeid(T).name(), capacity, sizeof(T));
         if (devptr != nullptr)
         {
             CUDA_Check(cudaFreeHost(hostptr));
             CUDA_Check(cudaFree(devptr));
-            debug4("Destroying PinnedBuffer<%s>", typeid(T).name());
         }
     }
 

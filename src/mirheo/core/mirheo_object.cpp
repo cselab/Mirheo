@@ -8,9 +8,14 @@ namespace mirheo
 
 MirObject::MirObject(std::string name) :
     name(name)
-{}
+{
+    debug4("Creating object '%s'", name.c_str());
+}
 
-MirObject::~MirObject() = default;
+MirObject::~MirObject()
+{
+    debug4("Destroying object '%s'", name.c_str());
+}
 
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
