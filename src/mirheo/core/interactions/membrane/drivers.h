@@ -70,7 +70,7 @@ __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
 template <class TriangleInteraction>
 __device__ inline mReal3 bondTriangleForce(
         const TriangleInteraction& triangleInteraction,
-        ParticleMReal p, int locId, int rbcId,
+        const ParticleMReal& p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
         const GPU_CommonMembraneParameters& parameters)
@@ -147,9 +147,9 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
     for (int i = 0; i < degree; i++)
     {
         mReal3 f1 = make_mReal3(0.0_mr);
-        int idv3 = offset + mesh.adjacent[startId + (i+2) % degree];
+        const int idv3 = offset + mesh.adjacent[startId + (i+2) % degree];
 
-        auto v3 = dihedralInteraction.fetchVertex(view, idv3);
+        const auto v3 = dihedralInteraction.fetchVertex(view, idv3);
 
         f0 += dihedralInteraction(v0, v1, v2, v3, f1);
 
@@ -180,7 +180,7 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     if (pid >= view.nObjects * mesh.nvertices) return;
     if (!filter.inWhiteList(rbcId)) return;
 
-    auto p = fetchParticle(view, pid);
+    const auto p = fetchParticle(view, pid);
 
     mReal3 f;
     f  = bondTriangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
