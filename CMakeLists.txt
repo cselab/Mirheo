@@ -67,7 +67,7 @@ endif()
 # Dynamic linking should allegedly improve UCX-based MPI,
 # but it seriously affects other code aspects (maybe stream polling?)
 #set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-find_package(CUDA REQUIRED)
+find_package(CUDA 9.2 REQUIRED)
 
 include(mpi)
 
