@@ -11,7 +11,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 
 u.save_dependency_graph_graphml("tasks.full", current=False)
 
-# TEST: dump.graph.full
+# sTEST: dump.graph.full
 # cd dump
 # rm -rf tasks.graphml
 # mir.run --runargs "-n 1" ./graph.full.py
