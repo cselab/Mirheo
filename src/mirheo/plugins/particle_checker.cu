@@ -143,7 +143,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         const real3 lr = p.r;
         const real3 gr = domain.local2global(lr);
 
-        allParticleErrors += strprintf("\nBad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+        allParticleErrors += strprintf("\n\tBad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
                                        pv->name.c_str(), p.getId(),
                                        lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
                                        p.u.x, p.u.y, p.u.z, infoStr);
@@ -160,7 +160,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
             mpark::visit([&](auto pinnedBuffPtr)
             {
                 const auto val = (*pinnedBuffPtr)[s.id];
-                allParticleErrors += name + " : " + printToStr(val) + '\n';
+                allParticleErrors += '\t' + name + " : " + printToStr(val) + '\n';
             }, desc->varDataPtr);
         }
         
