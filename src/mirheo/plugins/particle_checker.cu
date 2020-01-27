@@ -3,7 +3,9 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/pvs/views/rov.h>
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/types/str.h>
 #include <mirheo/core/utils/cuda_common.h>
@@ -15,12 +17,14 @@ namespace mirheo
 
 namespace ParticleCheckerKernels
 {
-__device__ static inline bool checkFinite(real3 v)
+template<typename R3>
+__device__ static inline bool isFinite(R3 v)
 {
     return isfinite(v.x) && isfinite(v.y) && isfinite(v.z);
 }
 
-__device__ static inline bool withinBounds(real3 v, real3 bounds)
+template<typename R3>
+__device__ static inline bool withinBounds(R3 v, real3 bounds)
 {
     return
         (math::abs(v.x) < bounds.x) &&
@@ -47,7 +51,7 @@ __global__ void checkForces(PVview view, ParticleCheckerPlugin::ParticleStatus *
 
     const auto force = make_real3(view.forces[pid]);
 
-    if (!checkFinite(force))
+    if (!isFinite(force))
         setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
 }
 
@@ -60,13 +64,13 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
     const auto pos = make_real3(view.readPosition(pid));
     const auto vel = make_real3(view.readVelocity(pid));
 
-    if (!checkFinite(pos) || !checkFinite(vel))
+    if (!isFinite(pos) || !isFinite(vel))
     {
         setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
         return;
     }
 
-    const real3 boundsPos = 1.5_r  * domain.localSize; // particle should not be further than one neighbouring domain
+    const real3 boundsPos = 1.5_r * domain.localSize; // particle should not be further than one neighbouring domain
     const real3 boundsVel = dtInv * domain.localSize; // particle should not travel more than one domain size per iteration
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
@@ -76,8 +80,47 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
     }
 }
 
+__global__ void checkRigidForces(ROVview view, ParticleCheckerPlugin::ParticleStatus *status)
+{
+    const int objId = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (objId >= view.nObjects) return;
+
+    const auto m = view.motions[objId];
+
+    if (!isFinite(m.force) || !isFinite(m.torque))
+        setBadStatus(objId, ParticleCheckerPlugin::Info::Nan, status);
+}
+
+__global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
+{
+    const int objId = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (objId >= view.nObjects) return;
+
+    const auto m = view.motions[objId];
+
+    if (!isFinite(m.r) || !isFinite(m.vel) || !isFinite(m.omega))
+    {
+        setBadStatus(objId, ParticleCheckerPlugin::Info::Nan, status);
+        return;
+    }
+
+    const real3 boundsPos   = 1.5_r * domain.localSize; // objects should not be further than one neighbouring domain
+    const real3 boundsVel   = dtInv * domain.localSize; // objects should not travel more than one domain size per iteration
+    const real3 boundsOmega = make_real3(dtInv * M_PI); // objects should not rotate more than half a turn per iteration
+
+    if (!withinBounds(m.r, boundsPos) || !withinBounds(m.vel, boundsVel), !withinBounds(m.omega, boundsOmega))
+    {
+        setBadStatus(objId, ParticleCheckerPlugin::Info::Out, status);
+        return;
+    }
+}
+
 } // namespace ParticleCheckerKernels
-    
+
+constexpr int ParticleCheckerPlugin::NotRov;
+
 ParticleCheckerPlugin::ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery) :
     SimulationPlugin(state, name),
     checkEvery(checkEvery)
@@ -89,8 +132,20 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
 {
     SimulationPlugin::setup(simulation, comm, interComm);
     pvs = simulation->getParticleVectors();
+    rovStatusIds.clear();
+    
+    int numRovs {0};
+    for (auto pv : pvs)
+    {
+        int id = NotRov;
+        if (dynamic_cast<RigidObjectVector*>(pv))
+        {
+            id = pvs.size() + numRovs++;
+        }
+        rovStatusIds.push_back(id);
+    }
 
-    statuses.resize_anew(pvs.size());
+    statuses.resize_anew(pvs.size() + numRovs);
 
     for (auto& s : statuses)
         s = {GoodTag, 0, Info::Ok};
@@ -112,6 +167,16 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
             ParticleCheckerKernels::checkForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, statuses.devPtr() + i );
+
+        if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
+        {
+            ROVview view(rov, rov->local());
+
+            SAFE_KERNEL_LAUNCH(
+                ParticleCheckerKernels::checkRigidForces,
+                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
+                view, statuses.devPtr() + rovStatusIds[i] );
+        }
     }
 
     dieIfBadStatus(stream, "force");
@@ -136,6 +201,16 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
             ParticleCheckerKernels::checkParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, domain, dtInv, statuses.devPtr() + i );
+
+        if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
+        {
+            ROVview view(rov, rov->local());
+
+            SAFE_KERNEL_LAUNCH(
+                ParticleCheckerKernels::checkRigidMotions,
+                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
+                view, domain, dtInv, statuses.devPtr() + rovStatusIds[i] );
+        }
     }
 
     dieIfBadStatus(stream, "particle");

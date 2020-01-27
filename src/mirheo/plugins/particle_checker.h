@@ -41,6 +41,9 @@ private:
     
     PinnedBuffer<ParticleStatus> statuses;
     std::vector<ParticleVector*> pvs;
+    std::vector<int> rovStatusIds;
+
+    static constexpr int NotRov = -1;
 };
 
 } // namespace mirheo
