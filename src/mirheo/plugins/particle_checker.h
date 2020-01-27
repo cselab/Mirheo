@@ -19,7 +19,8 @@ public:
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     
-    void afterIntegration(cudaStream_t stream) override;
+    void beforeIntegration(cudaStream_t stream) override;
+    void afterIntegration (cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
 
