@@ -39,9 +39,9 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!checkFinite(pos) || !checkFinite(vel))
     {
-        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
 
-        if (tag == ParticleCheckerPlugin::GOOD)
+        if (tag == ParticleCheckerPlugin::GoodTag)
         {
             status->id   = pid;
             status->info = ParticleCheckerPlugin::Info::Nan;
@@ -54,9 +54,9 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
-        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BAD);
+        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
 
-        if (tag == ParticleCheckerPlugin::GOOD)
+        if (tag == ParticleCheckerPlugin::GoodTag)
         {
             status->id   = pid;
             status->info = ParticleCheckerPlugin::Info::Out;
@@ -81,7 +81,7 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
     statuses.resize_anew(pvs.size());
 
     for (auto& s : statuses)
-        s = {GOOD, 0, Info::Ok};
+        s = {GoodTag, 0, Info::Ok};
     statuses.uploadToDevice(defaultStream);
 }
 
@@ -115,7 +115,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     for (size_t i = 0; i < pvs.size(); ++i, pvDownloaded = false)
     {
         const auto& s = statuses[i];
-        if (s.tag == GOOD) continue;
+        if (s.tag == GoodTag) continue;
 
         // from now we know we will fail; download particles and print error
         auto pv = pvs[i];

@@ -24,7 +24,7 @@ public:
     bool needPostproc() override { return false; }
 
     enum class Info {Ok, Out, Nan};
-    enum {GOOD, BAD};
+    enum {GoodTag, BadTag};
     
     struct __align__(16) ParticleStatus
     {
