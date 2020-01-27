@@ -150,6 +150,41 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     dieIfBadStatus(stream, "particle");
 }
 
+static inline void downloadAllFields(cudaStream_t stream, const DataManager& manager)
+{
+    for (auto entry : manager.getSortedChannels())
+    {
+        auto desc = entry.second;
+        mpark::visit([stream](auto pinnedBuffPtr)
+        {
+            pinnedBuffPtr->downloadFromDevice(stream, ContainersSynch::Asynch);
+        }, desc->varDataPtr);
+    }
+    CUDA_Check( cudaStreamSynchronize(stream) );
+}
+
+static inline std::string listOtherFieldValues(const DataManager& manager, int id)
+{
+    std::string fieldValues;
+    
+    for (auto entry : manager.getSortedChannels())
+    {
+        const auto& name = entry.first;
+        const auto desc = entry.second;
+            
+        if (name == ChannelNames::positions ||
+            name == ChannelNames::velocities)
+            continue;
+            
+        mpark::visit([&](auto pinnedBuffPtr)
+        {
+            const auto val = (*pinnedBuffPtr)[id];
+            fieldValues += '\t' + name + " : " + printToStr(val) + '\n';
+        }, desc->varDataPtr);
+    }
+    return fieldValues;    
+}
+
 void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
 {
     statuses.downloadFromDevice(stream, ContainersSynch::Synch);
@@ -170,15 +205,7 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
 
         if (!pvDownloaded)
         {
-            for (auto entry : lpv->dataPerParticle.getSortedChannels())
-            {
-                auto desc = entry.second;
-                mpark::visit([stream](auto pinnedBuffPtr)
-                {
-                    pinnedBuffPtr->downloadFromDevice(stream, ContainersSynch::Asynch);
-                }, desc->varDataPtr);
-            }
-            CUDA_Check( cudaStreamSynchronize(stream) );
+            downloadAllFields(stream, lpv->dataPerParticle);
             pvDownloaded = true;
         }
 
@@ -196,21 +223,7 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
                                        lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
                                        p.u.x, p.u.y, p.u.z, infoStr);
 
-        for (auto entry : lpv->dataPerParticle.getSortedChannels())
-        {
-            const auto& name = entry.first;
-            const auto desc = entry.second;
-            
-            if (name == ChannelNames::positions ||
-                name == ChannelNames::velocities)
-                continue;
-            
-            mpark::visit([&](auto pinnedBuffPtr)
-            {
-                const auto val = (*pinnedBuffPtr)[s.id];
-                allParticleErrors += '\t' + name + " : " + printToStr(val) + '\n';
-            }, desc->varDataPtr);
-        }
+        allParticleErrors += listOtherFieldValues(lpv->dataPerParticle, s.id);
         
         failing = true;
     }
