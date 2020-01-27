@@ -1,32 +1,9 @@
 #include "str.h"
 
-#include <cstdarg>
-#include <cstdio>
+#include <mirheo/core/utils/strprintf.h>
 
 namespace mirheo
 {
-
-/// std::string variant of vsprintf.
-static inline std::string vstrprintf(const char *fmt, va_list args)
-{
-    va_list args2;
-    va_copy(args2, args);
-
-    const int size = vsnprintf(nullptr, 0, fmt, args);
-
-    std::string result(size, '_');
-    vsnprintf(&result[0], size + 1, fmt, args2);
-    return result;
-}
-
-static inline std::string strprintf(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    const std::string result = vstrprintf(fmt, args);
-    va_end(args);
-    return result;
-}
 
 std::string printToStr(int val)
 {
