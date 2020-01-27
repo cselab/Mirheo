@@ -5,6 +5,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/types/str.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/strprintf.h>
@@ -111,9 +112,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     bool pvDownloaded {false};
     std::string allParticleErrors;
 
-    for (size_t i = 0;
-         i < pvs.size();
-         ++i, pvDownloaded = false)
+    for (size_t i = 0; i < pvs.size(); ++i, pvDownloaded = false)
     {
         const auto& s = statuses[i];
         if (s.tag == GOOD) continue;
@@ -124,8 +123,15 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
         if (!pvDownloaded)
         {
-            lpv->positions ().downloadFromDevice(stream, ContainersSynch::Asynch);
-            lpv->velocities().downloadFromDevice(stream, ContainersSynch::Synch);
+            for (auto entry : lpv->dataPerParticle.getSortedChannels())
+            {
+                auto desc = entry.second;
+                mpark::visit([stream](auto pinnedBuffPtr)
+                {
+                    pinnedBuffPtr->downloadFromDevice(stream, ContainersSynch::Asynch);
+                }, desc->varDataPtr);
+            }
+            CUDA_Check( cudaStreamSynchronize(stream) );
             pvDownloaded = true;
         }
 
@@ -142,6 +148,22 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
                                        lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
                                        p.u.x, p.u.y, p.u.z, infoStr);
 
+        for (auto entry : lpv->dataPerParticle.getSortedChannels())
+        {
+            const auto& name = entry.first;
+            const auto desc = entry.second;
+            
+            if (name == ChannelNames::positions ||
+                name == ChannelNames::velocities)
+                continue;
+            
+            mpark::visit([&](auto pinnedBuffPtr)
+            {
+                const auto val = (*pinnedBuffPtr)[s.id];
+                allParticleErrors += name + " : " + printToStr(val) + '\n';
+            }, desc->varDataPtr);
+        }
+        
         failing = true;
     }
 
