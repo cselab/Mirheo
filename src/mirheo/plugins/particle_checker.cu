@@ -251,6 +251,14 @@ static inline std::string listOtherFieldValues(const DataManager& manager, int i
     return fieldValues;    
 }
 
+static inline std::string infoToStr(ParticleCheckerPlugin::Info info)
+{
+    using Info = ParticleCheckerPlugin::Info;
+    if (info == Info::Nan) return "not a finite number";
+    if (info == Info::Out) return "out of bounds";
+    return "no error detected";
+}
+
 void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
 {
     statuses.downloadFromDevice(stream, ContainersSynch::Synch);
@@ -261,8 +269,10 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
 
     for (size_t i = 0; i < pvs.size(); ++i)
     {
-        const auto& s = statuses[i];
-        if (s.tag == GoodTag) continue;
+        const auto& partStatus = statuses[i];
+        if (partStatus.tag == GoodTag) continue;
+
+        const int partId = partStatus.id;
 
         // from now we know we will fail; download particles and print error
         auto pv = pvs[i];
@@ -270,10 +280,10 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
 
         downloadAllFields(stream, lpv->dataPerParticle);
 
-        const auto p = Particle(lpv->positions ()[s.id],
-                                lpv->velocities()[s.id]);
+        const auto p = Particle(lpv->positions ()[partId],
+                                lpv->velocities()[partId]);
 
-        const char *infoStr = s.info == Info::Nan ? "not a finite number" : "out of bounds";
+        const auto infoStr = infoToStr(partStatus.info);
 
         const real3 lr = p.r;
         const real3 gr = domain.local2global(lr);
@@ -282,9 +292,9 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
                                identifier.c_str(),
                                pv->name.c_str(), p.getId(),
                                lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
-                               p.u.x, p.u.y, p.u.z, infoStr);
+                               p.u.x, p.u.y, p.u.z, infoStr.c_str());
 
-        allErrors += listOtherFieldValues(lpv->dataPerParticle, s.id);
+        allErrors += listOtherFieldValues(lpv->dataPerParticle, partId);
         
         failing = true;
     }
