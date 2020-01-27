@@ -34,6 +34,9 @@ public:
     };
 
 private:
+    void dieIfBadStatus(cudaStream_t stream, const std::string& identifier);
+    
+private:
     int checkEvery;
     
     PinnedBuffer<ParticleStatus> statuses;

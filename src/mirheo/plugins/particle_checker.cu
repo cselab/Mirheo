@@ -123,70 +123,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
             view, statuses.devPtr() + i );
     }
 
-    statuses.downloadFromDevice(stream, ContainersSynch::Synch);
-
-    bool failing {false};
-    bool pvDownloaded {false};
-    std::string allParticleErrors;
-    const auto domain = getState()->domain;
-    
-    for (size_t i = 0; i < pvs.size(); ++i, pvDownloaded = false)
-    {
-        const auto& s = statuses[i];
-        if (s.tag == GoodTag) continue;
-
-        // from now we know we will fail; download particles and print error
-        auto pv = pvs[i];
-        auto lpv = pv->local();
-
-        if (!pvDownloaded)
-        {
-            for (auto entry : lpv->dataPerParticle.getSortedChannels())
-            {
-                auto desc = entry.second;
-                mpark::visit([stream](auto pinnedBuffPtr)
-                {
-                    pinnedBuffPtr->downloadFromDevice(stream, ContainersSynch::Asynch);
-                }, desc->varDataPtr);
-            }
-            CUDA_Check( cudaStreamSynchronize(stream) );
-            pvDownloaded = true;
-        }
-
-        const auto p = Particle(lpv->positions ()[s.id],
-                                lpv->velocities()[s.id]);
-
-        const char *infoStr = s.info == Info::Nan ? "not a finite number" : "out of bounds";
-
-        const real3 lr = p.r;
-        const real3 gr = domain.local2global(lr);
-
-        allParticleErrors += strprintf("\n\tBad force in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
-                                       pv->name.c_str(), p.getId(),
-                                       lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
-                                       p.u.x, p.u.y, p.u.z, infoStr);
-
-        for (auto entry : lpv->dataPerParticle.getSortedChannels())
-        {
-            const auto& name = entry.first;
-            const auto desc = entry.second;
-            
-            if (name == ChannelNames::positions ||
-                name == ChannelNames::velocities)
-                continue;
-            
-            mpark::visit([&](auto pinnedBuffPtr)
-            {
-                const auto val = (*pinnedBuffPtr)[s.id];
-                allParticleErrors += '\t' + name + " : " + printToStr(val) + '\n';
-            }, desc->varDataPtr);
-        }
-        
-        failing = true;
-    }
-
-    if (failing)
-        die("Particle checker has found bad particles: %s", allParticleErrors.c_str());
+    dieIfBadStatus(stream, "force");
 }
 
 void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
@@ -210,7 +147,13 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
             view, domain, dtInv, statuses.devPtr() + i );
     }
 
+    dieIfBadStatus(stream, "particle");
+}
+
+void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
+{
     statuses.downloadFromDevice(stream, ContainersSynch::Synch);
+    const auto domain = getState()->domain;
 
     bool failing {false};
     bool pvDownloaded {false};
@@ -247,7 +190,8 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         const real3 lr = p.r;
         const real3 gr = domain.local2global(lr);
 
-        allParticleErrors += strprintf("\n\tBad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+        allParticleErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+                                       identifier.c_str(),
                                        pv->name.c_str(), p.getId(),
                                        lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
                                        p.u.x, p.u.y, p.u.z, infoStr);
