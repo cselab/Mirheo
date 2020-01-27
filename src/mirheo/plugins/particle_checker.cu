@@ -7,6 +7,7 @@
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/strprintf.h>
 
 namespace mirheo
 {
@@ -106,6 +107,9 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
     statuses.downloadFromDevice(stream, ContainersSynch::Synch);
 
+    bool failing {false};
+    std::string allParticleErrors;
+
     for (size_t i = 0; i < pvs.size(); ++i)
     {
         const auto& s = statuses[i];
@@ -120,16 +124,21 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         const auto p = Particle(lpv->positions ()[s.id],
                                 lpv->velocities()[s.id]);
 
-        const char *infoStr = s.info == Info::Nan ? "non finite number" : "out of bounds";
+        const char *infoStr = s.info == Info::Nan ? "not a finite number" : "out of bounds";
 
         const real3 lr = p.r;
         const real3 gr = domain.local2global(lr);
-        
-        die("Bad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s",
-            pv->name.c_str(), p.getId(),
-            lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
-            p.u.x, p.u.y, p.u.z, infoStr);
+
+        allParticleErrors += strprintf("\nBad particle in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+                                       pv->name.c_str(), p.getId(),
+                                       lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
+                                       p.u.x, p.u.y, p.u.z, infoStr);
+
+        failing = true;
     }
+
+    if (failing)
+        die("Particle checker has found bad particles: %s", allParticleErrors.c_str());
 }
 
 } // namespace mirheo
