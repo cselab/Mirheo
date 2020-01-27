@@ -108,9 +108,12 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     statuses.downloadFromDevice(stream, ContainersSynch::Synch);
 
     bool failing {false};
+    bool pvDownloaded {false};
     std::string allParticleErrors;
 
-    for (size_t i = 0; i < pvs.size(); ++i)
+    for (size_t i = 0;
+         i < pvs.size();
+         ++i, pvDownloaded = false)
     {
         const auto& s = statuses[i];
         if (s.tag == GOOD) continue;
@@ -118,8 +121,13 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         // from now we know we will fail; download particles and print error
         auto pv = pvs[i];
         auto lpv = pv->local();
-        lpv->positions ().downloadFromDevice(stream, ContainersSynch::Asynch);
-        lpv->velocities().downloadFromDevice(stream, ContainersSynch::Synch);
+
+        if (!pvDownloaded)
+        {
+            lpv->positions ().downloadFromDevice(stream, ContainersSynch::Asynch);
+            lpv->velocities().downloadFromDevice(stream, ContainersSynch::Synch);
+            pvDownloaded = true;
+        }
 
         const auto p = Particle(lpv->positions ()[s.id],
                                 lpv->velocities()[s.id]);
