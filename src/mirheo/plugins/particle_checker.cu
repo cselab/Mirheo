@@ -191,10 +191,9 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
     const auto domain = getState()->domain;
 
     bool failing {false};
-    bool pvDownloaded {false};
-    std::string allParticleErrors;
+    std::string allErrors;
 
-    for (size_t i = 0; i < pvs.size(); ++i, pvDownloaded = false)
+    for (size_t i = 0; i < pvs.size(); ++i)
     {
         const auto& s = statuses[i];
         if (s.tag == GoodTag) continue;
@@ -203,11 +202,7 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
         auto pv = pvs[i];
         auto lpv = pv->local();
 
-        if (!pvDownloaded)
-        {
-            downloadAllFields(stream, lpv->dataPerParticle);
-            pvDownloaded = true;
-        }
+        downloadAllFields(stream, lpv->dataPerParticle);
 
         const auto p = Particle(lpv->positions ()[s.id],
                                 lpv->velocities()[s.id]);
@@ -217,19 +212,19 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
         const real3 lr = p.r;
         const real3 gr = domain.local2global(lr);
 
-        allParticleErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
-                                       identifier.c_str(),
-                                       pv->name.c_str(), p.getId(),
-                                       lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
-                                       p.u.x, p.u.y, p.u.z, infoStr);
+        allErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+                               identifier.c_str(),
+                               pv->name.c_str(), p.getId(),
+                               lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
+                               p.u.x, p.u.y, p.u.z, infoStr);
 
-        allParticleErrors += listOtherFieldValues(lpv->dataPerParticle, s.id);
+        allErrors += listOtherFieldValues(lpv->dataPerParticle, s.id);
         
         failing = true;
     }
 
     if (failing)
-        die("Particle checker has found bad particles: %s", allParticleErrors.c_str());
+        die("Particle checker has found bad particles: %s", allErrors.c_str());
 }
 
 } // namespace mirheo
