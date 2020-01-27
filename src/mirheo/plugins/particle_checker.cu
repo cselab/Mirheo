@@ -15,17 +15,28 @@ namespace mirheo
 
 namespace ParticleCheckerKernels
 {
-__device__ inline bool checkFinite(real3 v)
+__device__ static inline bool checkFinite(real3 v)
 {
     return isfinite(v.x) && isfinite(v.y) && isfinite(v.z);
 }
 
-__device__ inline bool withinBounds(real3 v, real3 bounds)
+__device__ static inline bool withinBounds(real3 v, real3 bounds)
 {
     return
         (math::abs(v.x) < bounds.x) &&
         (math::abs(v.y) < bounds.y) &&
         (math::abs(v.z) < bounds.z);
+}
+
+__device__ static inline void setBadStatus(int pid, ParticleCheckerPlugin::Info info, ParticleCheckerPlugin::ParticleStatus *status)
+{
+    const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
+
+    if (tag == ParticleCheckerPlugin::GoodTag)
+    {
+        status->id   = pid;
+        status->info = info;
+    }
 }
 
 __global__ void checkForces(PVview view, ParticleCheckerPlugin::ParticleStatus *status)
@@ -37,16 +48,7 @@ __global__ void checkForces(PVview view, ParticleCheckerPlugin::ParticleStatus *
     const auto force = make_real3(view.forces[pid]);
 
     if (!checkFinite(force))
-    {
-        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
-
-        if (tag == ParticleCheckerPlugin::GoodTag)
-        {
-            status->id   = pid;
-            status->info = ParticleCheckerPlugin::Info::Nan;
-        }
-        return;
-    }
+        setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
 }
 
 __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
@@ -60,13 +62,7 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!checkFinite(pos) || !checkFinite(vel))
     {
-        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
-
-        if (tag == ParticleCheckerPlugin::GoodTag)
-        {
-            status->id   = pid;
-            status->info = ParticleCheckerPlugin::Info::Nan;
-        }
+        setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
         return;
     }
 
@@ -75,16 +71,11 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
-        const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
-
-        if (tag == ParticleCheckerPlugin::GoodTag)
-        {
-            status->id   = pid;
-            status->info = ParticleCheckerPlugin::Info::Out;
-        }
+        setBadStatus(pid, ParticleCheckerPlugin::Info::Out, status);
         return;
     }
 }
+
 } // namespace ParticleCheckerKernels
     
 ParticleCheckerPlugin::ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery) :
