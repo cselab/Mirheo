@@ -299,6 +299,32 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
         failing = true;
     }
 
+    for (size_t i = 0; i < pvs.size(); ++i)
+    {
+        const int rovSId = rovStatusIds[i];
+        if (rovSId == NotRov) continue;
+        
+        const auto& rovStatus = statuses[rovSId];
+        if (rovStatus.tag == GoodTag) continue;
+
+        const int rovId = rovStatus.id;
+
+        // from now we know we will fail; download particles and print error
+        auto rov = dynamic_cast<RigidObjectVector*>(pvs[i]);
+        auto lrov = rov->local();
+
+        downloadAllFields(stream, lrov->dataPerObject);
+
+        const auto infoStr = infoToStr(rovStatus.info);
+        
+        allErrors += strprintf("\n\tBad %s in rov '%s' : %s\n",
+                               identifier.c_str(), rov->name.c_str(), infoStr.c_str());
+
+        allErrors += listOtherFieldValues(lrov->dataPerObject, rovId);
+        
+        failing = true;
+    }
+
     if (failing)
         die("Particle checker has found bad particles: %s", allErrors.c_str());
 }
