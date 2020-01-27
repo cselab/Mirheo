@@ -66,21 +66,21 @@ std::string printToStr(Stress val)
 
 std::string printToStr(RigidMotion val)
 {
-    return strprintf("[r : %s, q : %g %g %g %g, v : %s, w : %s, F : %s, T : %s]",
-                     printToStr(val.r),
+    return strprintf("[r: %s, q: %g %g %g %g, v: %s, w: %s, F: %s, T: %s]",
+                     printToStr(val.r).c_str(),
                      val.q.w, val.q.x, val.q.y, val.q.z,
-                     printToStr(val.vel),
-                     printToStr(val.omega),
-                     printToStr(val.force),
-                     printToStr(val.torque));
+                     printToStr(val.vel).c_str(),
+                     printToStr(val.omega).c_str(),
+                     printToStr(val.force).c_str(),
+                     printToStr(val.torque).c_str());
 }
 
 std::string printToStr(COMandExtent val)
 {
-    return strprintf("[%s : %s  ->  %s]",
-                     printToStr(val.com),
-                     printToStr(val.low),
-                     printToStr(val.high));
+    return strprintf("[com: %s, lo: %s, hi: %s]",
+                     printToStr(val.com).c_str(),
+                     printToStr(val.low).c_str(),
+                     printToStr(val.high).c_str());
 }
 
 std::string printToStr(Force val)
