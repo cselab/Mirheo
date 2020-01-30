@@ -67,9 +67,11 @@ public:
                                                   math::max(static_cast<int>(src.p.i1), static_cast<int>(dst.p.i1)));
 
         const real Aij = (inv_disq + inv_djsq) * dWdr;
+        const real Aij_rij = math::min(-0.0_r, Aij * inv_rij); // must be negative because of sqrt below
+        
         const real fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
-        const real fD = fDfact *             Aij * inv_rij  * erdotdu;
-        const real fR = fRfact * math::sqrt(-Aij * inv_rij) * myrandnr;
+        const real fD = fDfact *             Aij_rij  * erdotdu;
+        const real fR = fRfact * math::sqrt(-Aij_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
