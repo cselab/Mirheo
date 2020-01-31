@@ -22,10 +22,16 @@ public:
 
     __HD__ inline real3 normal(real3 r) const
     {
-        return normalize(make_real3(
-            axes.y*axes.y * axes.z*axes.z * r.x,
-            axes.z*axes.z * axes.x*axes.x * r.y,
-            axes.x*axes.x * axes.y*axes.y * r.z));
+        constexpr real eps {1e-6_r};
+        const real3 n {axes.y*axes.y * axes.z*axes.z * r.x,
+                       axes.z*axes.z * axes.x*axes.x * r.y,
+                       axes.x*axes.x * axes.y*axes.y * r.z};
+        const real l = length(n);
+
+        if (l > eps)
+            return n / l;
+
+        return {1.0_r, 0.0_r, 0.0_r}; // arbitrary if r = 0
     }
     
     inline real3 inertiaTensor(real totalMass) const
