@@ -17,12 +17,12 @@ void Bouncer::setPrerequisites(__UNUSED ParticleVector *pv)
 
 void Bouncer::setup(ObjectVector *ov)
 {
-    this->ov = ov;
+    this->ov_ = ov;
 }
 
 ObjectVector* Bouncer::getObjectVector()
 {
-    return ov;
+    return ov_;
 }
 
 void Bouncer::bounceLocal(ParticleVector *pv, CellList *cl, cudaStream_t stream)

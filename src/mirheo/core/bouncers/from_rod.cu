@@ -14,8 +14,8 @@ BounceFromRod::BounceFromRod(const MirState *state,
                              real radius,
                              VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
-    radius(radius),
-    varBounceKernel(varBounceKernel)
+    radius_(radius),
+    varBounceKernel_(varBounceKernel)
 {}
 
 BounceFromRod::~BounceFromRod() = default;
@@ -24,9 +24,9 @@ void BounceFromRod::setup(ObjectVector *ov)
 {
     Bouncer::setup(ov);
 
-    rv = dynamic_cast<RodVector*> (ov);
+    rv_ = dynamic_cast<RodVector*> (ov);
 
-    if (rv == nullptr)
+    if (rv_ == nullptr)
         die("bounce from rod must be used with a rod vector");
 
     ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
@@ -50,25 +50,25 @@ std::vector<std::string> BounceFromRod::getChannelsToBeSentBack() const
 
 void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
-    auto activeRV = rv->get(locality);
+    auto activeRV = rv_->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
           pv->local()->size(), pv->name.c_str(),
-          activeRV->nObjects,  rv->name.c_str(),
+          activeRV->nObjects,  rv_->name.c_str(),
           getParticleVectorLocalityStr(locality).c_str());
 
-    rv->findExtentAndCOM(stream, locality);
+    rv_->findExtentAndCOM(stream, locality);
 
     const int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
 
     // Set maximum possible number of collisions with segments
     // In case of crash, the estimate should be increased
-    const int maxCollisions = static_cast<int>(collisionsPerSeg * static_cast<real>(totalSegments));
-    table.collisionTable.resize_anew(maxCollisions);
-    table.nCollisions.clear(stream);
+    const int maxCollisions = static_cast<int>(collisionsPerSeg_ * static_cast<real>(totalSegments));
+    table_.collisionTable.resize_anew(maxCollisions);
+    table_.nCollisions.clear(stream);
     RodBounceKernels::SegmentTable devCollisionTable { maxCollisions,
-                                                       table.nCollisions.devPtr(),
-                                                       table.collisionTable.devPtr() };
+                                                       table_.nCollisions.devPtr(),
+                                                       table_.collisionTable.devPtr() };
 
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
@@ -81,17 +81,17 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
 
     activeRV->forces().clear(stream);
 
-    RVviewWithOldParticles rvView(rv, activeRV);
+    RVviewWithOldParticles rvView(rv_, activeRV);
     PVviewWithOldParticles pvView(pv, pv->local());
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
             RodBounceKernels::findBounces,
             getNblocks(totalSegments, nthreads), nthreads, 0, stream,
-            rvView, radius, pvView, cl->cellInfo(), devCollisionTable, collisionTimes.devPtr() );
+            rvView, radius_, pvView, cl->cellInfo(), devCollisionTable, collisionTimes.devPtr() );
 
-    table.nCollisions.downloadFromDevice(stream);
-    const int nCollisions = table.nCollisions[0];
+    table_.nCollisions.downloadFromDevice(stream);
+    const int nCollisions = table_.nCollisions[0];
     debug("Found %d rod collision candidates", nCollisions);
 
     if (nCollisions > maxCollisions)
@@ -101,15 +101,15 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
     // Step 2, resolve the collisions
     mpark::visit([&](auto& bounceKernel)
     {
-        bounceKernel.update(rng);
+        bounceKernel.update(rng_);
     
         SAFE_KERNEL_LAUNCH(
             RodBounceKernels::performBouncing,
             getNblocks(nCollisions, nthreads), nthreads, 0, stream,
-            rvView, radius, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
+            rvView, radius_, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
             getState()->dt, bounceKernel);
 
-    }, varBounceKernel);
+    }, varBounceKernel_);
 }
 
 } // namespace mirheo

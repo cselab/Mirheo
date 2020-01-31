@@ -20,7 +20,7 @@ namespace mirheo
  */
 BounceFromMesh::BounceFromMesh(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
-    varBounceKernel(varBounceKernel)
+    varBounceKernel_(varBounceKernel)
 {}
 
 BounceFromMesh::~BounceFromMesh() = default;
@@ -35,7 +35,7 @@ void BounceFromMesh::setup(ObjectVector *ov)
     Bouncer::setup(ov);
 
     // If the object is rigid, we need to collect the forces into the RigidMotion
-    rov = dynamic_cast<RigidObjectVector*> (ov);
+    rov_ = dynamic_cast<RigidObjectVector*> (ov);
 
     // for NON-rigid objects:
     //
@@ -45,7 +45,7 @@ void BounceFromMesh::setup(ObjectVector *ov)
     // for Rigid:
     // old motions HAVE to be there and communicated and shifted
 
-    if (rov == nullptr)
+    if (rov_ == nullptr)
         ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
     else
         ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
@@ -59,7 +59,7 @@ void BounceFromMesh::setPrerequisites(ParticleVector *pv)
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
 {
-    if (rov)
+    if (rov_)
         return {ChannelNames::motions, ChannelNames::oldMotions};
     else
         return {ChannelNames::oldPositions};
@@ -67,7 +67,7 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
 {
-    if (rov)
+    if (rov_)
         return {ChannelNames::motions};
     else
         // return {ChannelNames::forces};
@@ -79,103 +79,103 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
  */
 void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
-    auto activeOV = ov->get(locality);
+    auto activeOV = ov_->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
           pv->local()->size(), pv->name.c_str(),
-          activeOV->nObjects,  ov->name.c_str(),
+          activeOV->nObjects,  ov_->name.c_str(),
           getParticleVectorLocalityStr(locality).c_str());
 
-    ov->findExtentAndCOM(stream, locality);
+    ov_->findExtentAndCOM(stream, locality);
 
-    const int totalTriangles = ov->mesh->getNtriangles() * activeOV->nObjects;
+    const int totalTriangles = ov_->mesh->getNtriangles() * activeOV->nObjects;
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased
-    const int maxCoarseCollisions = static_cast<int>(coarseCollisionsPerTri * static_cast<real>(totalTriangles));
-    coarseTable.collisionTable.resize_anew(maxCoarseCollisions);
-    coarseTable.nCollisions.clear(stream);
+    const int maxCoarseCollisions = static_cast<int>(coarseCollisionsPerTri_ * static_cast<real>(totalTriangles));
+    coarseTable_.collisionTable.resize_anew(maxCoarseCollisions);
+    coarseTable_.nCollisions.clear(stream);
     MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
-                                                      coarseTable.nCollisions.devPtr(),
-                                                      coarseTable.collisionTable.devPtr() };
+                                                      coarseTable_.nCollisions.devPtr(),
+                                                      coarseTable_.collisionTable.devPtr() };
     
-    const int maxFineCollisions = static_cast<int>(fineCollisionsPerTri * static_cast<real>(totalTriangles));
-    fineTable.collisionTable.resize_anew(maxFineCollisions);
-    fineTable.nCollisions.clear(stream);
+    const int maxFineCollisions = static_cast<int>(fineCollisionsPerTri_ * static_cast<real>(totalTriangles));
+    fineTable_.collisionTable.resize_anew(maxFineCollisions);
+    fineTable_.nCollisions.clear(stream);
     MeshBounceKernels::TriangleTable devFineTable { maxFineCollisions,
-                                                    fineTable.nCollisions.devPtr(),
-                                                    fineTable.collisionTable.devPtr() };
+                                                    fineTable_.nCollisions.devPtr(),
+                                                    fineTable_.collisionTable.devPtr() };
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
     // and after the collisions detected its i-th element will be t_i-1.0_r, where 0 <= t_i <= 1
     // is the collision time, or 0 if no collision with the particle found
-    collisionTimes.resize_anew(pv->local()->size());
-    collisionTimes.clear(stream);
+    collisionTimes_.resize_anew(pv->local()->size());
+    collisionTimes_.clear(stream);
 
     const int nthreads = 128;
 
     // FIXME this is a hack
-    if (rov)
+    if (rov_)
     {
         if (locality == ParticleVectorLocality::Local)
-            rov->local()->getMeshForces(stream)->clear(stream);
+            rov_->local()->getMeshForces(stream)->clear(stream);
         else
-            rov->halo()-> getMeshForces(stream)->clear(stream);
+            rov_->halo()-> getMeshForces(stream)->clear(stream);
     }
 
 
-    OVviewWithNewOldVertices vertexView(ov, activeOV, stream);
+    OVviewWithNewOldVertices vertexView(ov_, activeOV, stream);
     PVviewWithOldParticles pvView(pv, pv->local());
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
             MeshBounceKernels::findBouncesInMesh,
             getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
-            vertexView, pvView, ov->mesh.get(), cl->cellInfo(), devCoarseTable );
+            vertexView, pvView, ov_->mesh.get(), cl->cellInfo(), devCoarseTable );
 
-    coarseTable.nCollisions.downloadFromDevice(stream);
-    debug("Found %d triangle collision candidates", coarseTable.nCollisions[0]);
+    coarseTable_.nCollisions.downloadFromDevice(stream);
+    debug("Found %d triangle collision candidates", coarseTable_.nCollisions[0]);
 
-    if (coarseTable.nCollisions[0] > maxCoarseCollisions)
+    if (coarseTable_.nCollisions[0] > maxCoarseCollisions)
         die("Found too many triangle collision candidates (coarse) (%d, max %d),"
             "something may be broken or you need to increase the estimate",
-            coarseTable.nCollisions[0], maxCoarseCollisions);
+            coarseTable_.nCollisions[0], maxCoarseCollisions);
 
     // Step 2, filter the candidates
     SAFE_KERNEL_LAUNCH(
             MeshBounceKernels::refineCollisions,
-            getNblocks(coarseTable.nCollisions[0], nthreads), nthreads, 0, stream,
-            vertexView, pvView, ov->mesh.get(),
-            coarseTable.nCollisions[0], devCoarseTable.indices,
-            devFineTable, collisionTimes.devPtr() );
+            getNblocks(coarseTable_.nCollisions[0], nthreads), nthreads, 0, stream,
+            vertexView, pvView, ov_->mesh.get(),
+            coarseTable_.nCollisions[0], devCoarseTable.indices,
+            devFineTable, collisionTimes_.devPtr() );
 
-    fineTable.nCollisions.downloadFromDevice(stream);
-    debug("Found %d precise triangle collisions", fineTable.nCollisions[0]);
+    fineTable_.nCollisions.downloadFromDevice(stream);
+    debug("Found %d precise triangle collisions", fineTable_.nCollisions[0]);
 
-    if (fineTable.nCollisions[0] > maxFineCollisions)
+    if (fineTable_.nCollisions[0] > maxFineCollisions)
         die("Found too many triangle collisions (precise) (%d, max %d),"
             "something may be broken or you need to increase the estimate",
-            fineTable.nCollisions[0], maxFineCollisions);
+            fineTable_.nCollisions[0], maxFineCollisions);
 
     // Step 3, resolve the collisions    
     mpark::visit([&](auto& bounceKernel)
     {
-        bounceKernel.update(rng);
+        bounceKernel.update(rng_);
         
         SAFE_KERNEL_LAUNCH(
             MeshBounceKernels::performBouncingTriangle,
-            getNblocks(fineTable.nCollisions[0], nthreads), nthreads, 0, stream,
-            vertexView, pvView, ov->mesh.get(),
-            fineTable.nCollisions[0], devFineTable.indices, collisionTimes.devPtr(),
+            getNblocks(fineTable_.nCollisions[0], nthreads), nthreads, 0, stream,
+            vertexView, pvView, ov_->mesh.get(),
+            fineTable_.nCollisions[0], devFineTable.indices, collisionTimes_.devPtr(),
             getState()->dt, bounceKernel );
 
-    }, varBounceKernel);
+    }, varBounceKernel_);
 
-    if (rov)
+    if (rov_)
     {
         // make a fake view with vertices instead of particles
-        ROVview view(rov, rov->get(locality));
-        view.objSize   = ov->mesh->getNvertices();
+        ROVview view(rov_, rov_->get(locality));
+        view.objSize   = ov_->mesh->getNvertices();
         view.size      = view.nObjects * view.objSize;
         view.positions = vertexView.vertices;
         view.forces    = vertexView.vertexForces;

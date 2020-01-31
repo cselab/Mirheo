@@ -53,7 +53,7 @@ public:
     virtual std::vector<std::string> getChannelsToBeSentBack() const;
 
 protected:
-    ObjectVector *ov;  /// Particles will be bounced against that ObjectVector
+    ObjectVector *ov_;  /// Particles will be bounced against that ObjectVector
 
     /**
      * Should be defined to implement bounce.

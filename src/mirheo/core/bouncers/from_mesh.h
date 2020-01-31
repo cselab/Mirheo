@@ -40,19 +40,19 @@ private:
      * Maximum supported number of collisions per step
      * will be #bouncesPerTri * total number of triangles in mesh
      */
-    const real coarseCollisionsPerTri = 5.0_r;
-    const real fineCollisionsPerTri = 1.0_r;
+    const real coarseCollisionsPerTri_ = 5.0_r;
+    const real fineCollisionsPerTri_   = 1.0_r;
 
-    CollisionTableWrapper<int2> coarseTable, fineTable;
+    CollisionTableWrapper<int2> coarseTable_, fineTable_;
 
     // times stored as int so that we can use atomicMax
     // note that times are always positive, thus guarantees ordering
-    DeviceBuffer<int> collisionTimes;
+    DeviceBuffer<int> collisionTimes_;
 
-    VarBounceKernel varBounceKernel;
-    std::mt19937 rng {42L};
+    VarBounceKernel varBounceKernel_;
+    std::mt19937 rng_ {42L};
 
-    RigidObjectVector *rov;
+    RigidObjectVector *rov_;
 
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;

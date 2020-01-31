@@ -17,7 +17,7 @@ BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state,
                                                   const std::string& name,
                                                   VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
-    varBounceKernel(varBounceKernel)
+    varBounceKernel_(varBounceKernel)
 {}
 
 template <class Shape>
@@ -53,7 +53,7 @@ std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeSentBack() 
 template <class Shape>
 void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
-    auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*>(ov);
+    auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*>(ov_);
     if (rsov == nullptr)
         die("Analytic %s bounce only works with Rigid %s vector", Shape::desc, Shape::desc);
 
@@ -64,7 +64,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
           lrsov->nObjects, rsov->name.c_str(),
           getParticleVectorLocalityStr(locality).c_str());
 
-    ov->findExtentAndCOM(stream, locality);
+    ov_->findExtentAndCOM(stream, locality);
 
     RSOVviewWithOldMotion<Shape> ovView(rsov, lrsov);
     PVviewWithOldParticles pvView(pv, pv->local());
@@ -75,7 +75,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
         const int nblocks = ovView.nObjects;
         const size_t smem = 2 * nthreads * sizeof(int);
 
-        bounceKernel.update(rng);
+        bounceKernel.update(rng_);
     
         SAFE_KERNEL_LAUNCH(
             ShapeBounceKernels::bounce,
@@ -83,7 +83,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
             ovView, pvView, cl->cellInfo(), getState()->dt,
             bounceKernel);
         
-    }, varBounceKernel);
+    }, varBounceKernel_);
 }
 
 #define INSTANTIATE(Shape) template class BounceFromRigidShape<Shape>;

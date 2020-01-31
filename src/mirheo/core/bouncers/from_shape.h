@@ -29,8 +29,8 @@ protected:
 
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
 
-    VarBounceKernel varBounceKernel;
-    std::mt19937 rng {42L};
+    VarBounceKernel varBounceKernel_;
+    std::mt19937 rng_ {42L};
 };
 
 } // namespace mirheo
