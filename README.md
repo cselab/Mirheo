@@ -19,7 +19,12 @@ make install
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* particle checker plugin dumps all particle fields when triggered
+* **bug fix**: avoid avoid division by zero and nan in several places:
+  * SDPD kernel
+  * root finder (concerns bounce back)
 
 ### v1.3.3
 
