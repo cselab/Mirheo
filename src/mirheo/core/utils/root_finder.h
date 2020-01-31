@@ -27,6 +27,16 @@ __D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
     return lhs.x == rhs.x && lhs.val == rhs.val;
 }
 
+__D__ static inline real safeDivide(real a, real b)
+{
+    constexpr real eps {1e-6_r};
+
+    if (math::abs(b) < eps)
+        return a / copysign(eps, b);
+
+    return a / b;
+}
+
 /**
  * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
  */
@@ -54,7 +64,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, real
 
     for (int iter = 0; iter < maxNIters; ++iter)
     {
-        const real lambda = math::min( math::max(vb / (vb - va),  0.1_r), 0.9_r );  // va*l + (1-l)*vb = 0
+        const real lambda = math::min( math::max(safeDivide(vb, vb - va),  0.1_r), 0.9_r );  // va*l + (1-l)*vb = 0
         mid = a * lambda + b * (1.0_r - lambda);
         vmid = F(mid);
 
@@ -94,7 +104,7 @@ __D__ inline RootInfo newton(F f, F_prime f_prime, real x0, real tolerance = 1e-
         val = f(x);
         if (math::abs(val) < tolerance)
             return {x, val};
-        x = x - val / f_prime(x);
+        x = x - safeDivide(val, f_prime(x));
     }
 
     return {x, val};
