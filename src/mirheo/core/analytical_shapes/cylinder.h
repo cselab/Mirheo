@@ -11,14 +11,14 @@ class Cylinder
 {
 public:
     Cylinder(real R, real L) :
-        R(R),
-        halfL(0.5_r * L)
+        R_(R),
+        halfL_(0.5_r * L)
     {}
 
     __HD__ inline real inOutFunction(real3 coo) const
     {
-        const real dr = math::sqrt(sqr(coo.x) + sqr(coo.y)) - R;
-        const real dz = math::abs(coo.z) - halfL;
+        const real dr = math::sqrt(sqr(coo.x) + sqr(coo.y)) - R_;
+        const real dz = math::abs(coo.z) - halfL_;
 
         const real dist2edge = math::sqrt(sqr(dz) + sqr(dr));
         const real dist2disk = dr > 0 ? dist2edge : dz;
@@ -37,8 +37,8 @@ public:
         const real rsq = sqr(coo.x) + sqr(coo.y);
         const real rinv = rsq > eps ? math::rsqrt(rsq) : 0._r;
 
-        const real dr = math::sqrt(rsq) - R;
-        const real dz = math::abs(coo.z) - halfL;
+        const real dr = math::sqrt(rsq) - R_;
+        const real dz = math::abs(coo.z) - halfL_;
         
         const real3 er {rinv * coo.x, rinv * coo.y, 0._r};
         const real3 ez {0._r, 0._r, coo.z > 0 ? 1._r : -1._r};
@@ -53,9 +53,9 @@ public:
 
     inline real3 inertiaTensor(real totalMass) const
     {
-        const real xx = totalMass * R * R * 0.25_r;
+        const real xx = totalMass * R_ * R_ * 0.25_r;
         const real yy = xx;
-        const real zz = totalMass * halfL * halfL * 0.3333333_r;
+        const real zz = totalMass * halfL_ * halfL_ * 0.3333333_r;
         
         return make_real3(yy + zz, xx + zz, xx + yy);
     }
@@ -64,7 +64,7 @@ public:
     
 private:
     
-    real R, halfL;
+    real R_, halfL_;
 };
 
 } // namespace mirheo
