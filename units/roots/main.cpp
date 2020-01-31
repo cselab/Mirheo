@@ -9,17 +9,6 @@
 
 using namespace mirheo;
 
-// inline float sqrtLinSearch(float a, float left, float right)
-// {
-//     auto f      = [&](float x) {return x*x - a;};
-//     auto fprime = [&](float x) {return 2*x;};
-    
-//     const auto root = RootFinder::newton(f, fprime, a);
-//     return root.x;
-// }
-
-
-
 template <class Solver>
 inline void testSolver(Solver sqrtSolver)
 {
