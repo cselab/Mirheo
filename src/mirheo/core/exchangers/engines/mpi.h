@@ -38,18 +38,16 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
-    std::unique_ptr<Exchanger> exchanger;
+    std::unique_ptr<Exchanger> exchanger_;
     
-    std::vector<int> dir2rank;
-    std::vector<int> dir2sendTag;
-    std::vector<int> dir2recvTag;    
-    int nActiveNeighbours;
+    std::vector<int> dir2rank_;
+    std::vector<int> dir2sendTag_;
+    std::vector<int> dir2recvTag_;    
 
-    bool gpuAwareMPI;
+    bool gpuAwareMPI_;
     
-    int myrank;
-    MPI_Comm haloComm;
-    static constexpr int singleCopyThreshold = 4000000;
+    MPI_Comm haloComm_;
+    static constexpr int singleCopyThreshold_ = 4000000;
 
     void postRecvSize(ExchangeHelper *helper);
     void sendSizes(ExchangeHelper *helper);

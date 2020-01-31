@@ -8,43 +8,43 @@ namespace mirheo
 {
 
 SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
-        exchanger(std::move(exchanger))
+    exchanger_(std::move(exchanger))
 {}
 
 SingleNodeEngine::~SingleNodeEngine() = default;
 
 void SingleNodeEngine::init(cudaStream_t stream)
 {
-    auto& helpers = exchanger->helpers;
+    auto& helpers = exchanger_->helpers;
     
     for (size_t i = 0; i < helpers.size(); ++i)
-        if (!exchanger->needExchange(i))
+        if (!exchanger_->needExchange(i))
             debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
     
     // Derived class determines what to send
     for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger->needExchange(i))
-            exchanger->prepareSizes(i, stream);
+        if (exchanger_->needExchange(i))
+            exchanger_->prepareSizes(i, stream);
         
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     // Derived class determines what to send
     for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger->needExchange(i))
-            exchanger->prepareData(i, stream);
+        if (exchanger_->needExchange(i))
+            exchanger_->prepareData(i, stream);
 }
 
 void SingleNodeEngine::finalize(cudaStream_t stream)
 {
-    auto& helpers = exchanger->helpers;
+    auto& helpers = exchanger_->helpers;
 
     for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger->needExchange(i))
+        if (exchanger_->needExchange(i))
             copySend2Recv(helpers[i].get(), stream);
         
     for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger->needExchange(i))
-            exchanger->combineAndUploadData(i, stream);
+        if (exchanger_->needExchange(i))
+            exchanger_->combineAndUploadData(i, stream);
 }
 
 

@@ -25,7 +25,7 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
-    std::unique_ptr<Exchanger> exchanger;
+    std::unique_ptr<Exchanger> exchanger_;
     
     void copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
 };
