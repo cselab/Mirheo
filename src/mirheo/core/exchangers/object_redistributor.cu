@@ -80,13 +80,13 @@ ObjectRedistributor::~ObjectRedistributor() = default;
 
 bool ObjectRedistributor::needExchange(size_t id)
 {
-    return !objects[id]->redistValid;
+    return !objects_[id]->redistValid;
 }
 
 void ObjectRedistributor::attach(ObjectVector *ov)
 {
-    const size_t id = objects.size();
-    objects.push_back(ov);
+    const size_t id = objects_.size();
+    objects_.push_back(ov);
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
@@ -99,7 +99,7 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
-    packers.push_back(std::move(packer));
+    packers_.push_back(std::move(packer));
     helpers.push_back(std::move(helper));
 
     info("The Object vector '%s' was attached to redistributor", ov->name.c_str());
@@ -108,10 +108,10 @@ void ObjectRedistributor::attach(ObjectVector *ov)
 
 void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
-    auto ov  = objects[id];
+    auto ov  = objects_[id];
     auto lov = ov->local();
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
     auto bulkId = helper->bulkId;
     
     ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
@@ -155,11 +155,11 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 
 void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
-    auto ov  = objects[id];
+    auto ov  = objects_[id];
     auto lov = ov->local();
     auto helper = helpers[id].get();
     auto bulkId = helper->bulkId;
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     OVview ovView(ov, lov);
 
@@ -211,10 +211,10 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
 
 void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto ov     = objects[id];
+    auto ov     = objects_[id];
     auto lov    = ov->local();
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     int oldNObjs = lov->nObjects;
     int objSize = ov->objSize;

@@ -23,9 +23,9 @@ public:
     void attach(ObjectVector *ov, std::vector<std::string> channelNames);
 
 protected:
-    std::vector<ObjectVector*> objects;    
-    ObjectHaloExchanger *entangledHaloExchanger;
-    std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;        
+    std::vector<ObjectVector*> objects_;    
+    ObjectHaloExchanger *entangledHaloExchanger_;
+    std::vector<std::unique_ptr<ObjectPacker>> packers_, unpackers_;        
     
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;

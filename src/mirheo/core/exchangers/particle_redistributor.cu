@@ -132,14 +132,14 @@ ParticleRedistributor::~ParticleRedistributor() = default;
 
 bool ParticleRedistributor::needExchange(size_t id)
 {
-    return !particles[id]->redistValid;
+    return !particles_[id]->redistValid;
 }
 
 void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 {
-    const size_t id = particles.size();
-    particles.push_back(pv);
-    cellLists.push_back(cl);
+    const size_t id = particles_.size();
+    particles_.push_back(pv);
+    cellLists_.push_back(cl);
 
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("Redistributor (for %s) must be used with a primary cell-list", pv->name.c_str());
@@ -152,7 +152,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     auto packer = std::make_unique<ParticlePacker>(predicate);
     auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());
 
-    packers.push_back(std::move(packer));
+    packers_.push_back(std::move(packer));
     helpers.push_back(std::move(helper));
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
@@ -160,10 +160,10 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
 
 void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
-    auto cl = cellLists[id];
+    auto pv = particles_[id];
+    auto cl = cellLists_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
     auto lpv = pv->local();
     
     debug2("Counting leaving particles of '%s'", pv->name.c_str());
@@ -190,10 +190,10 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 
 void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
-    auto cl = cellLists[id];
+    auto pv = particles_[id];
+    auto cl = cellLists_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     debug2("Downloading %d leaving particles of '%s'",
            helper->send.offsets[helper->nBuffers], pv->name.c_str());
@@ -220,9 +220,9 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
 
 void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
+    auto pv = particles_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
     auto lpv = pv->local();
     
     int oldSize = lpv->size();

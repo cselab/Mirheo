@@ -27,10 +27,10 @@ public:
     DeviceBuffer<MapEntry>& getMap   (size_t id);
 
 protected:
-    std::vector<real> rcs;
-    std::vector<ObjectVector*> objects;
-    std::vector<std::unique_ptr<ObjectPacker>> packers, unpackers;
-    std::vector<DeviceBuffer<MapEntry>> maps;
+    std::vector<real> rcs_;
+    std::vector<ObjectVector*> objects_;
+    std::vector<std::unique_ptr<ObjectPacker>> packers_, unpackers_;
+    std::vector<DeviceBuffer<MapEntry>> maps_;
 
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;

@@ -64,7 +64,7 @@ __global__ void unpack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 
 
 ObjectExtraExchanger::ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
-    entangledHaloExchanger(entangledHaloExchanger)
+    entangledHaloExchanger_(entangledHaloExchanger)
 {}
 
 ObjectExtraExchanger::~ObjectExtraExchanger() = default;
@@ -76,8 +76,8 @@ bool ObjectExtraExchanger::needExchange(__UNUSED size_t id)
 
 void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::string>& extraChannelNames)
 {
-    size_t id = objects.size();
-    objects.push_back(ov);
+    size_t id = objects_.size();
+    objects_.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
     
@@ -104,20 +104,20 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
 
     auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
-    packers  .push_back(std::move(  packer));
-    unpackers.push_back(std::move(unpacker));
+    packers_  .push_back(std::move(  packer));
+    unpackers_.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
 }
 
 void ObjectExtraExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
-    auto ov = objects[id];
+    auto packer = packers_[id].get();
+    auto ov = objects_[id];
 
     packer->update(ov->local(), stream);
 
-    const auto& offsets = entangledHaloExchanger->getSendOffsets(id);
+    const auto& offsets = entangledHaloExchanger_->getSendOffsets(id);
 
     for (int i = 0; i < helper->nBuffers; ++i)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
@@ -125,10 +125,10 @@ void ObjectExtraExchanger::prepareSizes(size_t id, cudaStream_t stream)
 
 void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
 {
-    auto ov     = objects[id];
+    auto ov     = objects_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
-    const auto& map = entangledHaloExchanger->getMap(id);
+    auto packer = packers_[id].get();
+    const auto& map = entangledHaloExchanger_->getMap(id);
 
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);
@@ -149,10 +149,10 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
 
 void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto ov       = objects[id];
+    auto ov       = objects_[id];
     auto hov      = ov->halo();
     auto helper   = helpers[id].get();
-    auto unpacker = unpackers[id].get();
+    auto unpacker = unpackers_[id].get();
 
     const auto& offsets = helper->recv.offsets;
     

@@ -142,9 +142,9 @@ ParticleHaloExchanger::~ParticleHaloExchanger() = default;
 
 void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames)
 {
-    const size_t id = particles.size();
-    particles.push_back(pv);
-    cellLists.push_back(cl);
+    const size_t id = particles_.size();
+    particles_.push_back(pv);
+    cellLists_.push_back(cl);
 
     auto channels = extraChannelNames;
     channels.push_back(ChannelNames::positions);
@@ -160,8 +160,8 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     auto   helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
     
     helpers  .push_back(std::move(  helper));
-    packers  .push_back(std::move(  packer));
-    unpackers.push_back(std::move(unpacker));
+    packers_  .push_back(std::move(  packer));
+    unpackers_.push_back(std::move(unpacker));
     
     std::string msg_channels = channels.empty() ? "no channels." : "with channels: ";
     for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
@@ -172,10 +172,10 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
 
 void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
-    auto cl = cellLists[id];
+    auto pv = particles_[id];
+    auto cl = cellLists_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
 
@@ -203,10 +203,10 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 
 void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
-    auto cl = cellLists[id];
+    auto pv = particles_[id];
+    auto cl = cellLists_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     int nEntities = helper->send.offsets[helper->nBuffers];
     
@@ -234,9 +234,9 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 
 void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto pv = particles[id];
+    auto pv = particles_[id];
     auto helper   = helpers  [id].get();
-    auto unpacker = unpackers[id].get();
+    auto unpacker = unpackers_[id].get();
 
     auto lpv = pv->halo();
 
@@ -263,7 +263,7 @@ void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 
 bool ParticleHaloExchanger::needExchange(size_t id)
 {
-    return !particles[id]->haloValid;
+    return !particles_[id]->haloValid;
 }
 
 } // namespace mirheo

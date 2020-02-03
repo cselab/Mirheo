@@ -18,9 +18,9 @@ public:
     void attach(ParticleVector *pv, CellList *cl, const std::vector<std::string>& extraChannelNames);
 
 private:
-    std::vector<CellList*> cellLists;
-    std::vector<ParticleVector*> particles;
-    std::vector<std::unique_ptr<ParticlePacker>> packers, unpackers;
+    std::vector<CellList*> cellLists_;
+    std::vector<ParticleVector*> particles_;
+    std::vector<std::unique_ptr<ParticlePacker>> packers_, unpackers_;
 
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;

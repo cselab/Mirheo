@@ -19,8 +19,8 @@ public:
     void attach(ObjectVector *ov);
     
 private:
-    std::vector<ObjectVector*> objects;
-    std::vector<std::unique_ptr<ObjectPacker>> packers;
+    std::vector<ObjectVector*> objects_;
+    std::vector<std::unique_ptr<ObjectPacker>> packers_;
     
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;

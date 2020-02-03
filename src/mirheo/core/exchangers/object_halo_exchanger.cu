@@ -127,7 +127,7 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler pac
 
 bool ObjectHaloExchanger::needExchange(size_t id)
 {
-    return !objects[id]->haloValid;
+    return !objects_[id]->haloValid;
 }
 
 ObjectHaloExchanger::ObjectHaloExchanger() = default;
@@ -135,9 +135,9 @@ ObjectHaloExchanger::~ObjectHaloExchanger() = default;
 
 void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<std::string>& extraChannelNames)
 {
-    const size_t id = objects.size();
-    objects.push_back(ov);
-    rcs.push_back(rc);
+    const size_t id = objects_.size();
+    objects_.push_back(ov);
+    rcs_.push_back(rc);
 
     auto channels = extraChannelNames;
     channels.push_back(ChannelNames::positions);
@@ -163,10 +163,10 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
 
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
 
-    packers  .push_back(std::move(  packer));
-    unpackers.push_back(std::move(unpacker));
+    packers_  .push_back(std::move(  packer));
+    unpackers_.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
-    maps     .emplace_back();
+    maps_     .emplace_back();
 
     std::string allChannelNames = "";
     for (const auto& name : channels)
@@ -178,11 +178,11 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
 
 void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
-    auto ov  = objects[id];
+    auto ov  = objects_[id];
     auto lov = ov->local();
-    auto rc  = rcs[id];
+    auto rc  = rcs_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
 
     ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
 
@@ -211,12 +211,12 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 
 void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 {
-    auto ov  = objects[id];
+    auto ov  = objects_[id];
     auto lov = ov->local();
-    auto rc  = rcs[id];
+    auto rc  = rcs_[id];
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
-    auto& map = maps[id];
+    auto packer = packers_[id].get();
+    auto& map = maps_[id];
     
     const int nhalo = helper->send.offsets[helper->nBuffers];
     OVview ovView(ov, lov);
@@ -243,10 +243,10 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 
 void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto ov       = objects[id];
+    auto ov       = objects_[id];
     auto hov      = ov->halo();
     auto helper   = helpers[id].get();
-    auto unpacker = unpackers[id].get();
+    auto unpacker = unpackers_[id].get();
 
     const auto& offsets = helper->recv.offsets;
     const int totalRecvd = offsets[helper->nBuffers];
@@ -279,7 +279,7 @@ PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(size_t id)
 
 DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(size_t id)
 {
-    return maps[id];
+    return maps_[id];
 }
 
 } // namespace mirheo

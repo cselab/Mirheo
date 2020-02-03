@@ -64,15 +64,15 @@ __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
 
 
 ObjectReverseExchanger::ObjectReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
-    entangledHaloExchanger(entangledHaloExchanger)
+    entangledHaloExchanger_(entangledHaloExchanger)
 {}
 
 ObjectReverseExchanger::~ObjectReverseExchanger() = default;
 
 void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> channelNames)
 {
-    const size_t id = objects.size();
-    objects.push_back(ov);
+    const size_t id = objects_.size();
+    objects_.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
     
@@ -99,8 +99,8 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
-    packers  .push_back(std::move(  packer));
-    unpackers.push_back(std::move(unpacker));
+    packers_  .push_back(std::move(  packer));
+    unpackers_.push_back(std::move(unpacker));
     helpers  .push_back(std::move(  helper));
 
     std::string allChannelNames = channelNames.size() ? "channels " : "no channels.";
@@ -119,7 +119,7 @@ bool ObjectReverseExchanger::needExchange(__UNUSED size_t id)
 void ObjectReverseExchanger::prepareSizes(size_t id, __UNUSED cudaStream_t stream)
 {
     auto  helper  = helpers[id].get();
-    auto& offsets = entangledHaloExchanger->getRecvOffsets(id);
+    auto& offsets = entangledHaloExchanger_->getRecvOffsets(id);
     
     for (int i = 0; i < helper->nBuffers; ++i)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
@@ -127,10 +127,10 @@ void ObjectReverseExchanger::prepareSizes(size_t id, __UNUSED cudaStream_t strea
 
 void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
 {
-    auto ov     = objects[id];
+    auto ov     = objects_[id];
     auto hov    = ov->halo();
     auto helper = helpers[id].get();
-    auto packer = packers[id].get();
+    auto packer = packers_[id].get();
     
     debug2("Preparing '%s' data to reverse send", ov->name.c_str());
 
@@ -161,15 +161,15 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
 
 void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
-    auto ov       = objects[id];
+    auto ov       = objects_[id];
     auto lov      = ov->local();
     auto helper   =   helpers[id].get();
-    auto unpacker = unpackers[id].get();
+    auto unpacker = unpackers_[id].get();
 
     unpacker->update(lov, stream);
 
     const int totalRecvd = helper->recv.offsets[helper->nBuffers];
-    auto& map = entangledHaloExchanger->getMap(id);
+    auto& map = entangledHaloExchanger_->getMap(id);
 
     debug("Updating data for %d '%s' objects", totalRecvd, ov->name.c_str());
 
