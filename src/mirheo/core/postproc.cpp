@@ -154,6 +154,7 @@ Config Postprocess::getConfig() const {
     for (const auto &plugin : plugins)
         pluginsConfig.push_back(plugin->getConfig());
     return Config::Dictionary{
+        {"__type", "Postprocess"},
         {"name", name},
         {"checkpointFolder", checkpointFolder},
         {"plugins", std::move(pluginsConfig)},

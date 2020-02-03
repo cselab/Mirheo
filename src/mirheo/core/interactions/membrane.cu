@@ -75,6 +75,7 @@ MembraneInteraction::~MembraneInteraction() = default;
 
 Config MembraneInteraction::getConfig() const {
     return Config::Dictionary{
+        {"__type", "MembraneInteraction"},
         {"name", name},
         {"rc", rc},
         {"impl", *impl},

@@ -123,6 +123,7 @@ Config ObjectVector::getConfig() const
 {
     auto config = ParticleVector::getConfig();
     Config::Dictionary &dict = config.getDict();
+    dict.emplace("__type", "ObjectVector");  // Overwrite.
     dict.emplace("objSize", objSize);
     dict.emplace("mesh_nvertices", mesh->getNvertices());
     dict.emplace("mesh_ntriangles", mesh->getNtriangles());

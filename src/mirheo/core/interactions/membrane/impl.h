@@ -85,6 +85,7 @@ public:
     ~MembraneInteractionImpl() = default;
     Config getConfig() const override {
         return Config::Dictionary{
+            {"__type", "MembraneInteractionImpl<...>"},
             {"name", name},
             {"rc", rc},
             {"growUntil", growUntil},

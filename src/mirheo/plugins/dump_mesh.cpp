@@ -22,6 +22,7 @@ MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovNa
 
 Config MeshPlugin::getConfig() const {
     return Config::Dictionary{
+        {"__type", "MeshPlugin"},
         {"name", name},
         {"dumpEvery", dumpEvery},
         {"ovName", ovName},
@@ -167,6 +168,7 @@ MeshDumper::~MeshDumper() = default;
 
 Config MeshDumper::getConfig() const {
     return Config::Dictionary{
+        {"__type", "MeshDumper"},
         {"path", path},
     };
 }

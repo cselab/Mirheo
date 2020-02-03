@@ -128,7 +128,7 @@ struct ConfigToJSON {
                     stream << nlindent << '}';
                     break;
                 case Tag::StartList:
-                    if (nextTag == Tag::EndDict) {
+                    if (nextTag == Tag::EndList) {
                         stream << "[]";
                         ++i;
                         break;

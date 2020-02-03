@@ -1371,6 +1371,7 @@ MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut)
 
 Config Simulation::getConfig() const {
     return Config::Dictionary{
+        {"__type", "Simulation"},
         {"checkpointId", checkpointId},
         {"checkpointInfo", checkpointInfo},
 

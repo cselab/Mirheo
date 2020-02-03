@@ -47,6 +47,7 @@ IntegratorSubStep::~IntegratorSubStep() = default;
 
 Config IntegratorSubStep::getConfig() const {
     return Config::Dictionary{
+        {"__type", "IntegratorSubStep"},
         {"name", name},
         {"fastForces", fastForces},  // Only pointers.
         {"subIntegrator", *subIntegrator},

@@ -118,6 +118,7 @@ PairwiseInteraction::~PairwiseInteraction() = default;
 
 Config PairwiseInteraction::getConfig() const {
     return Config::Dictionary{
+        {"__type", "PairwiseInteraction"},
         {"name", name},
         {"varParams", varParams},
         {"varStressParams", varStressParams},

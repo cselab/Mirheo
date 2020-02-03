@@ -128,6 +128,7 @@ ParticleVector::~ParticleVector() = default;
 Config ParticleVector::getConfig() const
 {
     return Config::Dictionary{
+        {"__type", "ParticleVector"},
         {"name", name},
         {"mass", mass},
     };

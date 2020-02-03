@@ -23,6 +23,7 @@ IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 template<class ForcingTerm>
 Config IntegratorVV<ForcingTerm>::getConfig() const {
     return Config::Dictionary{
+        {"__type", "IntegratorVV<...>"},
         {"name", name},
         {"forcingTerm", forcingTerm},
     };

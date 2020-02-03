@@ -678,6 +678,7 @@ void Mirheo::logCompileOptions() const
 
 Config Mirheo::getConfig() const {
     Config::Dictionary dict;
+    dict.emplace("__type", "Mirheo");
     if (state)
         dict.emplace("state", *state);
     if (sim)

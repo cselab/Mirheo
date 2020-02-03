@@ -5,7 +5,6 @@
 #include "type_traits.h"
 
 #include <cassert>
-#include <initializer_list>
 #include <map>
 #include <string>
 #include <vector>
@@ -18,7 +17,6 @@ namespace mirheo
 
 template <typename T, typename Enable>
 struct ConfigDumper {
-    // static_assert(!ForgotToIncludeConfigDumpH_<T>, "Include config.h.");
     static_assert(std::is_same<typename remove_cvref<T>::type, T>::value,
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
@@ -40,6 +38,7 @@ struct Config {
     Config(String value) : value_{std::move(value)} { }
     Config(Dictionary value) : value_{std::move(value)} { }
     Config(List value) : value_{std::move(value)} { }
+    Config(const char *str) : value_{std::string(str)} { }
     Config(const Config &) = default;
     Config(Config &&) = default;
 
@@ -107,14 +106,13 @@ namespace detail {
     };
 } // namespace detail
 
-#define MIRHEO_DUMPER_PRIMITIVE(TYPE, ELTYPE)                              \
-    template <>                                                            \
-    struct ConfigDumper<TYPE> {                                            \
-        static Config dump(TYPE x) {                                \
-            return static_cast<Config::ELTYPE>(x);                  \
-        }                                                                  \
+#define MIRHEO_DUMPER_PRIMITIVE(TYPE, ELTYPE)      \
+    template <>                                    \
+    struct ConfigDumper<TYPE> {                    \
+        static Config dump(TYPE x) {               \
+            return static_cast<Config::ELTYPE>(x); \
+        }                                          \
     }
-
 MIRHEO_DUMPER_PRIMITIVE(bool,               Int);
 MIRHEO_DUMPER_PRIMITIVE(int,                Int);
 MIRHEO_DUMPER_PRIMITIVE(long,               Int);
@@ -125,6 +123,7 @@ MIRHEO_DUMPER_PRIMITIVE(unsigned long long, Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(float,       Float);
 MIRHEO_DUMPER_PRIMITIVE(double,      Float);
 MIRHEO_DUMPER_PRIMITIVE(std::string, String);
+#undef MIRHEO_DUMPER_PRIMITIVE
 
 template <>
 struct ConfigDumper<float3> {
