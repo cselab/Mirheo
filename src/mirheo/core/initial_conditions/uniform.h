@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interface.h"
+#include <mirheo/core/datatypes.h>
 
 namespace mirheo
 {

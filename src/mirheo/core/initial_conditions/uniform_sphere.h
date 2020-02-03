@@ -2,6 +2,8 @@
 
 #include "interface.h"
 
+#include <mirheo/core/datatypes.h>
+
 #include <vector_types.h>
 
 namespace mirheo
