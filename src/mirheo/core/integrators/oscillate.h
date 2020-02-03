@@ -16,7 +16,7 @@ class IntegratorOscillate : public Integrator
 {
 public:
 
-    IntegratorOscillate(const MirState *state, std::string name, real3 vel, real period);
+    IntegratorOscillate(const MirState *state, const std::string& name, real3 vel, real period);
 
     ~IntegratorOscillate();
 
@@ -25,8 +25,8 @@ public:
 
 private:
 
-    real3 vel;    ///< Velocity amplitude
-    real period;  ///< Sine wave period
+    real3 vel_;    ///< Velocity amplitude
+    real period_;  ///< Sine wave period
 };
 
 } // namespace mirheo

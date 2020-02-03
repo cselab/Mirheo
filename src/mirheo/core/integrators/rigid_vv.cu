@@ -87,7 +87,7 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion view, real dt)
 
 } // namespace RigidVVKernels
 
-IntegratorVVRigid::IntegratorVVRigid(const MirState *state, std::string name) :
+IntegratorVVRigid::IntegratorVVRigid(const MirState *state, const std::string& name) :
     Integrator(state, name)
 {}
 
@@ -141,7 +141,7 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     RigidOperations::applyRigidMotion(rovView, rov->initialPositions,
                                       RigidOperations::ApplyTo::PositionsAndVelocities, stream);
 
-    invalidatePV(pv);
+    invalidatePV_(pv);
 }
 
 } // namespace mirheo

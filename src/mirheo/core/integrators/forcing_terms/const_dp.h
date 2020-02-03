@@ -17,16 +17,20 @@ class ParticleVector;
 class Forcing_ConstDP
 {
 public:
-    Forcing_ConstDP(real3 extraForce) : extraForce(extraForce) {}
-    void setup(__UNUSED ParticleVector* pv, __UNUSED real t) {}
+    Forcing_ConstDP(real3 extraForce) :
+        extraForce_(extraForce)
+    {}
+
+    void setup(__UNUSED ParticleVector* pv, __UNUSED real t)
+    {}
 
     __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const
     {
-        return extraForce + original;
+        return extraForce_ + original;
     }
 
 private:
-    real3 extraForce;
+    real3 extraForce_;
 };
 
 } // namespace mirheo

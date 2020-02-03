@@ -27,7 +27,7 @@ class Integrator : public MirSimulationObject
 public:
     
     /// Set the name of the integrator and state
-    Integrator(const MirState *state, std::string name);
+    Integrator(const MirState *state, const std::string& name);
 
     virtual ~Integrator();
 
@@ -53,7 +53,7 @@ public:
     virtual void setPrerequisites(ParticleVector *pv);
 
 protected:
-    void invalidatePV(ParticleVector *pv);
+    void invalidatePV_(ParticleVector *pv);
 };
 
 } // namespace mirheo

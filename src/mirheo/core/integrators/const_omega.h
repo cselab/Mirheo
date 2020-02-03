@@ -15,8 +15,7 @@ class IntegratorConstOmega : public Integrator
 {
 public:
 
-    IntegratorConstOmega(const MirState *state, std::string name, real3 center, real3 omega);
-
+    IntegratorConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega);
     ~IntegratorConstOmega();
 
     void stage1(ParticleVector *pv, cudaStream_t stream) override;
@@ -24,7 +23,7 @@ public:
 
 private:
 
-    real3 center, omega;
+    real3 center_, omega_;
 };
 
 } // namespace mirheo

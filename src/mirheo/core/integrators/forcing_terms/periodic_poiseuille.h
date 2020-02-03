@@ -26,19 +26,13 @@ public:
      * @param dir force will be applied parallel to the specified axis.
      */
     Forcing_PeriodicPoiseuille(real magnitude, Direction dir) :
-        magnitude(magnitude)
-    {
-        switch (dir)
-        {
-            case Direction::x: _dir = 0; break;
-            case Direction::y: _dir = 1; break;
-            case Direction::z: _dir = 2; break;
-        }
-    }
+        magnitude_(magnitude),
+        dir_(dir)
+    {}
 
     void setup(ParticleVector* pv, __UNUSED real t)
     {
-        domain = pv->getState()->domain;
+        domain_ = pv->getState()->domain;
     }
 
     /**
@@ -57,21 +51,21 @@ public:
      */
     __D__ inline real3 operator()(real3 original, Particle p) const
     {
-        real3 gr = domain.local2global(p.r);
-        real3 ef{0.0_r,0.0_r,0.0_r};
+        const real3 gr = domain_.local2global(p.r);
+        real3 ef {0.0_r, 0.0_r, 0.0_r};
 
-        if (_dir == 0) ef.x = gr.y > 0.5_r * domain.globalSize.y ? magnitude : -magnitude;
-        if (_dir == 1) ef.y = gr.z > 0.5_r * domain.globalSize.z ? magnitude : -magnitude;
-        if (_dir == 2) ef.z = gr.x > 0.5_r * domain.globalSize.x ? magnitude : -magnitude;
+        if (dir_ == Direction::x) ef.x = gr.y > 0.5_r * domain_.globalSize.y ? magnitude_ : -magnitude_;
+        if (dir_ == Direction::y) ef.y = gr.z > 0.5_r * domain_.globalSize.z ? magnitude_ : -magnitude_;
+        if (dir_ == Direction::z) ef.z = gr.x > 0.5_r * domain_.globalSize.x ? magnitude_ : -magnitude_;
 
         return ef + original;
     }
 
 private:
-    real magnitude;
-    int _dir;
+    real magnitude_;
+    Direction dir_;
 
-    DomainInfo domain;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

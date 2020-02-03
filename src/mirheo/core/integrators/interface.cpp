@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-Integrator::Integrator(const MirState *state, std::string name) :
+Integrator::Integrator(const MirState *state, const std::string& name) :
     MirSimulationObject(state, name)
 {}
 
@@ -14,7 +14,7 @@ Integrator::~Integrator() = default;
 void Integrator::setPrerequisites(__UNUSED ParticleVector *pv)
 {}
 
-void Integrator::invalidatePV(ParticleVector *pv)
+void Integrator::invalidatePV_(ParticleVector *pv)
 {
     pv->haloValid   = false;
     pv->redistValid = false;

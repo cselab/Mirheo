@@ -12,20 +12,20 @@
 
 namespace mirheo
 {
-IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, int substeps,
+IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                                      const std::vector<Interaction*>& fastForces) :
     Integrator(state, name),
-    fastForces(fastForces),
-    subIntegrator(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
-    subState(*state),
-    substeps(substeps)
+    fastForces_(fastForces),
+    subIntegrator_(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
+    subState_(*state),
+    substeps_(substeps)
 {
     std::string ffNames = "";
 
-    if (fastForces.size() == 0)
+    if (fastForces_.size() == 0)
         die("Integrator '%s' needs at least one integration", name.c_str());
     
-    for (auto ff : fastForces)
+    for (auto ff : fastForces_)
     {
         if (!ff->isSelfObjectInteraction())
             die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",
@@ -35,11 +35,11 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, in
     }
 
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
-          name.c_str(), substeps, subIntegrator->name.c_str(), ffNames.c_str());
+          name.c_str(), substeps_, subIntegrator_->name.c_str(), ffNames.c_str());
 
-    updateSubState();
+    updateSubState_();
     
-    subIntegrator->setState(&subState);
+    subIntegrator_->setState(&subState_);
 }
 
 IntegratorSubStep::~IntegratorSubStep() = default;
@@ -50,56 +50,56 @@ void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_
 void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
-    slowForces.copyFromDevice(pv->local()->forces(), stream);
+    slowForces_.copyFromDevice(pv->local()->forces(), stream);
     
     // save previous positions
-    previousPositions.copyFromDevice(pv->local()->positions(), stream);
+    previousPositions_.copyFromDevice(pv->local()->positions(), stream);
 
     // advance with internal vv integrator
 
-    updateSubState();
+    updateSubState_();
 
     // save fastForces state and reset it afterwards
-    auto *savedStatePtr = fastForces[0]->getState();
+    auto *savedStatePtr = fastForces_[0]->getState();
 
-    for (auto& ff : fastForces)
-        ff->setState(&subState);
+    for (auto& ff : fastForces_)
+        ff->setState(&subState_);
     
-    for (int substep = 0; substep < substeps; ++substep)
+    for (int substep = 0; substep < substeps_; ++substep)
     {
         if (substep != 0)
-            pv->local()->forces().copy(slowForces, stream);        
+            pv->local()->forces().copy(slowForces_, stream);        
 
-        for (auto ff : fastForces)
+        for (auto ff : fastForces_)
             ff->local(pv, pv, nullptr, nullptr, stream);
         
-        subIntegrator->stage2(pv, stream);
+        subIntegrator_->stage2(pv, stream);
 
-        subState.currentTime += subState.dt;
-        subState.currentStep ++;
+        subState_.currentTime += subState_.dt;
+        subState_.currentStep ++;
     }
     
     // restore previous positions into old_particles channel
-    pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(previousPositions, stream);
+    pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(previousPositions_, stream);
 
     // restore state of fastForces
-    for (auto& ff : fastForces)
+    for (auto& ff : fastForces_)
         ff->setState(savedStatePtr);
 
-    invalidatePV(pv);
+    invalidatePV_(pv);
 }
 
 void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 {
     // luckily do not need cell lists for self interactions
-    for (auto ff : fastForces)
+    for (auto ff : fastForces_)
         ff->setPrerequisites(pv, pv, nullptr, nullptr);
 }
 
-void IntegratorSubStep::updateSubState()
+void IntegratorSubStep::updateSubState_()
 {
-    subState = *getState();
-    subState.dt = getState()->dt / static_cast<real>(substeps);
+    subState_ = *getState();
+    subState_.dt = getState()->dt / static_cast<real>(substeps_);
 }
 
 } // namespace mirheo

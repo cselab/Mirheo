@@ -11,7 +11,7 @@ namespace mirheo
 class IntegratorVVRigid : public Integrator
 {
 public:
-    IntegratorVVRigid(const MirState *state, std::string name);
+    IntegratorVVRigid(const MirState *state, const std::string& name);
 
     ~IntegratorVVRigid();
 

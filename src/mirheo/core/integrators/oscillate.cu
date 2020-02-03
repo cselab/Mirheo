@@ -11,12 +11,12 @@ namespace mirheo
  * @param vel Velocity magnitude
  * @param period Sine wave period
  */
-IntegratorOscillate::IntegratorOscillate(const MirState *state, std::string name, real3 vel, real period) :
+IntegratorOscillate::IntegratorOscillate(const MirState *state, const std::string& name, real3 vel, real period) :
     Integrator(state, name),
-    vel(vel),
-    period(period)
+    vel_(vel),
+    period_(period)
 {
-    if (period <= 0)
+    if (period_ <= 0)
         die("Oscillating period should be strictly positive");
 }
 
@@ -29,18 +29,19 @@ void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
 {
     const auto t = static_cast<real>(getState()->currentTime);
     
-    const auto _vel = vel;
-    constexpr auto two_pi = static_cast<real>(2.0 * M_PI);
+    const auto vel = vel_;
+    constexpr auto twoPi = static_cast<real>(2.0 * M_PI);
     
-    const real cosOmega = math::cos(two_pi * t / period);
+    const real cosOmega = math::cos(twoPi * t / period_);
 
-    auto oscillate = [_vel, cosOmega] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
-        p.u = _vel * cosOmega;
-        p.r += p.u*dt;
+    auto oscillate = [vel, cosOmega] __device__ (Particle& p, real3 f, real invm, real dt)
+    {
+        p.u = vel * cosOmega;
+        p.r += p.u * dt;
     };
 
     integrate(pv, getState()->dt, oscillate, stream);
-    invalidatePV(pv);
+    invalidatePV_(pv);
 }
 
 } // namespace mirheo
