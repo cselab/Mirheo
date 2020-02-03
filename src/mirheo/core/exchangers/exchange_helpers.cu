@@ -116,8 +116,8 @@ char* BufferInfos::getBufferDevPtr(int bufId)
 
 ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer) :
     name(name),
-    uniqueId(uniqueId),
-    packer(packer)
+    uniqueId_(uniqueId),
+    packer_(packer)
 {
     recv.resizeInfos(nBuffers);
     send.resizeInfos(nBuffers);
@@ -128,20 +128,20 @@ ExchangeHelper::~ExchangeHelper() = default;
 void ExchangeHelper::computeRecvOffsets()
 {
     prefixSum(recv.sizes, recv.offsets);
-    computeSizesBytes(packer, recv.sizes, recv.sizesBytes);
+    computeSizesBytes(packer_, recv.sizes, recv.sizesBytes);
     prefixSum(recv.sizesBytes, recv.offsetsBytes);
 }
 
 void ExchangeHelper::computeSendOffsets()
 {
     prefixSum(send.sizes, send.offsets);
-    computeSizesBytes(packer, send.sizes, send.sizesBytes);
+    computeSizesBytes(packer_, send.sizes, send.sizesBytes);
     prefixSum(send.sizesBytes, send.offsetsBytes);
 }
 
 void ExchangeHelper::computeSendOffsets_Dev2Dev(cudaStream_t stream)
 {
-    computeOffsetsSizeBytesDev(wrapSendData(), send.sizesBytes, packer, stream);
+    computeOffsetsSizeBytesDev(wrapSendData(), send.sizesBytes, packer_, stream);
     
     send.sizes       .downloadFromDevice(stream, ContainersSynch::Asynch);
     send.offsets     .downloadFromDevice(stream, ContainersSynch::Asynch);
@@ -163,7 +163,7 @@ void ExchangeHelper::resizeRecvBuf()
 
 int ExchangeHelper::getUniqueId() const
 {
-    return uniqueId;
+    return uniqueId_;
 }
 
 BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()

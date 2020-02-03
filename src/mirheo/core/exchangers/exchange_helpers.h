@@ -94,13 +94,13 @@ public:
     const int bulkId   = FragmentMapping::bulkId;
 
     std::string name;                ///< corresponding ParticleVector name
-    int uniqueId;                    ///< a unique exchange id: used for tags
     
     BufferInfos send, recv;
     std::vector<int> recvRequestIdxs;
     
 private:
-    ParticlePacker *packer;
+    int uniqueId_;                   ///< a unique exchange id: used for tags
+    ParticlePacker *packer_;
 };
 
 } // namespace mirheo

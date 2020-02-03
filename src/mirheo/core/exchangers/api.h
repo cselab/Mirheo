@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mpi.h>
-
 #include "exchanger_interfaces.h"
 #include "engines/mpi.h"
 #include "engines/single_node.h"
