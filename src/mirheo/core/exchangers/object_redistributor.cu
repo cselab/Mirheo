@@ -100,7 +100,7 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
     
     packers_.push_back(std::move(packer));
-    helpers.push_back(std::move(helper));
+    this->addExchangeEntity(std::move(helper));
 
     info("The Object vector '%s' was attached to redistributor", ov->name.c_str());
 }
@@ -110,7 +110,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto ov  = objects_[id];
     auto lov = ov->local();
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto bulkId = helper->bulkId;
     
@@ -157,7 +157,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov  = objects_[id];
     auto lov = ov->local();
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto bulkId = helper->bulkId;
     auto packer = packers_[id].get();
 
@@ -213,7 +213,7 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov     = objects_[id];
     auto lov    = ov->local();
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
     int oldNObjs = lov->nObjects;

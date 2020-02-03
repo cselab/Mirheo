@@ -106,12 +106,13 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
-    helpers  .push_back(std::move(  helper));
+
+    this->addExchangeEntity(std::move(helper));
 }
 
 void ObjectExtraExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto ov = objects_[id];
 
@@ -126,7 +127,7 @@ void ObjectExtraExchanger::prepareSizes(size_t id, cudaStream_t stream)
 void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto ov     = objects_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     const auto& map = entangledHaloExchanger_->getMap(id);
 
@@ -151,7 +152,7 @@ void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov       = objects_[id];
     auto hov      = ov->halo();
-    auto helper   = helpers[id].get();
+    auto helper   = getExchangeEntity(id);
     auto unpacker = unpackers_[id].get();
 
     const auto& offsets = helper->recv.offsets;

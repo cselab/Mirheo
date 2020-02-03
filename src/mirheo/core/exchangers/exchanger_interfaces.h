@@ -29,12 +29,13 @@ public:
 
     virtual ~Exchanger();
 
-    /**
-     * Vector of helpers, that have buffers for data exchange
-     * and other required information, see :any:`ExchangeHelper`
-     */ 
-    std::vector<std::unique_ptr<ExchangeHelper>> helpers;
+    void addExchangeEntity(std::unique_ptr<ExchangeHelper>&& e);
 
+    ExchangeHelper*       getExchangeEntity(size_t id);
+    const ExchangeHelper* getExchangeEntity(size_t id) const;
+
+    size_t getNumExchangeEntities() const;
+    
     /**
      * This function has to provide sizes of the data to be communicated in
      * `helpers[id].`. It has to set `helpers[id].sendSizes` and
@@ -75,7 +76,14 @@ public:
      * @param id of the ParticleVector and associated ExchangeHelper
      * @return true if exchange is required, false - if not
      */
-    virtual bool needExchange(size_t id) = 0;    
+    virtual bool needExchange(size_t id) = 0;
+
+private:
+    /**
+     * Vector of helpers, that have buffers for data exchange
+     * and other required information, see :any:`ExchangeHelper`
+     */ 
+    std::vector<std::unique_ptr<ExchangeHelper>> helpers_;
 };
 
 

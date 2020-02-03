@@ -46,57 +46,71 @@ MPIExchangeEngine::~MPIExchangeEngine()
 
 void MPIExchangeEngine::init(cudaStream_t stream)
 {
-    auto& helpers = exchanger_->helpers;
+    const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
     
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (!exchanger_->needExchange(i)) debug("Exchange of PV '%s' is skipped", helpers[i]->name.c_str());
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (!exchanger_->needExchange(i))
+            debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->name.c_str());
     
     // Post irecv for sizes
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) postRecvSize(helpers[i].get());
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i)) postRecvSize(exchanger_->getExchangeEntity(i));
 
     // Derived class determines what to send
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) exchanger_->prepareSizes(i, stream);
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            exchanger_->prepareSizes(i, stream);
 
     // Send sizes
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) sendSizes(helpers[i].get());
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            sendSizes(exchanger_->getExchangeEntity(i));
 
     // Derived class determines what to send
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) exchanger_->prepareData(i, stream);
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            exchanger_->prepareData(i, stream);
 
     // Post big data irecv (after prepereData cause it waits for the sizes)
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) postRecv(helpers[i].get());
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            postRecv(exchanger_->getExchangeEntity(i));
 
     // CUDA-aware MPI will work in a separate stream, need to synchro
-    if (gpuAwareMPI_) cudaStreamSynchronize(stream);
+    if (gpuAwareMPI_)
+        cudaStreamSynchronize(stream);
 
     // Send
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) send(helpers[i].get(), stream);
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            send(exchanger_->getExchangeEntity(i), stream);
 }
 
 void MPIExchangeEngine::finalize(cudaStream_t stream)
 {
-    auto& helpers = exchanger_->helpers;
+    const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
 
     // Wait for the irecvs to finish
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) wait(helpers[i].get(), stream);
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            wait(exchanger_->getExchangeEntity(i), stream);
 
     // Wait for completion of the previous sends
-    for (size_t i = 0; i < helpers.size(); ++i)
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+    {
         if (exchanger_->needExchange(i))
-            MPI_Check( MPI_Waitall((int) helpers[i]->send.requests.size(),
-                                   helpers[i]->send.requests.data(),
+        {
+            auto helper = exchanger_->getExchangeEntity(i);
+            MPI_Check( MPI_Waitall((int) helper->send.requests.size(),
+                                   helper->send.requests.data(),
                                    MPI_STATUSES_IGNORE) );
+        }
+    }
 
     // Derived class unpack implementation
-    for (size_t i = 0; i < helpers.size(); ++i)
-        if (exchanger_->needExchange(i)) exchanger_->combineAndUploadData(i, stream);
+    for (size_t i = 0; i < numExchangeEntities; ++i)
+        if (exchanger_->needExchange(i))
+            exchanger_->combineAndUploadData(i, stream);
 }
 
 void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)

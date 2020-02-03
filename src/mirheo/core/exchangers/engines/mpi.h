@@ -50,10 +50,10 @@ private:
     static constexpr int singleCopyThreshold_ = 4000000;
 
     void postRecvSize(ExchangeHelper *helper);
-    void sendSizes(ExchangeHelper *helper);
-    void postRecv(ExchangeHelper *helper);
-    void wait(ExchangeHelper *helper, cudaStream_t stream);
-    void send(ExchangeHelper *helper, cudaStream_t stream);
+    void sendSizes   (ExchangeHelper *helper);
+    void postRecv    (ExchangeHelper *helper);
+    void wait        (ExchangeHelper *helper, cudaStream_t stream);
+    void send        (ExchangeHelper *helper, cudaStream_t stream);
 };
 
 } // namespace mirheo

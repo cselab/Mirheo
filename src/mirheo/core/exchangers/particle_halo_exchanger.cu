@@ -159,7 +159,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     auto unpacker = std::make_unique<ParticlePacker> (predicate);
     auto   helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
     
-    helpers  .push_back(std::move(  helper));
+    this->addExchangeEntity(std::move(  helper));
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
     
@@ -174,7 +174,7 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
     auto cl = cellLists_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
     debug2("Counting halo particles of '%s'", pv->name.c_str());
@@ -205,7 +205,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
     auto cl = cellLists_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
     int nEntities = helper->send.offsets[helper->nBuffers];
@@ -235,7 +235,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
-    auto helper   = helpers  [id].get();
+    auto helper   = getExchangeEntity(id);
     auto unpacker = unpackers_[id].get();
 
     auto lpv = pv->halo();

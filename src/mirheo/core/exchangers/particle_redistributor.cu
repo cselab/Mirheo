@@ -153,7 +153,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());
 
     packers_.push_back(std::move(packer));
-    helpers.push_back(std::move(helper));
+    this->addExchangeEntity(std::move(helper));
 
     info("Particle redistributor takes pv '%s'", pv->name.c_str());
 }
@@ -162,7 +162,7 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
     auto cl = cellLists_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto lpv = pv->local();
     
@@ -192,7 +192,7 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
     auto cl = cellLists_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
     debug2("Downloading %d leaving particles of '%s'",
@@ -221,7 +221,7 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
 void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto pv = particles_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto lpv = pv->local();
     

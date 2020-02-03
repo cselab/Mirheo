@@ -165,8 +165,8 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
 
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
-    helpers  .push_back(std::move(  helper));
-    maps_     .emplace_back();
+    this->addExchangeEntity(std::move(helper));
+    maps_.emplace_back();
 
     std::string allChannelNames = "";
     for (const auto& name : channels)
@@ -181,7 +181,7 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
     auto ov  = objects_[id];
     auto lov = ov->local();
     auto rc  = rcs_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
     ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
@@ -214,7 +214,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
     auto ov  = objects_[id];
     auto lov = ov->local();
     auto rc  = rcs_[id];
-    auto helper = helpers[id].get();
+    auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto& map = maps_[id];
     
@@ -245,7 +245,7 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 {
     auto ov       = objects_[id];
     auto hov      = ov->halo();
-    auto helper   = helpers[id].get();
+    auto helper   = getExchangeEntity(id);
     auto unpacker = unpackers_[id].get();
 
     const auto& offsets = helper->recv.offsets;
@@ -269,12 +269,12 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
 
 PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(size_t id)
 {
-    return helpers[id]->send.offsets;
+    return getExchangeEntity(id)->send.offsets;
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getRecvOffsets(size_t id)
 {
-    return helpers[id]->recv.offsets;
+    return getExchangeEntity(id)->recv.offsets;
 }
 
 DeviceBuffer<MapEntry>& ObjectHaloExchanger::getMap(size_t id)
