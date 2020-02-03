@@ -2,6 +2,9 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/config.h>
+
+#include <typeinfo>
 
 namespace mirheo
 {
@@ -19,6 +22,11 @@ MirObject::~MirObject()
 
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
+
+Config MirObject::getConfig() const {
+    std::string name = typeid(*this).name();
+    throw std::runtime_error("getConfig not implemented for class " + name);
+}
 
 
 static void appendIfNonEmpty(std::string& base, const std::string& toAppend)
@@ -80,6 +88,13 @@ MirSimulationObject::~MirSimulationObject() = default;
 void MirSimulationObject::setState(const MirState *state)
 {
     this->state = state;
+}
+
+Config ConfigMirObjectDumper::dump(const MirObject &obj) {
+    return obj.getConfig();
+}
+Config ConfigMirObjectDumper::dump(const MirObject *obj) {
+    return obj ? "<ptr to" + obj->name + ">" : "<nullptr>";
 }
 
 } // namespace mirheo

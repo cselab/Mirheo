@@ -7,6 +7,7 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 
 #include <memory>
 
@@ -43,6 +44,15 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, std::string name, in
 }
 
 IntegratorSubStep::~IntegratorSubStep() = default;
+
+Config IntegratorSubStep::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"fastForces", fastForces},  // Only pointers.
+        {"subIntegrator", *subIntegrator},
+        {"substeps", substeps},
+    };
+}
 
 void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
 {}

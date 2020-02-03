@@ -6,6 +6,12 @@
 namespace mirheo
 {
 
+struct Config;
+
+template <typename T, typename Enable = void>
+struct ConfigDumper;
+
+
 /**
  * Channel names used in several places of the program
  */
@@ -84,6 +90,11 @@ struct CheckpointInfo
     int every;
     std::string folder;
     CheckpointIdAdvanceMode mode;
+};
+
+template <>
+struct ConfigDumper<CheckpointInfo> {
+    static Config dump(const CheckpointInfo &);
 };
 
 // tag used to stop the postprocess side to stop

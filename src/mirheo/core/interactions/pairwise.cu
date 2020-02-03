@@ -10,6 +10,7 @@
 #include "pairwise/kernels/repulsive_lj.h"
 #include "pairwise/kernels/sdpd.h"
 #include "pairwise/kernels/type_traits.h"
+#include <mirheo/core/utils/config.h>
 
 #include <memory>
 
@@ -114,6 +115,14 @@ PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::strin
 }
 
 PairwiseInteraction::~PairwiseInteraction() = default;
+
+Config PairwiseInteraction::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"varParams", varParams},
+        {"varStressParams", varStressParams},
+    };
+}
 
 void PairwiseInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {

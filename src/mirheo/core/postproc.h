@@ -21,6 +21,7 @@ public:
 
     void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
+    Config getConfig() const override;
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;

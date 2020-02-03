@@ -8,13 +8,12 @@
 #include <mirheo/core/interactions/utils/step_random_gen.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/restart_helpers.h>
 
 #include <cmath>
-#include <functional>
-#include <random>
 
 namespace mirheo
 {
@@ -76,7 +75,7 @@ public:
                             real growUntil, Filter filter, long seed = 42424242) :
         Interaction(state, name, 1.0_r),
         parameters(parameters),
-        scaleFromTime( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
+        growUntil(growUntil),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams),
         filter(filter),
@@ -84,6 +83,22 @@ public:
     {}
 
     ~MembraneInteractionImpl() = default;
+    Config getConfig() const override {
+        return Config::Dictionary{
+            {"name", name},
+            {"rc", rc},
+            {"growUntil", growUntil},
+            {"parameters", parameters},
+            {"dihedralParams", dihedralParams},
+            {"triangleParams", triangleParams},
+            {"filter", filter},
+            {"stepGen", std::string("<<not implemented>")},
+        };
+    }
+
+    real scaleFromTime(real t) const {
+        return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil));
+    }
     
     void local(ParticleVector *pv1,
                __UNUSED ParticleVector *pv2,
@@ -170,7 +185,7 @@ public:
     
 protected:
 
-    std::function< real(real) > scaleFromTime;
+    real growUntil;
     CommonMembraneParameters parameters;
     typename DihedralInteraction::ParametersType dihedralParams;
     typename TriangleInteraction::ParametersType triangleParams;

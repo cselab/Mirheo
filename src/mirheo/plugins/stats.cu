@@ -6,6 +6,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
@@ -58,6 +59,13 @@ SimulationStats::SimulationStats(const MirState *state, std::string name, int fe
 
 SimulationStats::~SimulationStats() = default;
 
+Config SimulationStats::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"fetchEvery", fetchEvery},
+    };
+}
+
 void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
@@ -105,7 +113,8 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
-    PostprocessPlugin(name)
+    PostprocessPlugin(name),
+    filename(filename)
 {
     if (filename != "")
     {
@@ -115,6 +124,12 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
 
         fprintf(fdump.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
+}
+Config PostprocessStats::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"filename", filename},
+    };
 }
 
 void PostprocessStats::deserialize()

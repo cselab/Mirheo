@@ -2,6 +2,7 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/restart_helpers.h>
+#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
@@ -81,6 +82,16 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     domain.globalSize  = gsz;
     domain.globalStart = gst;
     domain.localSize   = lsz;
+}
+
+Config ConfigDumper<MirState>::dump(const MirState &state) {
+    return Config::Dictionary{
+        {"domainGlobalStart", state.domain.globalStart},
+        {"domainGlobalSize", state.domain.globalSize},
+        {"dt", state.dt},
+        {"currentTime", state.currentTime},
+        {"currentStep", state.currentStep},
+    };
 }
 
 } // namespace mirheo

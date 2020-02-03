@@ -311,6 +311,14 @@ void exportMirheo(py::module& m)
         .def("log_compile_options", &Mirheo::logCompileOptions,
              R"(
              output compile times options in the log
+        )")
+        .def("storeConfigJSON", &Mirheo::storeConfigJSON,
+            "compute"_a, "postprocess"_a, R"(
+            Store config JSON to the given files.
+
+            Args:
+                compute: Name of the target file for the compute ranks.
+                postprocess: Name of the target file for the postprocess ranks.
         )");
 }
 

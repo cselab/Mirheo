@@ -41,6 +41,7 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
+    Config getConfig() const override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);

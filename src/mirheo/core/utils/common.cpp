@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include <mirheo/core/logger.h>
+#include <mirheo/core/utils/config.h>
 
 #include <algorithm>
 
@@ -87,6 +88,15 @@ CheckpointInfo::CheckpointInfo(int every, const std::string& folder,
 bool CheckpointInfo::needDump() const
 {
     return every != 0;
+}
+
+Config ConfigDumper<CheckpointInfo>::dump(const CheckpointInfo &info)
+{
+    return Config::Dictionary{
+        {"every", info.every},
+        {"folder", info.folder},
+        {"mode", (int)info.mode},  // TODO: Enum reflection.
+    };
 }
 
 } // namespace mirheo

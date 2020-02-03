@@ -14,6 +14,7 @@ public:
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         const VarPairwiseParams& varParams, const VarStressParams& varStressParams);
     ~PairwiseInteraction();
+    Config getConfig() const override;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
     

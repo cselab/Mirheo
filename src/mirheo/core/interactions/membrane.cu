@@ -9,6 +9,7 @@
 
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
@@ -71,6 +72,14 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
 }
 
 MembraneInteraction::~MembraneInteraction() = default;
+
+Config MembraneInteraction::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"rc", rc},
+        {"impl", *impl},
+    };
+}
 
 void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {

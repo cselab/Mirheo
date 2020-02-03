@@ -47,6 +47,7 @@ public:
     
     ObjectVector(const MirState *state, std::string name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
+    Config getConfig() const override;
     
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
 

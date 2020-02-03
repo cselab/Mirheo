@@ -4,6 +4,7 @@
 #include "restart/helpers.h"
 #include "utils/compute_com_extents.h"
 
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
@@ -117,6 +118,16 @@ ObjectVector::ObjectVector(const MirState *state, std::string name, real mass, i
 }
 
 ObjectVector::~ObjectVector() = default;
+
+Config ObjectVector::getConfig() const
+{
+    auto config = ParticleVector::getConfig();
+    Config::Dictionary &dict = config.getDict();
+    dict.emplace("objSize", objSize);
+    dict.emplace("mesh_nvertices", mesh->getNvertices());
+    dict.emplace("mesh_ntriangles", mesh->getNtriangles());
+    return config;
+}
 
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality)
 {

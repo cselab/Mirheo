@@ -40,5 +40,9 @@ public:
     StepType currentStep;
 };
 
+template <>
+struct ConfigDumper<MirState> {
+    static Config dump(const MirState &state);
+};
 
 } // namespace mirheo

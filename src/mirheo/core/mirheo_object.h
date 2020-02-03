@@ -23,6 +23,7 @@ public:
 
     virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
+    virtual Config getConfig() const;
 
     std::string createCheckpointName      (const std::string& path, const std::string& identifier, const std::string& extension) const;
     std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
@@ -48,5 +49,25 @@ public:
 private:
     const MirState *state;
 };
+
+// Common dumper to all template dumpers below. This way we don't need the
+// definition of Config here.
+struct ConfigMirObjectDumper {
+    static Config dump(const MirObject &obj);  // Prints the object.
+    static Config dump(const MirObject *obj);  // Prints the name only.
+};
+
+/// ConfigDumper specialization for MirObjects which propagates the call to the
+/// virtual function getConfig().
+template <typename T>
+struct ConfigDumper<T, std::enable_if_t<std::is_base_of<MirObject, T>::value>>
+    : ConfigMirObjectDumper
+{ };
+
+/// Specialization for MirObject pointers which prints only their name.
+template <typename T>
+struct ConfigDumper<T*, std::enable_if_t<std::is_base_of<MirObject, T>::value>>
+    : ConfigMirObjectDumper
+{ };
 
 } // namespace mirheo

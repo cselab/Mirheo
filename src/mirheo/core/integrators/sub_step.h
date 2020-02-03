@@ -18,6 +18,7 @@ public:
     IntegratorSubStep(const MirState *state, std::string name, int substeps,
                       const std::vector<Interaction*>& fastForces);
     ~IntegratorSubStep();
+    Config getConfig() const override;
     
     void stage1(ParticleVector *pv, cudaStream_t stream) override;
     void stage2(ParticleVector *pv, cudaStream_t stream) override;

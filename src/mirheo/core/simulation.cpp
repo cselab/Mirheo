@@ -13,6 +13,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/task_scheduler.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/restart_helpers.h>
 #include <mirheo/core/walls/interface.h>
@@ -1341,6 +1342,57 @@ void Simulation::checkpoint()
     notifyPostProcess(checkpointTag, checkpointId);
     
     CUDA_Check( cudaDeviceSynchronize() );
+}
+
+template <typename T>
+static Config to_config(const std::map<std::string, std::shared_ptr<T>> &map) {
+    Config::Dictionary dict;
+    for (const auto &pair : map)
+        dict.emplace(pair.first, *pair.second);
+    return Config{std::move(dict)};
+}
+
+template <typename T>
+static Config to_config(const std::vector<std::shared_ptr<T>> &values) {
+    Config::List list;
+    list.reserve(values.size());
+    for (const auto &value : values)
+        list.emplace_back(*value);
+    return Config{std::move(list)};
+}
+
+MIRHEO_MEMBER_VARS_2(Simulation::IntegratorPrototype, pv, integrator);
+MIRHEO_MEMBER_VARS_4(Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
+MIRHEO_MEMBER_VARS_3(Simulation::WallPrototype, wall, pv, maximumPartTravel);
+MIRHEO_MEMBER_VARS_2(Simulation::CheckWallPrototype, wall, every);
+MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
+MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
+MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
+
+Config Simulation::getConfig() const {
+    return Config::Dictionary{
+        {"checkpointId", checkpointId},
+        {"checkpointInfo", checkpointInfo},
+
+        {"particleVectors", to_config(particleVectors)},
+
+        {"bouncerMap", to_config(bouncerMap)},
+        {"integratorMap", to_config(integratorMap)},
+        {"interactionMap", to_config(interactionMap)},
+        {"wallMap", to_config(wallMap)},
+        {"belongingCheckerMap", to_config(belongingCheckerMap)},
+
+        {"plugins", to_config(plugins)},
+        {"pvsIntegratorMap", pvsIntegratorMap},
+
+        {"integratorPrototypes", integratorPrototypes},
+        {"interactionPrototypes", interactionPrototypes},
+        {"wallPrototypes", wallPrototypes},
+        {"checkWallPrototypes", checkWallPrototypes},
+        {"bouncerPrototypes", bouncerPrototypes},
+        {"belongingCorrectionPrototypes", belongingCorrectionPrototypes},
+        {"splitterPrototypes", splitterPrototypes},
+    };
 }
 
 void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool current) const

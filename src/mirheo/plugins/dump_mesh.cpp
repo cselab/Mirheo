@@ -6,6 +6,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 
@@ -18,6 +19,14 @@ MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovNa
     SimulationPlugin(state, name), ovName(ovName),
     dumpEvery(dumpEvery)
 {}
+
+Config MeshPlugin::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"dumpEvery", dumpEvery},
+        {"ovName", ovName},
+    };
+}
 
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -155,6 +164,12 @@ MeshDumper::MeshDumper(std::string name, std::string path) :
 {}
 
 MeshDumper::~MeshDumper() = default;
+
+Config MeshDumper::getConfig() const {
+    return Config::Dictionary{
+        {"path", path},
+    };
+}
 
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {

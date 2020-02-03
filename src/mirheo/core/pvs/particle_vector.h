@@ -57,6 +57,7 @@ public:
     
     ParticleVector(const MirState *state, std::string name, real mass, int n=0);
     ~ParticleVector() override;
+    Config getConfig() const override;
     
     LocalParticleVector* local() { return _local.get(); }
     LocalParticleVector* halo()  { return _halo.get();  }

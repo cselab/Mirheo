@@ -2,6 +2,7 @@
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/type_map.h>
@@ -123,6 +124,14 @@ ParticleVector::ParticleVector(const MirState *state, std::string name,  real ma
 }
 
 ParticleVector::~ParticleVector() = default;
+
+Config ParticleVector::getConfig() const
+{
+    return Config::Dictionary{
+        {"name", name},
+        {"mass", mass},
+    };
+}
 
 std::vector<int64_t> ParticleVector::getIndices_vector()
 {

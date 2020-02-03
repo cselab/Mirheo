@@ -2,6 +2,7 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 
 #include <mpi.h>
 #include <vector>
@@ -145,6 +146,18 @@ void Postprocess::checkpoint(int checkpointId)
     
     for (auto& pl : plugins)
         pl->checkpoint(comm, checkpointFolder, checkpointId);
+}
+
+Config Postprocess::getConfig() const {
+    Config::List pluginsConfig;
+    pluginsConfig.reserve(plugins.size());
+    for (const auto &plugin : plugins)
+        pluginsConfig.push_back(plugin->getConfig());
+    return Config::Dictionary{
+        {"name", name},
+        {"checkpointFolder", checkpointFolder},
+        {"plugins", std::move(pluginsConfig)},
+    };
 }
 
 } // namespace mirheo

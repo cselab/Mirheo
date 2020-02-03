@@ -7,6 +7,7 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
@@ -19,6 +20,13 @@ IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, std::string name,
 template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
+template<class ForcingTerm>
+Config IntegratorVV<ForcingTerm>::getConfig() const {
+    return Config::Dictionary{
+        {"name", name},
+        {"forcingTerm", forcingTerm},
+    };
+}
 
 template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)

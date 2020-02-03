@@ -5,11 +5,10 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
-
-class ParticleVector;
 
 /**
  * Apply equal but opposite forces in two halves of the global domain.
@@ -72,6 +71,10 @@ private:
     int _dir;
 
     DomainInfo domain;
+
+    friend MemberVars<Forcing_PeriodicPoiseuille>;
 };
+
+MIRHEO_MEMBER_VARS_2(Forcing_PeriodicPoiseuille, magnitude, _dir);
 
 } // namespace mirheo

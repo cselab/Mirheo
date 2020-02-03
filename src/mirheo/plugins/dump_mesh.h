@@ -27,6 +27,7 @@ private:
 
 public:
     MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
+    Config getConfig() const override;
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -50,7 +51,8 @@ private:
 public:
     MeshDumper(std::string name, std::string path);
     ~MeshDumper();
-    
+    Config getConfig() const override;
+
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
 };

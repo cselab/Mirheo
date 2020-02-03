@@ -12,6 +12,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/version.h>
@@ -31,6 +32,7 @@ LogInfo::LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash) :
     verbosityLvl(verbosityLvl),
     noSplash(noSplash)
 {}
+MIRHEO_MEMBER_VARS_3(LogInfo, fileName, verbosityLvl, noSplash);
 
 static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)
 {
@@ -674,4 +676,27 @@ void Mirheo::logCompileOptions() const
     info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
 }
 
+Config Mirheo::getConfig() const {
+    Config::Dictionary dict;
+    if (state)
+        dict.emplace("state", *state);
+    if (sim)
+        dict.emplace("simulation", sim->getConfig());
+    if (post)
+        dict.emplace("postprocess", post->getConfig());
+
+    return Config{std::move(dict)};
+}
+
+static void storeToFile(const std::string &content, const std::string &filename) {
+    FileWrapper f;
+    if (f.open(filename, "w") != FileWrapper::Status::Success)
+        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
+    fwrite(content.data(), 1, content.size(), f.get());
+}
+void Mirheo::storeConfigJSON(const std::string &compute,
+                             const std::string &postprocess) const {
+    if (rank == 0)
+        storeToFile(configToJSON(getConfig()), isComputeTask() ? compute : postprocess);
+}
 } // namespace mirheo

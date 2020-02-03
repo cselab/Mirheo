@@ -1,7 +1,8 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/pvs/membrane_vector.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -36,6 +37,10 @@ public:
 private:
     int whiteListTypeId {-1};
     const int *typeIds {nullptr};
+
+    friend MemberVars<FilterKeepByTypeId>;
 };
+
+MIRHEO_MEMBER_VARS_1(FilterKeepByTypeId, whiteListTypeId);
 
 } // namespace mirheo

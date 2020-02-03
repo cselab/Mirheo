@@ -2,7 +2,7 @@
 
 #include <mirheo/core/mirheo_state.h>
 
-#include <fstream>
+#include <iosfwd>
 #include <random>
 
 namespace mirheo

@@ -109,6 +109,9 @@ public:
                                                                 std::string outside = "");    
 
     void logCompileOptions() const;
+    Config getConfig() const;
+    void storeConfigJSON(const std::string &computeFilename,
+                         const std::string &postprocessFilename) const;
     
 private:
     std::unique_ptr<Simulation> sim;

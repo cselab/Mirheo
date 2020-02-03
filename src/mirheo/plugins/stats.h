@@ -22,6 +22,7 @@ class SimulationStats : public SimulationPlugin
 public:
     SimulationStats(const MirState *state, std::string name, int fetchEvery);
     ~SimulationStats();
+    Config getConfig() const override;
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     
@@ -48,11 +49,13 @@ class PostprocessStats : public PostprocessPlugin
 {
 public:
     PostprocessStats(std::string name, std::string filename = "");
+    Config getConfig() const override;
 
     void deserialize() override;
 
 private:
     FileWrapper fdump;
+    std::string filename;
 };
 
 } // namespace mirheo
