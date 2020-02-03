@@ -30,12 +30,12 @@ public:
         real s000, s001, s010, s011, s100, s101, s110, s111;
         real sx00, sx01, sx10, sx11, sxy0, sxy1, sxyz;
 
-        real3 texcoord = math::floor((x + extendedDomainSize*0.5_r) * invh);
-        real3 lambda = (x - (texcoord * h - extendedDomainSize*0.5_r)) * invh;
+        const real3 texcoord = math::floor((x + extendedDomainSize_*0.5_r) * invh_);
+        const real3 lambda = (x - (texcoord * h_ - extendedDomainSize_*0.5_r)) * invh_;
         
         auto access = [this, &texcoord] (int dx, int dy, int dz)
         {
-            const auto val = tex3D<float>(fieldTex,
+            const auto val = tex3D<float>(fieldTex_,
                                           static_cast<float>(texcoord.x + static_cast<real>(dx)),
                                           static_cast<float>(texcoord.y + static_cast<real>(dy)),
                                           static_cast<float>(texcoord.z + static_cast<real>(dz)));
@@ -67,8 +67,8 @@ public:
 
 protected:
 
-    cudaTextureObject_t fieldTex;
-    real3 h, invh, extendedDomainSize;
+    cudaTextureObject_t fieldTex_;
+    real3 h_, invh_, extendedDomainSize_;
 };
 
 
@@ -86,11 +86,11 @@ public:
     
 protected:
 
-    int3 resolution;
+    int3 resolution_;
     
-    cudaArray *fieldArray;
+    cudaArray *fieldArray_;
     
-    const real3 margin3{5, 5, 5};
+    const real3 margin3_{5, 5, 5};
 
     void setupArrayTexture(const float *fieldDevPtr);
 };

@@ -309,23 +309,23 @@ void FieldFromFile::setup(const MPI_Comm& comm)
     const float lenScalingFactor = (scale3.x + scale3.y + scale3.z) / 3;
 
     auto sdfPiece = prepareRelevantSdfPiece(fullSdfData,
-                                            make_float3(domain.globalStart - margin3), make_float3(extendedDomainSize),
+                                            make_float3(domain.globalStart - margin3_), make_float3(extendedDomainSize_),
                                             initialSdfH, headerInfo.resolution);
 
     // Interpolate
-    DeviceBuffer<float> fieldRawData (multiplyComps(resolution));
+    DeviceBuffer<float> fieldRawData (multiplyComps(resolution_));
 
-    dim3 threads(8, 8, 8);
-    dim3 blocks((resolution.x+threads.x-1) / threads.x,
-                (resolution.y+threads.y-1) / threads.y,
-                (resolution.z+threads.z-1) / threads.z);
+    const dim3 threads(8, 8, 8);
+    const dim3 blocks((resolution_.x+threads.x-1) / threads.x,
+                      (resolution_.y+threads.y-1) / threads.y,
+                      (resolution_.z+threads.z-1) / threads.z);
 
     sdfPiece.data.uploadToDevice(defaultStream);
     SAFE_KERNEL_LAUNCH(
             InterpolateKernels::cubicInterpolate3D,
             blocks, threads, 0, defaultStream,
             sdfPiece.data.devPtr(), sdfPiece.resolution, initialSdfH,
-            fieldRawData.devPtr(), resolution, make_float3(h),
+            fieldRawData.devPtr(), resolution_, make_float3(h_),
             sdfPiece.offset, lenScalingFactor );
 
     setupArrayTexture(fieldRawData.devPtr());

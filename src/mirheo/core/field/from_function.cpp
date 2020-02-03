@@ -37,17 +37,17 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
     
     CUDA_Check( cudaDeviceSynchronize() );
     
-    PinnedBuffer<float> fieldRawData (resolution.x * resolution.y * resolution.z);
+    PinnedBuffer<float> fieldRawData (resolution_.x * resolution_.y * resolution_.z);
 
     int3 i;
     int id = 0;
-    for (i.z = 0; i.z < resolution.z; ++i.z) {
-        for (i.y = 0; i.y < resolution.y; ++i.y) {
-            for (i.x = 0; i.x < resolution.x; ++i.x) {
-                real3 r {static_cast<real>(i.x) * h.x,
-                         static_cast<real>(i.y) * h.y,
-                         static_cast<real>(i.z) * h.z};
-                r -= extendedDomainSize * 0.5_r;
+    for (i.z = 0; i.z < resolution_.z; ++i.z) {
+        for (i.y = 0; i.y < resolution_.y; ++i.y) {
+            for (i.x = 0; i.x < resolution_.x; ++i.x) {
+                real3 r {static_cast<real>(i.x) * h_.x,
+                         static_cast<real>(i.y) * h_.y,
+                         static_cast<real>(i.z) * h_.z};
+                r -= extendedDomainSize_ * 0.5_r;
                 r  = domain.local2global(r);
                 r  = make_periodic(r, domain.globalSize);
                 
