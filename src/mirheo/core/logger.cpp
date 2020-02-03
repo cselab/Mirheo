@@ -18,15 +18,15 @@ Logger logger;
 
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_rank(comm, &rank_);
     constexpr int zeroPadding = 5;
-    const std::string rankStr = getStrZeroPadded(rank, zeroPadding);
+    const std::string rankStr = getStrZeroPadded(rank_, zeroPadding);
 
     const auto pos   = fname.find_last_of('.');
     const auto start = fname.substr(0, pos);
     const auto end   = fname.substr(pos);
 
-    const auto status = fout.open(start + "_" + rankStr + end, "w");
+    const auto status = fout_.open(start + "_" + rankStr + end, "w");
 
     if (status != FileWrapper::Status::Success)
     {
@@ -41,20 +41,20 @@ void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 
 void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank);
-    this->fout = std::move(fout);
+    MPI_Comm_rank(comm, &rank_);
+    this->fout_ = std::move(fout);
 
     setDebugLvl(debugLvl);
 }
 
 void Logger::setDebugLvl(int debugLvl)
 {
-    runtimeDebugLvl = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
-    if (runtimeDebugLvl >= 1) {
+    runtimeDebugLvl_ = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
+    if (runtimeDebugLvl_ >= 1) {
         log("INFO", __FILE__, __LINE__,
             "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);
         log("INFO", __FILE__, __LINE__,
-            "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl);
+            "Debug level requested %d, set to %d", debugLvl, runtimeDebugLvl_);
     }
 }
 
@@ -66,7 +66,7 @@ void Logger::log(const char *key, const char *filename, int line, const char *fm
 }
 
 void Logger::logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
-    if (!fout.get())
+    if (!fout_.get())
     {
         int world_rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -91,19 +91,21 @@ void Logger::logImpl(const char *key, const char *filename, int line, const char
     // fprintf before and after to print extra formatting. It may be necessary
     // to replace this with first constructing a string with (v)s(n)printf and
     // then fprintf-ing it once.
-    fprintf(fout.get(), "%s:%03d  Rank %04d %7s at %s:%d ",
-            time, (int)ms.count(), rank, key, filename, line);
-    vfprintf(fout.get(), fmt, args);
-    fprintf(fout.get(), "\n");
+    fprintf(fout_.get(), "%s:%03d  Rank %04d %7s at %s:%d ",
+            time, (int)ms.count(), rank_, key, filename, line);
+    vfprintf(fout_.get(), fmt, args);
+    fprintf(fout_.get(), "\n");
 
-    bool needToFlush = runtimeDebugLvl   >= flushThreshold &&
-                       COMPILE_DEBUG_LVL >= flushThreshold;
-    needToFlush = needToFlush || (numLogsSinceLastFlush > numLogsBetweenFlushes);
+    ++numLogsSinceLastFlush_;
+    
+    bool needToFlush = runtimeDebugLvl_  >= flushThreshold_ &&
+                       COMPILE_DEBUG_LVL >= flushThreshold_;
+    needToFlush = needToFlush || (numLogsSinceLastFlush_ > numLogsBetweenFlushes_);
 
     if (needToFlush)
     {
-        fflush(fout.get());
-        numLogsSinceLastFlush = 0;
+        fflush(fout_.get());
+        numLogsSinceLastFlush_ = 0;
     }
 }
 
@@ -127,7 +129,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     va_end(args);
 
     printStacktrace();
-    fout.close();
+    fout_.close();
 
     // http://stackoverflow.com/a/26221725  (modified)
     va_start(args, fmt);
@@ -143,7 +145,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
 
 void Logger::_CUDA_die [[noreturn]](const char *filename, int line, cudaError_t code) const
 {
-    _die(filename, line, "CUDA Error on rank %d: %s", rank, cudaGetErrorString(code));
+    _die(filename, line, "CUDA Error on rank %d: %s", rank_, cudaGetErrorString(code));
 }
 
 void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) const
@@ -152,14 +154,14 @@ void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) con
     int nchar;
     MPI_Error_string(code, buf, &nchar);
 
-    _die(filename, line, "MPI Error on rank %d: %s", rank, buf);
+    _die(filename, line, "MPI Error on rank %d: %s", rank_, buf);
 }
 
 void Logger::printStacktrace() const
 {
     std::ostringstream strace;
     pretty_stacktrace(strace);
-    fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout.get());
+    fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout_.get());
 }
 
 } // namespace mirheo

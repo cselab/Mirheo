@@ -62,8 +62,9 @@ public:
      */
     void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
 
-    int getDebugLvl() const noexcept {
-        return runtimeDebugLvl;
+    int getDebugLvl() const noexcept
+    {
+        return runtimeDebugLvl_;
     }
     void setDebugLvl(int debugLvl);
 
@@ -148,16 +149,16 @@ public:
     }
 
 private:
-    int runtimeDebugLvl {0};  ///< debug level defined at runtime through setDebugLvl
+    int runtimeDebugLvl_ {0};  ///< debug level defined at runtime through setDebugLvl
 
-    static constexpr int flushThreshold = 8; ///< value of debug level starting with which every
+    static constexpr int flushThreshold_ = 8; ///< value of debug level starting with which every
                                              ///< message will be flushed to disk immediately
 
-    static constexpr int numLogsBetweenFlushes = 32;
-    mutable int numLogsSinceLastFlush {0};
+    static constexpr int numLogsBetweenFlushes_ = 32;
+    mutable int numLogsSinceLastFlush_ {0};
 
-    mutable FileWrapper fout {true};
-    int rank {-1};
+    mutable FileWrapper fout_ {true};
+    int rank_ {-1};
 };
 
 /// Log with a runtime check of importance
