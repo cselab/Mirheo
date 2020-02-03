@@ -97,7 +97,7 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
         unpacker = std::make_unique<RodPacker>(predicate);
     }
     
-    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
     
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
@@ -108,7 +108,7 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
         allChannelNames += "'" + name + "' ";
 
     info("Object vector '%s' was attached to reverse halo exchanger with %s",
-         ov->name.c_str(), allChannelNames.c_str());
+         ov->getCName(), allChannelNames.c_str());
 }
 
 bool ObjectReverseExchanger::needExchange(__UNUSED size_t id)
@@ -132,7 +132,7 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     
-    debug2("Preparing '%s' data to reverse send", ov->name.c_str());
+    debug2("Preparing '%s' data to reverse send", ov->getCName());
 
     packer->update(hov, stream);
 
@@ -171,7 +171,7 @@ void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream
     const int totalRecvd = helper->recv.offsets[helper->nBuffers];
     auto& map = entangledHaloExchanger_->getMap(id);
 
-    debug("Updating data for %d '%s' objects", totalRecvd, ov->name.c_str());
+    debug("Updating data for %d '%s' objects", totalRecvd, ov->getCName());
 
     const int nthreads = 256;
         

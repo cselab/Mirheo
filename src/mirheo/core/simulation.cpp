@@ -174,7 +174,7 @@ ParticleVector* Simulation::getPVbyNameOrDie(const std::string& name) const
 {
     auto pv = getPVbyName(name);
     if (pv == nullptr)
-        die("No such particle vector: %s", name.c_str());
+        die("No such particle vector: %s", getCName());
     return pv;
 }
 
@@ -185,11 +185,11 @@ ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
         if (auto ov = dynamic_cast<ObjectVector*>(pv))
             return ov;
         else
-            die("'%s' is not an object vector", name.c_str());
+            die("'%s' is not an object vector", getCName());
     }
     else
     {
-        die("No such object vector: %s", name.c_str());
+        die("No such object vector: %s", getCName());
     }
     return nullptr;
 }
@@ -197,7 +197,7 @@ ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
 Wall* Simulation::getWallByNameOrDie(const std::string& name) const
 {
     if (wallMap.find(name) == wallMap.end())
-        die("No such wall: %s", name.c_str());
+        die("No such wall: %s", getCName());
 
     auto it = wallMap.find(name);
     return it->second.get();
@@ -207,7 +207,7 @@ CellList* Simulation::gelCellList(ParticleVector* pv) const
 {
     auto clvecIt = cellListMap.find(pv);
     if (clvecIt == cellListMap.end())
-        die("Particle Vector '%s' is not registered or broken", pv->name.c_str());
+        die("Particle Vector '%s' is not registered or broken", pv->getCName());
 
     if (clvecIt->second.size() == 0)
         return nullptr;
@@ -253,16 +253,16 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic)
 {
-    const std::string name = pv->name;
+    const std::string name = pv->getName();
 
     if (name == "none" || name == "all" || name == "")
-        die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
+        die("Invalid name for a particle vector (reserved word or empty): '%s'", getCName());
     
-    if (pv->name.rfind("_", 0) == 0)
+    if (pv->getName().rfind("_", 0) == 0)
         die("Identifier of Particle Vectors cannot start with _");
 
     if (pvIdMap.find(name) != pvIdMap.end())
-        die("More than one particle vector is called %s", name.c_str());
+        die("More than one particle vector is called %s", getCName());
 
     if (ic)
         ic->exec(cartComm, pv.get(), 0);
@@ -270,12 +270,12 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (auto ov = dynamic_cast<ObjectVector*>(pv.get()))
     {
         info("Registered object vector '%s', %d objects, %d particles",
-             name.c_str(), ov->local()->nObjects, ov->local()->size());
+             getCName(), ov->local()->nObjects, ov->local()->size());
         objectVectors.push_back(ov);
     }
     else
     {
-        info("Registered particle vector '%s', %d particles", name.c_str(), pv->local()->size());
+        info("Registered particle vector '%s', %d particles", getCName(), pv->local()->size());
     }
 
     particleVectors.push_back(std::move(pv));
@@ -284,71 +284,71 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    const std::string name = wall->name;
+    const std::string name = wall->getName();
 
     if (wallMap.find(name) != wallMap.end())
-        die("More than one wall is called %s", name.c_str());
+        die("More than one wall is called %s", getCName());
 
     checkWallPrototypes.push_back({wall.get(), every});
 
     // Let the wall know the particle vector associated with it
     wall->setup(cartComm);
 
-    info("Registered wall '%s'", name.c_str());
+    info("Registered wall '%s'", getCName());
 
     wallMap[name] = std::move(wall);
 }
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    const std::string name = interaction->name;
+    const std::string name = interaction->getName();
 
     if (interactionMap.find(name) != interactionMap.end())
-        die("More than one interaction is called %s", name.c_str());
+        die("More than one interaction is called %s", getCName());
 
     interactionMap[name] = std::move(interaction);
 }
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    const std::string name = integrator->name;
+    const std::string name = integrator->getName();
 
     if (integratorMap.find(name) != integratorMap.end())
-        die("More than one integrator is called %s", name.c_str());
+        die("More than one integrator is called %s", getCName());
     
     integratorMap[name] = std::move(integrator);
 }
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    const std::string name = bouncer->name;
+    const std::string name = bouncer->getName();
 
     if (bouncerMap.find(name) != bouncerMap.end())
-        die("More than one bouncer is called %s", name.c_str());
+        die("More than one bouncer is called %s", getCName());
 
     bouncerMap[name] = std::move(bouncer);
 }
 
 void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
-    const std::string name = checker->name;
+    const std::string name = checker->getName();
 
     if (belongingCheckerMap.find(name) != belongingCheckerMap.end())
-        die("More than one splitter is called %s", name.c_str());
+        die("More than one splitter is called %s", getCName());
 
     belongingCheckerMap[name] = std::move(checker);
 }
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int tag)
 {
-    const std::string name = plugin->name;
+    const std::string name = plugin->getName();
 
     bool found = false;
     for (auto& pl : plugins)
-        if (pl->name == name) found = true;
+        if (pl->getName() == name) found = true;
 
     if (found)
-        die("More than one plugin is called %s", name.c_str());
+        die("More than one plugin is called %s", getCName());
 
     plugin->setTag(tag);
     
@@ -415,7 +415,7 @@ void Simulation::setWallBounce(const std::string& wallName, const std::string& p
 
     if (auto ov = dynamic_cast<ObjectVector*>(pv))
         die("Object Vectors can not be bounced from walls in the current implementaion. "
-            "Invalid combination: wall '%s' and OV '%s'", wall->name.c_str(), ov->name.c_str());
+            "Invalid combination: wall '%s' and OV '%s'", wall->getCName(), ov->getCName());
 
     wall->setPrerequisites(pv);
     wallPrototypes.push_back( {wall, pv, maximumPartTravel} );
@@ -606,9 +606,9 @@ void Simulation::prepareBouncers()
         auto bouncer = prototype.bouncer;
         auto pv      = prototype.pv;
 
-        if (pvsIntegratorMap.find(pv->name) == pvsIntegratorMap.end())
+        if (pvsIntegratorMap.find(pv->getName()) == pvsIntegratorMap.end())
             die("Setting bouncer '%s': particle vector '%s' has no integrator, required for bounce back",
-                bouncer->name.c_str(), pv->name.c_str());
+                bouncer->getCName(), pv->getCName());
         
         auto& clVec = cellListMap[pv];
 
@@ -660,7 +660,7 @@ void Simulation::preparePlugins()
 {
     info("Preparing plugins");
     for (auto& pl : plugins) {
-        debug("Setup and handshake of plugin %s", pl->name.c_str());
+        debug("Setup and handshake of plugin %s", pl->getCName());
         pl->setup(this, cartComm, interComm);
         pl->handshake();
     }

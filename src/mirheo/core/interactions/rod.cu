@@ -29,7 +29,7 @@ RodInteraction::RodInteraction(const MirState *state, std::string name, RodParam
     if (mpark::holds_alternative<StatesParametersNone>(varSpinParams))
     {
         if (nstates != 1)
-            die("only one state supported for state_update = 'none' (while creating %s)", name.c_str());
+            die("only one state supported for state_update = 'none' (while creating %s)", getCName());
 
         impl = std::make_unique<RodInteractionImpl<1, StatesParametersNone>>
             (state, name, parameters, mpark::get<StatesParametersNone>(varSpinParams), saveEnergies);
@@ -37,7 +37,7 @@ RodInteraction::RodInteraction(const MirState *state, std::string name, RodParam
     else
     {
         if (nstates <= 1)
-            warn("using only one state for state_update != 'none' (while creating %s)", name.c_str());
+            warn("using only one state for state_update != 'none' (while creating %s)", getCName());
         
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
             if (nstates == Nstates) {                                   \
@@ -50,7 +50,7 @@ RodInteraction::RodInteraction(const MirState *state, std::string name, RodParam
         CHECK_IMPLEMENT(2); // 2 polymorphic states
         CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
 
-        die("'%s' : number of states %d is not implemented", name.c_str(), nstates);
+        die("'%s' : number of states %d is not implemented", getCName(), nstates);
     }
 }
 
@@ -71,7 +71,7 @@ void RodInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, 
 void RodInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     if (impl.get() == nullptr)
-        die("%s needs a concrete implementation, none was provided", name.c_str());
+        die("%s needs a concrete implementation, none was provided", getCName());
 
     impl->local(pv1, pv2, cl1, cl2, stream);
 }
@@ -82,7 +82,7 @@ void RodInteraction::halo(ParticleVector *pv1,
                           __UNUSED CellList *cl2,
                           __UNUSED cudaStream_t stream)
 {
-    debug("Not computing internal rod forces between local and halo rods of '%s'", pv1->name.c_str());
+    debug("Not computing internal rod forces between local and halo rods of '%s'", pv1->getCName());
 }
 
 bool RodInteraction::isSelfObjectInteraction() const

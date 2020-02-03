@@ -21,7 +21,7 @@ void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Co
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
 }
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
@@ -35,7 +35,7 @@ void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), dumpEvery)) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", getCName());
 
     for (auto& r : positions)
     {
@@ -47,7 +47,7 @@ void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
     
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, pv->name, positions);
+    SimpleSerializer::serialize(sendBuffer, timeStamp, pv->getName(), positions);
     send(sendBuffer);
 }
 

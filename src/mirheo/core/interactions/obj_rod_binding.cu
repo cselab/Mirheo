@@ -138,7 +138,7 @@ void ObjectRodBindingInteraction::local(ParticleVector *pv1, ParticleVector *pv2
     if      ((rov1 != nullptr) && (rv2 != nullptr)) return _local(rov1, rv2, stream);
     else if ((rov2 != nullptr) && (rv1 != nullptr)) return _local(rov2, rv1, stream);
 
-    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", name.c_str());
+    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", getCName());
 }
 
 void ObjectRodBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2,
@@ -153,7 +153,7 @@ void ObjectRodBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2,
     if      ((rov1 != nullptr) && (rv2 != nullptr)) return _halo(rov1, rv2, stream);
     else if ((rov2 != nullptr) && (rv1 != nullptr)) return _halo(rov2, rv1, stream);
 
-    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", name.c_str());    
+    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", getCName());    
 }
 
 

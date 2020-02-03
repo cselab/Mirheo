@@ -57,7 +57,7 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 
     if (wall == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
-            name.c_str(), wallName.c_str());
+            getCName(), wallName.c_str());
 }
 
 

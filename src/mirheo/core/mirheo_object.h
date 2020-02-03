@@ -18,9 +18,12 @@ namespace mirheo
 class MirObject
 {
 public:
-    MirObject(std::string name);
+    MirObject(const std::string& name);
     virtual ~MirObject();
 
+    const std::string& getName() const noexcept {return name_;}
+    const char* getCName() const {return name_.c_str();}
+    
     virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
 
@@ -29,7 +32,7 @@ public:
     void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
 
 public:
-    const std::string name;
+    const std::string name_;
 };
 
 /**

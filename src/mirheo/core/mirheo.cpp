@@ -251,7 +251,7 @@ void Mirheo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongi
     if (isComputeTask())
     {
         sim_->registerObjectBelongingChecker(checker);
-        sim_->setObjectBelongingChecker(checker->name, ov->name);
+        sim_->setObjectBelongingChecker(checker->getName(), ov->getName());
     }
 }
 
@@ -282,7 +282,7 @@ void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
     ensureNotInitialized();
     
     if (isComputeTask())
-        sim_->setIntegrator(integrator->name, pv->name);
+        sim_->setIntegrator(integrator->getName(), pv->getName());
 }
 
 void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
@@ -290,7 +290,7 @@ void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, Parti
     ensureNotInitialized();
     
     if (isComputeTask())
-        sim_->setInteraction(interaction->name, pv1->name, pv2->name);
+        sim_->setInteraction(interaction->getName(), pv1->getName(), pv2->getName());
 }
 
 void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
@@ -298,7 +298,7 @@ void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
     ensureNotInitialized();
     
     if (isComputeTask())
-        sim_->setBouncer(bouncer->name, ov->name, pv->name);
+        sim_->setBouncer(bouncer->getName(), ov->getName(), pv->getName());
 }
 
 void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, real maximumPartTravel)
@@ -306,7 +306,7 @@ void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, real maximumPartTrave
     ensureNotInitialized();
     
     if (isComputeTask())
-        sim_->setWallBounce(wall->name, pv->name, maximumPartTravel);
+        sim_->setWallBounce(wall->getName(), pv->getName(), maximumPartTravel);
 }
 
 MirState* Mirheo::getState()
@@ -350,7 +350,7 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, c
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim_->getWallByNameOrDie(wall->name);
+        sim_->getWallByNameOrDie(wall->getName());
     }
     
     WallHelpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->cartComm);
@@ -372,7 +372,7 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim_->getWallByNameOrDie(wall->name);
+        sim_->getWallByNameOrDie(wall->getName());
     }
 
     return WallHelpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->cartComm, nSamplesPerRank);
@@ -406,9 +406,9 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
-        sim_->getWallByNameOrDie(wall->name);
+        sim_->getWallByNameOrDie(wall->getName());
 
-        info("Working with wall '%s'", wall->name.c_str());   
+        info("Working with wall '%s'", wall->getCName());   
     }
 
     MirState stateCpy = *getState();
@@ -423,11 +423,11 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     
     wallsim.registerIntegrator(integrator);
     
-    wallsim.setIntegrator (integrator->name,  pv->name);
+    wallsim.setIntegrator (integrator->getName(),  pv->getName());
 
     for (auto& interaction : interactions) {
         wallsim.registerInteraction(interaction);        
-        wallsim.setInteraction(interaction->name, pv->name, pv->name);
+        wallsim.setInteraction(interaction->getName(), pv->getName(), pv->getName());
     }
     
     wallsim.init();
@@ -466,16 +466,16 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     
     if (!isComputeTask()) return nullptr;
 
-    auto insideName = "inside_" + shape->name;
+    auto insideName = "inside_" + shape->getName();
     
-    info("Generating frozen particles for rigid object '%s'...\n\n", shape->name.c_str());
+    info("Generating frozen particles for rigid object '%s'...\n\n", shape->getCName());
 
     if (shape->local()->nObjects > 1)
         die("expected no more than one object vector; given %d", shape->local()->nObjects);
     
 
     const real mass = 1.0_r;
-    auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->name, mass);
+    auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->getName(), mass);
     auto ic = std::make_shared<UniformIC>(density);
 
     MirState stateCpy = *getState();
@@ -486,11 +486,11 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
         eqsim.registerParticleVector(pv, ic);
 
         eqsim.registerIntegrator(integrator);
-        eqsim.setIntegrator (integrator->name,  pv->name);
+        eqsim.setIntegrator (integrator->getName(),  pv->getName());
         
         for (auto& interaction : interactions) {
             eqsim.registerInteraction(interaction);        
-            eqsim.setInteraction(interaction->name, pv->name, pv->name);
+            eqsim.setInteraction(interaction->getName(), pv->getName(), pv->getName());
         }               
     
         eqsim.init();
@@ -502,8 +502,8 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     freezesim.registerParticleVector(pv, nullptr);
     freezesim.registerParticleVector(shape, icShape);
     freezesim.registerObjectBelongingChecker (checker);
-    freezesim.setObjectBelongingChecker(checker->name, shape->name);
-    freezesim.applyObjectBelongingChecker(checker->name, pv->name, insideName, pv->name, 0);
+    freezesim.setObjectBelongingChecker(checker->getName(), shape->getName());
+    freezesim.applyObjectBelongingChecker(checker->getName(), pv->getName(), insideName, pv->getName(), 0);
 
     freezesim.init();
     freezesim.run(1);
@@ -526,22 +526,22 @@ std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelong
     
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
         die("One and only one option can be specified for belonging checker '%s': inside or outside",
-            checker->name.c_str());
+            checker->getCName());
     
     std::string newPVname;
     
     if (inside == "")
     {
-        inside = pv->name;
+        inside = pv->getName();
         newPVname = outside;
     }
     if (outside == "")
     {
-        outside = pv->name;
+        outside = pv->getName();
         newPVname = inside;
     }
         
-    sim_->applyObjectBelongingChecker(checker->name, pv->name, inside, outside, checkEvery);
+    sim_->applyObjectBelongingChecker(checker->getName(), pv->getName(), inside, outside, checkEvery);
     return sim_->getSharedPVbyName(newPVname);
 }
 

@@ -95,7 +95,7 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
 {
     auto rv = dynamic_cast<RodVector*> (ov);
     if (rv == nullptr)
-        die("Rod belonging can only be used with rod objects (%s is not)", ov->name.c_str());
+        die("Rod belonging can only be used with rod objects (%s is not)", ov->getCName());
 
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
@@ -110,7 +110,7 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
 
         debug("Computing inside/outside tags for %d %s rods '%s' and %d '%s' particles",
               rvView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              ov->getCName(), pv->local()->size(), pv->getCName());
 
         const int totNumSegments = rvView.nObjects * numSegmentsPerRod;
         constexpr int nthreads = 128;

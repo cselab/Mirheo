@@ -54,7 +54,7 @@ void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream
     
     if (helper->send.sizes[bulkId] != 0)
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
-            "working with particle vector '%s'", helper->name.c_str());
+              "working with particle vector '%s'", helper->name.c_str());
 
     // copy (not swap) as we may need sizes from other classes
     helper->recv.sizes       .copy(helper->send.sizes,        stream);

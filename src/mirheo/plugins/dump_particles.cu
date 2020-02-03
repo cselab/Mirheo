@@ -61,7 +61,7 @@ void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     pv = simulation->getPVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
 }
 
 void ParticleSenderPlugin::handshake()
@@ -104,7 +104,7 @@ void ParticleSenderPlugin::handshake()
         else
         {
             die("Channel not found: '%s' in particle vector '%s'",
-                name.c_str(), pv->name.c_str());
+                getCName(), pv->getCName());
         }
     }
 
@@ -207,7 +207,7 @@ void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
         else
         {
             die("Channel not found: '%s' in particle vector '%s'",
-                name.c_str(), pv->name.c_str());
+                getCName(), pv->getCName());
         }
     }
 }
@@ -216,7 +216,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), dumpEvery)) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", getCName());
     
     for (auto& p : positions)
     {
@@ -226,7 +226,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
     
-    debug2("Plugin %s is packing now data consisting of %d particles", name.c_str(), positions.size());
+    debug2("Plugin %s is packing now data consisting of %d particles", getCName(), positions.size());
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, timeStamp, getState()->currentTime, positions, velocities, channelData);
     send(sendBuffer);
@@ -283,7 +283,7 @@ void ParticleDumperPlugin::handshake()
     createFoldersCollective(comm, parentPath(path));
 
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s",
-           name.c_str(), allNames.c_str(), path.c_str());
+           getCName(), allNames.c_str(), path.c_str());
 }
 
 static void unpackParticles(const std::vector<real4> &pos4, const std::vector<real4> &vel4,
@@ -319,7 +319,7 @@ void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::St
 
 void ParticleDumperPlugin::deserialize()
 {
-    debug2("Plugin '%s' will dump right now", name.c_str());
+    debug2("Plugin '%s' will dump right now", getCName());
 
     MirState::TimeType time;
     MirState::StepType timeStamp;

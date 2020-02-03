@@ -60,8 +60,8 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
     auto lrsov = rsov->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s': objects (%s)",
-          pv->local()->size(), pv->name.c_str(),
-          lrsov->nObjects, rsov->name.c_str(),
+          pv->local()->size(), pv->getCName(),
+          lrsov->nObjects, rsov->getCName(),
           getParticleVectorLocalityStr(locality).c_str());
 
     ov_->findExtentAndCOM(stream, locality);

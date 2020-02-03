@@ -144,7 +144,7 @@ void CellList::_initialize()
     cellStarts.clear(defaultStream);
     CUDA_Check( cudaStreamSynchronize(defaultStream) );
 
-    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->name.c_str(), ncells.x, ncells.y, ncells.z, rc);
+    debug("Initialized %s cell-list with %dx%dx%d cells and cut-off %f", pv->getCName(), ncells.x, ncells.y, ncells.z, rc);
 }
 
 CellList::~CellList() = default;
@@ -220,7 +220,7 @@ void CellList::_computeCellStarts(cudaStream_t stream)
 
 void CellList::_reorderPositionsAndCreateMap(cudaStream_t stream)
 {
-    debug2("Reordering %d %s particles", pv->local()->size(), pv->name.c_str());
+    debug2("Reordering %d %s particles", pv->local()->size(), pv->getCName());
 
     PVview view(pv, pv->local());
 
@@ -379,7 +379,7 @@ LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
 
 std::string CellList::makeName() const
 {
-    return "Cell List '" + pv->name + "' (rc " + std::to_string(rc) + ")";
+    return "Cell List '" + pv->getName() + "' (rc " + std::to_string(rc) + ")";
 }
 
 
@@ -416,7 +416,7 @@ void PrimaryCellList::build(cudaStream_t stream)
 
     if (pv->local()->size() == 0)
     {
-        debug2("%s consists of no particles, cell-list building skipped", pv->name.c_str());
+        debug2("%s consists of no particles, cell-list building skipped", pv->getCName());
         return;
     }
     
@@ -426,7 +426,7 @@ void PrimaryCellList::build(cudaStream_t stream)
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     debug2("%s : reordering completed, new size of %s particle vector is %d",
-           makeName().c_str(), pv->name.c_str(), newSize);
+           makeName().c_str(), pv->getCName(), newSize);
 
     particlesDataContainer->resize(newSize, stream);
 

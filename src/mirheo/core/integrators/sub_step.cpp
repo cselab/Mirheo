@@ -23,19 +23,19 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
     std::string ffNames = "";
 
     if (fastForces_.size() == 0)
-        die("Integrator '%s' needs at least one integration", name.c_str());
+        die("Integrator '%s' needs at least one integration", getCName());
     
     for (auto ff : fastForces_)
     {
         if (!ff->isSelfObjectInteraction())
             die("IntegratorSubStep '%s': expects a self-interaction (given '%s').",
-                name.c_str(), ff->name.c_str());
+                getCName(), ff->getCName());
 
-        ffNames += "'" + ff->name + "' ";
+        ffNames += "'" + ff->getName() + "' ";
     }
 
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
-          name.c_str(), substeps_, subIntegrator_->name.c_str(), ffNames.c_str());
+          getCName(), substeps_, subIntegrator_->getCName(), ffNames.c_str());
 
     updateSubState_();
     

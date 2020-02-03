@@ -290,7 +290,7 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
 
         allErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
                                identifier.c_str(),
-                               pv->name.c_str(), p.getId(),
+                               pv->getCName(), p.getId(),
                                lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
                                p.u.x, p.u.y, p.u.z, infoStr.c_str());
 
@@ -318,7 +318,7 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
         const auto infoStr = infoToStr(rovStatus.info);
         
         allErrors += strprintf("\n\tBad %s in rov '%s' : %s\n",
-                               identifier.c_str(), rov->name.c_str(), infoStr.c_str());
+                               identifier.c_str(), rov->getCName(), infoStr.c_str());
 
         allErrors += listOtherFieldValues(lrov->dataPerObject, rovId);
         

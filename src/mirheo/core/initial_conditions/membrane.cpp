@@ -57,7 +57,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     lov->computeGlobalIds(comm, stream);
     lov->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(ov->local()->positions(), stream);
 
-    info("Initialized %d '%s' membranes", nObjsLocal, ov->name.c_str());
+    info("Initialized %d '%s' membranes", nObjsLocal, ov->getCName());
 }
 
 std::vector<int> MembraneIC::createMap(DomainInfo domain) const

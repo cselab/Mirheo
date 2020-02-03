@@ -6,15 +6,15 @@
 namespace mirheo
 {
 
-MirObject::MirObject(std::string name) :
-    name(name)
+MirObject::MirObject(const std::string& name) :
+    name_(name)
 {
-    debug4("Creating object '%s'", name.c_str());
+    debug4("Creating object '%s'", name_.c_str());
 }
 
 MirObject::~MirObject()
 {
-    debug4("Destroying object '%s'", name.c_str());
+    debug4("Destroying object '%s'", name_.c_str());
 }
 
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
@@ -39,14 +39,14 @@ static std::string createBaseName(const std::string& path,
 
 std::string MirObject::createCheckpointName(const std::string& path, const std::string& identifier, const std::string& extension) const
 {
-    auto base = createBaseName(path, name, identifier);
+    std::string base = createBaseName(path, getName(), identifier);
     appendIfNonEmpty(base, extension);
     return base;
 }
 
 std::string MirObject::createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const
 {
-    auto base = createBaseName(path, name, identifier);
+    auto base = createBaseName(path, getName(), identifier);
     base += "-" + getStrZeroPadded(checkpointId);
     appendIfNonEmpty(base, extension);
     return base;

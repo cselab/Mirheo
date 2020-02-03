@@ -80,7 +80,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     relativeOV = simulation->getOVbyNameOrDie(relativeOVname);
 
     if ( !relativeOV->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
-        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->name.c_str());
+        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->getCName());
 
     int locsize = relativeOV->local()->nObjects;
     int totsize;
@@ -89,7 +89,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 
     if (rank == 0 && relativeID >= totsize)
         die("Too few objects in OV '%s' (only %d); but requested id %d",
-            relativeOV->name.c_str(), totsize, relativeID);
+            relativeOV->getCName(), totsize, relativeID);
 }
 
 void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream)
@@ -112,7 +112,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     
     if (!isTimeEvery(getState(), sampleEvery)) return;
 
-    debug2("Plugin %s is sampling now", name.c_str());
+    debug2("Plugin %s is sampling now", getCName());
 
     real3 relativeParams[2] = {make_real3(0.0_r), make_real3(0.0_r)};
 
@@ -233,7 +233,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery) - 1; // -1 to start from 0
 
-    debug2("Plugin '%s' is now packing the data", name.c_str());
+    debug2("Plugin '%s' is now packing the data", getCName());
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, getState()->currentTime, timeStamp, localNumberDensity, localChannels);
     send(sendBuffer);

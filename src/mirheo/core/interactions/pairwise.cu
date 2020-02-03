@@ -221,7 +221,7 @@ static void setSpecificFromKernel(const KernelType& kernel, const VarStressParam
     {
         if (auto ptr = dynamic_cast<PairwiseInteractionWithStressImpl<KernelType>*>(info.impl))
         {
-            ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
+            ptr->setSpecificPair(info.pv1->getName(), info.pv2->getName(), kernel);
         }
         else
         {
@@ -232,7 +232,7 @@ static void setSpecificFromKernel(const KernelType& kernel, const VarStressParam
     {
         if (auto ptr = dynamic_cast<PairwiseInteractionImpl<KernelType>*>(info.impl))
         {
-            ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
+            ptr->setSpecificPair(info.pv1->getName(), info.pv2->getName(), kernel);
         }
         else
         {
@@ -249,7 +249,7 @@ static void setSpecificFromKernelNoStress(const KernelType& kernel, const VarStr
 
     if (auto ptr = dynamic_cast<PairwiseInteractionImpl<KernelType>*>(info.impl))
     {
-        ptr->setSpecificPair(info.pv1->name, info.pv2->name, kernel);
+        ptr->setSpecificPair(info.pv1->getName(), info.pv2->getName(), kernel);
     }
     else
     {

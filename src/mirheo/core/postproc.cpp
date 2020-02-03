@@ -22,7 +22,7 @@ Postprocess::~Postprocess() = default;
 
 void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag)
 {
-    info("New plugin registered: %s", plugin->name.c_str());
+    info("New plugin registered: %s", plugin->getCName());
     plugin->setTag(tag);
     plugins.push_back( std::move(plugin) );
 }
@@ -31,7 +31,7 @@ void Postprocess::init()
 {
     for (auto& pl : plugins)
     {
-        debug("Setup and handshake of %s", pl->name.c_str());
+        debug("Setup and handshake of %s", pl->getCName());
         pl->setup(comm, interComm);
         pl->handshake();
     }
@@ -111,7 +111,7 @@ void Postprocess::run()
             }
             else
             {
-                debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->name.c_str());
+                debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->getCName());
                 plugins[index]->recv();
                 plugins[index]->deserialize();
                 requests[index] = plugins[index]->waitData();

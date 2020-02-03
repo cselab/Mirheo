@@ -44,7 +44,7 @@ void MagneticOrientationPlugin::setup(Simulation *simulation, const MPI_Comm& co
     rov = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName) );
     if (rov == nullptr)
         die("Need rigid object vector to interact with magnetic field, plugin '%s', OV name '%s'",
-            name.c_str(), rovName.c_str());
+            getCName(), rovName.c_str());
 }
 
 void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)

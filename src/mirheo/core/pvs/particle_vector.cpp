@@ -253,7 +253,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
 
     auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s",
-         name.c_str(), filename.c_str());
+         getCName(), filename.c_str());
 
     auto& pos4 = local()->positions ();
     auto& vel4 = local()->velocities();
@@ -293,7 +293,7 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
 
     createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
     
-    debug("Checkpoint for particle vector '%s' successfully written", name.c_str());
+    debug("Checkpoint for particle vector '%s' successfully written", getCName());
 }
 
 ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, const std::string& path,
@@ -302,7 +302,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     CUDA_Check( cudaDeviceSynchronize() );
     
     const auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
-    info("Restarting particle data from file %s", name.c_str(), filename.c_str());
+    info("Restarting particle data from file %s", getCName(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, chunkSize);
 

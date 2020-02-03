@@ -164,7 +164,7 @@ void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream
 
         debug("Computing inside/outside tags (against mesh) for %d %s objects '%s' and %d '%s' particles",
               view.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              ov->getCName(), pv->local()->size(), pv->getCName());
 
         constexpr int nthreads = 128;
         constexpr int warpsPerObject = 1024;

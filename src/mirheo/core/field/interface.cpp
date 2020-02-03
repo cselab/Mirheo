@@ -35,7 +35,7 @@ const FieldDeviceHandler& Field::handler() const
 
 void Field::setupArrayTexture(const float *fieldDevPtr)
 {
-    debug("setting up cuda array and texture object for field '%s'", name.c_str());
+    debug("setting up cuda array and texture object for field '%s'", getCName());
     
     // Prepare array to be transformed into texture
     auto chDesc = cudaCreateChannelDesc<float>();

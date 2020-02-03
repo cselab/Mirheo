@@ -61,7 +61,7 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
 {
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*> (ov);
     if (rsov == nullptr)
-        die("%s belonging can only be used with %s objects (%s is not)", Shape::desc, Shape::desc, ov->name.c_str());
+        die("%s belonging can only be used with %s objects (%s is not)", Shape::desc, Shape::desc, ov->getCName());
 
     tags.resize_anew(pv->local()->size());
     tags.clearDevice(stream);
@@ -76,7 +76,7 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
 
         debug("Computing inside/outside tags for %d %s %s '%s' and %d '%s' particles",
               rsovView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              Shape::desc, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              Shape::desc, ov->getCName(), pv->local()->size(), pv->getCName());
 
         constexpr int nthreads = 512;
 

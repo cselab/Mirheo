@@ -46,18 +46,18 @@ static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector
 {
     pvNames.reserve(pvs.size());
     for (auto &pv : pvs)
-        pvNames.push_back(pv->name);
+        pvNames.push_back(pv->getName());
 }
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
-    auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->name, force) : nullptr;
+    auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
     return { simPl, nullptr };
 }
 
 PairPlugin createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque)
 {
-    auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->name, torque) : nullptr;
+    auto simPl = computeTask ? std::make_shared<AddTorquePlugin> (state, name, pv->getName(), torque) : nullptr;
     return { simPl, nullptr };
 }
 
@@ -67,7 +67,7 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
                                        std::vector<int> pids, int reportEvery, const std::string& path)
 {
     auto simPl = computeTask ?
-        std::make_shared<AnchorParticlesPlugin> (state, name, pv->name,
+        std::make_shared<AnchorParticlesPlugin> (state, name, pv->getName(),
                                                  positions, velocities,
                                                  pids, reportEvery)
         : nullptr;
@@ -168,7 +168,7 @@ PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *sta
     auto simPl  = computeTask ?
         std::make_shared<AverageRelative3D> (state, name, pvNames,
                                              channelNames, sampleEvery, dumpEvery,
-                                             binSize, relativeToOV->name, relativeToId) :
+                                             binSize, relativeToOV->getName(), relativeToId) :
         nullptr;
 
     auto postPl = computeTask ? nullptr : std::make_shared<UniformCartesianDumper> (name, path);
@@ -178,7 +178,7 @@ PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *sta
 
 PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<MeshPlugin> (state, name, ov->name, dumpEvery) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<MeshPlugin> (state, name, ov->getName(), dumpEvery) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<MeshDumper> (name, path);
 
     return { simPl, postPl };
@@ -187,7 +187,7 @@ PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::st
 PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
                                      const std::vector<std::string>& channelNames, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->name, dumpEvery, channelNames) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleSenderPlugin> (state, name, pv->getName(), dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleDumperPlugin> (name, path);
 
     return { simPl, postPl };
@@ -196,7 +196,7 @@ PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, st
 PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->name, dumpEvery, channelNames) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->getName(), dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithMeshDumperPlugin> (name, path);
 
     return { simPl, postPl };
@@ -204,7 +204,7 @@ PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *s
 
 PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<XYZPlugin> (state, name, pv->name, dumpEvery) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<XYZPlugin> (state, name, pv->getName(), dumpEvery) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<XYZDumper> (name, path);
 
     return { simPl, postPl };
@@ -212,7 +212,7 @@ PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::str
 
 PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ObjStatsPlugin> (state, name, ov->name, dumpEvery) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ObjStatsPlugin> (state, name, ov->getName(), dumpEvery) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, path);
 
     return { simPl, postPl };
@@ -221,14 +221,14 @@ PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::stri
 PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv1, ParticleVector *pv2, real4 plane)
 {
     auto simPl = computeTask ?
-        std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->name, pv2->name, plane) : nullptr;
+        std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->getName(), pv2->getName(), plane) : nullptr;
         
     return { simPl, nullptr };    
 }
 
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv)
 {
-    auto simPl = computeTask ? std::make_shared<ForceSaverPlugin> (state, name, pv->name) : nullptr;
+    auto simPl = computeTask ? std::make_shared<ForceSaverPlugin> (state, name, pv->getName()) : nullptr;
     return { simPl, nullptr };
 }
 
@@ -236,7 +236,7 @@ PairPlugin createImposeProfilePlugin(bool computeTask,  const MirState *state, s
                                      real3 low, real3 high, real3 velocity, real kBT)
 {
     auto simPl = computeTask ?
-        std::make_shared<ImposeProfilePlugin> (state, name, pv->name, low, high, velocity, kBT) :
+        std::make_shared<ImposeProfilePlugin> (state, name, pv->getName(), low, high, velocity, kBT) :
         nullptr;
             
     return { simPl, nullptr };
@@ -260,7 +260,7 @@ PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *sta
                                            std::function<real3(real)> magneticFunction)
 {
     auto simPl = computeTask ?
-        std::make_shared<MagneticOrientationPlugin>(state, name, rov->name, moment, magneticFunction)
+        std::make_shared<MagneticOrientationPlugin>(state, name, rov->getName(), moment, magneticFunction)
         : nullptr;
 
     return { simPl, nullptr };
@@ -269,7 +269,7 @@ PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *sta
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces)
 {
     auto simPl = computeTask ?
-        std::make_shared<MembraneExtraForcePlugin> (state, name, pv->name, forces) : nullptr;
+        std::make_shared<MembraneExtraForcePlugin> (state, name, pv->getName(), forces) : nullptr;
 
     return { simPl, nullptr };
 }
@@ -283,7 +283,7 @@ PairPlugin createObjectPortalDestination(bool computeTask, const MirState *state
 
     MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
     auto simPl = std::make_shared<ObjectPortalDestination> (
-                                                            state, name, ov->name, src, dst, size, tag, interComm);
+                                                            state, name, ov->getName(), src, dst, size, tag, interComm);
     return { std::move(simPl), nullptr };
 }
 
@@ -296,7 +296,7 @@ PairPlugin createObjectPortalSource(bool computeTask, const MirState *state, std
 
     MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
     auto simPl = std::make_shared<ObjectPortalSource> (
-                                                       state, name, ov->name, src, dst, size, plane, tag, interComm);
+                                                       state, name, ov->getName(), src, dst, size, plane, tag, interComm);
     return { std::move(simPl), nullptr };
 }
 
@@ -306,13 +306,13 @@ PairPlugin createObjectToParticlesPlugin(bool computeTask, const MirState *state
     if (!computeTask)
         return { nullptr, nullptr };
 
-    return { std::make_shared<ObjectToParticlesPlugin> (state, name, ov->name, pv->name, plane), nullptr };
+    return { std::make_shared<ObjectToParticlesPlugin> (state, name, ov->getName(), pv->getName(), plane), nullptr };
 }
 
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName)
 {
-    auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->name, channelName, savedName) : nullptr;
+    auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->getName(), channelName, savedName) : nullptr;
     return { simPl, nullptr };
 }
 
@@ -325,7 +325,7 @@ PairPlugin createParticleCheckerPlugin(bool computeTask, const MirState *state, 
 PairPlugin createParticleDisplacementPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int updateEvery)
 {
     auto simPl = computeTask ?
-        std::make_shared<ParticleDisplacementPlugin> (state, name, pv->name, updateEvery) :
+        std::make_shared<ParticleDisplacementPlugin> (state, name, pv->getName(), updateEvery) :
         nullptr;
     return { simPl, nullptr };
 }
@@ -333,7 +333,7 @@ PairPlugin createParticleDisplacementPlugin(bool computeTask, const MirState *st
 PairPlugin createParticleDragPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real drag)
 {
     auto simPl = computeTask ?
-        std::make_shared<ParticleDragPlugin> (state, name, pv->name, drag) :
+        std::make_shared<ParticleDragPlugin> (state, name, pv->getName(), drag) :
         nullptr;
     return { simPl, nullptr };
 }
@@ -343,7 +343,7 @@ PairPlugin createParticlePortalDestination(bool computeTask, const MirState *sta
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalDestination> (
-                                                                            state, name, pv->name, src, dst, size, tag, comm) : nullptr;
+                                                                            state, name, pv->getName(), src, dst, size, tag, comm) : nullptr;
     return { std::move(simPl), nullptr };
 }
 
@@ -352,7 +352,7 @@ PairPlugin createParticlePortalSource(bool computeTask, const MirState *state, s
 {
     MPI_Comm comm = *((MPI_Comm *)comm_ptr);
     auto simPl = computeTask ? std::make_shared<ParticlePortalSource> (
-                                                                       state, name, pv->name, src, dst, size, tag, comm) : nullptr;
+                                                                       state, name, pv->getName(), src, dst, size, tag, comm) : nullptr;
     return { std::move(simPl), nullptr };
 }
 
@@ -361,7 +361,7 @@ const real PinObjectMock::Unrestricted = PinObjectPlugin::Unrestricted;
 PairPlugin createPinObjPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,
                               int dumpEvery, std::string path, real3 velocity, real3 omega)
 {
-    auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (state, name, ov->name, velocity, omega, dumpEvery) : 
+    auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (state, name, ov->getName(), velocity, omega, dumpEvery) : 
         nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ReportPinObjectPlugin> (name, path);
 
@@ -372,7 +372,7 @@ PairPlugin createPinRodExtremityPlugin(bool computeTask, const MirState *state, 
                                        real fmagn, real3 targetDirection)
 {
     auto simPl  = computeTask ?
-        std::make_shared<PinRodExtremityPlugin> (state, name, rv->name, segmentId, fmagn, targetDirection) : 
+        std::make_shared<PinRodExtremityPlugin> (state, name, rv->getName(), segmentId, fmagn, targetDirection) : 
         nullptr;
 
     return { simPl, nullptr };
@@ -427,14 +427,14 @@ PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::strin
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity)
 {
-    auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->name, kBT, keepVelocity) : nullptr;
+    auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->getName(), kBT, keepVelocity) : nullptr;
     return { simPl, nullptr };
 }
 
 PairPlugin createVirialPressurePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                       std::function<real(real3)> region, real3 h, int dumpEvery, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->name, region, h, dumpEvery)
+    auto simPl  = computeTask ? std::make_shared<VirialPressurePlugin> (state, name, pv->getName(), region, h, dumpEvery)
         : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<VirialPressureDumper> (name, path);
     return { simPl, postPl };
@@ -446,7 +446,7 @@ PairPlugin createVelocityInletPlugin(bool computeTask, const MirState *state, st
                                      real3 resolution, real numberDensity, real kBT)
 {
     auto simPl  = computeTask ?
-        std::make_shared<VelocityInletPlugin> (state, name, pv->name,
+        std::make_shared<VelocityInletPlugin> (state, name, pv->getName(),
                                                implicitSurface, velocityField,
                                                make_real3(resolution),
                                                numberDensity, kBT)
@@ -458,7 +458,7 @@ PairPlugin createVelocityInletPlugin(bool computeTask, const MirState *state, st
 PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, Wall* wall,
                                      real C, real h, real maxForce)
 {
-    auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (state, name, pv->name, wall->name, C, h, maxForce) : nullptr;
+    auto simPl = computeTask ? std::make_shared<WallRepulsionPlugin> (state, name, pv->getName(), wall->getName(), C, h, maxForce) : nullptr;
     return { simPl, nullptr };
 }
 
@@ -466,7 +466,7 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
                                           int sampleEvery, int dumpEvery, std::string filename)
 {
     auto simPl = computeTask ?
-        std::make_shared<WallForceCollectorPlugin> (state, name, wall->name, pvFrozen->name, sampleEvery, dumpEvery) :
+        std::make_shared<WallForceCollectorPlugin> (state, name, wall->getName(), pvFrozen->getName(), sampleEvery, dumpEvery) :
         nullptr;
 
     auto postPl = computeTask ?

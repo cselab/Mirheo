@@ -61,14 +61,14 @@ void UniformCartesianDumper::handshake()
             case 6: channels.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, names[i])); break;
 
             default:
-                die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", name.c_str(), sizes[i], names[i].c_str());
+                die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", getCName(), sizes[i], names[i].c_str());
         }
     }
     
     // Create the required folder
     createFoldersCollective(comm, parentPath(path));
 
-    debug2("Plugin %s was set up to dump channels %s. Resolution is %dx%dx%d, path is %s", name.c_str(),
+    debug2("Plugin %s was set up to dump channels %s. Resolution is %dx%dx%d, path is %s", getCName(),
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path.c_str());
 }
 
@@ -86,7 +86,7 @@ void UniformCartesianDumper::deserialize()
     SimpleSerializer::deserialize(data, t, timeStamp, recvNumberDnsity, recvContainers);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
-           name.c_str(), t, timeStamp);
+           getCName(), t, timeStamp);
 
     convert(recvNumberDnsity, numberDnsity);    
     channels[0].data = numberDnsity.data();
@@ -109,7 +109,7 @@ XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const
         if (ch.name == chname)
             return ch;
         
-    die("No such channel in plugin '%s' : '%s'", name.c_str(), chname.c_str());
+    die("No such channel in plugin '%s' : '%s'", getCName(), chname.c_str());
    
    // Silence the noreturn warning
    return channels[0];

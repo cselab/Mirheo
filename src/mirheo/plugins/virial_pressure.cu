@@ -57,7 +57,7 @@ void VirialPressurePlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 
     region.setup(comm);
 
-    info("Plugin %s initialized for the following particle vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
 }
 
 void VirialPressurePlugin::handshake()
@@ -93,7 +93,7 @@ void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!needToSend) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", getCName());
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, savedTime, localVirialPressure[0]);

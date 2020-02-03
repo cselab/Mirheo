@@ -97,7 +97,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
         pvs.push_back(simulation->getPVbyNameOrDie(pvName));
 
     if (pvs.size() == 0)
-        die("Plugin '%s' needs at least one particle vector", name.c_str());
+        die("Plugin '%s' needs at least one particle vector", getCName());
 
     const LocalParticleVector *lpv = pvs[0]->local();
     
@@ -151,7 +151,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     channelsInfo.types       .uploadToDevice(defaultStream);
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
-         name.c_str(), pvs.size(), allChannels.c_str(),
+         getCName(), pvs.size(), allChannels.c_str(),
          resolution.x, resolution.y, resolution.z);
 }
 
@@ -202,7 +202,7 @@ void Average3D::afterIntegration(cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), sampleEvery)) return;
 
-    debug2("Plugin %s is sampling now", name.c_str());
+    debug2("Plugin %s is sampling now", getCName());
 
     for (auto& pv : pvs)
         sampleOnePv(pv, stream);
@@ -253,7 +253,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery) - 1;  // -1 to start from 0
     
-    debug2("Plugin '%s' is now packing the data", name.c_str());
+    debug2("Plugin '%s' is now packing the data", getCName());
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, getState()->currentTime, timeStamp, accumulatedNumberDensity, accumulatedAverage);
     send(sendBuffer);

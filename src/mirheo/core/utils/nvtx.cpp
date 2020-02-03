@@ -25,7 +25,7 @@ NvtxTracer::NvtxTracer(const std::string& name)
     event.colorType     = NVTX_COLOR_ARGB;
     event.color         = NvtxHelpers::colors[color_id];
     event.messageType   = NVTX_MESSAGE_TYPE_ASCII;
-    event.message.ascii = name.c_str();
+    event.message.ascii = getCName();
 
     id = nvtxRangeStartEx(&event);
 }

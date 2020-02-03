@@ -271,7 +271,7 @@ void DensityControlPlugin::applyForces(cudaStream_t stream)
 
 void DensityControlPlugin::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
-    const auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt", checkpointId);
+    const auto filename = createCheckpointNameWithId(path, "plugin." + getName(), "txt", checkpointId);
 
     {
         std::ofstream fout(filename);
@@ -279,12 +279,12 @@ void DensityControlPlugin::checkpoint(MPI_Comm comm, const std::string& path, in
             fout << pid << std::endl;
     }
     
-    createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
+    createCheckpointSymlink(comm, path, "plugin." + getName(), "txt", checkpointId);
 }
 
 void DensityControlPlugin::restart(__UNUSED MPI_Comm comm, const std::string& path)
 {
-    const auto filename = createCheckpointName(path, "plugin." + name, "txt");
+    const auto filename = createCheckpointName(path, "plugin." + getName(), "txt");
 
     std::ifstream fin(filename);
 

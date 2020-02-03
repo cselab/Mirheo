@@ -272,7 +272,7 @@ void exportInteractions(py::module& m)
     
     pyIntPairwise.def("setSpecificPair", [](PairwiseInteraction *self, ParticleVector *pv1, ParticleVector *pv2, py::kwargs kwargs)
     {
-        auto params = castToMap(kwargs, self->name);
+        auto params = castToMap(kwargs, self->getName());
         self->setSpecificPair(pv1, pv2, params);
     }, "pv1"_a, "pv2"_a, R"(
         Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.

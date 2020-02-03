@@ -101,7 +101,7 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector *pv)
 {
     auto ov = dynamic_cast<RigidObjectVector*> (pv);
     if (ov == nullptr)
-        die("Rigid integration only works with rigid objects, can't work with %s", pv->name.c_str());
+        die("Rigid integration only works with rigid objects, can't work with %s", pv->getCName());
 
     ov->requireDataPerObject<RigidMotion>(ChannelNames::oldMotions, DataManager::PersistenceMode::None);
     // warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
@@ -130,7 +130,7 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
-          rov->local()->nObjects, rov->name.c_str(), rov->local()->size(), dt);
+          rov->local()->nObjects, rov->getCName(), rov->local()->size(), dt);
 
     const ROVviewWithOldMotion rovView(rov, rov->local());
 

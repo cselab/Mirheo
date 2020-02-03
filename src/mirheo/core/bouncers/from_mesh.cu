@@ -82,8 +82,8 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
     auto activeOV = ov_->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
-          pv->local()->size(), pv->name.c_str(),
-          activeOV->nObjects,  ov_->name.c_str(),
+          pv->local()->size(), pv->getCName(),
+          activeOV->nObjects,  ov_->getCName(),
           getParticleVectorLocalityStr(locality).c_str());
 
     ov_->findExtentAndCOM(stream, locality);

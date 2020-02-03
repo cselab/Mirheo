@@ -140,7 +140,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
 
     auto filename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s",
-         name.c_str(), filename.c_str());
+         getCName(), filename.c_str());
 
     auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
@@ -196,7 +196,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
     writeInitialPositions(comm, filename, initialPositions);
     createCheckpointSymlink(comm, path, RestartIPIdentifier, "coords", checkpointId);
 
-    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
+    debug("Checkpoint for object vector '%s' successfully written", getCName());
 }
 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -206,7 +206,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, RestartROVIdentifier, "xmf");
-    info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
+    info("Restarting rigid object vector %s from file %s", getCName(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
@@ -240,7 +240,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     filename = createCheckpointName(path, RestartIPIdentifier, "coords");
     initialPositions = readInitialPositions(comm, filename, objSize);
 
-    info("Successfully read object infos of '%s'", name.c_str());
+    info("Successfully read object infos of '%s'", getCName());
 }
 
 } // namespace mirheo

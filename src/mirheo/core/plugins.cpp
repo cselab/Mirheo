@@ -62,13 +62,13 @@ void SimulationPlugin::serializeAndSend (__UNUSED cudaStream_t stream) {}
 
 void SimulationPlugin::setup(__UNUSED Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", name.c_str(), _sizeTag(), _dataTag());
+    debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
     _setup(comm, interComm);
 }
 
 void SimulationPlugin::finalize()
 {
-    debug3("Plugin %s is finishing all the communications", name.c_str());
+    debug3("Plugin %s is finishing all the communications", getCName());
     waitPrevSend();
 }
 
@@ -93,7 +93,7 @@ void SimulationPlugin::send(const void *data, size_t sizeInBytes)
 
     waitPrevSend();
         
-    debug2("Plugin '%s' is sending the data (%d bytes)", name.c_str(), sizeInBytes);
+    debug2("Plugin '%s' is sending the data (%d bytes)", getCName(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize, 1, MPI_INT,  rank, _sizeTag(), interComm, &sizeReq) );
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank, _dataTag(), interComm, &dataReq) );
 }
@@ -126,16 +126,16 @@ void PostprocessPlugin::recv()
 
     if (count != size)
         error("Plugin '%s' was going to receive %d bytes, but actually got %d. That may be fatal",
-              name.c_str(), size, count);
+              getCName(), size, count);
 
-    debug3("Plugin '%s' has received the data (%d bytes)", name.c_str(), count);
+    debug3("Plugin '%s' has received the data (%d bytes)", getCName(), count);
 }
 
 void PostprocessPlugin::deserialize() {}
 
 void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    debug("Setting up postproc plugin '%s', MPI tags are (%d, %d)", name.c_str(), _sizeTag(), _dataTag());
+    debug("Setting up postproc plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
     _setup(comm, interComm);
 }
 

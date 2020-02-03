@@ -97,12 +97,12 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     if (auto rv = dynamic_cast<RodVector*>(ov)) packer = std::make_unique<RodPacker>   (predicate);
     else                                        packer = std::make_unique<ObjectPacker>(predicate);
     
-    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
     
     packers_.push_back(std::move(packer));
     this->addExchangeEntity(std::move(helper));
 
-    info("The Object vector '%s' was attached to redistributor", ov->name.c_str());
+    info("The Object vector '%s' was attached to redistributor", ov->getCName());
 }
 
 
@@ -118,7 +118,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     
     OVview ovView(ov, lov);
 
-    debug2("Counting exiting objects of '%s'", ov->name.c_str());
+    debug2("Counting exiting objects of '%s'", ov->getCName());
 
     // Prepare sizes
     helper->send.sizes.clear(stream);
@@ -141,7 +141,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     }
 
     const int nObjs = helper->send.sizes[bulkId];
-    debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->name.c_str());
+    debug2("%d objects of '%s' will leave", ovView.nObjects - nObjs, ov->getCName());
 
     // Early termination support
     if (nObjs == ovView.nObjects)
@@ -169,12 +169,12 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     if (helper->send.offsets[helper->nBuffers] == 0)
     {
         debug2("No objects of '%s' leaving, no need to rebuild the object vector",
-               ov->name.c_str());
+               ov->getCName());
         return;
     }
 
     debug2("Downloading %d leaving objects of '%s'", ovView.nObjects - nObjsBulk,
-           ov->name.c_str());
+           ov->getCName());
 
     // Gather data
     helper->resizeSendBuf();

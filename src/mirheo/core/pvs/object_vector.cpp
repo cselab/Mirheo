@@ -61,7 +61,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     if ((rankStart % objSize) != 0)
         die("Something went wrong when computing ids of '%s':"
             "got rankStart = '%ld' while objectSize is '%d'",
-            pv->name.c_str(), rankStart, objSize);
+            pv->getCName(), rankStart, objSize);
 
     auto& ids = *dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     int64_t id = (int64_t) (rankStart / objSize);
@@ -123,7 +123,7 @@ void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality 
     auto lov = get(locality);
 
     debug("Computing COM and extent OV '%s' (%s)",
-          name.c_str(), getParticleVectorLocalityStr(locality).c_str());
+          getCName(), getParticleVectorLocalityStr(locality).c_str());
 
     computeComExtents(this, lov, stream);
 }
@@ -149,7 +149,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
 
     auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s",
-         name.c_str(), filename.c_str());
+         getCName(), filename.c_str());
 
     auto coms_extents = local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents);
 
@@ -166,7 +166,7 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
 
     createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
 
-    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
+    debug("Checkpoint for object vector '%s' successfully written", getCName());
 }
 
 void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -176,7 +176,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, RestartOVIdentifier, "xmf");
-    info("Restarting object vector %s from file %s", name.c_str(), filename.c_str());
+    info("Restarting object vector %s from file %s", getCName(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
@@ -191,7 +191,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
 
     RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
-    info("Successfully read object infos of '%s'", name.c_str());
+    info("Successfully read object infos of '%s'", getCName());
 }
 
 void ObjectVector::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
