@@ -11,15 +11,14 @@ namespace mirheo
  */
 class UniformIC : public InitialConditions
 {
-private:
-    real density;
-
 public:
-    UniformIC(real density);
+    UniformIC(real numDensity);
+    ~UniformIC();
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
-    ~UniformIC();
+private:
+    real numDensity_;
 };
 
 

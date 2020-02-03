@@ -31,11 +31,11 @@ public:
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;    
 
 private:
-    std::vector<ComQ> com_q;
-    MappingFunc3D centerLine;
-    MappingFunc1D torsion;
-    real3 initialMaterialFrame;
-    real a;
+    std::vector<ComQ> comQ_;
+    MappingFunc3D centerLine_;
+    MappingFunc1D torsion_;
+    real3 initialMaterialFrame_;
+    real a_;
 };
 
 } // namespace mirheo

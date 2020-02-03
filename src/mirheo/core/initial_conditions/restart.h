@@ -10,13 +10,13 @@ namespace mirheo
 class RestartIC : public InitialConditions
 {
 public:
-    RestartIC(std::string path);
+    RestartIC(const std::string& path);
     ~RestartIC();
     
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
     
 private:
-    std::string path;
+    std::string path_;
 };
 
 } // namespace mirheo

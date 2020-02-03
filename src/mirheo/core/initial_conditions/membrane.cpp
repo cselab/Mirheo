@@ -7,9 +7,9 @@
 namespace mirheo
 {
 
-MembraneIC::MembraneIC(const std::vector<ComQ>& com_q, real globalScale) :
-    com_q(com_q),
-    globalScale(globalScale)
+MembraneIC::MembraneIC(const std::vector<ComQ>& comQ, real globalScale) :
+    comQ_(comQ),
+    globalScale_(globalScale)
 {}
 
 MembraneIC::~MembraneIC() = default;
@@ -36,12 +36,12 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     for (size_t objId = 0; objId < map.size(); ++objId)
     {
         const int srcId = map[objId];
-        const real3 com = domain.global2local(com_q[srcId].r);
-        const auto q = Quaternion<real>::createFromComponents(normalize(com_q[srcId].q));
+        const real3 com = domain.global2local(comQ_[srcId].r);
+        const auto q = Quaternion<real>::createFromComponents(normalize(comQ_[srcId].q));
 
         for (int i = 0; i < nVerticesPerObject; ++i)
         {
-            const real3 dr0 = make_real3( ov->mesh->vertexCoordinates[i] * globalScale);
+            const real3 dr0 = make_real3( ov->mesh->vertexCoordinates[i] * globalScale_);
             const real3 r = com + q.rotate(dr0);
             const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
@@ -63,9 +63,9 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
 std::vector<int> MembraneIC::createMap(DomainInfo domain) const
 {
     std::vector<int> map;
-    for (size_t i = 0; i < com_q.size(); ++i)
+    for (size_t i = 0; i < comQ_.size(); ++i)
     {
-        const real3 com = com_q[i].r;
+        const real3 com = comQ_[i].r;
         if (domain.inSubDomain(com))
             map.push_back(static_cast<int>(i));
     }

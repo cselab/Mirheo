@@ -18,7 +18,7 @@ public:
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
-    std::vector<real3> pos, vel;
+    std::vector<real3> pos_, vel_;
 };
 
 

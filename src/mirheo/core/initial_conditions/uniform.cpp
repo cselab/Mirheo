@@ -4,8 +4,8 @@
 namespace mirheo
 {
 
-UniformIC::UniformIC(real density) :
-    density(density)
+UniformIC::UniformIC(real numDensity) :
+    numDensity_(numDensity)
 {}
 
 UniformIC::~UniformIC() = default;
@@ -33,11 +33,8 @@ UniformIC::~UniformIC() = default;
  */
 void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
-    auto filterInKeepAll = [](real3) {
-        return true;
-    };
-    
-    addUniformParticles(density, comm, pv, filterInKeepAll, stream);
+    auto filterInKeepAll = [](real3) {return true;};
+    addUniformParticles(numDensity_, comm, pv, filterInKeepAll, stream);
 }
 
 } // namespace mirheo

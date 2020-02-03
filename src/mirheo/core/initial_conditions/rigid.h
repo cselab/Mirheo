@@ -14,19 +14,19 @@ namespace mirheo
 class RigidIC : public InitialConditions
 {
 public:
-    RigidIC(const std::vector<ComQ>& com_q, const std::string& xyzfname);
-    RigidIC(const std::vector<ComQ>& com_q, const std::vector<real3>& coords);
-    RigidIC(const std::vector<ComQ>& com_q, const std::vector<real3>& coords,
+    RigidIC(const std::vector<ComQ>& comQ, const std::string& xyzfname);
+    RigidIC(const std::vector<ComQ>& comQ, const std::vector<real3>& coords);
+    RigidIC(const std::vector<ComQ>& comQ, const std::vector<real3>& coords,
             const std::vector<real3>& comVelocities);
-
-    void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
     ~RigidIC();
 
+    void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
+
 private:
-    std::vector<ComQ> com_q;
-    std::vector<real3> coords;
-    std::vector<real3> comVelocities;
+    std::vector<ComQ> comQ_;
+    std::vector<real3> coords_;
+    std::vector<real3> comVelocities_;
 };
 
 } // namespace mirheo

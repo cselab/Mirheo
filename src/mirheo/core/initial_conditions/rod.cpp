@@ -13,13 +13,13 @@ namespace mirheo
 const real RodIC::Default = std::numeric_limits<real>::infinity();
 const real3 RodIC::DefaultFrame = {Default, Default, Default};
 
-RodIC::RodIC(const std::vector<ComQ>& com_q, MappingFunc3D centerLine, MappingFunc1D torsion,
+RodIC::RodIC(const std::vector<ComQ>& comQ, MappingFunc3D centerLine, MappingFunc1D torsion,
              real a, real3 initialMaterialFrame) :
-    com_q(com_q),
-    centerLine(centerLine),
-    torsion(torsion),
-    initialMaterialFrame(initialMaterialFrame),
-    a(a)
+    comQ_(comQ),
+    centerLine_(centerLine),
+    torsion_(torsion),
+    initialMaterialFrame_(initialMaterialFrame),
+    a_(a)
 {}
 
 RodIC::~RodIC() = default;
@@ -59,9 +59,9 @@ static real3 getFirstBishop(real3 r0, real3 r1, real3 r2, real3 initialMaterialF
     return normalize(u);
 }
 
-std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMaterialFrame,
-                                      const RodIC::MappingFunc3D& centerLine,
-                                      const RodIC::MappingFunc1D& torsion)
+static std::vector<real3> createRodTemplate(int nSegments, real a, real3 initialMaterialFrame,
+                                            const RodIC::MappingFunc3D& centerLine,
+                                            const RodIC::MappingFunc1D& torsion)
 {
     assert(nSegments > 1);
     
@@ -125,15 +125,15 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     if (rv == nullptr)
         die("rods can only be generated out of rod vectors; provided '%s'", pv->name.c_str());
 
-    int objSize = rv->objSize;
+    const int objSize = rv->objSize;
+    const int nSegments = (objSize - 1) / 5;
     int nObjs = 0;
-    int nSegments = (objSize - 1) / 5;
 
-    auto positions = createRodTemplate(nSegments, a, initialMaterialFrame, centerLine, torsion);
+    const auto positions = createRodTemplate(nSegments, a_, initialMaterialFrame_, centerLine_, torsion_);
 
-    assert(objSize == (int)positions.size());
+    assert(objSize == static_cast<int>(positions.size()));
     
-    for (auto& entry : com_q)
+    for (auto& entry : comQ_)
     {
         real3 com = entry.r;
         const auto q = Quaternion<real>::createFromComponents(entry.q).normalized();

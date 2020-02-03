@@ -5,11 +5,11 @@
 namespace mirheo
 {
 
-MembraneWithTypeIdsIC::MembraneWithTypeIdsIC(const std::vector<ComQ>& com_q,
+MembraneWithTypeIdsIC::MembraneWithTypeIdsIC(const std::vector<ComQ>& comQ,
                                              const std::vector<int>& typeIds,
                                              real globalScale) :
-    MembraneIC(com_q, globalScale),
-    typeIds(typeIds)
+    MembraneIC(comQ, globalScale),
+    typeIds_(typeIds)
 {}
 
 MembraneWithTypeIdsIC::~MembraneWithTypeIdsIC() = default;
@@ -31,7 +31,7 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     for (int objId = 0; objId < nObjsLocal; ++objId)
     {
         const int srcId = map[objId];
-        typeIdsBuff[objId] = typeIds[srcId];
+        typeIdsBuff[objId] = typeIds_[srcId];
     }
     typeIdsBuff.uploadToDevice(stream);
 

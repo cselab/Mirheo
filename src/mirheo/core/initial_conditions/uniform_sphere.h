@@ -15,16 +15,16 @@ namespace mirheo
 class UniformSphereIC : public InitialConditions
 {
 public:
-    UniformSphereIC(real density, real3 center, real radius, bool inside);
+    UniformSphereIC(real numDensity, real3 center, real radius, bool inside);
     ~UniformSphereIC();
     
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
-    real density;
-    real3 center;
-    real  radius;
-    bool inside;
+    real numDensity_;
+    real3 center_;
+    real  radius_;
+    bool inside_;
 };
 
 } // namespace mirheo

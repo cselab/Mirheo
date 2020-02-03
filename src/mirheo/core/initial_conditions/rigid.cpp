@@ -35,23 +35,23 @@ static std::vector<real3> readXYZ(const std::string& fname)
 
 
 
-RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::string& xyzfname) :
-    RigidIC(com_q, readXYZ(xyzfname))
+RigidIC::RigidIC(const std::vector<ComQ>& comQ, const std::string& xyzfname) :
+    RigidIC(comQ, readXYZ(xyzfname))
 {}
 
-RigidIC::RigidIC(const std::vector<ComQ>& com_q, const std::vector<real3>& coords) :
-    com_q(com_q),
-    coords(coords)
+RigidIC::RigidIC(const std::vector<ComQ>& comQ, const std::vector<real3>& coords) :
+    comQ_(comQ),
+    coords_(coords)
 {}
 
-RigidIC::RigidIC(const std::vector<ComQ>& com_q,
+RigidIC::RigidIC(const std::vector<ComQ>& comQ,
                  const std::vector<real3>& coords,
                  const std::vector<real3>& comVelocities) :
-    com_q(com_q),
-    coords(coords),
-    comVelocities(comVelocities)
+    comQ_(comQ),
+    coords_(coords),
+    comVelocities_(comVelocities)
 {
-    if (com_q.size() != comVelocities.size())
+    if (comQ_.size() != comVelocities_.size())
         die("Incompatible sizes of initial positions and rotations");
 }
 
@@ -59,7 +59,7 @@ RigidIC::~RigidIC() = default;
 
 
 static PinnedBuffer<real4> getInitialPositions(const std::vector<real3>& in,
-                                                cudaStream_t stream)
+                                               cudaStream_t stream)
 {
     PinnedBuffer<real4> out(in.size());
     
@@ -97,14 +97,14 @@ static void checkInitialPositions(const DomainInfo& domain,
 }
 
 static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
-                                              const std::vector<ComQ>& com_q,
+                                              const std::vector<ComQ>& comQ,
                                               const std::vector<real3>& comVelocities)
 {
     std::vector<RigidMotion> motions;
 
-    for (size_t i = 0; i < com_q.size(); ++i)
+    for (size_t i = 0; i < comQ.size(); ++i)
     {
-        const auto& entry = com_q[i];
+        const auto& entry = comQ[i];
         
         // Zero everything at first
         RigidMotion motion{};
@@ -143,7 +143,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
 
     const auto domain = rov->getState()->domain;
 
-    rov->initialPositions = getInitialPositions(coords, stream);
+    rov->initialPositions = getInitialPositions(coords_, stream);
     checkInitialPositions(domain, rov->initialPositions);
 
     auto lrov = rov->local();
@@ -152,7 +152,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
             rov->name.c_str(), rov->objSize, rov->initialPositions.size());
 
-    const auto motions = createMotions(domain, com_q, comVelocities);
+    const auto motions = createMotions(domain, comQ_, comVelocities_);
     const auto nObjs = static_cast<int>(motions.size());
     
     lrov->resize_anew(nObjs * rov->objSize);

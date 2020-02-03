@@ -7,10 +7,10 @@ namespace mirheo
 {
 
 FromArrayIC::FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>& vel) :
-    pos(pos),
-    vel(vel)
+    pos_(pos),
+    vel_(vel)
 {
-    if (pos.size() != vel.size())
+    if (pos_.size() != vel_.size())
         die("pos and vel arrays must have the same size");
 }
 
@@ -19,21 +19,21 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     std::vector<real4> positions, velocities;
     auto domain = pv->getState()->domain;
 
-    const size_t n = pos.size();
+    const size_t n = pos_.size();
     positions .reserve(n);
     velocities.reserve(n);
     
     for (size_t i = 0; i < n; ++i)
     {
-        real3 r = pos[i];
-        const real3 u = vel[i];
+        const real3 rg = pos_[i];
+        const real3 u  = vel_[i];
 
-        if (domain.inSubDomain(r)) {
+        if (domain.inSubDomain(rg))
+        {
+            const real3 r = domain.global2local(rg);
 
-            r = domain.global2local(r);
-
-            Particle p(Real3_int(r, 0).toReal4(),
-                       Real3_int(u, 0).toReal4());
+            const Particle p(Real3_int(r, 0).toReal4(),
+                             Real3_int(u, 0).toReal4());
 
             positions .push_back(p.r2Real4());
             velocities.push_back(p.u2Real4());
