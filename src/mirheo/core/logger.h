@@ -66,6 +66,7 @@ public:
     {
         return runtimeDebugLvl_;
     }
+    
     void setDebugLvl(int debugLvl);
 
     /**

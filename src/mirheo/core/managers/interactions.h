@@ -54,9 +54,9 @@ private:
 
     using ChannelList = std::vector<Channel>;
 
-    std::vector<InteractionPrototype> interactions;
-    std::map<CellList*, ChannelList> inputChannels, outputChannels;
-    std::map<ParticleVector*, std::vector<CellList*>> cellListMap;
+    std::vector<InteractionPrototype> interactions_;
+    std::map<CellList*, ChannelList> inputChannels_, outputChannels_;
+    std::map<ParticleVector*, std::vector<CellList*>> cellListMap_;
 
 private:
 
