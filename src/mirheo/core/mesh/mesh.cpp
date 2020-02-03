@@ -24,18 +24,17 @@ Mesh::Mesh(const std::string& fname)
     _computeMaxDegree();
 }
 
-Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces)
+Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
+    nvertices_ (static_cast<int>(vertices.size())),
+    ntriangles_(static_cast<int>(faces   .size()))
 {
-    nvertices  = static_cast<int>(vertices.size());
-    ntriangles = static_cast<int>(faces   .size());
+    vertexCoordinates.resize_anew(nvertices_);
+    triangles.resize_anew(ntriangles_);
 
-    vertexCoordinates.resize_anew(nvertices);
-    triangles.resize_anew(ntriangles);
-
-    for (int i = 0; i < ntriangles; ++i)
+    for (int i = 0; i < ntriangles_; ++i)
         triangles[i] = faces[i];
 
-    for (int i = 0; i < nvertices; ++i)
+    for (int i = 0; i < nvertices_; ++i)
     {
         const real3 v = vertices[i];
         vertexCoordinates[i] = make_real4(v.x, v.y, v.z, 0.0_r);
@@ -55,12 +54,13 @@ Mesh& Mesh::operator=(Mesh&&) = default;
 
 Mesh::~Mesh() = default;
 
-const int& Mesh::getNtriangles() const {return ntriangles;}
-const int& Mesh::getNvertices()  const {return nvertices;}
+const int& Mesh::getNtriangles() const {return ntriangles_;}
+const int& Mesh::getNvertices()  const {return nvertices_;}
 
 const int& Mesh::getMaxDegree() const {
-    if (maxDegree < 0) die("maxDegree was not computed");
-    return maxDegree;
+    if (maxDegree_ < 0)
+        die("maxDegree was not computed");
+    return maxDegree_;
 }
 
 PyTypes::VectorOfReal3 Mesh::getVertices()
@@ -94,26 +94,29 @@ PyTypes::VectorOfInt3 Mesh::getTriangles()
 
 void Mesh::_computeMaxDegree()
 {
-    std::vector<int> degrees(nvertices);
+    std::vector<int> degrees(nvertices_);
 
-    for (auto t : triangles) {
+    for (auto t : triangles)
+    {
         degrees[t.x] ++;
         degrees[t.y] ++;
         degrees[t.z] ++;
     }
 
-    maxDegree = *std::max_element(degrees.begin(), degrees.end());
-    debug("max degree is %d", maxDegree);
+    maxDegree_ = *std::max_element(degrees.begin(), degrees.end());
+    debug("max degree is %d", maxDegree_);
 }
 
 void Mesh::_check() const
 {
-    auto check = [this] (int tr) {
-        if (tr < 0 || tr >= nvertices)
+    auto check = [this] (int tr)
+    {
+        if (tr < 0 || tr >= nvertices_)
             die("Bad triangle indices");
     };
 
-    for (int i = 0; i < getNtriangles(); ++i) {
+    for (int i = 0; i < getNtriangles(); ++i)
+    {
         check(triangles[i].x);
         check(triangles[i].y);
         check(triangles[i].z);
@@ -132,23 +135,23 @@ void Mesh::_readOff(const std::string& fname)
     std::getline(fin, line); // OFF header
 
     int nedges;
-    fin >> nvertices >> ntriangles >> nedges;
+    fin >> nvertices_ >> ntriangles_ >> nedges;
     std::getline(fin, line); // Finish with this line
 
     // Read the vertex coordinates
-    vertexCoordinates.resize_anew(nvertices);
-    for (int i = 0; i < nvertices; i++)
+    vertexCoordinates.resize_anew(nvertices_);
+    for (int i = 0; i < nvertices_; i++)
         fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
 
     // Read the connectivity data
-    triangles.resize_anew(ntriangles);
-    for (int i = 0; i < ntriangles; i++)
+    triangles.resize_anew(ntriangles_);
+    for (int i = 0; i < ntriangles_; i++)
     {
         int number;
         fin >> number;
         if (number != 3)
             die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
-                    fname.c_str(), 3 /* header */ + nvertices + i, number);
+                    fname.c_str(), 3 /* header */ + nvertices_ + i, number);
 
         fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
     }

@@ -133,16 +133,17 @@ void MembraneMesh::findAdjacent()
         \ /
          *
     */
-    EdgeMapPerVertex adjacentPairs(nvertices);
+    EdgeMapPerVertex adjacentPairs(getNvertices());
 
-    for (const auto& t : triangles) {
+    for (const auto& t : triangles)
+    {
         adjacentPairs [t.x][t.y] = t.z;
         adjacentPairs [t.y][t.z] = t.x;
         adjacentPairs [t.z][t.x] = t.y;
     }
 
     findDegrees(adjacentPairs, degrees);
-    findNearestNeighbours(adjacentPairs, maxDegree, adjacent);
+    findNearestNeighbours(adjacentPairs, getMaxDegree(), adjacent);
     
     adjacent.uploadToDevice(defaultStream);
     degrees.uploadToDevice(defaultStream);
@@ -157,32 +158,36 @@ void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<real4>& vertices
 
 void MembraneMesh::_computeInitialLengths(const PinnedBuffer<real4>& vertices)
 {
-    initialLengths.resize_anew(nvertices * maxDegree);
+    initialLengths.resize_anew(getNvertices() * getMaxDegree());
 
-    for (int i = 0; i < nvertices * maxDegree; i++) {
+    for (int i = 0; i < getNvertices() * getMaxDegree(); i++)
+    {
         if (adjacent[i] != invalidId)
-            initialLengths[i] = length(vertices[i / maxDegree] - vertices[adjacent[i]]);
+            initialLengths[i] = length(vertices[i / getMaxDegree()] - vertices[adjacent[i]]);
     }
 
     initialLengths.uploadToDevice(defaultStream);
 }
 
-static real computeArea(real3 v0, real3 v1, real3 v2) {
+static real computeArea(real3 v0, real3 v1, real3 v2)
+{
     return 0.5_r * length(cross(v1 - v0, v2 - v0));
 }
 
 void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
 {
-    initialAreas.resize_anew(nvertices * maxDegree);
+    initialAreas.resize_anew(getNvertices() * getMaxDegree());
 
     real3 v0, v1, v2;
 
-    for (int id0 = 0; id0 < nvertices; ++id0) {
+    for (int id0 = 0; id0 < getNvertices(); ++id0)
+    {
         const int degree = degrees[id0];
-        const int startId = id0 * maxDegree;
+        const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
         
-        for (int j = 0; j < degree; ++j) {
+        for (int j = 0; j < degree; ++j)
+        {
             const int id1 = adjacent[startId + j];
             const int id2 = adjacent[startId + (j + 1) % degree];
 
@@ -198,16 +203,18 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
 
 void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<real4>& vertices)
 {
-    initialDotProducts.resize_anew(nvertices * maxDegree);
+    initialDotProducts.resize_anew(getNvertices() * getMaxDegree());
 
     real3 v0, v1, v2;
 
-    for (int id0 = 0; id0 < nvertices; ++id0) {
+    for (int id0 = 0; id0 < getNvertices(); ++id0)
+    {
         const int degree = degrees[id0];
-        const int startId = id0 * maxDegree;
+        const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
         
-        for (int j = 0; j < degree; ++j) {
+        for (int j = 0; j < degree; ++j)
+        {
             const int id1 = adjacent[startId + j];
             const int id2 = adjacent[startId + (j + 1) % degree];
 

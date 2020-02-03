@@ -32,14 +32,16 @@ public:
     PyTypes::VectorOfInt3  getTriangles();
 
 protected:
-    // max degree of a vertex in mesh
-    int maxDegree {-1};
     void _computeMaxDegree();
     void _check() const;
     void _readOff(const std::string& fname);
 
-protected:
-    int nvertices{0}, ntriangles{0};
+private:
+    int nvertices_{0};
+    int ntriangles_{0};
+
+    // max degree of a vertex in mesh
+    int maxDegree_ {-1};
 };
 
 
