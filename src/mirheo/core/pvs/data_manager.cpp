@@ -7,12 +7,12 @@ namespace mirheo
 
 DataManager::DataManager(const DataManager& b)
 {
-    for (const auto& entry : b.channelMap)
+    for (const auto& entry : b.channelMap_)
     {
         const auto& name = entry.first;
         const auto& desc = entry.second;
 
-        auto& myDesc = channelMap[name];
+        auto& myDesc = channelMap_[name];
         myDesc.persistence = desc.persistence;
         myDesc.shift       = desc.shift;
             
@@ -24,7 +24,7 @@ DataManager::DataManager(const DataManager& b)
             myDesc.container  = std::move(ptr);
         }, desc.varDataPtr);
 
-        sortedChannels.push_back({name, &channelMap[name]});
+        sortedChannels_.push_back({name, &channelMap_[name]});
     }
     sortChannels();
 }
@@ -51,15 +51,15 @@ DataManager& DataManager::operator=(DataManager&& b)
 
 void DataManager::copyChannelMap(const DataManager &other)
 {
-    for (const auto &pair : other.channelMap)
+    for (const auto &pair : other.channelMap_)
     {
-        auto it = channelMap.find(pair.first);
+        auto it = channelMap_.find(pair.first);
         mpark::visit([&pair, it, this](const auto *pinnedBuffer)
         {
             using Buffer = std::decay_t<decltype(*pinnedBuffer)>;
             using T = typename Buffer::value_type;
 
-            if (it == channelMap.end()) {
+            if (it == channelMap_.end()) {
                 this->createData<T>(pair.first);
             } else if (!mpark::holds_alternative<Buffer*>(it->second.varDataPtr)) {
                 this->deleteChannel(pair.first);
@@ -70,13 +70,13 @@ void DataManager::copyChannelMap(const DataManager &other)
         }, pair.second.varDataPtr);
     }
 
-    if (channelMap.size() != other.channelMap.size()) {
+    if (channelMap_.size() != other.channelMap_.size()) {
         static_assert(
-                std::is_same<decltype(channelMap), std::map<std::string, ChannelDescription>>::value,
+                std::is_same<decltype(channelMap_), std::map<std::string, ChannelDescription>>::value,
                 "Not anymore using a std::map? Check if it's allowed to delete elements while iterating.");
         // We have too many channels, delete the surplus.
-        for (const auto &pair : channelMap)
-            if (other.channelMap.find(pair.first) == other.channelMap.end())
+        for (const auto &pair : channelMap_)
+            if (other.channelMap_.find(pair.first) == other.channelMap_.end())
                 deleteChannel(pair.first);
     }
 
@@ -85,8 +85,8 @@ void DataManager::copyChannelMap(const DataManager &other)
 
 void swap(DataManager& a, DataManager& b)
 {
-    std::swap(a.channelMap,     b.channelMap);
-    std::swap(a.sortedChannels, b.sortedChannels);
+    std::swap(a.channelMap_,     b.channelMap_);
+    std::swap(a.sortedChannels_, b.sortedChannels_);
 }
 
 CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf)
@@ -127,12 +127,12 @@ void* DataManager::getGenericPtr(const std::string& name)
 
 bool DataManager::checkChannelExists(const std::string& name) const
 {
-    return channelMap.find(name) != channelMap.end();
+    return channelMap_.find(name) != channelMap_.end();
 }
 
 const std::vector<DataManager::NamedChannelDesc>& DataManager::getSortedChannels() const
 {
-    return sortedChannels;
+    return sortedChannels_;
 }
 
 bool DataManager::checkPersistence(const std::string& name) const
@@ -143,13 +143,13 @@ bool DataManager::checkPersistence(const std::string& name) const
 
 void DataManager::resize(int n, cudaStream_t stream)
 {
-    for (auto& kv : channelMap)
+    for (auto& kv : channelMap_)
         kv.second.container->resize(n, stream);
 }
 
 void DataManager::resize_anew(int n)
 {
-    for (auto& kv : channelMap)
+    for (auto& kv : channelMap_)
         kv.second.container->resize_anew(n);
 }
 
@@ -158,8 +158,8 @@ void DataManager::resize_anew(int n)
 
 void DataManager::sortChannels()
 {
-    std::sort(sortedChannels.begin(),
-              sortedChannels.end(),
+    std::sort(sortedChannels_.begin(),
+              sortedChannels_.end(),
               [] (NamedChannelDesc ch1, NamedChannelDesc ch2)
     {
         auto size1 = ch1.second->container->datatype_size();
@@ -170,8 +170,8 @@ void DataManager::sortChannels()
 
 DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::string& name)
 {
-    auto it = channelMap.find(name);
-    if (it == channelMap.end())
+    auto it = channelMap_.find(name);
+    if (it == channelMap_.end())
         die("No such channel: '%s'", name.c_str());
 
     return it->second;
@@ -179,8 +179,8 @@ DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::str
 
 const DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::string& name) const
 {
-    auto it = channelMap.find(name);
-    if (it == channelMap.end())
+    auto it = channelMap_.find(name);
+    if (it == channelMap_.end())
         die("No such channel: '%s'", name.c_str());
 
     return it->second;
@@ -189,13 +189,17 @@ const DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const st
 
 void DataManager::deleteChannel(const std::string& name)
 {
-    if (!channelMap.erase(name)) {
+    if (!channelMap_.erase(name))
+    {
         die("Channel '%s' not found.", name.c_str());
         return;
     }
-    for (auto it = sortedChannels.begin(); it != sortedChannels.end(); ++it) {
-        if (it->first == name) {
-            sortedChannels.erase(it);
+    
+    for (auto it = sortedChannels_.begin(); it != sortedChannels_.end(); ++it)
+    {
+        if (it->first == name)
+        {
+            sortedChannels_.erase(it);
             return;
         }
     }
