@@ -29,7 +29,7 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-    Config writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
 
 private:
     int fetchEvery;
@@ -51,7 +51,7 @@ public:
     PostprocessStats(std::string name, std::string filename = "");
 
     void deserialize() override;
-    Config writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
 
 private:
     FileWrapper fdump;

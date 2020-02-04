@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"  // Forward declarations of Config and ConfigDumper<>.
+#include "flat_ordered_dict.h"
 #include "reflection.h"
 #include "type_traits.h"
 
@@ -31,11 +32,19 @@ struct ConfigDumper {
     static Config dump(Dumper &, const T &value);
 };
 
-struct Config {
+
+class ConfigDictionary : public FlatOrderedDict<std::string, Config> {
+    using Base = FlatOrderedDict<std::string, Config>;
+public:
+    using Base::Base;
+};
+
+class Config {
+public:
     using Int = long long;
     using Float = double;
     using String = std::string;
-    using Dictionary = std::map<std::string, Config>;
+    using Dictionary = ConfigDictionary;
     using List = std::vector<Config>;
     using Variant = mpark::variant<Int, Float, String, Dictionary, List>;
 
@@ -101,6 +110,7 @@ struct Config {
     template <typename T>
     void read(T *t) const;
 
+private:
     Variant value_;
 };
 

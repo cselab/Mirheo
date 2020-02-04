@@ -13,7 +13,7 @@ public:
     MembraneVector(const MirState *state, const std::string& name, real mass, std::shared_ptr<MembraneMesh> mptr, int nObjects = 0);
     ~MembraneVector();
 
-    Config writeSnapshot(Dumper &dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper &dumper) const override;
 };
 
 } // namespace mirheo

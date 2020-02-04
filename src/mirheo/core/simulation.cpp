@@ -1379,8 +1379,8 @@ MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
 MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
 MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
-Config Simulation::writeSnapshot(Dumper& dumper) const {
-    return Config::Dictionary{
+ConfigDictionary Simulation::writeSnapshot(Dumper& dumper) const {
+    return {
         {"__category",          "Simulation"},
         {"__type",              "Simulation"},
         {"checkpointId",        checkpointId_},

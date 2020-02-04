@@ -42,7 +42,7 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
-    Config writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);

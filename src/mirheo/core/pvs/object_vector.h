@@ -60,7 +60,7 @@ public:
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
-    Config writeSnapshot(Dumper &dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper &dumper) const override;
 
     template<typename T>
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,

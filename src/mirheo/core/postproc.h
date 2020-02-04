@@ -21,7 +21,7 @@ public:
 
     void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
-    Config writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;

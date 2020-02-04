@@ -14,12 +14,11 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
 
 MembraneVector::~MembraneVector() = default;
 
-Config MembraneVector::writeSnapshot(Dumper &dumper) const
+ConfigDictionary MembraneVector::writeSnapshot(Dumper &dumper) const
 {
-    auto config = ObjectVector::writeSnapshot(dumper);
-    Config::Dictionary &dict = config.getDict();
-    dict.at("__type") = Config{"MembraneVector"};
-    return config;
+    ConfigDictionary dict = ObjectVector::writeSnapshot(dumper);
+    dict.insert_or_assign("__type", "MembraneVector");
+    return dict;
 }
 
 } // namespace mirheo

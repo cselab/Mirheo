@@ -7,11 +7,11 @@ namespace mirheo
 {
 
 class Dumper;
-struct Config;
+class Config;
+class ConfigDictionary;
 
 template <typename T, typename Enable = void>
 struct ConfigDumper;
-
 
 /**
  * Channel names used in several places of the program

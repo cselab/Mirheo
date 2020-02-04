@@ -119,15 +119,14 @@ ObjectVector::ObjectVector(const MirState *state, const std::string& name, real 
 
 ObjectVector::~ObjectVector() = default;
 
-Config ObjectVector::writeSnapshot(Dumper &dumper) const
+ConfigDictionary ObjectVector::writeSnapshot(Dumper &dumper) const
 {
-    auto config = ParticleVector::writeSnapshot(dumper);
-    Config::Dictionary &dict = config.getDict();
-    dict.at("__type") = "ObjectVector";
+    ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
+    dict.insert_or_assign("__type", "ObjectVector");
     dict.emplace("objSize",         objSize);
     dict.emplace("mesh_nvertices",  mesh->getNvertices());
     dict.emplace("mesh_ntriangles", mesh->getNtriangles());
-    return config;
+    return dict;
 }
 
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality)

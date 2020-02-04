@@ -26,7 +26,7 @@ public:
                         VarBendingParams varBendingParams, VarShearParams varShearParams,
                         bool stressFree, real growUntil, VarMembraneFilter varFilter);
     ~MembraneInteraction();
-    Config writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 

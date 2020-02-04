@@ -26,7 +26,7 @@ public:
     
     virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
-    virtual Config writeSnapshot(Dumper& dumper) const;
+    virtual ConfigDictionary writeSnapshot(Dumper& dumper) const;
 
     std::string createCheckpointName      (const std::string& path, const std::string& identifier, const std::string& extension) const;
     std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;

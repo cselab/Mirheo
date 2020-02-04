@@ -70,7 +70,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    Config writeSnapshot(Dumper &) const override;
+    ConfigDictionary writeSnapshot(Dumper &) const override;
     
     // Python getters / setters
     // Use default blocking stream

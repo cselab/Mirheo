@@ -354,9 +354,9 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize, defaultStream);
 }
 
-Config ParticleVector::writeSnapshot(Dumper &) const
+ConfigDictionary ParticleVector::writeSnapshot(Dumper &) const
 {
-    return Config::Dictionary{
+    return {
         {"__category", "ParticleVector"},
         {"__type",     "ParticleVector"},
         {"mass",       mass},
