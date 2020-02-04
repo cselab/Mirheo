@@ -49,7 +49,7 @@ template<class InsideWallChecker, class VelocityField>
 WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
 (const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
     SimpleStationaryWall<InsideWallChecker>(state, name, std::move(insideWallChecker)),
-    velField(std::move(velField))
+    velField_(std::move(velField))
 {}
 
 
@@ -60,14 +60,14 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm)
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    this->insideWallChecker.setup(comm, this->getState()->domain);
-    velField.setup(this->getState()->currentTime, this->getState()->domain);
+    this->insideWallChecker_.setup(comm, this->getState()->domain);
+    velField_.setup(this->getState()->currentTime, this->getState()->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
 template<class InsideWallChecker, class VelocityField>
-void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVector* pv)
+void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVector *pv)
 {
     SimpleStationaryWall<InsideWallChecker>::attachFrozen(pv);
 
@@ -76,7 +76,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVe
     SAFE_KERNEL_LAUNCH(
             imposeVelField,
             getNblocks(view.size, nthreads), nthreads, 0, 0,
-            view, velField.handler() );
+            view, velField_.handler() );
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -87,14 +87,14 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
     real t  = this->getState()->currentTime;
     real dt = this->getState()->dt;
     
-    velField.setup(t, this->getState()->domain);
-    this->bounceForce.clear(stream);
+    velField_.setup(t, this->getState()->domain);
+    this->bounceForce_.clear(stream);
 
-    for (size_t i = 0; i < this->particleVectors.size(); ++i)
+    for (size_t i = 0; i < this->particleVectors_.size(); ++i)
     {
-        auto  pv = this->particleVectors[i];
-        auto  cl = this->cellLists[i];
-        auto& bc = this->boundaryCells[i];
+        auto  pv = this->particleVectors_[i];
+        auto  cl = this->cellLists_[i];
+        auto& bc = this->boundaryCells_[i];
         auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
@@ -105,9 +105,9 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
                 BounceKernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
-                this->insideWallChecker.handler(),
-                velField.handler(),
-                this->bounceForce.devPtr());
+                this->insideWallChecker_.handler(),
+                velField_.handler(),
+                this->bounceForce_.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );
     }

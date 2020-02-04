@@ -251,9 +251,9 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, real *sdfs, InsideWallCh
 template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker) :
     SDF_basedWall(state, name),
-    insideWallChecker(std::move(insideWallChecker))
+    insideWallChecker_(std::move(insideWallChecker))
 {
-    bounceForce.clear(defaultStream);
+    bounceForce_.clear(defaultStream);
 }
 
 template<class InsideWallChecker>
@@ -266,7 +266,7 @@ void SimpleStationaryWall<InsideWallChecker>::setup(MPI_Comm& comm)
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    insideWallChecker.setup(comm, getState()->domain);
+    insideWallChecker_.setup(comm, getState()->domain);
 
     CUDA_Check( cudaDeviceSynchronize() );
 }
@@ -281,14 +281,14 @@ void SimpleStationaryWall<InsideWallChecker>::setPrerequisites(ParticleVector *p
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attachFrozen(ParticleVector *pv)
 {
-    frozen = pv;
+    frozen_ = pv;
     info("Wall '%s' will treat particle vector '%s' as frozen", getCName(), pv->getCName());
 }
 
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellList *cl, real maximumPartTravel)
 {
-    if (pv == frozen)
+    if (pv == frozen_)
     {
         info("Particle Vector '%s' declared as frozen for the wall '%s'. Bounce-back won't work",
              pv->getCName(), getCName());
@@ -300,8 +300,8 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
             "Invalid combination: wall %s, pv %s", getCName(), pv->getCName());
 
     CUDA_Check( cudaDeviceSynchronize() );
-    particleVectors.push_back(pv);
-    cellLists.push_back(cl);
+    particleVectors_.push_back(pv);
+    cellLists_.push_back(cl);
 
     const int nthreads = 128;
     const int nblocks = getNblocks(cl->totcells, nthreads);
@@ -313,7 +313,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
         StationaryWallsKernels::getBoundaryCells<QueryMode::Query>,
         nblocks, nthreads, 0, defaultStream,
         maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
-        nullptr, insideWallChecker.handler() );
+        nullptr, insideWallChecker_.handler() );
 
     nBoundaryCells.downloadFromDevice(defaultStream);
 
@@ -325,9 +325,9 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
         StationaryWallsKernels::getBoundaryCells<QueryMode::Collect>,
         nblocks, nthreads, 0, defaultStream,
         maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
-        bc.devPtr(), insideWallChecker.handler() );
+        bc.devPtr(), insideWallChecker_.handler() );
 
-    boundaryCells.push_back(std::move(bc));
+    boundaryCells_.push_back(std::move(bc));
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
@@ -339,7 +339,7 @@ static bool keepAllpersistentDataPredicate(const DataManager::NamedChannelDesc& 
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
 {
-    if (pv == frozen)
+    if (pv == frozen_)
     {
         warn("Particle Vector '%s' declared as frozen for the wall '%s'. Will not remove any particles from there",
              pv->getCName(), getCName());
@@ -372,7 +372,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             StationaryWallsKernels::packRemainingObjects,
             getNblocks(ovView.nObjects*warpSize, nthreads), nthreads, 0, defaultStream,
             ovView, packer.handler(), tmp.devPtr(), nRemaining.devPtr(),
-            insideWallChecker.handler(), maxNumObj );
+            insideWallChecker_.handler(), maxNumObj );
 
         nRemaining.downloadFromDevice(defaultStream);
         
@@ -406,7 +406,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             StationaryWallsKernels::packRemainingParticles,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
             view, packer.handler(), tmpBuffer.devPtr(), nRemaining.devPtr(),
-            insideWallChecker.handler(), maxNumParticles );
+            insideWallChecker_.handler(), maxNumParticles );
 
         nRemaining.downloadFromDevice(defaultStream);
         const int newSize = nRemaining[0];
@@ -442,13 +442,13 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 {
     const real dt = this->getState()->dt;
 
-    bounceForce.clear(stream);
+    bounceForce_.clear(stream);
     
-    for (size_t i = 0; i < particleVectors.size(); ++i)
+    for (size_t i = 0; i < particleVectors_.size(); ++i)
     {
-        auto  pv = particleVectors[i];
-        auto  cl = cellLists[i];
-        auto& bc = boundaryCells[i];
+        auto  pv = particleVectors_[i];
+        auto  cl = cellLists_[i];
+        auto& bc = boundaryCells_[i];
         auto  view = cl->getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles, %d boundary cells",
@@ -460,9 +460,9 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(),
                 bc.devPtr(), bc.size(), dt,
-                insideWallChecker.handler(),
+                insideWallChecker_.handler(),
                 VelocityField_None(),
-                bounceForce.devPtr());
+                bounceForce_.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );
     }
@@ -472,19 +472,19 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 {
     constexpr int nthreads = 128;
-    for (auto pv : particleVectors)
+    for (auto pv : particleVectors_)
     {
-        nInside.clearDevice(stream);
+        nInside_.clearDevice(stream);
         const PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             StationaryWallsKernels::checkInside,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, nInside.devPtr(), insideWallChecker.handler() );
+            view, nInside_.devPtr(), insideWallChecker_.handler() );
 
-        nInside.downloadFromDevice(stream);
+        nInside_.downloadFromDevice(stream);
 
-        info("%d particles of %s are inside the wall %s", nInside[0], pv->getCName(), getCName());
+        info("%d particles of %s are inside the wall %s", nInside_[0], pv->getCName(), getCName());
     }
 }
 
@@ -515,7 +515,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
         StationaryWallsKernels::computeSdfPerParticle,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, gradientThreshold, (real*)sdfs->genericDevPtr(),
-        (gradients != nullptr) ? (real3*)gradients->genericDevPtr() : nullptr, insideWallChecker.handler() );
+        (gradients != nullptr) ? (real3*)gradients->genericDevPtr() : nullptr, insideWallChecker_.handler() );
 }
 
 
@@ -536,7 +536,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *posit
     SAFE_KERNEL_LAUNCH(
         StationaryWallsKernels::computeSdfPerPosition,
         getNblocks(n, nthreads), nthreads, 0, stream,
-        n, (real3*)positions->genericDevPtr(), (real*)sdfs->genericDevPtr(), insideWallChecker.handler() );
+        n, (real3*)positions->genericDevPtr(), (real*)sdfs->genericDevPtr(), insideWallChecker_.handler() );
 }
 
 
@@ -554,13 +554,13 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer* s
     SAFE_KERNEL_LAUNCH(
         StationaryWallsKernels::computeSdfOnGrid,
         getNblocks(gridInfo.totcells, nthreads), nthreads, 0, stream,
-        gridInfo, (real*) sdfs->genericDevPtr(), insideWallChecker.handler() );
+        gridInfo, (real*) sdfs->genericDevPtr(), insideWallChecker_.handler() );
 }
 
 template<class InsideWallChecker>
 PinnedBuffer<double3>* SimpleStationaryWall<InsideWallChecker>::getCurrentBounceForce()
 {
-    return &bounceForce;
+    return &bounceForce_;
 }
 
 template class SimpleStationaryWall<StationaryWall_Sphere>;

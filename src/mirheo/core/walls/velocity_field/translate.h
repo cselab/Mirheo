@@ -15,22 +15,25 @@ class VelocityField_Translate
 {
 public:
     VelocityField_Translate(real3 vel) :
-        vel(vel)
+        vel_(vel)
     {}
 
-    void setup(__UNUSED real t, __UNUSED DomainInfo domain) {}
+    void setup(__UNUSED real t, __UNUSED DomainInfo domain)
+    {}
 
-    const VelocityField_Translate& handler() const { return *this; }
+    const VelocityField_Translate& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real3 operator()(__UNUSED real3 coo) const
     {
-        return vel;
+        return vel_;
     }
 
 private:
-    real3 vel;
-
-    DomainInfo domain;
+    real3 vel_;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

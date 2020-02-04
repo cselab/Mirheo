@@ -17,7 +17,7 @@ public:
     const FieldDeviceHandler& handler() const;
 
 private:
-    std::unique_ptr<FieldFromFile> impl;
+    std::unique_ptr<FieldFromFile> impl_;
 };
 
 } // namespace mirheo
