@@ -1,10 +1,10 @@
 #include "mesh.h"
 
+#include <mirheo/core/mesh/off.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 #include <algorithm>
-#include <fstream>
 #include <vector>
 
 namespace mirheo
@@ -13,16 +13,13 @@ namespace mirheo
 Mesh::Mesh()
 {}
 
-Mesh::Mesh(const std::string& fname)
-{
-    _readOff(fname);
-    _check();
+Mesh::Mesh(const std::string& fileName) :
+    Mesh(readOff(fileName))
+{}
 
-    vertexCoordinates.uploadToDevice(defaultStream);
-    triangles.uploadToDevice(defaultStream);
-
-    _computeMaxDegree();
-}
+Mesh::Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh) :
+    Mesh(std::get<0>(mesh), std::get<1>(mesh))
+{}
 
 Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
     nvertices_ (static_cast<int>(vertices.size())),
@@ -122,41 +119,6 @@ void Mesh::_check() const
         check(triangles[i].z);
     }
 }
-
-void Mesh::_readOff(const std::string& fname)
-{
-   std::ifstream fin(fname);
-    if (!fin.good())
-        die("Mesh file '%s' not found", fname.c_str());
-
-    debug("Reading mesh from file '%s'", fname.c_str());
-
-    std::string line;
-    std::getline(fin, line); // OFF header
-
-    int nedges;
-    fin >> nvertices_ >> ntriangles_ >> nedges;
-    std::getline(fin, line); // Finish with this line
-
-    // Read the vertex coordinates
-    vertexCoordinates.resize_anew(nvertices_);
-    for (int i = 0; i < nvertices_; i++)
-        fin >> vertexCoordinates[i].x >> vertexCoordinates[i].y >> vertexCoordinates[i].z;
-
-    // Read the connectivity data
-    triangles.resize_anew(ntriangles_);
-    for (int i = 0; i < ntriangles_; i++)
-    {
-        int number;
-        fin >> number;
-        if (number != 3)
-            die("Bad mesh file '%s' on line %d, number of face vertices is %d instead of 3",
-                    fname.c_str(), 3 /* header */ + nvertices_ + i, number);
-
-        fin >> triangles[i].x >> triangles[i].y >> triangles[i].z;
-    }
-}
-
 
 MeshView::MeshView(const Mesh *m) :
     nvertices  (m->getNvertices()),

@@ -3,8 +3,9 @@
 #include <mirheo/core/containers.h>
 #include <mirheo/core/utils/pytypes.h>
 
-#include <vector_types.h>
+#include <tuple>
 #include <vector>
+#include <vector_types.h>
 
 namespace mirheo
 {
@@ -16,7 +17,8 @@ public:
     PinnedBuffer<real4> vertexCoordinates;
 
     Mesh();
-    Mesh(const std::string& filename);
+    Mesh(const std::string& fileName);
+    Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh);
     Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
 
     Mesh(Mesh&&);
@@ -34,7 +36,6 @@ public:
 protected:
     void _computeMaxDegree();
     void _check() const;
-    void _readOff(const std::string& fname);
 
 private:
     int nvertices_{0};
