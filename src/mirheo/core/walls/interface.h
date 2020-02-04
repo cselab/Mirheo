@@ -18,7 +18,7 @@ class GPUcontainer;
 class Wall : public MirSimulationObject
 {
 public:
-    Wall(const MirState *state, std::string name);
+    Wall(const MirState *state, const std::string& name);
     virtual ~Wall();
 
     virtual void setup(MPI_Comm& comm) = 0;

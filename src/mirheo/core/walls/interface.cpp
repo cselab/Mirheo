@@ -3,7 +3,7 @@
 namespace mirheo
 {
 
-Wall::Wall(const MirState *state, std::string name) :
+Wall::Wall(const MirState *state, const std::string& name) :
     MirSimulationObject(state, name)
 {}
 

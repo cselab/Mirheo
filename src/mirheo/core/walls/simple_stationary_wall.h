@@ -16,7 +16,7 @@ class SimpleStationaryWall : public SDF_basedWall
 {
 public:
 
-    SimpleStationaryWall(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker);
+    SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker);
     ~SimpleStationaryWall();
 
     void setup(MPI_Comm& comm) override;
