@@ -32,13 +32,13 @@ protected:
 private:
     void _checkTag() const;
     static constexpr int invalidTag = -1;
-    int tag {invalidTag};
+    int tag_ {invalidTag};
 };
 
 class SimulationPlugin : public Plugin, public MirSimulationObject
 {
 public:
-    SimulationPlugin(const MirState *state, std::string name);
+    SimulationPlugin(const MirState *state, const std::string& name);
     virtual ~SimulationPlugin();
 
     virtual void beforeCellLists            (cudaStream_t stream);
@@ -55,12 +55,13 @@ public:
     virtual void finalize();    
 
 protected:
-    int localSendSize;
-    MPI_Request sizeReq, dataReq;
-
     void waitPrevSend();
     void send(const std::vector<char>& data);
     void send(const void *data, size_t sizeInBytes);
+
+private:
+    int localSendSize_;
+    MPI_Request sizeReq_, dataReq_;
 };
 
 
@@ -69,7 +70,7 @@ protected:
 class PostprocessPlugin : public Plugin, public MirObject
 {
 public:
-    PostprocessPlugin(std::string name);
+    PostprocessPlugin(const std::string& name);
     virtual ~PostprocessPlugin();
 
     MPI_Request waitData();
