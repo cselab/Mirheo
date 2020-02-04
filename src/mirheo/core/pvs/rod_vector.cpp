@@ -48,7 +48,7 @@ int LocalRodVector::getNumSegmentsPerRod() const
     return getNumSegments(objSize);
 }
 
-RodVector::RodVector(const MirState *state, std::string name, real mass, int nSegments, int nObjects) :
+RodVector::RodVector(const MirState *state, const std::string& name, real mass, int nSegments, int nObjects) :
     ObjectVector( state, name, mass, getNumParts(nSegments),
                   std::make_unique<LocalRodVector>(this, getNumParts(nSegments), nObjects),
                   std::make_unique<LocalRodVector>(this, getNumParts(nSegments), 0) )

@@ -8,53 +8,48 @@ namespace mirheo
 template<typename Ratio>
 class Timer
 {
-    using Clock = std::chrono::high_resolution_clock;
-    
-private:
-    std::chrono::time_point<Clock> _start, _end;
-
-    std::chrono::time_point<Clock> none =
-    std::chrono::time_point<Clock>::min();
-
-
 public:
 
-    inline Timer()
+    Timer() :
+        start_ {none_},
+        end_   {none_}
     {
         static_assert(std::chrono::__is_ratio<Ratio>::value, "timer must be specialized with ratio");
-
-        _start = none;
-        _end   = none;
     }
 
-    inline void start()
+    void start()
     {
-        _start = Clock::now();
-        _end   = none;
+        start_ = Clock::now();
+        end_   = none_;
     }
 
-    inline void stop()
+    void stop()
     {
-        _end = Clock::now();
+        end_ = Clock::now();
     }
 
-    inline double elapsed()
+    double elapsed()
     {
-        if (_end == none) _end = Clock::now();
-
-        return std::chrono::duration <double, Ratio>(_end - _start).count();
+        if (end_ == none_) end_ = Clock::now();
+        return std::chrono::duration <double, Ratio>(end_ - start_).count();
     }
 
-    inline double elapsedAndReset()
+    double elapsedAndReset()
     {
-        if (_end == none) _end = Clock::now();
-
-        double t = std::chrono::duration <double, Ratio>(_end - _start).count();
-
-        _start = _end;
-        _end = none;
+        const double t = elapsed();
+        start_ = end_;
+        end_ = none_;
         return t;
     }
+
+private:
+    using Clock = std::chrono::high_resolution_clock;
+    using Time = std::chrono::time_point<Clock>;
+    
+    Time start_;
+    Time end_;
+
+    static constexpr Time none_ {Time::min()};
 };
 
 using uTimer = Timer<std::micro>;

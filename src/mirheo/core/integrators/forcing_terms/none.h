@@ -14,7 +14,8 @@ class ParticleVector;
 class Forcing_None
 {
 public:
-    void setup(__UNUSED ParticleVector* pv, __UNUSED real t) {}
+    void setup(__UNUSED ParticleVector* pv, __UNUSED real t)
+    {}
 
     __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const
     {

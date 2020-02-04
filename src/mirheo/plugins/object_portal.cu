@@ -209,7 +209,9 @@ void ObjectPortalSource::setup(Simulation* simulation, const MPI_Comm& comm, con
 
     // UUIDs are initially equal to globalIDs. We assume here that globalIDs
     // are unique.
-    if (simulation->nranks3D.x != 1 || simulation->nranks3D.y != 1 || simulation->nranks3D.z != 1) {
+    const int3 nranks3D = simulation->getNRanks3D();
+    
+    if (nranks3D.x != 1 || nranks3D.y != 1 || nranks3D.z != 1) {
         // For multiple ranks, use a large offset for UUIDs (e.g. rank * 1e9).
         throw std::logic_error("Multiple ranks not implemented yet. UUIDs and exchange would be broken.");
     }

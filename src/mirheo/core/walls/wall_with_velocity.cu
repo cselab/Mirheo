@@ -47,8 +47,8 @@ __global__ void imposeVelField(PVview view, const VelocityField velField)
 
 template<class InsideWallChecker, class VelocityField>
 WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
-(std::string name, const MirState *state, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
-    SimpleStationaryWall<InsideWallChecker>(name, state, std::move(insideWallChecker)),
+(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker, VelocityField&& velField) :
+    SimpleStationaryWall<InsideWallChecker>(state, name, std::move(insideWallChecker)),
     velField(std::move(velField))
 {}
 
@@ -56,7 +56,7 @@ WallWithVelocity<InsideWallChecker, VelocityField>::WallWithVelocity
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::setup(MPI_Comm& comm)
 {
-    info("Setting up wall %s", this->name.c_str());
+    info("Setting up wall %s", this->getCName());
 
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -98,7 +98,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
         auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
         debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
-               pv->local()->size(), pv->name.c_str(), bc.size());
+               pv->local()->size(), pv->getCName(), bc.size());
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(

@@ -119,7 +119,7 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
     if (isTimeEvery(getState(), sampleEvery))
     {
-        debug2("Velocity control %s is sampling now", name.c_str());
+        debug2("Velocity control %s is sampling now", getCName());
 
         totVel.clearDevice(stream);
         for (auto &pv : pvs) sampleOnePv(pv, stream);
@@ -158,16 +158,16 @@ void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 
 void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
-    const auto filename = createCheckpointNameWithId(path, "plugin." + name, "txt", checkpointId);
+    const auto filename = createCheckpointNameWithId(path, "plugin." + getName(), "txt", checkpointId);
 
     TextIO::write(filename, pid);
     
-    createCheckpointSymlink(comm, path, "plugin." + name, "txt", checkpointId);
+    createCheckpointSymlink(comm, path, "plugin." + getName(), "txt", checkpointId);
 }
 
 void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::string& path)
 {
-    const auto filename = createCheckpointName(path, "plugin." + name, "txt");
+    const auto filename = createCheckpointName(path, "plugin." + getName(), "txt");
     const bool good = TextIO::read(filename, pid);
     if (!good) die("failed to read '%s'\n", filename.c_str());
 }

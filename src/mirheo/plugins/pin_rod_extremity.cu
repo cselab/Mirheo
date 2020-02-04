@@ -72,7 +72,7 @@ void PinRodExtremityPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
 
     if (rv == nullptr)
         die("Plugin '%s' must be used with a rod vector; given PV '%s'",
-            name.c_str(), rvName.c_str());
+            getCName(), rvName.c_str());
 
     if (segmentId < 0 || segmentId >= rv->local()->getNumSegmentsPerRod())
         die("Invalid segment id in plugin '%s'");

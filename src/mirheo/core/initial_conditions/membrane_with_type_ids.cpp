@@ -35,7 +35,7 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     }
     typeIdsBuff.uploadToDevice(stream);
 
-    info("Initialized %d '%s' membrane type ids", nObjsLocal, ov->name.c_str());
+    info("Initialized %d '%s' membrane type ids", nObjsLocal, ov->getCName());
 }
 
 } // namespace mirheo

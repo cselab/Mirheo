@@ -23,7 +23,7 @@ public:
 class RodVector: public ObjectVector
 {
 public:
-    RodVector(const MirState *state, std::string name, real mass, int nSegments, int nObjects = 0);
+    RodVector(const MirState *state, const std::string& name, real mass, int nSegments, int nObjects = 0);
     ~RodVector();
 
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
@@ -34,7 +34,7 @@ public:
     }
 
     template<typename T>
-    void requireDataPerBisegment(std::string name, DataManager::PersistenceMode persistence,
+    void requireDataPerBisegment(const std::string& name, DataManager::PersistenceMode persistence,
                                  DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
         requireDataPerBisegment<T>(local(), name, persistence, shift);
@@ -43,7 +43,7 @@ public:
 
 private:
     template<typename T>
-    void requireDataPerBisegment(LocalRodVector *lrv, std::string name,
+    void requireDataPerBisegment(LocalRodVector *lrv, const std::string& name,
                                  DataManager::PersistenceMode persistence,
                                  DataManager::ShiftMode shift)
     {
@@ -51,7 +51,6 @@ private:
         lrv->dataPerBisegment.setPersistenceMode(name, persistence);
         lrv->dataPerBisegment.setShiftMode(name, shift);
     }
-
 };
 
 } // namespace mirheo

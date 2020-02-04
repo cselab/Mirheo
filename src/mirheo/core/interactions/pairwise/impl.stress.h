@@ -41,7 +41,7 @@ public:
         
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
-            debug("Executing interaction '%s' with stress", name.c_str());
+            debug("Executing interaction '%s' with stress", getCName());
             
             interactionWithStress.local(pv1, pv2, cl1, cl2, stream);
             lastStressTime = t;
@@ -58,7 +58,7 @@ public:
     
         if (lastStressTime+stressPeriod <= t || lastStressTime == t)
         {
-            debug("Executing interaction '%s' with stress", name.c_str());
+            debug("Executing interaction '%s' with stress", getCName());
 
             interactionWithStress.halo(pv1, pv2, cl1, cl2, stream);
             lastStressTime = t;

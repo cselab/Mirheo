@@ -114,30 +114,30 @@ public:
                          const std::string &postprocessFilename) const;
     
 private:
-    std::unique_ptr<Simulation> sim;
-    std::unique_ptr<Postprocess> post;
-    std::shared_ptr<MirState> state;
+    std::unique_ptr<Simulation> sim_;
+    std::unique_ptr<Postprocess> post_;
+    std::shared_ptr<MirState> state_;
     
-    int rank;
-    int computeTask;
-    bool noPostprocess;
-    int pluginsTag {0}; ///< used to create unique tag per plugin
+    int rank_;
+    int computeTask_;
+    bool noPostprocess_;
+    int pluginsTag_ {0}; ///< used to create unique tag per plugin
     
-    bool initialized    = false;
-    bool initializedMpi = false;
+    bool initialized_    = false;
+    bool initializedMpi_ = false;
 
-    MPI_Comm comm      {MPI_COMM_NULL}; ///< base communicator (world)
-    MPI_Comm cartComm  {MPI_COMM_NULL}; ///< cartesian communicator for simulation part; might be from comm if no postprocess
-    MPI_Comm ioComm    {MPI_COMM_NULL}; ///< postprocess communicator
-    MPI_Comm compComm  {MPI_COMM_NULL}; ///< simulation communicator
-    MPI_Comm interComm {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
+    MPI_Comm comm_      {MPI_COMM_NULL}; ///< base communicator (world)
+    MPI_Comm cartComm_  {MPI_COMM_NULL}; ///< cartesian communicator for simulation part; might be from comm if no postprocess
+    MPI_Comm ioComm_    {MPI_COMM_NULL}; ///< postprocess communicator
+    MPI_Comm compComm_  {MPI_COMM_NULL}; ///< simulation communicator
+    MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();
-    void checkNotInitialized() const;
+    void ensureNotInitialized() const;
 };
 
 } // namespace mirheo

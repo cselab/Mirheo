@@ -134,6 +134,14 @@ struct ConfigDumper<float3> {
     }
 };
 
+/// ConfigDumper for enum types.
+template <typename T>
+struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>> {
+    static Config dump(T t) {
+        return static_cast<Config::Int>(t);
+    }
+};
+
 /// ConfigDumper for structs with reflection information.
 template <typename T>
 struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<T>::value>> {

@@ -70,7 +70,7 @@ void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const M
 {
     SimulationPlugin::setup(simulation, comm, interComm);
     ov = simulation->getOVbyNameOrDie(ovName);
-    info("Plugin '%s' initialized for object vector '%s'", name.c_str(), ovName.c_str());
+    info("Plugin '%s' initialized for object vector '%s'", getCName(), ovName.c_str());
 }
 
 void ObjStatsPlugin::handshake()
@@ -125,7 +125,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!needToSend) return;
 
-    debug2("Plugin %s is sending now data", name.c_str());
+    debug2("Plugin %s is sending now data", getCName());
 
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer, savedTime, getState()->domain, isRov, ids, coms, motions, hasTypeIds, typeIds);

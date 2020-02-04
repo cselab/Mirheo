@@ -59,31 +59,31 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
 template <class Shape>
 void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*> (ov);
+    auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*> (ov_);
     if (rsov == nullptr)
-        die("%s belonging can only be used with %s objects (%s is not)", Shape::desc, Shape::desc, ov->name.c_str());
+        die("%s belonging can only be used with %s objects (%s is not)", Shape::desc, Shape::desc, ov_->getCName());
 
-    tags.resize_anew(pv->local()->size());
-    tags.clearDevice(stream);
+    tags_.resize_anew(pv->local()->size());
+    tags_.clearDevice(stream);
 
     auto pvView = cl->getView<PVview>();
 
     auto computeTags = [&](ParticleVectorLocality locality)
     {
-        ov->findExtentAndCOM(stream, locality);
+        ov_->findExtentAndCOM(stream, locality);
         
         auto rsovView = RSOVview<Shape>(rsov, rsov->get(locality));
 
         debug("Computing inside/outside tags for %d %s %s '%s' and %d '%s' particles",
               rsovView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              Shape::desc, ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              Shape::desc, ov_->getCName(), pv->local()->size(), pv->getCName());
 
         constexpr int nthreads = 512;
 
         SAFE_KERNEL_LAUNCH(
             ShapeBelongingKernels::computeTags,
             rsovView.nObjects, nthreads, 0, stream,
-            rsovView, cl->cellInfo(), pvView, tags.devPtr());
+            rsovView, cl->cellInfo(), pvView, tags_.devPtr());
     };        
 
     computeTags(ParticleVectorLocality::Local);
@@ -91,7 +91,7 @@ void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cu
 }
 
 #define INSTANTIATE(Shape) template class ShapeBelongingChecker<Shape>;
-
 ASHAPE_TABLE(INSTANTIATE)
+#undef INSTANTIATE
 
 } // namespace mirheo

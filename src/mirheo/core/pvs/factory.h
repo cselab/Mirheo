@@ -14,7 +14,7 @@ namespace ParticleVectorFactory
 {
 
 inline std::shared_ptr<RigidShapedObjectVector<Capsule>>
-createCapsuleROV(const MirState *state, std::string name, real mass, int objSize, real R, real L)
+createCapsuleROV(const MirState *state, const std::string& name, real mass, int objSize, real R, real L)
 {
     Capsule cap(R, L);
     return std::make_shared<RigidShapedObjectVector<Capsule>>
@@ -22,7 +22,7 @@ createCapsuleROV(const MirState *state, std::string name, real mass, int objSize
 }
 
 inline std::shared_ptr<RigidShapedObjectVector<Capsule>>
-createCapsuleROVWithMesh(const MirState *state, std::string name, real mass, int objSize, real R, real L, std::shared_ptr<Mesh> mesh)
+createCapsuleROVWithMesh(const MirState *state, const std::string& name, real mass, int objSize, real R, real L, std::shared_ptr<Mesh> mesh)
 {
     Capsule cap(R, L);
     return std::make_shared<RigidShapedObjectVector<Capsule>>
@@ -32,7 +32,7 @@ createCapsuleROVWithMesh(const MirState *state, std::string name, real mass, int
 
 
 inline std::shared_ptr<RigidShapedObjectVector<Cylinder>>
-createCylinderROV(const MirState *state, std::string name, real mass, int objSize, real R, real L)
+createCylinderROV(const MirState *state, const std::string& name, real mass, int objSize, real R, real L)
 {
     Cylinder cyl(R, L);
     return std::make_shared<RigidShapedObjectVector<Cylinder>>
@@ -40,7 +40,7 @@ createCylinderROV(const MirState *state, std::string name, real mass, int objSiz
 }
 
 inline std::shared_ptr<RigidShapedObjectVector<Cylinder>>
-createCylinderROVWithMesh(const MirState *state, std::string name, real mass, int objSize, real R, real L, std::shared_ptr<Mesh> mesh)
+createCylinderROVWithMesh(const MirState *state, const std::string& name, real mass, int objSize, real R, real L, std::shared_ptr<Mesh> mesh)
 {
     Cylinder cyl(R, L);
     return std::make_shared<RigidShapedObjectVector<Cylinder>>
@@ -50,7 +50,7 @@ createCylinderROVWithMesh(const MirState *state, std::string name, real mass, in
 
 
 inline std::shared_ptr<RigidShapedObjectVector<Ellipsoid>>
-createEllipsoidROV(const MirState *state, std::string name, real mass, int objSize, real3 axes)
+createEllipsoidROV(const MirState *state, const std::string& name, real mass, int objSize, real3 axes)
 {
     Ellipsoid ell(axes);
     return std::make_shared<RigidShapedObjectVector<Ellipsoid>>
@@ -58,7 +58,7 @@ createEllipsoidROV(const MirState *state, std::string name, real mass, int objSi
 }
 
 inline std::shared_ptr<RigidShapedObjectVector<Ellipsoid>>
-createEllipsoidROVWithMesh(const MirState *state, std::string name, real mass, int objSize, real3 axes, std::shared_ptr<Mesh> mesh)
+createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real mass, int objSize, real3 axes, std::shared_ptr<Mesh> mesh)
 {
     Ellipsoid ell(axes);
     return std::make_shared<RigidShapedObjectVector<Ellipsoid>>

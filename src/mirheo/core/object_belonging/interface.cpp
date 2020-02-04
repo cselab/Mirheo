@@ -3,7 +3,7 @@
 namespace mirheo
 {
 
-ObjectBelongingChecker::ObjectBelongingChecker(const MirState *state, std::string name) :
+ObjectBelongingChecker::ObjectBelongingChecker(const MirState *state, const std::string& name) :
     MirSimulationObject(state, name)
 {}
 

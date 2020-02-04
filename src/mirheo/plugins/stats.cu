@@ -62,7 +62,7 @@ SimulationStats::~SimulationStats() = default;
 Config SimulationStats::getConfig() const {
     return Config::Dictionary{
         {"__type", "SimulationStats"},
-        {"name", name},
+        {"name", getName()},
         {"fetchEvery", fetchEvery},
     };
 }
@@ -129,7 +129,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
 Config PostprocessStats::getConfig() const {
     return Config::Dictionary{
         {"__type", "PostprocessStats"},
-        {"name", name},
+        {"name", getName()},
         {"filename", filename},
     };
 }

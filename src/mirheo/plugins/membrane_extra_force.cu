@@ -42,7 +42,7 @@ void MembraneExtraForcePlugin::setup(Simulation *simulation, const MPI_Comm& com
 
     auto pv_ptr = simulation->getPVbyNameOrDie(pvName);
     if ( !(pv = dynamic_cast<MembraneVector*>(pv_ptr)) )
-        die("MembraneExtraForcePlugin '%s' expects a MembraneVector (given '%s')", name.c_str(), pvName.c_str());
+        die("MembraneExtraForcePlugin '%s' expects a MembraneVector (given '%s')", getCName(), pvName.c_str());
 }
 
 void MembraneExtraForcePlugin::beforeForces(cudaStream_t stream)

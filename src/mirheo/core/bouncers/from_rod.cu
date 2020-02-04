@@ -53,8 +53,8 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
     auto activeRV = rv_->get(locality);
 
     debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
-          pv->local()->size(), pv->name.c_str(),
-          activeRV->nObjects,  rv_->name.c_str(),
+          pv->local()->size(), pv->getCName(),
+          activeRV->nObjects,  rv_->getCName(),
           getParticleVectorLocalityStr(locality).c_str());
 
     rv_->findExtentAndCOM(stream, locality);

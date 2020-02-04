@@ -142,7 +142,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     cellLists_.push_back(cl);
 
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
-        die("Redistributor (for %s) must be used with a primary cell-list", pv->name.c_str());
+        die("Redistributor (for %s) must be used with a primary cell-list", pv->getCName());
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
@@ -150,12 +150,12 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     };
 
     auto packer = std::make_unique<ParticlePacker>(predicate);
-    auto helper = std::make_unique<ExchangeHelper>(pv->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(pv->getName(), id, packer.get());
 
     packers_.push_back(std::move(packer));
     this->addExchangeEntity(std::move(helper));
 
-    info("Particle redistributor takes pv '%s'", pv->name.c_str());
+    info("Particle redistributor takes pv '%s'", pv->getCName());
 }
 
 void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
@@ -166,7 +166,7 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     auto packer = packers_[id].get();
     auto lpv = pv->local();
     
-    debug2("Counting leaving particles of '%s'", pv->name.c_str());
+    debug2("Counting leaving particles of '%s'", pv->getCName());
 
     helper->send.sizes.clear(stream);
 
@@ -196,7 +196,7 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
     auto packer = packers_[id].get();
 
     debug2("Downloading %d leaving particles of '%s'",
-           helper->send.offsets[helper->nBuffers], pv->name.c_str());
+           helper->send.offsets[helper->nBuffers], pv->getCName());
 
     if (pv->local()->size() > 0)
     {

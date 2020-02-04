@@ -25,15 +25,15 @@ public:
     Status open(const std::string& fname, const std::string& mode);
     Status open(SpecialStream stream);
     
-    FILE* get() {return file;}
+    FILE* get() {return file_;}
 
     void close();
     
 private:
     
-    FILE *file {nullptr};
-    bool needClose {false};
-    bool forceFlushOnClose;
+    FILE *file_ {nullptr};
+    bool needClose_ {false};
+    bool forceFlushOnClose_;
 };
 
 } // namespace mirheo

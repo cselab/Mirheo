@@ -25,14 +25,14 @@ std::string getParticleVectorLocalityStr(ParticleVectorLocality locality);
 class LocalParticleVector
 {
 public:
-    LocalParticleVector(ParticleVector *pv, int n = 0);
+    LocalParticleVector(ParticleVector *pv, int np = 0);
     virtual ~LocalParticleVector();
 
     friend void swap(LocalParticleVector &, LocalParticleVector &);
     template <typename T>
     friend void swap(LocalParticleVector &, T &) = delete;  // Disallow implicit upcasts.
     
-    int size() const { return np; }
+    int size() const noexcept { return np_; }
     virtual void resize(int n, cudaStream_t stream);
     virtual void resize_anew(int n);    
 
@@ -46,8 +46,8 @@ public:
     ParticleVector *pv;
     DataManager dataPerParticle;
 
-protected:
-    int np;
+private:
+    int np_;
 };
 
 
@@ -55,19 +55,19 @@ class ParticleVector : public MirSimulationObject
 {
 public:
     
-    ParticleVector(const MirState *state, std::string name, real mass, int n=0);
+    ParticleVector(const MirState *state, const std::string& name, real mass, int n=0);
     ~ParticleVector() override;
     Config getConfig() const override;
     
-    LocalParticleVector* local() { return _local.get(); }
-    LocalParticleVector* halo()  { return _halo.get();  }
+    LocalParticleVector* local() { return local_.get(); }
+    LocalParticleVector* halo()  { return halo_.get();  }
     LocalParticleVector* get(ParticleVectorLocality locality)
     {
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
     }
 
-    const LocalParticleVector* local() const { return _local.get(); }
-    const LocalParticleVector* halo()  const { return  _halo.get(); }
+    const LocalParticleVector* local() const { return local_.get(); }
+    const LocalParticleVector* halo()  const { return  halo_.get(); }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
@@ -93,7 +93,7 @@ public:
     }
 
 protected:
-    ParticleVector(const MirState *state, std::string name, real mass,
+    ParticleVector(const MirState *state, const std::string& name, real mass,
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
@@ -127,8 +127,8 @@ public:
 
     int cellListStamp{0};
 
-protected:
-    std::unique_ptr<LocalParticleVector> _local, _halo;
+private:
+    std::unique_ptr<LocalParticleVector> local_, halo_;
 };
 
 } // namespace mirheo

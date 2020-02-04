@@ -49,7 +49,7 @@ void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     const int wholeInCell = static_cast<int>(math::floor(numPartsPerCell));
     const real fracInCell = numPartsPerCell - static_cast<real>(wholeInCell);
 
-    const auto seed = genSeed(comm, pv->name);
+    const auto seed = genSeed(comm, pv->getName());
     std::mt19937 gen(seed);
     std::uniform_real_distribution<float> udistr(0, 1); // use float to get the same refs for tests
 
@@ -108,7 +108,7 @@ void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     pv->local()->computeGlobalIds(comm, stream);
     pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
 
-    debug2("Generated %d %s particles", pv->local()->size(), pv->name.c_str());
+    debug2("Generated %d %s particles", pv->local()->size(), pv->getCName());
 }
 
 } // namespace mirheo

@@ -102,7 +102,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
         unpacker = std::make_unique<RodPacker>(predicate);
     }
 
-    auto   helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
     
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));

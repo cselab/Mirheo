@@ -35,7 +35,7 @@ void AddTorquePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const 
     rov = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName) );
     if (rov == nullptr)
         die("Need rigid object vector to add torque, plugin '%s', OV name '%s'",
-            name.c_str(), rovName.c_str());
+            getCName(), rovName.c_str());
 
     info("Objects '%s' will experience external torque [%f %f %f]", 
             rovName.c_str(), torque.x, torque.y, torque.z);

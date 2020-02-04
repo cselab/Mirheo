@@ -6,7 +6,7 @@ namespace mirheo
 {
 
 template <class Shape> RigidShapedObjectVector<Shape>::
-RigidShapedObjectVector(const MirState *state, std::string name, real mass, int objSize,
+RigidShapedObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                         Shape shape, int nObjects) :
     RigidObjectVector(state, name, mass,
                       shape.inertiaTensor(mass * static_cast<real>(objSize)),
@@ -17,7 +17,7 @@ RigidShapedObjectVector(const MirState *state, std::string name, real mass, int 
 {}
 
 template <class Shape> RigidShapedObjectVector<Shape>::
-RigidShapedObjectVector(const MirState *state, std::string name, real mass, int objSize,
+RigidShapedObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                         Shape shape, std::shared_ptr<Mesh> mesh, int nObjects) :
     RigidObjectVector(state, name, mass,
                       shape.inertiaTensor(mass * static_cast<real>(objSize)),
@@ -30,7 +30,7 @@ template <class Shape> RigidShapedObjectVector<Shape>::
 
 
 #define INSTANTIATE(Shape) template class RigidShapedObjectVector<Shape>;
-
 ASHAPE_TABLE(INSTANTIATE)
+#undef INSTANTIATE
 
 } // namespace mirheo

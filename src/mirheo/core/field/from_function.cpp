@@ -31,7 +31,7 @@ inline real3 make_periodic(real3 r, real3 L)
 
 void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
 {
-    info("Setting up field '%s'", name.c_str());
+    info("Setting up field '%s'", getCName());
 
     const auto domain = getState()->domain;
     

@@ -14,9 +14,7 @@ enum class BelongingTags
 class ObjectBelongingChecker_Common : public ObjectBelongingChecker
 {
 public:
-    std::string name;
-
-    ObjectBelongingChecker_Common(const MirState *state, std::string name);
+    ObjectBelongingChecker_Common(const MirState *state, const std::string& name);
 
     ~ObjectBelongingChecker_Common() override;
 
@@ -33,10 +31,10 @@ public:
     ObjectVector* getObjectVector() override;
     
 protected:
-    ObjectVector* ov;
+    ObjectVector *ov_;
 
-    DeviceBuffer<BelongingTags> tags;
-    PinnedBuffer<int> nInside{1}, nOutside{1};
+    DeviceBuffer<BelongingTags> tags_;
+    PinnedBuffer<int> nInside_{1}, nOutside_{1};
 
     virtual void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 };

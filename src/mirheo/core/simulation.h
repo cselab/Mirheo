@@ -86,6 +86,8 @@ public:
     void stopProfiler() const;
 
     MPI_Comm getCartComm() const;
+    int3 getRank3D() const;
+    int3 getNRanks3D() const;
     
     real getCurrentDt() const;
     real getCurrentTime() const;
@@ -94,15 +96,30 @@ public:
     
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
-public:
-    const int3 nranks3D;
-    const int3 rank3D;
-
-    MPI_Comm cartComm;
-    MPI_Comm interComm;
-
 private:
 
+    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
+    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
+    
+    void prepareCellLists();
+    void prepareInteractions();
+    void prepareBouncers();
+    void prepareWalls();
+    void preparePlugins();
+    void prepareEngines();
+    
+    void execSplitters();
+
+    void createTasks();
+
+    using MirObject::restart;
+    using MirObject::checkpoint;
+
+    void restartState(const std::string& folder);
+    void checkpointState();
+
+private:
+    
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
     template <class T>
@@ -153,75 +170,59 @@ private:
         ParticleVector *pvSrc, *pvIn, *pvOut;
     };
 
+private:
     
-    MirState *state;
+    const int3 nranks3D_;
+    const int3 rank3D_;
+
+    MPI_Comm cartComm_;
+    MPI_Comm interComm_;
     
-    static constexpr real rcTolerance = 1e-5_r;
+    MirState *state_;
+    
+    static constexpr real rcTolerance_ = 1e-5_r;
 
-    int checkpointId {0};
-    const CheckpointInfo checkpointInfo;
-    const int rank;
+    int checkpointId_ {0};
+    const CheckpointInfo checkpointInfo_;
+    const int rank_;
 
-    std::unique_ptr<TaskScheduler> scheduler;
-    std::unique_ptr<SimulationTasks> tasks;
+    std::unique_ptr<TaskScheduler> scheduler_;
+    std::unique_ptr<SimulationTasks> tasks_;
 
-    std::unique_ptr<InteractionManager> interactionsIntermediate, interactionsFinal;
+    std::unique_ptr<InteractionManager> interactionsIntermediate_, interactionsFinal_;
 
-    const bool gpuAwareMPI;
+    const bool gpuAwareMPI_;
 
-    ExchangeEngineUniquePtr partRedistributor, objRedistibutor;
-    ExchangeEngineUniquePtr partHaloIntermediate, partHaloFinal;
-    ExchangeEngineUniquePtr objHaloIntermediate, objHaloReverseIntermediate;
-    ExchangeEngineUniquePtr objHaloFinal, objHaloReverseFinal;
+    ExchangeEngineUniquePtr partRedistributor_, objRedistibutor_;
+    ExchangeEngineUniquePtr partHaloIntermediate_, partHaloFinal_;
+    ExchangeEngineUniquePtr objHaloIntermediate_, objHaloReverseIntermediate_;
+    ExchangeEngineUniquePtr objHaloFinal_, objHaloReverseFinal_;
 
-    std::map<std::string, int> pvIdMap;
-    std::vector< std::shared_ptr<ParticleVector> > particleVectors;
-    std::vector< ObjectVector* >   objectVectors;
+    std::map<std::string, int> pvIdMap_;
+    std::vector< std::shared_ptr<ParticleVector> > particleVectors_;
+    std::vector< ObjectVector* >   objectVectors_;
 
-    MapShared <Bouncer>                bouncerMap;
-    MapShared <Integrator>             integratorMap;
-    MapShared <Interaction>            interactionMap;
-    MapShared <Wall>                   wallMap;
-    MapShared <ObjectBelongingChecker> belongingCheckerMap;
+    MapShared <Bouncer>                bouncerMap_;
+    MapShared <Integrator>             integratorMap_;
+    MapShared <Interaction>            interactionMap_;
+    MapShared <Wall>                   wallMap_;
+    MapShared <ObjectBelongingChecker> belongingCheckerMap_;
     
     std::vector< std::shared_ptr<SimulationPlugin> > plugins;
 
-    std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap;
+    std::map<ParticleVector*, std::vector< std::unique_ptr<CellList> >> cellListMap_;
 
-    std::vector<IntegratorPrototype>          integratorPrototypes;
-    std::vector<InteractionPrototype>         interactionPrototypes;
-    std::vector<WallPrototype>                wallPrototypes;
-    std::vector<CheckWallPrototype>           checkWallPrototypes;
-    std::vector<BouncerPrototype>             bouncerPrototypes;
-    std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes;
-    std::vector<SplitterPrototype>            splitterPrototypes;
+    std::vector<IntegratorPrototype>          integratorPrototypes_;
+    std::vector<InteractionPrototype>         interactionPrototypes_;
+    std::vector<WallPrototype>                wallPrototypes_;
+    std::vector<CheckWallPrototype>           checkWallPrototypes_;
+    std::vector<BouncerPrototype>             bouncerPrototypes_;
+    std::vector<BelongingCorrectionPrototype> belongingCorrectionPrototypes_;
+    std::vector<SplitterPrototype>            splitterPrototypes_;
 
-    std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;
+    std::vector<std::function<void(cudaStream_t)>> regularBouncers_, haloBouncers_;
 
-    std::map<std::string, std::string> pvsIntegratorMap;
-
-    
-private:
-
-    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
-    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
-    
-    void prepareCellLists();
-    void prepareInteractions();
-    void prepareBouncers();
-    void prepareWalls();
-    void preparePlugins();
-    void prepareEngines();
-    
-    void execSplitters();
-
-    void createTasks();
-
-    using MirObject::restart;
-    using MirObject::checkpoint;
-
-    void restartState(const std::string& folder);
-    void checkpointState();
+    std::map<std::string, std::string> pvsIntegratorMap_;
 };
 
 } // namespace mirheo

@@ -13,8 +13,9 @@ namespace mirheo
 {
 
 template<class ForcingTerm>
-IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, std::string name, ForcingTerm forcingTerm) :
-    Integrator(state, name), forcingTerm(forcingTerm)
+IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm) :
+    Integrator(state, name),
+    forcingTerm_(forcingTerm)
 {}
 
 template<class ForcingTerm>
@@ -23,9 +24,9 @@ IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 template<class ForcingTerm>
 Config IntegratorVV<ForcingTerm>::getConfig() const {
     return Config::Dictionary{
-        {"__type", "IntegratorVV<...>"},
-        {"name", name},
-        {"forcingTerm", forcingTerm},
+        {"__type", "IntegratorVV<...>"},  // TODO: Template parameter name.
+        {"name", getName()},
+        {"forcingTerm", forcingTerm_},
     };
 }
 
@@ -64,23 +65,23 @@ void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
     const auto t  = static_cast<real>(getState()->currentTime);
     const auto dt = static_cast<real>(getState()->dt);
     
-    static_assert(std::is_same<decltype(forcingTerm.setup(pv, t)), void>::value,
+    static_assert(std::is_same<decltype(forcingTerm_.setup(pv, t)), void>::value,
             "Forcing term functor must provide member"
             "void setup(ParticleVector*, real)");
 
-    auto& _fterm = forcingTerm;
-    _fterm.setup(pv, t);
+    auto& fterm = forcingTerm_;
+    fterm.setup(pv, t);
 
-    auto st2 = [_fterm] __device__ (Particle& p, const real3 f, const real invm, const real dt) {
-
-        const real3 modF = _fterm(f, p);
+    auto st2 = [fterm] __device__ (Particle& p, real3 f, real invm, real dt)
+    {
+        const real3 modF = fterm(f, p);
 
         p.u += modF * invm * dt;
         p.r += p.u * dt;
     };
 
     integrate(pv, dt, st2, stream);
-    invalidatePV(pv);
+    invalidatePV_(pv);
 }
 
 template class IntegratorVV<Forcing_None>;

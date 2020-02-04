@@ -86,7 +86,7 @@ public:
     Config getConfig() const override {
         return Config::Dictionary{
             {"__type", "MembraneInteractionImpl<...>"},
-            {"name", name},
+            {"name", getName()},
             {"rc", rc},
             {"growUntil", growUntil},
             {"parameters", parameters},
@@ -113,10 +113,10 @@ public:
 
         if (ov->objSize != ov->mesh->getNvertices())
             die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-                ov->name.c_str(), ov->objSize, ov->mesh->getNvertices());
+                ov->getCName(), ov->objSize, ov->mesh->getNvertices());
 
         debug("Computing internal membrane forces for %d cells of '%s'",
-              ov->local()->nObjects, ov->name.c_str());
+              ov->local()->nObjects, ov->getCName());
 
         auto currentParams = parameters;
         const real scale = scaleFromTime(getState()->currentTime);
@@ -160,7 +160,7 @@ public:
             filter.setPrerequisites(mv);
         else
             die("Interaction '%s' needs a membrane vector (given '%s')",
-                this->name.c_str(), pv1->name.c_str());
+                this->getCName(), pv1->getCName());
     }
 
     void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)

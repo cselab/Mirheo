@@ -15,7 +15,7 @@ class Interaction;
 class IntegratorSubStep : public Integrator
 {
 public:
-    IntegratorSubStep(const MirState *state, std::string name, int substeps,
+    IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                       const std::vector<Interaction*>& fastForces);
     ~IntegratorSubStep();
     Config getConfig() const override;
@@ -27,15 +27,15 @@ public:
 
 private:
 
-    std::vector<Interaction*> fastForces; /* interactions (self) called `substeps` times per time step */
-    std::unique_ptr<Integrator> subIntegrator;
-    MirState subState;
+    std::vector<Interaction*> fastForces_; /* interactions (self) called `substeps` times per time step */
+    std::unique_ptr<Integrator> subIntegrator_;
+    MirState subState_;
     
-    int substeps; /* number of substeps */
-    DeviceBuffer<Force> slowForces {};
-    DeviceBuffer<real4> previousPositions {};
+    int substeps_; /* number of substeps */
+    DeviceBuffer<Force> slowForces_ {};
+    DeviceBuffer<real4> previousPositions_ {};
 
-    void updateSubState();
+    void updateSubState_();
 };
 
 } // namespace mirheo

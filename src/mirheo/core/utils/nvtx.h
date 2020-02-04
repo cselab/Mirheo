@@ -13,7 +13,7 @@ public:
     NvtxTracer(const std::string& name);
     ~NvtxTracer();
 private:
-    nvtxRangeId_t id;
+    nvtxRangeId_t id_;
 };
 
 } // namespace mirheo

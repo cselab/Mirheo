@@ -157,7 +157,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
     }
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
-         name.c_str(), ovName.c_str(),
+         getCName(), ovName.c_str(),
 
           translation.x == Unrestricted ? "?" : std::to_string(translation.x).c_str(),
           translation.y == Unrestricted ? "?" : std::to_string(translation.y).c_str(),
@@ -180,7 +180,7 @@ void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
     // If the object is not rigid, modify the forces
     if (rov == nullptr)
     {
-        debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
+        debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), getCName());
 
         const int nthreads = 128;
         OVview view(ov, ov->local());
@@ -196,7 +196,7 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
     // If the object IS rigid, modify forces and torques
     if (rov != nullptr)
     {
-        debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName.c_str(), name.c_str());
+        debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName.c_str(), getCName());
 
         const int nthreads = 32;
         ROVviewWithOldMotion view(rov, rov->local());

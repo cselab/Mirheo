@@ -86,7 +86,7 @@ public:
 
         if (checkChannelExists(name))
         {
-            if (!mpark::holds_alternative< HeldType* >(channelMap[name].varDataPtr))
+            if (!mpark::holds_alternative< HeldType* >(channelMap_[name].varDataPtr))
                 die("Tried to create channel with existing name '%s' but different type",
                     name.c_str());
 
@@ -96,12 +96,12 @@ public:
 
         info("Creating new channel '%s'", name.c_str());
 
-        auto &desc = channelMap[name];
+        auto &desc = channelMap_[name];
         auto ptr = std::make_unique<HeldType>(size);
         desc.varDataPtr = ptr.get();
         desc.container  = std::move(ptr);
 
-        sortedChannels.push_back({name, &channelMap[name]});
+        sortedChannels_.push_back({name, &channelMap_[name]});
         sortChannels();
     }
 
@@ -183,13 +183,13 @@ private:
     using ChannelMap = std::map< std::string, ChannelDescription >;
 
     /// Quick access to the channels by name
-    ChannelMap channelMap;
+    ChannelMap channelMap_;
 
     /**
      * Channels sorted by their element size (large to small)
      * Used by the packers so that larger elements are packed first
      */
-    std::vector<NamedChannelDesc> sortedChannels;
+    std::vector<NamedChannelDesc> sortedChannels_;
 
 private:
     

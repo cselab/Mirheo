@@ -100,7 +100,7 @@ inline void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, Par
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
-          ov->local()->nObjects, ov->name.c_str());
+          ov->local()->nObjects, ov->getCName());
 
     ov->local()->dataPerObject.getData<real>(ChannelNames::lenThetaTot)->clear(stream);
 

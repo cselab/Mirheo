@@ -16,7 +16,7 @@ namespace mirheo
 
 TaskScheduler::TaskScheduler()
 {
-    CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow, &cudaPriorityHigh) );
+    CUDA_Check( cudaDeviceGetStreamPriorityRange(&cudaPriorityLow_, &cudaPriorityHigh_) );
 }
 
 TaskScheduler::~TaskScheduler()
@@ -30,8 +30,8 @@ TaskScheduler::~TaskScheduler()
         }
     };
 
-    destroyStreams(streamsLo);
-    destroyStreams(streamsHi);
+    destroyStreams(streamsLo_);
+    destroyStreams(streamsHi_);
 }
 
 TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
@@ -40,19 +40,19 @@ TaskScheduler::TaskID TaskScheduler::createTask(const std::string& label)
     if (id != invalidTaskId)
         die("Task '%s' already exists", label.c_str());
 
-    id = static_cast<int>(tasks.size());
-    label2taskId[label] = id;
+    id = static_cast<int>(tasks_.size());
+    label2taskId_[label] = id;
 
-    Task task(label, id, cudaPriorityLow);
-    tasks.push_back(task);
+    Task task(label, id, cudaPriorityLow_);
+    tasks_.push_back(task);
 
     return id;
 }
 
 TaskScheduler::TaskID TaskScheduler::getTaskId(const std::string& label)
 {
-    if (label2taskId.find(label) != label2taskId.end())
-        return label2taskId[label];
+    if (label2taskId_.find(label) != label2taskId_.end())
+        return label2taskId_[label];
     else
         return invalidTaskId;
 }
@@ -68,13 +68,13 @@ TaskScheduler::TaskID TaskScheduler::getTaskIdOrDie(const std::string& label)
 
 void TaskScheduler::checkTaskExistsOrDie(TaskID id) const
 {
-    if (id >= static_cast<TaskID>(tasks.size()) || id < 0)
+    if (id >= static_cast<TaskID>(tasks_.size()) || id < 0)
         die("No such task with id %d", id);
 }
 
 TaskScheduler::Node* TaskScheduler::getNode(TaskID id)
 {
-    for (auto& n : nodes)
+    for (auto& n : nodes_)
         if (n->id == id) return n.get();
 
     return nullptr;
@@ -97,61 +97,61 @@ void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
     if (every <= 0)
         die("'every' must be non negative: got %d???", every);
 
-    tasks[id].funcs.push_back({task, every});
+    tasks_[id].funcs.push_back({task, every});
 }
 
 
 void TaskScheduler::addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after)
 {
     checkTaskExistsOrDie(id);
-    tasks[id].before.insert(tasks[id].before.end(), before.begin(), before.end());
-    tasks[id].after .insert(tasks[id].after .end(), after .begin(), after .end());
+    tasks_[id].before.insert(tasks_[id].before.end(), before.begin(), before.end());
+    tasks_[id].after .insert(tasks_[id].after .end(), after .begin(), after .end());
 }
 
 void TaskScheduler::setHighPriority(TaskID id)
 {
     checkTaskExistsOrDie(id);
-    tasks[id].priority = cudaPriorityHigh;
+    tasks_[id].priority = cudaPriorityHigh_;
 }
 
 void TaskScheduler::forceExec(TaskID id, cudaStream_t stream)
 {
     checkTaskExistsOrDie(id);
-    debug("Forced execution of group %s", tasks[id].label.c_str());
+    debug("Forced execution of group %s", tasks_[id].label.c_str());
 
-    for (auto& func_every : tasks[id].funcs)
+    for (auto& func_every : tasks_[id].funcs)
         func_every.first(stream);
 }
 
 
 void TaskScheduler::createNodes()
 {
-    nodes.clear();
+    nodes_.clear();
 
-    for (auto& t : tasks)
+    for (auto& t : tasks_)
     {
         auto node = std::make_unique<Node>(t.id, t.priority);
-        nodes.push_back(std::move(node));
+        nodes_.push_back(std::move(node));
     }
 
-    for (auto& n : nodes)
+    for (auto& n : nodes_)
     {
         // Set streams member according to priority
-        if      (n->priority == cudaPriorityLow)
-            n->streams = &streamsLo;
-        else if (n->priority == cudaPriorityHigh)
-            n->streams = &streamsHi;
+        if      (n->priority == cudaPriorityLow_)
+            n->streams = &streamsLo_;
+        else if (n->priority == cudaPriorityHigh_)
+            n->streams = &streamsHi_;
         else
-            n->streams = &streamsLo;
+            n->streams = &streamsLo_;
 
         // Set dependencies
-        for (auto dep : tasks[n->id].before)
+        for (auto dep : tasks_[n->id].before)
         {
             Node* depPtr = getNode(dep);
 
             if (depPtr == nullptr)
             {
-                error("Could not resolve dependency %s  -->  id %d, trying to move on", tasks[n->id].label.c_str(), dep);
+                error("Could not resolve dependency %s  -->  id %d, trying to move on", tasks_[n->id].label.c_str(), dep);
                 continue;
             }
 
@@ -159,13 +159,13 @@ void TaskScheduler::createNodes()
             depPtr->from_backup.push_back(n.get());
         }
 
-        for (auto dep : tasks[n->id].after)
+        for (auto dep : tasks_[n->id].after)
         {
             Node* depPtr = getNode(dep);
 
             if (depPtr == nullptr)
             {
-                error("Could not resolve dependency id %d  -->  %s, trying to move on", dep, tasks[n->id].label.c_str());
+                error("Could not resolve dependency id %d  -->  %s, trying to move on", dep, tasks_[n->id].label.c_str());
                 continue;
             }
 
@@ -178,14 +178,14 @@ void TaskScheduler::createNodes()
 
 void TaskScheduler::removeEmptyNodes()
 {
-    for (auto it = nodes.begin(); it != nodes.end(); )
+    for (auto it = nodes_.begin(); it != nodes_.end(); )
     {
         auto checkedNode = it->get();
 
-        if ( tasks[checkedNode->id].funcs.size() == 0 )
+        if ( tasks_[checkedNode->id].funcs.size() == 0 )
         {
-            debug("Task '%s' is empty and will be removed from execution", tasks[checkedNode->id].label.c_str());
-            for (auto& n : nodes)
+            debug("Task '%s' is empty and will be removed from execution", tasks_[checkedNode->id].label.c_str());
+            for (auto& n : nodes_)
             {
                 const auto toSize = n->to.size();
                 const auto from_backupSize = n->from_backup.size();
@@ -209,14 +209,14 @@ void TaskScheduler::removeEmptyNodes()
                     n->to.insert( n->to.end(), checkedNode->to.begin(), checkedNode->to.end() );
             }
 
-            it = nodes.erase(it);
+            it = nodes_.erase(it);
         }
         else
             it++;
     }
 
     // Cleanup dependencies
-    for (auto& n : nodes)
+    for (auto& n : nodes_)
     {
         n->from_backup.sort();
         n->from_backup.unique();
@@ -228,27 +228,27 @@ void TaskScheduler::removeEmptyNodes()
 
 void TaskScheduler::logDepsGraph()
 {
-    debug("Task graph consists of total %d tasks:", nodes.size());
+    debug("Task graph consists of total %d tasks:", nodes_.size());
 
-    for (auto& n : nodes)
+    for (auto& n : nodes_)
     {
         std::stringstream str;
 
-        auto& task = tasks[n->id];
+        auto& task = tasks_[n->id];
         str << "Task '" << task.label << "', id " << n->id << " with " << task.funcs.size() << " functions" << std::endl;
 
         if (n->to.size() > 0)
         {
             str << "    Before tasks:" << std::endl;
             for (auto dep : n->to)
-                str << "     * " << tasks[dep->id].label << std::endl;
+                str << "     * " << tasks_[dep->id].label << std::endl;
         }
 
         if (n->from_backup.size() > 0)
         {
             str << "    After tasks:" << std::endl;
             for (auto dep : n->from_backup)
-                str << "     * " << tasks[dep->id].label << std::endl;
+                str << "     * " << tasks_[dep->id].label << std::endl;
         }
 
         debug("%s", str.str().c_str());
@@ -277,7 +277,7 @@ void TaskScheduler::run()
     std::priority_queue<Node*, std::vector<Node*>, decltype(compareNodes)> S(compareNodes);
     std::vector<std::pair<cudaStream_t, Node*>> workMap;
 
-    for (auto& n : nodes)
+    for (auto& n : nodes_)
     {
         n->from = n->from_backup;
 
@@ -286,7 +286,7 @@ void TaskScheduler::run()
     }
 
     int completed = 0;
-    const int total = static_cast<int>(nodes.size());
+    const int total = static_cast<int>(nodes_.size());
 
     while (true)
     {
@@ -300,7 +300,7 @@ void TaskScheduler::run()
                 {
                     auto node = streamNode_it->second;
 
-                    debug("Completed group %s ", tasks[node->id].label.c_str());
+                    debug("Completed group %s ", tasks_[node->id].label.c_str());
 
                     // Return freed stream back to the corresponding queue
                     node->streams->push(streamNode_it->first);
@@ -326,7 +326,7 @@ void TaskScheduler::run()
                 }
                 else
                 {
-                    error("Group '%s' raised an error",  tasks[streamNode_it->second->id].label.c_str());
+                    error("Group '%s' raised an error",  tasks_[streamNode_it->second->id].label.c_str());
                     CUDA_Check( result );
                 }
             }
@@ -349,20 +349,20 @@ void TaskScheduler::run()
             node->streams->pop();
         }
 
-        debug("Executing group %s on stream %lld with priority %d", tasks[node->id].label.c_str(), (int64_t)stream, node->priority);
+        debug("Executing group %s on stream %lld with priority %d", tasks_[node->id].label.c_str(), (int64_t)stream, node->priority);
         workMap.push_back({stream, node});
 
         {
-            auto& task = tasks[node->id];
+            auto& task = tasks_[node->id];
             NvtxCreateRange(range, task.label.c_str());
             
             for (auto& func_every : task.funcs)
-                if (nExecutions % func_every.second == 0)
+                if (nExecutions_ % func_every.second == 0)
                     func_every.first(stream);
         }
     }
 
-    nExecutions++;
+    nExecutions_++;
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
@@ -405,11 +405,12 @@ void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
     graph.append_attribute("edgedefault") = "directed";
 
     // Nodes
-    for (const auto& t : tasks)
+    for (const auto& t : tasks_)
         add_node(graph, t.id, t.label);
 
     // Edges
-    for (const auto& n : nodes) {
+    for (const auto& n : nodes_)
+    {
         for (auto dep : n->to)
             add_edge(graph, n->id, dep->id);
 

@@ -30,7 +30,7 @@ struct GenericPackerHandler
     inline __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                   real3 shift) const
     {
-        TransformShift t {shift, needShift};
+        TransformShift t {shift, needShift_};
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
@@ -50,7 +50,7 @@ struct GenericPackerHandler
 
     inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
-        TransformShift t {shift, needShift};
+        TransformShift t {shift, needShift_};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
@@ -58,16 +58,16 @@ struct GenericPackerHandler
     {
         assert (nChannels == dst.nChannels);
         
-        for (int i = 0; i < nChannels; ++i)
+        for (int i = 0; i < nChannels_; ++i)
         {
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
-                auto dstPtr = cuda_variant::get_alternative<T*>(dst.varChannelData[i]);
+                auto dstPtr = cuda_variant::get_alternative<T*>(dst.varChannelData_[i]);
 
                 dstPtr[dstId]= srcPtr[srcId];
                 
-            }, varChannelData[i]);
+            }, varChannelData_[i]);
         }
     }
 
@@ -75,13 +75,13 @@ struct GenericPackerHandler
     {
         size_t sz = 0;
 
-        for (int i = 0; i < nChannels; ++i)
+        for (int i = 0; i < nChannels_; ++i)
         {
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
                 sz += getPaddedSize<T>(numElements);
-            }, varChannelData[i]);
+            }, varChannelData_[i]);
         }
         return sz;
     }
@@ -127,7 +127,7 @@ private:
                              char *dstBuffer, int numElements) const
     {
         size_t totPacked = 0;
-        for (int i = 0; i < nChannels; ++i)
+        for (int i = 0; i < nChannels_; ++i)
         {
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
@@ -135,7 +135,7 @@ private:
                 auto buffStart = reinterpret_cast<T*>(dstBuffer + totPacked);
                 transform( &buffStart[dstId], srcPtr[srcId], i );
                 totPacked += getPaddedSize<T>(numElements);
-            }, varChannelData[i]);
+            }, varChannelData_[i]);
         }
 
         return totPacked;
@@ -146,7 +146,7 @@ private:
                                const char *srcBuffer, int numElements) const
     {
         size_t totPacked = 0;
-        for (int i = 0; i < nChannels; i++)
+        for (int i = 0; i < nChannels_; i++)
         {
             cuda_variant::apply_visitor([&](auto dstPtr)
             {
@@ -154,20 +154,19 @@ private:
                 auto buffStart = reinterpret_cast<const T*>(srcBuffer + totPacked);
                 transform( &dstPtr[dstId], buffStart[srcId], i );
                 totPacked += getPaddedSize<T>(numElements);
-            }, varChannelData[i]);
+            }, varChannelData_[i]);
         }
 
         return totPacked;
     }
-    
-protected:
 
-    int nChannels              {0};       ///< number of data channels to pack / unpack
-    CudaVarPtr *varChannelData {nullptr}; ///< device pointers of the packed data
-    bool *needShift            {nullptr}; ///< flag per channel: true if data needs to be shifted
+protected:    
+    int nChannels_              {0};       ///< number of data channels to pack / unpack
+    CudaVarPtr *varChannelData_ {nullptr}; ///< device pointers of the packed data
+    bool *needShift_            {nullptr}; ///< flag per channel: true if data needs to be shifted
 };
 
-class GenericPacker : public GenericPackerHandler
+class GenericPacker : private GenericPackerHandler
 {
 public:
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
@@ -176,13 +175,12 @@ public:
 
     size_t getSizeBytes(int numElements) const;
     
-protected:
-
-    void registerChannel(CudaVarPtr varPtr,  bool needShift,
+private:
+    void registerChannel(CudaVarPtr varPtr, bool needShift,
                          bool& needUpload, cudaStream_t stream);
     
-    PinnedBuffer<CudaVarPtr> channelData;
-    PinnedBuffer<bool> needShiftData;
+    PinnedBuffer<CudaVarPtr> channelData_;
+    PinnedBuffer<bool> needShiftData_;
 };
 
 } // namespace mirheo

@@ -17,16 +17,16 @@ public:
 
     void clearRigidForces(cudaStream_t stream);
 
-protected:
-    PinnedBuffer<real4> meshVertices;
-    PinnedBuffer<real4> meshOldVertices;
-    PinnedBuffer<Force>  meshForces;
+private:
+    PinnedBuffer<real4> meshVertices_;
+    PinnedBuffer<real4> meshOldVertices_;
+    PinnedBuffer<Force>  meshForces_;
 };
 
 class RigidObjectVector : public ObjectVector
 {
 public:
-    RigidObjectVector(const MirState *state, std::string name, real partMass, real3 J, const int objSize,
+    RigidObjectVector(const MirState *state, const std::string& name, real partMass, real3 J, const int objSize,
                       std::shared_ptr<Mesh> mesh, const int nObjects = 0);
 
     virtual ~RigidObjectVector();

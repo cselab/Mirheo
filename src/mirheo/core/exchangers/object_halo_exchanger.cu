@@ -161,7 +161,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
         unpacker = std::make_unique<ObjectPacker>(predicate);
     }
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->name, id, packer.get());
+    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
 
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
@@ -173,7 +173,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
         allChannelNames += "'" + name + "' ";
     
     info("Object vector '%s' (rc %f) was attached to halo exchanger with channels %s",
-         ov->name.c_str(), rc, allChannelNames.c_str());
+         ov->getCName(), rc, allChannelNames.c_str());
 }
 
 void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
@@ -186,7 +186,7 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
 
     ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
 
-    debug2("Counting halo objects of '%s'", ov->name.c_str());
+    debug2("Counting halo objects of '%s'", ov->getCName());
 
     OVview ovView(ov, lov);
     helper->send.sizes.clear(stream);
@@ -225,7 +225,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
     if (ovView.nObjects > 0)
     {
         const int nthreads = 256;
-        debug2("Downloading %d halo objects of '%s'", nhalo, ov->name.c_str());
+        debug2("Downloading %d halo objects of '%s'", nhalo, ov->getCName());
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);

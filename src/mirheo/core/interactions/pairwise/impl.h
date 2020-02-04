@@ -213,7 +213,7 @@ private:
      */
     void computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
     {
-        auto& pair = getPairwiseKernel(pv1->name, pv2->name);
+        auto& pair = getPairwiseKernel(pv1->getName(), pv2->getName());
         using ViewType = typename PairwiseKernel::ViewType;
 
         pair.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
@@ -223,7 +223,7 @@ private:
         {
             auto view = cl1->getView<ViewType>();
             const int np = view.size;
-            debug("Computing internal forces for %s (%d particles)", pv1->name.c_str(), np);
+            debug("Computing internal forces for %s (%d particles)", pv1->getCName(), np);
 
             const int nth = 128;
 
@@ -237,7 +237,7 @@ private:
         {
             const int np1 = pv1->local()->size();
             const int np2 = pv2->local()->size();
-            debug("Computing external forces for %s - %s (%d - %d particles)", pv1->name.c_str(), pv2->name.c_str(), np1, np2);
+            debug("Computing external forces for %s - %s (%d - %d particles)", pv1->getCName(), pv2->getCName(), np1, np2);
 
             auto dstView = cl1->getView<ViewType>();
             auto srcView = cl2->getView<ViewType>();
@@ -253,14 +253,14 @@ private:
      */
     void computeHalo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
-        auto& pair = getPairwiseKernel(pv1->name, pv2->name);
+        auto& pair = getPairwiseKernel(pv1->getName(), pv2->getName());
         using ViewType = typename PairwiseKernel::ViewType;
 
         pair.setup(pv1->halo(), pv2->local(), cl1, cl2, getState());
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();
-        debug("Computing halo forces for %s(halo) - %s (%d - %d particles) with rc = %g", pv1->name.c_str(), pv2->name.c_str(), np1, np2, cl2->rc);
+        debug("Computing halo forces for %s(halo) - %s (%d - %d particles) with rc = %g", pv1->getCName(), pv2->getCName(), np1, np2, cl2->rc);
 
         ViewType dstView(pv1, pv1->halo());
         auto srcView = cl2->getView<ViewType>();

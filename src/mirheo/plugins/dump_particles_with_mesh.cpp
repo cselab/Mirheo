@@ -18,7 +18,7 @@ void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm&
 
     pv = simulation->getOVbyNameOrDie(pvName);
 
-    info("Plugin %s initialized for the following object vector: %s", name.c_str(), pvName.c_str());
+    info("Plugin %s initialized for the following object vector: %s", getCName(), pvName.c_str());
 }
 
 void ParticleWithMeshSenderPlugin::handshake()
@@ -28,7 +28,7 @@ void ParticleWithMeshSenderPlugin::handshake()
     auto& mesh = static_cast<ObjectVector*>(pv)->mesh;
 
     waitPrevSend();
-    debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", name.c_str(), mesh->getNtriangles(), mesh->getNvertices());
+    debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", getCName(), mesh->getNtriangles(), mesh->getNvertices());
     SimpleSerializer::serialize(sendBuffer, mesh->getNvertices(), mesh->triangles);
     send(sendBuffer);
 }
@@ -50,13 +50,13 @@ void ParticleWithMeshDumperPlugin::handshake()
     recv();
 
     SimpleSerializer::deserialize(data, nvertices, triangles);
-    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", name.c_str(), triangles.size(), nvertices);
+    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", getCName(), triangles.size(), nvertices);
 }
 
 void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 {
     if (totNVertices % nvertices != 0)
-        die("plugin '%s' expecting a multiple of %d vertices, got %d", name.c_str(), nvertices, totNVertices);
+        die("plugin '%s' expecting a multiple of %d vertices, got %d", getCName(), nvertices, totNVertices);
 
     const int nobjects = totNVertices / nvertices;
     int offset   = 0;
@@ -83,7 +83,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 
 void ParticleWithMeshDumperPlugin::deserialize()
 {
-    debug2("Plugin '%s' will dump right now", name.c_str());
+    debug2("Plugin '%s' will dump right now", getCName());
 
     MirState::TimeType time;
     MirState::StepType timeStamp;

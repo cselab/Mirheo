@@ -157,7 +157,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     
     auto   packer = std::make_unique<ParticlePacker> (predicate);
     auto unpacker = std::make_unique<ParticlePacker> (predicate);
-    auto   helper = std::make_unique<ExchangeHelper> (pv->name, id, packer.get());
+    auto   helper = std::make_unique<ExchangeHelper> (pv->getName(), id, packer.get());
     
     this->addExchangeEntity(std::move(  helper));
     packers_  .push_back(std::move(  packer));
@@ -167,7 +167,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
     
     info("Particle halo exchanger takes pv '%s' with celllist of rc = %g, %s",
-         pv->name.c_str(), cl->rc, msg_channels.c_str());
+         pv->getCName(), cl->rc, msg_channels.c_str());
 }
 
 void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
@@ -177,7 +177,7 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
-    debug2("Counting halo particles of '%s'", pv->name.c_str());
+    debug2("Counting halo particles of '%s'", pv->getCName());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
     
@@ -210,7 +210,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 
     int nEntities = helper->send.offsets[helper->nBuffers];
     
-    debug2("Downloading %d halo particles of '%s'", nEntities, pv->name.c_str());
+    debug2("Downloading %d halo particles of '%s'", nEntities, pv->getCName());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
 

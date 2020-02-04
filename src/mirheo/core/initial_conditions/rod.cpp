@@ -123,7 +123,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     auto domain = pv->getState()->domain;
     
     if (rv == nullptr)
-        die("rods can only be generated out of rod vectors; provided '%s'", pv->name.c_str());
+        die("rods can only be generated out of rod vectors; provided '%s'", pv->getCName());
 
     const int objSize = rv->objSize;
     const int nSegments = (objSize - 1) / 5;
@@ -167,7 +167,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     rv->local()->computeGlobalIds(comm, stream);
     rv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(rv->local()->positions(), stream);
 
-    info("Initialized %d '%s' rods", nObjs, rv->name.c_str());
+    info("Initialized %d '%s' rods", nObjs, rv->getCName());
 }
 
 

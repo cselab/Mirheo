@@ -76,7 +76,7 @@ MembraneInteraction::~MembraneInteraction() = default;
 Config MembraneInteraction::getConfig() const {
     return Config::Dictionary{
         {"__type", "MembraneInteraction"},
-        {"name", name},
+        {"name", getName()},
         {"rc", rc},
         {"impl", *impl},
     };
@@ -99,7 +99,7 @@ void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *
 void MembraneInteraction::local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     if (impl.get() == nullptr)
-        die("%s needs a concrete implementation, none was provided", name.c_str());
+        die("%s needs a concrete implementation, none was provided", getCName());
 
     precomputeQuantities(pv1, stream);
     impl->local(pv1, pv2, cl1, cl2, stream);
@@ -112,7 +112,7 @@ void MembraneInteraction::halo(ParticleVector *pv1,
                                __UNUSED cudaStream_t stream)
 {
     debug("Not computing internal membrane forces between local and halo membranes of '%s'",
-          pv1->name.c_str());
+          pv1->getCName());
 }
 
 bool MembraneInteraction::isSelfObjectInteraction() const
@@ -126,10 +126,10 @@ void MembraneInteraction::precomputeQuantities(ParticleVector *pv1, cudaStream_t
 
     if (ov->objSize != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-            ov->name.c_str(), ov->objSize, ov->mesh->getNvertices());
+            ov->getCName(), ov->objSize, ov->mesh->getNvertices());
 
     debug("Computing areas and volumes for %d cells of '%s'",
-          ov->local()->nObjects, ov->name.c_str());
+          ov->local()->nObjects, ov->getCName());
 
     OVviewWithAreaVolume view(ov, ov->local());
 

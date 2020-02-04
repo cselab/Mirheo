@@ -23,44 +23,44 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
-    meshVertices.resize_anew(nObjects * mesh->getNvertices());
+    meshVertices_.resize_anew(nObjects * mesh->getNvertices());
 
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * nObjects;
-    fakeView.positions = meshVertices.devPtr();
+    fakeView.positions = meshVertices_.devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
-    return &meshVertices;
+    return &meshVertices_;
 }
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
-    meshOldVertices.resize_anew(nObjects * mesh->getNvertices());
+    meshOldVertices_.resize_anew(nObjects * mesh->getNvertices());
 
     // Overwrite particles with vertices
     // Overwrite motions with the old_motions
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * nObjects;
-    fakeView.positions = meshOldVertices.devPtr();
+    fakeView.positions = meshOldVertices_.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
-    return &meshOldVertices;
+    return &meshOldVertices_;
 }
 
 PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
     auto ov = dynamic_cast<ObjectVector*>(pv);
-    meshForces.resize_anew(nObjects * ov->mesh->getNvertices());
-    return &meshForces;
+    meshForces_.resize_anew(nObjects * ov->mesh->getNvertices());
+    return &meshForces_;
 }
 
 void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
@@ -72,7 +72,7 @@ void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 
 
 
-RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, real partMass,
+RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& name, real partMass,
                                      real3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
@@ -140,7 +140,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
 
     auto filename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s",
-         name.c_str(), filename.c_str());
+         getCName(), filename.c_str());
 
     auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
@@ -196,7 +196,7 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
     writeInitialPositions(comm, filename, initialPositions);
     createCheckpointSymlink(comm, path, RestartIPIdentifier, "coords", checkpointId);
 
-    debug("Checkpoint for object vector '%s' successfully written", name.c_str());
+    debug("Checkpoint for object vector '%s' successfully written", getCName());
 }
 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -206,7 +206,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     CUDA_Check( cudaDeviceSynchronize() );
 
     auto filename = createCheckpointName(path, RestartROVIdentifier, "xmf");
-    info("Restarting rigid object vector %s from file %s", name.c_str(), filename.c_str());
+    info("Restarting rigid object vector %s from file %s", getCName(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
 
@@ -240,7 +240,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     filename = createCheckpointName(path, RestartIPIdentifier, "coords");
     initialPositions = readInitialPositions(comm, filename, objSize);
 
-    info("Successfully read object infos of '%s'", name.c_str());
+    info("Successfully read object infos of '%s'", getCName());
 }
 
 } // namespace mirheo

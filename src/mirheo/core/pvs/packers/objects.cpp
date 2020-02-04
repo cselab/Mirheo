@@ -18,23 +18,23 @@ void ObjectPacker::update(LocalParticleVector *lpv, cudaStream_t stream)
     auto lov = dynamic_cast<LocalObjectVector*>(lpv);
     if (lov == nullptr) die("Must pass local object vector to object packer update");
     
-    objectData.updateChannels(lov->dataPerObject, predicate, stream);
-    objSize = lov->objSize;
+    objectData_.updateChannels(lov->dataPerObject, predicate_, stream);
+    objSize_ = lov->objSize;
 }
 
 ObjectPackerHandler ObjectPacker::handler()
 {
     ObjectPackerHandler oh;
-    oh.particles = particleData.handler();
-    oh.objSize   = objSize;
-    oh.objects   = objectData.handler();
+    oh.particles = particleData_.handler();
+    oh.objSize   = objSize_;
+    oh.objects   = objectData_.handler();
     return oh;
 }
 
 size_t ObjectPacker::getSizeBytes(int numElements) const
 {
-    return ParticlePacker::getSizeBytes(numElements * objSize) +
-        objectData.getSizeBytes(numElements);
+    return ParticlePacker::getSizeBytes(numElements * objSize_) +
+        objectData_.getSizeBytes(numElements);
 }
 
 } // namespace mirheo

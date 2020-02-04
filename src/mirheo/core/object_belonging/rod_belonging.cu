@@ -86,19 +86,19 @@ __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellLis
 } // namespace RodBelongingKernels
 
 
-RodBelongingChecker::RodBelongingChecker(const MirState *state, std::string name, real radius) :
+RodBelongingChecker::RodBelongingChecker(const MirState *state, const std::string& name, real radius) :
     ObjectBelongingChecker_Common(state, name),
-    radius(radius)
+    radius_(radius)
 {}
 
 void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    auto rv = dynamic_cast<RodVector*> (ov);
+    auto rv = dynamic_cast<RodVector*> (ov_);
     if (rv == nullptr)
-        die("Rod belonging can only be used with rod objects (%s is not)", ov->name.c_str());
+        die("Rod belonging can only be used with rod objects (%s is not)", ov_->getCName());
 
-    tags.resize_anew(pv->local()->size());
-    tags.clearDevice(stream);
+    tags_.resize_anew(pv->local()->size());
+    tags_.clearDevice(stream);
 
     const int numSegmentsPerRod = rv->local()->getNumSegmentsPerRod();
     
@@ -110,7 +110,7 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
 
         debug("Computing inside/outside tags for %d %s rods '%s' and %d '%s' particles",
               rvView.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              ov_->getCName(), pv->local()->size(), pv->getCName());
 
         const int totNumSegments = rvView.nObjects * numSegmentsPerRod;
         constexpr int nthreads = 128;
@@ -119,7 +119,7 @@ void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_
         SAFE_KERNEL_LAUNCH(
             RodBelongingKernels::setInsideTags,
             nblocks, nthreads, 0, stream,
-            rvView, radius, pvView, cl->cellInfo(), tags.devPtr());
+            rvView, radius_, pvView, cl->cellInfo(), tags_.devPtr());
     };
 
     computeTags(ParticleVectorLocality::Local);

@@ -150,21 +150,21 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const real4
 
 void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    tags.resize_anew(pv->local()->size());
-    tags.clearDevice(stream);
+    tags_.resize_anew(pv->local()->size());
+    tags_.clearDevice(stream);
 
     auto computeTags = [&](ParticleVectorLocality locality)
     {
-        ov->findExtentAndCOM(stream, locality);
+        ov_->findExtentAndCOM(stream, locality);
 
-        auto lov = ov->get(locality);
-        auto view = OVview(ov, lov);
+        auto lov = ov_->get(locality);
+        auto view = OVview(ov_, lov);
         auto vertices = lov->getMeshVertices(stream);
-        auto meshView = MeshView(ov->mesh.get());
+        auto meshView = MeshView(ov_->mesh.get());
 
         debug("Computing inside/outside tags (against mesh) for %d %s objects '%s' and %d '%s' particles",
               view.nObjects, getParticleVectorLocalityStr(locality).c_str(),
-              ov->name.c_str(), pv->local()->size(), pv->name.c_str());
+              ov_->getCName(), pv->local()->size(), pv->getCName());
 
         constexpr int nthreads = 128;
         constexpr int warpsPerObject = 1024;
@@ -173,7 +173,7 @@ void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream
             MeshBelongingKernels::insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
             view, meshView, reinterpret_cast<real4*>(vertices->devPtr()),
-            cl->cellInfo(), cl->getView<PVview>(), tags.devPtr());
+            cl->cellInfo(), cl->getView<PVview>(), tags_.devPtr());
     };
     
 
