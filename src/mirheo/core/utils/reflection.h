@@ -33,7 +33,7 @@ namespace mirheo
  */
 template <typename T>
 struct MemberVars {
-    static constexpr bool _notImplemented = true;
+    static constexpr bool notImplemented_ = true;
 };
 
 /// `MemberVarsAvailable<T>` is true if the struct `MemberVars<T>` has been specialized.
@@ -43,7 +43,7 @@ struct MemberVarsAvailable {
 };
 
 template <typename T>
-struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::_notImplemented>> {
+struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>> {
     static constexpr bool value = false;
 };
 

@@ -22,7 +22,7 @@ struct ConfigDumper {
     static_assert(always_false<T>::value, "Not implemented.");
 
     // Required function(s):
-    static Config dump(T value);
+    static Config dump(const T &value);
 };
 
 struct Config {
@@ -41,6 +41,8 @@ struct Config {
     Config(const char *str) : value_{std::string(str)} { }
     Config(const Config &) = default;
     Config(Config &&) = default;
+    Config& operator=(const Config &) = default;
+    Config& operator=(Config &&) = default;
 
     template <typename T>
     Config(const T &t)
