@@ -15,28 +15,34 @@ class StationaryWall_Sphere
 {
 public:
     StationaryWall_Sphere(real3 center, real radius, bool inside) :
-        center(center), radius(radius), inside(inside)
-    {    }
+        center_(center),
+        radius_(radius),
+        inside_(inside)
+    {}
 
-    void setup(__UNUSED MPI_Comm& comm,     DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain)
+    {
+        domain_ = domain;
+    }
 
-    const StationaryWall_Sphere& handler() const { return *this; }
+    const StationaryWall_Sphere& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real operator()(real3 coo) const
     {
-        real3 gr = domain.local2global(coo);
-        real dist = math::sqrt(dot(gr-center, gr-center));
+        const real3 dr = domain_.local2global(coo) - center_;
+        const real dist = length(dr);
 
-        return inside ? dist - radius : radius - dist;
+        return inside_ ? dist - radius_ : radius_ - dist;
     }
 
 private:
-    real3 center;
-    real radius;
-
-    bool inside;
-
-    DomainInfo domain;
+    real3 center_;
+    real radius_;
+    bool inside_;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

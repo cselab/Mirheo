@@ -287,17 +287,17 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
                                                                   local()->dataPerParticle,
                                                                   blackList);
 
-    channels.emplace_back(ChannelNames::XDMF::velocity, velocities.data(),
-                          XDMF::Channel::DataForm::Vector,
-                          XDMF::getNumberType<real>(),
-                          DataTypeWrapper<real>(),
-                          XDMF::Channel::NeedShift::False);
+    channels.push_back(XDMF::Channel{ChannelNames::XDMF::velocity, velocities.data(),
+                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::getNumberType<real>(),
+                                         DataTypeWrapper<real>(),
+                                         XDMF::Channel::NeedShift::False});
     
-    channels.emplace_back(ChannelNames::XDMF::ids, ids.data(),
-                          XDMF::Channel::DataForm::Scalar,
-                          XDMF::Channel::NumberType::Int64,
-                          DataTypeWrapper<int64_t>(),
-                          XDMF::Channel::NeedShift::False);
+    channels.push_back(XDMF::Channel{ChannelNames::XDMF::ids, ids.data(),
+                                         XDMF::Channel::DataForm::Scalar,
+                                         XDMF::Channel::NumberType::Int64,
+                                         DataTypeWrapper<int64_t>(),
+                                         XDMF::Channel::NeedShift::False});
 
     XDMF::write(filename, &grid, channels, comm);
 

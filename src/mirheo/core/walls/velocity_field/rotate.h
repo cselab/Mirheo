@@ -15,24 +15,31 @@ class VelocityField_Rotate
 {
 public:
     VelocityField_Rotate(real3 omega, real3 center) :
-        omega(omega), center(center)
+        omega_(omega),
+        center_(center)
     {}
 
-    void setup(__UNUSED real t, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED real t, DomainInfo domain)
+    {
+        domain_ = domain;
+    }
 
-    const VelocityField_Rotate& handler() const { return *this; }
+    const VelocityField_Rotate& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real3 operator()(real3 coo) const
     {
-        real3 gr = domain.local2global(coo);
-
-        return cross(omega, gr - center);
+        const real3 gr = domain_.local2global(coo);
+        return cross(omega_, gr - center_);
     }
 
 private:
-    real3 omega, center;
+    real3 omega_;
+    real3 center_;
 
-    DomainInfo domain;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

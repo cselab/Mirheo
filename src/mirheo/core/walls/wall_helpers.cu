@@ -195,11 +195,11 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDF_basedWall*> walls, real3 gridH,
         createFoldersCollective(cartComm, path);
     
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
-    XDMF::Channel sdfCh("sdf", sdfs_merged.hostPtr(),
-                        XDMF::Channel::DataForm::Scalar,
-                        XDMF::getNumberType<real>(),
-                        DataTypeWrapper<real>(),
-                        XDMF::Channel::NeedShift::False);
+    XDMF::Channel sdfCh {"sdf", sdfs_merged.hostPtr(),
+                         XDMF::Channel::DataForm::Scalar,
+                         XDMF::getNumberType<real>(),
+                         DataTypeWrapper<real>(),
+                         XDMF::Channel::NeedShift::False};
     XDMF::write(filename, &grid, {sdfCh}, cartComm);
 }
 

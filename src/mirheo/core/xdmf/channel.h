@@ -23,9 +23,6 @@ struct Channel
     TypeDescriptor type;
     NeedShift needShift;
 
-    Channel(std::string name, void *data, DataForm dataForm,
-            NumberType numberType, TypeDescriptor type, NeedShift needShift);
-
     int nComponents() const;
     int precision() const;
 };

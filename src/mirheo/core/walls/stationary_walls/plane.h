@@ -15,27 +15,31 @@ class StationaryWall_Plane
 {
 public:
     StationaryWall_Plane(real3 normal, real3 pointThrough) :
-        normal(normal), pointThrough(pointThrough)
+        normal_(normalize(normal)),
+        pointThrough_(pointThrough)
+    {}
+
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain)
     {
-        normal = normalize(normal);
+        domain_ = domain;
     }
 
-    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
-
-    const StationaryWall_Plane& handler() const { return *this; }
+    const StationaryWall_Plane& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real operator()(real3 coo) const
     {
-        real3 gr = domain.local2global(coo);
-        real dist = dot(normal, gr - pointThrough);
-
+        const real3 gr = domain_.local2global(coo);
+        const real dist = dot(normal_, gr - pointThrough_);
         return dist;
     }
 
 private:
-    real3 normal, pointThrough;
-
-    DomainInfo domain;
+    real3 normal_;
+    real3 pointThrough_;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

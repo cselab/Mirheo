@@ -24,8 +24,8 @@ public:
 
     void bounce(cudaStream_t stream) override;
 
-protected:
-    VelocityField velField;
+private:
+    VelocityField velField_;
 };
 
 } // namespace mirheo

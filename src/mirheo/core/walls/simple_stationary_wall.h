@@ -36,21 +36,22 @@ public:
     void sdfOnGrid(real3 gridH, GPUcontainer *sdfs, cudaStream_t stream) override;
 
 
-    InsideWallChecker& getChecker() { return insideWallChecker; }
+    InsideWallChecker& getChecker() { return insideWallChecker_; }
 
     PinnedBuffer<double3>* getCurrentBounceForce() override;
 
+private:
+    ParticleVector *frozen_ {nullptr};
+    PinnedBuffer<int> nInside_{1};
+    
 protected:
+    InsideWallChecker insideWallChecker_;
 
-    InsideWallChecker insideWallChecker;
+    std::vector<ParticleVector*> particleVectors_;
+    std::vector<CellList*> cellLists_;
 
-    ParticleVector *frozen;
-    std::vector<ParticleVector*> particleVectors;
-    std::vector<CellList*> cellLists;
-
-    std::vector<DeviceBuffer<int>> boundaryCells;
-    PinnedBuffer<int> nInside{1};
-    PinnedBuffer<double3> bounceForce{1};
+    std::vector<DeviceBuffer<int>> boundaryCells_;
+    PinnedBuffer<double3> bounceForce_{1};    
 };
 
 } // namespace mirheo

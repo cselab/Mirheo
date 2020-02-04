@@ -41,6 +41,7 @@ function (add_test_executable dirName nodes)
 endfunction()
 
 add_test_executable(celllists 1)
+add_test_executable(file_wrapper 1)
 add_test_executable(id64 1)
 add_test_executable(integration/particles 1)
 add_test_executable(integration/rigid 1)

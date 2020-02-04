@@ -15,36 +15,42 @@ class StationaryWall_Box
 {
 public:
     StationaryWall_Box(real3 lo, real3 hi, bool inside) :
-        lo(lo),
-        hi(hi),
-        inside(inside)
+        lo_(lo),
+        hi_(hi),
+        inside_(inside)
     {}
 
-    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain)
+    {
+        domain_ = domain;
+    }
 
-    const StationaryWall_Box& handler() const { return *this; }
+    const StationaryWall_Box& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real operator()(real3 coo) const
     {
-        const real3 gr = domain.local2global(coo);
+        const real3 gr = domain_.local2global(coo);
 
-        const real3 dist3 = math::min(math::abs(gr - lo), math::abs(hi - gr));
+        const real3 dist3 = math::min(math::abs(gr - lo_), math::abs(hi_ - gr));
         const real dist = math::min(dist3.x, math::min(dist3.y, dist3.z));
 
         real sign = 1.0_r;
-        if (lo.x < gr.x && gr.x < hi.x  &&
-            lo.y < gr.y && gr.y < hi.y  &&
-            lo.z < gr.z && gr.z < hi.z)
+        if (lo_.x < gr.x && gr.x < hi_.x  &&
+            lo_.y < gr.y && gr.y < hi_.y  &&
+            lo_.z < gr.z && gr.z < hi_.z)
             sign = -1.0_r;
 
-        return inside ? sign*dist : -sign*dist;
+        return inside_ ? sign * dist : -sign * dist;
     }
 
 private:
-    real3 lo, hi;
-    bool inside;
-
-    DomainInfo domain;
+    real3 lo_;
+    real3 hi_;
+    bool inside_;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

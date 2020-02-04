@@ -17,42 +17,44 @@ public:
     enum class Direction {x, y, z};
 
     StationaryWall_Cylinder(real2 center, real radius, Direction dir, bool inside) :
-        center(center), radius(radius), inside(inside)
+        center_(center),
+        radius_(radius),
+        dir_(dir),
+        inside_(inside)
+    {}
+
+    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain)
     {
-        switch (dir)
-        {
-            case Direction::x: _dir = 0; break;
-            case Direction::y: _dir = 1; break;
-            case Direction::z: _dir = 2; break;
-        }
+        domain_ = domain;
     }
 
-    void setup(__UNUSED MPI_Comm& comm, DomainInfo domain) { this->domain = domain; }
-
-    const StationaryWall_Cylinder& handler() const { return *this; }
+    const StationaryWall_Cylinder& handler() const
+    {
+        return *this;
+    }
 
     __D__ inline real operator()(real3 coo) const
     {
-        real3 gr = domain.local2global(coo);
+        const real3 gr = domain_.local2global(coo);
 
         real2 projR;
-        if (_dir == 0) projR = make_real2(gr.y, gr.z);
-        if (_dir == 1) projR = make_real2(gr.x, gr.z);
-        if (_dir == 2) projR = make_real2(gr.x, gr.y);
+        if (dir_ == Direction::x) projR = make_real2(gr.y, gr.z);
+        if (dir_ == Direction::y) projR = make_real2(gr.x, gr.z);
+        if (dir_ == Direction::z) projR = make_real2(gr.x, gr.y);
 
-        real dist = math::sqrt(dot(projR-center, projR-center));
+        const real2 dr = projR - center_;
+        const real dist = math::sqrt(dot(dr, dr));
 
-        return inside ? dist - radius : radius - dist;
+        return inside_ ? dist - radius_ : radius_ - dist;
     }
 
 private:
-    real2 center;
-    real radius;
-    int _dir;
+    real2 center_;
+    real radius_;
+    Direction dir_;
+    bool inside_;
 
-    bool inside;
-
-    DomainInfo domain;
+    DomainInfo domain_;
 };
 
 } // namespace mirheo

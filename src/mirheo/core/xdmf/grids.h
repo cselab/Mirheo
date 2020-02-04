@@ -58,7 +58,10 @@ protected:
         std::vector<hsize_t> getGlobalSize() const override;
         std::vector<hsize_t> getOffsets()    const override;
 
-        std::vector<hsize_t> localSize, globalSize, offsets;
+    private:
+        std::vector<hsize_t> localSize_;
+        std::vector<hsize_t> globalSize_;
+        std::vector<hsize_t> offsets_;
     };
             
 public:
@@ -74,9 +77,9 @@ public:
         
     UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm);
         
-protected:
-    UniformGridDims dims;
-    std::vector<real> spacing;
+private:
+    UniformGridDims dims_;
+    std::vector<real> spacing_;
 };
     
         
@@ -87,14 +90,22 @@ protected:
     class VertexGridDims : public GridDims
     {
     public:
-
-        VertexGridDims(long nlocal, MPI_Comm comm);
+        VertexGridDims(long nLocal, MPI_Comm comm);
             
         std::vector<hsize_t> getLocalSize()  const override;
         std::vector<hsize_t> getGlobalSize() const override;
         std::vector<hsize_t> getOffsets()    const override;
 
-        hsize_t nlocal, nglobal, offset;
+        hsize_t getNLocal()  const;
+        void setNLocal(hsize_t n);
+
+        hsize_t getNGlobal()  const;
+        void setNGlobal(hsize_t n);
+
+        void setOffset(hsize_t n);
+
+    private:
+        hsize_t nLocal_, nGlobal_, offset_;
     };
 
 public:
@@ -111,14 +122,14 @@ public:
     void splitReadAccess(MPI_Comm comm, int chunkSize = 1)                        override;
     void readFromHDF5(hid_t file_id, MPI_Comm comm)                               override;
         
-protected:
+private:
     
-    static const std::string positionChannelName;
-    VertexGridDims dims;
+    static const std::string positionChannelName_;
+    VertexGridDims dims_;
 
-    std::shared_ptr<std::vector<real3>> positions;
+    std::shared_ptr<std::vector<real3>> positions_;
 
-    virtual void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const;
+    virtual void _writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const;
 };
 
 class TriangleMeshGrid : public VertexGrid
@@ -128,12 +139,12 @@ public:
     
     void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;    
         
-protected:
-    static const std::string triangleChannelName;
-    VertexGridDims dimsTriangles;
-    std::shared_ptr<std::vector<int3>> triangles;
+private:
+    static const std::string triangleChannelName_;
+    VertexGridDims dimsTriangles_;
+    std::shared_ptr<std::vector<int3>> triangles_;
 
-    void _writeTopology(pugi::xml_node& topoNode, std::string h5filename) const override;
+    void _writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const override;
 };
 
 } // namespace XDMF

@@ -43,8 +43,8 @@ void UniformCartesianDumper::handshake()
         
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
     {
-        return XDMF::Channel(str, nullptr, dataForm, XDMF::getNumberType<real>(),
-                             DataTypeWrapper<real>(), XDMF::Channel::NeedShift::False);
+        return XDMF::Channel{str, nullptr, dataForm, XDMF::getNumberType<real>(),
+                                 DataTypeWrapper<real>(), XDMF::Channel::NeedShift::False};
     };
     
     // Density is a special channel which is always present

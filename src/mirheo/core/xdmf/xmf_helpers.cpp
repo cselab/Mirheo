@@ -100,7 +100,7 @@ static Channel readDataSet(pugi::xml_node node)
     if (dataForm == Channel::DataForm::Other)
         die("Unrecognised form %s", formDescription.c_str());
             
-    return Channel(name, nullptr, dataForm, numberType, dataType, needShift);
+    return Channel {name, nullptr, dataForm, numberType, dataType, needShift};
 }
         
 static void readData(pugi::xml_node node, std::vector<Channel>& channels)
