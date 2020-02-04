@@ -12,7 +12,7 @@ namespace mirheo
 class Postprocess : MirObject
 {
 public:
-    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder = "restart/");
+    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder);
     ~Postprocess();
 
     void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);
@@ -29,12 +29,12 @@ private:
     using MirObject::checkpoint;
 
 private:
-    MPI_Comm comm;
-    MPI_Comm interComm;
+    MPI_Comm comm_;
+    MPI_Comm interComm_;
     
-    std::vector< std::shared_ptr<PostprocessPlugin> > plugins;
+    std::vector< std::shared_ptr<PostprocessPlugin> > plugins_;
 
-    std::string checkpointFolder;
+    std::string checkpointFolder_;
 };
 
 } // namespace mirheo

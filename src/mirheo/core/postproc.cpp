@@ -9,11 +9,11 @@
 namespace mirheo
 {
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, std::string checkpointFolder) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder) :
     MirObject("postprocess"),
-    comm(comm),
-    interComm(interComm),
-    checkpointFolder(checkpointFolder)
+    comm_(comm),
+    interComm_(interComm),
+    checkpointFolder_(checkpointFolder)
 {
     info("Postprocessing initialized");
 }
@@ -24,15 +24,15 @@ void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int 
 {
     info("New plugin registered: %s", plugin->getCName());
     plugin->setTag(tag);
-    plugins.push_back( std::move(plugin) );
+    plugins_.push_back( std::move(plugin) );
 }
 
 void Postprocess::init()
 {
-    for (auto& pl : plugins)
+    for (auto& pl : plugins_)
     {
         debug("Setup and handshake of %s", pl->getCName());
-        pl->setup(comm, interComm);
+        pl->setup(comm_, interComm_);
         pl->handshake();
     }
 }
@@ -74,7 +74,7 @@ void Postprocess::run()
     int endMsg {0}, checkpointId {0};
 
     std::vector<MPI_Request> requests;
-    for (auto& pl : plugins)
+    for (auto& pl : plugins_)
         requests.push_back(pl->waitData());
 
     const int stoppingReqIndex = static_cast<int>(requests.size());
@@ -88,7 +88,7 @@ void Postprocess::run()
     info("Postprocess is listening to messages now");
     while (true)
     {
-        const auto readyIds = findGloballyReady(requests, statuses, comm);
+        const auto readyIds = findGloballyReady(requests, statuses, comm_);
 
         for (const auto& index : readyIds)
         {
@@ -111,10 +111,10 @@ void Postprocess::run()
             }
             else
             {
-                debug2("Postprocess got a request from plugin '%s', executing now", plugins[index]->getCName());
-                plugins[index]->recv();
-                plugins[index]->deserialize();
-                requests[index] = plugins[index]->waitData();
+                debug2("Postprocess got a request from plugin '%s', executing now", plugins_[index]->getCName());
+                plugins_[index]->recv();
+                plugins_[index]->deserialize();
+                requests[index] = plugins_[index]->waitData();
             }
         }
     }
@@ -125,8 +125,8 @@ MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
     int rank;
     MPI_Request req;
     
-    MPI_Check( MPI_Comm_rank(comm, &rank) );    
-    MPI_Check( MPI_Irecv(msg, 1, MPI_INT, rank, tag, interComm, &req) );
+    MPI_Check( MPI_Comm_rank(comm_, &rank) );    
+    MPI_Check( MPI_Irecv(msg, 1, MPI_INT, rank, tag, interComm_, &req) );
 
     return req;
 }
@@ -135,16 +135,16 @@ void Postprocess::restart(const std::string& folder)
 {
     info("Reading postprocess state, from folder %s", folder.c_str());
     
-    for (auto& pl : plugins)
-        pl->restart(comm, folder);    
+    for (auto& pl : plugins_)
+        pl->restart(comm_, folder);    
 }
 
 void Postprocess::checkpoint(int checkpointId)
 {
-    info("Writing postprocess state, into folder %s", checkpointFolder.c_str());
+    info("Writing postprocess state, into folder %s", checkpointFolder_.c_str());
     
-    for (auto& pl : plugins)
-        pl->checkpoint(comm, checkpointFolder, checkpointId);
+    for (auto& pl : plugins_)
+        pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
 } // namespace mirheo
