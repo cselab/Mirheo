@@ -69,17 +69,17 @@ private:
         std::queue<cudaStream_t>* streams;
     };
 
-    std::vector<Task> tasks;
-    std::vector< std::unique_ptr<Node> > nodes;
+    std::vector<Task> tasks_;
+    std::vector< std::unique_ptr<Node> > nodes_;
 
     // Ordered sets of parallel work
-    std::queue<cudaStream_t> streamsLo, streamsHi;
+    std::queue<cudaStream_t> streamsLo_, streamsHi_;
 
-    int cudaPriorityLow, cudaPriorityHigh;
+    int cudaPriorityLow_, cudaPriorityHigh_;
 
-    int nExecutions{0};
+    int nExecutions_{0};
 
-    std::unordered_map<std::string, TaskID> label2taskId;
+    std::unordered_map<std::string, TaskID> label2taskId_;
 
     void checkTaskExistsOrDie(TaskID id) const;
     Node* getNode     (TaskID id);
