@@ -353,7 +353,7 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, c
         sim_->getWallByNameOrDie(wall->getName());
     }
     
-    WallHelpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->cartComm);
+    WallHelpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->getCartComm());
 }
 
 double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
@@ -375,7 +375,7 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
         sim_->getWallByNameOrDie(wall->getName());
     }
 
-    return WallHelpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->cartComm, nSamplesPerRank);
+    return WallHelpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->getCartComm(), nSamplesPerRank);
 }
 
 std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvName,
@@ -413,7 +413,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     MirState stateCpy = *getState();
     
-    Simulation wallsim(sim_->cartComm, MPI_COMM_NULL, getState());
+    Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState());
 
     const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
@@ -481,7 +481,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     MirState stateCpy = *getState();
 
     {
-        Simulation eqsim(sim_->cartComm, MPI_COMM_NULL, getState());
+        Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState());
     
         eqsim.registerParticleVector(pv, ic);
 
@@ -497,7 +497,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
         eqsim.run(nsteps);
     }
 
-    Simulation freezesim(sim_->cartComm, MPI_COMM_NULL, getState());
+    Simulation freezesim(sim_->getCartComm(), MPI_COMM_NULL, getState());
 
     freezesim.registerParticleVector(pv, nullptr);
     freezesim.registerParticleVector(shape, icShape);

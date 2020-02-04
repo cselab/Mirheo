@@ -111,8 +111,8 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
         channelsInfo.types[i] = type;
     }
     
-    rank3D   = simulation->rank3D;
-    nranks3D = simulation->nranks3D;
+    rank3D   = simulation->getRank3D();
+    nranks3D = simulation->getNRanks3D();
     
     // TODO: this should be reworked if the domains are allowed to have different size
     resolution = make_int3( math::floor(getState()->domain.localSize / binSize) );

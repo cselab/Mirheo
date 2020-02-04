@@ -85,6 +85,8 @@ public:
     void stopProfiler() const;
 
     MPI_Comm getCartComm() const;
+    int3 getRank3D() const;
+    int3 getNRanks3D() const;
     
     real getCurrentDt() const;
     real getCurrentTime() const;
@@ -93,15 +95,30 @@ public:
     
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
-public:
-    const int3 nranks3D;
-    const int3 rank3D;
-
-    MPI_Comm cartComm;
-    MPI_Comm interComm;
-
 private:
 
+    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
+    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
+    
+    void prepareCellLists();
+    void prepareInteractions();
+    void prepareBouncers();
+    void prepareWalls();
+    void preparePlugins();
+    void prepareEngines();
+    
+    void execSplitters();
+
+    void createTasks();
+
+    using MirObject::restart;
+    using MirObject::checkpoint;
+
+    void restartState(const std::string& folder);
+    void checkpointState();
+
+private:
+    
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
     template <class T>
@@ -152,6 +169,13 @@ private:
         ParticleVector *pvSrc, *pvIn, *pvOut;
     };
 
+private:
+    
+    const int3 nranks3D;
+    const int3 rank3D;
+
+    MPI_Comm cartComm;
+    MPI_Comm interComm;
     
     MirState *state;
     
@@ -198,29 +222,6 @@ private:
     std::vector<std::function<void(cudaStream_t)>> regularBouncers, haloBouncers;
 
     std::map<std::string, std::string> pvsIntegratorMap;
-
-    
-private:
-
-    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
-    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
-    
-    void prepareCellLists();
-    void prepareInteractions();
-    void prepareBouncers();
-    void prepareWalls();
-    void preparePlugins();
-    void prepareEngines();
-    
-    void execSplitters();
-
-    void createTasks();
-
-    using MirObject::restart;
-    using MirObject::checkpoint;
-
-    void restartState(const std::string& folder);
-    void checkpointState();
 };
 
 } // namespace mirheo

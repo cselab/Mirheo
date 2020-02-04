@@ -220,6 +220,16 @@ MPI_Comm Simulation::getCartComm() const
     return cartComm;
 }
 
+int3 Simulation::getRank3D() const
+{
+    return rank3D;
+}
+
+int3 Simulation::getNRanks3D() const
+{
+    return nranks3D;
+}
+
 real Simulation::getCurrentDt() const
 {
     return state->dt;
