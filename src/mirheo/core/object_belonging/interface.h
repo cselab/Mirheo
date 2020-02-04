@@ -17,7 +17,7 @@ class CellList;
 class ObjectBelongingChecker : public MirSimulationObject
 {
 public:
-    ObjectBelongingChecker(const MirState *state, std::string name);
+    ObjectBelongingChecker(const MirState *state, const std::string& name);
     virtual ~ObjectBelongingChecker();
 
     virtual void splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream) = 0;

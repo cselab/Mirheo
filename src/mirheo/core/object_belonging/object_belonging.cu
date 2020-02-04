@@ -60,7 +60,7 @@ __global__ void unpackParticles(int n, int dstOffset, const char *inputBuffer, P
 
 } // namespace ObjectBelongingKernels
 
-ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *state, std::string name) :
+ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *state, const std::string& name) :
     ObjectBelongingChecker(state, name)
 {}
 
@@ -108,16 +108,16 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
     }
 
     info("Splitting PV %s with respect to OV %s. Number of particles: in/out/total %d / %d / %d",
-         src->getCName(), ov->getCName(), nInside[0], nOutside[0], src->local()->size());
+         src->getCName(), ov_->getCName(), nInside_[0], nOutside_[0], src->local()->size());
 
     ParticlePacker packer(keepAllpersistentDataPredicate);
     packer.update(src->local(), stream);
 
-    DeviceBuffer<char> insideBuffer (packer.getSizeBytes(nInside [0]));
-    DeviceBuffer<char> outsideBuffer(packer.getSizeBytes(nOutside[0]));
+    DeviceBuffer<char> insideBuffer (packer.getSizeBytes(nInside_ [0]));
+    DeviceBuffer<char> outsideBuffer(packer.getSizeBytes(nOutside_[0]));
     
-    nInside. clearDevice(stream);
-    nOutside.clearDevice(stream);
+    nInside_. clearDevice(stream);
+    nOutside_.clearDevice(stream);
 
     const int srcSize = src->local()->size();
     constexpr int nthreads = 128;
@@ -125,17 +125,17 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
     SAFE_KERNEL_LAUNCH(
         ObjectBelongingKernels::packToInOut,
         getNblocks(srcSize, nthreads), nthreads, 0, stream,
-        srcSize, tags.devPtr(), packer.handler(), insideBuffer.devPtr(), outsideBuffer.devPtr(),
-        nInside.devPtr(), nOutside.devPtr(), nInside[0], nOutside[0] );
+        srcSize, tags_.devPtr(), packer.handler(), insideBuffer.devPtr(), outsideBuffer.devPtr(),
+        nInside_.devPtr(), nOutside_.devPtr(), nInside_[0], nOutside_[0] );
 
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     if (pvIn  != nullptr)
     {
         const int oldSize = (src == pvIn) ? 0 : pvIn->local()->size();
-        pvIn->local()->resize(oldSize + nInside[0], stream);
+        pvIn->local()->resize(oldSize + nInside_[0], stream);
 
-        copyToLpv(oldSize, nInside[0], insideBuffer.devPtr(), pvIn->local(), stream);
+        copyToLpv(oldSize, nInside_[0], insideBuffer.devPtr(), pvIn->local(), stream);
 
         info("New size of inner PV %s is %d", pvIn->getCName(), pvIn->local()->size());
         pvIn->cellListStamp++;
@@ -144,9 +144,9 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
     if (pvOut != nullptr)
     {
         const int oldSize = (src == pvOut) ? 0 : pvOut->local()->size();
-        pvOut->local()->resize(oldSize + nOutside[0], stream);
+        pvOut->local()->resize(oldSize + nOutside_[0], stream);
 
-        copyToLpv(oldSize, nOutside[0], outsideBuffer.devPtr(), pvOut->local(), stream);
+        copyToLpv(oldSize, nOutside_[0], outsideBuffer.devPtr(), pvOut->local(), stream);
 
         info("New size of outer PV %s is %d", pvOut->getCName(), pvOut->local()->size());
         pvOut->cellListStamp++;
@@ -157,8 +157,8 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl,
 {
     tagInner(pv, cl, stream);
 
-    nInside .clear(stream);
-    nOutside.clear(stream);
+    nInside_ .clear(stream);
+    nOutside_.clear(stream);
 
     // Only count
     const int np = pv->local()->size();
@@ -167,18 +167,18 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl,
     SAFE_KERNEL_LAUNCH(
         ObjectBelongingKernels::countInOut,
         getNblocks(np, nthreads), nthreads, 0, stream,
-        np, tags.devPtr(), nInside.devPtr(), nOutside.devPtr() );
+        np, tags_.devPtr(), nInside_.devPtr(), nOutside_.devPtr() );
 
-    nInside. downloadFromDevice(stream, ContainersSynch::Asynch);
-    nOutside.downloadFromDevice(stream, ContainersSynch::Synch);
+    nInside_. downloadFromDevice(stream, ContainersSynch::Asynch);
+    nOutside_.downloadFromDevice(stream, ContainersSynch::Synch);
 
     info("PV %s belonging check against OV %s: in/out/total  %d / %d / %d",
-         pv->getCName(), ov->getCName(), nInside[0], nOutside[0], pv->local()->size());
+         pv->getCName(), ov_->getCName(), nInside_[0], nOutside_[0], pv->local()->size());
 }
 
 void ObjectBelongingChecker_Common::setup(ObjectVector *ov)
 {
-    this->ov = ov;
+    ov_ = ov;
 }
 
 std::vector<std::string> ObjectBelongingChecker_Common::getChannelsToBeExchanged() const
@@ -188,7 +188,7 @@ std::vector<std::string> ObjectBelongingChecker_Common::getChannelsToBeExchanged
 
 ObjectVector* ObjectBelongingChecker_Common::getObjectVector()
 {
-    return ov;
+    return ov_;
 }
 
 } // namespace mirheo
