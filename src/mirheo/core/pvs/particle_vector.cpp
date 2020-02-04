@@ -125,15 +125,6 @@ ParticleVector::ParticleVector(const MirState *state, const std::string& name, r
 
 ParticleVector::~ParticleVector() = default;
 
-Config ParticleVector::getConfig() const
-{
-    return Config::Dictionary{
-        {"__type", "ParticleVector"},
-        {"name", getName()},
-        {"mass", mass},
-    };
-}
-
 std::vector<int64_t> ParticleVector::getIndices_vector()
 {
     auto& pos = local()->positions();
@@ -361,6 +352,15 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     constexpr int particleChunkSize = 1;
     const auto ms = _restartParticleData(comm, path, particleChunkSize);
     local()->resize(ms.newSize, defaultStream);
+}
+
+Config ParticleVector::writeSnapshot(Dumper &) const
+{
+    return Config::Dictionary{
+        {"__category", "ParticleVector"},
+        {"__type",     "ParticleVector"},
+        {"mass",       mass},
+    };
 }
 
 } // namespace mirheo

@@ -22,7 +22,6 @@ class SimulationStats : public SimulationPlugin
 public:
     SimulationStats(const MirState *state, std::string name, int fetchEvery);
     ~SimulationStats();
-    Config getConfig() const override;
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     
@@ -30,6 +29,7 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
+    Config writeSnapshot(Dumper& dumper) const override;
 
 private:
     int fetchEvery;
@@ -49,9 +49,9 @@ class PostprocessStats : public PostprocessPlugin
 {
 public:
     PostprocessStats(std::string name, std::string filename = "");
-    Config getConfig() const override;
 
     void deserialize() override;
+    Config writeSnapshot(Dumper& dumper) const override;
 
 private:
     FileWrapper fdump;

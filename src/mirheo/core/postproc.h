@@ -21,7 +21,7 @@ public:
 
     void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
-    Config getConfig() const override;
+    Config writeSnapshot(Dumper& dumper) const override;
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;
@@ -30,6 +30,8 @@ private:
     using MirObject::checkpoint;
 
 private:
+    friend Dumper;
+
     MPI_Comm comm_;
     MPI_Comm interComm_;
     

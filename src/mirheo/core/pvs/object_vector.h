@@ -47,7 +47,6 @@ public:
     
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
-    Config getConfig() const override;
     
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
 
@@ -61,6 +60,7 @@ public:
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
+    Config writeSnapshot(Dumper &dumper) const override;
 
     template<typename T>
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,

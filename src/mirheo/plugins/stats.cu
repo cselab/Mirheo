@@ -59,14 +59,6 @@ SimulationStats::SimulationStats(const MirState *state, std::string name, int fe
 
 SimulationStats::~SimulationStats() = default;
 
-Config SimulationStats::getConfig() const {
-    return Config::Dictionary{
-        {"__type", "SimulationStats"},
-        {"name", getName()},
-        {"fetchEvery", fetchEvery},
-    };
-}
-
 void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
@@ -113,6 +105,14 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
+Config SimulationStats::writeSnapshot(Dumper&) const {
+    return Config::Dictionary{
+        {"__category", "SimulationPlugin"},
+        {"__type",     "SimulationStats"},
+        {"fetchEvery", fetchEvery},
+    };
+}
+
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     PostprocessPlugin(name),
     filename(filename)
@@ -125,13 +125,6 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
 
         fprintf(fdump.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
-}
-Config PostprocessStats::getConfig() const {
-    return Config::Dictionary{
-        {"__type", "PostprocessStats"},
-        {"name", getName()},
-        {"filename", filename},
-    };
 }
 
 void PostprocessStats::deserialize()
@@ -180,6 +173,14 @@ void PostprocessStats::deserialize()
             fflush(fdump.get());
         }
     }
+}
+
+Config PostprocessStats::writeSnapshot(Dumper&) const {
+    return Config::Dictionary{
+        {"__category", "PostprocessPlugin"},
+        {"__type",     "PostprocessStats"},
+        {"filename",   filename},
+    };
 }
 
 } // namespace mirheo

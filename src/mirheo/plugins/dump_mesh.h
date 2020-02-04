@@ -27,7 +27,6 @@ private:
 
 public:
     MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
-    Config getConfig() const override;
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -35,6 +34,7 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
+    Config writeSnapshot(Dumper& dumper) const override;
 };
 
 
@@ -51,10 +51,10 @@ private:
 public:
     MeshDumper(std::string name, std::string path);
     ~MeshDumper();
-    Config getConfig() const override;
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
+    Config writeSnapshot(Dumper& dumper) const override;
 };
 
 } // namespace mirheo

@@ -677,28 +677,21 @@ void Mirheo::logCompileOptions() const
     info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
 }
 
-Config Mirheo::getConfig() const {
+void Mirheo::writeSnapshot(std::string path) const {
+    Dumper dumper(isComputeTask() ? compComm_ : ioComm_, path, isComputeTask());
+
     Config::Dictionary dict;
+    dict.emplace("__category", "Mirheo");
     dict.emplace("__type", "Mirheo");
     if (state_)
         dict.emplace("state", *state_);
     if (sim_)
-        dict.emplace("simulation", sim_->getConfig());
+        dict.emplace("simulation", dumper(sim_.get()));
     if (post_)
-        dict.emplace("postprocess", post_->getConfig());
+        dict.emplace("postprocess", dumper(post_.get()));
 
-    return Config{std::move(dict)};
+    dumper.registerObject(this, std::move(dict));
+    dumper.finalize();
 }
 
-static void storeToFile(const std::string &content, const std::string &filename) {
-    FileWrapper f;
-    if (f.open(filename, "w") != FileWrapper::Status::Success)
-        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
-    fwrite(content.data(), 1, content.size(), f.get());
-}
-void Mirheo::storeConfigJSON(const std::string &compute,
-                             const std::string &postprocess) const {
-    if (rank_ == 0)
-        storeToFile(configToJSON(getConfig()), isComputeTask() ? compute : postprocess);
-}
 } // namespace mirheo

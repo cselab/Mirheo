@@ -119,13 +119,13 @@ ObjectVector::ObjectVector(const MirState *state, const std::string& name, real 
 
 ObjectVector::~ObjectVector() = default;
 
-Config ObjectVector::getConfig() const
+Config ObjectVector::writeSnapshot(Dumper &dumper) const
 {
-    auto config = ParticleVector::getConfig();
+    auto config = ParticleVector::writeSnapshot(dumper);
     Config::Dictionary &dict = config.getDict();
-    dict.at("__type") = Config{"ObjectVector"};
-    dict.emplace("objSize", objSize);
-    dict.emplace("mesh_nvertices", mesh->getNvertices());
+    dict.at("__type") = "ObjectVector";
+    dict.emplace("objSize",         objSize);
+    dict.emplace("mesh_nvertices",  mesh->getNvertices());
     dict.emplace("mesh_ntriangles", mesh->getNtriangles());
     return config;
 }

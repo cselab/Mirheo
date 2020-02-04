@@ -1379,30 +1379,32 @@ MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
 MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
 MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
-Config Simulation::getConfig() const {
+Config Simulation::writeSnapshot(Dumper& dumper) const {
     return Config::Dictionary{
-        {"__type", "Simulation"},
-        {"checkpointId", checkpointId_},
-        {"checkpointInfo", checkpointInfo_},
+        {"__category",          "Simulation"},
+        {"__type",              "Simulation"},
+        {"checkpointId",        checkpointId_},
+        {"checkpointInfo",      checkpointInfo_},
 
-        {"particleVectors", to_config(particleVectors_)},
+        {"particleVectors",     dumper(particleVectors_)},
 
-        {"bouncerMap", to_config(bouncerMap_)},
-        {"integratorMap", to_config(integratorMap_)},
-        {"interactionMap", to_config(interactionMap_)},
-        {"wallMap", to_config(wallMap_)},
-        {"belongingCheckerMap", to_config(belongingCheckerMap_)},
+        {"bouncerMap",          dumper(bouncerMap_)},
+        {"integratorMap",       dumper(integratorMap_)},
+        {"interactionMap",      dumper(interactionMap_)},
+        {"wallMap",             dumper(wallMap_)},
+        {"belongingCheckerMap", dumper(belongingCheckerMap_)},
 
-        {"plugins", to_config(plugins)},
-        {"pvsIntegratorMap", pvsIntegratorMap_},
+        {"plugins",             dumper(plugins)},
 
-        {"integratorPrototypes", integratorPrototypes_},
-        {"interactionPrototypes", interactionPrototypes_},
-        {"wallPrototypes", wallPrototypes_},
-        {"checkWallPrototypes", checkWallPrototypes_},
-        {"bouncerPrototypes", bouncerPrototypes_},
-        {"belongingCorrectionPrototypes", belongingCorrectionPrototypes_},
-        {"splitterPrototypes", splitterPrototypes_},
+        {"integratorPrototypes",          dumper(integratorPrototypes_)},
+        {"interactionPrototypes",         dumper(interactionPrototypes_)},
+        {"wallPrototypes",                dumper(wallPrototypes_)},
+        {"checkWallPrototypes",           dumper(checkWallPrototypes_)},
+        {"bouncerPrototypes",             dumper(bouncerPrototypes_)},
+        {"belongingCorrectionPrototypes", dumper(belongingCorrectionPrototypes_)},
+        {"splitterPrototypes",            dumper(splitterPrototypes_)},
+
+        {"pvsIntegratorMap",    pvsIntegratorMap_},
     };
 }
 

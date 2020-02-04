@@ -6,6 +6,7 @@
 namespace mirheo
 {
 
+class Dumper;
 struct Config;
 
 template <typename T, typename Enable = void>

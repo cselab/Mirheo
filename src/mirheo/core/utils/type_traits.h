@@ -25,4 +25,18 @@ struct remove_cvref {
     using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 };
 
+template<typename T>
+using remove_cvref_t = typename remove_cvref<T>::type;
+
+template<typename T, typename Enable = void>
+struct is_dereferenceable {
+    static constexpr bool value = false;
+};
+
+template<typename T>
+struct is_dereferenceable<T, std::enable_if_t<std::is_same<
+        decltype(*std::declval<T>()), decltype(*std::declval<T>())>::value>> {
+    static constexpr bool value = true;
+};
+
 } // namespace mirheo

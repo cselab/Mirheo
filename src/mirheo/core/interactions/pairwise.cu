@@ -116,15 +116,6 @@ PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::strin
 
 PairwiseInteraction::~PairwiseInteraction() = default;
 
-Config PairwiseInteraction::getConfig() const {
-    return Config::Dictionary{
-        {"__type", "PairwiseInteraction"},
-        {"name", getName()},
-        {"varParams", varParams},
-        {"varStressParams", varStressParams},
-    };
-}
-
 void PairwiseInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
     impl->setPrerequisites(pv1, pv2, cl1, cl2);
@@ -164,6 +155,16 @@ void PairwiseInteraction::checkpoint(MPI_Comm comm, const std::string& path, int
 void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
 {
     return impl->restart(comm, path);
+}
+
+Config PairwiseInteraction::writeSnapshot(Dumper&) const
+{
+    return Config::Dictionary{
+        {"__category",      "Interaction"},
+        {"__type",          "PairwiseInteraction"},
+        {"varParams",       varParams},
+        {"varStressParams", varStressParams},
+    };
 }
 
 template <class Params>

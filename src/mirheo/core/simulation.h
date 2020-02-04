@@ -14,6 +14,7 @@
 namespace mirheo
 {
 
+class Dumper;
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -41,7 +42,7 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
-    Config getConfig() const override;
+    Config writeSnapshot(Dumper& dumper) const override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
@@ -171,6 +172,7 @@ private:
     };
 
 private:
+    friend Dumper;
     
     const int3 nranks3D_;
     const int3 rank3D_;

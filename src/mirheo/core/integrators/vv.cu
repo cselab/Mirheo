@@ -22,10 +22,10 @@ template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 template<class ForcingTerm>
-Config IntegratorVV<ForcingTerm>::getConfig() const {
+Config IntegratorVV<ForcingTerm>::writeSnapshot(Dumper&) const {
     return Config::Dictionary{
-        {"__type", "IntegratorVV<...>"},  // TODO: Template parameter name.
-        {"name", getName()},
+        {"__category",  "Integrator"},
+        {"__type",      "IntegratorVV<...>"},  // TODO: Template parameter name.
         {"forcingTerm", forcingTerm_},
     };
 }

@@ -14,7 +14,7 @@ class IntegratorVV : public Integrator
 public:
     IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm);
     ~IntegratorVV();
-    Config getConfig() const override;
+    Config writeSnapshot(Dumper& dumper) const override;
 
     void stage1(ParticleVector *pv, cudaStream_t stream) override;
     void stage2(ParticleVector *pv, cudaStream_t stream) override;

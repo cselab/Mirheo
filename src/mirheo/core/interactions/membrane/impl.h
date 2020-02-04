@@ -83,19 +83,6 @@ public:
     {}
 
     ~MembraneInteractionImpl() = default;
-    Config getConfig() const override {
-        return Config::Dictionary{
-            {"__type", "MembraneInteractionImpl<...>"},
-            {"name", getName()},
-            {"rc", rc},
-            {"growUntil", growUntil},
-            {"parameters", parameters},
-            {"dihedralParams", dihedralParams},
-            {"triangleParams", triangleParams},
-            {"filter", filter},
-            {"stepGen", std::string("<<not implemented>")},
-        };
-    }
 
     real scaleFromTime(real t) const {
         return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil));
@@ -181,6 +168,20 @@ public:
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
         const bool good = TextIO::read(fname, stepGen);
         if (!good) die("failed to read '%s'\n", fname.c_str());
+    }
+
+    Config writeSnapshot(Dumper &) const override {
+        return Config::Dictionary{
+            {"__category", "InteractionImpl"},
+            {"__type", "MembraneInteractionImpl<...>"},
+            {"rc", rc},
+            {"growUntil", growUntil},
+            {"parameters", parameters},
+            {"dihedralParams", dihedralParams},
+            {"triangleParams", triangleParams},
+            {"filter", filter},
+            {"stepGen", std::string("<<not implemented>")},
+        };
     }
 
     

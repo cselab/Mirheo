@@ -23,7 +23,7 @@ MirObject::~MirObject()
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
 
-Config MirObject::getConfig() const {
+Config MirObject::writeSnapshot(Dumper&) const {
     std::string name = typeid(*this).name();
     throw std::runtime_error("getConfig not implemented for class " + name);
 }
@@ -90,11 +90,13 @@ void MirSimulationObject::setState(const MirState *state)
     this->state = state;
 }
 
-Config ConfigMirObjectDumper::dump(const MirObject &obj) {
-    return obj.getConfig();
-}
-Config ConfigMirObjectDumper::dump(const MirObject *obj) {
-    return obj ? "<ptr to" + obj->getName() + ">" : "<nullptr>";
+Config ConfigMirObjectDumper::dump(Dumper& dumper, const MirObject& obj) {
+    if (dumper.isObjectRegistered(&obj))
+        return dumper.getObjectReference(&obj);
+    Config config = obj.writeSnapshot(dumper);
+    config.getDict().emplace("name", obj.getName());
+    // Returns a replacement string (a reference-like string).
+    return dumper.registerObject(&obj, std::move(config));
 }
 
 } // namespace mirheo

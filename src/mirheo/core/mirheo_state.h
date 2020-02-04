@@ -42,7 +42,7 @@ public:
 
 template <>
 struct ConfigDumper<MirState> {
-    static Config dump(const MirState &state);
+    static Config dump(const MirState& state);
 };
 
 } // namespace mirheo

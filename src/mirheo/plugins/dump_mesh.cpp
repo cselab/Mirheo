@@ -20,15 +20,6 @@ MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovNa
     dumpEvery(dumpEvery)
 {}
 
-Config MeshPlugin::getConfig() const {
-    return Config::Dictionary{
-        {"__type", "MeshPlugin"},
-        {"name", getName()},
-        {"dumpEvery", dumpEvery},
-        {"ovName", ovName},
-    };
-}
-
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
@@ -68,6 +59,15 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
                                 vertices);
 
     send(sendBuffer);
+}
+
+Config MeshPlugin::writeSnapshot(Dumper&) const {
+    return Config::Dictionary{
+        {"__category", "SimulationPlugin"},
+        {"__type",     "MeshPlugin"},
+        {"dumpEvery",  dumpEvery},
+        {"ovName",     ovName},  // `ov` potentially not yet initialized.
+    };
 }
 
 //=================================================================================
@@ -166,13 +166,6 @@ MeshDumper::MeshDumper(std::string name, std::string path) :
 
 MeshDumper::~MeshDumper() = default;
 
-Config MeshDumper::getConfig() const {
-    return Config::Dictionary{
-        {"__type", "MeshDumper"},
-        {"path", path},
-    };
-}
-
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
@@ -198,6 +191,14 @@ void MeshDumper::deserialize()
                 nObjects,
                 connectivity, vertices);
     }
+}
+
+Config MeshDumper::writeSnapshot(Dumper&) const {
+    return Config::Dictionary{
+        {"__category", "PostprocessPlugin"},
+        {"__type",     "MeshDumper"},
+        {"path",       path},
+    };
 }
 
 } // namespace mirheo

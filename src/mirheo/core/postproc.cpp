@@ -148,14 +148,14 @@ void Postprocess::checkpoint(int checkpointId)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
-Config Postprocess::getConfig() const {
+Config Postprocess::writeSnapshot(Dumper& dumper) const {
     Config::List pluginsConfig;
     pluginsConfig.reserve(plugins_.size());
     for (const auto &plugin : plugins_)
-        pluginsConfig.push_back(plugin->getConfig());
+        pluginsConfig.emplace_back(dumper(plugin.get()));
     return Config::Dictionary{
+        {"__category", "Postprocess"},
         {"__type", "Postprocess"},
-        {"name", getName()},
         {"checkpointFolder", checkpointFolder_},
         {"plugins", std::move(pluginsConfig)},
     };

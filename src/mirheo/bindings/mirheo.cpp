@@ -312,13 +312,12 @@ void exportMirheo(py::module& m)
              R"(
              output compile times options in the log
         )")
-        .def("storeConfigJSON", &Mirheo::storeConfigJSON,
-            "compute"_a, "postprocess"_a, R"(
-            Store config JSON to the given files.
+        .def("writeSnapshot", &Mirheo::writeSnapshot,
+            "path"_a, R"(
+            Write a snapshot of the simulation setup and state to the given folder.
 
             Args:
-                compute: Name of the target file for the compute ranks.
-                postprocess: Name of the target file for the postprocess ranks.
+                path: Target folder.
         )");
 }
 

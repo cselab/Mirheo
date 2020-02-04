@@ -1,4 +1,9 @@
 #include "config.h"
+#include "strprintf.h"
+#include "file_wrapper.h"
+#include "folders.h"
+#include <mirheo/core/logger.h>
+
 #include <sstream>
 #include <cassert>
 
@@ -169,6 +174,81 @@ std::string configToJSON(const Config &config) {
     ConfigToJSON writer;
     writer.process(config);
     return writer.generate();
+}
+
+Dumper::Dumper(MPI_Comm comm, std::string path, bool isCompute) :
+    config_(Config::Dictionary{}), comm_(comm),
+    path_(std::move(path)),
+    isCompute_(isCompute)
+{}
+
+Dumper::~Dumper() = default;
+
+bool Dumper::isObjectRegistered(const void *ptr) const noexcept {
+    return references_.find(ptr) != references_.end();
+}
+const std::string& Dumper::getObjectReference(const void *ptr) const {
+    assert(isObjectRegistered(ptr));
+    return references_.find(ptr)->second;
+}
+
+const std::string& Dumper::registerObject(const void *ptr, Config newItem) {
+    assert(!isObjectRegistered(ptr));
+
+    auto *newDict = newItem.get_if<Config::Dictionary>();
+    if (newDict == nullptr)
+        die("Expected a dictionary, instead got:\n%s", configToJSON(newItem).c_str());
+
+    // Get the category name and remove it from the dictionary.
+    auto itCategory = newDict->find("__category");
+    if (itCategory == newDict->end()) {
+        die("Key \"%s\" not found in the config:\n%s",
+            "__category", configToJSON(newItem).c_str());
+    }
+    std::string category = std::move(itCategory)->second.getString();
+    newDict->erase(itCategory);
+
+    // Find the category in the master dict. Add an empty list if not found.
+    auto &dict = config_.getDict();
+    auto it = dict.find(category);
+    if (it == dict.end())
+        it = dict.emplace(category, Config::List{}).first;
+
+    // Get the object name, if it exists.
+    auto itName = newDict->find("name");
+    const char *name = itName != newDict->end()
+        ? itName->second.getString().c_str() : nullptr;
+
+    // Get the object type.
+    auto itType = newDict->find("__type");
+    if (itType == newDict->end()) {
+        die("Key \"%s\" not found in the config:\n%s",
+            "__type", configToJSON(newItem).c_str());
+    }
+
+    const char *type = itType->second.getString().c_str();
+    std::string ref = name ? strprintf("<%s with name=%s>", type, name)
+                           : strprintf("<%s>", type);
+    it->second.getList().emplace_back(std::move(newItem));
+
+    return references_.emplace(ptr, std::move(ref)).first->second;
+}
+
+static void storeToFile(const std::string &content, const std::string &filename) {
+    FileWrapper f;
+    if (f.open(filename, "w") != FileWrapper::Status::Success)
+        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
+    fwrite(content.data(), 1, content.size(), f.get());
+}
+
+void Dumper::finalize() {
+    int rank;
+    MPI_Comm_rank(comm_, &rank);
+    if (rank == 0) {
+        std::string jsonName = isCompute_ ? "config.compute.json" : "config.post.json";
+        std::string fileName = joinPaths(path_, jsonName);
+        storeToFile(configToJSON(config_), fileName);
+    }
 }
 
 } // namespace mirheo
