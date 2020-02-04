@@ -32,8 +32,8 @@ public:
     virtual size_t getSizeBytes(int numElements) const;
 
 protected:
-    PackPredicate predicate;
-    GenericPacker particleData;
+    PackPredicate predicate_;
+    GenericPacker particleData_;
 };
 
 } // namespace mirheo

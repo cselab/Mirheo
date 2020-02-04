@@ -168,8 +168,8 @@ public:
     size_t getSizeBytes(int numElements) const override;
 
 protected:
-    int objSize;
-    GenericPacker objectData;
+    int objSize_;
+    GenericPacker objectData_;
 };
 
 } // namespace mirheo

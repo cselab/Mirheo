@@ -166,7 +166,7 @@ protected:
     bool *needShift_            {nullptr}; ///< flag per channel: true if data needs to be shifted
 };
 
-class GenericPacker : public GenericPackerHandler
+class GenericPacker : private GenericPackerHandler
 {
 public:
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
