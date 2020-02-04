@@ -4,7 +4,7 @@ namespace mirheo
 {
 
 FileWrapper::FileWrapper(bool forceFlushOnClose) :
-    forceFlushOnClose(forceFlushOnClose)
+    forceFlushOnClose_(forceFlushOnClose)
 {}
 
 FileWrapper::~FileWrapper()
@@ -14,38 +14,39 @@ FileWrapper::~FileWrapper()
 
 FileWrapper::Status FileWrapper::open(const std::string& fname, const std::string& mode)
 {
-    if (needClose) close();
+    if (needClose_) close();
 
-    file = fopen(fname.c_str(), mode.c_str());
+    file_ = fopen(fname.c_str(), mode.c_str());
 
-    if (file == nullptr)
+    if (file_ == nullptr)
         return Status::Failed;
 
-    needClose = true;
+    needClose_ = true;
     return Status::Success;
 }
 
 FileWrapper::Status FileWrapper::open(FileWrapper::SpecialStream stream)
 {
-    if (needClose) close();
+    if (needClose_) close();
 
     switch(stream)
     {
-    case SpecialStream::Cout: file = stdout; break;
-    case SpecialStream::Cerr: file = stderr; break;
+    case SpecialStream::Cout: file_ = stdout; break;
+    case SpecialStream::Cerr: file_ = stderr; break;
     }
 
-    needClose = false;
+    needClose_ = false;
     return Status::Success;
 }
 
 void FileWrapper::close()
 {
-    if (needClose)
+    if (needClose_)
     {
-        if (forceFlushOnClose) fflush(file);
-        fclose(file);
-        needClose = false;
+        if (forceFlushOnClose_)
+            fflush(file_);
+        fclose(file_);
+        needClose_ = false;
     }
 }
 
