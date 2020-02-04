@@ -16,8 +16,7 @@ NvtxTracer::NvtxTracer(const std::string& name)
 {
     std::hash<std::string> nameHash;
     
-    int color_id = nameHash(name);
-    color_id = color_id % NvtxHelpers::num_colors;
+    const int color_id = nameHash(name) % NvtxHelpers::num_colors;;
     
     nvtxEventAttributes_t event = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     event.version       = NVTX_VERSION;
@@ -27,12 +26,12 @@ NvtxTracer::NvtxTracer(const std::string& name)
     event.messageType   = NVTX_MESSAGE_TYPE_ASCII;
     event.message.ascii = getCName();
 
-    id = nvtxRangeStartEx(&event);
+    id_ = nvtxRangeStartEx(&event);
 }
 
 NvtxTracer::~NvtxTracer()
 {
-    nvtxRangeEnd(id);
+    nvtxRangeEnd(id_);
 }
 
 } // namespace mirheo
