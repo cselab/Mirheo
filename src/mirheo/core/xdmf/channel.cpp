@@ -8,16 +8,6 @@ namespace mirheo
 namespace XDMF
 {
 
-Channel::Channel(std::string name, void *data, DataForm dataForm, NumberType numberType,
-                 TypeDescriptor type, NeedShift needShift) :
-    name(name),
-    data(data),
-    dataForm(dataForm),
-    numberType(numberType),
-    type(type),
-    needShift(needShift)
-{}
-
 int Channel::nComponents() const
 {
     return dataFormToNcomponents(dataForm);

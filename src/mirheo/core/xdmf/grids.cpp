@@ -150,9 +150,9 @@ std::string VertexGrid::getCentering() const                         { return "N
 
 void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
-    Channel posCh(positionChannelName, (void*) positions->data(),
-                  Channel::DataForm::Vector, XDMF::getNumberType<real>(),
-                  DataTypeWrapper<real>(), Channel::NeedShift::True);
+    Channel posCh {positionChannelName, (void*) positions->data(),
+                   Channel::DataForm::Vector, XDMF::getNumberType<real>(),
+                   DataTypeWrapper<real>(), Channel::NeedShift::True};
         
     HDF5::writeDataSet(file_id, getGridDims(), posCh);
 }
@@ -231,8 +231,8 @@ void VertexGrid::splitReadAccess(MPI_Comm comm, int chunkSize)
 void VertexGrid::readFromHDF5(hid_t file_id, __UNUSED MPI_Comm comm)
 {
     positions->resize(dims.nlocal);
-    Channel posCh(positionChannelName, positions->data(), Channel::DataForm::Vector,
-                  XDMF::getNumberType<real>(), DataTypeWrapper<real>(), Channel::NeedShift::True);
+    Channel posCh {positionChannelName, positions->data(), Channel::DataForm::Vector,
+                   XDMF::getNumberType<real>(), DataTypeWrapper<real>(), Channel::NeedShift::True};
         
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
@@ -261,9 +261,9 @@ void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
 {
     VertexGrid::writeToHDF5(file_id, comm);
 
-    Channel triCh(triangleChannelName, (void*) triangles->data(),
-                  Channel::DataForm::Triangle, Channel::NumberType::Int,
-                  DataTypeWrapper<int>(), Channel::NeedShift::False);
+    Channel triCh {triangleChannelName, (void*) triangles->data(),
+                   Channel::DataForm::Triangle, Channel::NumberType::Int,
+                   DataTypeWrapper<int>(), Channel::NeedShift::False};
 
     HDF5::writeDataSet(file_id, &dimsTriangles, triCh);
 }

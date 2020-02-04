@@ -258,7 +258,7 @@ void ParticleDumperPlugin::handshake()
                            XDMF::Channel::NumberType numberType, TypeDescriptor datatype,
                            XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
     {
-        return XDMF::Channel(name, nullptr, dataForm, numberType, datatype, needShift);
+        return XDMF::Channel{name, nullptr, dataForm, numberType, datatype, needShift};
     };
 
     // Velocity and id are special channels which are always present

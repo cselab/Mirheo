@@ -103,8 +103,8 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
             auto numbertype = XDMF::getNumberType<T>();
             auto datatype   = DataTypeWrapper<T>();
             
-            channels.push_back(XDMF::Channel(channelName, bufferPtr->data(),
-                                             formtype, numbertype, datatype, needShift));
+            channels.push_back(XDMF::Channel {channelName, bufferPtr->data(),
+                                              formtype, numbertype, datatype, needShift});
         }, channelDesc->varDataPtr);
     }
 
