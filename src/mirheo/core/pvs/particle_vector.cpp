@@ -22,17 +22,17 @@ std::string getParticleVectorLocalityStr(ParticleVectorLocality locality)
         return "halo";
 }
 
-LocalParticleVector::LocalParticleVector(ParticleVector *pv, int n) :
+LocalParticleVector::LocalParticleVector(ParticleVector *pv, int numParts) :
     pv(pv)
 {
-    dataPerParticle.createData<real4>(ChannelNames::positions,  n);
-    dataPerParticle.createData<real4>(ChannelNames::velocities, n);
-    dataPerParticle.createData<Force>(ChannelNames::forces, n);
+    dataPerParticle.createData<real4>(ChannelNames::positions,  numParts);
+    dataPerParticle.createData<real4>(ChannelNames::velocities, numParts);
+    dataPerParticle.createData<Force>(ChannelNames::forces, numParts);
 
     dataPerParticle.setPersistenceMode(ChannelNames::positions,  DataManager::PersistenceMode::Active);
     dataPerParticle.setShiftMode      (ChannelNames::positions,  DataManager::ShiftMode::Active);
     dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Active);
-    resize_anew(n);
+    resize_anew(numParts);
 }
 
 LocalParticleVector::~LocalParticleVector() = default;
@@ -41,21 +41,21 @@ void swap(LocalParticleVector& a, LocalParticleVector &b)
 {
     std::swap(a.pv, b.pv);
     swap(a.dataPerParticle, b.dataPerParticle);
-    std::swap(a.np, b.np);
+    std::swap(a.np_, b.np_);
 }
 
-void LocalParticleVector::resize(int n, cudaStream_t stream)
+void LocalParticleVector::resize(int np, cudaStream_t stream)
 {
-    if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
-    dataPerParticle.resize(n, stream);
-    np = n;
+    if (np < 0) die("Tried to resize PV to %d < 0 particles", np);
+    dataPerParticle.resize(np, stream);
+    np_ = np;
 }
 
-void LocalParticleVector::resize_anew(int n)
+void LocalParticleVector::resize_anew(int np)
 {
-    if (n < 0) die("Tried to resize PV to %d < 0 particles", n);
-    dataPerParticle.resize_anew(n);
-    np = n;
+    if (np < 0) die("Tried to resize PV to %d < 0 particles", np);
+    dataPerParticle.resize_anew(np);
+    np_ = np;
 }
 
 PinnedBuffer<real4>& LocalParticleVector::positions()
@@ -76,7 +76,7 @@ PinnedBuffer<Force>& LocalParticleVector::forces()
 void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 {
     int64_t rankStart = 0;
-    int64_t np64 = np;
+    int64_t np64 = np_;
         
     MPI_Check( MPI_Exscan(&np64, &rankStart, 1, MPI_INT64_T, MPI_SUM, comm) );
 
@@ -104,19 +104,19 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 // Particle Vector
 //============================================================================
 
-ParticleVector::ParticleVector(const MirState *state, std::string name, real mass, int n) :
+ParticleVector::ParticleVector(const MirState *state, const std::string& name, real mass, int n) :
     ParticleVector(state, name, mass,
                    std::make_unique<LocalParticleVector>(this, n),
                    std::make_unique<LocalParticleVector>(this, 0) )
 {}
 
-ParticleVector::ParticleVector(const MirState *state, std::string name,  real mass,
+ParticleVector::ParticleVector(const MirState *state, const std::string& name, real mass,
                                std::unique_ptr<LocalParticleVector>&& local,
                                std::unique_ptr<LocalParticleVector>&& halo) :
     MirSimulationObject(state, name),
     mass(mass),
-    _local(std::move(local)),
-    _halo(std::move(halo))
+    local_(std::move(local)),
+    halo_(std::move(halo))
 {
     // old positions and velocities don't need to exchanged in general
     requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None);

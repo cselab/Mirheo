@@ -45,7 +45,7 @@ class ObjectVector : public ParticleVector
 {
 public:
     
-    ObjectVector(const MirState *state, std::string name, real mass, int objSize, int nObjects = 0);
+    ObjectVector(const MirState *state, const std::string& name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
     
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
@@ -74,7 +74,7 @@ public:
     std::shared_ptr<Mesh> mesh;
     
 protected:
-    ObjectVector(const MirState *state, std::string name, real mass, int objSize,
+    ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
     

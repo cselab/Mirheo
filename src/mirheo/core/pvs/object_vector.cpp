@@ -53,7 +53,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 {
     LocalParticleVector::computeGlobalIds(comm, stream);
 
-    if (np == 0) return;
+    if (size() == 0) return;
 
     Particle p0( positions()[0], velocities()[0]);
     int64_t rankStart = p0.getId();
@@ -96,13 +96,13 @@ int LocalObjectVector::getNobjects(int np) const
 }
 
 
-ObjectVector::ObjectVector(const MirState *state, std::string name, real mass, int objSize, int nObjects) :
+ObjectVector::ObjectVector(const MirState *state, const std::string& name, real mass, int objSize, int nObjects) :
     ObjectVector( state, name, mass, objSize,
                   std::make_unique<LocalObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalObjectVector>(this, objSize, 0) )
 {}
 
-ObjectVector::ObjectVector(const MirState *state, std::string name, real mass, int objSize,
+ObjectVector::ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                            std::unique_ptr<LocalParticleVector>&& local,
                            std::unique_ptr<LocalParticleVector>&& halo) :
     ParticleVector(state, name, mass, std::move(local), std::move(halo)),

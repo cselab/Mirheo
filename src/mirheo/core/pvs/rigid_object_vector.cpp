@@ -23,44 +23,44 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
-    meshVertices.resize_anew(nObjects * mesh->getNvertices());
+    meshVertices_.resize_anew(nObjects * mesh->getNvertices());
 
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * nObjects;
-    fakeView.positions = meshVertices.devPtr();
+    fakeView.positions = meshVertices_.devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
-    return &meshVertices;
+    return &meshVertices_;
 }
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
     auto ov = dynamic_cast<RigidObjectVector*>(pv);
     auto& mesh = ov->mesh;
-    meshOldVertices.resize_anew(nObjects * mesh->getNvertices());
+    meshOldVertices_.resize_anew(nObjects * mesh->getNvertices());
 
     // Overwrite particles with vertices
     // Overwrite motions with the old_motions
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * nObjects;
-    fakeView.positions = meshOldVertices.devPtr();
+    fakeView.positions = meshOldVertices_.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
-    return &meshOldVertices;
+    return &meshOldVertices_;
 }
 
 PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
     auto ov = dynamic_cast<ObjectVector*>(pv);
-    meshForces.resize_anew(nObjects * ov->mesh->getNvertices());
-    return &meshForces;
+    meshForces_.resize_anew(nObjects * ov->mesh->getNvertices());
+    return &meshForces_;
 }
 
 void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
@@ -72,7 +72,7 @@ void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 
 
 
-RigidObjectVector::RigidObjectVector(const MirState *state, std::string name, real partMass,
+RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& name, real partMass,
                                      real3 J, const int objSize,
                                      std::shared_ptr<Mesh> mesh, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
