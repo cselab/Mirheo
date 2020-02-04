@@ -5,7 +5,7 @@ namespace mirheo
 
 void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicate, cudaStream_t stream)
 {
-    nChannels = 0;
+    nChannels_ = 0;
     bool needUpload = false;
 
     for (const auto& nameDesc : manager.getSortedChannels())
@@ -15,7 +15,7 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
         if (!predicate(nameDesc)) continue;
 
         debug2("Packer: adding channel '%s' (id %d)",
-               nameDesc.first.c_str(), nChannels);
+               nameDesc.first.c_str(), nChannels_);
 
         auto varPtr = getDevPtr(desc->varDataPtr);
 
@@ -24,12 +24,12 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
 
     if (needUpload)
     {
-        channelData  .uploadToDevice(stream);
-        needShiftData.uploadToDevice(stream);
+        channelData_  .uploadToDevice(stream);
+        needShiftData_.uploadToDevice(stream);
     }
 
-    varChannelData = channelData  .devPtr();
-    needShift      = needShiftData.devPtr();
+    varChannelData_ = channelData_  .devPtr();
+    needShift_      = needShiftData_.devPtr();
 }
 
 GenericPackerHandler& GenericPacker::handler()
@@ -40,10 +40,10 @@ GenericPackerHandler& GenericPacker::handler()
 void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
                                     bool& needUpload, cudaStream_t stream)
 {
-    if (static_cast<int>(channelData.size()) <= nChannels)
+    if (static_cast<int>(channelData_.size()) <= nChannels_)
     {
-        channelData  .resize(nChannels+1, stream);
-        needShiftData.resize(nChannels+1, stream);
+        channelData_  .resize(nChannels_+1, stream);
+        needShiftData_.resize(nChannels_+1, stream);
         needUpload = true;
     }
 
@@ -51,10 +51,10 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
     {
         using T = typename std::remove_pointer<decltype(ptr)>::type;
 
-        if (cuda_variant::holds_alternative<T*> (channelData[nChannels]))
+        if (cuda_variant::holds_alternative<T*> (channelData_[nChannels_]))
         {
-            T *other = cuda_variant::get<T*> (channelData[nChannels]);
-            if (other != ptr || needShiftData[nChannels] != needShift)
+            T *other = cuda_variant::get<T*> (channelData_[nChannels_]);
+            if (other != ptr || needShiftData_[nChannels_] != needShift)
                 needUpload = true;
         }
         else
@@ -64,16 +64,16 @@ void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
 
     }, varPtr);
 
-    channelData  [nChannels] = varPtr;
-    needShiftData[nChannels] = needShift;
+    channelData_  [nChannels_] = varPtr;
+    needShiftData_[nChannels_] = needShift;
     
-    ++nChannels;
+    ++nChannels_;
 }
 
 size_t GenericPacker::getSizeBytes(int numElements) const
 {
     size_t size = 0;
-    for (auto varPtr : channelData)
+    for (auto varPtr : channelData_)
     {
         cuda_variant::apply_visitor([&](auto ptr)
         {
