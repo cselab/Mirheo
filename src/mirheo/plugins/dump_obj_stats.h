@@ -24,22 +24,22 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    std::string ovName;
-    int dumpEvery;
-    bool needToSend {false};
+    std::string ovName_;
+    int dumpEvery_;
+    bool needToSend_ {false};
     
-    HostBuffer<int64_t> ids;
-    HostBuffer<COMandExtent> coms;
-    HostBuffer<RigidMotion> motions;
-    DeviceBuffer<RigidMotion> motionStats;
-    HostBuffer<int> typeIds;
-    MirState::TimeType savedTime = 0;
-    bool isRov {false};
-    bool hasTypeIds {false};
+    HostBuffer<int64_t> ids_;
+    HostBuffer<COMandExtent> coms_;
+    HostBuffer<RigidMotion> motions_;
+    DeviceBuffer<RigidMotion> motionStats_;
+    HostBuffer<int> typeIds_;
+    MirState::TimeType savedTime_ {0};
+    bool isRov_ {false};
+    bool hasTypeIds_ {false};
 
-    std::vector<char> sendBuffer;
+    std::vector<char> sendBuffer_;
 
-    ObjectVector *ov;
+    ObjectVector *ov_;
 };
 
 
@@ -54,11 +54,11 @@ public:
     void handshake() override;
 
 private:
-    std::string path;
-    int3 nranks3D;
+    std::string path_;
+    int3 nranks3D_;
 
-    bool activated = true;
-    MPI_File fout;
+    bool activated_ = true;
+    MPI_File fout_;
 };
 
 } // namespace mirheo

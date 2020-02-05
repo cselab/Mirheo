@@ -62,76 +62,76 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
 
 ObjStatsPlugin::ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name),
-    ovName(ovName),
-    dumpEvery(dumpEvery)
+    ovName_(ovName),
+    dumpEvery_(dumpEvery)
 {}
 
 void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    ov = simulation->getOVbyNameOrDie(ovName);
-    info("Plugin '%s' initialized for object vector '%s'", getCName(), ovName.c_str());
+    ov_ = simulation->getOVbyNameOrDie(ovName_);
+    info("Plugin '%s' initialized for object vector '%s'", getCName(), ovName_.c_str());
 }
 
 void ObjStatsPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer, ovName);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, ovName_);
+    send(sendBuffer_);
 }
 
 void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    auto lov = ov->local();
+    auto lov = ov_->local();
     
-    ids .copy( *lov->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
-    coms.copy( *lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
+    ids_ .copy( *lov->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
+    coms_.copy( *lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
 
-    if (auto rov = dynamic_cast<RigidObjectVector*>(ov))
+    if (auto rov = dynamic_cast<RigidObjectVector*>(ov_))
     {
         auto& oldMotions = *rov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions);
-        motions.copy(oldMotions, stream);
-        isRov = true;
+        motions_.copy(oldMotions, stream);
+        isRov_ = true;
     }
     else
     {
         const int nthreads = 128;
-        OVview view(ov, lov);
-        motionStats.resize_anew(view.nObjects);
+        OVview view(ov_, lov);
+        motionStats_.resize_anew(view.nObjects);
 
-        motionStats.clear(stream);
+        motionStats_.clear(stream);
 
         SAFE_KERNEL_LAUNCH(
             ObjStatsPluginKernels::collectObjStats,
             view.nObjects, nthreads, 0, stream,
-            view, motionStats.devPtr());
+            view, motionStats_.devPtr());
 
-        motions.copy(motionStats, stream);
-        isRov = false;
+        motions_.copy(motionStats_, stream);
+        isRov_ = false;
     }
 
     if (lov->dataPerObject.checkChannelExists(ChannelNames::membraneTypeId))
     {
-        typeIds.copy( *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId), stream);
-        hasTypeIds = true;
+        typeIds_.copy( *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId), stream);
+        hasTypeIds_ = true;
     }
     
-    savedTime = getState()->currentTime;
-    needToSend = true;
+    savedTime_ = getState()->currentTime;
+    needToSend_ = true;
 }
 
 void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!needToSend) return;
+    if (!needToSend_) return;
 
     debug2("Plugin %s is sending now data", getCName());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, getState()->domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, savedTime_, getState()->domain, isRov_, ids_, coms_, motions_, hasTypeIds_, typeIds_);
+    send(sendBuffer_);
     
-    needToSend=false;
+    needToSend_=false;
 }
 
 //=================================================================================
@@ -208,19 +208,19 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
 
 ObjStatsDumper::ObjStatsDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 ObjStatsDumper::~ObjStatsDumper()
 {
-    if (activated)
-        MPI_Check( MPI_File_close(&fout) );
+    if (activated_)
+        MPI_Check( MPI_File_close(&fout_) );
 }
 
 void ObjStatsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void ObjStatsDumper::handshake()
@@ -232,12 +232,12 @@ void ObjStatsDumper::handshake()
     std::string ovName;
     SimpleSerializer::deserialize(data, ovName);
 
-    if (activated)
+    if (activated_)
     {
-        const std::string fname = path + ovName + ".txt";
-        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout) );
-        MPI_Check( MPI_File_close(&fout) );
-        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout) );
+        const std::string fname = path_ + ovName + ".txt";
+        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );
+        MPI_Check( MPI_File_close(&fout_) );
+        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout_) );
     }
 }
 
@@ -255,8 +255,8 @@ void ObjStatsDumper::deserialize()
 
     SimpleSerializer::deserialize(data, curTime, domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
 
-    if (activated)
-        writeStats(comm, domain, fout, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
+    if (activated_)
+        writeStats(comm, domain, fout_, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
 }
 
 } // namespace mirheo

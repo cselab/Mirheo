@@ -11,57 +11,60 @@ namespace mirheo
 {
 
 XYZPlugin::XYZPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery) :
-    SimulationPlugin(state, name), pvName(pvName),
-    dumpEvery(dumpEvery)
+    SimulationPlugin(state, name),
+    pvName_(pvName),
+    dumpEvery_(dumpEvery)
 {}
 
 void XYZPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName_.c_str());
 }
 
 void XYZPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    positions.copy(pv->local()->positions(), stream);
+    positions_.copy(pv_->local()->positions(), stream);
 }
 
 void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     debug2("Plugin %s is sending now data", getCName());
 
-    for (auto& r : positions)
+    for (auto& r : positions_)
     {
         auto r3 = make_real3(r);
         r3 = getState()->domain.local2global(r3);
         r.x = r3.x; r.y = r3.y; r.z = r3.z;
     }
 
-    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, pv->getName(), positions);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, pv_->getName(), positions_);
+    send(sendBuffer_);
 }
 
 //=================================================================================
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
+
+XYZDumper::~XYZDumper() = default;
 
 void XYZDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void XYZDumper::deserialize()
@@ -69,12 +72,12 @@ void XYZDumper::deserialize()
     std::string pvName;
     MirState::StepType timeStamp;
     
-    SimpleSerializer::deserialize(data, timeStamp, pvName, pos);
+    SimpleSerializer::deserialize(data, timeStamp, pvName, pos_);
 
-    std::string currentFname = path + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
+    std::string currentFname = path_ + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
 
-    if (activated)
-        writeXYZ(comm, currentFname, pos.data(), static_cast<int>(pos.size()));
+    if (activated_)
+        writeXYZ(comm, currentFname, pos_.data(), static_cast<int>(pos_.size()));
 }
 
 } // namespace mirheo

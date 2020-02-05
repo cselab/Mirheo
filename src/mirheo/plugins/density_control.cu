@@ -106,16 +106,16 @@ DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string na
                                            real Kp, real Ki, real Kd,
                                            int tuneEvery, int dumpEvery, int sampleEvery) :
     SimulationPlugin(state, name),
-    pvNames(pvNames),
-    targetDensity(targetDensity),
-    spaceDecompositionField(std::make_unique<FieldFromFunction>
+    pvNames_(pvNames),
+    targetDensity_(targetDensity),
+    spaceDecompositionField_(std::make_unique<FieldFromFunction>
                             (state, name + "_decomposition", region, resolution)),
-    levelBounds({levelLo, levelHi, levelSpace}),
-    Kp(Kp), Ki(Ki), Kd(Kd),
-    tuneEvery(tuneEvery),
-    dumpEvery(dumpEvery),
-    sampleEvery(sampleEvery),
-    nSamples(0)
+    levelBounds_({levelLo, levelHi, levelSpace}),
+    Kp_(Kp), Ki_(Ki), Kd_(Kd),
+    tuneEvery_(tuneEvery),
+    dumpEvery_(dumpEvery),
+    sampleEvery_(sampleEvery),
+    nSamples_(0)
 {}
 
 DensityControlPlugin::~DensityControlPlugin() = default;
@@ -124,38 +124,38 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    for (auto &pvName : pvNames)
-        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
+    for (auto &pvName : pvNames_)
+        pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 
-    spaceDecompositionField->setup(comm);
+    spaceDecompositionField_->setup(comm);
 
-    const int nLevelSets = (levelBounds.hi - levelBounds.lo) / levelBounds.space;
-    levelBounds.space = (levelBounds.hi - levelBounds.lo) / nLevelSets;
+    const int nLevelSets = (levelBounds_.hi - levelBounds_.lo) / levelBounds_.space;
+    levelBounds_.space = (levelBounds_.hi - levelBounds_.lo) / nLevelSets;
     
-    nInsides     .resize_anew(nLevelSets);    
-    forces       .resize_anew(nLevelSets);
+    nInsides_ .resize_anew(nLevelSets);    
+    forces_   .resize_anew(nLevelSets);
 
     const real initError = 0;
-    controllers.assign(nLevelSets, PidControl<real>(initError, Kp, Ki, Kd));
+    controllers_.assign(nLevelSets, PidControl<real>(initError, Kp_, Ki_, Kd_));
 
-    volumes   .resize(nLevelSets);
-    densities .resize(nLevelSets);
-    densities .assign(nLevelSets, 0.0_r);
+    volumes_  .resize(nLevelSets);
+    densities_.resize(nLevelSets);
+    densities_.assign(nLevelSets, 0.0_r);
     
     computeVolumes(defaultStream, 1000000);
 
-    nInsides  .clearDevice(defaultStream);    
-    forces    .clearDevice(defaultStream);
-    nSamples = 0;
+    nInsides_ .clearDevice(defaultStream);    
+    forces_   .clearDevice(defaultStream);
+    nSamples_ = 0;
 }
 
 
 void DensityControlPlugin::beforeForces(cudaStream_t stream)
 {
-    if (isTimeEvery(getState(), tuneEvery))
+    if (isTimeEvery(getState(), tuneEvery_))
         updatePids(stream);
 
-    if (isTimeEvery(getState(), sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery_))
         sample(stream);
 
     applyForces(stream);
@@ -163,11 +163,11 @@ void DensityControlPlugin::beforeForces(cudaStream_t stream)
 
 void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, getState()->currentStep, densities, forces);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, getState()->currentStep, densities_, forces_);
+    send(sendBuffer_);
 }
 
 
@@ -176,18 +176,18 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     const int nthreads = 128;
     const real seed = 0.42424242_r + rank * 17;
     const auto domain = getState()->domain;    
-    const int nLevelSets = nInsides.size();
+    const int nLevelSets = nInsides_.size();
 
     PinnedBuffer<double> localVolumes(nLevelSets);
     
-    nInsides    .clearDevice(stream);
+    nInsides_    .clearDevice(stream);
     localVolumes.clearDevice(stream);
     
     SAFE_KERNEL_LAUNCH(
         DensityControlPluginKernels::countInsideRegions,
         getNblocks(MCnSamples, nthreads), nthreads, 0, stream,
-        MCnSamples, domain, spaceDecompositionField->handler(),
-        levelBounds, seed, nInsides.devPtr());
+        MCnSamples, domain, spaceDecompositionField_->handler(),
+        levelBounds_, seed, nInsides_.devPtr());
 
     const real3 L = domain.localSize;
     const double subdomainVolume = L.x * L.y * L.z;
@@ -195,15 +195,15 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     SAFE_KERNEL_LAUNCH(
         DensityControlPluginKernels::computeVolumes,
         getNblocks(localVolumes.size(), nthreads), nthreads, 0, stream,
-        localVolumes.size(), MCnSamples, nInsides.devPtr(),
+        localVolumes.size(), MCnSamples, nInsides_.devPtr(),
         subdomainVolume, localVolumes.devPtr());
 
-    volumes.resize(nLevelSets);
-    volumes.assign(nLevelSets, 0.0);
+    volumes_.resize(nLevelSets);
+    volumes_.assign(nLevelSets, 0.0);
     
     localVolumes.downloadFromDevice(stream);
     
-    MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes.data(), volumes.size(), MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes_.data(), volumes_.size(), MPI_DOUBLE, MPI_SUM, comm) );
     // std::copy(localVolumes.begin(), localVolumes.end(), volumes.begin());
 }
 
@@ -211,61 +211,61 @@ void DensityControlPlugin::sample(cudaStream_t stream)
 {
     const int nthreads = 128;
 
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             DensityControlPluginKernels::collectSamples,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, spaceDecompositionField->handler(),
-            levelBounds, nInsides.devPtr());        
+            view, spaceDecompositionField_->handler(),
+            levelBounds_, nInsides_.devPtr());        
     }
 
-    ++nSamples;
+    ++nSamples_;
 }
 
 void DensityControlPlugin::updatePids(cudaStream_t stream)
 {
-    nInsides.downloadFromDevice(stream);    
+    nInsides_.downloadFromDevice(stream);    
     
-    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides.hostPtr(), nInsides.size(),
+    MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides_.hostPtr(), nInsides_.size(),
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm) );
 
-    for (size_t i = 0; i < volumes.size(); ++i)
+    for (size_t i = 0; i < volumes_.size(); ++i)
     {
-        const double denom = volumes[i] * nSamples;
+        const double denom = volumes_[i] * nSamples_;
 
-        densities[i] = (denom > 1e-6) ? 
-            nInsides[i] / denom :
+        densities_[i] = (denom > 1e-6) ? 
+            nInsides_[i] / denom :
             0.0;
     }       
 
-    for (size_t i = 0; i < densities.size(); ++i)
+    for (size_t i = 0; i < densities_.size(); ++i)
     {
-        const real error = densities[i] - targetDensity;        
-        forces[i] = controllers[i].update(error);
+        const real error = densities_[i] - targetDensity_;        
+        forces_[i] = controllers_[i].update(error);
     }
 
-    forces.uploadToDevice(stream);
+    forces_.uploadToDevice(stream);
     
-    nInsides.clearDevice(stream);
-    nSamples = 0;
+    nInsides_.clearDevice(stream);
+    nSamples_ = 0;
 }
 
 void DensityControlPlugin::applyForces(cudaStream_t stream)
 {
     const int nthreads = 128;
     
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             DensityControlPluginKernels::applyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, spaceDecompositionField->handler(),
-            levelBounds, forces.devPtr());        
+            view, spaceDecompositionField_->handler(),
+            levelBounds_, forces_.devPtr());        
     }    
 }
 
@@ -275,7 +275,7 @@ void DensityControlPlugin::checkpoint(MPI_Comm comm, const std::string& path, in
 
     {
         std::ofstream fout(filename);
-        for (const auto& pid : controllers)
+        for (const auto& pid : controllers_)
             fout << pid << std::endl;
     }
     
@@ -288,7 +288,7 @@ void DensityControlPlugin::restart(__UNUSED MPI_Comm comm, const std::string& pa
 
     std::ifstream fin(filename);
 
-    for (auto& pid : controllers)
+    for (auto& pid : controllers_)
         fin >> pid;
 }
 
@@ -298,7 +298,7 @@ void DensityControlPlugin::restart(__UNUSED MPI_Comm comm, const std::string& pa
 PostprocessDensityControl::PostprocessDensityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    auto status = fdump.open(filename, "w");
+    auto status = fdump_.open(filename, "w");
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
 }
@@ -313,12 +313,12 @@ void PostprocessDensityControl::deserialize()
 
     if (rank == 0)
     {
-        fprintf(fdump.get(), "%g %lld ", currentTime, currentTimeStep);
-        for (auto d : densities) fprintf(fdump.get(), "%g ", d);
-        for (auto f : forces)    fprintf(fdump.get(), "%g ", f);
-        fprintf(fdump.get(), "\n");
+        fprintf(fdump_.get(), "%g %lld ", currentTime, currentTimeStep);
+        for (auto d : densities) fprintf(fdump_.get(), "%g ", d);
+        for (auto f : forces)    fprintf(fdump_.get(), "%g ", f);
+        fprintf(fdump_.get(), "\n");
         
-        fflush(fdump.get());
+        fflush(fdump_.get());
     }
 }
 

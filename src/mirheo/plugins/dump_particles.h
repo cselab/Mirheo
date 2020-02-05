@@ -30,17 +30,18 @@ public:
     bool needPostproc() override { return true; }
     
 protected:
-    std::string pvName;
-    ParticleVector *pv;
-    
-    int dumpEvery;
+    std::string pvName_;
+    ParticleVector *pv_;
 
-    HostBuffer<real4> positions, velocities;
-    std::vector<std::string> channelNames;
-    DeviceBuffer<char> workSpace;
-    std::vector<HostBuffer<char>> channelData;
+    std::vector<char> sendBuffer_;
 
-    std::vector<char> sendBuffer;
+private:
+    int dumpEvery_;
+
+    HostBuffer<real4> positions_, velocities_;
+    std::vector<std::string> channelNames_;
+    DeviceBuffer<char> workSpace_;
+    std::vector<HostBuffer<char>> channelData_;
 };
 
 
@@ -53,19 +54,19 @@ public:
     void handshake() override;
 
 protected:
-
     void _recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp);
-    
-    static constexpr int zeroPadding = 5;
-    std::string path;
 
-    std::vector<real4> pos4, vel4;
-    std::vector<real3> velocities;
-    std::vector<int64_t> ids;
-    std::shared_ptr<std::vector<real3>> positions;
+protected:
+    static constexpr int zeroPadding_ = 5;
+    std::string path_;
 
-    std::vector<XDMF::Channel> channels;
-    std::vector<std::vector<char>> channelData;
+    std::vector<real4> pos4_, vel4_;
+    std::vector<real3> velocities_;
+    std::vector<int64_t> ids_;
+    std::shared_ptr<std::vector<real3>> positions_;
+
+    std::vector<XDMF::Channel> channels_;
+    std::vector<std::vector<char>> channelData_;
 };
 
 } // namespace mirheo

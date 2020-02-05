@@ -48,20 +48,20 @@ __global__ void copyRodDataToParticles(int numBiSegmentsPerObject, int objSize, 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                            const std::vector<std::string>& channelNames) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    dumpEvery(dumpEvery),
-    channelNames(channelNames)
+    pvName_(pvName),
+    dumpEvery_(dumpEvery),
+    channelNames_(channelNames)
 {
-    channelData.resize(channelNames.size());
+    channelData_.resize(channelNames_.size());
 }
 
 void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName_.c_str());
 }
 
 void ParticleSenderPlugin::handshake()
@@ -81,14 +81,14 @@ void ParticleSenderPlugin::handshake()
         }, desc.varDataPtr);
     };
     
-    auto ov = dynamic_cast<ObjectVector*>(pv);
-    auto rv = dynamic_cast<RodVector*>(pv);
+    auto ov = dynamic_cast<ObjectVector*>(pv_);
+    auto rv = dynamic_cast<RodVector*>(pv_);
 
-    for (const auto& name : channelNames)
+    for (const auto& name : channelNames_)
     {
-        if (pv->local()->dataPerParticle.checkChannelExists(name))
+        if (pv_->local()->dataPerParticle.checkChannelExists(name))
         {
-            const auto& desc = pv->local()->dataPerParticle.getChannelDescOrDie(name);
+            const auto& desc = pv_->local()->dataPerParticle.getChannelDescOrDie(name);
             pushChannelInfos(desc);
         }
         else if (ov != nullptr && ov->local()->dataPerObject.checkChannelExists(name))
@@ -104,13 +104,13 @@ void ParticleSenderPlugin::handshake()
         else
         {
             die("Channel not found: '%s' in particle vector '%s'",
-                getCName(), pv->getCName());
+                getCName(), pv_->getCName());
         }
     }
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, channelNames, dataForms, numberTypes, typeDescriptorsStr);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, channelNames_, dataForms, numberTypes, typeDescriptorsStr);
+    send(sendBuffer_);
 }
 
 static inline void copyData(ParticleVector *pv, const std::string& channelName, HostBuffer<char>& dst, cudaStream_t stream)
@@ -180,56 +180,56 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
 
 void ParticleSenderPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    positions .genericCopy(&pv->local()->positions() , stream);
-    velocities.genericCopy(&pv->local()->velocities(), stream);
+    positions_ .genericCopy(&pv_->local()->positions() , stream);
+    velocities_.genericCopy(&pv_->local()->velocities(), stream);
 
-    auto ov = dynamic_cast<ObjectVector*>(pv);
-    auto rv = dynamic_cast<RodVector*>(pv);
+    auto ov = dynamic_cast<ObjectVector*>(pv_);
+    auto rv = dynamic_cast<RodVector*>(pv_);
 
-    for (size_t i = 0; i < channelNames.size(); ++i)
+    for (size_t i = 0; i < channelNames_.size(); ++i)
     {
-        auto name = channelNames[i];
+        auto name = channelNames_[i];
 
-        if (pv->local()->dataPerParticle.checkChannelExists(name))
+        if (pv_->local()->dataPerParticle.checkChannelExists(name))
         {
-            copyData(pv, name, channelData[i], stream);
+            copyData(pv_, name, channelData_[i], stream);
         }
         else if (ov != nullptr && ov->local()->dataPerObject.checkChannelExists(name))
         {
-            copyData(ov, name, channelData[i], workSpace, stream);
+            copyData(ov, name, channelData_[i], workSpace_, stream);
         }
         else if (rv != nullptr && rv->local()->dataPerBisegment.checkChannelExists(name))
         {
-            copyData(rv, name, channelData[i], workSpace, stream);
+            copyData(rv, name, channelData_[i], workSpace_, stream);
         }
         else
         {
             die("Channel not found: '%s' in particle vector '%s'",
-                getCName(), pv->getCName());
+                getCName(), pv_->getCName());
         }
     }
 }
 
 void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     debug2("Plugin %s is sending now data", getCName());
     
-    for (auto& p : positions)
+    for (auto& p : positions_)
     {
         auto r = getState()->domain.local2global(make_real3(p));
         p.x = r.x; p.y = r.y; p.z = r.z;
     }
 
-    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
+    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
-    debug2("Plugin %s is packing now data consisting of %d particles", getCName(), positions.size());
+    debug2("Plugin %s is packing now data consisting of %d particles", getCName(), positions_.size());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, getState()->currentTime, positions, velocities, channelData);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, getState()->currentTime, positions_, velocities_, channelData_);
+    send(sendBuffer_);
 }
 
 
@@ -237,8 +237,8 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
 ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(path),
-    positions(std::make_shared<std::vector<real3>>())
+    path_(path),
+    positions_(std::make_shared<std::vector<real3>>())
 {}
 
 void ParticleDumperPlugin::handshake()
@@ -263,8 +263,8 @@ void ParticleDumperPlugin::handshake()
 
     // Velocity and id are special channels which are always present
     std::string allNames = "'velocity', 'id'";
-    channels.push_back(initChannel("velocity", XDMF::Channel::DataForm::Vector, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
-    channels.push_back(initChannel("id",       XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
+    channels_.push_back(initChannel("velocity", XDMF::Channel::DataForm::Vector, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
+    channels_.push_back(initChannel("id",       XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < names.size(); ++i)
     {
@@ -275,15 +275,15 @@ void ParticleDumperPlugin::handshake()
         
         const auto channel = initChannel(name, dataForm, numberType, dataType);
 
-        channels.push_back(channel);
+        channels_.push_back(channel);
         allNames += ", '" + name + "'";
     }
     
     // Create the required folder
-    createFoldersCollective(comm, parentPath(path));
+    createFoldersCollective(comm, parentPath(path_));
 
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s",
-           getCName(), allNames.c_str(), path.c_str());
+           getCName(), allNames.c_str(), path_.c_str());
 }
 
 static void unpackParticles(const std::vector<real4> &pos4, const std::vector<real4> &vel4,
@@ -306,15 +306,15 @@ static void unpackParticles(const std::vector<real4> &pos4, const std::vector<re
 void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp)
 {
     int c = 0;
-    SimpleSerializer::deserialize(data, timeStamp, time, pos4, vel4, channelData);
+    SimpleSerializer::deserialize(data, timeStamp, time, pos4_, vel4_, channelData_);
         
-    unpackParticles(pos4, vel4, *positions, velocities, ids);
+    unpackParticles(pos4_, vel4_, *positions_, velocities_, ids_);
 
-    channels[c++].data = velocities.data();
-    channels[c++].data = ids.data();
+    channels_[c++].data = velocities_.data();
+    channels_[c++].data = ids_.data();
     
-    for (auto& cd : channelData)
-        channels[c++].data = cd.data();
+    for (auto& cd : channelData_)
+        channels_[c++].data = cd.data();
 }
 
 void ParticleDumperPlugin::deserialize()
@@ -325,10 +325,10 @@ void ParticleDumperPlugin::deserialize()
     MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
-    std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
+    std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
     
-    XDMF::VertexGrid grid(positions, comm);
-    XDMF::write(fname, &grid, channels, time, comm);
+    XDMF::VertexGrid grid(positions_, comm);
+    XDMF::write(fname, &grid, channels_, time, comm);
 }
 
 } // namespace mirheo
