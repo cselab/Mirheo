@@ -56,6 +56,8 @@ public:
     void restart(std::string folder="restart/");
     bool isComputeTask() const;
     bool isMasterTask() const;
+    bool isSimulationMasterTask() const;
+    bool isPostprocessMasterTask() const;
     void startProfiler();
     void stopProfiler();
     void saveDependencyGraph_GraphML(std::string fname, bool current) const;

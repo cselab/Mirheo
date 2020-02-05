@@ -1,6 +1,4 @@
 #include "config.h"
-#include "file_wrapper.h"
-#include "folders.h"
 #include "strprintf.h"
 #include <mirheo/core/logger.h>
 
@@ -177,9 +175,8 @@ std::string configToJSON(const Config& config)
     return writer.generate();
 }
 
-Dumper::Dumper(MPI_Comm comm, std::string path, bool isCompute) :
-    config_(Config::Dictionary{}), comm_(comm), path_(std::move(path)),
-    isCompute_(isCompute)
+Dumper::Dumper(DumpContext context) :
+    config_{Config::Dictionary{}}, context_{std::move(context)}
 {}
 
 Dumper::~Dumper() = default;
@@ -235,26 +232,6 @@ const std::string& Dumper::registerObject(const void *ptr, Config newItem)
     it->second.getList().emplace_back(std::move(newItem));
 
     return references_.emplace(ptr, std::move(ref)).first->second;
-}
-
-static void storeToFile(const std::string& content, const std::string& filename)
-{
-    FileWrapper f;
-    if (f.open(filename, "w") != FileWrapper::Status::Success)
-        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
-    fwrite(content.data(), 1, content.size(), f.get());
-}
-
-void Dumper::finalize()
-{
-    int rank;
-    MPI_Comm_rank(comm_, &rank);
-    if (rank == 0) {
-        std::string jsonName =
-            isCompute_ ? "config.compute.json" : "config.post.json";
-        std::string fileName = joinPaths(path_, jsonName);
-        storeToFile(configToJSON(config_), fileName);
-    }
 }
 
 } // namespace mirheo

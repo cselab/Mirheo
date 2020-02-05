@@ -107,6 +107,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
     MPI_Comm splitComm;
     
+    // Note: Update `is*Task()` functions if modifying this.
     computeTask_ = rank_ % 2;
     MPI_Check( MPI_Comm_split(comm_, computeTask_, rank_, &splitComm) );
 
@@ -597,12 +598,22 @@ void Mirheo::restart(std::string folder)
 
 bool Mirheo::isComputeTask() const
 {
-    return (computeTask_ == 0);
+    return computeTask_ == 0;
 }
 
 bool Mirheo::isMasterTask() const
 {
-    return (rank_ == 0 && isComputeTask());
+    return rank_ == 0 && isComputeTask();
+}
+
+bool Mirheo::isSimulationMasterTask() const
+{
+    return rank_ == 0 && isComputeTask();
+}
+
+bool Mirheo::isPostprocessMasterTask() const
+{
+    return rank_ == 0 && !isComputeTask();
 }
 
 void Mirheo::saveDependencyGraph_GraphML(std::string fname, bool current) const
@@ -677,9 +688,29 @@ void Mirheo::logCompileOptions() const
     info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
 }
 
-void Mirheo::writeSnapshot(std::string path) const {
-    Dumper dumper(isComputeTask() ? compComm_ : ioComm_, path, isComputeTask());
+static void storeToFile(const std::string& content, const std::string& filename)
+{
+    FileWrapper f;
+    if (f.open(filename, "w") != FileWrapper::Status::Success)
+        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
+    fwrite(content.data(), 1, content.size(), f.get());
+}
 
+void Mirheo::writeSnapshot(std::string path) const
+{
+    // Prepare context and the dumper.
+    DumpContext context;
+    context.path = path;
+    context.simulationComm = cartComm_;
+    context.postprocessComm = ioComm_;
+    Dumper dumper(std::move(context));
+
+    // Create the snapshot folder before creating the dump.
+    if (!path.empty())
+        if (!createFoldersCollective(comm_, path))
+            die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
+
+    // Dump the Mirheo object and the whole simulation recursively.
     Config::Dictionary dict;
     dict.emplace("__category", dumper("Mirheo"));
     dict.emplace("__type",     dumper("Mirheo"));
@@ -689,9 +720,14 @@ void Mirheo::writeSnapshot(std::string path) const {
         dict.emplace("simulation", dumper(sim_));
     if (post_)
         dict.emplace("postprocess", dumper(post_));
-
     dumper.registerObject(this, std::move(dict));
-    dumper.finalize();
+
+    // Store the config files to the disk.
+    if (isSimulationMasterTask() || isPostprocessMasterTask()) {
+        std::string content = configToJSON(dumper.getConfig()) + '\n';
+        std::string jsonName = isComputeTask() ? "config.compute.json" : "config.post.json";
+        storeToFile(content, joinPaths(path, jsonName));
+    }
 }
 
 } // namespace mirheo

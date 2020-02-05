@@ -98,19 +98,27 @@ private:
     Variant value_;
 };
 
+struct DumpContext
+{
+    std::string path {"snapshot/"};
+    MPI_Comm simulationComm {MPI_COMM_NULL};
+    MPI_Comm postprocessComm {MPI_COMM_NULL};
+};
+
 class Dumper
 {
 public:
-    Dumper(MPI_Comm comm, std::string path, bool isCompute);
+    Dumper(DumpContext context);
     ~Dumper();
 
-    MPI_Comm getComm() const { return comm_; }
+    const DumpContext& getContext() const noexcept { return context_; }
+    const Config& getConfig() const noexcept { return config_; }
 
     /// Dump.
     template <size_t N>
     Config operator()(const char (&t)[N])
     {
-        return std::string(t);
+        return std::string{t};
     }
     template <typename T>
     Config operator()(const T& t)
@@ -121,14 +129,11 @@ public:
     bool isObjectRegistered(const void*) const noexcept;
     const std::string& getObjectReference(const void*) const;
     const std::string& registerObject(const void*, Config newItem);
-    void finalize();
 
 private:
     Config config_;
     std::map<const void*, std::string> references_;
-    MPI_Comm comm_;
-    std::string path_;
-    bool isCompute_;
+    DumpContext context_;
 };
 
 namespace detail

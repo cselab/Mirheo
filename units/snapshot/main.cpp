@@ -66,7 +66,7 @@ MIRHEO_MEMBER_VARS_2(Struct3, z, w);
 
 TEST(Snapshot, BasicConfigToJSON)
 {
-    Dumper dumper{MPI_COMM_WORLD, "snapshot/", true};
+    Dumper dumper{DumpContext{}};
 
     // Test basic variant types.
     ASSERT_STREQ(configToJSON(dumper(10)).c_str(), "10");
@@ -85,7 +85,7 @@ TEST(Snapshot, BasicConfigToJSON)
 /// Test ConfigDumper various interfaces.
 TEST(Snapshot, InterfacesForConfigDumper)
 {
-    Dumper dumper{MPI_COMM_WORLD, "snapshot/", true};
+    Dumper dumper{DumpContext{}};
 
     // Test ConfigDumper<> specialization dump() interface.
     Config config1 = dumper(Struct1{10, 3.125, "hello"});
