@@ -168,12 +168,14 @@ std::string ConfigToJSON::generate()
     return std::move(stream).str();
 }
 
-std::string configToJSON(const Config& config)
+
+bool DumpContext::isGroupMasterTask() const
 {
-    ConfigToJSON writer;
-    writer.process(config);
-    return writer.generate();
+    int rank;
+    MPI_Comm_rank(groupComm, &rank);
+    return rank == 0;
 }
+
 
 Dumper::Dumper(DumpContext context) :
     config_{Config::Dictionary{}}, context_{std::move(context)}
@@ -183,27 +185,27 @@ Dumper::~Dumper() = default;
 
 bool Dumper::isObjectRegistered(const void *ptr) const noexcept
 {
-    return references_.find(ptr) != references_.end();
+    return descriptions_.find(ptr) != descriptions_.end();
 }
-const std::string& Dumper::getObjectReference(const void *ptr) const
+const std::string& Dumper::getObjectDescription(const void *ptr) const
 {
     assert(isObjectRegistered(ptr));
-    return references_.find(ptr)->second;
+    return descriptions_.find(ptr)->second;
 }
 
-const std::string& Dumper::registerObject(const void *ptr, Config newItem)
+const std::string& Dumper::registerObject(const void *ptr, Config object)
 {
     assert(!isObjectRegistered(ptr));
 
-    auto *newDict = newItem.get_if<Config::Dictionary>();
+    auto *newDict = object.get_if<Config::Dictionary>();
     if (newDict == nullptr)
-        die("Expected a dictionary, instead got:\n%s", configToJSON(newItem).c_str());
+        die("Expected a dictionary, instead got:\n%s", configToJSON(object).c_str());
 
     // Get the category name and remove it from the dictionary.
     auto itCategory = newDict->find("__category");
     if (itCategory == newDict->end()) {
         die("Key \"%s\" not found in the config:\n%s",
-            "__category", configToJSON(newItem).c_str());
+            "__category", configToJSON(object).c_str());
     }
     std::string category = std::move(itCategory)->second.getString();
     newDict->erase(itCategory);
@@ -223,15 +225,22 @@ const std::string& Dumper::registerObject(const void *ptr, Config newItem)
     auto itType = newDict->find("__type");
     if (itType == newDict->end()) {
         die("Key \"%s\" not found in the config:\n%s",
-            "__type", configToJSON(newItem).c_str());
+            "__type", configToJSON(object).c_str());
     }
 
     const char *type = itType->second.getString().c_str();
     std::string ref = name ? strprintf("<%s with name=%s>", type, name)
                            : strprintf("<%s>", type);
-    it->second.getList().emplace_back(std::move(newItem));
+    it->second.getList().emplace_back(std::move(object));
 
-    return references_.emplace(ptr, std::move(ref)).first->second;
+    return descriptions_.emplace(ptr, std::move(ref)).first->second;
+}
+
+std::string configToJSON(const Config& config)
+{
+    ConfigToJSON writer;
+    writer.process(config);
+    return writer.generate();
 }
 
 } // namespace mirheo

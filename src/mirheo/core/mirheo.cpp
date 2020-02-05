@@ -701,8 +701,7 @@ void Mirheo::writeSnapshot(std::string path) const
     // Prepare context and the dumper.
     DumpContext context;
     context.path = path;
-    context.simulationComm = cartComm_;
-    context.postprocessComm = ioComm_;
+    context.groupComm = isComputeTask() ? compComm_ : ioComm_;
     Dumper dumper(std::move(context));
 
     // Create the snapshot folder before creating the dump.

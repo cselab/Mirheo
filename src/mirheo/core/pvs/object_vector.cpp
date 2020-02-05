@@ -124,8 +124,7 @@ ConfigDictionary ObjectVector::writeSnapshot(Dumper &dumper) const
     ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
     dict.insert_or_assign("__type", dumper("ObjectVector"));
     dict.emplace("objSize",         dumper(objSize));
-    dict.emplace("mesh_nvertices",  dumper(mesh->getNvertices()));
-    dict.emplace("mesh_ntriangles", dumper(mesh->getNtriangles()));
+    dict.emplace("mesh",            dumper(mesh));
     return dict;
 }
 

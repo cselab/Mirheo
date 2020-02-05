@@ -92,7 +92,7 @@ void MirSimulationObject::setState(const MirState *state)
 
 Config ConfigMirObjectDumper::dump(Dumper& dumper, const MirObject& obj) {
     if (dumper.isObjectRegistered(&obj))
-        return dumper.getObjectReference(&obj);
+        return dumper.getObjectDescription(&obj);
     ConfigDictionary dict = obj.writeSnapshot(dumper);
     dict.insert_or_assign("name", dumper(obj.getName()));
     // Returns a replacement string (a reference-like string).

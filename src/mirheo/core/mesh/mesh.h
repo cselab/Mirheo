@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mirheo/core/containers.h>
+#include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/pytypes.h>
 
 #include <tuple>
@@ -46,13 +47,19 @@ private:
 };
 
 
-
 struct MeshView
 {
     int nvertices, ntriangles;
     int3 *triangles;
 
     MeshView(const Mesh *m);
+};
+
+
+template <>
+struct ConfigDumper<Mesh>
+{
+    static Config dump(Dumper&, const Mesh&);
 };
 
 } // namespace mirheo

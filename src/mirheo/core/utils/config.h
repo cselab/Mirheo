@@ -101,8 +101,10 @@ private:
 struct DumpContext
 {
     std::string path {"snapshot/"};
-    MPI_Comm simulationComm {MPI_COMM_NULL};
-    MPI_Comm postprocessComm {MPI_COMM_NULL};
+    MPI_Comm groupComm {MPI_COMM_NULL};
+    std::map<std::string, int> counters;
+
+    bool isGroupMasterTask() const;
 };
 
 class Dumper
@@ -111,7 +113,7 @@ public:
     Dumper(DumpContext context);
     ~Dumper();
 
-    const DumpContext& getContext() const noexcept { return context_; }
+    DumpContext& getContext() noexcept { return context_; }
     const Config& getConfig() const noexcept { return config_; }
 
     /// Dump.
@@ -127,12 +129,12 @@ public:
     }
 
     bool isObjectRegistered(const void*) const noexcept;
-    const std::string& getObjectReference(const void*) const;
+    const std::string& getObjectDescription(const void*) const;
     const std::string& registerObject(const void*, Config newItem);
 
 private:
     Config config_;
-    std::map<const void*, std::string> references_;
+    std::map<const void*, std::string> descriptions_;
     DumpContext context_;
 };
 
@@ -175,10 +177,10 @@ MIRHEO_DUMPER_PRIMITIVE(long long,          Int);
 MIRHEO_DUMPER_PRIMITIVE(unsigned,           Int);
 MIRHEO_DUMPER_PRIMITIVE(unsigned long,      Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(unsigned long long, Int);  // This is risky.
-MIRHEO_DUMPER_PRIMITIVE(float,       Float);
-MIRHEO_DUMPER_PRIMITIVE(double,      Float);
-MIRHEO_DUMPER_PRIMITIVE(const char *, String);
-MIRHEO_DUMPER_PRIMITIVE(std::string, String);
+MIRHEO_DUMPER_PRIMITIVE(float,              Float);
+MIRHEO_DUMPER_PRIMITIVE(double,             Float);
+MIRHEO_DUMPER_PRIMITIVE(const char *,       String);
+MIRHEO_DUMPER_PRIMITIVE(std::string,        String);
 #undef MIRHEO_DUMPER_PRIMITIVE
 
 template <>

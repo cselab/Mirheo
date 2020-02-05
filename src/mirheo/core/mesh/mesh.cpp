@@ -1,7 +1,9 @@
 #include "mesh.h"
 
 #include <mirheo/core/mesh/off.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/helper_math.h>
 
 #include <algorithm>
@@ -125,5 +127,32 @@ MeshView::MeshView(const Mesh *m) :
     ntriangles (m->getNtriangles()),
     triangles  (m->triangles.devPtr())   
 {}
+
+Config ConfigDumper<Mesh>::dump(Dumper& dumper, const Mesh& mesh)
+{
+    // Increment the "mesh" context counter and the old value as an ID.
+    int id = dumper.getContext().counters["mesh"]++;
+    std::string name = "mesh_" + std::to_string(id);
+
+    if (dumper.getContext().isGroupMasterTask()) {
+        // Dump the mesh to a file.
+        std::string fileName = joinPaths(dumper.getContext().path, name + ".off");
+        std::vector<int3> triangles(mesh.triangles.begin(), mesh.triangles.end());
+        std::vector<real3> vertices(mesh.vertexCoordinates.size());
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            vertices[i].x = mesh.vertexCoordinates[i].x;
+            vertices[i].y = mesh.vertexCoordinates[i].y;
+            vertices[i].z = mesh.vertexCoordinates[i].z;
+        }
+        writeOff(vertices, triangles, fileName);
+    }
+
+    // Only return the name, from which the file name can be constructed.
+    return dumper.registerObject(&mesh, Config::Dictionary{
+        {"__category", dumper("Mesh")},
+        {"__type",     dumper("Mesh")},
+        {"name",       dumper(name)},
+    });
+}
 
 } // namespace mirheo
