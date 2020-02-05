@@ -25,7 +25,6 @@
 #include "particle_drag.h"
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
-#include "radial_velocity_control.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
@@ -337,26 +336,6 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<PostprocessVelocityControl> (name, filename);
-
-    return { simPl, postPl };
-}
-
-PairPlugin createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                             real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                             real3 center, real targetVel, real Kp, real Ki, real Kd)
-{
-    std::vector<std::string> pvNames;
-    if (computeTask) extractPVsNames(pvs, pvNames);
-        
-    auto simPl = computeTask ?
-        std::make_shared<SimulationRadialVelocityControl>(state, name, pvNames, minRadius, maxRadius, 
-                                                          sampleEvery, tuneEvery, dumpEvery,
-                                                          center, targetVel, Kp, Ki, Kd) :
-        nullptr;
-
-    auto postPl = computeTask ?
-        nullptr :
-        std::make_shared<PostprocessRadialVelocityControl> (name, filename);
 
     return { simPl, postPl };
 }

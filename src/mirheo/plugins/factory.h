@@ -103,10 +103,6 @@ PairPlugin createPinRodExtremityPlugin(bool computeTask, const MirState *state, 
 PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
                                        real3 low, real3 high, int sampleEvery, int tuneEvery, int dumpEvery, real3 targetVel, real Kp, real Ki, real Kd);
 
-PairPlugin createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                             real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                             real3 center, real targetVel, real Kp, real Ki, real Kd);
-
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, int every);
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);

@@ -431,26 +431,6 @@ void exportPlugins(py::module& m)
             target_direction: the direction in which the material frame tends to align
     )");
 
-    m.def("__createRadialVelocityControl", &PluginFactory::createRadialVelocityControlPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "filename"_a, "pvs"_a, "minRadius"_a, "maxRadius"_a, 
-          "sample_every"_a, "tune_every"_a, "dump_every"_a, "center"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
-        This plugin applies a radial force (decreasing as :math:`r^3`) to all the particles of the target PVS.
-        The force is adapted via a PID controller such that the average of the velocity times radial position of the particles matches a target value.
-        
-        Args:
-            name: name of the plugin
-            filename: dump file name 
-            pvs: list of concerned :class:`ParticleVector`
-            minRadius, maxRadius: only particles within this distance are considered 
-            sample_every: sample velocity every this many time-steps
-            tune_every: adapt the force every this many time-steps
-            dump_every: write files every this many time-steps
-            center: center of the radial coordinates
-            target_vel: the target mean velocity of the particles at :math:`r=1`
-            Kp, Ki, Kd: PID controller coefficients
-    )");
-
-
     m.def("__createStats", &PluginFactory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
