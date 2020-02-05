@@ -94,7 +94,7 @@ Config ConfigMirObjectDumper::dump(Dumper& dumper, const MirObject& obj) {
     if (dumper.isObjectRegistered(&obj))
         return dumper.getObjectReference(&obj);
     ConfigDictionary dict = obj.writeSnapshot(dumper);
-    dict.insert_or_assign("name", obj.getName());
+    dict.insert_or_assign("name", dumper(obj.getName()));
     // Returns a replacement string (a reference-like string).
     return dumper.registerObject(&obj, std::move(dict));
 }

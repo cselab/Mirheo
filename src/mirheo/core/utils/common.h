@@ -95,7 +95,7 @@ struct CheckpointInfo
 
 template <>
 struct ConfigDumper<CheckpointInfo> {
-    static Config dump(const CheckpointInfo &);
+    static Config dump(Dumper&, const CheckpointInfo&);
 };
 
 // tag used to stop the postprocess side to stop

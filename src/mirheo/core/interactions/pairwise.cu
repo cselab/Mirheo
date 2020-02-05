@@ -157,13 +157,13 @@ void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
     return impl->restart(comm, path);
 }
 
-ConfigDictionary PairwiseInteraction::writeSnapshot(Dumper&) const
+ConfigDictionary PairwiseInteraction::writeSnapshot(Dumper& dumper) const
 {
     return {
-        {"__category",      "Interaction"},
-        {"__type",          "PairwiseInteraction"},
-        {"varParams",       varParams},
-        {"varStressParams", varStressParams},
+        {"__category",      dumper("Interaction")},
+        {"__type",          dumper("PairwiseInteraction")},
+        {"varParams",       dumper(varParams)},
+        {"varStressParams", dumper(varStressParams)},
     };
 }
 

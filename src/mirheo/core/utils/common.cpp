@@ -90,13 +90,13 @@ bool CheckpointInfo::needDump() const
     return every != 0;
 }
 
-Config ConfigDumper<CheckpointInfo>::dump(const CheckpointInfo &info)
+Config ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& info)
 {
     return Config::Dictionary{
-        {"__type", "CheckpointInfo"},
-        {"every", info.every},
-        {"folder", info.folder},
-        {"mode", (int)info.mode},  // TODO: Enum reflection.
+        {"__type", dumper("CheckpointInfo")},
+        {"every",  dumper(info.every)},
+        {"folder", dumper(info.folder)},
+        {"mode",   dumper(info.mode)},
     };
 }
 

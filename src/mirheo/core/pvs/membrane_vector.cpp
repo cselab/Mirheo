@@ -14,10 +14,10 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
 
 MembraneVector::~MembraneVector() = default;
 
-ConfigDictionary MembraneVector::writeSnapshot(Dumper &dumper) const
+ConfigDictionary MembraneVector::writeSnapshot(Dumper& dumper) const
 {
     ConfigDictionary dict = ObjectVector::writeSnapshot(dumper);
-    dict.insert_or_assign("__type", "MembraneVector");
+    dict.insert_or_assign("__type", dumper("MembraneVector"));
     return dict;
 }
 

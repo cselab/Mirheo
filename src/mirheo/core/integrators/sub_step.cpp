@@ -47,11 +47,11 @@ IntegratorSubStep::~IntegratorSubStep() = default;
 
 ConfigDictionary IntegratorSubStep::writeSnapshot(Dumper& dumper) const {
     return {
-        {"__category",    "Integrator"},
-        {"__type",        "IntegratorSubStep"},
+        {"__category",    dumper("Integrator")},
+        {"__type",        dumper("IntegratorSubStep")},
         {"fastForces",    dumper(fastForces_)},
         {"subIntegrator", dumper(subIntegrator_.get())},
-        {"substeps",      substeps_},
+        {"substeps",      dumper(substeps_)},
     };
 }
 

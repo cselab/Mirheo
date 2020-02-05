@@ -154,10 +154,10 @@ ConfigDictionary Postprocess::writeSnapshot(Dumper& dumper) const {
     for (const auto &plugin : plugins_)
         pluginsConfig.emplace_back(dumper(plugin.get()));
     return {
-        {"__category", "Postprocess"},
-        {"__type", "Postprocess"},
-        {"checkpointFolder", checkpointFolder_},
-        {"plugins", std::move(pluginsConfig)},
+        {"__category",       dumper("Postprocess")},
+        {"__type",           dumper("Postprocess")},
+        {"checkpointFolder", dumper(checkpointFolder_)},
+        {"plugins",          std::move(pluginsConfig)},
     };
 }
 

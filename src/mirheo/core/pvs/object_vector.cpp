@@ -122,10 +122,10 @@ ObjectVector::~ObjectVector() = default;
 ConfigDictionary ObjectVector::writeSnapshot(Dumper &dumper) const
 {
     ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
-    dict.insert_or_assign("__type", "ObjectVector");
-    dict.emplace("objSize",         objSize);
-    dict.emplace("mesh_nvertices",  mesh->getNvertices());
-    dict.emplace("mesh_ntriangles", mesh->getNtriangles());
+    dict.insert_or_assign("__type", dumper("ObjectVector"));
+    dict.emplace("objSize",         dumper(objSize));
+    dict.emplace("mesh_nvertices",  dumper(mesh->getNvertices()));
+    dict.emplace("mesh_ntriangles", dumper(mesh->getNtriangles()));
     return dict;
 }
 

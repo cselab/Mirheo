@@ -105,11 +105,11 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-ConfigDictionary SimulationStats::writeSnapshot(Dumper&) const {
+ConfigDictionary SimulationStats::writeSnapshot(Dumper& dumper) const {
     return {
-        {"__category", "SimulationPlugin"},
-        {"__type",     "SimulationStats"},
-        {"fetchEvery", fetchEvery},
+        {"__category", dumper("SimulationPlugin")},
+        {"__type",     dumper("SimulationStats")},
+        {"fetchEvery", dumper(fetchEvery)},
     };
 }
 
@@ -175,11 +175,11 @@ void PostprocessStats::deserialize()
     }
 }
 
-ConfigDictionary PostprocessStats::writeSnapshot(Dumper&) const {
+ConfigDictionary PostprocessStats::writeSnapshot(Dumper& dumper) const {
     return {
-        {"__category", "PostprocessPlugin"},
-        {"__type",     "PostprocessStats"},
-        {"filename",   filename},
+        {"__category", dumper("PostprocessPlugin")},
+        {"__type",     dumper("PostprocessStats")},
+        {"filename",   dumper(filename)},
     };
 }
 

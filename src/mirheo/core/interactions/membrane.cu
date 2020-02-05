@@ -75,10 +75,10 @@ MembraneInteraction::~MembraneInteraction() = default;
 
 ConfigDictionary MembraneInteraction::writeSnapshot(Dumper& dumper) const {
     return {
-        {"__category", "Interaction"},
-        {"__type",     "MembraneInteraction"},
-        {"rc",         rc},
-        {"impl",       dumper(impl.get())},
+        {"__category", dumper("Interaction")},
+        {"__type",     dumper("MembraneInteraction")},
+        {"rc",         dumper(rc)},
+        {"impl",       dumper(impl)},
     };
 }
 

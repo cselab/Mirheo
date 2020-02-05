@@ -681,14 +681,14 @@ void Mirheo::writeSnapshot(std::string path) const {
     Dumper dumper(isComputeTask() ? compComm_ : ioComm_, path, isComputeTask());
 
     Config::Dictionary dict;
-    dict.emplace("__category", "Mirheo");
-    dict.emplace("__type", "Mirheo");
+    dict.emplace("__category", dumper("Mirheo"));
+    dict.emplace("__type",     dumper("Mirheo"));
     if (state_)
-        dict.emplace("state", *state_);
+        dict.emplace("state",  dumper(state_));
     if (sim_)
-        dict.emplace("simulation", dumper(sim_.get()));
+        dict.emplace("simulation", dumper(sim_));
     if (post_)
-        dict.emplace("postprocess", dumper(post_.get()));
+        dict.emplace("postprocess", dumper(post_));
 
     dumper.registerObject(this, std::move(dict));
     dumper.finalize();

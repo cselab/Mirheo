@@ -38,6 +38,10 @@ public:
     iterator       end() noexcept { return c_.end(); }
     const_iterator end() const noexcept { return c_.end(); }
 
+    void reserve(size_t size) {
+        c_.reserve(size);
+    }
+
     bool contains(const Key &key) const {
         return find(key) != end();
     }
@@ -95,6 +99,11 @@ public:
     void insert_or_assign(std::initializer_list<value_type> list) {
         for (const value_type &value : list)
             insert_or_assign(value.first, value.second);
+    }
+
+    /// Insert without checking if the key exists or not.
+    void unsafe_insert(Key key, T t) {
+        c_.emplace_back(std::move(key), std::move(t));
     }
 
     void erase(const_iterator it) {

@@ -1381,10 +1381,10 @@ MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut)
 
 ConfigDictionary Simulation::writeSnapshot(Dumper& dumper) const {
     return {
-        {"__category",          "Simulation"},
-        {"__type",              "Simulation"},
-        {"checkpointId",        checkpointId_},
-        {"checkpointInfo",      checkpointInfo_},
+        {"__category",          dumper("Simulation")},
+        {"__type",              dumper("Simulation")},
+        {"checkpointId",        dumper(checkpointId_)},
+        {"checkpointInfo",      dumper(checkpointInfo_)},
 
         {"particleVectors",     dumper(particleVectors_)},
 
@@ -1404,7 +1404,7 @@ ConfigDictionary Simulation::writeSnapshot(Dumper& dumper) const {
         {"belongingCorrectionPrototypes", dumper(belongingCorrectionPrototypes_)},
         {"splitterPrototypes",            dumper(splitterPrototypes_)},
 
-        {"pvsIntegratorMap",    pvsIntegratorMap_},
+        {"pvsIntegratorMap",    dumper(pvsIntegratorMap_)},
     };
 }
 

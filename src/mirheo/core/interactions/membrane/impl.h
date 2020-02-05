@@ -170,17 +170,17 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
-    ConfigDictionary writeSnapshot(Dumper &) const override {
+    ConfigDictionary writeSnapshot(Dumper& dumper) const override {
         return {
-            {"__category", "InteractionImpl"},
-            {"__type", "MembraneInteractionImpl<...>"},
-            {"rc", rc},
-            {"growUntil", growUntil},
-            {"parameters", parameters},
-            {"dihedralParams", dihedralParams},
-            {"triangleParams", triangleParams},
-            {"filter", filter},
-            {"stepGen", std::string("<<not implemented>")},
+            {"__category",     dumper("InteractionImpl")},
+            {"__type",         dumper("MembraneInteractionImpl<...>")},
+            {"rc",             dumper(rc)},
+            {"growUntil",      dumper(growUntil)},
+            {"parameters",     dumper(parameters)},
+            {"dihedralParams", dumper(dihedralParams)},
+            {"triangleParams", dumper(triangleParams)},
+            {"filter",         dumper(filter)},
+            {"stepGen",        dumper("<<not implemented>")},
         };
     }
 
