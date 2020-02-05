@@ -27,7 +27,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'Mirheo'
 copyright = 'ETH Zurich'
-author = 'Dmitry Alexeev'
+author = 'Dmitry Alexeev, Lucas Amoudruz'
 
 exclude_patterns = []
 pygments_style = 'sphinx'
@@ -83,7 +83,7 @@ exhale_args = {
     "exhaleDoxygenStdin":    r'''   PROJECT_NAME      = "mirheo"
                                     XML_OUTPUT        = xml
 
-                                    INPUT             = ../../src/core ../../src/plugins
+                                    INPUT             = ../../src/mirheo/core/initial_conditions
 
                                     EXCLUDE           = 
 
@@ -91,7 +91,7 @@ exhale_args = {
                                     MACRO_EXPANSION        = YES
                                     EXPAND_ONLY_PREDEF     = NO
                                     SKIP_FUNCTION_MACROS   = NO
-                                    PREDEFINED             += __align__(x)=            \
+                                    PREDEFINED             += __align__(x)=          \
                                                             __restrict__=            \
                                                             __launch_bounds__(x,y)=  \
                                                             __H__                    \
@@ -106,7 +106,7 @@ exhale_args = {
                                     GENERATE_XML           = YES
                                     RECURSIVE              = YES
                                     QUIET                  = YES
-                                    WARN_IF_UNDOCUMENTED   = NO
+                                    WARN_IF_UNDOCUMENTED   = YES
                                     EXTRACT_PRIVATE        = YES
                                     EXTRACT_STATIC         = YES
                                     EXTRACT_ALL            = YES
@@ -114,16 +114,12 @@ exhale_args = {
                                     ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
                                     ALIASES += "endrst=\endverbatim"
 
-
-                                    FILE_PATTERNS          = *.h \
-                                                            *.cpp \
-                                                            *.cu
+                                    FILE_PATTERNS          = interface.h
 
                                     EXTENSION_MAPPING      = cu=C++'''
 }
 
 
-# Override some shit
 def format_signature(self):
     if self.args is not None:
         # signature given explicitly
