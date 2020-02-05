@@ -29,19 +29,19 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    std::string pvName;
-    ParticleVector *pv;
+    std::string pvName_;
+    ParticleVector *pv_;
 
-    FuncTime3D positions;
-    FuncTime3D velocities;
+    FuncTime3D positions_;
+    FuncTime3D velocities_;
 
-    PinnedBuffer<double3> forces;
-    PinnedBuffer<real3> posBuffer, velBuffer;
-    PinnedBuffer<int> pids;
+    PinnedBuffer<double3> forces_;
+    PinnedBuffer<real3> posBuffer_, velBuffer_;
+    PinnedBuffer<int> pids_;
 
-    int nsamples {0};
-    int reportEvery;
-    std::vector<char> sendBuffer;
+    int nsamples_ {0};
+    int reportEvery_;
+    std::vector<char> sendBuffer_;
 };
 
 
@@ -57,10 +57,10 @@ public:
     void handshake() override;
 
 private:
-    bool activated;
-    std::string path;
+    bool activated_;
+    std::string path_;
 
-    FileWrapper fout;
+    FileWrapper fout_;
 };
 
 } // namespace mirheo

@@ -47,21 +47,21 @@ Average3D::Average3D(const MirState *state, std::string name,
                      std::vector<std::string> channelNames,
                      int sampleEvery, int dumpEvery, real3 binSize) :
     SimulationPlugin(state, name),
-    pvNames(pvNames),
-    sampleEvery(sampleEvery),
-    dumpEvery(dumpEvery),
-    binSize(binSize)
+    pvNames_(pvNames),
+    sampleEvery_(sampleEvery),
+    dumpEvery_(dumpEvery),
+    binSize_(binSize)
 {
     const size_t n = channelNames.size();
     
-    channelsInfo.n = n;
-    channelsInfo.types      .resize_anew(n);
-    channelsInfo.averagePtrs.resize_anew(n);
-    channelsInfo.dataPtrs   .resize_anew(n);
-    channelsInfo.average    .resize     (n);
-    accumulatedAverage      .resize     (n);
+    channelsInfo_.n = n;
+    channelsInfo_.types      .resize_anew(n);
+    channelsInfo_.averagePtrs.resize_anew(n);
+    channelsInfo_.dataPtrs   .resize_anew(n);
+    channelsInfo_.average    .resize     (n);
+    accumulatedAverage_      .resize     (n);
 
-    channelsInfo.names = std::move(channelNames);
+    channelsInfo_.names = std::move(channelNames);
 }
 
 namespace average3DDetails
@@ -93,79 +93,79 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    for (const auto& pvName : pvNames)
-        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
+    for (const auto& pvName : pvNames_)
+        pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 
-    if (pvs.size() == 0)
+    if (pvs_.size() == 0)
         die("Plugin '%s' needs at least one particle vector", getCName());
 
-    const LocalParticleVector *lpv = pvs[0]->local();
+    const LocalParticleVector *lpv = pvs_[0]->local();
     
     // setup types from available channels
-    for (int i = 0; i < channelsInfo.n; ++i)
+    for (int i = 0; i < channelsInfo_.n; ++i)
     {
-        const std::string& channelName = channelsInfo.names[i];
+        const std::string& channelName = channelsInfo_.names[i];
         const auto& desc = lpv->dataPerParticle.getChannelDescOrDie(channelName);
         
         const ChannelType type = getChannelTypeFromChannelDesc(channelName, desc);
-        channelsInfo.types[i] = type;
+        channelsInfo_.types[i] = type;
     }
     
-    rank3D   = simulation->getRank3D();
-    nranks3D = simulation->getNRanks3D();
+    rank3D_   = simulation->getRank3D();
+    nranks3D_ = simulation->getNRanks3D();
     
     // TODO: this should be reworked if the domains are allowed to have different size
-    resolution = make_int3( math::floor(getState()->domain.localSize / binSize) );
-    binSize = getState()->domain.localSize / make_real3(resolution);
+    resolution_ = make_int3( math::floor(getState()->domain.localSize / binSize_) );
+    binSize_ = getState()->domain.localSize / make_real3(resolution_);
 
-    if (resolution.x <= 0 || resolution.y <= 0 || resolution.z <= 0)
+    if (resolution_.x <= 0 || resolution_.y <= 0 || resolution_.z <= 0)
     	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
-            "Please decrease the bin size", resolution.x, resolution.y, resolution.z);
+            "Please decrease the bin size", resolution_.x, resolution_.y, resolution_.z);
 
-    const int total = resolution.x * resolution.y * resolution.z;
+    const int total = resolution_.x * resolution_.y * resolution_.z;
 
-    numberDensity.resize_anew(total);
-    numberDensity.clear(defaultStream);
+    numberDensity_.resize_anew(total);
+    numberDensity_.clear(defaultStream);
 
-    accumulatedNumberDensity.resize_anew(total);
-    accumulatedNumberDensity.clear(defaultStream);
+    accumulatedNumberDensity_.resize_anew(total);
+    accumulatedNumberDensity_.clear(defaultStream);
     
-    std::string allChannels = numberDensityChannelName;
+    std::string allChannels = numberDensityChannelName_;
 
-    for (int i = 0; i < channelsInfo.n; ++i)
+    for (int i = 0; i < channelsInfo_.n; ++i)
     {
-        const int components = getNcomponents(channelsInfo.types[i]);
+        const int components = getNcomponents(channelsInfo_.types[i]);
         
-        channelsInfo.average[i].resize_anew(components * total);
-        accumulatedAverage  [i].resize_anew(components * total);
+        channelsInfo_.average[i].resize_anew(components * total);
+        accumulatedAverage_  [i].resize_anew(components * total);
         
-        channelsInfo.average[i].clear(defaultStream);
-        accumulatedAverage  [i].clear(defaultStream);
+        channelsInfo_.average[i].clear(defaultStream);
+        accumulatedAverage_  [i].clear(defaultStream);
         
-        channelsInfo.averagePtrs[i] = channelsInfo.average[i].devPtr();
+        channelsInfo_.averagePtrs[i] = channelsInfo_.average[i].devPtr();
 
-        allChannels += ", " + channelsInfo.names[i];
+        allChannels += ", " + channelsInfo_.names[i];
     }
 
-    channelsInfo.averagePtrs .uploadToDevice(defaultStream);
-    channelsInfo.types       .uploadToDevice(defaultStream);
+    channelsInfo_.averagePtrs .uploadToDevice(defaultStream);
+    channelsInfo_.types       .uploadToDevice(defaultStream);
 
     info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
-         getCName(), pvs.size(), allChannels.c_str(),
-         resolution.x, resolution.y, resolution.z);
+         getCName(), pvs_.size(), allChannels.c_str(),
+         resolution_.x, resolution_.y, resolution_.z);
 }
 
 void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
 {
-    CellListInfo cinfo(binSize, getState()->domain.localSize);
+    CellListInfo cinfo(binSize_, getState()->domain.localSize);
     PVview pvView(pv, pv->local());
-    ChannelsInfo gpuInfo(channelsInfo, pv, stream);
+    ChannelsInfo gpuInfo(channelsInfo_, pv, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
         (AverageFlowKernels::sample,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, cinfo, numberDensity.devPtr(), gpuInfo);
+         pvView, cinfo, numberDensity_.devPtr(), gpuInfo);
 }
 
 static void accumulateOneArray(int n, int components, const real *src, double *dst, cudaStream_t stream)
@@ -179,55 +179,55 @@ static void accumulateOneArray(int n, int components, const real *src, double *d
 
 void Average3D::accumulateSampledAndClear(cudaStream_t stream)
 {
-    const int ncells = numberDensity.size();
+    const int ncells = numberDensity_.size();
 
-    accumulateOneArray(ncells, 1, numberDensity.devPtr(), accumulatedNumberDensity.devPtr(), stream);
-    numberDensity.clear(stream);    
+    accumulateOneArray(ncells, 1, numberDensity_.devPtr(), accumulatedNumberDensity_.devPtr(), stream);
+    numberDensity_.clear(stream);    
 
-    for (int i = 0; i < channelsInfo.n; ++i)
+    for (int i = 0; i < channelsInfo_.n; ++i)
     {
-        const int components = getNcomponents(channelsInfo.types[i]);
+        const int components = getNcomponents(channelsInfo_.types[i]);
 
         accumulateOneArray
             (ncells, components,
-             channelsInfo.average[i].devPtr(),
-             accumulatedAverage  [i].devPtr(),
+             channelsInfo_.average[i].devPtr(),
+             accumulatedAverage_  [i].devPtr(),
              stream);
 
-        channelsInfo.average[i].clear(stream);
+        channelsInfo_.average[i].clear(stream);
     }
 }
 
 void Average3D::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), sampleEvery)) return;
+    if (!isTimeEvery(getState(), sampleEvery_)) return;
 
     debug2("Plugin %s is sampling now", getCName());
 
-    for (auto& pv : pvs)
+    for (auto& pv : pvs_)
         sampleOnePv(pv, stream);
 
     accumulateSampledAndClear(stream);
     
-    ++nSamples;
+    ++nSamples_;
 }
 
 void Average3D::scaleSampled(cudaStream_t stream)
 {
     constexpr int nthreads = 128;
-    const int ncells = accumulatedNumberDensity.size();
+    const int ncells = accumulatedNumberDensity_.size();
     // Order is important here! First channels, only then density 
 
-    for (int i = 0; i < channelsInfo.n; ++i)
+    for (int i = 0; i < channelsInfo_.n; ++i)
     {
-        auto& data = accumulatedAverage[i];
+        auto& data = accumulatedAverage_[i];
 
-        const int components = getNcomponents(channelsInfo.types[i]);
+        const int components = getNcomponents(channelsInfo_.types[i]);
 
         SAFE_KERNEL_LAUNCH
             (SamplingHelpersKernels::scaleVec,
              getNblocks(ncells, nthreads), nthreads, 0, stream,
-             ncells, components, data.devPtr(), accumulatedNumberDensity.devPtr() );
+             ncells, components, data.devPtr(), accumulatedNumberDensity_.devPtr() );
 
         data.downloadFromDevice(stream, ContainersSynch::Asynch);
         data.clearDevice(stream);
@@ -236,40 +236,40 @@ void Average3D::scaleSampled(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         SamplingHelpersKernels::scaleDensity,
         getNblocks(ncells, nthreads), nthreads, 0, stream,
-        ncells, accumulatedNumberDensity.devPtr(), 1.0 / (nSamples * binSize.x*binSize.y*binSize.z) );
+        ncells, accumulatedNumberDensity_.devPtr(), 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z) );
 
-    accumulatedNumberDensity.downloadFromDevice(stream, ContainersSynch::Synch);
-    accumulatedNumberDensity.clearDevice(stream);
+    accumulatedNumberDensity_.downloadFromDevice(stream, ContainersSynch::Synch);
+    accumulatedNumberDensity_.clearDevice(stream);
 
-    nSamples = 0;
+    nSamples_ = 0;
 }
 
 void Average3D::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
-    if (nSamples == 0) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
+    if (nSamples_ == 0) return;
     
     scaleSampled(stream);
 
-    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery) - 1;  // -1 to start from 0
+    const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_) - 1;  // -1 to start from 0
     
     debug2("Plugin '%s' is now packing the data", getCName());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, timeStamp, accumulatedNumberDensity, accumulatedAverage);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
+    send(sendBuffer_);
 }
 
 void Average3D::handshake()
 {
     std::vector<int> sizes;
 
-    for (auto t : channelsInfo.types)
+    for (auto t : channelsInfo_.types)
         sizes.push_back(getNcomponents(t));
     
-    SimpleSerializer::serialize(sendBuffer, nranks3D, rank3D, resolution, binSize, sizes, channelsInfo.names, numberDensityChannelName);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes, channelsInfo_.names, numberDensityChannelName_);
+    send(sendBuffer_);
 }
 
-const std::string Average3D::numberDensityChannelName = "number_densities";
+const std::string Average3D::numberDensityChannelName_ = "number_densities";
 
 } // namespace mirheo
