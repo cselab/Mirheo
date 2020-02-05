@@ -28,13 +28,13 @@ public:
 
 protected:
 
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
+    std::vector<std::string> pvNames_;
+    std::vector<ParticleVector*> pvs_;
 
-    DeviceBuffer<int> nParticlesInside {1};
+    DeviceBuffer<int> nParticlesInside_ {1};
 
-    std::mt19937 gen {42};
-    std::uniform_real_distribution<real> udistr {0._r, 1._r};
+    std::mt19937 gen_ {42};
+    std::uniform_real_distribution<real> udistr_ {0._r, 1._r};
 };
 
 
@@ -48,7 +48,7 @@ public:
     void beforeCellLists(cudaStream_t stream) override;
 
 private:
-    real4 plane;
+    real4 plane_;
 };
 
 
@@ -73,14 +73,8 @@ protected:
     
 protected:
     
-    double volume;
-
-    std::unique_ptr<Field> outletRegion;
-
-    DeviceBuffer<int> nParticlesInside {1};
-
-    std::mt19937 gen {42};
-    std::uniform_real_distribution<real> udistr {0._r, 1._r};
+    double volume_;
+    std::unique_ptr<Field> outletRegion_;
 };
 
 
@@ -97,7 +91,7 @@ public:
     
 protected:
     
-    real numberDensity;
+    real numberDensity_;
 };
 
 
@@ -114,7 +108,7 @@ public:
     
 protected:
     
-    real rate;
+    real rate_;
 };
 
 } // namespace mirheo

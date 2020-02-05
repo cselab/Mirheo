@@ -20,21 +20,21 @@ public:
                         real3 low, real3 high, real3 targetVel, real kBT);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    void afterIntegration(cudaStream_t stream) override;
-
     bool needPostproc() override { return false; }
 
+    void afterIntegration(cudaStream_t stream) override;
+
 private:
-    std::string pvName;
-    ParticleVector* pv;
-    CellList* cl;
+    std::string pvName_;
+    ParticleVector *pv_;
+    CellList *cl_;
 
-    real3 high, low;
-    real3 targetVel;
-    real kBT;
+    real3 high_, low_;
+    real3 targetVel_;
+    real kBT_;
 
-    PinnedBuffer<int> nRelevantCells{1};
-    DeviceBuffer<int> relevantCells;
+    PinnedBuffer<int> nRelevantCells_{1};
+    DeviceBuffer<int> relevantCells_;
 };
 
 } // namespace mirheo

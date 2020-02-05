@@ -70,43 +70,48 @@ __global__ void getRelevantCells(
 
 ImposeProfilePlugin::ImposeProfilePlugin(const MirState *state, std::string name, std::string pvName,
                                          real3 low, real3 high, real3 targetVel, real kBT) :
-    SimulationPlugin(state, name), pvName(pvName), low(low), high(high), targetVel(targetVel), kBT(kBT)
+    SimulationPlugin(state, name),
+    pvName_(pvName),
+    low_(low),
+    high_(high),
+    targetVel_(targetVel),
+    kBT_(kBT)
 {}
 
 void ImposeProfilePlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
-    cl = simulation->gelCellList(pv);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
+    cl_ = simulation->gelCellList(pv_);
 
-    if (cl == nullptr)
-        die("Cell-list is required for PV '%s' by plugin '%s'", pvName.c_str(), getCName());
+    if (cl_ == nullptr)
+        die("Cell-list is required for PV '%s' by plugin '%s'", pvName_.c_str(), getCName());
 
     debug("Setting up pluging '%s' to impose uniform profile with velocity [%f %f %f]"
           " and temperature %f in a box [%.2f %.2f %.2f] - [%.2f %.2f %.2f] for PV '%s'",
-          getCName(), targetVel.x, targetVel.y, targetVel.z, kBT,
-          low.x, low.y, low.z, high.x, high.y, high.z, pv->getCName());
+          getCName(), targetVel_.x, targetVel_.y, targetVel_.z, kBT_,
+          low_.x, low_.y, low_.z, high_.x, high_.y, high_.z, pv_->getCName());
 
-    low  = getState()->domain.global2local(low);
-    high = getState()->domain.global2local(high);
+    low_  = getState()->domain.global2local(low_);
+    high_ = getState()->domain.global2local(high_);
 
     const int nthreads = 128;
 
-    nRelevantCells.clearDevice(0);
+    nRelevantCells_.clearDevice(defaultStream);
     SAFE_KERNEL_LAUNCH(
             getRelevantCells<true>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
-            cl->cellInfo(), low, high, relevantCells.devPtr(), nRelevantCells.devPtr() );
+            getNblocks(cl_->totcells, nthreads), nthreads, 0, defaultStream,
+            cl_->cellInfo(), low_, high_, relevantCells_.devPtr(), nRelevantCells_.devPtr() );
 
-    nRelevantCells.downloadFromDevice(0);
-    relevantCells.resize_anew(nRelevantCells[0]);
-    nRelevantCells.clearDevice(0);
+    nRelevantCells_.downloadFromDevice(defaultStream);
+    relevantCells_.resize_anew(nRelevantCells_[0]);
+    nRelevantCells_.clearDevice(defaultStream);
 
     SAFE_KERNEL_LAUNCH(
             getRelevantCells<false>,
-            getNblocks(cl->totcells, nthreads), nthreads, 0, 0,
-            cl->cellInfo(), low, high, relevantCells.devPtr(), nRelevantCells.devPtr() );
+            getNblocks(cl_->totcells, nthreads), nthreads, 0, defaultStream,
+            cl_->cellInfo(), low_, high_, relevantCells_.devPtr(), nRelevantCells_.devPtr() );
 }
 
 void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
@@ -114,14 +119,13 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     debug2("Imposing uniform profile for PV '%s' as per plugin '%s'",
-           pv->getCName(), getCName());
+           pv_->getCName(), getCName());
 
     SAFE_KERNEL_LAUNCH(
             applyProfile,
-            getNblocks(nRelevantCells[0], nthreads), nthreads, 0, stream,
-
-            cl->cellInfo(), cl->getView<PVview>(), relevantCells.devPtr(), nRelevantCells[0], low, high, targetVel,
-            kBT, 1.0_r / pv->mass, drand48(), drand48() );
+            getNblocks(nRelevantCells_[0], nthreads), nthreads, 0, stream,
+            cl_->cellInfo(), cl_->getView<PVview>(), relevantCells_.devPtr(), nRelevantCells_[0], low_, high_, targetVel_,
+            kBT_, 1.0_r / pv_->mass, drand48(), drand48() );
 }
 
 } // namespace mirheo

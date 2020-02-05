@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-const std::string ForceSaverPlugin::fieldName = "forces";
+const std::string ForceSaverPlugin::fieldName_ = "forces";
 
 namespace ForceSaverKernels
 {
@@ -26,35 +26,37 @@ __global__ void copyForces(PVview view, real3 *savedForces)
 } // namespace ForceSaverKernels
 
 ForceSaverPlugin::ForceSaverPlugin(const MirState *state, std::string name, std::string pvName) :
-    SimulationPlugin(state, name), pvName(pvName), pv(nullptr)
+    SimulationPlugin(state, name),
+    pvName_(pvName),
+    pv_(nullptr)
 {}
+
+void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+{
+    SimulationPlugin::setup(simulation, comm, interComm);
+
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
+
+    ChannelNames::failIfReserved(fieldName_, ChannelNames::reservedParticleFields);
+    
+    pv_->requireDataPerParticle<real3>(fieldName_, DataManager::PersistenceMode::None);
+}
+
+bool ForceSaverPlugin::needPostproc()
+{
+    return false;
+}
 
 void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
 {
-    auto savedForces  = pv->local()->dataPerParticle.getData<real3>(fieldName);
-    PVview view(pv, pv->local());
+    auto savedForces  = pv_->local()->dataPerParticle.getData<real3>(fieldName_);
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             ForceSaverKernels::copyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, savedForces->devPtr() );
-}
-    
-bool ForceSaverPlugin::needPostproc()
-{
-    return false;
-}
-
-void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
-{
-    SimulationPlugin::setup(simulation, comm, interComm);
-
-    pv = simulation->getPVbyNameOrDie(pvName);
-
-    ChannelNames::failIfReserved(fieldName, ChannelNames::reservedParticleFields);
-    
-    pv->requireDataPerParticle<real3>(fieldName, DataManager::PersistenceMode::None);
 }
 
 } // namespace mirheo

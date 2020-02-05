@@ -32,33 +32,33 @@ __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
 MagneticOrientationPlugin::MagneticOrientationPlugin(const MirState *state, std::string name, std::string rovName,
                                                      real3 moment, UniformMagneticFunc magneticFunction) :
     SimulationPlugin(state, name),
-    rovName(rovName),
-    moment(moment),
-    magneticFunction(magneticFunction)
+    rovName_(rovName),
+    moment_(moment),
+    magneticFunction_(magneticFunction)
 {}
 
 void MagneticOrientationPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    rov = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName) );
-    if (rov == nullptr)
+    rov_ = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName_) );
+    if (rov_ == nullptr)
         die("Need rigid object vector to interact with magnetic field, plugin '%s', OV name '%s'",
-            getCName(), rovName.c_str());
+            getCName(), rovName_.c_str());
 }
 
 void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
 {
-    ROVview view(rov, rov->local());
+    ROVview view(rov_, rov_->local());
     const int nthreads = 128;
 
     const auto t = getState()->currentTime;
-    const auto B = magneticFunction(t);
+    const auto B = magneticFunction_(t);
     
     SAFE_KERNEL_LAUNCH(
             MagneticOrientationPluginKernels::applyMagneticField,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, B, moment);
+            view, B, moment_);
 }
 
 } // namespace mirheo

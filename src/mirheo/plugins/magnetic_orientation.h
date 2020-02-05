@@ -25,10 +25,10 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string rovName;
-    RigidObjectVector* rov;
-    real3 moment;
-    UniformMagneticFunc magneticFunction;
+    std::string rovName_;
+    RigidObjectVector *rov_;
+    real3 moment_;
+    UniformMagneticFunc magneticFunction_;
 };
 
 } // namespace mirheo

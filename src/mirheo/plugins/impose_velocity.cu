@@ -67,59 +67,61 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3
 ImposeVelocityPlugin::ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                            real3 low, real3 high, real3 targetVel, int every) :
     SimulationPlugin(state, name),
-    pvNames(pvNames),
-    low(low),
-    high(high),
-    targetVel(targetVel),
-    every(every)
+    pvNames_(pvNames),
+    low_(low),
+    high_(high),
+    targetVel_(targetVel),
+    every_(every)
 {}
 
 void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    for (auto& nm : pvNames)
-        pvs.push_back(simulation->getPVbyNameOrDie(nm));
+    for (auto& nm : pvNames_)
+        pvs_.push_back(simulation->getPVbyNameOrDie(nm));
 }
 
 void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(getState(), every))
+    if (isTimeEvery(getState(), every_))
     {
         const int nthreads = 128;
 
-        totVel.clearDevice(stream);
-        nSamples.clearDevice(stream);
+        totVel_.clearDevice(stream);
+        nSamples_.clearDevice(stream);
         
-        for (auto& pv : pvs)
+        for (auto& pv : pvs_)
+        {
             SAFE_KERNEL_LAUNCH(
                     ImposeVelocityKernels::averageVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
-                    PVview(pv, pv->local()), getState()->domain, low, high, totVel.devPtr(), nSamples.devPtr() );
+                    PVview(pv, pv->local()), getState()->domain, low_, high_, totVel_.devPtr(), nSamples_.devPtr() );
+        }
+        
+        totVel_.downloadFromDevice(stream, ContainersSynch::Asynch);
+        nSamples_.downloadFromDevice(stream);
 
-        totVel.downloadFromDevice(stream, ContainersSynch::Asynch);
-        nSamples.downloadFromDevice(stream);
-
-        real3 avgVel = make_real3(totVel[0].x / nSamples[0], totVel[0].y / nSamples[0], totVel[0].z / nSamples[0]);
+        const real3 avgVel = make_real3(totVel_[0].x / nSamples_[0], totVel_[0].y / nSamples_[0], totVel_[0].z / nSamples_[0]);
 
         debug("Current mean velocity measured by plugin '%s' is [%f %f %f]; as of %d particles",
-              getCName(), avgVel.x, avgVel.y, avgVel.z, nSamples[0]);
+              getCName(), avgVel.x, avgVel.y, avgVel.z, nSamples_[0]);
 
-        for (auto& pv : pvs)
+        for (auto& pv : pvs_)
             SAFE_KERNEL_LAUNCH(
                     ImposeVelocityKernels::addVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
-                    PVview(pv, pv->local()), getState()->domain, low, high, targetVel - avgVel);
+                    PVview(pv, pv->local()), getState()->domain, low_, high_, targetVel_ - avgVel);
     }
 }
 
 void ImposeVelocityPlugin::setTargetVelocity(real3 v)
 {
     info("Changing target velocity from [%f %f %f] to [%f %f %f]",
-         targetVel.x, targetVel.y, targetVel.z,
+         targetVel_.x, targetVel_.y, targetVel_.z,
          v.x, v.y, v.z);
     
-    targetVel = v;
+    targetVel_ = v;
 }
 
 } // namespace mirheo

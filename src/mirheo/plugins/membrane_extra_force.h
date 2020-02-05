@@ -26,9 +26,9 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string pvName;
-    MembraneVector *pv;
-    DeviceBuffer<Force> forces;
+    std::string pvName_;
+    MembraneVector *pv_;
+    DeviceBuffer<Force> forces_;
 };
 
 } // namespace mirheo
