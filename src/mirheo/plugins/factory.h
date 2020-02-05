@@ -80,17 +80,6 @@ PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *sta
 
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces);
 
-PairPlugin createObjectPortalDestination(bool computeTask, const MirState *state, std::string name,
-                                         ObjectVector *ov, real3 src, real3 dst, real3 size,
-                                         int tag, long interCommPtr);
-
-PairPlugin createObjectPortalSource(bool computeTask, const MirState *state, std::string name,
-                                    ObjectVector *ov, real3 src, real3 dst, real3 size, real4 plane,
-                                    int tag, long interCommPtr);
-
-PairPlugin createObjectToParticlesPlugin(bool computeTask, const MirState *state, std::string name,
-                                         ObjectVector *ov, ParticleVector *pv, real4 plane);
-
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName);
 
@@ -99,12 +88,6 @@ PairPlugin createParticleCheckerPlugin(bool computeTask, const MirState *state, 
 PairPlugin createParticleDisplacementPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int updateEvery);
 
 PairPlugin createParticleDragPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real drag);
-
-PairPlugin createParticlePortalDestination(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                           real3 src, real3 dst, real3 size, int tag, long comm_ptr);
-
-PairPlugin createParticlePortalSource(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                      real3 src, real3 dst, real3 size, int tag, long comm_ptr);
 
 struct PinObjectMock
 {

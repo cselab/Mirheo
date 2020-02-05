@@ -339,57 +339,6 @@ void exportPlugins(py::module& m)
             forces: array of forces, one force (3 reals) per vertex in a single mesh
     )");
 
-    m.def("__createObjectPortalDestination", &PluginFactory::createObjectPortalDestination,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
-        This plugin receives object vector content from another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ov: target object vector
-            src: lower corner of the portal on the source side
-            dst: lower corner of the portal on the destination side
-            size: portal size
-            tag: tag to use for MPI communication
-            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
-    )");
-
-    m.def("__createObjectPortalSource", &PluginFactory::createObjectPortalSource,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "plane"_a, "tag"_a, "interCommPtr"_a, R"(
-        This plugin sends object vector content to another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Sends to destination all objects that touch the portal box. The
-        destination tracks portal-assigned IDs to differentiate between objects
-        that have already arrived and that are new to the destination side. To
-        treat objects as new when they cross the periodic boundary, a marker
-        plane must be given. Objects are considered then new as soon as their
-        center of mass crosses the plane.
-
-        Args:
-            name: name of the plugin
-            ov: source object vector
-            src: lower corner of the portal on the source side
-            dst: lower corner of the portal on the destination side
-            size: portal size
-            plane: plane after which the objects get a new unique identifier
-                Should be far from the source portal and slightly away of the domain boundary.
-            tag: tag to use for MPI communication
-            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
-    )");
-
-    m.def("__createObjectToParticlesPlugin", &PluginFactory::createObjectToParticlesPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "pv"_a, "plane"_a, R"(
-        This plugin transforms objects to particles when they cross a given plane.
-
-        Args:
-            name: name of the plugin
-            ov: source object vector
-            pv: target particle vector
-            plane: plane `(a, b, c, d)` defined as `a*x + b*y + c*z + d == 0`
-    )");
-
-
     m.def("__createParticleChannelSaver", &PluginFactory::createParticleChannelSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
@@ -433,31 +382,6 @@ void exportPlugins(py::module& m)
             drag: drag coefficient
     )");
 
-    m.def("__createParticlePortalDestination", &PluginFactory::createParticlePortalDestination,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
-        This plugin receives particle vector content from another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ...
-            ...
-            ..
-    )");
-
-    m.def("__createParticlePortalSource", &PluginFactory::createParticlePortalSource,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "src"_a, "dst"_a, "size"_a, "tag"_a, "interCommPtr"_a, R"(
-        This plugin sends particle vector content to another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ...
-            ...
-            ..
-    )");
-
-         
     py::handlers_class<PluginFactory::PinObjectMock>(m, "PinObject", pysim, R"(
         Contains the special value `Unrestricted` for unrestricted axes in :any:`createPinObject`.
     )")
