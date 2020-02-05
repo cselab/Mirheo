@@ -119,11 +119,11 @@ __global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, P
 
 } // namespace ParticleCheckerKernels
 
-constexpr int ParticleCheckerPlugin::NotRov;
+constexpr int ParticleCheckerPlugin::NotRov_;
 
 ParticleCheckerPlugin::ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery) :
     SimulationPlugin(state, name),
-    checkEvery(checkEvery)
+    checkEvery_(checkEvery)
 {}
 
 ParticleCheckerPlugin::~ParticleCheckerPlugin() = default;
@@ -131,42 +131,42 @@ ParticleCheckerPlugin::~ParticleCheckerPlugin() = default;
 void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    pvs = simulation->getParticleVectors();
-    rovStatusIds.clear();
+    pvs_ = simulation->getParticleVectors();
+    rovStatusIds_.clear();
     
     int numRovs {0};
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
-        int id = NotRov;
+        int id = NotRov_;
         if (dynamic_cast<RigidObjectVector*>(pv))
         {
-            id = pvs.size() + numRovs++;
+            id = pvs_.size() + numRovs++;
         }
-        rovStatusIds.push_back(id);
+        rovStatusIds_.push_back(id);
     }
 
-    statuses.resize_anew(pvs.size() + numRovs);
+    statuses_.resize_anew(pvs_.size() + numRovs);
 
-    for (auto& s : statuses)
+    for (auto& s : statuses_)
         s = {GoodTag, 0, Info::Ok};
-    statuses.uploadToDevice(defaultStream);
+    statuses_.uploadToDevice(defaultStream);
 }
 
 void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), checkEvery)) return;
+    if (!isTimeEvery(getState(), checkEvery_)) return;
 
     constexpr int nthreads = 128;
     
-    for (size_t i = 0; i < pvs.size(); ++i)
+    for (size_t i = 0; i < pvs_.size(); ++i)
     {
-        auto pv = pvs[i];
+        auto pv = pvs_[i];
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             ParticleCheckerKernels::checkForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, statuses.devPtr() + i );
+            view, statuses_.devPtr() + i );
 
         if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
         {
@@ -175,7 +175,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                 ParticleCheckerKernels::checkRigidForces,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, statuses.devPtr() + rovStatusIds[i] );
+                view, statuses_.devPtr() + rovStatusIds_[i] );
         }
     }
 
@@ -184,7 +184,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
 
 void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), checkEvery)) return;
+    if (!isTimeEvery(getState(), checkEvery_)) return;
 
     constexpr int nthreads = 128;
 
@@ -192,15 +192,15 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
     const auto domain = getState()->domain;
     
-    for (size_t i = 0; i < pvs.size(); ++i)
+    for (size_t i = 0; i < pvs_.size(); ++i)
     {
-        auto pv = pvs[i];
+        auto pv = pvs_[i];
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             ParticleCheckerKernels::checkParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, domain, dtInv, statuses.devPtr() + i );
+            view, domain, dtInv, statuses_.devPtr() + i );
 
         if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
         {
@@ -209,7 +209,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
             SAFE_KERNEL_LAUNCH(
                 ParticleCheckerKernels::checkRigidMotions,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, domain, dtInv, statuses.devPtr() + rovStatusIds[i] );
+                view, domain, dtInv, statuses_.devPtr() + rovStatusIds_[i] );
         }
     }
 
@@ -261,21 +261,21 @@ static inline std::string infoToStr(ParticleCheckerPlugin::Info info)
 
 void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
 {
-    statuses.downloadFromDevice(stream, ContainersSynch::Synch);
+    statuses_.downloadFromDevice(stream, ContainersSynch::Synch);
     const auto domain = getState()->domain;
 
     bool failing {false};
     std::string allErrors;
 
-    for (size_t i = 0; i < pvs.size(); ++i)
+    for (size_t i = 0; i < pvs_.size(); ++i)
     {
-        const auto& partStatus = statuses[i];
+        const auto& partStatus = statuses_[i];
         if (partStatus.tag == GoodTag) continue;
 
         const int partId = partStatus.id;
 
         // from now we know we will fail; download particles and print error
-        auto pv = pvs[i];
+        auto pv = pvs_[i];
         auto lpv = pv->local();
 
         downloadAllFields(stream, lpv->dataPerParticle);
@@ -299,18 +299,18 @@ void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::strin
         failing = true;
     }
 
-    for (size_t i = 0; i < pvs.size(); ++i)
+    for (size_t i = 0; i < pvs_.size(); ++i)
     {
-        const int rovSId = rovStatusIds[i];
-        if (rovSId == NotRov) continue;
+        const int rovSId = rovStatusIds_[i];
+        if (rovSId == NotRov_) continue;
         
-        const auto& rovStatus = statuses[rovSId];
+        const auto& rovStatus = statuses_[rovSId];
         if (rovStatus.tag == GoodTag) continue;
 
         const int rovId = rovStatus.id;
 
         // from now we know we will fail; download particles and print error
-        auto rov = dynamic_cast<RigidObjectVector*>(pvs[i]);
+        auto rov = dynamic_cast<RigidObjectVector*>(pvs_[i]);
         auto lrov = rov->local();
 
         downloadAllFields(stream, lrov->dataPerObject);

@@ -26,26 +26,26 @@ __global__ void applyDrag(PVview view, real drag)
 
 ParticleDragPlugin::ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, real drag) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    drag(drag)
+    pvName_(pvName),
+    drag_(drag)
 {}
 
 void ParticleDragPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 }
 
 void ParticleDragPlugin::beforeForces(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             ParticleDragPluginKernels::applyDrag,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, drag );
+            view, drag_ );
 }
 
 } // namespace mirheo

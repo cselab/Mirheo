@@ -56,38 +56,38 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, real k, real3 tar
 PinRodExtremityPlugin::PinRodExtremityPlugin(const MirState *state, std::string name, std::string rvName,
                                              int segmentId, real fmagn, real3 targetDirection) :
     SimulationPlugin(state, name),
-    rvName(rvName),
-    segmentId(segmentId),
-    fmagn(fmagn),
-    targetDirection(targetDirection)
+    rvName_(rvName),
+    segmentId_(segmentId),
+    fmagn_(fmagn),
+    targetDirection_(targetDirection)
 {}
 
 void PinRodExtremityPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    auto ov = simulation->getOVbyNameOrDie(rvName);
+    auto ov = simulation->getOVbyNameOrDie(rvName_);
 
-    rv = dynamic_cast<RodVector*>(ov);
+    rv_ = dynamic_cast<RodVector*>(ov);
 
-    if (rv == nullptr)
+    if (rv_ == nullptr)
         die("Plugin '%s' must be used with a rod vector; given PV '%s'",
-            getCName(), rvName.c_str());
+            getCName(), rvName_.c_str());
 
-    if (segmentId < 0 || segmentId >= rv->local()->getNumSegmentsPerRod())
+    if (segmentId_ < 0 || segmentId_ >= rv_->local()->getNumSegmentsPerRod())
         die("Invalid segment id in plugin '%s'");
 }
 
 void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
 {
-    RVview view(rv, rv->local());
+    RVview view(rv_, rv_->local());
     
     const int nthreads = 32;
     const int nblocks = getNblocks(view.nObjects, nthreads);
     
     SAFE_KERNEL_LAUNCH(PinRodExtremityKernels::alignMaterialFrame,
                        nblocks, nthreads, 0, stream,
-                       view, segmentId, fmagn, targetDirection );
+                       view, segmentId_, fmagn_, targetDirection_ );
 }
 
 } // namespace mirheo

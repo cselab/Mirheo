@@ -129,100 +129,100 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
 
 PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, real3 translation, real3 rotation, int reportEvery) :
     SimulationPlugin(state, name),
-    ovName(ovName),
-    translation(translation),
-    rotation(rotation),
-    reportEvery(reportEvery)
+    ovName_(ovName),
+    translation_(translation),
+    rotation_(rotation),
+    reportEvery_(reportEvery)
 {}
 
 void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    ov = simulation->getOVbyNameOrDie(ovName);
+    ov_ = simulation->getOVbyNameOrDie(ovName_);
 
-    int myNObj = ov->local()->nObjects;
+    const int myNObj = ov_->local()->nObjects;
     int totObjs;
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 
-    forces.resize_anew(totObjs);
-    forces.clear(defaultStream);
+    forces_.resize_anew(totObjs);
+    forces_.clear(defaultStream);
 
     // Also check torques if object is rigid and if we need to restrict rotation
-    rov = dynamic_cast<RigidObjectVector*>(ov);
-    if (rov != nullptr && (rotation.x != Unrestricted || rotation.y != Unrestricted || rotation.z != Unrestricted))
+    rov_ = dynamic_cast<RigidObjectVector*>(ov_);
+    if (rov_ != nullptr && (rotation_.x != Unrestricted || rotation_.y != Unrestricted || rotation_.z != Unrestricted))
     {
-        torques.resize_anew(totObjs);
-        torques.clear(defaultStream);
+        torques_.resize_anew(totObjs);
+        torques_.clear(defaultStream);
     }
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
-         getCName(), ovName.c_str(),
+         getCName(), ovName_.c_str(),
 
-          translation.x == Unrestricted ? "?" : std::to_string(translation.x).c_str(),
-          translation.y == Unrestricted ? "?" : std::to_string(translation.y).c_str(),
-          translation.z == Unrestricted ? "?" : std::to_string(translation.z).c_str(),
+          translation_.x == Unrestricted ? "?" : std::to_string(translation_.x).c_str(),
+          translation_.y == Unrestricted ? "?" : std::to_string(translation_.y).c_str(),
+          translation_.z == Unrestricted ? "?" : std::to_string(translation_.z).c_str(),
 
-          rotation.x == Unrestricted ? "?" : std::to_string(rotation.x).c_str(),
-          rotation.y == Unrestricted ? "?" : std::to_string(rotation.y).c_str(),
-          rotation.z == Unrestricted ? "?" : std::to_string(rotation.z).c_str() );
+          rotation_.x == Unrestricted ? "?" : std::to_string(rotation_.x).c_str(),
+          rotation_.y == Unrestricted ? "?" : std::to_string(rotation_.y).c_str(),
+          rotation_.z == Unrestricted ? "?" : std::to_string(rotation_.z).c_str() );
 }
 
 
 void PinObjectPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer, ovName);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, ovName_);
+    send(sendBuffer_);
 }
 
 void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
 {
     // If the object is not rigid, modify the forces
-    if (rov == nullptr)
+    if (rov_ == nullptr)
     {
-        debug("Restricting motion of OV '%s' as per plugin '%s'", ovName.c_str(), getCName());
+        debug("Restricting motion of OV '%s' as per plugin '%s'", ovName_.c_str(), getCName());
 
         const int nthreads = 128;
-        OVview view(ov, ov->local());
+        OVview view(ov_, ov_->local());
         SAFE_KERNEL_LAUNCH(
                 PinObjectKernels::restrictVelocities,
                 view.nObjects, nthreads, 0, stream,
-                view, translation, forces.devPtr() );
+                view, translation_, forces_.devPtr() );
     }
 }
    
 void PinObjectPlugin::afterIntegration(cudaStream_t stream)
 {
     // If the object IS rigid, modify forces and torques
-    if (rov != nullptr)
+    if (rov_ != nullptr)
     {
-        debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName.c_str(), getCName());
+        debug("Restricting rigid motion of OV '%s' as per plugin '%s'", ovName_.c_str(), getCName());
 
         const int nthreads = 32;
-        ROVviewWithOldMotion view(rov, rov->local());
+        ROVviewWithOldMotion view(rov_, rov_->local());
         SAFE_KERNEL_LAUNCH(
                 PinObjectKernels::restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, translation, rotation, getState()->dt,
-                forces.devPtr(), torques.devPtr() );
+                view, translation_, rotation_, getState()->dt,
+                forces_.devPtr(), torques_.devPtr() );
     }
 }
 
 void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 {
-    count++;
-    if (count % reportEvery != 0) return;
+    count_++;
+    if (count_ % reportEvery_ != 0) return;
 
-    forces.downloadFromDevice(stream);
-    if (rov != nullptr)
-        torques.downloadFromDevice(stream);
+    forces_.downloadFromDevice(stream);
+    if (rov_ != nullptr)
+        torques_.downloadFromDevice(stream);
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, reportEvery, forces, torques);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, reportEvery_, forces_, torques_);
+    send(sendBuffer_);
 
-    forces.clearDevice(stream);
-    torques.clearDevice(stream);
+    forces_.clearDevice(stream);
+    torques_.clearDevice(stream);
 }
 
 
