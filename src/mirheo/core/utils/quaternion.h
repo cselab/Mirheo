@@ -175,12 +175,18 @@ class __align__(16) Quaternion
     Real x, y, z; // vector part
     
  private:
-    __HD__ Quaternion(Real w, Real x, Real y, Real z) :
-        w(w), x(x), y(y), z(z)
+    __HD__ Quaternion(Real rw, Real vx, Real vy, Real vz) :
+        w(rw),
+        x(vx),
+        y(vy),
+        z(vz)
     {}
 
-    __HD__ Quaternion(Real w, Real3 u) :
-        w(w), x(u.x), y(u.y), z(u.z)
+    __HD__ Quaternion(Real rw, Real3 u) :
+        w(rw),
+        x(u.x),
+        y(u.y),
+        z(u.z)
     {}
     
     // https://stackoverflow.com/a/11741520/11630848

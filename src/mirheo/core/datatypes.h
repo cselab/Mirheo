@@ -68,9 +68,9 @@ struct __align__(16) Real3_int
     }
 
     __HD__ inline Real3_int() {}
-    __HD__ inline Real3_int(real3 v, integer i) :
-        v(v),
-        i(i)
+    __HD__ inline Real3_int(real3 vecPart, integer intPart) :
+        v(vecPart),
+        i(intPart)
     {}
 
     __HD__ inline Real3_int(const real4 r4)
@@ -268,9 +268,9 @@ struct __align__(16) Force
     integer i;
 
     __HD__ inline Force() {};
-    __HD__ inline Force(const real3 f, int i) :
-        f(f),
-        i(i)
+    __HD__ inline Force(const real3 vecPart, int intPart) :
+        f(vecPart),
+        i(intPart)
     {};
 
     __HD__ inline Force(const real4 f4)

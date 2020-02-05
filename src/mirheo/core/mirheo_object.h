@@ -45,11 +45,11 @@ public:
     MirSimulationObject(const MirState *state, const std::string& name);
     ~MirSimulationObject();
 
-    const MirState* getState() const {return state;}
+    const MirState* getState() const {return state_;}
     virtual void setState(const MirState *state);
     
 private:
-    const MirState *state;
+    const MirState *state_;
 };
 
 } // namespace mirheo

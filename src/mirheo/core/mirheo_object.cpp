@@ -71,15 +71,14 @@ void MirObject::createCheckpointSymlink(MPI_Comm comm, const std::string& path, 
 
 MirSimulationObject::MirSimulationObject(const MirState *state, const std::string& name) :
     MirObject(name),
-    state(state)
+    state_(state)
 {}
 
 MirSimulationObject::~MirSimulationObject() = default;
 
-
 void MirSimulationObject::setState(const MirState *state)
 {
-    this->state = state;
+    state_ = state;
 }
 
 } // namespace mirheo
