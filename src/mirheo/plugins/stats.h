@@ -31,17 +31,17 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    int fetchEvery;
-    bool needToDump{false};
+    int fetchEvery_;
+    bool needToDump_{false};
 
-    Stats::CountType nparticles;
-    PinnedBuffer<Stats::ReductionType> momentum{3}, energy{1};
-    PinnedBuffer<real> maxvel{1};
-    std::vector<char> sendBuffer;
+    Stats::CountType nparticles_;
+    PinnedBuffer<Stats::ReductionType> momentum_{3}, energy_{1};
+    PinnedBuffer<real> maxvel_{1};
+    std::vector<char> sendBuffer_;
 
-    std::vector<ParticleVector*> pvs;
+    std::vector<ParticleVector*> pvs_;
 
-    mTimer timer;
+    mTimer timer_;
 };
 
 class PostprocessStats : public PostprocessPlugin
@@ -52,7 +52,7 @@ public:
     void deserialize() override;
 
 private:
-    FileWrapper fdump;
+    FileWrapper fdump_;
 };
 
 } // namespace mirheo

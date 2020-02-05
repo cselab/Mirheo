@@ -36,10 +36,10 @@ WallForceCollectorPlugin::WallForceCollectorPlugin(const MirState *state, std::s
                                                    std::string wallName, std::string frozenPvName,
                                                    int sampleEvery, int dumpEvery) :
     SimulationPlugin(state, name),
-    sampleEvery(sampleEvery),
-    dumpEvery(dumpEvery),
-    wallName(wallName),
-    frozenPvName(frozenPvName)
+    sampleEvery_(sampleEvery),
+    dumpEvery_(dumpEvery),
+    wallName_(wallName),
+    frozenPvName_(frozenPvName)
 {}
 
 WallForceCollectorPlugin::~WallForceCollectorPlugin() = default;
@@ -49,59 +49,59 @@ void WallForceCollectorPlugin::setup(Simulation *simulation, const MPI_Comm& com
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
+    wall_ = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName_));
 
-    if (wall == nullptr)
-        die("Plugin '%s' expects a SDF based wall (got '%s')\n", getCName(), wallName.c_str());
+    if (wall_ == nullptr)
+        die("Plugin '%s' expects a SDF based wall (got '%s')\n", getCName(), wallName_.c_str());
 
-    pv = simulation->getPVbyNameOrDie(frozenPvName);
+    pv_ = simulation->getPVbyNameOrDie(frozenPvName_);
 
-    bounceForceBuffer = wall->getCurrentBounceForce();
+    bounceForceBuffer_ = wall_->getCurrentBounceForce();
 }
 
 void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
 {   
-    if (isTimeEvery(getState(), sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery_))
     {
-        pvForceBuffer.clear(stream);
+        pvForceBuffer_.clear(stream);
 
-        PVview view(pv, pv->local());
+        PVview view(pv_, pv_->local());
         const int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH(
             WallForceCollector::totalForce,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, pvForceBuffer.devPtr() );
+            view, pvForceBuffer_.devPtr() );
 
-        pvForceBuffer     .downloadFromDevice(stream);
-        bounceForceBuffer->downloadFromDevice(stream);
+        pvForceBuffer_     .downloadFromDevice(stream);
+        bounceForceBuffer_->downloadFromDevice(stream);
 
-        totalForce += pvForceBuffer[0];
-        totalForce += (*bounceForceBuffer)[0];
+        totalForce_ += pvForceBuffer_[0];
+        totalForce_ += (*bounceForceBuffer_)[0];
 
-        ++nsamples;
+        ++nsamples_;
     }
     
-    needToDump = (isTimeEvery(getState(), dumpEvery) && nsamples > 0);
+    needToDump_ = (isTimeEvery(getState(), dumpEvery_) && nsamples_ > 0);
 }
 
 void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (needToDump)
+    if (needToDump_)
     {
         waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer, getState()->currentTime, nsamples, totalForce);
-        send(sendBuffer);
-        needToDump = false;
-        nsamples   = 0;
-        totalForce = make_double3(0, 0, 0);
+        SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, nsamples_, totalForce_);
+        send(sendBuffer_);
+        needToDump_ = false;
+        nsamples_   = 0;
+        totalForce_ = make_double3(0, 0, 0);
     }
 }
 
 WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    auto status = fdump.open(filename, "w");
+    auto status = fdump_.open(filename, "w");
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
 }
@@ -122,9 +122,9 @@ void WallForceDumperPlugin::deserialize()
         totalForce[1] /= (double)nsamples;
         totalForce[2] /= (double)nsamples;
 
-        fprintf(fdump.get(), "%g %g %g %g\n",
+        fprintf(fdump_.get(), "%g %g %g %g\n",
                 currentTime, totalForce[0], totalForce[1], totalForce[2]);
-        fflush(fdump.get());
+        fflush(fdump_.get());
     }
 }
 

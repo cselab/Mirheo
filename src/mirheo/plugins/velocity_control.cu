@@ -69,17 +69,17 @@ SimulationVelocityControl::SimulationVelocityControl(const MirState *state, std:
                                                      int sampleEvery, int tuneEvery, int dumpEvery,
                                                      real3 targetVel, real Kp, real Ki, real Kd) :
     SimulationPlugin(state, name),
-    pvNames(pvNames),
-    low(low),
-    high(high),
-    currentVel(make_real3(0,0,0)),
-    targetVel(targetVel),
-    sampleEvery(sampleEvery),
-    tuneEvery(tuneEvery),
-    dumpEvery(dumpEvery), 
-    force(make_real3(0, 0, 0)),
-    pid(make_real3(0, 0, 0), Kp, Ki, Kd),
-    accumulatedTotVel({0,0,0})
+    pvNames_(pvNames),
+    low_(low),
+    high_(high),
+    currentVel_(make_real3(0,0,0)),
+    targetVel_(targetVel),
+    sampleEvery_(sampleEvery),
+    tuneEvery_(tuneEvery),
+    dumpEvery_(dumpEvery), 
+    force_(make_real3(0, 0, 0)),
+    pid_(make_real3(0, 0, 0), Kp, Ki, Kd),
+    accumulatedTotVel_({0,0,0})
 {}
 
 
@@ -87,13 +87,13 @@ void SimulationVelocityControl::setup(Simulation* simulation, const MPI_Comm& co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    for (auto &pvName : pvNames)
-        pvs.push_back(simulation->getPVbyNameOrDie(pvName));
+    for (auto &pvName : pvNames_)
+        pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 }
 
 void SimulationVelocityControl::beforeForces(cudaStream_t stream)
 {
-    for (auto &pv : pvs)
+    for (auto &pv : pvs_)
     {
         PVview view(pv, pv->local());
         const int nthreads = 128;
@@ -101,66 +101,67 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH
             (VelocityControlKernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
-             view, getState()->domain, low, high, force );
+             view, getState()->domain, low_, high_, force_ );
     }
 }
 
-void SimulationVelocityControl::sampleOnePv(ParticleVector *pv, cudaStream_t stream) {
+void SimulationVelocityControl::_sampleOnePv(ParticleVector *pv, cudaStream_t stream) {
     PVview pvView(pv, pv->local());
     const int nthreads = 128;
  
     SAFE_KERNEL_LAUNCH
         (VelocityControlKernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
-         pvView, getState()->domain, low, high, totVel.devPtr(), nSamples.devPtr());
+         pvView, getState()->domain, low_, high_, totVel_.devPtr(), nSamples_.devPtr());
 }
 
 void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 {
-    if (isTimeEvery(getState(), sampleEvery))
+    if (isTimeEvery(getState(), sampleEvery_))
     {
         debug2("Velocity control %s is sampling now", getCName());
 
-        totVel.clearDevice(stream);
-        for (auto &pv : pvs) sampleOnePv(pv, stream);
-        totVel.downloadFromDevice(stream);
-        accumulatedTotVel.x += totVel[0].x;
-        accumulatedTotVel.y += totVel[0].y;
-        accumulatedTotVel.z += totVel[0].z;
+        totVel_.clearDevice(stream);
+        for (auto &pv : pvs_)
+            _sampleOnePv(pv, stream);
+        totVel_.downloadFromDevice(stream);
+        accumulatedTotVel_.x += totVel_[0].x;
+        accumulatedTotVel_.y += totVel_[0].y;
+        accumulatedTotVel_.z += totVel_[0].z;
     }
     
-    if (!isTimeEvery(getState(), tuneEvery)) return;
+    if (!isTimeEvery(getState(), tuneEvery_)) return;
     
-    nSamples.downloadFromDevice(stream);
-    nSamples.clearDevice(stream);
+    nSamples_.downloadFromDevice(stream);
+    nSamples_.clearDevice(stream);
     
-    long nSamples_loc, nSamples_tot = 0;
-    double3 totVel_tot = make_double3(0,0,0);  
+    long nSamplesTot = 0;
+    double3 totVelTot = make_double3(0,0,0);
 
-    nSamples_loc = nSamples[0];
+    const long nSamplesLoc = nSamples_[0];
     
-    MPI_Check( MPI_Allreduce(&nSamples_loc,        &nSamples_tot, 1, MPI_LONG,   MPI_SUM, comm) );
-    MPI_Check( MPI_Allreduce(&accumulatedTotVel,   &totVel_tot,   3, MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&nSamplesLoc,         &nSamplesTot, 1, MPI_LONG,   MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&accumulatedTotVel_,  &totVelTot,   3, MPI_DOUBLE, MPI_SUM, comm) );
 
-    currentVel = nSamples_tot ? make_real3(totVel_tot / nSamples_tot) : make_real3(0._r, 0._r, 0._r);
-    force = pid.update(targetVel - currentVel);
-    accumulatedTotVel = {0,0,0};
+    currentVel_ = nSamplesTot ? make_real3(totVelTot / nSamplesTot) : make_real3(0._r, 0._r, 0._r);
+    force_ = pid_.update(targetVel_ - currentVel_);
+    accumulatedTotVel_ = {0,0,0};
 }
 
 void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, getState()->currentStep, currentVel, force);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, getState()->currentStep, currentVel_, force_);
+    send(sendBuffer_);
 }
 
 void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     const auto filename = createCheckpointNameWithId(path, "plugin." + getName(), "txt", checkpointId);
 
-    TextIO::write(filename, pid);
+    TextIO::write(filename, pid_);
     
     createCheckpointSymlink(comm, path, "plugin." + getName(), "txt", checkpointId);
 }
@@ -168,7 +169,7 @@ void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& pat
 void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::string& path)
 {
     const auto filename = createCheckpointName(path, "plugin." + getName(), "txt");
-    const bool good = TextIO::read(filename, pid);
+    const bool good = TextIO::read(filename, pid_);
     if (!good) die("failed to read '%s'\n", filename.c_str());
 }
 
@@ -178,10 +179,10 @@ void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::strin
 PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
-    auto status = fdump.open(filename, "w");
+    auto status = fdump_.open(filename, "w");
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
-    fprintf(fdump.get(), "# time time_step velocity force\n");
+    fprintf(fdump_.get(), "# time time_step velocity force\n");
 }
 
 void PostprocessVelocityControl::deserialize()
@@ -193,7 +194,7 @@ void PostprocessVelocityControl::deserialize()
     SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
 
     if (rank == 0) {
-        fprintf(fdump.get(),
+        fprintf(fdump_.get(),
                 "%g %lld "
                 "%g %g %g "
                 "%g %g %g\n",
@@ -201,7 +202,7 @@ void PostprocessVelocityControl::deserialize()
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z);
         
-        fflush(fdump.get());
+        fflush(fdump_.get());
     }
 }
 

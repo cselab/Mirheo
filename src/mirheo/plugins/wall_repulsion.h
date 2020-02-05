@@ -23,11 +23,11 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string pvName, wallName;
-    ParticleVector* pv;
-    SDF_basedWall *wall;
+    std::string pvName_, wallName_;
+    ParticleVector *pv_;
+    SDF_basedWall *wall_;
 
-    real C, h, maxForce;
+    real C_, h_, maxForce_;
 };
 
 } // namespace mirheo

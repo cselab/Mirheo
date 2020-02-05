@@ -30,22 +30,22 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string pvName;
-    ParticleVector *pv;
+    std::string pvName_;
+    ParticleVector *pv_;
 
-    ImplicitSurfaceFunc implicitSurface;
-    VelocityFieldFunc velocityField;
-    real3 resolution;
-    real numberDensity, kBT;
+    ImplicitSurfaceFunc implicitSurface_;
+    VelocityFieldFunc velocityField_;
+    real3 resolution_;
+    real numberDensity_, kBT_;
 
-    PinnedBuffer<real3> surfaceTriangles;
-    PinnedBuffer<real3> surfaceVelocity;
-    DeviceBuffer<real> cumulativeFluxes, localFluxes;
-    PinnedBuffer<int> nNewParticles {1};
-    DeviceBuffer<int> workQueue; // contains id of triangle per new particle
+    PinnedBuffer<real3> surfaceTriangles_;
+    PinnedBuffer<real3> surfaceVelocity_;
+    DeviceBuffer<real> cumulativeFluxes_, localFluxes_;
+    PinnedBuffer<int> nNewParticles_ {1};
+    DeviceBuffer<int> workQueue_; // contains id of triangle per new particle
 
-    std::mt19937 gen {42};
-    std::uniform_real_distribution<real> dist {0._r, 1._r};
+    std::mt19937 gen_ {42};
+    std::uniform_real_distribution<real> dist_ {0._r, 1._r};
 };
 
 } // namespace mirheo

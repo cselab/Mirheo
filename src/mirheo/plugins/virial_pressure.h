@@ -32,18 +32,18 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    std::string pvName;
-    int dumpEvery;
-    bool needToSend = false;
+    std::string pvName_;
+    int dumpEvery_;
+    bool needToSend_ = false;
 
-    FieldFromFunction region;
+    FieldFromFunction region_;
     
-    PinnedBuffer<VirialPressure::ReductionType> localVirialPressure {1};
-    MirState::TimeType savedTime = 0;
+    PinnedBuffer<VirialPressure::ReductionType> localVirialPressure_ {1};
+    MirState::TimeType savedTime_ = 0;
 
-    std::vector<char> sendBuffer;
+    std::vector<char> sendBuffer_;
 
-    ParticleVector *pv;
+    ParticleVector *pv_;
 };
 
 
@@ -57,10 +57,10 @@ public:
     void handshake() override;    
 
 private:
-    std::string path;
+    std::string path_;
 
-    bool activated = true;
-    FileWrapper fdump;
+    bool activated_ = true;
+    FileWrapper fdump_;
 };
 
 } // namespace mirheo

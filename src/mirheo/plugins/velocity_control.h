@@ -33,25 +33,24 @@ public:
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
 
+private:
+    void _sampleOnePv(ParticleVector *pv, cudaStream_t stream);
     
 private:
-    int sampleEvery, dumpEvery, tuneEvery;
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
+    int sampleEvery_, dumpEvery_, tuneEvery_;
+    std::vector<std::string> pvNames_;
+    std::vector<ParticleVector*> pvs_;
 
-    real3 high, low;
-    real3 currentVel, targetVel, force;
+    real3 high_, low_;
+    real3 currentVel_, targetVel_, force_;
 
-    PinnedBuffer<int> nSamples{1};
-    PinnedBuffer<real3> totVel{1};
-    double3 accumulatedTotVel;
+    PinnedBuffer<int> nSamples_{1};
+    PinnedBuffer<real3> totVel_{1};
+    double3 accumulatedTotVel_;
     
 
-    PidControl<real3> pid;
-    std::vector<char> sendBuffer;
-
-private:
-    void sampleOnePv(ParticleVector *pv, cudaStream_t stream);
+    PidControl<real3> pid_;
+    std::vector<char> sendBuffer_;
 };
 
 class PostprocessVelocityControl : public PostprocessPlugin
@@ -62,7 +61,7 @@ public:
     void deserialize() override;
 
 private:
-    FileWrapper fdump;
+    FileWrapper fdump_;
 };
 
 } // namespace mirheo

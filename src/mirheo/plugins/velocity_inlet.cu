@@ -133,12 +133,12 @@ VelocityInletPlugin::VelocityInletPlugin(const MirState *state, std::string name
                                          ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
                                          real3 resolution, real numberDensity, real kBT) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    implicitSurface(implicitSurface),
-    velocityField(velocityField),
-    resolution(resolution),
-    numberDensity(numberDensity),
-    kBT(kBT)
+    pvName_(pvName),
+    implicitSurface_(implicitSurface),
+    velocityField_(velocityField),
+    resolution_(resolution),
+    numberDensity_(numberDensity),
+    kBT_(kBT)
 {}
 
 VelocityInletPlugin::~VelocityInletPlugin() = default;
@@ -147,91 +147,91 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
     std::vector<MarchingCubes::Triangle> triangles;
-    MarchingCubes::computeTriangles(getState()->domain, resolution, implicitSurface, triangles);
+    MarchingCubes::computeTriangles(getState()->domain, resolution_, implicitSurface_, triangles);
 
     const int nTriangles = triangles.size();
     
-    surfaceTriangles.resize_anew(nTriangles * 3);
-    surfaceVelocity .resize_anew(nTriangles * 3);
+    surfaceTriangles_.resize_anew(nTriangles * 3);
+    surfaceVelocity_ .resize_anew(nTriangles * 3);
 
     {
         size_t i = 0;
         for (const auto& t : triangles)
         {
-            surfaceTriangles[i++] = t.a;
-            surfaceTriangles[i++] = t.b;
-            surfaceTriangles[i++] = t.c;
+            surfaceTriangles_[i++] = t.a;
+            surfaceTriangles_[i++] = t.b;
+            surfaceTriangles_[i++] = t.c;
         }
     }
 
-    for (size_t i = 0; i < surfaceTriangles.size(); ++i)
+    for (size_t i = 0; i < surfaceTriangles_.size(); ++i)
     {
-        const real3 r = getState()->domain.local2global(surfaceTriangles[i]);
-        surfaceVelocity[i] = velocityField(r);
+        const real3 r = getState()->domain.local2global(surfaceTriangles_[i]);
+        surfaceVelocity_[i] = velocityField_(r);
     }
 
-    surfaceTriangles.uploadToDevice(defaultStream);
-    surfaceVelocity .uploadToDevice(defaultStream);
+    surfaceTriangles_.uploadToDevice(defaultStream);
+    surfaceVelocity_ .uploadToDevice(defaultStream);
 
-    cumulativeFluxes.resize_anew(nTriangles);
-    localFluxes     .resize_anew(nTriangles);
-    workQueue       .resize_anew(nTriangles * MAX_NEW_PARTICLE_PER_TRIANGLE);
+    cumulativeFluxes_.resize_anew(nTriangles);
+    localFluxes_     .resize_anew(nTriangles);
+    workQueue_       .resize_anew(nTriangles * MAX_NEW_PARTICLE_PER_TRIANGLE);
 
-    real seed = dist(gen);
+    const real seed = dist_(gen_);
     const int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::initCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
-        seed, nTriangles, cumulativeFluxes.devPtr() );
+        seed, nTriangles, cumulativeFluxes_.devPtr() );
 
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::initLocalFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
         nTriangles,
-        surfaceTriangles.devPtr(),
-        surfaceVelocity.devPtr(),
-        localFluxes.devPtr() );
+        surfaceTriangles_.devPtr(),
+        surfaceVelocity_.devPtr(),
+        localFluxes_.devPtr() );
 }
 
 void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
-    int nTriangles = surfaceTriangles.size() / 3;
+    PVview view(pv_, pv_->local());
+    const int nTriangles = surfaceTriangles_.size() / 3;
     
-    workQueue.clear(stream);
-    nNewParticles.clear(stream);
+    workQueue_.clear(stream);
+    nNewParticles_.clear(stream);
 
-    const int nthreads = 128;
+    constexpr int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::countFromCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, stream,
-        nTriangles, getState()->dt, numberDensity, localFluxes.devPtr(),
-        cumulativeFluxes.devPtr(), nNewParticles.devPtr(), workQueue.devPtr());
+        nTriangles, getState()->dt, numberDensity_, localFluxes_.devPtr(),
+        cumulativeFluxes_.devPtr(), nNewParticles_.devPtr(), workQueue_.devPtr());
 
         
-    nNewParticles.downloadFromDevice(stream, ContainersSynch::Synch);
+    nNewParticles_.downloadFromDevice(stream, ContainersSynch::Synch);
 
-    int oldSize = view.size;
-    int newSize = oldSize + nNewParticles[0];
+    const int oldSize = view.size;
+    const int newSize = oldSize + nNewParticles_[0];
 
-    pv->local()->resize(newSize, stream);
+    pv_->local()->resize(newSize, stream);
 
-    view = PVview(pv, pv->local());
+    view = PVview(pv_, pv_->local());
 
-    real seed = dist(gen);
+    const real seed = dist_(gen_);
     
     SAFE_KERNEL_LAUNCH(
         velocityInletKernels::generateParticles,
-        getNblocks(nNewParticles[0], nthreads), nthreads, 0, stream,
-        seed, kBT, nNewParticles[0], oldSize, view,
-        workQueue.devPtr(),
-        surfaceTriangles.devPtr(),
-        surfaceVelocity.devPtr() );
+        getNblocks(nNewParticles_[0], nthreads), nthreads, 0, stream,
+        seed, kBT_, nNewParticles_[0], oldSize, view,
+        workQueue_.devPtr(),
+        surfaceTriangles_.devPtr(),
+        surfaceVelocity_.devPtr() );
 
 }
 

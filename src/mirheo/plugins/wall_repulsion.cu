@@ -38,26 +38,26 @@ WallRepulsionPlugin::WallRepulsionPlugin(const MirState *state, std::string name
                                          std::string pvName, std::string wallName,
                                          real C, real h, real maxForce) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    wallName(wallName),
-    C(C),
-    h(h),
-    maxForce(maxForce)
+    pvName_(pvName),
+    wallName_(wallName),
+    C_(C),
+    h_(h),
+    maxForce_(maxForce)
 {}
 
 void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
-    wall = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName));
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
+    wall_ = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName_));
     
-    pv->requireDataPerParticle<real>(ChannelNames::sdf, DataManager::PersistenceMode::None);
-    pv->requireDataPerParticle<real3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);
+    pv_->requireDataPerParticle<real>(ChannelNames::sdf, DataManager::PersistenceMode::None);
+    pv_->requireDataPerParticle<real3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);
 
-    if (wall == nullptr)
+    if (wall_ == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
-            getCName(), wallName.c_str());
+            getCName(), wallName_.c_str());
 }
 
 
@@ -65,20 +65,20 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 // to get rid of the SDF wall margin
 void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     
-    auto sdfs      = pv->local()->dataPerParticle.getData<real>(ChannelNames::sdf);
-    auto gradients = pv->local()->dataPerParticle.getData<real3>(ChannelNames::grad_sdf);
+    auto sdfs      = pv_->local()->dataPerParticle.getData<real>(ChannelNames::sdf);
+    auto gradients = pv_->local()->dataPerParticle.getData<real3>(ChannelNames::grad_sdf);
 
-    const real gradientThreshold = h + 0.1_r;
+    const real gradientThreshold = h_ + 0.1_r;
     
-    wall->sdfPerParticle(pv->local(), sdfs, gradients, gradientThreshold, stream);
+    wall_->sdfPerParticle(pv_->local(), sdfs, gradients, gradientThreshold, stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
             WallRepulsionPluginKernels::forceFromSDF,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, sdfs->devPtr(), gradients->devPtr(), C, h, maxForce );
+            view, sdfs->devPtr(), gradients->devPtr(), C_, h_, maxForce_ );
 }
 
 } // namespace mirheo
