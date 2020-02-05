@@ -13,9 +13,11 @@ namespace mirheo
  * Example implementation:
  *
  *      template <>
- *      struct MemberVars<LogInfo> {
+ *      struct MemberVars<LogInfo>
+ *      {
  *          template <typename Handler, typename Me>
- *          auto foreach(Handler &&h, Me *me) {
+ *          auto foreach(Handler &&h, Me *me)
+ *          {
  *              return h.process(
  *                  h("fileName",     &me->fileName);
  *                  h("verbosityLvl", &me->verbosityLvl);
@@ -30,30 +32,38 @@ namespace mirheo
  *      template <typename ...Args>
  *      <any type> process()(Args &&...);
  * where `Args` are always equal to the non-void type from operator().
+ *
+ * Note: The order of evaluation of the function operator() is unspecified!
+ *       Order-sensitive operations MUST be done in the process() function.
  */
 template <typename T>
-struct MemberVars {
+struct MemberVars
+{
     static constexpr bool notImplemented_ = true;
 };
 
 /// `MemberVarsAvailable<T>` is true if the struct `MemberVars<T>` has been specialized.
 template <typename T, typename Enable = void>
-struct MemberVarsAvailable {
+struct MemberVarsAvailable
+{
     static constexpr bool value = true;
 };
 
 template <typename T>
-struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>> {
+struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
+{
     static constexpr bool value = false;
 };
 
 // Implementation detail.
 #define MIRHEO_MEMBER_VARS_BEGIN_(TYPE)            \
     template <>                                    \
-    struct MemberVars<TYPE> {                      \
+    struct MemberVars<TYPE>                        \
+    {                                              \
         static constexpr const char *name = #TYPE; \
         template <typename Handler, typename Me>   \
-        static auto foreach(Handler &&h, Me *me) { \
+        static auto foreach(Handler &&h, Me *me)   \
+        {                                          \
             (void)h;                               \
             (void)me;                              \
             return std::forward<Handler>(h).process(
@@ -111,13 +121,16 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>> 
  * Generate `MemberVars<TYPE>` for the given type `TYPE`.
  *
  * Example:
- *     struct S { int a, b; double c; };
- *     MIRHEO_MEMBER_VARS_3(S, a, b, c);
+ *      namespace mirheo {
+ *          struct S { int a, b; double c; };
+ *          MIRHEO_MEMBER_VARS_3(S, a, b, c);
+ *      } // namespace mirheo
+ *
  *
  * Note:
- *     The implementation which doesn't require manually specifying the number
- *     of arguments can be found here:
- *     https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
+ *      The implementation which doesn't require manually specifying the number
+ *      of arguments can be found here:
+ *      https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
  */
 #define MIRHEO_MEMBER_VARS_0(TYPE)   \
     MIRHEO_MEMBER_VARS_BEGIN_(TYPE)  \

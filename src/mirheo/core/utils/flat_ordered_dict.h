@@ -41,6 +41,7 @@ public:
     iterator       end() noexcept { return c_.end(); }
     const_iterator end() const noexcept { return c_.end(); }
 
+    size_t size() const noexcept { return c_.size(); }
     void reserve(size_t size) { c_.reserve(size); }
 
     bool contains(const Key& key) const { return find(key) != end(); }
@@ -90,6 +91,12 @@ public:
     {
         if (!contains(key))
             c_.emplace_back(key, T{std::forward<Args>(args)...});
+    }
+
+    void insert(value_type &&value)
+    {
+        if (!contains(value.first))
+            c_.emplace_back(std::move(value));
     }
 
     void insert_or_assign(Key key, T t)

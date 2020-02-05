@@ -134,16 +134,20 @@ private:
 namespace detail
 {
     struct DumpHandler {
-        struct Dummy {};
-
         template <typename... Args>
-        static void process(const Args& ...) { }
+        void process(Args&& ...items) {
+            dict_->reserve(dict_->size() + sizeof...(items));
+
+            // https://stackoverflow.com/a/51006031
+            // Note: initializer list preserves the order of evaluation!
+            using fold_expression = int[];
+            (void)fold_expression{0, (dict_->insert(std::forward<Args>(items)), 0)...};
+        }
 
         template <typename T>
-        Dummy operator()(std::string name, const T *t)
+        Config::Dictionary::value_type operator()(std::string name, const T *t) const
         {
-            dict_->emplace(std::move(name), ConfigDumper<T>::dump(*dumper_, *t));
-            return Dummy{};
+            return {std::move(name), ConfigDumper<T>::dump(*dumper_, *t)};
         }
 
         Config::Dictionary *dict_;
@@ -251,7 +255,6 @@ struct ConfigDumper<mpark::variant<Ts...>> {
     }
 };
 
-std::string configToText(const Config& config);
 std::string configToJSON(const Config& config);
 
 } // namespace mirheo

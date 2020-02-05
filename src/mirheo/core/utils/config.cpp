@@ -24,17 +24,16 @@ static std::string stringToJSON(const std::string& input)
     output.push_back('"');
     for (char c : input) {
         switch (c) {
-        case '"':
-        case '/':
-        case '\b':
-        case '\f':
-        case '\n':
-        case '\r':
-        case '\t':
-        case '\\':
-            output.push_back('\\');
+        case '"': output += "\\\""; break;
+        case '\b': output += "\\b"; break;
+        case '\f': output += "\\f"; break;
+        case '\n': output += "\\n"; break;
+        case '\r': output += "\\r"; break;
+        case '\t': output += "\\t"; break;
+        case '\\': output += "\\\\"; break;
+        default:
+            output.push_back(c);
         }
-        output.push_back(c);
     }
     output.push_back('"');
     return output;
