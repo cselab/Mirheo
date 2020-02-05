@@ -47,5 +47,6 @@ as well as exposing code internals for the developers wishing to contribute to t
 .. toctree::
    :maxdepth: 2
    :caption: Developer guide
-   
+
+   developer/coding_conventions
    developer/api
