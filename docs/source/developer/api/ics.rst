@@ -1,9 +1,19 @@
+.. _dev-ic:
+
 Initial Conditions
 ==================
+
+See also :ref:`the user interface <user-ic>`.
+
+Base class
+----------
 
 .. doxygenclass:: mirheo::InitialConditions
    :project: mirheo
    :members:
+
+Derived classes
+---------------
 
 .. doxygenclass:: mirheo::RestartIC
    :project: mirheo
