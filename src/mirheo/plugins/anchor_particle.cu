@@ -37,109 +37,109 @@ AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string 
                                              FuncTime3D positions, FuncTime3D velocities,
                                              std::vector<int> pids, int reportEvery) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    positions(positions),
-    velocities(velocities),
-    reportEvery(reportEvery)
+    pvName_(pvName),
+    positions_(positions),
+    velocities_(velocities),
+    reportEvery_(reportEvery)
 {
     const size_t n = pids.size();
     
-    this->pids.resize_anew(n);
+    pids_.resize_anew(n);
     
     for (size_t i = 0; i < n; ++i)
     {
         const auto pid = pids[i];
         if (pid < 0)
             die("invalid particle id %d\n", pid);
-        this->pids[i] = pid;
+        pids_[i] = pid;
     }
     
-    if (positions(0).size() != n)
+    if (positions_(0).size() != n)
         die("pids and positions must have the same size");
 
-    if (velocities(0).size() != n)
+    if (velocities_(0).size() != n)
         die("pids and velocities must have the same size");
 
-    forces   .resize_anew(n);
-    posBuffer.resize_anew(n);
-    velBuffer.resize_anew(n);
+    forces_   .resize_anew(n);
+    posBuffer_.resize_anew(n);
+    velBuffer_.resize_anew(n);
 
-    this->pids.uploadToDevice(defaultStream);
+    pids_.uploadToDevice(defaultStream);
 }
 
 void AnchorParticlesPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    forces.clear(defaultStream);
+    forces_.clear(defaultStream);
 }
 
 void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
 
-    const int n = pids.size();
+    const int n = pids_.size();
     const int nthreads = 32;
-    const int nblocks = getNblocks(pids.size(), nthreads);
+    const int nblocks = getNblocks(n, nthreads);
 
     if (view.size == 0) return;
 
     const real t = (real) getState()->currentTime;
     const auto& domain = getState()->domain;
 
-    auto poss = positions(t);
-    auto vels = velocities(t);
+    auto poss = positions_(t);
+    auto vels = velocities_(t);
 
     for (int i = 0; i < n; ++i)
     {
-        posBuffer[i] = domain.global2local(poss[i]);
-        velBuffer[i] = vels[i];
+        posBuffer_[i] = domain.global2local(poss[i]);
+        velBuffer_[i] = vels[i];
     }
 
-    posBuffer.uploadToDevice(stream);
-    velBuffer.uploadToDevice(stream);
+    posBuffer_.uploadToDevice(stream);
+    velBuffer_.uploadToDevice(stream);
     
     SAFE_KERNEL_LAUNCH(
             AnchorParticlesKernels::anchorParticles,
             nblocks, nthreads, 0, stream,
-            view, n, pids.devPtr(), posBuffer.devPtr(), velBuffer.devPtr(), forces.devPtr() );
+            view, n, pids_.devPtr(), posBuffer_.devPtr(), velBuffer_.devPtr(), forces_.devPtr() );
 
-    ++ nsamples;
+    ++nsamples_;
 }
 
 void AnchorParticlesPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer, pvName);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, pvName_);
+    send(sendBuffer_);
 }
 
 void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), reportEvery)) return;
+    if (!isTimeEvery(getState(), reportEvery_)) return;
 
-    forces.downloadFromDevice(stream);
+    forces_.downloadFromDevice(stream);
 
     waitPrevSend();
 
-    SimpleSerializer::serialize(sendBuffer, getState()->currentTime, nsamples, forces);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, nsamples_, forces_);
+    send(sendBuffer_);
 
-    nsamples = 0;
-    forces.clearDevice(stream);
+    nsamples_ = 0;
+    forces_.clearDevice(stream);
 }
 
 
 AnchorParticlesStatsPlugin::AnchorParticlesStatsPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 void AnchorParticlesStatsPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void AnchorParticlesStatsPlugin::handshake()
@@ -151,10 +151,10 @@ void AnchorParticlesStatsPlugin::handshake()
     std::string pvName;
     SimpleSerializer::deserialize(data, pvName);
 
-    if (activated && rank == 0)
+    if (activated_ && rank == 0)
     {
-        std::string fname = path + pvName + ".txt";
-        auto status = fout.open( fname, "w" );
+        const std::string fname = path_ + pvName + ".txt";
+        auto status = fout_.open( fname, "w" );
         if (status != FileWrapper::Status::Success)
             die("could not open file '%s'", fname.c_str());
     }
@@ -170,16 +170,16 @@ void AnchorParticlesStatsPlugin::deserialize()
 
     MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  3 * forces.size(),  MPI_DOUBLE, MPI_SUM, 0, comm) );
 
-    if (activated && rank == 0)
+    if (activated_ && rank == 0)
     {
-        fprintf(fout.get(), "%f", currentTime);
+        fprintf(fout_.get(), "%f", currentTime);
         for (auto& f : forces)
         {
             f /= nsamples;
-            fprintf(fout.get(), " %f %f %f", f.x, f.y, f.z);
+            fprintf(fout_.get(), " %f %f %f", f.x, f.y, f.z);
         }
-        fprintf(fout.get(), "\n");
-        fflush(fout.get());
+        fprintf(fout_.get(), "\n");
+        fflush(fout_.get());
     }
 }
 

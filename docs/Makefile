@@ -22,7 +22,6 @@ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 default: html
 
 prepare:
-	#doxygen
 	(cd source && python mock_modules.py)
 	(cd source && python list_mirheo_reserved_field_names.py > user/reserved_fields.rst)
 

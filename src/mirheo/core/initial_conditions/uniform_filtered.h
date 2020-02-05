@@ -10,12 +10,22 @@
 namespace mirheo
 {
 
-/**
- * Initialize particles uniformly inside or outside a sphere with the given density
+/** \brief Fill the domain with uniform number density in a given region
+    \ingroup ICs
+    
+    Initialize particles uniformly with the given number density on a specified region of the domain.
+    The region is specified by a filter functor.
+    The domain considered is that of the ParticleVector.
+    ObjectVector objects are not supported.
  */
 class UniformFilteredIC : public InitialConditions
 {
 public:
+    /** \brief Construct a UniformFilteredIC object
+        \param [in] numDensity Number density of the particles to initialize
+        \param [in] filter Indicator function that maps a position of the domain to a boolean value.
+                           It returns `true` if the position is inside the region.
+     */
     UniformFilteredIC(real numDensity, PositionFilter filter);
     ~UniformFilteredIC();
     

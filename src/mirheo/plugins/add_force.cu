@@ -22,28 +22,28 @@ __global__ void addForce(PVview view, real3 force)
 
 } // namespace AddForceKernels
 
-AddForcePlugin::AddForcePlugin(const MirState *state, std::string name, std::string pvName, real3 force) :
+AddForcePlugin::AddForcePlugin(const MirState *state, const std::string& name, const std::string& pvName, real3 force) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    force(force)
+    pvName_(pvName),
+    force_(force)
 {}
 
 void AddForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 }
 
 void AddForcePlugin::beforeForces(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             AddForceKernels::addForce,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, force );
+            view, force_ );
 }
 
 } // namespace mirheo

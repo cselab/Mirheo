@@ -1,7 +1,5 @@
 PROJECT_NAME      = "mirheo"
 XML_OUTPUT        = xml
-INPUT             = ../src/core ../src/plugins
-FILE_PATTERNS     = *.h *.cpp *.cu
 EXTENSION_MAPPING = cu=c++
 GENERATE_LATEX    = NO
 GENERATE_MAN      = NO
@@ -12,4 +10,20 @@ GENERATE_XML      = YES
 RECURSIVE         = YES
 QUIET             = YES
 JAVADOC_AUTOBRIEF = YES
-WARN_IF_UNDOCUMENTED = NO
+WARN_IF_UNDOCUMENTED = YES
+
+INPUT = ../src/mirheo/core/initial_conditions
+
+## FILE_PATTERNS     = *.h *.cpp *.cu
+FILE_PATTERNS     = *.h
+
+
+PREDEFINED  += __align__(x)=          \
+             __restrict__=            \
+             __launch_bounds__(x,y)=  \
+             __H__                    \
+             __HD__                   \
+             __D__
+
+ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
+ALIASES += "endrst=\endverbatim"

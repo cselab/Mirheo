@@ -38,25 +38,29 @@ public:
 
     bool needPostproc() override { return true; }
 
+
+private:
+    static const std::string numberDensityChannelName_;
+
+    std::vector<std::string> pvNames_;
+
 protected:
-    static const std::string numberDensityChannelName;
     
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
+    std::vector<ParticleVector*> pvs_;
 
-    int nSamples {0};
-    int sampleEvery, dumpEvery;
-    int3 resolution;
-    real3 binSize;
-    int3 rank3D, nranks3D;
+    int nSamples_ {0};
+    int sampleEvery_, dumpEvery_;
+    int3 resolution_;
+    real3 binSize_;
+    int3 rank3D_, nranks3D_;
 
-    DeviceBuffer<real>   numberDensity;
-    PinnedBuffer<double> accumulatedNumberDensity;
+    DeviceBuffer<real>   numberDensity_;
+    PinnedBuffer<double> accumulatedNumberDensity_;
 
-    HostChannelsInfo channelsInfo;
-    std::vector<PinnedBuffer<double>> accumulatedAverage;
+    HostChannelsInfo channelsInfo_;
+    std::vector<PinnedBuffer<double>> accumulatedAverage_;
 
-    std::vector<char> sendBuffer;
+    std::vector<char> sendBuffer_;
 
     int getNcomponents(ChannelType type) const;
     void accumulateSampledAndClear(cudaStream_t stream);

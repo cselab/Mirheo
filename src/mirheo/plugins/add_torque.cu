@@ -22,34 +22,34 @@ __global__ void addTorque(ROVview view, real3 torque)
 
 } // namespace AddTorqueKernels
 
-AddTorquePlugin::AddTorquePlugin(const MirState *state, std::string name, std::string rovName, real3 torque) :
+AddTorquePlugin::AddTorquePlugin(const MirState *state, const std::string& name, const std::string& rovName, real3 torque) :
     SimulationPlugin(state, name),
-    rovName(rovName),
-    torque(torque)
+    rovName_(rovName),
+    torque_(torque)
 {}
 
 void AddTorquePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    rov = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName) );
-    if (rov == nullptr)
+    rov_ = dynamic_cast<RigidObjectVector*>( simulation->getOVbyNameOrDie(rovName_) );
+    if (rov_ == nullptr)
         die("Need rigid object vector to add torque, plugin '%s', OV name '%s'",
-            getCName(), rovName.c_str());
+            getCName(), rovName_.c_str());
 
     info("Objects '%s' will experience external torque [%f %f %f]", 
-            rovName.c_str(), torque.x, torque.y, torque.z);
+            rovName_.c_str(), torque_.x, torque_.y, torque_.z);
 }
 
 void AddTorquePlugin::beforeForces(cudaStream_t stream)
 {
-    ROVview view(rov, rov->local());
+    ROVview view(rov_, rov_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             AddTorqueKernels::addTorque,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, torque );
+            view, torque_ );
 }
 
 } // namespace mirheo
