@@ -15,7 +15,7 @@ WARN_IF_UNDOCUMENTED = YES
 INPUT = ../src/mirheo/core/initial_conditions
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
-FILE_PATTERNS     = interface.h
+FILE_PATTERNS     = *.h
 
 
 PREDEFINED  += __align__(x)=          \

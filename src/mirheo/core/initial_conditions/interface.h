@@ -26,7 +26,7 @@ public:
 
     /** \brief Initialize a given ParticleVector
         \param [in] comm A carthesian MPI communicator from the simulation tasks
-        \param [out] pv The resulting ParyicleVector to be initialized (on chip data) 
+        \param [in,out] pv The resulting ParyicleVector to be initialized (on chip data) 
         \param [in] stream cuda stream
      */
     virtual void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) = 0;
