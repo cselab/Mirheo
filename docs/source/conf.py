@@ -1,5 +1,9 @@
 import sys, os, subprocess, glob
 import sphinx.ext.autodoc
+import subprocess
+
+# compile the xml source
+subprocess.run('(cd .. && doxygen)', shell=True)
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
