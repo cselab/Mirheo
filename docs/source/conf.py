@@ -4,9 +4,6 @@ import sphinx.ext.autodoc
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 extensions = ['breathe', 'sphinx.ext.mathjax', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx_automodapi.automodapi', 'sphinx.ext.napoleon']
-if on_rtd:
-    #extensions += ['exhale']
-    pass
 
 add_module_names = False
 
@@ -58,7 +55,7 @@ html_show_sphinx = False
 html_show_copyright = True
 
 
-# Setup breathe and exhale
+# Setup breathe
 breathe_projects = { 'mirheo': '../xml' }
 breathe_default_project = 'mirheo'
 breathe_domain_by_extension = { "h" : "cpp", "cu" : "cpp" }
@@ -67,57 +64,6 @@ cpp_id_attributes = ['__device__', '__global__', '__host__']
 cpp_paren_attributes = ['__launch_bounds__', '__align__']
 
 primary_domain = 'py'
-
-
-exhale_args = {
-    # These arguments are required
-    "containmentFolder":     "./api",
-    "rootFileName":          "library_root.rst",
-    "rootFileTitle":         "Library API",
-    "doxygenStripFromPath":  "..",
-    # Suggested optional arguments
-    "createTreeView":        True,
-    # TIP: if using the sphinx-bootstrap-theme, you need
-    # "treeViewIsBootstrap": True,
-    "exhaleExecutesDoxygen": True,
-    "exhaleDoxygenStdin":    r'''   PROJECT_NAME      = "mirheo"
-                                    XML_OUTPUT        = xml
-
-                                    INPUT             = ../../src/mirheo/core/initial_conditions
-
-                                    EXCLUDE           = 
-
-                                    ENABLE_PREPROCESSING   = YES
-                                    MACRO_EXPANSION        = YES
-                                    EXPAND_ONLY_PREDEF     = NO
-                                    SKIP_FUNCTION_MACROS   = NO
-                                    PREDEFINED             += __align__(x)=          \
-                                                            __restrict__=            \
-                                                            __launch_bounds__(x,y)=  \
-                                                            __H__                    \
-                                                            __HD__                   \
-                                                            __D__
-                                                        
-                                    XML_PROGRAMLISTING     = YES
-                                    GENERATE_LATEX         = NO
-                                    GENERATE_MAN           = NO
-                                    GENERATE_RTF           = NO
-                                    GENERATE_HTML          = NO
-                                    GENERATE_XML           = YES
-                                    RECURSIVE              = YES
-                                    QUIET                  = YES
-                                    WARN_IF_UNDOCUMENTED   = YES
-                                    EXTRACT_PRIVATE        = YES
-                                    EXTRACT_STATIC         = YES
-                                    EXTRACT_ALL            = YES
-
-                                    ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
-                                    ALIASES += "endrst=\endverbatim"
-
-                                    FILE_PATTERNS          = interface.h
-
-                                    EXTENSION_MAPPING      = cu=C++'''
-}
 
 
 def format_signature(self):
@@ -147,7 +93,7 @@ def format_signature(self):
         return ''
 
 
-# AUTOautosummary, hell yeah
+# AUTOautosummary
 # https://stackoverflow.com/questions/20569011/python-sphinx-autosummary-automated-listing-of-member-functions
 from sphinx.ext.autosummary import Autosummary
 from sphinx.ext.autosummary import get_documenter

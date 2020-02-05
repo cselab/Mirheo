@@ -44,8 +44,8 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/plugins
 
 
-.. .. toctree::
-..    :maxdepth: 2
-..    :caption: Developers guide
-..    
-..    api/library_root
+.. toctree::
+   :maxdepth: 2
+   :caption: Developer guide
+   
+   developer/api
