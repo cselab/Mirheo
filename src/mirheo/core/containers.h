@@ -94,16 +94,16 @@ public:
     {
         if (this != &b)
         {
-            if (devptr)
-                CUDA_Check(cudaFree(devptr));
+            if (devPtr_)
+                CUDA_Check(cudaFree(devPtr_));
 
-            capacity = b.capacity;
-            _size    = b._size;
-            devptr   = b.devptr;
+            capacity_ = b.capacity_;
+            size_     = b.size_;
+            devPtr_    = b.devPtr_;
 
-            b.capacity = 0;
-            b._size    = 0;
-            b.devptr   = nullptr;
+            b.capacity_ = 0;
+            b.size_     = 0;
+            b.devPtr_    = nullptr;
         }
 
         return *this;
@@ -113,15 +113,15 @@ public:
     ~DeviceBuffer()
     {
         debug4("Destroying DeviceBuffer<%s> of capacity %d X %d",
-               typeid(T).name(), capacity, sizeof(T));
-        if (devptr != nullptr)
+               typeid(T).name(), capacity_, sizeof(T));
+        if (devPtr_ != nullptr)
         {
-            CUDA_Check(cudaFree(devptr));
+            CUDA_Check(cudaFree(devPtr_));
         }
     }
 
     inline size_t datatype_size() const final { return sizeof(T); }
-    inline size_t size()          const final { return _size; }
+    inline size_t size()          const final { return size_; }
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
@@ -131,12 +131,13 @@ public:
     inline GPUcontainer* produce() const final { return new DeviceBuffer<T>(); }
 
     /// @return typed device pointer to data
-    inline T* devPtr() const { return devptr; }
+    inline T* devPtr() const { return devPtr_; }
 
     /// Set all the bytes to 0
     inline void clearDevice(cudaStream_t stream) override
     {
-        if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
+        if (size_ > 0)
+            CUDA_Check( cudaMemsetAsync(devPtr_, 0, sizeof(T) * size_, stream) );
     }
     
     inline void clear(cudaStream_t stream) {
@@ -150,27 +151,27 @@ public:
     template<typename Cont>
     auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
     {
-        static_assert(std::is_same<decltype(devptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
+        static_assert(std::is_same<decltype(devPtr_), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
         resize_anew(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
 
     template<typename Cont>
     auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.hostPtr()), void())
     {
-        static_assert(std::is_same<decltype(devptr), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
+        static_assert(std::is_same<decltype(devPtr_), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
         resize_anew(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.hostPtr(), sizeof(T) * size_, cudaMemcpyHostToDevice, stream) );
     }
 
     // synchronous copy
     auto copy(const DeviceBuffer<T>& cont)
     {
         resize_anew(cont.size());
-        if (_size > 0)
-            CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
+        if (size_ > 0)
+            CUDA_Check( cudaMemcpy(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice) );
     }
     
     /**
@@ -180,21 +181,21 @@ public:
     void copyFromDevice(const PinnedBuffer<T>& cont, cudaStream_t stream)
     {
         resize_anew(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
     void copyFromHost(const PinnedBuffer<T>& cont, cudaStream_t stream)
     {
         resize_anew(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.hostPtr(), sizeof(T) * _size, cudaMemcpyHostToDevice, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.hostPtr(), sizeof(T) * size_, cudaMemcpyHostToDevice, stream) );
     }
 
 private:
-    size_t capacity   {0}; ///< Storage buffer size
-    size_t _size      {0}; ///< Number of elements stored now
-    T* devptr{nullptr}; ///< Device pointer to data
+    size_t capacity_  {0}; ///< Storage buffer size
+    size_t size_      {0}; ///< Number of elements stored now
+    T *devPtr_  {nullptr}; ///< Device pointer to data
 
     /**
-     * Set #_size = \p n. If n > #capacity, allocate more memory
+     * Set #size_ = \p n. If n > #capacity, allocate more memory
      * and copy the old data on CUDA stream \p stream (only if \c copy is true)
      *
      * If debug level is high enough, will report cases when the buffer had to grow
@@ -205,26 +206,26 @@ private:
      */
     void _resize(size_t n, cudaStream_t stream, bool copy)
     {
-        T * dold = devptr;
-        const size_t oldsize = _size;
+        T *dold = devPtr_;
+        const size_t oldsize = size_;
 
-        _size = n;
-        if (capacity >= n) return;
+        size_ = n;
+        if (capacity_ >= n) return;
 
         const size_t conservative_estimate = static_cast<size_t>(std::ceil(1.1 * static_cast<double>(n) + 10.0));
-        capacity = 128 * ((conservative_estimate + 127) / 128);
+        capacity_ = 128 * ((conservative_estimate + 127) / 128);
 
-        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
+        CUDA_Check(cudaMalloc(&devPtr_, sizeof(T) * capacity_));
 
         if (copy && dold != nullptr)
-            if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
+            if (oldsize > 0) CUDA_Check(cudaMemcpyAsync(devPtr_, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream));
 
         CUDA_Check(cudaFree(dold));
 
         debug4("Allocating DeviceBuffer<%s> from %d x %d  to %d x %d",
                 typeid(T).name(),
                 oldsize, datatype_size(),
-                _size,   datatype_size());
+                size_,   datatype_size());
     }
 };
 
@@ -270,16 +271,16 @@ public:
     {
         if (this != &b)
         {
-            if (hostptr)
-                CUDA_Check(cudaFreeHost(hostptr));
+            if (hostPtr_)
+                CUDA_Check(cudaFreeHost(hostPtr_));
             
-            capacity = b.capacity;
-            _size    = b._size;
-            hostptr  = b.hostptr;
+            capacity_ = b.capacity_;
+            size_    = b.size_;
+            hostPtr_  = b.hostPtr_;
 
-            b.capacity = 0;
-            b._size    = 0;
-            b.hostptr  = nullptr;
+            b.capacity_ = 0;
+            b.size_    = 0;
+            b.hostPtr_  = nullptr;
         }
 
         return *this;
@@ -289,54 +290,54 @@ public:
     ~HostBuffer()
     {
         debug4("Destroying HostBuffer<%s> of capacity %d X %d",
-               typeid(T).name(), capacity, sizeof(T));
-        CUDA_Check(cudaFreeHost(hostptr));
+               typeid(T).name(), capacity_, sizeof(T));
+        CUDA_Check(cudaFreeHost(hostPtr_));
     }
 
     inline size_t datatype_size() const { return sizeof(T); }
-    inline size_t size()          const { return _size; }
+    inline size_t size()          const { return size_; }
 
-    inline T* hostPtr() const { return hostptr; }
-    inline T* data()    const { return hostptr; } /// For uniformity with std::vector
+    inline T* hostPtr() const { return hostPtr_; }
+    inline T* data()    const { return hostPtr_; } /// For uniformity with std::vector
 
-    inline       T& operator[](size_t i)       { return hostptr[i]; }
-    inline const T& operator[](size_t i) const { return hostptr[i]; }
+    inline       T& operator[](size_t i)       { return hostPtr_[i]; }
+    inline const T& operator[](size_t i) const { return hostPtr_[i]; }
 
     inline void resize     (size_t n) { _resize(n, true);  }
     inline void resize_anew(size_t n) { _resize(n, false); }
 
-    inline       T* begin()       { return hostptr; }          /// To support range-based loops
-    inline       T* end()         { return hostptr + _size; }  /// To support range-based loops
+    inline       T* begin()       { return hostPtr_; }          /// To support range-based loops
+    inline       T* end()         { return hostPtr_ + size_; }  /// To support range-based loops
     
-    inline const T* begin() const { return hostptr; }          /// To support range-based loops
-    inline const T* end()   const { return hostptr + _size; }  /// To support range-based loops
+    inline const T* begin() const { return hostPtr_; }          /// To support range-based loops
+    inline const T* end()   const { return hostPtr_ + size_; }  /// To support range-based loops
 
     /// Set all the bytes to 0
     void clear()
     {
-        memset(hostptr, 0, sizeof(T) * _size);
+        memset(hostPtr_, 0, sizeof(T) * size_);
     }
     
     /// Copy data from a HostBuffer of the same template type
     template<typename Cont>
     auto copy(const Cont& cont) -> decltype((void)(cont.hostPtr()), void())
     {
-        static_assert(std::is_same<decltype(hostptr),
+        static_assert(std::is_same<decltype(hostPtr_),
                       decltype(cont.hostPtr())>::value,
                       "can't copy buffers of different types");
 
         resize(cont.size());
-        memcpy(hostptr, cont.hostPtr(), sizeof(T) * _size);
+        memcpy(hostPtr_, cont.hostPtr(), sizeof(T) * size_);
     }
 
     /// Copy data from a DeviceBuffer of the same template type
     template<typename Cont>
     auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
     {
-        static_assert(std::is_same<decltype(hostptr), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
+        static_assert(std::is_same<decltype(hostPtr_), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
         resize(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(hostPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToHost, stream) );
     }
     
     
@@ -351,16 +352,16 @@ public:
         const size_t typeSizeFactor = cont->datatype_size() / sizeof(T);
         
         resize(cont->size() * typeSizeFactor);
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, cont->genericDevPtr(), sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(hostPtr_, cont->genericDevPtr(), sizeof(T) * size_, cudaMemcpyDeviceToHost, stream) );
     }
     
 private:
-    size_t capacity  {0}; ///< Storage buffer size
-    size_t _size     {0}; ///< Number of elements stored now
-    T* hostptr {nullptr}; ///< Host pointer to data
+    size_t capacity_  {0}; ///< Storage buffer size
+    size_t size_      {0}; ///< Number of elements stored now
+    T* hostPtr_ {nullptr}; ///< Host pointer to data
 
     /**
-     * Set #_size = \e n. If \e n > #capacity, allocate more memory
+     * Set #size_ = \e n. If \e n > #capacity_, allocate more memory
      * and copy the old data (only if \e copy is true)
      *
      * If debug level is high enough, will report cases when the buffer had to grow
@@ -370,26 +371,26 @@ private:
      */
     void _resize(size_t n, bool copyOldData)
     {
-        T * hold = hostptr;
-        const size_t oldsize = _size;
+        T * hold = hostPtr_;
+        const size_t oldsize = size_;
 
-        _size = n;
-        if (capacity >= n) return;
+        size_ = n;
+        if (capacity_ >= n) return;
 
         const size_t conservative_estimate = static_cast<size_t> (std::ceil(1.1 * static_cast<double>(n) + 10.0));
-        capacity = 128 * ((conservative_estimate + 127) / 128);
+        capacity_ = 128 * ((conservative_estimate + 127) / 128);
 
-        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
+        CUDA_Check(cudaHostAlloc(&hostPtr_, sizeof(T) * capacity_, 0));
 
         if (copyOldData && hold != nullptr)
-            if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
+            if (oldsize > 0) memcpy(hostPtr_, hold, sizeof(T) * oldsize);
 
         CUDA_Check(cudaFreeHost(hold));
 
         debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
                 typeid(T).name(),
                 oldsize, datatype_size(),
-                _size,   datatype_size());
+                size_,   datatype_size());
     }
 };
 
@@ -447,15 +448,15 @@ public:
     {
         if (this!=&b)
         {
-            capacity = b.capacity;
-            _size = b._size;
-            hostptr = b.hostptr;
-            devptr = b.devptr;
+            capacity_ = b.capacity_;
+            size_ = b.size_;
+            hostPtr_ = b.hostPtr_;
+            devPtr_ = b.devPtr_;
 
-            b.capacity = 0;
-            b._size = 0;
-            b.devptr = nullptr;
-            b.hostptr = nullptr;
+            b.capacity_ = 0;
+            b.size_ = 0;
+            b.devPtr_ = nullptr;
+            b.hostPtr_ = nullptr;
         }
 
         return *this;
@@ -465,16 +466,16 @@ public:
     ~PinnedBuffer()
     {
         debug4("Destroying PinnedBuffer<%s> of capacity %d X %d",
-               typeid(T).name(), capacity, sizeof(T));
-        if (devptr != nullptr)
+               typeid(T).name(), capacity_, sizeof(T));
+        if (devPtr_ != nullptr)
         {
-            CUDA_Check(cudaFreeHost(hostptr));
-            CUDA_Check(cudaFree(devptr));
+            CUDA_Check(cudaFreeHost(hostPtr_));
+            CUDA_Check(cudaFree(devPtr_));
         }
     }
 
     inline size_t datatype_size() const final { return sizeof(T); }
-    inline size_t size()          const final { return _size; }
+    inline size_t size()          const final { return size_; }
 
     inline void* genericDevPtr() const final { return (void*) devPtr(); }
 
@@ -483,19 +484,19 @@ public:
 
     inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
-    inline T* hostPtr() const { return hostptr; }  ///< @return typed host pointer to data
-    inline T* data()    const { return hostptr; }  /// For uniformity with std::vector
-    inline T* devPtr()  const { return devptr; }   ///< @return typed device pointer to data
+    inline T* hostPtr() const { return hostPtr_; }  ///< @return typed host pointer to data
+    inline T* data()    const { return hostPtr_; }  /// For uniformity with std::vector
+    inline T* devPtr()  const { return devPtr_; }   ///< @return typed device pointer to data
 
-    inline       T& operator[](size_t i)       { return hostptr[i]; }  ///< allow array-like bracketed access to HOST data
-    inline const T& operator[](size_t i) const { return hostptr[i]; }
+    inline       T& operator[](size_t i)       { return hostPtr_[i]; }  ///< allow array-like bracketed access to HOST data
+    inline const T& operator[](size_t i) const { return hostPtr_[i]; }
 
     
-    inline       T* begin()       { return hostptr; }          /// To support range-based loops
-    inline       T* end()         { return hostptr + _size; }  /// To support range-based loops
+    inline       T* begin()       { return hostPtr_; }          /// To support range-based loops
+    inline       T* end()         { return hostPtr_ + size_; }  /// To support range-based loops
     
-    inline const T* begin() const { return hostptr; }          /// To support range-based loops
-    inline const T* end()   const { return hostptr + _size; }  /// To support range-based loops
+    inline const T* begin() const { return hostPtr_; }          /// To support range-based loops
+    inline const T* end()   const { return hostPtr_ + size_; }  /// To support range-based loops
     /**
      * Copy data from device to host
      *
@@ -507,9 +508,9 @@ public:
         // TODO: check if we really need to do that
         // maybe everything is already downloaded
     	debug4("GPU -> CPU (D2H) transfer of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), _size, datatype_size());
+    	                typeid(T).name(), size_, datatype_size());
 
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(hostptr, devptr, sizeof(T) * _size, cudaMemcpyDeviceToHost, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(hostPtr_, devPtr_, sizeof(T) * size_, cudaMemcpyDeviceToHost, stream) );
         if (synch == ContainersSynch::Synch) CUDA_Check( cudaStreamSynchronize(stream) );
     }
 
@@ -517,9 +518,9 @@ public:
     inline void uploadToDevice(cudaStream_t stream)
     {
     	debug4("CPU -> GPU (H2D) transfer of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), _size, datatype_size());
+    	                typeid(T).name(), size_, datatype_size());
 
-        if (_size > 0) CUDA_Check(cudaMemcpyAsync(devptr, hostptr, sizeof(T) * _size, cudaMemcpyHostToDevice, stream));
+        if (size_ > 0) CUDA_Check(cudaMemcpyAsync(devPtr_, hostPtr_, sizeof(T) * size_, cudaMemcpyHostToDevice, stream));
     }
 
     /// Set all the bytes to 0 on both host and device
@@ -533,32 +534,32 @@ public:
     inline void clearDevice(cudaStream_t stream) override
     {
     	debug4("Clearing device memory of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), _size, datatype_size());
+    	                typeid(T).name(), size_, datatype_size());
 
-        if (_size > 0) CUDA_Check( cudaMemsetAsync(devptr, 0, sizeof(T) * _size, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemsetAsync(devPtr_, 0, sizeof(T) * size_, stream) );
     }
 
     /// Set all the bytes to 0 on host only
     inline void clearHost()
     {
     	debug4("Clearing host memory of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), _size, datatype_size());
+    	                typeid(T).name(), size_, datatype_size());
 
-        if (_size > 0) memset(static_cast<void*>(hostptr), 0, sizeof(T) * _size);
+        if (size_ > 0) memset(static_cast<void*>(hostPtr_), 0, sizeof(T) * size_);
     }
 
     /// Copy data from a DeviceBuffer of the same template type
     void copy(const DeviceBuffer<T>& cont, cudaStream_t stream)
     {
         resize_anew(cont.size());
-        if (_size > 0) CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+        if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
 
     /// Copy data from a HostBuffer of the same template type
     void copy(const HostBuffer<T>& cont)
     {
         resize_anew(cont.size());
-        memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
+        memcpy(static_cast<void*>(hostPtr_), static_cast<void*>(cont.hostPtr()), sizeof(T) * size_);
     }
 
     /// Copy data from a PinnedBuffer of the same template type
@@ -566,10 +567,10 @@ public:
     {
         resize_anew(cont.size());
 
-        if (_size > 0)
+        if (size_ > 0)
         {
-            CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
-            memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
+            CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
+            memcpy(static_cast<void*>(hostPtr_), static_cast<void*>(cont.hostPtr()), sizeof(T) * size_);
         }
     }
 
@@ -578,8 +579,8 @@ public:
     {
         resize_anew(cont.size());
 
-        if (_size > 0)
-            CUDA_Check( cudaMemcpyAsync(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice, stream) );
+        if (size_ > 0)
+            CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
 
     /// synchronous copy
@@ -587,21 +588,21 @@ public:
     {
         resize_anew(cont.size());
 
-        if (_size > 0)
+        if (size_ > 0)
         {
-            CUDA_Check( cudaMemcpy(devptr, cont.devPtr(), sizeof(T) * _size, cudaMemcpyDeviceToDevice) );
-            memcpy(static_cast<void*>(hostptr), static_cast<void*>(cont.hostPtr()), sizeof(T) * _size);
+            CUDA_Check( cudaMemcpy(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice) );
+            memcpy(static_cast<void*>(hostPtr_), static_cast<void*>(cont.hostPtr()), sizeof(T) * size_);
         }
     }
 
 private:
-    size_t capacity  {0}; ///< Storage buffers size
-    size_t _size     {0}; ///< Number of elements stored now
-    T* hostptr {nullptr}; ///< Host pointer to data
-    T* devptr  {nullptr}; ///< Device pointer to data
+    size_t capacity_  {0}; ///< Storage buffers size
+    size_t size_     {0}; ///< Number of elements stored now
+    T* hostPtr_ {nullptr}; ///< Host pointer to data
+    T* devPtr_  {nullptr}; ///< Device pointer to data
 
     /**
-     * Set #_size = \p n. If n > #capacity, allocate more memory
+     * Set #size_ = \p n. If n > #capacity_, allocate more memory
      * and copy the old data on CUDA stream \p stream (only if \p copy is true)
      * Copy both host and device data if \p copy is true
      *
@@ -613,28 +614,28 @@ private:
      */
     void _resize(size_t n, cudaStream_t stream, bool copy)
     {
-        T * hold = hostptr;
-        T * dold = devptr;
-        size_t oldsize = _size;
+        T * hold = hostPtr_;
+        T * dold = devPtr_;
+        size_t oldsize = size_;
 
-        _size = n;
-        if (capacity >= n) return;
+        size_ = n;
+        if (capacity_ >= n) return;
 
         const size_t conservative_estimate = static_cast<size_t>(std::ceil(1.1 * static_cast<double>(n) + 10.0));
-        capacity = 128 * ((conservative_estimate + 127) / 128);
+        capacity_ = 128 * ((conservative_estimate + 127) / 128);
 
         debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
                 typeid(T).name(),
                 oldsize, datatype_size(),
-                _size,   datatype_size());
+                size_,   datatype_size());
 
-        CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
-        CUDA_Check(cudaMalloc(&devptr, sizeof(T) * capacity));
+        CUDA_Check(cudaHostAlloc(&hostPtr_, sizeof(T) * capacity_, 0));
+        CUDA_Check(cudaMalloc(&devPtr_, sizeof(T) * capacity_));
 
         if (copy && hold != nullptr && oldsize > 0)
         {
-            memcpy(static_cast<void*>(hostptr), static_cast<void*>(hold), sizeof(T) * oldsize);
-            CUDA_Check( cudaMemcpyAsync(devptr, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream) );
+            memcpy(static_cast<void*>(hostPtr_), static_cast<void*>(hold), sizeof(T) * oldsize);
+            CUDA_Check( cudaMemcpyAsync(devPtr_, dold, sizeof(T) * oldsize, cudaMemcpyDeviceToDevice, stream) );
             CUDA_Check( cudaStreamSynchronize(stream) );
         }
 
