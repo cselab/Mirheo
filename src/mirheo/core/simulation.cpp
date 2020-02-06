@@ -113,7 +113,8 @@ static int getRank(const MPI_Comm& comm)
 }
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
+                       CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+                       Undumper *undumper, const Config *sim) :
     MirObject("simulation"),
     nranks3D_(getRank3DInfos(cartComm).nranks3D),
     rank3D_  (getRank3DInfos(cartComm).rank3D  ),
@@ -131,7 +132,12 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     if (checkpointInfo_.needDump())
         createFoldersCollective(cartComm_, checkpointInfo_.folder);
 
-    state_->reinitTime();
+    if (sim == nullptr)
+        state_->reinitTime();
+
+    if (undumper != nullptr && sim != nullptr) {
+        fprintf(stderr, "SIMULATION READING SNAPSHOT NOT IMPLEMENTED!!!!!!!!!!!\n");
+    }
 
     const auto &domain = state_->domain;
     if (domain.globalSize.x <= 0 || domain.globalSize.y <= 0 || domain.globalSize.z <= 0) {

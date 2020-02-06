@@ -48,6 +48,12 @@ public:
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
+    Mirheo(int3 nranks3D, const std::string &snapshotPath,
+           LogInfo logInfo, bool gpuAwareMPI=false);
+
+    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string &snapshotPath,
+           LogInfo logInfo, bool gpuAwareMPI=false);
+
     ~Mirheo();
     
     void restart(std::string folder="restart/");
@@ -130,7 +136,10 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, bool gpuAwareMPI, Undumper *undumper = nullptr,
+              Config *simConfig = nullptr, Config *postConfig = nullptr);
+    void initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
+                          LogInfo logInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();

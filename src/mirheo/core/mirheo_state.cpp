@@ -9,12 +9,18 @@ namespace mirheo
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain, real dt) :
+MirState::MirState(DomainInfo domain, real dt, Undumper *un, const Config *state) :
     domain(domain),
     dt(dt),
-    currentTime(0),
+    currentTime(0.0),
     currentStep(0)
-{}
+{
+    if (state) {
+        assert(un);
+        currentTime = un->undump<TimeType>(state->at("currentTime"));
+        currentStep = un->undump<StepType>(state->at("currentStep"));
+    }
+}
 
 MirState::MirState(const MirState&) = default;
 

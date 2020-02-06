@@ -69,11 +69,15 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 }
 
 void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
-                  CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+                  CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+                  Undumper *undumper, Config *compConfig, Config *postConfig)
 {
-    int nranks;
+    assert((bool)compConfig == (bool)postConfig);  // Either neither or both should be set.
+    const Config *stateConfig = compConfig ? &compConfig->at("Mirheo").at(0).at("state") : nullptr;
+    const Config *simConfig   = compConfig ? &compConfig->at("Simulation").at(0) : nullptr;
+    const Config *ppConfig    = postConfig ? &postConfig->at("Postprocess").at(0) : nullptr;
 
-    initLogger(comm_, logInfo);   
+    int nranks;
 
     MPI_Comm_set_errhandler(comm_, MPI_ERRORS_RETURN);
 
@@ -96,9 +100,10 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
         selectIntraNodeGPU(comm_);
 
         createCartComm(comm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), dt);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
+                                             dt, undumper, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
-                                            checkpointInfo, gpuAwareMPI);
+                                            checkpointInfo, gpuAwareMPI, undumper, simConfig);
         computeTask_ = 0;
         return;
     }
@@ -124,9 +129,10 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
         selectIntraNodeGPU(compComm_);
 
         createCartComm(compComm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), dt);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
+                                             dt, undumper, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
-                                            checkpointInfo, gpuAwareMPI);
+                                            checkpointInfo, gpuAwareMPI, undumper, simConfig);
     }
     else
     {
@@ -135,10 +141,27 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         MPI_Check( MPI_Comm_rank(ioComm_, &rank_) );
 
-        post_ = std::make_unique<Postprocess> (ioComm_, interComm_, checkpointInfo.folder);
+        post_ = std::make_unique<Postprocess> (ioComm_, interComm_, checkpointInfo.folder, undumper, ppConfig);
     }
 
     MPI_Check( MPI_Comm_free(&splitComm) );
+}
+
+void Mirheo::initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
+                           LogInfo logInfo, bool gpuAwareMPI)
+{
+    Config compConfig = configFromJSONFile(joinPaths(snapshotPath, "config.compute.json"));
+    Config postConfig = configFromJSONFile(joinPaths(snapshotPath, "config.post.json"));
+
+    Undumper undumper{UndumpContext{snapshotPath, comm_}};
+
+    const Config& mirState = compConfig.at("Mirheo").at(0).at("state");
+    auto dt = undumper.undump<real>(mirState.at("dt"));
+    auto globalDomainSize = undumper.undump<real3>(mirState.at("domainGlobalSize"));
+    auto checkpointInfo = undumper.undump<CheckpointInfo>(compConfig.at("Simulation").at(0).at("checkpointInfo"));
+
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI,
+         &undumper, &compConfig, &postConfig);
 }
 
 void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
@@ -165,6 +188,7 @@ Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_);
     initializedMpi_ = true;
 
+    initLogger(comm_, logInfo);
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
 }
 
@@ -172,7 +196,27 @@ Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &comm_);
+    initLogger(comm_, logInfo);
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
+}
+
+Mirheo::Mirheo(int3 nranks3D, const std::string &snapshotPath,
+               LogInfo logInfo, bool gpuAwareMPI)
+{
+    MPI_Init(nullptr, nullptr);
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm_);
+    initializedMpi_ = true;
+
+    initLogger(comm_, logInfo);
+    initFromSnapshot(nranks3D, snapshotPath, logInfo, gpuAwareMPI);
+}
+
+Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, const std::string &snapshotPath,
+               LogInfo logInfo, bool gpuAwareMPI)
+{
+    MPI_Comm_dup(comm, &comm_);
+    initLogger(comm_, logInfo);
+    initFromSnapshot(nranks3D, snapshotPath, logInfo, gpuAwareMPI);
 }
 
 static void safeCommFree(MPI_Comm *comm)
@@ -714,7 +758,7 @@ void Mirheo::writeSnapshot(std::string path)
 
     // Store the config files to the disk.
     if (isSimulationMasterTask() || isPostprocessMasterTask()) {
-        std::string content = configToJSON(dumper.getConfig()) + '\n';
+        std::string content = dumper.getConfig().toJSONString() + '\n';
         std::string jsonName = isComputeTask() ? "config.compute.json" : "config.post.json";
         storeToFile(content, joinPaths(path, jsonName));
     }

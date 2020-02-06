@@ -7,6 +7,7 @@ namespace mirheo
 {
 
 class Dumper;
+class Undumper;
 class Config;
 class ConfigDictionary;
 
@@ -97,6 +98,7 @@ template <>
 struct ConfigDumper<CheckpointInfo>
 {
     static Config dump(Dumper&, const CheckpointInfo&);
+    static CheckpointInfo undump(Undumper&, const Config&);
 };
 
 // tag used to stop the postprocess side to stop

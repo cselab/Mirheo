@@ -103,6 +103,33 @@ void exportMirheo(py::module& m)
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         )")
+        .def(py::init( [] (int3 nranks, const std::string& snapshotPath, std::string log, int debuglvl,
+                           bool cudaMPI, bool noSplash, long commPtr)
+            {
+                LogInfo logInfo(log, debuglvl, noSplash);
+
+                if (commPtr == 0) {
+                    return std::make_unique<Mirheo> (      nranks, snapshotPath, logInfo, cudaMPI);
+                } else {
+                    // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
+                    MPI_Comm comm = *(MPI_Comm *)commPtr;
+                    return std::make_unique<Mirheo> (comm, nranks, snapshotPath, logInfo, cudaMPI);
+                }
+            } ),
+            py::return_value_policy::take_ownership,
+            "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=3,
+             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
+                Create the Mirheo coordinator from a snapshot.
+
+                Args:
+                    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
+                    snapshot: path to the snapshot folder.
+                    log_filename: prefix of the log files that will be created.
+                    debug_level: Debug level from 0 to 8, see above.
+                    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
+                    no_splash: don't display the splash screen when at the start-up.
+                    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+        )")
         
         .def("registerParticleVector", &Mirheo::registerParticleVector,
             "pv"_a, "ic"_a=nullptr, R"(

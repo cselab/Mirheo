@@ -18,6 +18,7 @@ namespace mirheo
 {
 
 class Dumper;
+class Undumper;
 
 template <typename T, typename Enable>
 struct ConfigDumper
@@ -26,8 +27,8 @@ struct ConfigDumper
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
 
-    /// Required function.
     static Config dump(Dumper&, T& value);
+    static T undump(Undumper&, const Config &);
 };
 
 class ConfigDictionary : public FlatOrderedDict<std::string, Config>
@@ -44,9 +45,9 @@ public:
     using Int        = long long;
     using Float      = double;
     using String     = std::string;
-    using Dictionary = ConfigDictionary;
     using List       = std::vector<Config>;
-    using Variant    = mpark::variant<Int, Float, String, Dictionary, List>;
+    using Dictionary = ConfigDictionary;
+    using Variant    = mpark::variant<Int, Float, String, List, Dictionary>;
 
     Config(Int value) : value_{value} {}
     Config(Float value) : value_{value} {}
@@ -69,14 +70,31 @@ public:
             "Did you mean `dumper(value)` instead of `Config{value}`?");
     }
 
-    Int getInt() const { return mpark::get<Int>(value_); }
-    Float getFloat() const { return mpark::get<Float>(value_); }
-    const String& getString() const { return mpark::get<String>(value_); }
-    const Dictionary& getDict() const { return mpark::get<Dictionary>(value_); }
-    const List& getList() const { return mpark::get<List>(value_); }
+    std::string toJSONString() const;
 
-    Dictionary& getDict() { return mpark::get<Dictionary>(value_); }
-    List& getList() { return mpark::get<List>(value_); }
+    /// Getter functions. Terminate if the underlying type is different. Int
+    /// and Float variants accept the other type if the conversion is lossless.
+    Int getInt() const;
+    Float getFloat() const;
+    const String& getString() const;
+    const List& getList() const;
+    List& getList();
+    const Dictionary& getDict() const;
+    Dictionary& getDict();
+
+    /// Get the element matching the given key. Terminates if not a dict, or if
+    /// the key was not found.
+    Config& at(const std::string &key);
+    Config& at(const char *key);
+    const Config& at(const std::string &key) const;
+    const Config& at(const char *key) const;
+
+    /// Get the list element. Terminates if not a list or if out of range.
+    Config& at(size_t i);
+    const Config& at(size_t i) const;
+
+    Config& at(int i) { return at(static_cast<size_t>(i)); }
+    const Config& at(int i) const { return at(static_cast<size_t>(i)); }
 
     template <typename T>
     inline const T& get() const
@@ -107,6 +125,12 @@ struct DumpContext
     std::map<std::string, int> counters;
 
     bool isGroupMasterTask() const;
+};
+
+struct UndumpContext
+{
+    std::string path {"snapshot/"};
+    MPI_Comm groupComm {MPI_COMM_NULL};
 };
 
 class Dumper
@@ -149,6 +173,24 @@ private:
     DumpContext context_;
 };
 
+class Undumper
+{
+public:
+    Undumper(UndumpContext context);
+    ~Undumper();
+
+    UndumpContext& getContext() noexcept { return context_; }
+
+    template <typename T>
+    T undump(const Config &config)
+    {
+        return ConfigDumper<T>::undump(*this, config);
+    }
+
+private:
+    UndumpContext context_;
+};
+
 namespace detail
 {
     struct DumpHandler
@@ -183,6 +225,10 @@ namespace detail
         {                                                                      \
             return static_cast<Config::ELTYPE>(x);                             \
         }                                                                      \
+        static TYPE undump(Undumper&, const Config &value)                     \
+        {                                                                      \
+            return static_cast<TYPE>(value.get##ELTYPE());                     \
+        }                                                                      \
     }
 MIRHEO_DUMPER_PRIMITIVE(bool,               Int);
 MIRHEO_DUMPER_PRIMITIVE(int,                Int);
@@ -193,25 +239,36 @@ MIRHEO_DUMPER_PRIMITIVE(unsigned long,      Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(unsigned long long, Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(float,              Float);
 MIRHEO_DUMPER_PRIMITIVE(double,             Float);
-MIRHEO_DUMPER_PRIMITIVE(const char *,       String);
 #undef MIRHEO_DUMPER_PRIMITIVE
+
+template <>
+struct ConfigDumper<const char*>
+{
+    static Config dump(Dumper&, const char *str)
+    {
+        return std::string(str);
+    }
+    static const char* undump(Undumper&, const Config&) = delete;
+};
 
 template <>
 struct ConfigDumper<std::string>
 {
-    static Config dump(Dumper &, std::string x)
+    static Config dump(Dumper&, std::string x)
     {
         return std::move(x);
+    }
+    static const std::string& undump(Undumper&, const Config &config)
+    {
+        return config.getString();
     }
 };
 
 template <>
 struct ConfigDumper<float3>
 {
-    static Config dump(Dumper&, float3 v)
-    {
-        return Config::List{(double)v.x, (double)v.y, (double)v.z};
-    }
+    static Config dump(Dumper&, float3 v);
+    static float3 undump(Undumper& un, const Config &config);
 };
 
 /// ConfigDumper for enum types.
@@ -220,6 +277,10 @@ struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
 {
     static Config dump(Dumper&, T t) {
         return static_cast<Config::Int>(t);
+    }
+    static T undump(Undumper&, const Config &config)
+    {
+        return static_cast<T>(config.getInt());
     }
 };
 
@@ -292,6 +353,7 @@ struct ConfigDumper<mpark::variant<Ts...>>
     }
 };
 
-std::string configToJSON(const Config& config);
+Config configFromJSONFile(const std::string& filename);
+Config configFromJSON(const std::string& json);
 
 } // namespace mirheo

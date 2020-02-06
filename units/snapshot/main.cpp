@@ -69,16 +69,16 @@ TEST(Snapshot, BasicConfigToJSON)
     Dumper dumper{DumpContext{}};
 
     // Test basic variant types.
-    ASSERT_STREQ(configToJSON(dumper(10)).c_str(), "10");
-    ASSERT_STREQ(configToJSON(dumper(12.125)).c_str(), "12.125");
-    ASSERT_STREQ(configToJSON(dumper("asdf")).c_str(), "\"asdf\"");
-    ASSERT_STREQ(configToJSON(dumper(std::vector<int>{10, 20, 30})).c_str(),
+    ASSERT_STREQ(dumper(10).toJSONString().c_str(), "10");
+    ASSERT_STREQ(dumper(12.125).toJSONString().c_str(), "12.125");
+    ASSERT_STREQ(dumper("asdf").toJSONString().c_str(), "\"asdf\"");
+    ASSERT_STREQ(dumper(std::vector<int>{10, 20, 30}).toJSONString().c_str(),
                  "[\n    10,\n    20,\n    30\n]");
-    ASSERT_STREQ(configToJSON(dumper(std::map<std::string, int>{{"a", 10}, {"b", 20}})).c_str(),
+    ASSERT_STREQ(dumper(std::map<std::string, int>{{"a", 10}, {"b", 20}}).toJSONString().c_str(),
                  "{\n    \"a\": 10,\n    \"b\": 20\n}");
 
     // Test escaping special characters.
-    ASSERT_STREQ(configToJSON(dumper("\"  '  \\  \f  \b  \r  \n  \t")).c_str(),
+    ASSERT_STREQ(dumper("\"  '  \\  \f  \b  \r  \n  \t").toJSONString().c_str(),
                  "\"\\\"  '  \\\\  \\f  \\b  \\r  \\n  \\t\"");
 }
 
@@ -89,18 +89,44 @@ TEST(Snapshot, InterfacesForConfigDumper)
 
     // Test ConfigDumper<> specialization dump() interface.
     Config config1 = dumper(Struct1{10, 3.125, "hello"});
-    ASSERT_STREQ(removeWhitespace(configToJSON(config1)).c_str(),
+    ASSERT_STREQ(removeWhitespace(config1.toJSONString()).c_str(),
                  "{\"b\":10,\"a\":3.125,\"c\":\"hello\"}");
 
     // Test dumping using MemberVars.
     Config config2 = dumper(Struct2{100, Struct1{10, 3.125, "hello"}});
-    ASSERT_STREQ(removeWhitespace(configToJSON(config2)).c_str(),
+    ASSERT_STREQ(removeWhitespace(config2.toJSONString()).c_str(),
                  "{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}");
 
     // Test dumping using MIRHEO_MEMBER_VARS.
     Config config3 = dumper(Struct3{200, Struct2{100, Struct1{10, 3.125, "hello"}}});
-    ASSERT_STREQ(removeWhitespace(configToJSON(config3)).c_str(),
+    ASSERT_STREQ(removeWhitespace(config3.toJSONString()).c_str(),
                  "{\"z\":200,\"w\":{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}}");
+}
+
+TEST(Snapshot, ParseJSON)
+{
+    auto testParsing = [](const Config &config, const std::string &json) {
+        std::string a = config.toJSONString();
+        std::string b = configFromJSON(json).toJSONString();
+        ASSERT_STREQ(a.c_str(), b.c_str());
+    };
+
+    testParsing(Config{10LL}, "10");
+    testParsing(Config{10.125}, "10.125");
+    testParsing(Config{"abc"}, "\"abc\"");
+    testParsing(Config{"a\n\r\b\f\t\"bc"}, R"("a\n\r\b\f\t\"bc")");
+    testParsing(Config::List{10LL, 20.5, "abc"}, R"([10, 20.5, "abc"])");
+    testParsing(Config::Dictionary{{"b", 10LL}, {"a", 20.5}, {"c", "abc"}},
+                R"(  {"b": 10, "a": 20.5, "c": "abc"}  )");
+    testParsing(Config::Dictionary{
+            {"b", 10LL},
+            {"a", 20.5},
+            {"c", Config::List{10LL, 20LL, 30LL, "abc"}}},
+            R"(  {"b": 10, "a": 20.5, "c": [10, 20, 30, "abc"]}  )");
+
+    ASSERT_EQ(10,   configFromJSON("10").getInt());
+    ASSERT_EQ(10.5, configFromJSON("10.5").getFloat());
+    ASSERT_EQ(1e10, configFromJSON("1e10").getFloat());
 }
 
 int main(int argc, char **argv)
