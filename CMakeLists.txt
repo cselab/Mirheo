@@ -21,6 +21,10 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# ***********************
+# Options
+# ***********************
+
 option(BUILD_PYTHON_MODULE "Build mirheo python module"        ON )
 option(BUILD_TESTS         "Build mirheo unit tests"           OFF)
 option(ENABLE_LTO          "enable link time optimization"     OFF)
@@ -40,6 +44,7 @@ project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 # ***********************
 # Alias directories
 # ***********************
+
 set(MIR_BASE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(CORE_DIR       "${MIR_BASE_INCLUDE_DIR}/mirheo/core/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
@@ -47,6 +52,7 @@ set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 # ***********************
 # generate version files
 # ***********************
+
 configure_file(
   "${CORE_DIR}/version.cpp.in"
   "${CORE_DIR}/version.cpp"
@@ -77,8 +83,8 @@ endif()
 # *************************
 
 if (BUILD_TESTS)
-enable_testing()
-add_subdirectory(units)
+  enable_testing()
+  add_subdirectory(units)
 endif()
 
 if (PROFILE_COMPILATION)
