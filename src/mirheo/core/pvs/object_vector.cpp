@@ -37,14 +37,14 @@ void swap(LocalObjectVector& a, LocalObjectVector& b)
 
 void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
-    nObjects = getNobjects(np);
+    nObjects = _computeNobjects(np);
     LocalParticleVector::resize(np, stream);
     dataPerObject.resize(nObjects, stream);
 }
 
 void LocalObjectVector::resize_anew(int np)
 {
-    nObjects = getNobjects(np);
+    nObjects = _computeNobjects(np);
     LocalParticleVector::resize_anew(np);
     dataPerObject.resize_anew(nObjects);
 }
@@ -87,7 +87,12 @@ PinnedBuffer<Force>* LocalObjectVector::getMeshForces(__UNUSED cudaStream_t stre
     return &forces();
 }
 
-int LocalObjectVector::getNobjects(int np) const
+int LocalObjectVector::getObjectSize() const
+{
+    return objSize;
+}
+
+int LocalObjectVector::_computeNobjects(int np) const
 {
     if (np % objSize != 0)
         die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);

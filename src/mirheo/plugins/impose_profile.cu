@@ -125,7 +125,7 @@ void ImposeProfilePlugin::afterIntegration(cudaStream_t stream)
             applyProfile,
             getNblocks(nRelevantCells_[0], nthreads), nthreads, 0, stream,
             cl_->cellInfo(), cl_->getView<PVview>(), relevantCells_.devPtr(), nRelevantCells_[0], low_, high_, targetVel_,
-            kBT_, 1.0_r / pv_->mass, drand48(), drand48() );
+            kBT_, 1.0_r / pv_->getMassPerParticle(), drand48(), drand48() );
 }
 
 } // namespace mirheo

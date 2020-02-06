@@ -28,16 +28,17 @@ public:
     virtual PinnedBuffer<real4>* getOldMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
+    int getObjectSize() const;
+    
+private:
+    int _computeNobjects(int np) const;
 
 public:
-    int nObjects { 0 };
-    int objSize  { 0 };
-    
+    int nObjects { 0 };    
     DataManager dataPerObject;
 
-protected:
-
-    int getNobjects(int np) const;
+private:
+    int objSize;
 };
 
 

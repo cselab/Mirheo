@@ -19,7 +19,7 @@ void ObjectPacker::update(LocalParticleVector *lpv, cudaStream_t stream)
     if (lov == nullptr) die("Must pass local object vector to object packer update");
     
     objectData_.updateChannels(lov->dataPerObject, predicate_, stream);
-    objSize_ = lov->objSize;
+    objSize_ = lov->getObjectSize();
 }
 
 ObjectPackerHandler ObjectPacker::handler()

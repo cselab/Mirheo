@@ -125,7 +125,7 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
 
     const auto& srcDesc = lov->dataPerObject.getChannelDescOrDie(channelName);
 
-    const int objSize  = lov->objSize;
+    const int objSize  = lov->getObjectSize();
     const int nObjects = lov->nObjects;
 
     mpark::visit([&](auto srcBufferPtr)
@@ -154,7 +154,7 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
 
     const auto& srcDesc = lrv->dataPerBisegment.getChannelDescOrDie(channelName);
 
-    const int objSize  = lrv->objSize;
+    const int objSize  = lrv->getObjectSize();
     const int nObjects = lrv->nObjects;
     const int numBiSegmentsPerObject = lrv->getNumSegmentsPerRod() - 1;
 

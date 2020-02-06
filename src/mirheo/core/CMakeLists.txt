@@ -98,7 +98,6 @@ set(sources_cu
   object_belonging/object_belonging.cu
   object_belonging/rod_belonging.cu
   object_belonging/shape_belonging.cu
-  pvs/object_deleter.cu
   pvs/utils/compute_com_extents.cu
   rigid/operations.cu
   walls/simple_stationary_wall.cu

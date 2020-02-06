@@ -45,7 +45,7 @@ void LocalRodVector::resize_anew(int np)
 
 int LocalRodVector::getNumSegmentsPerRod() const
 {
-    return getNumSegments(objSize);
+    return getNumSegments(getObjectSize());
 }
 
 RodVector::RodVector(const MirState *state, const std::string& name, real mass, int nSegments, int nObjects) :
