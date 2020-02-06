@@ -44,7 +44,7 @@ set(BINDINGS_DIR   "${SRC_DIR}/mirheo/bindings/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 
 # Find sources and add them to the libraries
-file(GLOB_RECURSE SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu" "${CORE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/extern/pugixml/src/*.cpp")
+file(GLOB_RECURSE SOURCES_CORE     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CORE_DIR}/*.cu" "${CORE_DIR}/*.cpp")
 file(GLOB_RECURSE SOURCES_PLUGINS  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${PLUGINS_DIR}/*.cu" "${PLUGINS_DIR}/*.cpp")
 file(GLOB_RECURSE SOURCES_BINDINGS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${BINDINGS_DIR}/*.cpp")
 
@@ -66,6 +66,12 @@ if (NOT TARGET mpark_variant)
     add_subdirectory(src/extern/variant)
 endif()
 
+# Add pugixml
+if (NOT TARGET pugixml)
+    add_subdirectory(src/extern/pugixml)
+endif()
+
+
 # CUDA
 # Dynamic linking should allegedly improve UCX-based MPI,
 # but it seriously affects other code aspects (maybe stream polling?)
@@ -74,7 +80,6 @@ find_package(CUDA 9.2 REQUIRED)
 
 include(mpi)
 
-target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 
 set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
@@ -117,6 +122,7 @@ set_target_properties(${LIB_MIR} PROPERTIES
 
 target_link_libraries(${LIB_MIR_CORE} PUBLIC ${CUDA_LIBRARIES})
 target_link_libraries(${LIB_MIR_CORE} PUBLIC mpark_variant)
+target_link_libraries(${LIB_MIR_CORE} PRIVATE pugixml-static) # don t use the alias here because we need to set a property later
 
 target_link_libraries(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${LIB_MIR_CORE})
 target_link_libraries(${LIB_MIR}                 PRIVATE ${LIB_MIR_CORE_AND_PLUGINS})
@@ -212,6 +218,7 @@ string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
 string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 
+set_property(TARGET pugixml-static              PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET ${LIB_MIR_CORE_AND_PLUGINS} PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_property(TARGET ${LIB_MIR_CORE}             PROPERTY POSITION_INDEPENDENT_CODE ON)
 
