@@ -41,7 +41,7 @@ set(sources_cu
 
 add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC ${sources_cpp} ${sources_cu})
 
-target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${SRC_DIR} )
+target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MIR_BASE_INCLUDE_DIR} )
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${CUDA_INCLUDE_DIRS})
 

@@ -109,8 +109,8 @@ set(sources_cu
 add_library(${LIB_MIR_CORE} STATIC ${sources_cpp} ${sources_cu})
 
 
-target_include_directories(${LIB_MIR_CORE} PUBLIC ${SRC_DIR} )
-target_include_directories(${LIB_MIR_CORE} PUBLIC ${SRC_DIR}/extern/cuda_variant/ )
+target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR} )
+target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR}/extern/cuda_variant/ )
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${CUDA_INCLUDE_DIRS})
 

@@ -111,12 +111,9 @@ endif()
 # *************************
 
 # Alias some dirs
-set(SRC_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(CORE_DIR       "${SRC_DIR}/mirheo/core/")
-set(PLUGINS_DIR    "${SRC_DIR}/mirheo/plugins/")
-set(BINDINGS_DIR   "${SRC_DIR}/mirheo/bindings/")
+set(MIR_BASE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(CORE_DIR       "${MIR_BASE_INCLUDE_DIR}/mirheo/core/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
-
 
 # generate version.cpp
 configure_file(
