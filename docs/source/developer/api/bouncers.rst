@@ -28,3 +28,13 @@ Derived classes
    :members:
 
 
+Utilities
+---------
+
+.. doxygenclass:: mirheo::BounceBack
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::BounceMaxwell
+   :project: mirheo
+   :members:
