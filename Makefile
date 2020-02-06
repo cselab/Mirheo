@@ -5,7 +5,7 @@ CMAKE_FLAGS ?= ""
 
 build:
 	mkdir -p build
-	(cd build && cmake ${CMAKE_FLAGS} ../)
+	(cd build && cmake ${CMAKE_FLAGS} -DBUILD_TESTS=OFF ../)
 	(cd build && $(MAKE))
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
