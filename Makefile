@@ -32,7 +32,13 @@ docs:
 test: install
 	(cd tests && mir.make test)
 
+units:
+	mkdir -p build
+	(cd build && cmake ${CMAKE_FLAGS} -DBUILD_TESTS=ON ../)
+	(cd build && $(MAKE))
+	(cd build && $(MAKE) test)
+
 clean:
 	rm -rf build
 
-.PHONY: install uninstall build test clean docs
+.PHONY: install uninstall build test clean docs units
