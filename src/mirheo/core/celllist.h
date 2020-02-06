@@ -107,7 +107,7 @@ public:
     template <typename ViewType>
     ViewType getView() const
     {
-        return ViewType(pv, localPV);
+        return ViewType(pv_, localPV);
     }
 
     /**
@@ -124,16 +124,6 @@ public:
     LocalParticleVector* getLocalParticleVector();
     
 protected:
-    int changedStamp{-1};
-
-    DeviceBuffer<char> scanBuffer;
-    DeviceBuffer<int> cellStarts, cellSizes, order;
-
-    std::unique_ptr<LocalParticleVector> particlesDataContainer;
-    LocalParticleVector *localPV; // will point to particlesDataContainer or pv->local() if Primary
-    
-    ParticleVector* pv;
-
     void _initialize();
     bool _checkNeedBuild() const;
     void _updateExtraDataChannels(cudaStream_t stream);
@@ -152,6 +142,17 @@ protected:
                                 cudaStream_t stream);
 
     virtual std::string makeName() const;
+
+protected:
+    int changedStamp{-1};
+
+    DeviceBuffer<char> scanBuffer;
+    DeviceBuffer<int> cellStarts, cellSizes, order;
+
+    std::unique_ptr<LocalParticleVector> particlesDataContainer;
+    LocalParticleVector *localPV; // will point to particlesDataContainer or pv->local() if Primary
+    
+    ParticleVector *pv_;
 };
 
 class PrimaryCellList : public CellList

@@ -74,13 +74,13 @@ void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 
 RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& name, real partMass,
                                      real3 J, const int objSize,
-                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
+                                     std::shared_ptr<Mesh> mesh_, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
                   std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
     J_(J)
 {
-    this->mesh = std::move(mesh);
+    mesh = std::move(mesh_);
 
     if (length(J) < 1e-5)
         die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);

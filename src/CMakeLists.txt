@@ -44,8 +44,8 @@ find_package(LIBBFD REQUIRED)
 set(cxx_flags -g)
 set(cuda_flags --expt-extended-lambda)
 
-set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion -Werror)
-set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror")
+set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion -Werror -Wshadow)
+set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror -Wshadow")
 
 
 # Auto-detect compute capability if not provided

@@ -81,12 +81,12 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, st
     // we will copy positions and velocities manually in the kernel
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
     {
-        auto name = namedDesc.first;
-        auto desc = namedDesc.second;
+        auto channelName = namedDesc.first;
+        auto channelDesc = namedDesc.second;
         return
-            (name != ChannelNames::positions) &&
-            (name != ChannelNames::velocities) &&
-            (desc->persistence == DataManager::PersistenceMode::Active);
+            (channelName != ChannelNames::positions) &&
+            (channelName != ChannelNames::velocities) &&
+            (channelDesc->persistence == DataManager::PersistenceMode::Active);
     };
 
     extra1_ = std::make_unique<ParticlePacker>(predicate);

@@ -115,7 +115,7 @@ char* BufferInfos::getBufferDevPtr(int bufId)
 }
 
 ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer) :
-    name(name),
+    name_(name),
     uniqueId_(uniqueId),
     packer_(packer)
 {
@@ -179,5 +179,8 @@ BufferOffsetsSizesWrap ExchangeHelper::wrapRecvData()
             recv.offsets.devPtr(), recv.sizes.devPtr(),
             recv.offsetsBytes.devPtr()};
 }
+
+const std::string& ExchangeHelper::getName() const {return name_;}
+const char* ExchangeHelper::getCName() const {return name_.c_str();}
 
 } // namespace mirheo

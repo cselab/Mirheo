@@ -75,12 +75,12 @@ public:
                             typename DihedralInteraction::ParametersType dihedralParams,
                             real growUntil, Filter filter, long seed = 42424242) :
         Interaction(state, name),
-        parameters(parameters),
-        scaleFromTime( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
-        dihedralParams(dihedralParams),
-        triangleParams(triangleParams),
-        filter(filter),
-        stepGen(seed)
+        parameters_(parameters),
+        scaleFromTime_( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
+        dihedralParams_(dihedralParams),
+        triangleParams_(triangleParams),
+        filter_(filter),
+        stepGen_(seed)
     {}
 
     ~MembraneInteractionImpl() = default;
@@ -102,8 +102,8 @@ public:
         debug("Computing internal membrane forces for %d cells of '%s'",
               ov->local()->getNumObjects(), ov->getCName());
 
-        auto currentParams = parameters;
-        const real scale = scaleFromTime(getState()->currentTime);
+        auto currentParams = parameters_;
+        const real scale = scaleFromTime_(getState()->currentTime);
         rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
@@ -114,17 +114,17 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        const auto devParams = setParams(currentParams, stepGen, getState());
+        const auto devParams = setParams(currentParams, stepGen_, getState());
 
-        DihedralInteraction dihedralInteraction(dihedralParams, scale);
-        TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
-        filter.setup(ov);
+        DihedralInteraction dihedralInteraction(dihedralParams_, scale);
+        TriangleInteraction triangleInteraction(triangleParams_, mesh, scale);
+        filter_.setup(ov);
         
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
                            triangleInteraction,
                            dihedralInteraction, dihedralView,
-                           view, meshView, devParams, filter);
+                           view, meshView, devParams, filter_);
 
     }
 
@@ -137,11 +137,11 @@ public:
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        setPrerequisitesPerEnergy(dihedralParams, pv1, pv2, cl1, cl2);
-        setPrerequisitesPerEnergy(triangleParams, pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(dihedralParams_, pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(triangleParams_, pv1, pv2, cl1, cl2);
 
         if (auto mv = dynamic_cast<MembraneVector*>(pv1))
-            filter.setPrerequisites(mv);
+            filter_.setPrerequisites(mv);
         else
             die("Interaction '%s' needs a membrane vector (given '%s')",
                 this->getCName(), pv1->getCName());
@@ -149,34 +149,33 @@ public:
 
     void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
     {
-        precomputeQuantitiesPerEnergy(dihedralParams, pv1, stream);
-        precomputeQuantitiesPerEnergy(triangleParams, pv1, stream);
+        precomputeQuantitiesPerEnergy(dihedralParams_, pv1, stream);
+        precomputeQuantitiesPerEnergy(triangleParams_, pv1, stream);
     }
     
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         const auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
-        TextIO::write(fname, stepGen);
+        TextIO::write(fname, stepGen_);
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
     void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
-        const bool good = TextIO::read(fname, stepGen);
+        const bool good = TextIO::read(fname, stepGen_);
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
     
 protected:
 
-    std::function< real(real) > scaleFromTime;
-    CommonMembraneParameters parameters;
-    typename DihedralInteraction::ParametersType dihedralParams;
-    typename TriangleInteraction::ParametersType triangleParams;
-    Filter filter;
-    StepRandomGen stepGen;
-    
+    std::function< real(real) > scaleFromTime_;
+    CommonMembraneParameters parameters_;
+    typename DihedralInteraction::ParametersType dihedralParams_;
+    typename TriangleInteraction::ParametersType triangleParams_;
+    Filter filter_;
+    StepRandomGen stepGen_;
 };
 
 } // namespace mirheo

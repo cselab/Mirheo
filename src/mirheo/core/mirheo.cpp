@@ -26,10 +26,10 @@
 namespace mirheo
 {
 
-LogInfo::LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash) :
-    fileName(fileName),
-    verbosityLvl(verbosityLvl),
-    noSplash(noSplash)
+LogInfo::LogInfo(const std::string& fileName_, int verbosityLvl_, bool noSplash_) :
+    fileName(fileName_),
+    verbosityLvl(verbosityLvl_),
+    noSplash(noSplash_)
 {}
 
 static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)

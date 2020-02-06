@@ -170,12 +170,12 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
 
         if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
         {
-            ROVview view(rov, rov->local());
+            ROVview rovView(rov, rov->local());
 
             SAFE_KERNEL_LAUNCH(
                 ParticleCheckerKernels::checkRigidForces,
-                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, statuses_.devPtr() + rovStatusIds_[i] );
+                getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
+                rovView, statuses_.devPtr() + rovStatusIds_[i] );
         }
     }
 
@@ -204,12 +204,12 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
         if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
         {
-            ROVview view(rov, rov->local());
+            ROVview rovView(rov, rov->local());
 
             SAFE_KERNEL_LAUNCH(
                 ParticleCheckerKernels::checkRigidMotions,
-                getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, domain, dtInv, statuses_.devPtr() + rovStatusIds_[i] );
+                getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
+                rovView, domain, dtInv, statuses_.devPtr() + rovStatusIds_[i] );
         }
     }
 

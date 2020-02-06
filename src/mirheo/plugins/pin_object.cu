@@ -228,13 +228,13 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 
 ReportPinObjectPlugin::ReportPinObjectPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 void ReportPinObjectPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void ReportPinObjectPlugin::handshake()
@@ -245,10 +245,10 @@ void ReportPinObjectPlugin::handshake()
 
     std::string ovName;
     SimpleSerializer::deserialize(data_, ovName);
-    if (activated && rank_ == 0)
+    if (activated_ && rank_ == 0)
     {
-        std::string fname = path + ovName + ".txt";
-        auto status = fout.open(fname, "w" );
+        std::string fname = path_ + ovName + ".txt";
+        auto status = fout_.open(fname, "w" );
         if (status != FileWrapper::Status::Success)
             die("could not open file '%s'", fname.c_str());
     }
@@ -265,24 +265,24 @@ void ReportPinObjectPlugin::deserialize()
     MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
     MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
 
-    if (activated && rank_ == 0)
+    if (activated_ && rank_ == 0)
     {
         for (size_t i = 0; i < forces.size(); ++i)
         {
             forces[i] /= nsamples;
-            fprintf(fout.get(), "%lu  %f  %f %f %f",
+            fprintf(fout_.get(), "%lu  %f  %f %f %f",
                     i, currentTime, forces[i].x, forces[i].y, forces[i].z);
 
             if (i < torques.size())
             {
                 torques[i] /= nsamples;
-                fprintf(fout.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
+                fprintf(fout_.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
             }
 
-            fprintf(fout.get(), "\n");
+            fprintf(fout_.get(), "\n");
         }
 
-        fflush(fout.get());
+        fflush(fout_.get());
     }
 }
 
