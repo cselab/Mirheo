@@ -43,16 +43,21 @@ void exportMirheo(py::module& m)
         .def(py::init( [] (int3 nranks, real3 domain, real dt,
                            std::string log, int debuglvl, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long comm)
+                           bool cudaMPI, bool noSplash, long commPtr)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
                 auto checkpointMode = getCheckpointMode(checkpointModeStr);
                 CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
                 
-                if (comm == 0) return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
-                                                                      checkpointInfo, cudaMPI);
-                else           return std::make_unique<Mirheo> (comm, nranks, domain, dt, logInfo,
-                                                                      checkpointInfo, cudaMPI);
+                if (commPtr == 0) {
+                    return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
+                                                           checkpointInfo, cudaMPI);
+                } else {
+                    // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
+                    MPI_Comm comm = *(MPI_Comm *)commPtr;
+                    return std::make_unique<Mirheo> (comm, nranks, domain, dt, logInfo,
+                                                           checkpointInfo, cudaMPI);
+                }
             } ),
             py::return_value_policy::take_ownership,
             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
