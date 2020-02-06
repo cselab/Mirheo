@@ -5,17 +5,17 @@
 namespace mirheo
 {
 
-/** \brief Initialize MembraneVector objects with a typeId
+/** \brief Initialize \c MembraneVector objects with a typeId
     \ingroup ICs
     
     \see MembraneIC
     Attach an additional typeId field to each membrane.
-    This is useful to have different membrane forces without having many MembraneVector objects.
+    This is useful to have different membrane forces without having many \c MembraneVector objects.
 */
 class MembraneWithTypeIdsIC : public MembraneIC
 {
 public:
-    /** \brief Construct a MembraneWithTypeIdsIC object
+    /** \brief Construct a \c MembraneWithTypeIdsIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
         The size of the list is the number of membrane objects that will be initialized.
         \param [in] typeIds List of type Ids. must have the same size as \p comQ.

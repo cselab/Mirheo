@@ -12,18 +12,23 @@ QUIET             = YES
 JAVADOC_AUTOBRIEF = YES
 WARN_IF_UNDOCUMENTED = YES
 
-INPUT = ../src/mirheo/core/initial_conditions
+INPUT = ../src/mirheo/core/initial_conditions \
+        ../src/mirheo/core/bouncers
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
 
 
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
 PREDEFINED  += __align__(x)=          \
              __restrict__=            \
              __launch_bounds__(x,y)=  \
-             __H__                    \
-             __HD__                   \
-             __D__
+             __H__=                   \
+             __HD__=                  \
+             __D__=                   \
+	     __UNUSED=
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
 ALIASES += "endrst=\endverbatim"

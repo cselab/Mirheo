@@ -45,9 +45,6 @@ public:
     Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    Mirheo(long commAddress, int3 nranks3D, real3 globalDomainSize, real dt,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
-
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 

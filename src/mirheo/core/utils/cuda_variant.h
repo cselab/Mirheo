@@ -4,6 +4,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <extern/cuda_variant/variant/variant.h>
 #pragma GCC diagnostic pop
 

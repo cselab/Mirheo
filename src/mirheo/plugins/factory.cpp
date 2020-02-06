@@ -20,15 +20,11 @@
 #include "impose_velocity.h"
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
-#include "object_portal.h"
-#include "object_to_particles.h"
 #include "particle_channel_saver.h"
 #include "particle_checker.h"
 #include "particle_drag.h"
-#include "particle_portal.h"
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
-#include "radial_velocity_control.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "velocity_control.h"
@@ -274,41 +270,6 @@ PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *stat
     return { simPl, nullptr };
 }
 
-PairPlugin createObjectPortalDestination(bool computeTask, const MirState *state, std::string name,
-                                         ObjectVector *ov, real3 src, real3 dst, real3 size,
-                                         int tag, long interCommPtr)
-{
-    if (!computeTask)
-        return { nullptr, nullptr };
-
-    MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
-    auto simPl = std::make_shared<ObjectPortalDestination> (
-                                                            state, name, ov->getName(), src, dst, size, tag, interComm);
-    return { std::move(simPl), nullptr };
-}
-
-PairPlugin createObjectPortalSource(bool computeTask, const MirState *state, std::string name,
-                                    ObjectVector *ov, real3 src, real3 dst, real3 size, real4 plane,
-                                    int tag, long interCommPtr)
-{
-    if (!computeTask)
-        return { nullptr, nullptr };
-
-    MPI_Comm interComm = *((MPI_Comm *)interCommPtr);
-    auto simPl = std::make_shared<ObjectPortalSource> (
-                                                       state, name, ov->getName(), src, dst, size, plane, tag, interComm);
-    return { std::move(simPl), nullptr };
-}
-
-PairPlugin createObjectToParticlesPlugin(bool computeTask, const MirState *state, std::string name,
-                                         ObjectVector *ov, ParticleVector *pv, real4 plane)
-{
-    if (!computeTask)
-        return { nullptr, nullptr };
-
-    return { std::make_shared<ObjectToParticlesPlugin> (state, name, ov->getName(), pv->getName(), plane), nullptr };
-}
-
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName)
 {
@@ -336,24 +297,6 @@ PairPlugin createParticleDragPlugin(bool computeTask, const MirState *state, std
         std::make_shared<ParticleDragPlugin> (state, name, pv->getName(), drag) :
         nullptr;
     return { simPl, nullptr };
-}
-
-PairPlugin createParticlePortalDestination(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                           real3 src, real3 dst, real3 size, int tag, long comm_ptr)
-{
-    MPI_Comm comm = *((MPI_Comm *)comm_ptr);
-    auto simPl = computeTask ? std::make_shared<ParticlePortalDestination> (
-                                                                            state, name, pv->getName(), src, dst, size, tag, comm) : nullptr;
-    return { std::move(simPl), nullptr };
-}
-
-PairPlugin createParticlePortalSource(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
-                                      real3 src, real3 dst, real3 size, int tag, long comm_ptr)
-{
-    MPI_Comm comm = *((MPI_Comm *)comm_ptr);
-    auto simPl = computeTask ? std::make_shared<ParticlePortalSource> (
-                                                                       state, name, pv->getName(), src, dst, size, tag, comm) : nullptr;
-    return { std::move(simPl), nullptr };
 }
 
 const real PinObjectMock::Unrestricted = PinObjectPlugin::Unrestricted;
@@ -393,26 +336,6 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<PostprocessVelocityControl> (name, filename);
-
-    return { simPl, postPl };
-}
-
-PairPlugin createRadialVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
-                                             real minRadius, real maxRadius, int sampleEvery, int tuneEvery, int dumpEvery,
-                                             real3 center, real targetVel, real Kp, real Ki, real Kd)
-{
-    std::vector<std::string> pvNames;
-    if (computeTask) extractPVsNames(pvs, pvNames);
-        
-    auto simPl = computeTask ?
-        std::make_shared<SimulationRadialVelocityControl>(state, name, pvNames, minRadius, maxRadius, 
-                                                          sampleEvery, tuneEvery, dumpEvery,
-                                                          center, targetVel, Kp, Ki, Kd) :
-        nullptr;
-
-    auto postPl = computeTask ?
-        nullptr :
-        std::make_shared<PostprocessRadialVelocityControl> (name, filename);
 
     return { simPl, postPl };
 }

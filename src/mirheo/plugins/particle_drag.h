@@ -18,9 +18,9 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string pvName;
-    ParticleVector *pv;
-    real drag;
+    std::string pvName_;
+    ParticleVector *pv_;
+    real drag_;
 };
 
 } // namespace mirheo

@@ -25,35 +25,36 @@ __global__ void addForce(OVview view, const Force *forces)
 
 MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<real3>& forces) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    forces(forces.size())
+    pvName_(pvName),
+    forces_(forces.size())
 {
     HostBuffer<Force> hostForces(forces.size());
 
     for (size_t i = 0; i < forces.size(); ++i)
         hostForces[i].f = forces[i];
     
-    this->forces.copy(hostForces, 0);
+    forces_.copy(hostForces, defaultStream);
 }
 
 void MembraneExtraForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    auto pv_ptr = simulation->getPVbyNameOrDie(pvName);
-    if ( !(pv = dynamic_cast<MembraneVector*>(pv_ptr)) )
-        die("MembraneExtraForcePlugin '%s' expects a MembraneVector (given '%s')", getCName(), pvName.c_str());
+    auto pvPtr = simulation->getPVbyNameOrDie(pvName_);
+    if ( !(pv_ = dynamic_cast<MembraneVector*>(pvPtr)) )
+        die("MembraneExtraForcePlugin '%s' expects a MembraneVector (given '%s')",
+            getCName(), pvName_.c_str());
 }
 
 void MembraneExtraForcePlugin::beforeForces(cudaStream_t stream)
 {
-    OVview view(pv, pv->local());
+    OVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
         MembraneExtraForcesKernels::addForce,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
-        view, forces.devPtr() );
+        view, forces_.devPtr() );
 }
 
 } // namespace mirheo

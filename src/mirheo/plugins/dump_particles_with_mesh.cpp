@@ -16,21 +16,21 @@ void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm&
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getOVbyNameOrDie(pvName);
+    pv_ = simulation->getOVbyNameOrDie(pvName_);
 
-    info("Plugin %s initialized for the following object vector: %s", getCName(), pvName.c_str());
+    info("Plugin %s initialized for the following object vector: %s", getCName(), pvName_.c_str());
 }
 
 void ParticleWithMeshSenderPlugin::handshake()
 {
     ParticleSenderPlugin::handshake();
 
-    auto& mesh = static_cast<ObjectVector*>(pv)->mesh;
+    auto& mesh = static_cast<ObjectVector*>(pv_)->mesh;
 
     waitPrevSend();
     debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", getCName(), mesh->getNtriangles(), mesh->getNvertices());
-    SimpleSerializer::serialize(sendBuffer, mesh->getNvertices(), mesh->triangles);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, mesh->getNvertices(), mesh->triangles);
+    send(sendBuffer_);
 }
 
 
@@ -38,7 +38,7 @@ void ParticleWithMeshSenderPlugin::handshake()
 
 ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(std::string name, std::string path) :
     ParticleDumperPlugin(name, path),
-    allTriangles(std::make_shared<std::vector<int3>>())
+    allTriangles_(std::make_shared<std::vector<int3>>())
 {}
 
 void ParticleWithMeshDumperPlugin::handshake()
@@ -49,33 +49,33 @@ void ParticleWithMeshDumperPlugin::handshake()
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     recv();
 
-    SimpleSerializer::deserialize(data, nvertices, triangles);
-    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", getCName(), triangles.size(), nvertices);
+    SimpleSerializer::deserialize(data, nvertices_, triangles_);
+    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", getCName(), triangles_.size(), nvertices_);
 }
 
 void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 {
-    if (totNVertices % nvertices != 0)
-        die("plugin '%s' expecting a multiple of %d vertices, got %d", getCName(), nvertices, totNVertices);
+    if (totNVertices % nvertices_ != 0)
+        die("plugin '%s' expecting a multiple of %d vertices, got %d", getCName(), nvertices_, totNVertices);
 
-    const int nobjects = totNVertices / nvertices;
+    const int nobjects = totNVertices / nvertices_;
     int offset   = 0;
 
-    const int ntriangles = static_cast<int>(triangles.size());
+    const int ntriangles = static_cast<int>(triangles_.size());
     
     MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_INT, MPI_SUM, comm) );
 
-    allTriangles->resize(nobjects * ntriangles);
+    allTriangles_->resize(nobjects * ntriangles);
 
-    auto *connectivity = allTriangles->data();
+    auto *connectivity = allTriangles_->data();
     
     for (int i = 0; i < nobjects; ++i)
     {
-        const int start = nvertices * (offset + i);        
+        const int start = nvertices_ * (offset + i);        
         for (int j = 0; j < ntriangles; ++j)
         {
             const int id = i * ntriangles + j;
-            const int3 t = triangles[j];
+            const int3 t = triangles_[j];
             connectivity[id] = start + t;
         }
     }
@@ -89,14 +89,14 @@ void ParticleWithMeshDumperPlugin::deserialize()
     MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
-    const int totNVertices = static_cast<int>(positions->size());    
+    const int totNVertices = static_cast<int>(positions_->size());    
 
     _prepareConnectivity(totNVertices);
 
-    const std::string fname = path + getStrZeroPadded(timeStamp, zeroPadding);
+    const std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
     
-    const XDMF::TriangleMeshGrid grid(positions, allTriangles, comm);
-    XDMF::write(fname, &grid, channels, time, comm);
+    const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm);
+    XDMF::write(fname, &grid, channels_, time, comm);
 }
 
 } // namespace mirheo

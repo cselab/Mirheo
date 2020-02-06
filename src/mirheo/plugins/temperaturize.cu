@@ -29,9 +29,9 @@ __global__ void applyTemperature(PVview view, real kBT, real seed1, real seed2, 
 
 TemperaturizePlugin::TemperaturizePlugin(const MirState *state, std::string name, std::string pvName, real kBT, bool keepVelocity) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    kBT(kBT),
-    keepVelocity(keepVelocity)
+    pvName_(pvName),
+    kBT_(kBT),
+    keepVelocity_(keepVelocity)
 {}
 
 
@@ -39,18 +39,18 @@ void TemperaturizePlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 }
 
 void TemperaturizePlugin::beforeForces(cudaStream_t stream)
 {
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
             applyTemperature,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, kBT, drand48(), drand48(), keepVelocity );
+            view, kBT_, drand48(), drand48(), keepVelocity_ );
 }
 
 } // namespace mirheo

@@ -22,21 +22,20 @@ public:
     XDMF::Channel getChannelOrDie(std::string chname) const;
     std::vector<int> getLocalResolution() const;
         
+private:
+    std::vector<XDMF::Channel> channels_;
+    std::unique_ptr<XDMF::UniformGrid> grid_;
 
-protected:
-    std::vector<XDMF::Channel> channels;
-    std::unique_ptr<XDMF::UniformGrid> grid;
-
-    std::vector<double> recvNumberDnsity;
-    std::vector<std::vector<double>> recvContainers;
+    std::vector<double> recvNumberDnsity_;
+    std::vector<std::vector<double>> recvContainers_;
     
-    std::vector<real> numberDnsity;
-    std::vector<std::vector<real>> containers;
+    std::vector<real> numberDnsity_;
+    std::vector<std::vector<real>> containers_;
     
-    std::string path;
-    static constexpr int zeroPadding = 5;
+    std::string path_;
+    static constexpr int zeroPadding_ = 5;
 
-    MPI_Comm cartComm {MPI_COMM_NULL};
+    MPI_Comm cartComm_ {MPI_COMM_NULL};
 };
 
 } // namespace mirheo

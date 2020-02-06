@@ -14,9 +14,13 @@ namespace mirheo
 namespace RodBounceKernels
 {
 
+/**
+   \brief Holds segment information
+ */
 struct Segment
 {
-    real3 r0, r1;
+    real3 r0; ///< start position
+    real3 r1; ///< end position
 };
 
 using SegmentTable = CollisionTable<int2>;
@@ -216,9 +220,15 @@ __device__ static inline real3 localToCartesianCoords(const real3& local, const 
     return seg.r0 + x;
 }
 
+/**
+   \brief Contains forces applied on a segment
+ */
 struct Forces
 {
-    real3 fr0, fr1, fu0, fu1;
+    real3 fr0; ///< perpendicular force on r0
+    real3 fr1; ///< perpendicular force on r1
+    real3 fu0; ///< parallel force on r0
+    real3 fu1; ///< parallel force on r1
 };
 
 __device__ static inline Forces transferMomentumToSegment(real dt, real partMass, const real3& pos, const real3& dV,

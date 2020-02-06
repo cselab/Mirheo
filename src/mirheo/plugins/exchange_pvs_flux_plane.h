@@ -24,12 +24,12 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string pv1Name, pv2Name;
-    ParticleVector *pv1, *pv2;
-    real4 plane;
+    std::string pv1Name_, pv2Name_;
+    ParticleVector *pv1_, *pv2_;
+    real4 plane_;
 
-    PinnedBuffer<int> numberCrossedParticles;
-    std::unique_ptr<ParticlePacker> extra1, extra2;
+    PinnedBuffer<int> numberCrossedParticles_;
+    std::unique_ptr<ParticlePacker> extra1_, extra2_;
 };
 
 } // namespace mirheo

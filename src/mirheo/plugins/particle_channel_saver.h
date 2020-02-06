@@ -20,9 +20,9 @@ public:
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
 private:
-    std::string pvName;
-    ParticleVector *pv;
-    std::string channelName, savedName;
+    std::string pvName_;
+    ParticleVector *pv_;
+    std::string channelName_, savedName_;
 };
 
 } // namespace mirheo

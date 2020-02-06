@@ -48,7 +48,7 @@ static __global__ void killParticles(PVview view, IsInsideFunc isInsideFunc, rea
 
 OutletPlugin::OutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames) :
     SimulationPlugin(state, name),
-    pvNames(pvNames)
+    pvNames_(pvNames)
 {}
 
 OutletPlugin::~OutletPlugin() = default;
@@ -57,15 +57,15 @@ void OutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pvs.reserve(pvNames.size());
-    for (const auto& pvName : pvNames)
-        pvs.push_back( simulation->getPVbyNameOrDie(pvName) );
+    pvs_.reserve(pvNames_.size());
+    for (const auto& pvName : pvNames_)
+        pvs_.push_back( simulation->getPVbyNameOrDie(pvName) );
 }
 
 
 PlaneOutletPlugin::PlaneOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames, real4 plane) :
     OutletPlugin(state, std::move(name), std::move(pvNames)),
-    plane(plane)
+    plane_(plane)
 {}
 
 PlaneOutletPlugin::~PlaneOutletPlugin() = default;
@@ -74,13 +74,13 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
 {
     const int nthreads = 128;
 
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
-        real seed = udistr(gen);
+        const real seed = udistr_(gen_);
 
-        auto isInsideFunc = [plane = this->plane, domain = getState()->domain] __device__ (real3 r) {
+        auto isInsideFunc = [plane = this->plane_, domain = getState()->domain] __device__ (real3 r) {
             r = domain.local2global(r);
             return plane.x * r.x + plane.y * r.y + plane.z * r.z + plane.w >= 0._r;
         };
@@ -88,7 +88,7 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, isInsideFunc,seed, killProbability);
+            view, isInsideFunc, seed, killProbability);
     }
 }
 
@@ -151,8 +151,8 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
 RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                        RegionFunc region, real3 resolution) :
     OutletPlugin(state, name, std::move(pvNames)),
-    outletRegion(std::make_unique<FieldFromFunction>(state, name + "_region", region, resolution)),
-    volume(0)
+    outletRegion_(std::make_unique<FieldFromFunction>(state, name + "_region", region, resolution)),
+    volume_(0)
 {}
 
 RegionOutletPlugin::~RegionOutletPlugin() = default;
@@ -161,9 +161,9 @@ void RegionOutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, con
 {
     OutletPlugin::setup(simulation, comm, interComm);
 
-    outletRegion->setup(comm);
+    outletRegion_->setup(comm);
     
-    volume = computeVolume(1000000, udistr(gen));
+    volume_ = computeVolume(1000000, udistr_(gen_));
 }
 
 double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) const
@@ -181,7 +181,7 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) cons
     SAFE_KERNEL_LAUNCH(
         RegionOutletPluginKernels::countInsideRegion,
         nblocks, nthreads, 0, defaultStream,
-        nSamples, domain, outletRegion->handler(),
+        nSamples, domain, outletRegion_->handler(),
         seed, nInside.devPtr());
 
     nInside.downloadFromDevice(defaultStream);
@@ -191,18 +191,18 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) cons
 
 void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
 {
-    nParticlesInside.clearDevice(stream);
+    nParticlesInside_.clearDevice(stream);
 
     const int nthreads = 128;
     
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
             RegionOutletPluginKernels::countParticlesInside,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, outletRegion->handler(), nParticlesInside.devPtr());        
+            view, outletRegion_->handler(), nParticlesInside_.devPtr());        
     }    
 }
 
@@ -210,7 +210,7 @@ void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
 DensityOutletPlugin::DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                          real numberDensity, RegionFunc region, real3 resolution) :
     RegionOutletPlugin(state, std::move(name), std::move(pvNames), std::move(region), resolution),
-    numberDensity(numberDensity)
+    numberDensity_(numberDensity)
 {}
 
 DensityOutletPlugin::~DensityOutletPlugin() = default;
@@ -221,20 +221,24 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
 
     const int nthreads = 128;
     
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
-        real seed = udistr(gen);
-        real rhoTimesVolume = volume * numberDensity;
+        const real seed = udistr_(gen_);
+        const real rhoTimesVolume = volume_ * numberDensity_;
 
-        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const real3& r) {
+        auto isInsideFunc = [field = outletRegion_->handler()] __device__ (const real3& r)
+        {
             return RegionOutletPluginKernels::isInsideRegion(field, r);
         };
-        auto killProbability = [rhoTimesVolume, nInside = nParticlesInside.devPtr()] __device__ () {
-            int n = *nInside;
+
+        auto killProbability = [rhoTimesVolume, nInside = nParticlesInside_.devPtr()] __device__ ()
+        {
+            const int n = *nInside;
             return n > 0 ? (n - rhoTimesVolume) / n : 0._r;
         };
+
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
@@ -247,7 +251,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
 RateOutletPlugin::RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                    real rate, RegionFunc region, real3 resolution) :
     RegionOutletPlugin(state, std::move(name), std::move(pvNames), std::move(region), resolution),
-    rate(rate)
+    rate_(rate)
 {}
 
 RateOutletPlugin::~RateOutletPlugin() = default;
@@ -258,20 +262,24 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
 
     const int  nthreads = 128;
     
-    for (auto pv : pvs)
+    for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
 
-        const real seed = udistr(gen);
-        const real QTimesdt = rate * getState()->dt * view.invMass;
+        const real seed = udistr_(gen_);
+        const real QTimesdt = rate_ * getState()->dt * view.invMass;
 
-        auto isInsideFunc = [field = outletRegion->handler()] __device__ (const real3& r) {
+        auto isInsideFunc = [field = outletRegion_->handler()] __device__ (const real3& r)
+        {
             return RegionOutletPluginKernels::isInsideRegion(field, r);
         };
-        auto killProbability = [QTimesdt, nInside = nParticlesInside.devPtr()] __device__ () {
-            int n = *nInside;
+
+        auto killProbability = [QTimesdt, nInside = nParticlesInside_.devPtr()] __device__ ()
+        {
+            const int n = *nInside;
             return n > 0 ? QTimesdt / n : 0._r;
         };
+
         SAFE_KERNEL_LAUNCH(
             OutletPluginKernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,

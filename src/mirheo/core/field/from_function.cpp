@@ -7,7 +7,7 @@ namespace mirheo
 
 FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h) :
     Field(state, name, h),
-    func(func)
+    func_(func)
 {}
 
 FieldFromFunction::~FieldFromFunction() = default;
@@ -51,7 +51,7 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
                 r  = domain.local2global(r);
                 r  = make_periodic(r, domain.globalSize);
                 
-                fieldRawData[id++] = static_cast<float>(func(r));
+                fieldRawData[id++] = static_cast<float>(func_(r));
             }
         }
     }

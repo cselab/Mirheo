@@ -32,17 +32,17 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    std::string ovName;
-    ObjectVector *ov;
-    RigidObjectVector *rov{nullptr};
+    std::string ovName_;
+    ObjectVector *ov_{nullptr};
+    RigidObjectVector *rov_{nullptr};
 
-    real3 translation, rotation;
+    real3 translation_, rotation_;
 
-    int reportEvery;
-    int count{0};
+    int reportEvery_;
+    int count_{0};
 
-    PinnedBuffer<real4> forces, torques;
-    std::vector<char> sendBuffer;
+    PinnedBuffer<real4> forces_, torques_;
+    std::vector<char> sendBuffer_;
 };
 
 class ReportPinObjectPlugin : public PostprocessPlugin

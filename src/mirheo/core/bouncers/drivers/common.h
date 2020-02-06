@@ -3,16 +3,23 @@
 namespace mirheo
 {
 
+/**
+   \brief Holds a set of collision information
+   \tparam T Information type of one collision
+ */
 template<typename T>
 struct CollisionTable
 {
-    const int maxSize;
-    int* total;
-    T* indices;
+    const int maxSize; ///< the maximum number of collisions
+    int* total;        ///< the current number of collisions registered
+    T* indices;        ///< information holding the registered collisions
 
+    /** \brief register a collision to the table
+        \param [in] idx The information about the collision
+     */
     __device__ void push_back(T idx)
     {
-        int i = atomicAdd(total, 1);
+        const int i = atomicAdd(total, 1);
         if (i < maxSize) indices[i] = idx;
     }
 };

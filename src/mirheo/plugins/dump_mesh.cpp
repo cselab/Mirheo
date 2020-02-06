@@ -16,49 +16,50 @@ namespace mirheo
 {
 
 MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
-    SimulationPlugin(state, name), ovName(ovName),
-    dumpEvery(dumpEvery)
+    SimulationPlugin(state, name),
+    ovName_(ovName),
+    dumpEvery_(dumpEvery)
 {}
 
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    ov = simulation->getOVbyNameOrDie(ovName);
+    ov_ = simulation->getOVbyNameOrDie(ovName_);
 
-    info("Plugin %s initialized for the following object vector: %s", getCName(), ovName.c_str());
+    info("Plugin %s initialized for the following object vector: %s", getCName(), ovName_.c_str());
 }
 
 void MeshPlugin::beforeForces(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    srcVerts = ov->local()->getMeshVertices(stream);
-    srcVerts->downloadFromDevice(stream);
+    srcVerts_ = ov_->local()->getMeshVertices(stream);
+    srcVerts_->downloadFromDevice(stream);
 }
 
 void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     debug2("Plugin %s is sending now data", getCName());
 
-    vertices.clear();
-    vertices.reserve(srcVerts->size());
+    vertices_.clear();
+    vertices_.reserve(srcVerts_->size());
 
-    for (auto& p : *srcVerts)
-        vertices.push_back(getState()->domain.local2global(make_real3(p)));
+    for (auto& p : *srcVerts_)
+        vertices_.push_back(getState()->domain.local2global(make_real3(p)));
 
-    auto& mesh = ov->mesh;
+    auto& mesh = ov_->mesh;
 
-    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery);
+    MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, timeStamp, ov->getName(),
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, ov_->getName(),
                                 mesh->getNvertices(), mesh->getNtriangles(), mesh->triangles,
-                                vertices);
+                                vertices_);
 
-    send(sendBuffer);
+    send(sendBuffer_);
 }
 
 ConfigDictionary MeshPlugin::writeSnapshot(Dumper& dumper)
@@ -66,8 +67,8 @@ ConfigDictionary MeshPlugin::writeSnapshot(Dumper& dumper)
     return {
         {"__category", dumper("SimulationPlugin")},
         {"__type",     dumper("MeshPlugin")},
-        {"dumpEvery",  dumper(dumpEvery)},
-        {"ovName",     dumper(ovName)},  // `ov` potentially not yet initialized.
+        {"dumpEvery",  dumper(dumpEvery_)},
+        {"ovName",     dumper(ovName_)},  // `ov_` potentially not yet initialized.
     };
 }
 
@@ -162,7 +163,7 @@ static void writePLY(
 
 MeshDumper::MeshDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 MeshDumper::~MeshDumper() = default;
@@ -170,7 +171,7 @@ MeshDumper::~MeshDumper() = default;
 void MeshDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void MeshDumper::deserialize()
@@ -179,18 +180,18 @@ void MeshDumper::deserialize()
     int nvertices, ntriangles;
 
     MirState::StepType timeStamp;
-    SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity, vertices);
+    SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity_, vertices_);
 
-    std::string currentFname = path + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
+    std::string currentFname = path_ + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
 
-    if (activated)
+    if (activated_)
     {
-        const int nObjects = static_cast<int>(vertices.size()) / nvertices;
+        const int nObjects = static_cast<int>(vertices_.size()) / nvertices;
         writePLY(comm, currentFname,
-                nvertices*nObjects, nvertices,
+                nvertices * nObjects, nvertices,
                 ntriangles*nObjects, ntriangles,
                 nObjects,
-                connectivity, vertices);
+                connectivity_, vertices_);
     }
 }
 
@@ -199,7 +200,7 @@ ConfigDictionary MeshDumper::writeSnapshot(Dumper &dumper)
     return {
         {"__category", dumper("PostprocessPlugin")},
         {"__type",     dumper("MeshDumper")},
-        {"path",       dumper(path)},
+        {"path",       dumper(path_)},
     };
 }
 

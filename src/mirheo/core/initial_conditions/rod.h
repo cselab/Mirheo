@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-/** \brief Initialize RodVector objects
+/** \brief Initialize \c RodVector objects
     \ingroup ICs
     
     All rods will have the same torsion and centerline in there frame of reference.
@@ -27,8 +27,8 @@ public:
     using MappingFunc3D = std::function<real3(real)>; ///< a map from [0,1] to R^3
     using MappingFunc1D = std::function<real(real)>;  ///< a map from [0,1] to R
 
-    
-    /** \brief Construct a RodIC object
+
+    /** \brief Construct a \c RodIC object
         \param [in] comQ list of center of mass and orientation of each rod. 
         This will determine the number of rods. 
         The rods with center of mass outside of the domain will be discarded.

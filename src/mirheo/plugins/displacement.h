@@ -22,13 +22,12 @@ public:
     bool needPostproc() override {return false;}
     
 private:
+    std::string pvName_;
+    ParticleVector *pv_;
+    int updateEvery_;
 
-    std::string pvName;
-    ParticleVector *pv;
-    int updateEvery;
-
-    const std::string displacementChannelName = "displacements";
-    const std::string savedPositionChannelName = "saved_positions_displacements";
+    static const std::string displacementChannelName_;
+    static const std::string savedPositionChannelName_;
 };
 
 } // namespace mirheo

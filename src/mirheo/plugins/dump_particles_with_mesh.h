@@ -25,13 +25,14 @@ public:
     void handshake() override;
     void deserialize() override;
 
-protected:
-    std::shared_ptr<std::vector<int3>> allTriangles;
-
+private:
     void _prepareConnectivity(int totNVertices);
+
+private:
+    std::shared_ptr<std::vector<int3>> allTriangles_;
     
-    int nvertices;
-    std::vector<int3> triangles;
+    int nvertices_;
+    std::vector<int3> triangles_;
 };
 
 } // namespace mirheo

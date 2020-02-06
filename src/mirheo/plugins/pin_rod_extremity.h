@@ -22,11 +22,11 @@ public:
     bool needPostproc() override { return false; }
 
 private:
-    std::string rvName;
-    RodVector *rv;
-    int segmentId;
-    real fmagn;
-    real3 targetDirection;
+    std::string rvName_;
+    RodVector *rv_;
+    int segmentId_;
+    real fmagn_;
+    real3 targetDirection_;
 };
 
 } // namespace mirheo

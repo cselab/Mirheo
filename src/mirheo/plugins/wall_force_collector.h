@@ -28,22 +28,22 @@ public:
     bool needPostproc() override { return true; }
 
 private:
-    int sampleEvery, dumpEvery;
-    int nsamples {0};
+    int sampleEvery_, dumpEvery_;
+    int nsamples_ {0};
     
-    std::string wallName;
-    std::string frozenPvName;
+    std::string wallName_;
+    std::string frozenPvName_;
     
-    bool needToDump {false};
+    bool needToDump_ {false};
 
-    SDF_basedWall *wall;
-    ParticleVector *pv;
+    SDF_basedWall *wall_;
+    ParticleVector *pv_;
     
-    PinnedBuffer<double3> *bounceForceBuffer {nullptr};
-    PinnedBuffer<double3> pvForceBuffer {1};
-    double3 totalForce {0.0, 0.0, 0.0};
+    PinnedBuffer<double3> *bounceForceBuffer_ {nullptr};
+    PinnedBuffer<double3> pvForceBuffer_ {1};
+    double3 totalForce_ {0.0, 0.0, 0.0};
     
-    std::vector<char> sendBuffer;
+    std::vector<char> sendBuffer_;
 };
 
 class WallForceDumperPlugin : public PostprocessPlugin
@@ -54,7 +54,7 @@ public:
     void deserialize() override;
 
 private:
-    FileWrapper fdump;
+    FileWrapper fdump_;
 };
 
 } // namespace mirheo

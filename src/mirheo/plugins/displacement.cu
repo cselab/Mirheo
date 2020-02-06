@@ -33,11 +33,15 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, real4 *positio
 
 } // namespace DisplacementKernels
 
+const std::string ParticleDisplacementPlugin::displacementChannelName_ = "displacements";
+const std::string ParticleDisplacementPlugin::savedPositionChannelName_ = "saved_positions_displacements";
+
+
 ParticleDisplacementPlugin::ParticleDisplacementPlugin(const MirState *state, std::string name, std::string pvName, int updateEvery) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    pv(nullptr),
-    updateEvery(updateEvery)
+    pvName_(pvName),
+    pv_(nullptr),
+    updateEvery_(updateEvery)
 {}
 
 ParticleDisplacementPlugin::~ParticleDisplacementPlugin() = default;
@@ -46,24 +50,24 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    ChannelNames::failIfReserved(displacementChannelName,  ChannelNames::reservedParticleFields);
-    ChannelNames::failIfReserved(savedPositionChannelName, ChannelNames::reservedParticleFields);
+    ChannelNames::failIfReserved(displacementChannelName_,  ChannelNames::reservedParticleFields);
+    ChannelNames::failIfReserved(savedPositionChannelName_, ChannelNames::reservedParticleFields);
 
-    pv->requireDataPerParticle<real3>(displacementChannelName,
+    pv_->requireDataPerParticle<real3>(displacementChannelName_,
                                       DataManager::PersistenceMode::Active);
 
-    pv->requireDataPerParticle<real4>(savedPositionChannelName,
+    pv_->requireDataPerParticle<real4>(savedPositionChannelName_,
                                       DataManager::PersistenceMode::Active,
                                       DataManager::ShiftMode::Active);
 
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;    
 
-    auto& manager      = pv->local()->dataPerParticle;
-    auto positions     = manager.getData<real4>(savedPositionChannelName);
-    auto displacements = manager.getData<real3>(displacementChannelName);
+    auto& manager      = pv_->local()->dataPerParticle;
+    auto positions     = manager.getData<real4>(savedPositionChannelName_);
+    auto displacements = manager.getData<real3>(displacementChannelName_);
 
     displacements->clear(defaultStream);
     
@@ -75,14 +79,14 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
 void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), updateEvery)) return;
+    if (!isTimeEvery(getState(), updateEvery_)) return;
 
-    auto& manager = pv->local()->dataPerParticle;
+    auto& manager = pv_->local()->dataPerParticle;
     
-    auto positions     = manager.getData<real4>(savedPositionChannelName);
-    auto displacements = manager.getData<real3>( displacementChannelName);
+    auto positions     = manager.getData<real4>(savedPositionChannelName_);
+    auto displacements = manager.getData<real3>( displacementChannelName_);
 
-    PVview view(pv, pv->local());
+    PVview view(pv_, pv_->local());
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(

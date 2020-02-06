@@ -15,9 +15,14 @@ namespace mirheo
 namespace MeshBounceKernels
 {
 
+/**
+   \brief a triangle structure holding vertex coordinates
+ */
 struct Triangle
 {
-    real3 v0, v1, v2;
+    real3 v0; ///< first vertex
+    real3 v1; ///< second vertex
+    real3 v2; ///< third vertex
 };
 
 using TriangleTable = CollisionTable<int2>;
@@ -190,12 +195,15 @@ __device__ static inline void sort3(RootFinder::RootInfo v[3])
 
 static constexpr real noCollision {-1._r};
 
+/**
+   \brief Holds information about a collision
+ */
 struct IntersectionInfo
 {
-    real alpha; // "time" (0.0 to 1.0) of the segment - moving triangle intersection
-    real3 point;
-    Triangle triangle;
-    real sign;    
+    real alpha;        ///< scaled time (0.0 to 1.0) of the segment - moving triangle intersection
+    real3 point;       ///< the collision coordinates
+    Triangle triangle; ///< The triangle at the time of the collision
+    real sign;         ///< from which side of the triangle does the particle come from (positive -> from normal triangle direction)
 };
 
 __device__ static inline IntersectionInfo

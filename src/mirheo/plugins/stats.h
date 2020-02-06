@@ -32,17 +32,17 @@ public:
     ConfigDictionary writeSnapshot(Dumper& dumper) override;
 
 private:
-    int fetchEvery;
-    bool needToDump{false};
+    int fetchEvery_;
+    bool needToDump_{false};
 
-    Stats::CountType nparticles;
-    PinnedBuffer<Stats::ReductionType> momentum{3}, energy{1};
-    PinnedBuffer<real> maxvel{1};
-    std::vector<char> sendBuffer;
+    Stats::CountType nparticles_;
+    PinnedBuffer<Stats::ReductionType> momentum_{3}, energy_{1};
+    PinnedBuffer<real> maxvel_{1};
+    std::vector<char> sendBuffer_;
 
-    std::vector<ParticleVector*> pvs;
+    std::vector<ParticleVector*> pvs_;
 
-    mTimer timer;
+    mTimer timer_;
 };
 
 class PostprocessStats : public PostprocessPlugin
@@ -54,8 +54,8 @@ public:
     ConfigDictionary writeSnapshot(Dumper& dumper) override;
 
 private:
-    FileWrapper fdump;
-    std::string filename;
+    FileWrapper fdump_;
+    std::string filename_;
 };
 
 } // namespace mirheo

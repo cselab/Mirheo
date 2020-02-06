@@ -42,9 +42,9 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
                                            FieldFunction func, real3 h, int dumpEvery) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    dumpEvery(dumpEvery),
-    region(state, "field_"+name, func, h)
+    pvName_(pvName),
+    dumpEvery_(dumpEvery),
+    region_(state, "field_"+name, func, h)
 {}
 
 VirialPressurePlugin::~VirialPressurePlugin() = default;
@@ -53,27 +53,27 @@ void VirialPressurePlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    region.setup(comm);
+    region_.setup(comm);
 
-    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName.c_str());
+    info("Plugin %s initialized for the following particle vector: %s", getCName(), pvName_.c_str());
 }
 
 void VirialPressurePlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer, pvName);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, pvName_);
+    send(sendBuffer_);
 }
 
 void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), dumpEvery)) return;
+    if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    PVview view(pv, pv->local());
-    const Stress *stress = pv->local()->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
+    PVview view(pv_, pv_->local());
+    const Stress *stress = pv_->local()->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
 
-    localVirialPressure.clear(stream);
+    localVirialPressure_.clear(stream);
 
     constexpr int nthreads = 128;
     const int nblocks = getNblocks(view.size, nthreads);
@@ -81,38 +81,38 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         VirialPressureKernels::totalPressure,
         nblocks, nthreads, 0, stream,
-        view, stress, region.handler(), localVirialPressure.devPtr() );
+        view, stress, region_.handler(), localVirialPressure_.devPtr() );
 
-    localVirialPressure.downloadFromDevice(stream, ContainersSynch::Synch);
+    localVirialPressure_.downloadFromDevice(stream, ContainersSynch::Synch);
     
-    savedTime = getState()->currentTime;
-    needToSend = true;
+    savedTime_ = getState()->currentTime;
+    needToSend_ = true;
 }
 
 void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!needToSend) return;
+    if (!needToSend_) return;
 
     debug2("Plugin %s is sending now data", getCName());
 
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer, savedTime, localVirialPressure[0]);
-    send(sendBuffer);
+    SimpleSerializer::serialize(sendBuffer_, savedTime_, localVirialPressure_[0]);
+    send(sendBuffer_);
     
-    needToSend = false;
+    needToSend_ = false;
 }
 
 //=================================================================================
 
 VirialPressureDumper::VirialPressureDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 void VirialPressureDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void VirialPressureDumper::handshake()
@@ -124,13 +124,13 @@ void VirialPressureDumper::handshake()
     std::string pvName;
     SimpleSerializer::deserialize(data, pvName);
 
-    if (activated)
+    if (activated_)
     {
-        auto fname = path + pvName + ".txt";
-        auto status = fdump.open(fname, "w");
+        auto fname = path_ + pvName + ".txt";
+        auto status = fdump_.open(fname, "w");
         if (status != FileWrapper::Status::Success)
             die("Could not open file '%s'", fname.c_str());
-        fprintf(fdump.get(), "# time Pressure\n");
+        fprintf(fdump_.get(), "# time Pressure\n");
     }
 }
 
@@ -141,12 +141,12 @@ void VirialPressureDumper::deserialize()
 
     SimpleSerializer::deserialize(data, curTime, localPressure);
 
-    if (!activated) return;
+    if (!activated_) return;
 
     const auto dataType = getMPIFloatType<VirialPressure::ReductionType>();
     MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm) );
 
-    fprintf(fdump.get(), "%g %.6e\n", curTime, totalPressure);
+    fprintf(fdump_.get(), "%g %.6e\n", curTime, totalPressure);
 }
 
 } // namespace mirheo

@@ -15,16 +15,6 @@ class CellList;
 
 class MeshPlugin : public SimulationPlugin
 {
-private:
-    std::string ovName;
-    int dumpEvery;
-
-    std::vector<char> sendBuffer;
-    std::vector<real3> vertices;
-    PinnedBuffer<real4>* srcVerts;
-
-    ObjectVector* ov;
-
 public:
     MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
@@ -35,19 +25,21 @@ public:
 
     bool needPostproc() override { return true; }
     ConfigDictionary writeSnapshot(Dumper& dumper) override;
+
+private:
+    std::string ovName_;
+    int dumpEvery_;
+
+    std::vector<char> sendBuffer_;
+    std::vector<real3> vertices_;
+    PinnedBuffer<real4>* srcVerts_;
+
+    ObjectVector *ov_;
 };
 
 
 class MeshDumper : public PostprocessPlugin
 {
-private:
-    std::string path;
-
-    bool activated = true;
-
-    std::vector<int3> connectivity;
-    std::vector<real3> vertices;
-
 public:
     MeshDumper(std::string name, std::string path);
     ~MeshDumper();
@@ -55,6 +47,14 @@ public:
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     ConfigDictionary writeSnapshot(Dumper& dumper) override;
+
+private:
+    std::string path_;
+
+    bool activated_{true};
+
+    std::vector<int3> connectivity_;
+    std::vector<real3> vertices_;
 };
 
 } // namespace mirheo

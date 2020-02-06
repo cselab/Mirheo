@@ -48,17 +48,18 @@ Units tests
 ***********
 
 Unit tests are compiled together with the `google-test framework <https://github.com/google/googletest>`_.
-The library must be built in the ``build`` folder (see :ref:`user-install`).
+The unit tests are compiled by adding the option ``-DBUILD_TESTS=ON`` to cmake (see :ref:`user-install`).
+The binaries are placed in the ``build`` folder.
 
   .. code-block:: console
 
-     $ cd units
-     $ mir.make
+     $ mir.make units
+     $ cd build
      $ mir.make test
 
   .. note::
 
-     You need to install the tools before running the tests
+     You need to install the tools before running the unit tests
 
 
 Double precision

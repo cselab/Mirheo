@@ -14,8 +14,7 @@ public:
     void setup(const MPI_Comm& comm) override;
     
 protected:
-    
-    std::string fieldFileName;
+    std::string fieldFileName_;
 };
 
 } // namespace mirheo

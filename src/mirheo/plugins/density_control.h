@@ -47,33 +47,32 @@ public:
     void restart   (MPI_Comm comm, const std::string& path) override;
     
 private:
-
-    int sampleEvery, dumpEvery, tuneEvery;
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
-
-    LevelBounds levelBounds;
-    real targetDensity;
-    
-    std::unique_ptr<Field> spaceDecompositionField; /// a scalar field used to decompose the space with level sets
-
-    int nSamples;                                   /// number of times we called sample function
-    PinnedBuffer<unsigned long long int> nInsides;  /// number of samples per subregion
-    std::vector<double> volumes;                    /// volume of each subregion
-
-    std::vector<real> densities;
-    PinnedBuffer<real> forces;
-    
-    std::vector<PidControl<real>> controllers;
-    real Kp, Ki, Kd;
-
-    std::vector<char> sendBuffer;
-private:
-
     void computeVolumes(cudaStream_t stream, int MCnSamples);
     void sample(cudaStream_t stream);
     void updatePids(cudaStream_t stream);
     void applyForces(cudaStream_t stream);
+
+private:
+    int sampleEvery_, dumpEvery_, tuneEvery_;
+    std::vector<std::string> pvNames_;
+    std::vector<ParticleVector*> pvs_;
+
+    LevelBounds levelBounds_;
+    real targetDensity_;
+    
+    std::unique_ptr<Field> spaceDecompositionField_; /// a scalar field used to decompose the space with level sets
+
+    int nSamples_;                                   /// number of times we called sample function
+    PinnedBuffer<unsigned long long int> nInsides_;  /// number of samples per subregion
+    std::vector<double> volumes_;                    /// volume of each subregion
+
+    std::vector<real> densities_;
+    PinnedBuffer<real> forces_;
+    
+    std::vector<PidControl<real>> controllers_;
+    real Kp_, Ki_, Kd_;
+
+    std::vector<char> sendBuffer_;
 };
 
 
@@ -87,7 +86,7 @@ public:
     void deserialize() override;
 
 private:
-    FileWrapper fdump;
+    FileWrapper fdump_;
 };
 
 } // namespace mirheo

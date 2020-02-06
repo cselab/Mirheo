@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-/** \brief Initialize RigidObjectVector objects
+/** \brief Initialize \c RigidObjectVector objects
     \ingroup ICs
     
     Initialize rigid objects from center of mass positions, orientations and frozen particles.
@@ -19,7 +19,7 @@ namespace mirheo
 class RigidIC : public InitialConditions
 {
 public:
-    /** \brief Construct a RigidIC object
+    /** \brief Construct a \c RigidIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
         The size of the list is the number of rigid objects that will be initialized.
         \param [in] xyzfname The name of a file in xyz format. 
@@ -29,14 +29,14 @@ public:
      */
     RigidIC(const std::vector<ComQ>& comQ, const std::string& xyzfname);
 
-    /** \brief Construct a RigidIC object
+    /** \brief Construct a \c RigidIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
         The size of the list is the number of rigid objects that will be initialized.
         \param [in] coords List of positions of the frozen particles of one object, in the object frame of reference.
      */
     RigidIC(const std::vector<ComQ>& comQ, const std::vector<real3>& coords);
 
-    /** \brief Construct a RigidIC object
+    /** \brief Construct a \c RigidIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
         The size of the list is the number of rigid objects that will be initialized.
         \param [in] coords List of positions of the frozen particles of one object, in the object frame of reference.

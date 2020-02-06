@@ -26,16 +26,16 @@ public:
     void setTargetVelocity(real3 v);
     
 private:
-    std::vector<std::string> pvNames;
-    std::vector<ParticleVector*> pvs;
+    std::vector<std::string> pvNames_;
+    std::vector<ParticleVector*> pvs_;
 
-    real3 high, low;
-    real3 targetVel;
+    real3 high_, low_;
+    real3 targetVel_;
 
-    int every;
+    int every_;
 
-    PinnedBuffer<int> nSamples{1};
-    PinnedBuffer<double3> totVel{1};
+    PinnedBuffer<int> nSamples_{1};
+    PinnedBuffer<double3> totVel_{1};
 };
 
 } // namespace mirheo

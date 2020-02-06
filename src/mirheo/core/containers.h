@@ -368,7 +368,7 @@ private:
      * @param n new size, must be >= 0
      * @param copy if we need to copy old data
      */
-    void _resize(size_t n, bool copy)
+    void _resize(size_t n, bool copyOldData)
     {
         T * hold = hostptr;
         const size_t oldsize = _size;
@@ -381,7 +381,7 @@ private:
 
         CUDA_Check(cudaHostAlloc(&hostptr, sizeof(T) * capacity, 0));
 
-        if (copy && hold != nullptr)
+        if (copyOldData && hold != nullptr)
             if (oldsize > 0) memcpy(hostptr, hold, sizeof(T) * oldsize);
 
         CUDA_Check(cudaFreeHost(hold));

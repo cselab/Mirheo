@@ -73,10 +73,10 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
 
 ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, real4 plane) :
     SimulationPlugin(state, name),
-    pv1Name(pv1Name),
-    pv2Name(pv2Name),
-    plane(plane),
-    numberCrossedParticles(1)
+    pv1Name_(pv1Name),
+    pv2Name_(pv2Name),
+    plane_(plane),
+    numberCrossedParticles_(1)
 {
     // we will copy positions and velocities manually in the kernel
     PackPredicate predicate = [](const DataManager::NamedChannelDesc& namedDesc)
@@ -89,8 +89,8 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, st
             (desc->persistence == DataManager::PersistenceMode::Active);
     };
 
-    extra1 = std::make_unique<ParticlePacker>(predicate);
-    extra2 = std::make_unique<ParticlePacker>(predicate);
+    extra1_ = std::make_unique<ParticlePacker>(predicate);
+    extra2_ = std::make_unique<ParticlePacker>(predicate);
 }
 
 ExchangePVSFluxPlanePlugin::~ExchangePVSFluxPlanePlugin() = default;
@@ -99,51 +99,51 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv1 = simulation->getPVbyNameOrDie(pv1Name);
-    pv2 = simulation->getPVbyNameOrDie(pv2Name);
+    pv1_ = simulation->getPVbyNameOrDie(pv1Name_);
+    pv2_ = simulation->getPVbyNameOrDie(pv2Name_);
 
-    pv1->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
-    pv2->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv1_->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv2_->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
 {
     const DomainInfo domain = getState()->domain;
-    PVviewWithOldParticles view1(pv1, pv1->local());
-    PVview                 view2(pv2, pv2->local());
+    PVviewWithOldParticles view1(pv1_, pv1_->local());
+    PVview                 view2(pv2_, pv2_->local());
     const int nthreads = 128;
 
-    numberCrossedParticles.clear(stream);
+    numberCrossedParticles_.clear(stream);
     
     SAFE_KERNEL_LAUNCH(
             ExchangePvsFluxPlaneKernels::countParticles,
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
-            domain, view1, plane, numberCrossedParticles.devPtr() );
+            domain, view1, plane_, numberCrossedParticles_.devPtr() );
 
-    numberCrossedParticles.downloadFromDevice(stream, ContainersSynch::Synch);
+    numberCrossedParticles_.downloadFromDevice(stream, ContainersSynch::Synch);
 
-    const int numPartsExchange = numberCrossedParticles[0];
+    const int numPartsExchange = numberCrossedParticles_[0];
     const int old_size2 = view2.size;
     const int new_size2 = old_size2 + numPartsExchange;
 
-    pv2->local()->resize(new_size2, stream);
-    numberCrossedParticles.clear(stream);
+    pv2_->local()->resize(new_size2, stream);
+    numberCrossedParticles_.clear(stream);
 
-    view2 = PVview(pv2, pv2->local());    
+    view2 = PVview(pv2_, pv2_->local());    
     
-    extra1->update(pv1->local(), stream);
-    extra2->update(pv2->local(), stream);
+    extra1_->update(pv1_->local(), stream);
+    extra2_->update(pv2_->local(), stream);
 
     SAFE_KERNEL_LAUNCH(
         ExchangePvsFluxPlaneKernels::moveParticles,
         getNblocks(view1.size, nthreads), nthreads, 0, stream,
-        domain, view1, view2, plane, old_size2, numberCrossedParticles.devPtr(),
-        extra1->handler(), extra2->handler() );
+        domain, view1, view2, plane_, old_size2, numberCrossedParticles_.devPtr(),
+        extra1_->handler(), extra2_->handler() );
 
     if (numPartsExchange > 0)
     {
-        pv1->cellListStamp++;
-        pv2->cellListStamp++;
+        pv1_->cellListStamp++;
+        pv2_->cellListStamp++;
     }
 }
 

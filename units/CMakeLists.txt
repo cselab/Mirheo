@@ -1,25 +1,8 @@
-cmake_minimum_required(VERSION 3.8)
+include(GoogleTest)
+option(INSTALL_GTEST OFF)
+option(BUILD_GMOCK OFF)
 
-if (POLICY CMP0060)
-  cmake_policy(SET CMP0060 NEW)
-endif()
-
-if(POLICY CMP0069) # for INTERPROCEDURAL_OPTIMIZATION
-  cmake_policy(SET CMP0069 NEW)
-endif()
-
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif()
-
-project(MIR_UnitTests LANGUAGES C CXX CUDA)
-enable_testing()
-
-# libmirheo
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../" "${CMAKE_CURRENT_SOURCE_DIR}/../build")
-
-# googletest
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest")
+add_subdirectory("extern/googletest")
 
 function (add_test_executable dirName nodes)
   # Find sources
@@ -32,9 +15,7 @@ function (add_test_executable dirName nodes)
   set(EXEC_NAME "test_${execNameId}")
   
   add_executable(${EXEC_NAME} ${SOURCES})
-  target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES})
-  target_link_libraries(${EXEC_NAME} PRIVATE mirheoCore)
-  target_link_libraries(${EXEC_NAME} PRIVATE gtest)
+  target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES} ${LIB_MIR_CORE} gtest)
 
   add_test(NAME ${EXEC_NAME}
            COMMAND mir.run --runargs "-n ${nodes}" ./${EXEC_NAME})
@@ -71,16 +52,7 @@ add_test_executable(triangle_invariants 1)
 add_test_executable(variant 1)
 add_test_executable(warpScan 1)
 
-
-# Linker flags
-set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
-
-# Choose Release mode as default.
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-    "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+if (ENABLE_SANITIZER)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")
 endif()
-
-# uncomment to use sanitizer
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")

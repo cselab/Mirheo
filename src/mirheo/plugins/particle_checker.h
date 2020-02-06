@@ -37,13 +37,13 @@ private:
     void dieIfBadStatus(cudaStream_t stream, const std::string& identifier);
     
 private:
-    int checkEvery;
+    int checkEvery_;
     
-    PinnedBuffer<ParticleStatus> statuses;
-    std::vector<ParticleVector*> pvs;
-    std::vector<int> rovStatusIds;
+    PinnedBuffer<ParticleStatus> statuses_;
+    std::vector<ParticleVector*> pvs_;
+    std::vector<int> rovStatusIds_;
 
-    static constexpr int NotRov = -1;
+    static constexpr int NotRov_ = -1;
 };
 
 } // namespace mirheo

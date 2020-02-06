@@ -18,8 +18,7 @@ public:
     void setup(const MPI_Comm& comm) override;
     
 protected:
-    
-    FieldFunction func;
+    FieldFunction func_;
 };
 
 } // namespace mirheo

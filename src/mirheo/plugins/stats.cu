@@ -52,56 +52,56 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
     
 SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
-    fetchEvery(fetchEvery)
-{
-    timer.start();
-}
+    fetchEvery_(fetchEvery)
+{}
 
 SimulationStats::~SimulationStats() = default;
 
 void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    pvs = simulation->getParticleVectors();
+    pvs_ = simulation->getParticleVectors();
+    timer_.start();
 }
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), fetchEvery)) return;
+    if (!isTimeEvery(getState(), fetchEvery_)) return;
 
-    momentum.clear(stream);
-    energy  .clear(stream);
-    maxvel  .clear(stream);
+    momentum_.clear(stream);
+    energy_  .clear(stream);
+    maxvel_  .clear(stream);
 
-    nparticles = 0;
-    for (auto& pv : pvs)
+    nparticles_ = 0;
+    for (auto& pv : pvs_)
     {
         PVview view(pv, pv->local());
+        constexpr int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH(
                 StatsKernels::totalMomentumEnergy,
-                getNblocks(view.size, 128), 128, 0, stream,
-                view, momentum.devPtr(), energy.devPtr(), maxvel.devPtr() );
+                getNblocks(view.size, nthreads), nthreads, 0, stream,
+                view, momentum_.devPtr(), energy_.devPtr(), maxvel_.devPtr() );
 
-        nparticles += view.size;
+        nparticles_ += view.size;
     }
 
-    momentum.downloadFromDevice(stream, ContainersSynch::Asynch);
-    energy  .downloadFromDevice(stream, ContainersSynch::Asynch);
-    maxvel  .downloadFromDevice(stream);
+    momentum_.downloadFromDevice(stream, ContainersSynch::Asynch);
+    energy_  .downloadFromDevice(stream, ContainersSynch::Asynch);
+    maxvel_  .downloadFromDevice(stream);
 
-    needToDump = true;
+    needToDump_ = true;
 }
 
 void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (needToDump)
+    if (needToDump_)
     {
-        const real tm = timer.elapsedAndReset() / (getState()->currentStep < fetchEvery ? 1.0_r : fetchEvery);
+        const real tm = timer_.elapsedAndReset() / (getState()->currentStep < fetchEvery_ ? 1.0_r : fetchEvery_);
         waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer, tm, getState()->currentTime, getState()->currentStep, nparticles, momentum, energy, maxvel);
-        send(sendBuffer);
-        needToDump = false;
+        SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime, getState()->currentStep, nparticles_, momentum_, energy_, maxvel_);
+        send(sendBuffer_);
+        needToDump_ = false;
     }
 }
 
@@ -110,21 +110,21 @@ ConfigDictionary SimulationStats::writeSnapshot(Dumper& dumper)
     return {
         {"__category", dumper("SimulationPlugin")},
         {"__type",     dumper("SimulationStats")},
-        {"fetchEvery", dumper(fetchEvery)},
+        {"fetchEvery", dumper(fetchEvery_)},
     };
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     PostprocessPlugin(name),
-    filename(filename)
+    filename_(std::move(filename))
 {
-    if (filename != "")
+    if (filename_ != "")
     {
-        auto status = fdump.open(filename, "w");
+        auto status = fdump_.open(filename_, "w");
         if (status != FileWrapper::Status::Success)
-            die("Could not open file '%s'", filename.c_str());
+            die("Could not open file '%s'", filename_.c_str());
 
-        fprintf(fdump.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
+        fprintf(fdump_.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
 }
 
@@ -166,12 +166,12 @@ void PostprocessStats::deserialize()
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         printf("\tTemperature: %.4f\n\n", temperature);
 
-        if (fdump.get())
+        if (fdump_.get())
         {
-            fprintf(fdump.get(), "%g %g %g %g %g %g %llu %g\n", currentTime,
+            fprintf(fdump_.get(), "%g %g %g %g %g %g %llu %g\n", currentTime,
                     temperature, momentum[0], momentum[1], momentum[2],
                     maxvel[0], nparticles, realTime);
-            fflush(fdump.get());
+            fflush(fdump_.get());
         }
     }
 }
@@ -181,7 +181,7 @@ ConfigDictionary PostprocessStats::writeSnapshot(Dumper& dumper)
     return {
         {"__category", dumper("PostprocessPlugin")},
         {"__type",     dumper("PostprocessStats")},
-        {"filename",   dumper(filename)},
+        {"filename",   dumper(filename_)},
     };
 }
 

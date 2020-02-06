@@ -12,19 +12,19 @@ namespace mirheo
 ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const MirState *state, std::string name, std::string pvName,
                                                        std::string channelName, std::string savedName) :
     SimulationPlugin(state, name),
-    pvName(pvName),
-    pv(nullptr),
-    channelName(channelName),
-    savedName(savedName)
+    pvName_(pvName),
+    pv_(nullptr),
+    channelName_(channelName),
+    savedName_(savedName)
 {
-    ChannelNames::failIfReserved(savedName, ChannelNames::reservedParticleFields);
+    ChannelNames::failIfReserved(savedName_, ChannelNames::reservedParticleFields);
 }
 
 void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)
 {
-    auto& dataManager = pv->local()->dataPerParticle;
-    const auto& srcDesc = dataManager.getChannelDescOrDie(channelName);
-    const auto& dstDesc = dataManager.getChannelDescOrDie(savedName);
+    auto& dataManager = pv_->local()->dataPerParticle;
+    const auto& srcDesc = dataManager.getChannelDescOrDie(channelName_);
+    const auto& dstDesc = dataManager.getChannelDescOrDie(savedName_);
 
     mpark::visit([&](auto srcBufferPtr)
     {
@@ -42,14 +42,14 @@ void ParticleChannelSaverPlugin::setup(Simulation *simulation, const MPI_Comm& c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    pv = simulation->getPVbyNameOrDie(pvName);
+    pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    const auto& desc = pv->local()->dataPerParticle.getChannelDescOrDie(channelName);
+    const auto& desc = pv_->local()->dataPerParticle.getChannelDescOrDie(channelName_);
 
     mpark::visit([&](auto pinnedBufferPtr)
     {
         using T = typename std::remove_reference< decltype(*pinnedBufferPtr->hostPtr()) >::type;
-        pv->requireDataPerParticle<T>(savedName, DataManager::PersistenceMode::Active);
+        pv_->requireDataPerParticle<T>(savedName_, DataManager::PersistenceMode::Active);
     }, desc.varDataPtr);
 }
 

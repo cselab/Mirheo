@@ -387,71 +387,6 @@ def createMembraneExtraForce():
     """
     pass
 
-def createObjectPortalDestination():
-    r"""createObjectPortalDestination(state: MirState, name: str, ov: ParticleVectors.ObjectVector, src: real3, dst: real3, size: real3, tag: int, interCommPtr: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin receives object vector content from another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ov: target object vector
-            src: lower corner of the portal on the source side
-            dst: lower corner of the portal on the destination side
-            size: portal size
-            tag: tag to use for MPI communication
-            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
-    
-
-    """
-    pass
-
-def createObjectPortalSource():
-    r"""createObjectPortalSource(state: MirState, name: str, ov: ParticleVectors.ObjectVector, src: real3, dst: real3, size: real3, plane: real4, tag: int, interCommPtr: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin sends object vector content to another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Sends to destination all objects that touch the portal box. The
-        destination tracks portal-assigned IDs to differentiate between objects
-        that have already arrived and that are new to the destination side. To
-        treat objects as new when they cross the periodic boundary, a marker
-        plane must be given. Objects are considered then new as soon as their
-        center of mass crosses the plane.
-
-        Args:
-            name: name of the plugin
-            ov: source object vector
-            src: lower corner of the portal on the source side
-            dst: lower corner of the portal on the destination side
-            size: portal size
-            plane: plane after which the objects get a new unique identifier
-                Should be far from the source portal and slightly away of the domain boundary.
-            tag: tag to use for MPI communication
-            interCommPtr: pointer to a MPI_Comm intercommunicator between Mirheo instances.
-    
-
-    """
-    pass
-
-def createObjectToParticlesPlugin():
-    r"""createObjectToParticlesPlugin(state: MirState, name: str, ov: ParticleVectors.ObjectVector, pv: ParticleVectors.ParticleVector, plane: real4) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin transforms objects to particles when they cross a given plane.
-
-        Args:
-            name: name of the plugin
-            ov: source object vector
-            pv: target particle vector
-            plane: plane `(a, b, c, d)` defined as `a*x + b*y + c*z + d == 0`
-    
-
-    """
-    pass
-
 def createParticleChannelSaver():
     r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -510,40 +445,6 @@ def createParticleDrag():
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             drag: drag coefficient
-    
-
-    """
-    pass
-
-def createParticlePortalDestination():
-    r"""createParticlePortalDestination(state: MirState, name: str, ov: ParticleVectors.ParticleVector, src: real3, dst: real3, size: real3, tag: int, interCommPtr: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin receives particle vector content from another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ...
-            ...
-            ..
-    
-
-    """
-    pass
-
-def createParticlePortalSource():
-    r"""createParticlePortalSource(state: MirState, name: str, ov: ParticleVectors.ParticleVector, src: real3, dst: real3, size: real3, tag: int, interCommPtr: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin sends particle vector content to another Mirheo instance.
-        Currently works only for single rank simulations.
-
-        Args:
-            name: name of the plugin
-            ...
-            ...
-            ..
     
 
     """
@@ -611,29 +512,6 @@ def createPlaneOutlet():
             name: name of the plugin
             pvs: list of :any:`ParticleVector` that we'll work with
             plane: Tuple (a, b, c, d). Particles are removed if `ax + by + cz + d >= 0`.
-    
-
-    """
-    pass
-
-def createRadialVelocityControl():
-    r"""createRadialVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], minRadius: float, maxRadius: float, sample_every: int, tune_every: int, dump_every: int, center: real3, target_vel: float, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
-
-
-        This plugin applies a radial force (decreasing as :math:`r^3`) to all the particles of the target PVS.
-        The force is adapted via a PID controller such that the average of the velocity times radial position of the particles matches a target value.
-        
-        Args:
-            name: name of the plugin
-            filename: dump file name 
-            pvs: list of concerned :class:`ParticleVector`
-            minRadius, maxRadius: only particles within this distance are considered 
-            sample_every: sample velocity every this many time-steps
-            tune_every: adapt the force every this many time-steps
-            dump_every: write files every this many time-steps
-            center: center of the radial coordinates
-            target_vel: the target mean velocity of the particles at :math:`r=1`
-            Kp, Ki, Kd: PID controller coefficients
     
 
     """

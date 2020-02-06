@@ -272,7 +272,7 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
 
 FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, real3 h) :
     Field(state, name, h),
-    fieldFileName(fieldFileName)
+    fieldFileName_(fieldFileName)
 {}
 
 FieldFromFile::~FieldFromFile() = default;
@@ -286,7 +286,7 @@ inline bool componentsAreEqual(float3 v, float eps = 1e-5f)
 
 void FieldFromFile::setup(const MPI_Comm& comm)
 {
-    info("Setting up field from %s", fieldFileName.c_str());
+    info("Setting up field from %s", fieldFileName_.c_str());
 
     const auto domain = getState()->domain;
     
@@ -297,11 +297,11 @@ void FieldFromFile::setup(const MPI_Comm& comm)
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
     // Read header
-    auto headerInfo = readHeader(fieldFileName, comm);
+    auto headerInfo = readHeader(fieldFileName_, comm);
     const float3 initialSdfH = make_float3(domain.globalSize) / make_float3(headerInfo.resolution-1);
 
     // Read heavy data
-    const auto fullSdfData = readSdf(fieldFileName, comm, headerInfo);
+    const auto fullSdfData = readSdf(fieldFileName_, comm, headerInfo);
 
     const float3 scale3 = make_float3(domain.globalSize) / headerInfo.extents;
     if ( !componentsAreEqual(scale3) )
