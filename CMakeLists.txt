@@ -65,5 +65,13 @@ add_subdirectory(src)
 # set_target_properties(${LIB_MIR_CORE_AND_PLUGINS} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 # set_target_properties(${LIB_MIR}                  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+
+# *************************
+# unit tests
+# *************************
+
+enable_testing()
+add_subdirectory(units)
+
 # uncomment to profile time spent to compile each object
 #set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
