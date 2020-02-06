@@ -32,8 +32,16 @@ public:
     BounceFromRigidShape(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel);
     ~BounceFromRigidShape();
 
+    /**
+       Will ask \p ov to keep its old motions information persistently.
+       This method will die if \p ov is not of type \c RigidObjectVector. 
+     */
     void setup(ObjectVector *ov) override;
 
+    
+    /**
+       Will ask \p pv to keep its old positions (not in persistent mode)
+     */
     void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     std::vector<std::string> getChannelsToBeSentBack() const override;
@@ -43,7 +51,7 @@ protected:
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
 
     VarBounceKernel varBounceKernel_; ///< The kernel used to reflect the particles on the surface
-    std::mt19937 rng_ {42L}; ///< rng used to update \ref varBounceKernel_
+    std::mt19937 rng_ {42L}; ///< rng used to update varBounceKernel_
 };
 
 } // namespace mirheo

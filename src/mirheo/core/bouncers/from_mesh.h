@@ -38,8 +38,14 @@ public:
     ~BounceFromMesh();
 
     /** 
-        This will ask \p pv to keep its old positions
+        If \p ov is a rigid object, this will ask it to keep its old motions accross exchangers. 
+        Otherwise, ask \p ov to keep its old positions accross exchangers. 
     */
+    void setup(ObjectVector *ov) override;
+    
+    /**
+       Will ask \p pv to keep its old positions (not in persistent mode)
+     */
     void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     std::vector<std::string> getChannelsToBeSentBack() const override;
@@ -69,7 +75,6 @@ private:
     RigidObjectVector *rov_;
 
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
-    void setup(ObjectVector *ov) override;
 };
 
 } // namespace mirheo

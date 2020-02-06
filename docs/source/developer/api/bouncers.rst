@@ -19,4 +19,12 @@ Derived classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::BounceFromRigidShape
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::BounceFromRod
+   :project: mirheo
+   :members:
+
 
