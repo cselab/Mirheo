@@ -16,7 +16,7 @@ class PairwiseInteractionWithStressImpl : public Interaction
 {
 public:
     PairwiseInteractionWithStressImpl(const MirState *state, const std::string& name, real rc, real stressPeriod, PairwiseKernel pair) :
-        Interaction(state, name, rc),
+        Interaction(state, name),
         stressPeriod(stressPeriod),
         interaction(state, name, rc, pair),
         interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseKernel>(pair))

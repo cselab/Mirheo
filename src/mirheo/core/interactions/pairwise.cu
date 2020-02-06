@@ -103,7 +103,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 
 PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                                          const VarPairwiseParams& varParams, const VarStressParams& varStressParams) :
-    Interaction(state, name, rc),
+    Interaction(state, name),
     varParams(varParams),
     varStressParams(varStressParams)
 {
@@ -320,7 +320,8 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     ParametersWrap desc(mapParams);
 
     const SpecificPairInfo info {pv1, pv2, impl.get()};
-
+    const real rc = getCutoffRadius();
+    
     mpark::visit([&](auto& params)
     {
         readSpecificParams(params, desc);
@@ -328,6 +329,11 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     }, varParamsSpecific);
     
     desc.checkAllRead();
+}
+
+real PairwiseInteraction::getCutoffRadius() const
+{
+    return impl->getCutoffRadius();
 }
 
 } // namespace mirheo

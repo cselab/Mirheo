@@ -25,7 +25,8 @@ class PairwiseInteractionImpl : public Interaction
 public:
     
     PairwiseInteractionImpl(const MirState *state, const std::string& name, real rc, PairwiseKernel pair) :
-        Interaction(state, name, rc),
+        Interaction(state, name),
+        rc_(rc),
         defaultPair(pair)
     {}
     
@@ -162,10 +163,10 @@ public:
             check( entry.second.readState(fin) );
     }
 
-private:
-
-    PairwiseKernel defaultPair;
-    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap;
+    real getCutoffRadius() const override
+    {
+        return rc_;
+    }
 
 private:
 
@@ -180,7 +181,7 @@ private:
         SAFE_KERNEL_LAUNCH(                                                         \
                 computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
                 getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
-                dstView, cl2->cellInfo(), srcView, rc*rc, INTERACTION_FUNCTION); } while (0)
+                dstView, cl2->cellInfo(), srcView, rc_*rc_, INTERACTION_FUNCTION); } while (0)
 
     #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                        \
         do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); } \
@@ -229,9 +230,9 @@ private:
 
             auto cinfo = cl1->cellInfo();
             SAFE_KERNEL_LAUNCH(
-                               computeSelfInteractions,
-                               getNblocks(np, nth), nth, 0, stream,
-                               cinfo, view, rc*rc, pair.handler());
+                 computeSelfInteractions,
+                 getNblocks(np, nth), nth, 0, stream,
+                 cinfo, view, rc_*rc_, pair.handler());
         }
         else /*  External interaction */
         {
@@ -287,6 +288,11 @@ private:
             return defaultPair;
         }
     }
+
+private:
+    real rc_;
+    PairwiseKernel defaultPair;
+    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap;
 };
 
 } // namespace mirheo

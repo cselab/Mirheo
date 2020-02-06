@@ -48,7 +48,7 @@ class RodInteractionImpl : public Interaction
 {
 public:
     RodInteractionImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
-        Interaction(state, name, /* rc */ 1.0_r),
+        Interaction(state, name),
         parameters(parameters),
         stateParameters(stateParameters),
         saveEnergies(saveEnergies)

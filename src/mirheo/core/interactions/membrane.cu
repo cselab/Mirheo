@@ -45,7 +45,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 MembraneInteraction::MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                                          VarBendingParams varBendingParams, VarShearParams varShearParams,
                                          bool stressFree, real growUntil, VarMembraneFilter varFilter) :
-    Interaction(state, name, /* default cutoff rc */ 1.0)
+    Interaction(state, name)
 {
     mpark::visit([&](auto bendingParams, auto shearParams, auto filter)
     {                     

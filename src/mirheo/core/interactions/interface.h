@@ -39,7 +39,7 @@ public:
 
     enum class Stage {Intermediate, Final};
     
-    Interaction(const MirState *state, std::string name, real rc);
+    Interaction(const MirState *state, std::string name);
 
     virtual ~Interaction();
 
@@ -101,16 +101,13 @@ public:
      */
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
+    virtual real getCutoffRadius() const;
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
     
     static const ActivePredicate alwaysActive;
     
-public:
-    /// Cut-off raduis
-    real rc;
-
 protected:
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions

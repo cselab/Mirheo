@@ -74,7 +74,7 @@ public:
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
                             real growUntil, Filter filter, long seed = 42424242) :
-        Interaction(state, name, 1.0_r),
+        Interaction(state, name),
         parameters(parameters),
         scaleFromTime( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
         dihedralParams(dihedralParams),

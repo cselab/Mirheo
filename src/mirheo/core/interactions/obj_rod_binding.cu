@@ -111,7 +111,7 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 
 ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
                                                          real torque, real3 relAnchor, real kBound) :
-    Interaction(state, name, /*rc*/ 1.0_r),
+    Interaction(state, name),
     torque(torque),
     relAnchor(relAnchor),
     kBound(kBound)

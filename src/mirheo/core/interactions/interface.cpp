@@ -6,9 +6,8 @@
 namespace mirheo
 {
 
-Interaction::Interaction(const MirState *state, std::string name, real rc) :
-    MirSimulationObject(state, name),
-    rc(rc)
+Interaction::Interaction(const MirState *state, std::string name) :
+    MirSimulationObject(state, name)
 {}
 
 Interaction::~Interaction() = default;
@@ -50,6 +49,11 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
 {
     if (!impl) return;
     impl->restart(comm, path);
+}
+
+real Interaction::getCutoffRadius() const
+{
+    return 1.0_r;
 }
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
