@@ -78,7 +78,7 @@ RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& n
     ObjectVector( state, name, partMass, objSize,
                   std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
-    J(J)
+    J_(J)
 {
     this->mesh = std::move(mesh);
 
@@ -238,7 +238,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
 
 
     filename = createCheckpointName(path, RestartIPIdentifier, "coords");
-    initialPositions = readInitialPositions(comm, filename, objSize);
+    initialPositions = readInitialPositions(comm, filename, getObjectSize());
 
     info("Successfully read object infos of '%s'", getCName());
 }

@@ -71,9 +71,7 @@ public:
         _requireDataPerObject<T>(halo(),  name, persistence, shift);
     }
 
-public:
-    int objSize;
-    std::shared_ptr<Mesh> mesh;
+    int getObjectSize() const;
     
 protected:
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
@@ -93,6 +91,12 @@ private:
         lov->dataPerObject.setPersistenceMode(name, persistence);
         lov->dataPerObject.setShiftMode(name, shift);
     }
+
+public:
+    std::shared_ptr<Mesh> mesh;
+
+private:
+    int objSize_;
 };
 
 } // namespace mirheo

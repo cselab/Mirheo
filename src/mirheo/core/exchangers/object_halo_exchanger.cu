@@ -251,7 +251,7 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     const auto& offsets = helper->recv.offsets;
     const int totalRecvd = offsets[helper->nBuffers];
 
-    hov->resize_anew(totalRecvd * ov->objSize);
+    hov->resize_anew(totalRecvd * ov->getObjectSize());
     unpacker->update(hov, stream);
 
     const int nthreads = 256;

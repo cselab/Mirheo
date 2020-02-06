@@ -9,7 +9,7 @@ OVview::OVview(ObjectVector *ov, LocalObjectVector *lov) :
     PVview(ov, lov)
 {
     nObjects = lov->getNumObjects();
-    objSize  = ov->objSize;
+    objSize  = ov->getObjectSize();
     objMass  = static_cast<real>(objSize) * mass;
     invObjMass = 1.0_r / objMass;
 

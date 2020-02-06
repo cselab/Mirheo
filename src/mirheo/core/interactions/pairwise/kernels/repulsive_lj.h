@@ -37,7 +37,7 @@ public:
         if (ov1 != nullptr && ov2 != nullptr && lpv1 == lpv2)
         {
             self_ = true;
-            objSize_ = ov1->objSize;
+            objSize_ = ov1->getObjectSize();
         }
     }
 
@@ -79,7 +79,7 @@ public:
         if (rv1 != nullptr && rv2 != nullptr && lpv1 == lpv2)
         {
             self_ = true;
-            objSize_ = rv1->objSize;
+            objSize_ = rv1->getObjectSize();
         }
     }
 

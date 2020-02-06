@@ -10,7 +10,7 @@ ROVview::ROVview(RigidObjectVector *rov, LocalRigidObjectVector *lrov) :
 {
     motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions)->devPtr();
 
-    J   = rov->J;
+    J   = rov->getInertialTensor();
     J_1 = 1.0 / J;
 }
 

@@ -95,9 +95,9 @@ public:
         
         auto ov = dynamic_cast<MembraneVector *>(pv1);
 
-        if (ov->objSize != ov->mesh->getNvertices())
+        if (ov->getObjectSize() != ov->mesh->getNvertices())
             die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-                ov->getCName(), ov->objSize, ov->mesh->getNvertices());
+                ov->getCName(), ov->getObjectSize(), ov->mesh->getNvertices());
 
         debug("Computing internal membrane forces for %d cells of '%s'",
               ov->local()->getNumObjects(), ov->getCName());

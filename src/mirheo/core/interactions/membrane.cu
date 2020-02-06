@@ -114,9 +114,9 @@ void MembraneInteraction::precomputeQuantities(ParticleVector *pv1, cudaStream_t
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
-    if (ov->objSize != ov->mesh->getNvertices())
+    if (ov->getObjectSize() != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-            ov->getCName(), ov->objSize, ov->mesh->getNvertices());
+            ov->getCName(), ov->getObjectSize(), ov->mesh->getNvertices());
 
     debug("Computing areas and volumes for %d cells of '%s'",
           ov->local()->getNumObjects(), ov->getCName());

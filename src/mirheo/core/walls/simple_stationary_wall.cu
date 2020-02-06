@@ -383,7 +383,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
                  ov->getCName(), this->getCName());
 
             // Copy temporary buffers back
-            ov->local()->resize_anew(nRemaining[0] * ov->objSize);
+            ov->local()->resize_anew(nRemaining[0] * ov->getObjectSize());
             ovView = OVview(ov, ov->local());
             packer.update(ov->local(), defaultStream);
 

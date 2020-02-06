@@ -192,7 +192,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     }, ExchangersCommon::getHandler(packer));
 
     // Unpack the central buffer into the object vector itself
-    lov->resize_anew(nObjsBulk * ov->objSize);
+    lov->resize_anew(nObjsBulk * ov->getObjectSize());
     packer->update(lov, stream);
 
     mpark::visit([&](auto packerHandler)
@@ -217,7 +217,7 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
     auto packer = packers_[id].get();
 
     const int oldNObjs = lov->getNumObjects();
-    const int objSize = ov->objSize;
+    const int objSize = ov->getObjectSize();
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 

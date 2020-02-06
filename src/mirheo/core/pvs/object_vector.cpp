@@ -116,7 +116,7 @@ ObjectVector::ObjectVector(const MirState *state, const std::string& name, real 
                            std::unique_ptr<LocalParticleVector>&& local,
                            std::unique_ptr<LocalParticleVector>&& halo) :
     ParticleVector(state, name, mass, std::move(local), std::move(halo)),
-    objSize(objSize)
+    objSize_(objSize)
 {
     // center of mass and extents are not to be sent around
     // it's cheaper to compute them on site
@@ -212,10 +212,15 @@ void ObjectVector::checkpoint(MPI_Comm comm, const std::string& path, int checkp
 
 void ObjectVector::restart(MPI_Comm comm, const std::string& path)
 {
-    const auto ms = _restartParticleData(comm, path, objSize);
+    const auto ms = _restartParticleData(comm, path, getObjectSize());
     _restartObjectData(comm, path, ms);
     
-    local()->resize(ms.newSize * objSize, defaultStream);
+    local()->resize(ms.newSize * getObjectSize(), defaultStream);
+}
+
+int ObjectVector::getObjectSize() const
+{
+    return objSize_;
 }
 
 } // namespace mirheo
