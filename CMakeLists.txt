@@ -31,107 +31,32 @@ message("Compiling libmirheo version ${MIR_VERSION_CMAKE_FORMAT}")
 
 project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 
-# *************************
-# include external packages
-# *************************
-
-# Add pybind11
-if (NOT TARGET pybind11)
-  add_subdirectory(src/extern/pybind11)
-endif()
-set(PYBIND11_CPP_STANDARD -std=c++14)
-
-# Add mpark/variant
-if (NOT TARGET mpark_variant)
-    add_subdirectory(src/extern/variant)
-endif()
-
-# Add pugixml
-if (NOT TARGET pugixml)
-    add_subdirectory(src/extern/pugixml)
-endif()
-set_property(TARGET pugixml-static PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-# CUDA
-# Dynamic linking should allegedly improve UCX-based MPI,
-# but it seriously affects other code aspects (maybe stream polling?)
-#set(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
-find_package(CUDA 9.2 REQUIRED)
-
-# MPI
-include(mpi)
-set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${MPI_CXX_COMPILER})
-
-# **********************
-# Optional packages
-include(hdf5 REQUIRED)
-find_package(LIBBFD REQUIRED)
-# **********************
-
-
-# Setup compiler flags
-
-set(cxx_flags -g)
-set(cuda_flags --expt-extended-lambda)
-
-set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion -Werror)
-set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror")
-
-
-# Auto-detect compute capability if not provided
-if (NOT DEFINED CUDA_ARCH_NAME)
-  set(CUDA_ARCH_NAME Auto)
-endif()
-
-# The options come out crooked, fix'em
-cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS ${CUDA_ARCH_NAME})
-unset(CUDA_ARCH_NAME CACHE)
-
-string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
-string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
-
-
-# Linker flags
-set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
-
-# uncomment to use sanitizer
-# set(san_opt "-fsanitize=undefined")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${san_opt} -g")
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${san_opt}")
-
-# Choose Release mode as default.
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-    "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
-endif()
-
-# *************************
-# add the mirheo libraries
-# *************************
-
-# Alias some dirs
+# ***********************
+# Alias directories
+# ***********************
 set(MIR_BASE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(CORE_DIR       "${MIR_BASE_INCLUDE_DIR}/mirheo/core/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 
-# generate version.cpp
+# ***********************
+# generate version files
+# ***********************
 configure_file(
   "${CORE_DIR}/version.cpp.in"
   "${CORE_DIR}/version.cpp"
   )
-
-#generate version.py
 configure_file(
   "${PYTHON_LIB_DIR}/version.py.in"
   "${PYTHON_LIB_DIR}/version.py"
   )
 
+# *************************
+# add the mirheo libraries
+# *************************
 
 set(LIB_MIR_CORE "mirheoCore")
 set(LIB_MIR_CORE_AND_PLUGINS "mirheoCoreAndPlugins")
 set(LIB_MIR "libmirheo")
-
 
 add_subdirectory(src)
 
@@ -139,7 +64,6 @@ add_subdirectory(src)
 # set_target_properties(${LIB_MIR_CORE}             PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 # set_target_properties(${LIB_MIR_CORE_AND_PLUGINS} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
 # set_target_properties(${LIB_MIR}                  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-
 
 # uncomment to profile time spent to compile each object
 #set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
