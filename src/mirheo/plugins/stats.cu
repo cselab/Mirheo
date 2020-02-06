@@ -127,20 +127,20 @@ void PostprocessStats::deserialize()
     std::vector<Stats::ReductionType> momentum, energy;
     std::vector<real> maxvel;
 
-    SimpleSerializer::deserialize(data, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
+    SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
 
-    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MIN, 0, comm) );
-    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MAX, 0, comm) );
+    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MIN, 0, comm_) );
+    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MAX, 0, comm_) );
     
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, getMPIIntType<Stats::CountType>(),       MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, getMPIIntType<Stats::CountType>(),       MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm_) );
 
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : maxvel.data(),   maxvel.data(),   1, getMPIFloatType<real>(), MPI_MAX, 0, comm) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : maxvel.data(),   maxvel.data(),   1, getMPIFloatType<real>(), MPI_MAX, 0, comm_) );
 
-    MPI_Check( MPI_Reduce(rank == 0 ? MPI_IN_PLACE : &realTime,       &realTime,       1, getMPIFloatType<real>(), MPI_MAX, 0, comm) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : &realTime,       &realTime,       1, getMPIFloatType<real>(), MPI_MAX, 0, comm_) );
 
-    if (rank == 0)
+    if (rank_ == 0)
     {
         const double invNparticles = nparticles > 0 ? 1.0 / nparticles : 0.0;
         momentum[0] *= invNparticles;

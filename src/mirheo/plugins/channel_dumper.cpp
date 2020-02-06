@@ -34,11 +34,11 @@ void UniformCartesianDumper::handshake()
     std::vector<int> sizes;
     std::vector<std::string> names;
     std::string numberDensityChannelName;
-    SimpleSerializer::deserialize(data, nranks3D, rank3D, resolution, h, sizes, names, numberDensityChannelName);
+    SimpleSerializer::deserialize(data_, nranks3D, rank3D, resolution, h, sizes, names, numberDensityChannelName);
         
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {0, 0, 0};
-    MPI_Check( MPI_Cart_create(comm, 3, ranksArr, periods, 0, &cartComm_) );
+    MPI_Check( MPI_Cart_create(comm_, 3, ranksArr, periods, 0, &cartComm_) );
     grid_ = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm_);
         
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
@@ -66,7 +66,7 @@ void UniformCartesianDumper::handshake()
     }
     
     // Create the required folder
-    createFoldersCollective(comm, parentPath(path_));
+    createFoldersCollective(comm_, parentPath(path_));
 
     debug2("Plugin %s was set up to dump channels %s. Resolution is %dx%dx%d, path is %s", getCName(),
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path_.c_str());
@@ -83,7 +83,7 @@ void UniformCartesianDumper::deserialize()
 {
     MirState::TimeType t;
     MirState::StepType timeStamp;
-    SimpleSerializer::deserialize(data, t, timeStamp, recvNumberDnsity_, recvContainers_);
+    SimpleSerializer::deserialize(data_, t, timeStamp, recvNumberDnsity_, recvContainers_);
     
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
            getCName(), t, timeStamp);

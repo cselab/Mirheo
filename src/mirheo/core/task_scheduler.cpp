@@ -422,15 +422,15 @@ void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
     doc.save_file(filename.c_str());
 }
 
-TaskScheduler::Task::Task(const std::string& label, TaskID id, int priority) :
-    label(label),
-    id(id),
-    priority(priority)
+TaskScheduler::Task::Task(const std::string& label_, TaskID id_, int priority_) :
+    label(label_),
+    id(id_),
+    priority(priority_)
 {}
 
-TaskScheduler::Node::Node(TaskID id, int priority) :
-    id(id),
-    priority(priority)
+TaskScheduler::Node::Node(TaskID id_, int priority_) :
+    id(id_),
+    priority(priority_)
 {}
 
 } // namespace mirheo

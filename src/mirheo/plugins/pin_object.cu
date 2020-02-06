@@ -244,8 +244,8 @@ void ReportPinObjectPlugin::handshake()
     recv();
 
     std::string ovName;
-    SimpleSerializer::deserialize(data, ovName);
-    if (activated && rank == 0)
+    SimpleSerializer::deserialize(data_, ovName);
+    if (activated && rank_ == 0)
     {
         std::string fname = path + ovName + ".txt";
         auto status = fout.open(fname, "w" );
@@ -260,12 +260,12 @@ void ReportPinObjectPlugin::deserialize()
     MirState::TimeType currentTime;
     int nsamples;
 
-    SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);
+    SimpleSerializer::deserialize(data_, currentTime, nsamples, forces, torques);
 
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
 
-    if (activated && rank == 0)
+    if (activated && rank_ == 0)
     {
         for (size_t i = 0; i < forces.size(); ++i)
         {

@@ -174,7 +174,7 @@ void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
-    const real seed = 0.42424242_r + rank * 17;
+    const real seed = 0.42424242_r + rank_ * 17;
     const auto domain = getState()->domain;    
     const int nLevelSets = nInsides_.size();
 
@@ -203,7 +203,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     
     localVolumes.downloadFromDevice(stream);
     
-    MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes_.data(), volumes_.size(), MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes_.data(), volumes_.size(), MPI_DOUBLE, MPI_SUM, comm_) );
     // std::copy(localVolumes.begin(), localVolumes.end(), volumes.begin());
 }
 
@@ -230,7 +230,7 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
     nInsides_.downloadFromDevice(stream);    
     
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides_.hostPtr(), nInsides_.size(),
-                             MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm) );
+                             MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm_) );
 
     for (size_t i = 0; i < volumes_.size(); ++i)
     {
@@ -309,9 +309,9 @@ void PostprocessDensityControl::deserialize()
     MirState::TimeType currentTime;
     std::vector<real> densities, forces;
 
-    SimpleSerializer::deserialize(data, currentTime, currentTimeStep, densities, forces);
+    SimpleSerializer::deserialize(data_, currentTime, currentTimeStep, densities, forces);
 
-    if (rank == 0)
+    if (rank_ == 0)
     {
         fprintf(fdump_.get(), "%g %lld ", currentTime, currentTimeStep);
         for (auto d : densities) fprintf(fdump_.get(), "%g ", d);

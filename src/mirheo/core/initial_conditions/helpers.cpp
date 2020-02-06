@@ -96,11 +96,11 @@ void addUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     avgMomentum.y /= mycount;
     avgMomentum.z /= mycount;
 
-    for (auto& vel : pv->local()->velocities())
+    for (auto& v : pv->local()->velocities())
     {
-        vel.x -= static_cast<real>(avgMomentum.x);
-        vel.y -= static_cast<real>(avgMomentum.y);
-        vel.z -= static_cast<real>(avgMomentum.z);
+        v.x -= static_cast<real>(avgMomentum.x);
+        v.y -= static_cast<real>(avgMomentum.y);
+        v.z -= static_cast<real>(avgMomentum.z);
     }
 
     pv->local()->positions() .uploadToDevice(stream);

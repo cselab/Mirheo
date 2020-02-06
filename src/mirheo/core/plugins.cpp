@@ -6,14 +6,16 @@ namespace mirheo
 {
 
 Plugin::Plugin() :
-    comm(MPI_COMM_NULL),
-    interComm(MPI_COMM_NULL)
+    comm_     (MPI_COMM_NULL),
+    interComm_(MPI_COMM_NULL),
+    rank_{-1},
+    nranks_{-1}
 {}
 
 Plugin::~Plugin()
 {
-    if (comm != MPI_COMM_NULL)
-        MPI_Check(MPI_Comm_free(&comm));
+    if (comm_ != MPI_COMM_NULL)
+        MPI_Check(MPI_Comm_free(&comm_));
 }
 
 void Plugin::handshake() {}
@@ -25,11 +27,11 @@ void Plugin::setTag(int tag)
 
 void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    MPI_Check( MPI_Comm_dup(comm, &this->comm) );
-    this->interComm = interComm;
+    MPI_Check( MPI_Comm_dup(comm, &comm_) );
+    interComm_ = interComm;
     
-    MPI_Check( MPI_Comm_rank(this->comm, &rank) );
-    MPI_Check( MPI_Comm_size(this->comm, &nranks) );
+    MPI_Check( MPI_Comm_rank(comm_, &rank_) );
+    MPI_Check( MPI_Comm_size(comm_, &nranks_) );
 }
 
 int Plugin::_sizeTag() const {_checkTag(); return 2 * tag_ + 0;}
@@ -94,8 +96,8 @@ void SimulationPlugin::send(const void *data, size_t sizeInBytes)
     waitPrevSend();
         
     debug2("Plugin '%s' is sending the data (%d bytes)", getCName(), sizeInBytes);
-    MPI_Check( MPI_Issend(&localSendSize_, 1, MPI_INT,  rank, _sizeTag(), interComm, &sizeReq_) );
-    MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank, _dataTag(), interComm, &dataReq_) );
+    MPI_Check( MPI_Issend(&localSendSize_, 1, MPI_INT,  rank_, _sizeTag(), interComm_, &sizeReq_) );
+    MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank_, _dataTag(), interComm_, &dataReq_) );
 }
 
 
@@ -112,21 +114,21 @@ PostprocessPlugin::~PostprocessPlugin() = default;
 MPI_Request PostprocessPlugin::waitData()
 {
     MPI_Request req;
-    MPI_Check( MPI_Irecv(&size, 1, MPI_INT, rank, _sizeTag(), interComm, &req) );
+    MPI_Check( MPI_Irecv(&size_, 1, MPI_INT, rank_, _sizeTag(), interComm_, &req) );
     return req;
 }
 
 void PostprocessPlugin::recv()
 {
-    data.resize(size);
+    data_.resize(size_);
     MPI_Status status;
     int count;
-    MPI_Check( MPI_Recv(data.data(), size, MPI_BYTE, rank, _dataTag(), interComm, &status) );
+    MPI_Check( MPI_Recv(data_.data(), size_, MPI_BYTE, rank_, _dataTag(), interComm_, &status) );
     MPI_Check( MPI_Get_count(&status, MPI_BYTE, &count) );
 
-    if (count != size)
+    if (count != size_)
         error("Plugin '%s' was going to receive %d bytes, but actually got %d. That may be fatal",
-              getCName(), size, count);
+              getCName(), size_, count);
 
     debug3("Plugin '%s' has received the data (%d bytes)", getCName(), count);
 }

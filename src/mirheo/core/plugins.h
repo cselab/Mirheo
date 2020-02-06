@@ -21,8 +21,8 @@ public:
     void setTag(int tag);
     
 protected:
-    MPI_Comm comm, interComm;
-    int rank, nranks;
+    MPI_Comm comm_, interComm_;
+    int rank_, nranks_;
     
     void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
 
@@ -81,9 +81,9 @@ public:
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);    
 
 protected:
-
-    std::vector<char> data;
-    int size;    
+    std::vector<char> data_;
+private:
+    int size_;
 };
 
 } // namespace mirheo

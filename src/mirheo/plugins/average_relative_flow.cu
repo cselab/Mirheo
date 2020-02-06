@@ -53,7 +53,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     Average3D::setup(simulation, comm, interComm);
 
     int local_size = numberDensity_.size();
-    int global_size = local_size * nranks;
+    int global_size = local_size * nranks_;
     
     localNumberDensity      .resize(local_size);
     numberDensity_           .resize_anew(global_size);
@@ -65,7 +65,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
         local_size  = channelsInfo_.average[i].size();
-        global_size = local_size * nranks;
+        global_size = local_size * nranks_;
         localChannels[i].resize(local_size);
         channelsInfo_.average[i].resize_anew(global_size);
         accumulatedAverage_  [i].resize_anew(global_size);
@@ -87,7 +87,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 
     MPI_Check( MPI_Reduce(&locsize, &totsize, 1, MPI_INT, MPI_SUM, 0, comm) );
 
-    if (rank == 0 && relativeID >= totsize)
+    if (rank_ == 0 && relativeID >= totsize)
         die("Too few objects in OV '%s' (only %d); but requested id %d",
             relativeOV->getCName(), totsize, relativeID);
 }
@@ -118,7 +118,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     // Find and broadcast the position and velocity of the relative object
     MPI_Request req;
-    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm, &req) );
+    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm_, &req) );
 
     auto ids     = relativeOV->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     auto motions = relativeOV->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
@@ -135,8 +135,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
             params[0] = getState()->domain.local2global(params[0]);
 
-            for (int r = 0; r < nranks; r++)
-                MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm);
+            for (int r = 0; r < nranks_; r++)
+                MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm_);
 
             break;
         }
@@ -163,7 +163,7 @@ void AverageRelative3D::extractLocalBlock()
     
     auto oneChannel = [this] (const PinnedBuffer<double>& channel, Average3D::ChannelType type, double scale, std::vector<double>& dest) {
 
-        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm) );
+        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm_) );
 
         const int ncomponents = this->getNcomponents(type);
 

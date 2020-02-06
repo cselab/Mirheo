@@ -230,14 +230,14 @@ void ObjStatsDumper::handshake()
     recv();
 
     std::string ovName;
-    SimpleSerializer::deserialize(data, ovName);
+    SimpleSerializer::deserialize(data_, ovName);
 
     if (activated_)
     {
         const std::string fname = path_ + ovName + ".txt";
-        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );
+        MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );
         MPI_Check( MPI_File_close(&fout_) );
-        MPI_Check( MPI_File_open(comm, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout_) );
+        MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout_) );
     }
 }
 
@@ -253,10 +253,10 @@ void ObjStatsDumper::deserialize()
     bool isRov;
     bool hasTypeIds;
 
-    SimpleSerializer::deserialize(data, curTime, domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
+    SimpleSerializer::deserialize(data_, curTime, domain, isRov, ids, coms, motions, hasTypeIds, typeIds);
 
     if (activated_)
-        writeStats(comm, domain, fout_, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
+        writeStats(comm_, domain, fout_, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
 }
 
 } // namespace mirheo

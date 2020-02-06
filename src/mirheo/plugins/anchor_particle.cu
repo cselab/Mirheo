@@ -149,9 +149,9 @@ void AnchorParticlesStatsPlugin::handshake()
     recv();
 
     std::string pvName;
-    SimpleSerializer::deserialize(data, pvName);
+    SimpleSerializer::deserialize(data_, pvName);
 
-    if (activated_ && rank == 0)
+    if (activated_ && rank_ == 0)
     {
         const std::string fname = path_ + pvName + ".txt";
         auto status = fout_.open( fname, "w" );
@@ -166,11 +166,11 @@ void AnchorParticlesStatsPlugin::deserialize()
     MirState::TimeType currentTime;
     int nsamples;
 
-    SimpleSerializer::deserialize(data, currentTime, nsamples, forces);
+    SimpleSerializer::deserialize(data_, currentTime, nsamples, forces);
 
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  3 * forces.size(),  MPI_DOUBLE, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  3 * forces.size(),  MPI_DOUBLE, MPI_SUM, 0, comm_) );
 
-    if (activated_ && rank == 0)
+    if (activated_ && rank_ == 0)
     {
         fprintf(fout_.get(), "%f", currentTime);
         for (auto& f : forces)

@@ -72,12 +72,12 @@ void XYZDumper::deserialize()
     std::string pvName;
     MirState::StepType timeStamp;
     
-    SimpleSerializer::deserialize(data, timeStamp, pvName, pos_);
+    SimpleSerializer::deserialize(data_, timeStamp, pvName, pos_);
 
     std::string currentFname = path_ + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
 
     if (activated_)
-        writeXYZ(comm, currentFname, pos_.data(), static_cast<int>(pos_.size()));
+        writeXYZ(comm_, currentFname, pos_.data(), static_cast<int>(pos_.size()));
 }
 
 } // namespace mirheo

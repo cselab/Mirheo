@@ -169,14 +169,14 @@ void MeshDumper::deserialize()
     int nvertices, ntriangles;
 
     MirState::StepType timeStamp;
-    SimpleSerializer::deserialize(data, timeStamp, ovName, nvertices, ntriangles, connectivity_, vertices_);
+    SimpleSerializer::deserialize(data_, timeStamp, ovName, nvertices, ntriangles, connectivity_, vertices_);
 
     std::string currentFname = path_ + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
 
     if (activated_)
     {
         const int nObjects = static_cast<int>(vertices_.size()) / nvertices;
-        writePLY(comm, currentFname,
+        writePLY(comm_, currentFname,
                 nvertices * nObjects, nvertices,
                 ntriangles*nObjects, ntriangles,
                 nObjects,
