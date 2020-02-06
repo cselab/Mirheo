@@ -12,7 +12,8 @@ QUIET             = YES
 JAVADOC_AUTOBRIEF = YES
 WARN_IF_UNDOCUMENTED = YES
 
-INPUT = ../src/mirheo/core/initial_conditions
+INPUT = ../src/mirheo/core/initial_conditions \
+      ../src/mirheo/core/bouncers/interface.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
