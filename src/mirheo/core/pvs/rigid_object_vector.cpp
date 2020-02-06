@@ -21,7 +21,7 @@ LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, 
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
+    auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
     meshVertices_.resize_anew(nObjects * mesh->getNvertices());
 
@@ -38,7 +38,7 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
+    auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
     meshOldVertices_.resize_anew(nObjects * mesh->getNvertices());
 
@@ -58,14 +58,14 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
 
 PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
-    auto ov = dynamic_cast<ObjectVector*>(pv);
+    auto ov = dynamic_cast<ObjectVector*>(parent());
     meshForces_.resize_anew(nObjects * ov->mesh->getNvertices());
     return &meshForces_;
 }
 
 void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 {
-    ROVview view(static_cast<RigidObjectVector*>(pv), this);
+    ROVview view(static_cast<RigidObjectVector*>(parent()), this);
     RigidOperations::clearRigidForcesFromMotions(view, stream);
 }
 

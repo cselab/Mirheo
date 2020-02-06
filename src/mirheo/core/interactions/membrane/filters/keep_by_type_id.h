@@ -10,7 +10,7 @@ class FilterKeepByTypeId
 {
 public:
     FilterKeepByTypeId(int whiteListTypeId) :
-        whiteListTypeId(whiteListTypeId)
+        whiteListTypeId_(whiteListTypeId)
     {}
 
     void setPrerequisites(MembraneVector *mv) const
@@ -24,18 +24,18 @@ public:
     {
         LocalObjectVector *lmv = mv->local();
         auto typeIdsBuff = lmv->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
-        typeIds = typeIdsBuff->devPtr();
+        typeIds_ = typeIdsBuff->devPtr();
     }
 
     inline __D__ bool inWhiteList(long membraneId) const
     {
-        const auto typeId = typeIds[membraneId];
-        return typeId == whiteListTypeId;
+        const auto typeId = typeIds_[membraneId];
+        return typeId == whiteListTypeId_;
     }
 
 private:
-    int whiteListTypeId {-1};
-    const int *typeIds {nullptr};
+    int whiteListTypeId_ {-1};
+    const int *typeIds_ {nullptr};
 };
 
 } // namespace mirheo

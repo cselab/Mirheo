@@ -61,7 +61,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     if ((rankStart % objSize) != 0)
         die("Something went wrong when computing ids of '%s':"
             "got rankStart = '%ld' while objectSize is '%d'",
-            pv->getCName(), rankStart, objSize);
+            parent()->getCName(), rankStart, objSize);
 
     auto& ids = *dataPerObject.getData<int64_t>(ChannelNames::globalIds);
     int64_t id = (int64_t) (rankStart / objSize);

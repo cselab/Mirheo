@@ -494,7 +494,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 {
     const int nthreads = 128;
     const int np = lpv->size();
-    auto pv = lpv->pv;
+    auto pv = lpv->parent();
 
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",

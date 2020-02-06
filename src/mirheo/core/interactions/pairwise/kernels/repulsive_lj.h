@@ -30,8 +30,8 @@ public:
     
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
-        auto ov1 = dynamic_cast<ObjectVector*>(lpv1->pv);
-        auto ov2 = dynamic_cast<ObjectVector*>(lpv2->pv);
+        auto ov1 = dynamic_cast<ObjectVector*>(lpv1->parent());
+        auto ov2 = dynamic_cast<ObjectVector*>(lpv2->parent());
 
         self_ = false;
         if (ov1 != nullptr && ov2 != nullptr && lpv1 == lpv2)
@@ -72,8 +72,8 @@ public:
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
-        auto rv1 = dynamic_cast<RodVector*>(lpv1->pv);
-        auto rv2 = dynamic_cast<RodVector*>(lpv2->pv);
+        auto rv1 = dynamic_cast<RodVector*>(lpv1->parent());
+        auto rv2 = dynamic_cast<RodVector*>(lpv2->parent());
 
         self_ = false;
         if (rv1 != nullptr && rv2 != nullptr && lpv1 == lpv2)
