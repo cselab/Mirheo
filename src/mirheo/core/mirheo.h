@@ -111,7 +111,7 @@ public:
                                                                 std::string outside = "");    
 
     void logCompileOptions() const;
-    void writeSnapshot(std::string path) const;
+    void writeSnapshot(std::string path);
     
 private:
     std::unique_ptr<Simulation> sim_;

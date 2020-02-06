@@ -23,7 +23,8 @@ MirObject::~MirObject()
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
 
-ConfigDictionary MirObject::writeSnapshot(Dumper&) const {
+ConfigDictionary MirObject::writeSnapshot(Dumper&)
+{
     std::string name = typeid(*this).name();
     throw std::runtime_error("getConfig not implemented for class " + name);
 }
@@ -90,7 +91,8 @@ void MirSimulationObject::setState(const MirState *state)
     this->state = state;
 }
 
-Config ConfigMirObjectDumper::dump(Dumper& dumper, const MirObject& obj) {
+Config ConfigMirObjectDumper::dump(Dumper& dumper, MirObject& obj)
+{
     if (dumper.isObjectRegistered(&obj))
         return dumper.getObjectDescription(&obj);
     ConfigDictionary dict = obj.writeSnapshot(dumper);

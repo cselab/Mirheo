@@ -73,7 +73,8 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
 
 MembraneInteraction::~MembraneInteraction() = default;
 
-ConfigDictionary MembraneInteraction::writeSnapshot(Dumper& dumper) const {
+ConfigDictionary MembraneInteraction::writeSnapshot(Dumper& dumper)
+{
     return {
         {"__category", dumper("Interaction")},
         {"__type",     dumper("MembraneInteraction")},

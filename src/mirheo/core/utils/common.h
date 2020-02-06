@@ -94,7 +94,8 @@ struct CheckpointInfo
 };
 
 template <>
-struct ConfigDumper<CheckpointInfo> {
+struct ConfigDumper<CheckpointInfo>
+{
     static Config dump(Dumper&, const CheckpointInfo&);
 };
 

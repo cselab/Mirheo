@@ -4,6 +4,7 @@
 #include "views/rov.h"
 
 #include <mirheo/core/rigid/operations.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/xdmf/type_map.h>
@@ -134,13 +135,13 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
 }
                                   
 
-void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xdmfFilename,
+                                            const std::string& ipFilename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
     info("Checkpoint for rigid object vector '%s', writing to file %s",
-         getCName(), filename.c_str());
+         getCName(), xdmfFilename.c_str());
 
     auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
@@ -188,15 +189,21 @@ void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& 
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
     
-    XDMF::write(filename, &grid, channels, comm);
+    XDMF::write(xdmfFilename, &grid, channels, comm);
 
+    writeInitialPositions(comm, ipFilename, initialPositions);
+
+    debug("Checkpoint for rigid object vector '%s' successfully written", getCName());
+}
+
+void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto xdmfFilename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
+    auto ipFilename   = createCheckpointNameWithId(path, RestartIPIdentifier, "coords", checkpointId);
+    _snapshotObjectData(comm, xdmfFilename, ipFilename);
     createCheckpointSymlink(comm, path, RestartROVIdentifier, "xmf", checkpointId);
-
-    filename = createCheckpointNameWithId(path, RestartIPIdentifier, "coords", checkpointId);
-    writeInitialPositions(comm, filename, initialPositions);
     createCheckpointSymlink(comm, path, RestartIPIdentifier, "coords", checkpointId);
-
-    debug("Checkpoint for object vector '%s' successfully written", getCName());
+    debug("Symbolic links for rigid object vector '%s' created", getCName());
 }
 
 void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -241,6 +248,23 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     initialPositions = readInitialPositions(comm, filename, objSize);
 
     info("Successfully read object infos of '%s'", getCName());
+}
+
+ConfigDictionary RigidObjectVector::writeSnapshot(Dumper &dumper)
+{
+    die("RigitObjectVector::writeSnapshot not tested.");
+    // The filename does not include the extension.
+    std::string xdmfFilename = joinPaths(dumper.getContext().path, getName() + "." + RestartROVIdentifier);
+    std::string ipFilename   = joinPaths(dumper.getContext().path, getName() + "." + RestartIPIdentifier);
+    _snapshotObjectData(dumper.getContext().groupComm, xdmfFilename, ipFilename);
+
+    ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
+    dict.insert_or_assign("__type", dumper("RigidObjectVector"));
+    dict.emplace("objSize",         dumper(objSize));
+    dict.emplace("mesh",            dumper(mesh));
+    dict.emplace("J",               dumper(J));
+    // `initialPositions` are stored in `_snapshotObjectData`.
+    return dict;
 }
 
 } // namespace mirheo

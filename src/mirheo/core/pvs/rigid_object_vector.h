@@ -39,11 +39,16 @@ public:
     }
 
 protected:
-
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;
 
+private:
+    void _snapshotObjectData(MPI_Comm comm, const std::string& filename,
+                             const std::string& initialPosFilename);
+
 public:
+    ConfigDictionary writeSnapshot(Dumper &dumper) override;
+
     PinnedBuffer<real4> initialPositions;
 
     /// Diagonal of the inertia tensor in the principal axes

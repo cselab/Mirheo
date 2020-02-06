@@ -84,7 +84,8 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     domain.localSize   = lsz;
 }
 
-Config ConfigDumper<MirState>::dump(Dumper& dumper, const MirState& state) {
+Config ConfigDumper<MirState>::dump(Dumper& dumper, MirState& state)
+{
     return Config::Dictionary{
         {"__type",            dumper("MirState")},
         {"domainGlobalStart", dumper(state.domain.globalStart)},

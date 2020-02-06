@@ -148,7 +148,8 @@ void Postprocess::checkpoint(int checkpointId)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
-ConfigDictionary Postprocess::writeSnapshot(Dumper& dumper) const {
+ConfigDictionary Postprocess::writeSnapshot(Dumper& dumper)
+{
     Config::List pluginsConfig;
     pluginsConfig.reserve(plugins_.size());
     for (const auto &plugin : plugins_)

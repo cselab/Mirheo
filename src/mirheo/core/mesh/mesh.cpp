@@ -128,7 +128,7 @@ MeshView::MeshView(const Mesh *m) :
     triangles  (m->triangles.devPtr())   
 {}
 
-Config ConfigDumper<Mesh>::dump(Dumper& dumper, const Mesh& mesh)
+Config ConfigDumper<Mesh>::dump(Dumper& dumper, Mesh& mesh)
 {
     // Increment the "mesh" context counter and the old value as an ID.
     int id = dumper.getContext().counters["mesh"]++;

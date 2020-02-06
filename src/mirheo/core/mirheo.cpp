@@ -696,7 +696,7 @@ static void storeToFile(const std::string& content, const std::string& filename)
     fwrite(content.data(), 1, content.size(), f.get());
 }
 
-void Mirheo::writeSnapshot(std::string path) const
+void Mirheo::writeSnapshot(std::string path)
 {
     // Prepare context and the dumper.
     DumpContext context;

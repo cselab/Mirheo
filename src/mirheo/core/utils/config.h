@@ -20,12 +20,14 @@ namespace mirheo
 class Dumper;
 
 template <typename T, typename Enable>
-struct ConfigDumper {
+struct ConfigDumper
+{
     static_assert(std::is_same<remove_cvref_t<T>, T>::value,
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
 
-    static Config dump(Dumper&, const T& value);
+    /// Required function.
+    static Config dump(Dumper&, T& value);
 };
 
 class ConfigDictionary : public FlatOrderedDict<std::string, Config>
@@ -117,15 +119,24 @@ public:
     const Config& getConfig() const noexcept { return config_; }
 
     /// Dump.
-    template <size_t N>
-    Config operator()(const char (&t)[N])
+    template <typename T>
+    Config operator()(T& t)
     {
-        return std::string{t};
+        return ConfigDumper<std::remove_const_t<T>>::dump(*this, t);
     }
     template <typename T>
     Config operator()(const T& t)
     {
         return ConfigDumper<T>::dump(*this, t);
+    }
+    template <typename T>
+    Config operator()(T* t)
+    {
+        return ConfigDumper<std::remove_const_t<T>*>::dump(*this, t);
+    }
+    Config operator()(const char* t)
+    {
+        return std::string(t);
     }
 
     bool isObjectRegistered(const void*) const noexcept;
@@ -140,9 +151,11 @@ private:
 
 namespace detail
 {
-    struct DumpHandler {
+    struct DumpHandler
+    {
         template <typename... Args>
-        void process(Args&& ...items) {
+        void process(Args&& ...items)
+        {
             dict_->reserve(dict_->size() + sizeof...(items));
 
             // https://stackoverflow.com/a/51006031
@@ -152,9 +165,9 @@ namespace detail
         }
 
         template <typename T>
-        Config::Dictionary::value_type operator()(std::string name, const T *t) const
+        Config::Dictionary::value_type operator()(std::string name, T *t) const
         {
-            return {std::move(name), ConfigDumper<T>::dump(*dumper_, *t)};
+            return {std::move(name), (*dumper_)(*t)};
         }
 
         Config::Dictionary *dict_;
@@ -164,7 +177,8 @@ namespace detail
 
 #define MIRHEO_DUMPER_PRIMITIVE(TYPE, ELTYPE)                                  \
     template <>                                                                \
-    struct ConfigDumper<TYPE> {                                                \
+    struct ConfigDumper<TYPE>                                                  \
+    {                                                                          \
         static Config dump(Dumper&, TYPE x)                                    \
         {                                                                      \
             return static_cast<Config::ELTYPE>(x);                             \
@@ -180,11 +194,20 @@ MIRHEO_DUMPER_PRIMITIVE(unsigned long long, Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(float,              Float);
 MIRHEO_DUMPER_PRIMITIVE(double,             Float);
 MIRHEO_DUMPER_PRIMITIVE(const char *,       String);
-MIRHEO_DUMPER_PRIMITIVE(std::string,        String);
 #undef MIRHEO_DUMPER_PRIMITIVE
 
 template <>
-struct ConfigDumper<float3> {
+struct ConfigDumper<std::string>
+{
+    static Config dump(Dumper &, std::string x)
+    {
+        return std::move(x);
+    }
+};
+
+template <>
+struct ConfigDumper<float3>
+{
     static Config dump(Dumper&, float3 v)
     {
         return Config::List{(double)v.x, (double)v.y, (double)v.z};
@@ -193,7 +216,8 @@ struct ConfigDumper<float3> {
 
 /// ConfigDumper for enum types.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>> {
+struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
+{
     static Config dump(Dumper&, T t) {
         return static_cast<Config::Int>(t);
     }
@@ -201,8 +225,10 @@ struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>> {
 
 /// ConfigDumper for structs with reflection information.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<T>::value>> {
-    static Config dump(Dumper& dumper, const T& t)
+struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<T>>::value>>
+{
+    template <typename TT>  // Const or not.
+    static Config dump(Dumper& dumper, TT& t)
     {
         Config::Dictionary dict;
         MemberVars<T>::foreach(detail::DumpHandler{&dict, &dumper}, &t);
@@ -213,7 +239,8 @@ struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<T>::value>> {
 /// ConfigDumper for pointer-like (dereferenceable) types. Redirects to the
 /// underlying object if not nullptr, otherwise returns a "<nullptr>" string.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>> {
+struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>>
+{
     static Config dump(Dumper& dumper, const T& ptr)
     {
         return ptr ? dumper(*ptr) : "<nullptr>";
@@ -222,12 +249,14 @@ struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>> {
 
 /// ConfigDumper for std::vector<T>.
 template <typename T>
-struct ConfigDumper<std::vector<T>> {
-    static Config dump(Dumper& dumper, const std::vector<T>& values)
+struct ConfigDumper<std::vector<T>>
+{
+    template <typename Vector>  // Const or not.
+    static Config dump(Dumper& dumper, Vector& values)
     {
         Config::List list;
         list.reserve(values.size());
-        for (const T& value : values)
+        for (auto& value : values)
             list.push_back(dumper(value));
         return std::move(list);
     }
@@ -235,12 +264,14 @@ struct ConfigDumper<std::vector<T>> {
 
 /// ConfigDumper for std::map<std::string, T>.
 template <typename T>
-struct ConfigDumper<std::map<std::string, T>> {
-    static Config dump(Dumper& dumper, const std::map<std::string, T>& values)
+struct ConfigDumper<std::map<std::string, T>>
+{
+    template <typename Map>  // Const or not.
+    static Config dump(Dumper& dumper, Map& values)
     {
         Config::Dictionary dict;
         dict.reserve(values.size());
-        for (const auto& pair : values)
+        for (auto& pair : values)
             dict.unsafe_insert(pair.first, dumper(pair.second));
         return std::move(dict);
     }
@@ -248,16 +279,15 @@ struct ConfigDumper<std::map<std::string, T>> {
 
 /// ConfigDumper for mpark::variant.
 template <typename... Ts>
-struct ConfigDumper<mpark::variant<Ts...>> {
-    static Config dump(Dumper& dumper, const mpark::variant<Ts...>& value)
+struct ConfigDumper<mpark::variant<Ts...>>
+{
+    template <typename Variant>  // Const or not.
+    static Config dump(Dumper& dumper, Variant& value)
     {
         Config::Dictionary dict;
         dict.reserve(2);
         dict.unsafe_insert("__index", static_cast<Config::Int>(value.index()));
-        dict.unsafe_insert("value", mpark::visit([&dumper](const auto& v) -> Config
-        {
-            return ConfigDumper<remove_cvref_t<decltype(v)>>::dump(dumper, v);
-        }, value));
+        dict.unsafe_insert("value", mpark::visit(dumper, value));
         return dict;
     }
 };

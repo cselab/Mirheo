@@ -61,7 +61,8 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     send(sendBuffer);
 }
 
-ConfigDictionary MeshPlugin::writeSnapshot(Dumper& dumper) const {
+ConfigDictionary MeshPlugin::writeSnapshot(Dumper& dumper)
+{
     return {
         {"__category", dumper("SimulationPlugin")},
         {"__type",     dumper("MeshPlugin")},
@@ -193,7 +194,8 @@ void MeshDumper::deserialize()
     }
 }
 
-ConfigDictionary MeshDumper::writeSnapshot(Dumper &dumper) const {
+ConfigDictionary MeshDumper::writeSnapshot(Dumper &dumper)
+{
     return {
         {"__category", dumper("PostprocessPlugin")},
         {"__type",     dumper("MeshDumper")},

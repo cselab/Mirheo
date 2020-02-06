@@ -70,7 +70,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    ConfigDictionary writeSnapshot(Dumper &) const override;
+    ConfigDictionary writeSnapshot(Dumper &) override;
     
     // Python getters / setters
     // Use default blocking stream
@@ -103,8 +103,9 @@ protected:
         int newSize;
     };
     
-    virtual void     _checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId);
-    virtual ExchMapSize _restartParticleData(MPI_Comm comm, const std::string& path, int chunkSize);
+    void        _snapshotParticleData  (MPI_Comm comm, const std::string& filename);
+    void        _checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId);
+    ExchMapSize _restartParticleData   (MPI_Comm comm, const std::string& path, int chunkSize);
 
 private:
 

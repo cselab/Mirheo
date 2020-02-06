@@ -248,11 +248,10 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId)
+void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s",
          getCName(), filename.c_str());
 
@@ -291,10 +290,17 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
                                          XDMF::Channel::NeedShift::False});
 
     XDMF::write(filename, &grid, channels, comm);
-
-    createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
     
     debug("Checkpoint for particle vector '%s' successfully written", getCName());
+}
+
+void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
+    _snapshotParticleData(comm, filename);
+
+    createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
+    debug("Created a symlink for particle vector '%s'", getCName());
 }
 
 ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, const std::string& path,
@@ -354,8 +360,11 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize, defaultStream);
 }
 
-ConfigDictionary ParticleVector::writeSnapshot(Dumper& dumper) const
+ConfigDictionary ParticleVector::writeSnapshot(Dumper& dumper)
 {
+    // The filename does not include the extension.
+    std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartPVIdentifier);
+    _snapshotParticleData(dumper.getContext().groupComm, filename);
     return {
         {"__category", dumper("ParticleVector")},
         {"__type",     dumper("ParticleVector")},

@@ -26,7 +26,7 @@ public:
     
     virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
-    virtual ConfigDictionary writeSnapshot(Dumper& dumper) const;
+    virtual ConfigDictionary writeSnapshot(Dumper& dumper);
 
     std::string createCheckpointName      (const std::string& path, const std::string& identifier, const std::string& extension) const;
     std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
@@ -57,7 +57,7 @@ private:
 // definition of Config here.
 struct ConfigMirObjectDumper {
     // Automatically adds `name` key to the returned dictionary. 
-    static Config dump(Dumper& dumper, const MirObject& obj);
+    static Config dump(Dumper& dumper, MirObject& obj);
 };
 
 /// ConfigDumper specialization for MirObject and derived classes.

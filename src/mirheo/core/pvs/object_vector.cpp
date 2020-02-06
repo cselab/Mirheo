@@ -119,15 +119,6 @@ ObjectVector::ObjectVector(const MirState *state, const std::string& name, real 
 
 ObjectVector::~ObjectVector() = default;
 
-ConfigDictionary ObjectVector::writeSnapshot(Dumper &dumper) const
-{
-    ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
-    dict.insert_or_assign("__type", dumper("ObjectVector"));
-    dict.emplace("objSize",         dumper(objSize));
-    dict.emplace("mesh",            dumper(mesh));
-    return dict;
-}
-
 void ObjectVector::findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality)
 {
     auto lov = get(locality);
@@ -153,11 +144,10 @@ static std::vector<real3> getCom(DomainInfo domain,
     return pos;
 }
 
-void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+void ObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s",
          getCName(), filename.c_str());
 
@@ -174,9 +164,15 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
-
     debug("Checkpoint for object vector '%s' successfully written", getCName());
+}
+
+void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
+    _snapshotObjectData(comm, filename);
+    createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
+    debug("Created a symlink for object vector '%s'", getCName());
 }
 
 void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -216,6 +212,19 @@ void ObjectVector::restart(MPI_Comm comm, const std::string& path)
     _restartObjectData(comm, path, ms);
     
     local()->resize(ms.newSize * objSize, defaultStream);
+}
+
+ConfigDictionary ObjectVector::writeSnapshot(Dumper &dumper)
+{
+    // The filename does not include the extension.
+    std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartOVIdentifier);
+    _snapshotObjectData(dumper.getContext().groupComm, filename);
+
+    ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
+    dict.insert_or_assign("__type", dumper("ObjectVector"));
+    dict.emplace("objSize",         dumper(objSize));
+    dict.emplace("mesh",            dumper(mesh));
+    return dict;
 }
 
 } // namespace mirheo

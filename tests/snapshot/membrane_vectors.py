@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Test dumping of Mesh and ObjectVector (particle data + object data).
+
+Currently without any actual particles. Only the XMF structure is tested.
+"""
+
 import mirheo as mir
 import numpy as np
 import argparse
@@ -35,4 +41,4 @@ u.writeSnapshot('snapshot/')
 # cd snapshot
 # rm -rf snapshot/
 # mir.run --runargs "-n 4" ./membrane_vectors.py --ranks 2 1 1
-# cat snapshot/config.compute.json snapshot/config.post.json snapshot/mesh_0.off snapshot/mesh_1.off > snapshot.out.txt
+# cat snapshot/config.compute.json snapshot/config.post.json snapshot/mesh_?.off snapshot/ov?.PV.xmf snapshot/ov?.OV.xmf > snapshot.out.txt

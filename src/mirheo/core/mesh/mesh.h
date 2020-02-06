@@ -59,7 +59,7 @@ struct MeshView
 template <>
 struct ConfigDumper<Mesh>
 {
-    static Config dump(Dumper&, const Mesh&);
+    static Config dump(Dumper&, Mesh&);
 };
 
 } // namespace mirheo

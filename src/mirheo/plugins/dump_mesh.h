@@ -34,7 +34,7 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) override;
 };
 
 
@@ -54,7 +54,7 @@ public:
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) override;
 };
 
 } // namespace mirheo

@@ -45,12 +45,13 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
 
 IntegratorSubStep::~IntegratorSubStep() = default;
 
-ConfigDictionary IntegratorSubStep::writeSnapshot(Dumper& dumper) const {
+ConfigDictionary IntegratorSubStep::writeSnapshot(Dumper& dumper)
+{
     return {
         {"__category",    dumper("Integrator")},
         {"__type",        dumper("IntegratorSubStep")},
         {"fastForces",    dumper(fastForces_)},
-        {"subIntegrator", dumper(subIntegrator_.get())},
+        {"subIntegrator", dumper(subIntegrator_)},
         {"substeps",      dumper(substeps_)},
     };
 }

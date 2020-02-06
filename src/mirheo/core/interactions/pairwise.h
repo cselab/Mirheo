@@ -27,7 +27,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    ConfigDictionary writeSnapshot(Dumper& dumper) const override;
+    ConfigDictionary writeSnapshot(Dumper& dumper) override;
 
     void setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, const ParametersWrap::MapParams& desc);
 

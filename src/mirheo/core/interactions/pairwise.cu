@@ -10,7 +10,6 @@
 #include "pairwise/kernels/repulsive_lj.h"
 #include "pairwise/kernels/sdpd.h"
 #include "pairwise/kernels/type_traits.h"
-#include <mirheo/core/utils/config.h>
 
 #include <memory>
 
@@ -155,16 +154,6 @@ void PairwiseInteraction::checkpoint(MPI_Comm comm, const std::string& path, int
 void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
 {
     return impl->restart(comm, path);
-}
-
-ConfigDictionary PairwiseInteraction::writeSnapshot(Dumper& dumper) const
-{
-    return {
-        {"__category",      dumper("Interaction")},
-        {"__type",          dumper("PairwiseInteraction")},
-        {"varParams",       dumper(varParams)},
-        {"varStressParams", dumper(varStressParams)},
-    };
 }
 
 template <class Params>

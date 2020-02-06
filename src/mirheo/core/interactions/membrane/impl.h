@@ -170,7 +170,8 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
-    ConfigDictionary writeSnapshot(Dumper& dumper) const override {
+    ConfigDictionary writeSnapshot(Dumper& dumper) override
+    {
         return {
             {"__category",     dumper("InteractionImpl")},
             {"__type",         dumper("MembraneInteractionImpl<...>")},
