@@ -22,20 +22,20 @@ public:
     
     PairwiseDensity(real rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),
-        densityKernel(densityKernel),
-        invrc(1.0 / rc)
+        densityKernel_(densityKernel),
+        invrc_(1.0 / rc)
     {}
 
     __D__ inline real operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2)
+        if (rij2 > rc2_)
             return 0.0_r;
 
         const real rij = math::sqrt(rij2);
 
-        return densityKernel(rij, invrc);
+        return densityKernel_(rij, invrc_);
     }
 
     __D__ inline DensityAccumulator getZeroedAccumulator() const {return DensityAccumulator();}
@@ -48,8 +48,8 @@ public:
     
 protected:
 
-    real invrc;
-    DensityKernel densityKernel;
+    real invrc_;
+    DensityKernel densityKernel_;
 };
 
 } // namespace mirheo

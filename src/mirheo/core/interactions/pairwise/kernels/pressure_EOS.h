@@ -12,8 +12,8 @@ class LinearPressureEOS
 public:
 
     LinearPressureEOS(real soundSpeed, real rho0) :
-        cSq(soundSpeed * soundSpeed),
-        rho0(rho0)
+        cSq_(soundSpeed * soundSpeed),
+        rho0_(rho0)
     {}
 
     LinearPressureEOS(const LinearPressureEOSParams& p) :
@@ -22,11 +22,11 @@ public:
     
     __D__ inline real operator()(real rho) const
     {
-        return cSq * (rho - rho0);
+        return cSq_ * (rho - rho0_);
     }
 
 private:
-    real cSq, rho0;
+    real cSq_, rho0_;
 };
 
 
@@ -35,8 +35,8 @@ class QuasiIncompressiblePressureEOS
 public:
     
     QuasiIncompressiblePressureEOS(real p0, real rhor) :
-        p0(p0),
-        invRhor(1.0_r / rhor)
+        p0_(p0),
+        invRhor_(1.0_r / rhor)
     {}
 
     QuasiIncompressiblePressureEOS(const QuasiIncompressiblePressureEOSParams& p) :
@@ -45,15 +45,14 @@ public:
     
     __D__ inline real operator()(real rho) const
     {
-        const real r = rho * invRhor;
+        const real r = rho * invRhor_;
         const real r3 = r*r*r;
         const real r7 = r3*r3*r;
-        return p0 * (r7 - 1._r);
+        return p0_ * (r7 - 1._r);
     }
 
 private:
-
-    real p0, invRhor;
+    real p0_, invRhor_;
 };
 
 } // namespace mirheo

@@ -34,12 +34,12 @@ struct StatesSpinParameters
     real kBT;
     real J;
 
-    inline auto generate() {return udistr(gen);}
+    inline auto generate() {return udistr_(gen_);}
     
 private:
 
-    std::mt19937 gen;
-    std::uniform_real_distribution<real> udistr;
+    std::mt19937 gen_;
+    std::uniform_real_distribution<real> udistr_;
 };
 
 } // namespace mirheo

@@ -59,22 +59,22 @@ public:
 
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
         BasicPairwiseForce(basicForce),
-        basicForceWrapperHandler(basicForce.handler())
+        basicForceWrapperHandler_(basicForce.handler())
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
     {
         BasicPairwiseForce::setup(lpv1, lpv2, cl1, cl2, state);
-        basicForceWrapperHandler = HandlerType(BasicPairwiseForce::handler());
+        basicForceWrapperHandler_ = HandlerType(BasicPairwiseForce::handler());
     }
 
     const HandlerType& handler() const
     {
-        return basicForceWrapperHandler;
+        return basicForceWrapperHandler_;
     }
     
 protected:
-    HandlerType basicForceWrapperHandler;
+    HandlerType basicForceWrapperHandler_;
 };
 
 } // namespace mirheo

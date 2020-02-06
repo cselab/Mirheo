@@ -21,8 +21,8 @@ public:
     using ParticleType = Particle;
     
     ParticleFetcher(real rc) :
-        rc(rc),
-        rc2(rc*rc)
+        rc_(rc),
+        rc2_(rc*rc)
     {}
 
     __D__ inline ParticleType read(const ViewType& view, int id) const
@@ -43,14 +43,14 @@ public:
 
     __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
     {
-        return distance2(src.r, dst.r) < rc2;
+        return distance2(src.r, dst.r) < rc2_;
     }
 
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.r;}
     
 protected:
 
-    real rc, rc2;
+    real rc_, rc2_;
 };
 
 /**
