@@ -37,17 +37,17 @@ public:
     void requireDataPerBisegment(const std::string& name, DataManager::PersistenceMode persistence,
                                  DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerBisegment<T>(local(), name, persistence, shift);
-        requireDataPerBisegment<T>(halo(),  name, persistence, shift);
+        _requireDataPerBisegment<T>(local(), name, persistence, shift);
+        _requireDataPerBisegment<T>(halo(),  name, persistence, shift);
     }
 
 private:
     template<typename T>
-    void requireDataPerBisegment(LocalRodVector *lrv, const std::string& name,
-                                 DataManager::PersistenceMode persistence,
-                                 DataManager::ShiftMode shift)
+    void _requireDataPerBisegment(LocalRodVector *lrv, const std::string& name,
+                                  DataManager::PersistenceMode persistence,
+                                  DataManager::ShiftMode shift)
     {
-        lrv->dataPerBisegment.createData<T> (name, lrv->nObjects);
+        lrv->dataPerBisegment.createData<T> (name, lrv->getNumObjects());
         lrv->dataPerBisegment.setPersistenceMode(name, persistence);
         lrv->dataPerBisegment.setShiftMode(name, shift);
     }

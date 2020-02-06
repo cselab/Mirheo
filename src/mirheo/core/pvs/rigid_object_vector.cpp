@@ -23,11 +23,11 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
 {
     auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
-    meshVertices_.resize_anew(nObjects * mesh->getNvertices());
+    meshVertices_.resize_anew(getNumObjects() * mesh->getNvertices());
 
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
-    fakeView.size      = mesh->getNvertices() * nObjects;
+    fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshVertices_.devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
@@ -40,13 +40,13 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
 {
     auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
-    meshOldVertices_.resize_anew(nObjects * mesh->getNvertices());
+    meshOldVertices_.resize_anew(getNumObjects() * mesh->getNvertices());
 
     // Overwrite particles with vertices
     // Overwrite motions with the old_motions
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
-    fakeView.size      = mesh->getNvertices() * nObjects;
+    fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshOldVertices_.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
@@ -59,7 +59,7 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
 PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
     auto ov = dynamic_cast<ObjectVector*>(parent());
-    meshForces_.resize_anew(nObjects * ov->mesh->getNvertices());
+    meshForces_.resize_anew(getNumObjects() * ov->mesh->getNvertices());
     return &meshForces_;
 }
 

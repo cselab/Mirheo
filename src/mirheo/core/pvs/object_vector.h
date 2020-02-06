@@ -29,16 +29,17 @@ public:
     virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
     int getObjectSize() const;
+    int getNumObjects() const;
     
 private:
     int _computeNobjects(int np) const;
 
 public:
-    int nObjects { 0 };    
     DataManager dataPerObject;
 
 private:
-    int objSize;
+    int objSize_;
+    int nObjects_;
 };
 
 
@@ -88,7 +89,7 @@ private:
                               DataManager::PersistenceMode persistence,
                               DataManager::ShiftMode shift)
     {
-        lov->dataPerObject.createData<T> (name, lov->nObjects);
+        lov->dataPerObject.createData<T> (name, lov->getNumObjects());
         lov->dataPerObject.setPersistenceMode(name, persistence);
         lov->dataPerObject.setShiftMode(name, shift);
     }

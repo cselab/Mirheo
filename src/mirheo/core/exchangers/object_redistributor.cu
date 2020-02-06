@@ -216,8 +216,8 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
 
-    int oldNObjs = lov->nObjects;
-    int objSize = ov->objSize;
+    const int oldNObjs = lov->getNumObjects();
+    const int objSize = ov->objSize;
 
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
 

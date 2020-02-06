@@ -320,8 +320,8 @@ void execute(real3 length, int niters, double& l2, double& linf)
         printf("%d...", i);
         fflush(stdout);
 
-        makeCells(positions.hostptr, velocities.hostptr,
-                  posBuffer.hostptr, velBuffer.hostptr,
+        makeCells(positions.hostPtr_, velocities.hostPtr_,
+                  posBuffer.hostPtr_, velBuffer.hostPtr_,
                   cellsStartSize.data(), cellsSize.data(), np, cells.cellInfo());
 
         forces(positions.data(), velocities.data(),

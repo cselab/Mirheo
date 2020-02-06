@@ -141,7 +141,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 
     ov_ = simulation->getOVbyNameOrDie(ovName_);
 
-    const int myNObj = ov_->local()->nObjects;
+    const int myNObj = ov_->local()->getNumObjects();
     int totObjs;
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 

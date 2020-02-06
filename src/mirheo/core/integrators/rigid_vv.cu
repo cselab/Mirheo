@@ -130,7 +130,7 @@ void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
     auto rov = dynamic_cast<RigidObjectVector*> (pv);
 
     debug("Integrating %d rigid objects %s (total %d particles), timestep is %f",
-          rov->local()->nObjects, rov->getCName(), rov->local()->size(), dt);
+          rov->local()->getNumObjects(), rov->getCName(), rov->local()->size(), dt);
 
     const ROVviewWithOldMotion rovView(rov, rov->local());
 

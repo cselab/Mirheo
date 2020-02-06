@@ -82,7 +82,7 @@ public:
         auto rv = dynamic_cast<RodVector *>(pv1);
 
         debug("Computing internal rod forces for %d rods of '%s'",
-              rv->local()->nObjects, rv->getCName());
+              rv->local()->getNumObjects(), rv->getCName());
 
         computeBoundForces                    (rv, stream);
         updatePolymorphicStatesAndApplyForces (rv, stream);

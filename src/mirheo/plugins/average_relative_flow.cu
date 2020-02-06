@@ -82,8 +82,8 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     if ( !relativeOV->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
         die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->getCName());
 
-    int locsize = relativeOV->local()->nObjects;
-    int totsize;
+    const int locsize = relativeOV->local()->getNumObjects();
+    int totsize {0};
 
     MPI_Check( MPI_Reduce(&locsize, &totsize, 1, MPI_INT, MPI_SUM, 0, comm) );
 

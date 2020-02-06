@@ -119,7 +119,7 @@ void MembraneInteraction::precomputeQuantities(ParticleVector *pv1, cudaStream_t
             ov->getCName(), ov->objSize, ov->mesh->getNvertices());
 
     debug("Computing areas and volumes for %d cells of '%s'",
-          ov->local()->nObjects, ov->getCName());
+          ov->local()->getNumObjects(), ov->getCName());
 
     OVviewWithAreaVolume view(ov, ov->local());
 

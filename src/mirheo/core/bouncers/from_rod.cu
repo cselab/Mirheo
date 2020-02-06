@@ -54,12 +54,12 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
 
     debug("Bouncing %d '%s' particles from %d '%s' rods (%s)",
           pv->local()->size(), pv->getCName(),
-          activeRV->nObjects,  rv_->getCName(),
+          activeRV->getNumObjects(),  rv_->getCName(),
           getParticleVectorLocalityStr(locality).c_str());
 
     rv_->findExtentAndCOM(stream, locality);
 
-    const int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->nObjects;
+    const int totalSegments = activeRV->getNumSegmentsPerRod() * activeRV->getNumObjects();
 
     // Set maximum possible number of collisions with segments
     // In case of crash, the estimate should be increased

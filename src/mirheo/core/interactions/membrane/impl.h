@@ -100,7 +100,7 @@ public:
                 ov->getCName(), ov->objSize, ov->mesh->getNvertices());
 
         debug("Computing internal membrane forces for %d cells of '%s'",
-              ov->local()->nObjects, ov->getCName());
+              ov->local()->getNumObjects(), ov->getCName());
 
         auto currentParams = parameters;
         const real scale = scaleFromTime(getState()->currentTime);

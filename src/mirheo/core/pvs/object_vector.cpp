@@ -16,13 +16,13 @@ constexpr const char *RestartOVIdentifier = "OV";
 
 LocalObjectVector::LocalObjectVector(ParticleVector *pv, int objSize, int nObjects) :
     LocalParticleVector(pv, objSize*nObjects),
-    nObjects(nObjects),
-    objSize(objSize)
+    objSize_(objSize),
+    nObjects_(nObjects)
 {
-    if (objSize <= 0)
-        die("Object vector should contain at least one particle per object instead of %d", objSize);
+    if (objSize_ <= 0)
+        die("Object vector should contain at least one particle per object instead of %d", objSize_);
 
-    resize_anew(nObjects*objSize);
+    resize_anew(nObjects_ * objSize_);
 }
 
 LocalObjectVector::~LocalObjectVector() = default;
@@ -30,23 +30,23 @@ LocalObjectVector::~LocalObjectVector() = default;
 void swap(LocalObjectVector& a, LocalObjectVector& b)
 {
     swap(static_cast<LocalParticleVector &>(a), static_cast<LocalParticleVector &>(b));
-    std::swap(a.nObjects, b.nObjects);
-    std::swap(a.objSize,  b.objSize);
+    std::swap(a.nObjects_, b.nObjects_);
+    std::swap(a.objSize_,  b.objSize_);
     swap(a.dataPerObject, b.dataPerObject);
 }
 
 void LocalObjectVector::resize(int np, cudaStream_t stream)
 {
-    nObjects = _computeNobjects(np);
+    nObjects_ = _computeNobjects(np);
     LocalParticleVector::resize(np, stream);
-    dataPerObject.resize(nObjects, stream);
+    dataPerObject.resize(nObjects_, stream);
 }
 
 void LocalObjectVector::resize_anew(int np)
 {
-    nObjects = _computeNobjects(np);
+    nObjects_ = _computeNobjects(np);
     LocalParticleVector::resize_anew(np);
-    dataPerObject.resize_anew(nObjects);
+    dataPerObject.resize_anew(nObjects_);
 }
 
 void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
@@ -58,13 +58,13 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
     Particle p0( positions()[0], velocities()[0]);
     int64_t rankStart = p0.getId();
     
-    if ((rankStart % objSize) != 0)
+    if ((rankStart % objSize_) != 0)
         die("Something went wrong when computing ids of '%s':"
             "got rankStart = '%ld' while objectSize is '%d'",
-            parent()->getCName(), rankStart, objSize);
+            parent()->getCName(), rankStart, objSize_);
 
     auto& ids = *dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    int64_t id = (int64_t) (rankStart / objSize);
+    int64_t id = (int64_t) (rankStart / objSize_);
     
     for (auto& i : ids)
         i = id++;
@@ -89,15 +89,20 @@ PinnedBuffer<Force>* LocalObjectVector::getMeshForces(__UNUSED cudaStream_t stre
 
 int LocalObjectVector::getObjectSize() const
 {
-    return objSize;
+    return objSize_;
+}
+
+int LocalObjectVector::getNumObjects() const
+{
+    return nObjects_;
 }
 
 int LocalObjectVector::_computeNobjects(int np) const
 {
-    if (np % objSize != 0)
-        die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize);
+    if (np % objSize_ != 0)
+        die("Incorrect number of particles in object: given %d, must be a multiple of %d", np, objSize_);
 
-    return np / objSize;
+    return np / objSize_;
 }
 
 

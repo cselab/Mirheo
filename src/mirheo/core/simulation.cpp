@@ -280,7 +280,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (auto ov = dynamic_cast<ObjectVector*>(pv.get()))
     {
         info("Registered object vector '%s', %d objects, %d particles",
-             getCName(), ov->local()->nObjects, ov->local()->size());
+             getCName(), ov->local()->getNumObjects(), ov->local()->size());
         objectVectors_.push_back(ov);
     }
     else
