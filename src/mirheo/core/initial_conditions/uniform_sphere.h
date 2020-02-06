@@ -13,13 +13,13 @@ namespace mirheo
     \ingroup ICs
     
     Initialize particles uniformly with the given number density inside or outside a ball.
-    The domain considered is that of the ParticleVector.
-    ObjectVector objects are not supported.
+    The domain considered is that of the \c ParticleVector.
+    \c ObjectVector objects are not supported.
  */
 class UniformSphereIC : public InitialConditions
 {
 public:
-    /** \brief Construct a UniformSphereIC object
+    /** \brief Construct a \c UniformSphereIC object
         \param [in] numDensity Number density of the particles to initialize
         \param [in] center Center of the ball
         \param [in] radius Radius of the ball

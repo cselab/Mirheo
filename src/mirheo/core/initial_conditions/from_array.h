@@ -17,7 +17,7 @@ namespace mirheo
 class FromArrayIC : public InitialConditions
 {
 public:
-    /** \brief Construct a FromArrayIC object
+    /** \brief Construct a \c FromArrayIC object
         \param [in] pos list of initial positions in global coordinates. 
         The size will determine the maximum number of particles.
         Positions outside the domain are filtered out.
