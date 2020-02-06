@@ -12,12 +12,6 @@
 namespace mirheo
 {
 
-/**
- * Create the bouncer
- * @param name unique bouncer name
- * @param kBT temperature which will be used to create a particle
- * velocity after the bounce, @see performBouncing()
- */
 BounceFromMesh::BounceFromMesh(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel) :
     Bouncer(state, name),
     varBounceKernel_(varBounceKernel)
@@ -25,11 +19,6 @@ BounceFromMesh::BounceFromMesh(const MirState *state, const std::string& name, V
 
 BounceFromMesh::~BounceFromMesh() = default;
 
-/**
- * @param ov will need an 'old_particles' per PARTICLE channel keeping positions
- * from the previous timestep.
- * This channel has to be communicated with the objects
- */
 void BounceFromMesh::setup(ObjectVector *ov)
 {
     Bouncer::setup(ov);
@@ -74,9 +63,6 @@ std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
         return {};
 }
 
-/**
- * Bounce particles from objects with meshes
- */
 void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
 {
     auto activeOV = ov_->get(locality);

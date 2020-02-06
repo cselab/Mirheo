@@ -51,7 +51,7 @@ public:
     /** \brief Setup prerequisites to a given \c ParticleVector
         \param [in,out] pv The \c ParticleVector that will be bounced
 
-        Add additional properties to a \c ParticleVector to make it compatible with the \ref exec method.
+        Add additional properties to a \c ParticleVector to make it compatible with the exec() method.
         The default implementation does not add any properties.
      */
     virtual void setPrerequisites(ParticleVector *pv);

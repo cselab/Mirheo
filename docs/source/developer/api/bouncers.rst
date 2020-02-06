@@ -15,3 +15,8 @@ Base class
 Derived classes
 ---------------
 
+.. doxygenclass:: mirheo::BounceFromMesh
+   :project: mirheo
+   :members:
+
+
