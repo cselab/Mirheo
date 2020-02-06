@@ -4,11 +4,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # include external packages
 # *************************
 
-# Add pybind11
-if (NOT TARGET pybind11)
-  add_subdirectory(extern/pybind11)
+if (BUILD_PYTHON_MODULE)
+  # Add pybind11
+  if (NOT TARGET pybind11)
+    add_subdirectory(extern/pybind11)
+  endif()
+  set(PYBIND11_CPP_STANDARD -std=c++14)
 endif()
-set(PYBIND11_CPP_STANDARD -std=c++14)
 
 # Add mpark/variant
 if (NOT TARGET mpark_variant)
@@ -63,10 +65,11 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 # Linker flags
 set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
 
-# uncomment to use sanitizer
-# set(san_opt "-fsanitize=undefined")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${san_opt} -g")
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${san_opt}")
+if (ENABLE_SANITIZER)
+  set(san_opt "-fsanitize=undefined")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${san_opt} -g")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${san_opt}")
+endif()
 
 # Choose Release mode as default.
 if(NOT CMAKE_BUILD_TYPE)
