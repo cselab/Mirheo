@@ -33,8 +33,8 @@ public:
     real getCutoffRadius() const override;
 
 private:
-    VarPairwiseParams varParams;
-    VarStressParams varStressParams;
+    VarPairwiseParams varParams_;
+    VarStressParams varStressParams_;
 };
 
 } // namespace mirheo

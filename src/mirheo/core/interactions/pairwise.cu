@@ -104,13 +104,13 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 PairwiseInteraction::PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                                          const VarPairwiseParams& varParams, const VarStressParams& varStressParams) :
     Interaction(state, name),
-    varParams(varParams),
-    varStressParams(varStressParams)
+    varParams_(varParams),
+    varStressParams_(varStressParams)
 {
     impl = mpark::visit([&](const auto& params)
     {
-        return createPairwiseFromParams(state, name, rc, params, varStressParams);
-    }, varParams);
+        return createPairwiseFromParams(state, name, rc, params, varStressParams_);
+    }, varParams_);
 }
 
 PairwiseInteraction::~PairwiseInteraction() = default;
@@ -316,7 +316,7 @@ static void setSpecificFromParams(const MirState *state, real rc, const SDPDPara
 
 void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, const ParametersWrap::MapParams& mapParams)
 {
-    auto varParamsSpecific = varParams;
+    auto varParamsSpecific = varParams_;
     ParametersWrap desc(mapParams);
 
     const SpecificPairInfo info {pv1, pv2, impl.get()};
@@ -325,7 +325,7 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     mpark::visit([&](auto& params)
     {
         readSpecificParams(params, desc);
-        setSpecificFromParams(getState(), rc, params, varStressParams, info);
+        setSpecificFromParams(getState(), rc, params, varStressParams_, info);
     }, varParamsSpecific);
     
     desc.checkAllRead();

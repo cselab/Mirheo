@@ -20,15 +20,15 @@ public:
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
     void halo (ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override;
 
-protected:
+private:
 
     void _local(RigidObjectVector *rov, RodVector *rv, cudaStream_t stream) const;
     void  _halo(RigidObjectVector *rov, RodVector *rv, cudaStream_t stream) const;
-protected:
+private:
 
-    real torque; // torque magnitude to apply to the rod from the object
-    real3 relAnchor; // relative position with respect to object of attachement point
-    real kBound;
+    real torque_; // torque magnitude to apply to the rod from the object
+    real3 relAnchor_; // relative position with respect to object of attachement point
+    real kBound_;
 };
 
 } // namespace mirheo

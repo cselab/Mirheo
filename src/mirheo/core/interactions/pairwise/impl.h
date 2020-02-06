@@ -27,7 +27,7 @@ public:
     PairwiseInteractionImpl(const MirState *state, const std::string& name, real rc, PairwiseKernel pair) :
         Interaction(state, name),
         rc_(rc),
-        defaultPair(pair)
+        defaultPair_(pair)
     {}
     
     ~PairwiseInteractionImpl() = default;
@@ -131,8 +131,8 @@ public:
     
     void setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
     {
-        intMap.insert({{pv1name, pv2name}, pair});
-        intMap.insert({{pv2name, pv1name}, pair});
+        intMap_.insert({{pv1name, pv2name}, pair});
+        intMap_.insert({{pv2name, pv1name}, pair});
     }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
@@ -140,8 +140,8 @@ public:
         auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt", checkpointId);
         {
             std::ofstream fout(fname);
-            defaultPair.writeState(fout);
-            for (auto& entry : intMap)
+            defaultPair_.writeState(fout);
+            for (auto& entry : intMap_)
                 entry.second.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
@@ -158,8 +158,8 @@ public:
 
         check(fin.good());
         
-        check( defaultPair.readState(fin) );
-        for (auto& entry : intMap)
+        check( defaultPair_.readState(fin) );
+        for (auto& entry : intMap_)
             check( entry.second.readState(fin) );
     }
 
@@ -276,8 +276,8 @@ private:
 
     PairwiseKernel& getPairwiseKernel(const std::string& pv1name, const std::string& pv2name)
     {
-        auto it = intMap.find({pv1name, pv2name});
-        if (it != intMap.end())
+        auto it = intMap_.find({pv1name, pv2name});
+        if (it != intMap_.end())
         {
             debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
             return it->second;
@@ -285,14 +285,14 @@ private:
         else
         {
             debug("Using default parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
-            return defaultPair;
+            return defaultPair_;
         }
     }
 
 private:
     real rc_;
-    PairwiseKernel defaultPair;
-    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap;
+    PairwiseKernel defaultPair_;
+    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap_;
 };
 
 } // namespace mirheo
