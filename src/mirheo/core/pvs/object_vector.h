@@ -67,8 +67,8 @@ public:
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,
                               DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerObject<T>(local(), name, persistence, shift);
-        requireDataPerObject<T>(halo(),  name, persistence, shift);
+        _requireDataPerObject<T>(local(), name, persistence, shift);
+        _requireDataPerObject<T>(halo(),  name, persistence, shift);
     }
 
 public:
@@ -85,9 +85,9 @@ protected:
     
 private:
     template<typename T>
-    void requireDataPerObject(LocalObjectVector* lov, const std::string& name,
-                              DataManager::PersistenceMode persistence,
-                              DataManager::ShiftMode shift)
+    void _requireDataPerObject(LocalObjectVector* lov, const std::string& name,
+                               DataManager::PersistenceMode persistence,
+                               DataManager::ShiftMode shift)
     {
         lov->dataPerObject.createData<T> (name, lov->getNumObjects());
         lov->dataPerObject.setPersistenceMode(name, persistence);

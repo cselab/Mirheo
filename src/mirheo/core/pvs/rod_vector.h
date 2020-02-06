@@ -16,6 +16,7 @@ public:
 
     int getNumSegmentsPerRod() const;
 
+public:
     DataManager dataPerBisegment;
 };
 

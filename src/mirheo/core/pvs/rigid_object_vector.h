@@ -39,7 +39,6 @@ public:
     }
 
 protected:
-
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;
 
@@ -49,7 +48,6 @@ public:
     /// Diagonal of the inertia tensor in the principal axes
     /// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
     real3 J;
-
 };
 
 } // namespace mirheo
