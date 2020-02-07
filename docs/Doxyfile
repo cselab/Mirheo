@@ -14,7 +14,8 @@ WARN_IF_UNDOCUMENTED = YES
 
 INPUT = ../src/mirheo/core/initial_conditions \
         ../src/mirheo/core/bouncers \
-	../src/mirheo/core/integrators
+	../src/mirheo/core/integrators \
+	../src/mirheo/core/analytical_shapes
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

@@ -8,9 +8,25 @@
 namespace mirheo
 {
 
+/** \brief Represents a capsule.
+
+    A capsule is represented by a segment and a radius.
+    Its surfae is the set of points whose distance to the 
+    segment is equal to the radius.
+
+    In more visual terms, a capsule looks like a finite cylinder 
+    with two half spheres on its ends.
+
+    The capsule is centered at the origin and oriented along the z axis.
+ */
 class Capsule: public AnalyticShape
 {
 public:
+    /** \brief Construct a \c Capsule.
+        \param [in] R the radius of the capsule.  Must be positive.
+        \param [in] L the length of the segment used to represent the
+                      capsule. Must be positive. 
+    */
     Capsule(real R, real L) :
         R_(R),
         halfL_(0.5_r * L)
@@ -69,7 +85,7 @@ public:
         return make_real3(yy + zz, xx + zz, xx + yy);
     }
 
-    static const char *desc;
+    static const char *desc;  ///< the description of shape.
     
 private:
     

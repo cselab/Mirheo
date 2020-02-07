@@ -8,9 +8,27 @@
 namespace mirheo
 {
 
+/** \brief Represents an ellipsoid.
+
+    \rst
+    The ellipsoid is centered at the origin and oriented along its principal axes.
+    the three radii are passed through the `axes` variable. 
+    The surface is described by:
+
+    .. math::
+
+        \left( \frac {x} {a_x} \right)^2 +
+        \left( \frac {y} {a_y} \right)^2 +
+        \left( \frac {z} {a_z} \right)^2 = 1
+
+    \endrst
+ */
 class Ellipsoid : public AnalyticShape
 {
 public:
+    /** \brief Construct a \c Ellipsoid object.
+        \param [in] axes the "radius" along each principal direction.
+    */
     Ellipsoid(real3 axes) :
         axes_(axes),
         invAxes_(1.0 / axes)
@@ -43,7 +61,7 @@ public:
              sqr(axes_.x) + sqr(axes_.y));
     }
 
-    static const char *desc;
+    static const char *desc;  ///< the description of shape.
     
 private:    
     real3 axes_, invAxes_;
