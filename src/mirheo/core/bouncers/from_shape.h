@@ -8,15 +8,15 @@
 namespace mirheo
 {
 
-/** \brief Bounce particles against an AnalyticalShape object.
-    \tparam Shape AnalyticalShape class
+/** \brief Bounce particles against an \c RigidShapedObjectVector.
+    \tparam Shape A class following the \c AnalyticShape interface
 
     Particles are bounced against an analytical shape on each object of the
     attached \c ObjectVector.
     When bounced, the particles will transfer (atomically) their change of momentum into the force and 
     torque of the  rigid objects.
 
-    This class only works with \c RigidObjectVector objects.
+    This class only works with \c RigidShapedObjectVector<Shape> objects.
     It will fail at setup time if the attached object is not rigid.
  */
 template <class Shape>
