@@ -142,7 +142,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
     ov_ = simulation->getOVbyNameOrDie(ovName_);
 
     const int myNObj = ov_->local()->getNumObjects();
-    int totObjs;
+    int totObjs {0};
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 
     forces_.resize_anew(totObjs);
@@ -158,14 +158,12 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
          getCName(), ovName_.c_str(),
-
-          translation_.x == Unrestricted ? "?" : std::to_string(translation_.x).c_str(),
-          translation_.y == Unrestricted ? "?" : std::to_string(translation_.y).c_str(),
-          translation_.z == Unrestricted ? "?" : std::to_string(translation_.z).c_str(),
-
-          rotation_.x == Unrestricted ? "?" : std::to_string(rotation_.x).c_str(),
-          rotation_.y == Unrestricted ? "?" : std::to_string(rotation_.y).c_str(),
-          rotation_.z == Unrestricted ? "?" : std::to_string(rotation_.z).c_str() );
+         translation_.x == Unrestricted ? "?" : std::to_string(translation_.x).c_str(),
+         translation_.y == Unrestricted ? "?" : std::to_string(translation_.y).c_str(),
+         translation_.z == Unrestricted ? "?" : std::to_string(translation_.z).c_str(),
+         rotation_.x == Unrestricted ? "?" : std::to_string(rotation_.x).c_str(),
+         rotation_.y == Unrestricted ? "?" : std::to_string(rotation_.y).c_str(),
+         rotation_.z == Unrestricted ? "?" : std::to_string(rotation_.z).c_str() );
 }
 
 
