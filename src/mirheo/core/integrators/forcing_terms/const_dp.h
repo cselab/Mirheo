@@ -10,11 +10,15 @@ namespace mirheo
 
 class ParticleVector;
 
-/** \brief Applies constant force #extraForce to every particle
+/** \brief Apply a constant force independently of the position.
+    \ingroup Integrators
  */
 class ForcingTermConstDP: public ForcingTerm
 {
 public:
+    /**\brief Construct a \c ForcingTermConstDP object
+       \param [in] extraForce The force to add to every particle
+    */
     ForcingTermConstDP(real3 extraForce) :
         extraForce_(extraForce)
     {}

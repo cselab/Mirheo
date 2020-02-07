@@ -40,7 +40,27 @@ Derived classes
    :members:
 
 
-Utilities
----------
+Forcing terms
+-------------
 
-TODO
+The forcing terms must follow the following interface:
+
+.. doxygenclass:: mirheo::ForcingTerm
+   :project: mirheo
+   :members:
+
+Currently implemented forcing terms:
+
+.. doxygenclass:: mirheo::ForcingTermNone
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForcingTermConstDP
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForcingTermPeriodicPoiseuille
+   :project: mirheo
+   :members:
+
+
