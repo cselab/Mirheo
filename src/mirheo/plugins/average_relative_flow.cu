@@ -55,7 +55,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     int local_size = numberDensity_.size();
     int global_size = local_size * nranks_;
     
-    localNumberDensity      .resize(local_size);
+    localNumberDensity_      .resize(local_size);
     numberDensity_           .resize_anew(global_size);
     accumulatedNumberDensity_.resize_anew(global_size);
     numberDensity_.clear(defaultStream);
@@ -193,7 +193,7 @@ void AverageRelative3D::extractLocalBlock()
     };
 
     // Order is important! Density comes first
-    oneChannel(accumulatedNumberDensity_, Average3D::ChannelType::Scalar, 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z), localNumberDensity);
+    oneChannel(accumulatedNumberDensity_, Average3D::ChannelType::Scalar, 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z), localNumberDensity_);
 
     for (int i = 0; i < channelsInfo_.n; ++i)
         oneChannel(accumulatedAverage_[i], channelsInfo_.types[i], scale_by_density, localChannels_[i]);
@@ -240,7 +240,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", getCName());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity, localChannels_);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity_, localChannels_);
     send(sendBuffer_);
 }
 
