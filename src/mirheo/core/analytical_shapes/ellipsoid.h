@@ -1,13 +1,14 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include "interface.h"
+
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
 {
 
-class Ellipsoid
+class Ellipsoid : public AnalyticShape
 {
 public:
     Ellipsoid(real3 axes) :
@@ -15,12 +16,12 @@ public:
         invAxes_(1.0 / axes)
     {}
 
-    __HD__ inline real inOutFunction(real3 r) const
+    __HD__ real inOutFunction(real3 r) const override
     {
         return sqr(r.x * invAxes_.x) + sqr(r.y * invAxes_.y) + sqr(r.z * invAxes_.z) - 1.0_r;
     }
 
-    __HD__ inline real3 normal(real3 r) const
+    __HD__ real3 normal(real3 r) const override
     {
         constexpr real eps {1e-6_r};
         const real3 n {axes_.y*axes_.y * axes_.z*axes_.z * r.x,
@@ -34,7 +35,7 @@ public:
         return {1.0_r, 0.0_r, 0.0_r}; // arbitrary if r = 0
     }
     
-    inline real3 inertiaTensor(real totalMass) const
+    real3 inertiaTensor(real totalMass) const override
     {
         return totalMass / 5.0_r * make_real3
             (sqr(axes_.y) + sqr(axes_.z),

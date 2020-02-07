@@ -1,13 +1,14 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include "interface.h"
+
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
 {
 
-class Capsule
+class Capsule: public AnalyticShape
 {
 public:
     Capsule(real R, real L) :
@@ -15,7 +16,7 @@ public:
         halfL_(0.5_r * L)
     {}
 
-    __HD__ inline real inOutFunction(real3 coo) const
+    __HD__ real inOutFunction(real3 coo) const override
     {
         const real dz = math::abs(coo.z) - halfL_;
 
@@ -26,7 +27,7 @@ public:
         return dr;
     }
 
-    __HD__ inline real3 normal(real3 coo) const
+    __HD__ real3 normal(real3 coo) const override
     {
         constexpr real eps = 1e-6_r;
 
@@ -44,7 +45,7 @@ public:
     }
     
 
-    inline real3 inertiaTensor(real totalMass) const
+    real3 inertiaTensor(real totalMass) const override
     {
         const real R2 = R_ * R_;
         const real R3 = R2 * R_;

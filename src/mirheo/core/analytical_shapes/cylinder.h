@@ -1,13 +1,14 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include "interface.h"
+
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
 {
 
-class Cylinder
+class Cylinder: public AnalyticShape
 {
 public:
     Cylinder(real R, real L) :
@@ -15,7 +16,7 @@ public:
         halfL_(0.5_r * L)
     {}
 
-    __HD__ inline real inOutFunction(real3 coo) const
+    __HD__ inline real inOutFunction(real3 coo) const override
     {
         const real dr = math::sqrt(sqr(coo.x) + sqr(coo.y)) - R_;
         const real dz = math::abs(coo.z) - halfL_;
@@ -29,7 +30,7 @@ public:
             : math::min(dist2cyl, dist2disk);
     }
 
-    __HD__ inline real3 normal(real3 coo) const
+    __HD__ inline real3 normal(real3 coo) const override
     {
         constexpr real eps   = 1e-6_r;
         constexpr real delta = 1e-3_r;
@@ -51,7 +52,7 @@ public:
     }
     
 
-    inline real3 inertiaTensor(real totalMass) const
+    inline real3 inertiaTensor(real totalMass) const override
     {
         const real xx = totalMass * R_ * R_ * 0.25_r;
         const real yy = xx;
