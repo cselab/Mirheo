@@ -1,9 +1,8 @@
 #pragma once
 
-#include <mirheo/core/datatypes.h>
-#include <mirheo/core/pvs/particle_vector.h>
+#include "interface.h"
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
@@ -14,13 +13,12 @@ class ParticleVector;
 /**
  * Apply equal but opposite forces in two halves of the global domain.
  */
-class Forcing_PeriodicPoiseuille
+class Forcing_PeriodicPoiseuille : public ForcingTerm
 {
 public:
     enum class Direction {x, y, z};
 
-    /**
-     * Setup the forcing term
+    /** \brief Setup the forcing term
      *
      * @param magnitude force magnitude to be applied
      * @param dir force will be applied parallel to the specified axis.
@@ -30,7 +28,7 @@ public:
         dir_(dir)
     {}
 
-    void setup(ParticleVector* pv, __UNUSED real t)
+    void setup(ParticleVector* pv, __UNUSED real t) override
     {
         domain_ = pv->getState()->domain;
     }
@@ -49,7 +47,7 @@ public:
      * Similarly, if the force is parallel to \e y axis, its sign will
      * depend on \e z, parallel to \e z -- will depend on \e x
      */
-    __D__ inline real3 operator()(real3 original, Particle p) const
+    __D__ inline real3 operator()(real3 original, Particle p) const override
     {
         const real3 gr = domain_.local2global(p.r);
         real3 ef {0.0_r, 0.0_r, 0.0_r};
