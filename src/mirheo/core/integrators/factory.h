@@ -19,31 +19,31 @@ namespace mirheo
 
 namespace IntegratorFactory
 {
-inline std::shared_ptr<IntegratorVV<Forcing_None>>
+inline std::shared_ptr<IntegratorVV<ForcingTermNone>>
 createVV(const MirState *state, const std::string& name)
 {
-    Forcing_None forcing;
-    return std::make_shared<IntegratorVV<Forcing_None>> (state, name, forcing);
+    ForcingTermNone forcing;
+    return std::make_shared<IntegratorVV<ForcingTermNone>> (state, name, forcing);
 }
 
-inline std::shared_ptr<IntegratorVV<Forcing_ConstDP>>
+inline std::shared_ptr<IntegratorVV<ForcingTermConstDP>>
 createVV_constDP(const MirState *state, const std::string& name, real3 extraForce)
 {
-    Forcing_ConstDP forcing(extraForce);
-    return std::make_shared<IntegratorVV<Forcing_ConstDP>> (state, name, forcing);
+    ForcingTermConstDP forcing(extraForce);
+    return std::make_shared<IntegratorVV<ForcingTermConstDP>> (state, name, forcing);
 }
 
-inline std::shared_ptr<IntegratorVV<Forcing_PeriodicPoiseuille>>
+inline std::shared_ptr<IntegratorVV<ForcingTermPeriodicPoiseuille>>
 createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, real force, std::string direction)
 {
-    Forcing_PeriodicPoiseuille::Direction dir;
-    if      (direction == "x") dir = Forcing_PeriodicPoiseuille::Direction::x;
-    else if (direction == "y") dir = Forcing_PeriodicPoiseuille::Direction::y;
-    else if (direction == "z") dir = Forcing_PeriodicPoiseuille::Direction::z;
+    ForcingTermPeriodicPoiseuille::Direction dir;
+    if      (direction == "x") dir = ForcingTermPeriodicPoiseuille::Direction::x;
+    else if (direction == "y") dir = ForcingTermPeriodicPoiseuille::Direction::y;
+    else if (direction == "z") dir = ForcingTermPeriodicPoiseuille::Direction::z;
     else die("Direction can only be 'x' or 'y' or 'z'");
         
-    Forcing_PeriodicPoiseuille forcing(force, dir);
-    return std::make_shared<IntegratorVV<Forcing_PeriodicPoiseuille>> (state, name, forcing);
+    ForcingTermPeriodicPoiseuille forcing(force, dir);
+    return std::make_shared<IntegratorVV<ForcingTermPeriodicPoiseuille>> (state, name, forcing);
 }
 
 inline std::shared_ptr<IntegratorConstOmega>

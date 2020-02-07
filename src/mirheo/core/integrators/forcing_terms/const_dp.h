@@ -12,10 +12,10 @@ class ParticleVector;
 
 /** \brief Applies constant force #extraForce to every particle
  */
-class Forcing_ConstDP: public ForcingTerm
+class ForcingTermConstDP: public ForcingTerm
 {
 public:
-    Forcing_ConstDP(real3 extraForce) :
+    ForcingTermConstDP(real3 extraForce) :
         extraForce_(extraForce)
     {}
 

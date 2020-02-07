@@ -16,7 +16,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
                                      const std::vector<Interaction*>& fastForces) :
     Integrator(state, name),
     fastForces_(fastForces),
-    subIntegrator_(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
+    subIntegrator_(std::make_unique<IntegratorVV<ForcingTermNone>> (state, name + "_sub", ForcingTermNone())),
     subState_(*state),
     substeps_(substeps)
 {

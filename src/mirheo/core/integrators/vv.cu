@@ -71,8 +71,8 @@ void IntegratorVV<ForcingTerm>::execute(ParticleVector *pv, cudaStream_t stream)
     invalidatePV_(pv);
 }
 
-template class IntegratorVV<Forcing_None>;
-template class IntegratorVV<Forcing_ConstDP>;
-template class IntegratorVV<Forcing_PeriodicPoiseuille>;
+template class IntegratorVV<ForcingTermNone>;
+template class IntegratorVV<ForcingTermConstDP>;
+template class IntegratorVV<ForcingTermPeriodicPoiseuille>;
 
 } // namespace mirheo

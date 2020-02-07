@@ -10,7 +10,7 @@ class ParticleVector;
 /** \brief No forcing term.
     \ingroup Integrators
  */
-class Forcing_None : public ForcingTerm
+class ForcingTermNone : public ForcingTerm
 {
 public:
     void setup(__UNUSED ParticleVector *pv, __UNUSED real t) override

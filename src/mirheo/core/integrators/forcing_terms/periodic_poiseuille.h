@@ -13,7 +13,7 @@ class ParticleVector;
 /**
  * Apply equal but opposite forces in two halves of the global domain.
  */
-class Forcing_PeriodicPoiseuille : public ForcingTerm
+class ForcingTermPeriodicPoiseuille : public ForcingTerm
 {
 public:
     enum class Direction {x, y, z};
@@ -23,7 +23,7 @@ public:
      * @param magnitude force magnitude to be applied
      * @param dir force will be applied parallel to the specified axis.
      */
-    Forcing_PeriodicPoiseuille(real magnitude, Direction dir) :
+    ForcingTermPeriodicPoiseuille(real magnitude, Direction dir) :
         magnitude_(magnitude),
         dir_(dir)
     {}

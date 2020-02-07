@@ -59,7 +59,7 @@ void exportIntegrators(py::module& m)
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             )");
         
-    py::handlers_class<IntegratorVV<Forcing_None>>
+    py::handlers_class<IntegratorVV<ForcingTermNone>>
         (m, "VelocityVerlet", pyint, R"(
             Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
             The velocities are shifted with respect to the coordinates by one half of the time-step
@@ -78,7 +78,7 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
             )");
         
-    py::handlers_class<IntegratorVV<Forcing_ConstDP>>
+    py::handlers_class<IntegratorVV<ForcingTermConstDP>>
         (m, "VelocityVerlet_withConstForce", pyint, R"(
             Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
    
@@ -94,7 +94,7 @@ void exportIntegrators(py::module& m)
                     force: :math:`\mathbf{F}_{extra}`
             )");
         
-    py::handlers_class<IntegratorVV<Forcing_PeriodicPoiseuille>>
+    py::handlers_class<IntegratorVV<ForcingTermPeriodicPoiseuille>>
         (m, "VelocityVerlet_withPeriodicForce", pyint, R"(
             Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
             This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force
