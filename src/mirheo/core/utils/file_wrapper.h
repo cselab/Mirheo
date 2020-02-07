@@ -19,8 +19,8 @@ public:
     FileWrapper           (const FileWrapper&) = delete;
     FileWrapper& operator=(const FileWrapper&) = delete;
     
-    FileWrapper           (FileWrapper&&) = default;
-    FileWrapper& operator=(FileWrapper&&) = default;
+    FileWrapper           (FileWrapper&&);
+    FileWrapper& operator=(FileWrapper&&);
 
     Status open(const std::string& fname, const std::string& mode);
     Status open(SpecialStream stream);

@@ -12,6 +12,22 @@ FileWrapper::~FileWrapper()
     close();
 }
 
+FileWrapper::FileWrapper(FileWrapper&& f) :
+    FileWrapper(f.forceFlushOnClose_)
+{
+    std::swap(file_, f.file_);
+    std::swap(needClose_, f.needClose_);
+    std::swap(forceFlushOnClose_, f.forceFlushOnClose_);
+}
+
+FileWrapper& FileWrapper::operator=(FileWrapper&& f)
+{
+    std::swap(file_, f.file_);
+    std::swap(needClose_, f.needClose_);
+    std::swap(forceFlushOnClose_, f.forceFlushOnClose_);
+    return *this;
+}
+
 FileWrapper::Status FileWrapper::open(const std::string& fname, const std::string& mode)
 {
     if (needClose_) close();
