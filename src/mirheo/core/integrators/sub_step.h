@@ -19,8 +19,7 @@ public:
                       const std::vector<Interaction*>& fastForces);
     ~IntegratorSubStep();
     
-    void stage1(ParticleVector *pv, cudaStream_t stream) override;
-    void stage2(ParticleVector *pv, cudaStream_t stream) override;
+    void execute(ParticleVector *pv, cudaStream_t stream) override;
 
     void setPrerequisites(ParticleVector *pv) override;
 

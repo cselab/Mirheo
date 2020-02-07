@@ -15,10 +15,7 @@ IntegratorConstOmega::IntegratorConstOmega(const MirState *state, const std::str
 
 IntegratorConstOmega::~IntegratorConstOmega() = default;
 
-void IntegratorConstOmega::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
-{}
-
-void IntegratorConstOmega::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorConstOmega::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto domain = getState()->domain;
     const auto center = center_;

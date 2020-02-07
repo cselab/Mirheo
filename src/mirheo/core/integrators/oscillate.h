@@ -20,8 +20,7 @@ public:
 
     ~IntegratorOscillate();
 
-    void stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream) override {};
-    void stage2(ParticleVector *pv, cudaStream_t stream) override;
+    void execute(ParticleVector *pv, cudaStream_t stream) override;
 
 private:
 

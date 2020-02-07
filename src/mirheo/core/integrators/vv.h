@@ -15,8 +15,7 @@ public:
     IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm);
     ~IntegratorVV();
 
-    void stage1(ParticleVector *pv, cudaStream_t stream) override;
-    void stage2(ParticleVector *pv, cudaStream_t stream) override;
+    void execute(ParticleVector *pv, cudaStream_t stream) override;
 
 private:
     ForcingTerm forcingTerm_;

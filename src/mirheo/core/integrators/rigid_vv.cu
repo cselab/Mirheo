@@ -107,12 +107,6 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector *pv)
     // warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 }
 
-
-// FIXME: split VV into two stages
-void IntegratorVVRigid::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
-{}
-
-
 static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cudaStream_t stream)
 {
     const int nthreads = 64;
@@ -124,7 +118,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cud
         view, dt );
 }
 
-void IntegratorVVRigid::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorVVRigid::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const real dt = getState()->dt;
     auto rov = dynamic_cast<RigidObjectVector*> (pv);

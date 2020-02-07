@@ -951,8 +951,7 @@ void Simulation::createTasks()
         auto integrator = prototype.integrator;
         scheduler_->addTask(tasks_->integration, [integrator, pv] (cudaStream_t stream)
         {
-            integrator->stage1(pv, stream);
-            integrator->stage2(pv, stream);
+            integrator->execute(pv, stream);
         });
     }
 

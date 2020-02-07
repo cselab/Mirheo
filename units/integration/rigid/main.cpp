@@ -50,7 +50,7 @@ static void setParticlesFromMotions(RigidObjectVector *rov, cudaStream_t stream)
     const real dummyDt = 0._r;
     const MirState dummyState(rov->getState()->domain, dummyDt);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
-    integrator.stage2(rov, stream);
+    integrator.execute(rov, stream);
 }
 
 static inline std::unique_ptr<RigidObjectVector> makeRigidVector(const MirState *state, real mass, real3 J, real3 omega, cudaStream_t stream)
@@ -98,8 +98,7 @@ static inline RigidMotion advanceGPU(const Params& p)
 
     for (; state.currentTime < p.tend; state.currentTime += state.dt)
     {
-        gpuIntegrator.stage1(rov.get(), defaultStream);
-        gpuIntegrator.stage2(rov.get(), defaultStream);
+        gpuIntegrator.execute(rov.get(), defaultStream);
     }
 
     auto& motions = *rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);

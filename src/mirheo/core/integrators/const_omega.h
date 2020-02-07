@@ -18,8 +18,7 @@ public:
     IntegratorConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega);
     ~IntegratorConstOmega();
 
-    void stage1(ParticleVector *pv, cudaStream_t stream) override;
-    void stage2(ParticleVector *pv, cudaStream_t stream) override;
+    void execute(ParticleVector *pv, cudaStream_t stream) override;
 
 private:
 

@@ -21,10 +21,6 @@ template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 
-template<class ForcingTerm>
-void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
-{}
-
 /**
  * The new coordinates and velocities of a particle will be computed
  * as follows:
@@ -51,7 +47,7 @@ void IntegratorVV<ForcingTerm>::stage1(__UNUSED ParticleVector *pv, __UNUSED cud
  *
  */
 template<class ForcingTerm>
-void IntegratorVV<ForcingTerm>::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorVV<ForcingTerm>::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto t  = static_cast<real>(getState()->currentTime);
     const auto dt = static_cast<real>(getState()->dt);

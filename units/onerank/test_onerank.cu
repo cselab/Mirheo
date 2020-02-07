@@ -290,7 +290,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
         dpd.halo(&pv, &pv, &cells, &cells, defStream);
 
         integrator->setPrerequisites(&pv);
-        integrator->stage2(&pv, defStream);
+        integrator->execute(&pv, defStream);
         
         CUDA_Check( cudaStreamSynchronize(defStream) );
 

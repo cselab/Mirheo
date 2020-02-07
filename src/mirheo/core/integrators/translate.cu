@@ -18,7 +18,7 @@ IntegratorTranslate::IntegratorTranslate(const MirState *state, const std::strin
 
 IntegratorTranslate::~IntegratorTranslate() = default;
 
-void IntegratorTranslate::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorTranslate::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto vel = vel_;
 
