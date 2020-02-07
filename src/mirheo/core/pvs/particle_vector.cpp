@@ -372,4 +372,13 @@ ConfigDictionary ParticleVector::writeSnapshot(Dumper& dumper)
     };
 }
 
+ParticleVector::ParticleVector(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
+    ParticleVector{state,
+                   un.undump<std::string>(dict.at("name")),
+                   un.undump<real>(dict.at("mass"))}
+{
+    assert(dict.at("__type").getString() == "ParticleVector");
+    // Note: Particles loaded by RestartIC.
+}
+
 } // namespace mirheo

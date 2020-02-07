@@ -12,8 +12,7 @@ namespace mirheo
 class Postprocess : MirObject
 {
 public:
-    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder,
-                Undumper *undumper, const Config *post);
+    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder);
     ~Postprocess();
 
     void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);

@@ -36,8 +36,7 @@ class Simulation : protected MirObject
 public:
 
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-               CheckpointInfo checkpointInfo = {}, bool gpuAwareMPI = false,
-               Undumper *undumper = nullptr, const Config *sim = nullptr);
+               CheckpointInfo checkpointInfo = {}, bool gpuAwareMPI = false);
 
     ~Simulation();
     
@@ -174,7 +173,7 @@ private:
 
 private:
     friend Dumper;
-    
+
     const int3 nranks3D_;
     const int3 rank3D_;
 

@@ -47,12 +47,6 @@ static bool isMasterRank(MPI_Comm comm)
     return rank == 0;
 }
 
-void MirState::reinitTime()
-{
-    currentTime = 0;
-    currentStep = 0;
-}
-
 void MirState::checkpoint(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))

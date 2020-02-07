@@ -117,6 +117,9 @@ public:
     void writeSnapshot(std::string path);
     
 private:
+    // In mirheo_dump.cpp
+    void importSnapshot(Undumper&, const Config& compConfig, const Config& postConfig);
+
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
     std::shared_ptr<MirState> state_;

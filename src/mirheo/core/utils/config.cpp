@@ -168,6 +168,32 @@ std::string ConfigToJSON::generate()
     return std::move(stream).str();
 }
 
+
+
+Config& ConfigDictionary::at(const std::string &key)
+{
+    auto it = find(key);
+    if (it == end())
+        die("Key \"%s\" not found in\n%s", key.c_str(), Config{*this}.toJSONString().c_str());
+    return it->second;
+}
+const Config& ConfigDictionary::at(const std::string &key) const
+{
+    auto it = find(key);
+    if (it == end())
+        die("Key \"%s\" not found in\n%s", key.c_str(), Config{*this}.toJSONString().c_str());
+    return it->second;
+}
+Config& ConfigDictionary::at(const char *key)
+{
+    return at(std::string(key));
+}
+const Config& ConfigDictionary::at(const char *key) const
+{
+    return at(std::string(key));
+}
+
+
 std::string Config::toJSONString() const
 {
     ConfigToJSON writer;
@@ -228,35 +254,6 @@ Config::Dictionary& Config::getDict()
     if (auto *dict = get_if<Dictionary>())
         return *dict;
     die("getDict on a non-dictionary object:\n%s", toJSONString().c_str());
-}
-
-
-Config& Config::at(const std::string &key)
-{
-    auto &dict = getDict();
-    auto it = dict.find(key);
-    if (it == dict.end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), toJSONString().c_str());
-    return it->second;
-}
-
-const Config& Config::at(const std::string &key) const
-{
-    auto &dict = getDict();
-    auto it = dict.find(key);
-    if (it == dict.end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), toJSONString().c_str());
-    return it->second;
-}
-
-Config& Config::at(const char *key)
-{
-    return at(std::string(key));
-}
-
-const Config& Config::at(const char *key) const
-{
-    return at(std::string(key));
 }
 
 Config& Config::at(size_t i)
@@ -363,6 +360,11 @@ float3 ConfigDumper<float3>::undump(Undumper& un, const Config &config)
     return float3{un.undump<float>(list[0]),
                   un.undump<float>(list[1]),
                   un.undump<float>(list[2])};
+}
+
+void _variantDumperError [[noreturn]] (size_t index, size_t size)
+{
+    die("Variant index %zu out of range (size=%zu).", index, size);
 }
 
 

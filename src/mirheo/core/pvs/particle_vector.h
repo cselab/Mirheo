@@ -56,6 +56,7 @@ class ParticleVector : public MirSimulationObject
 public:
     
     ParticleVector(const MirState *state, const std::string& name, real mass, int n=0);
+    ParticleVector(const MirState *state, Undumper&, const ConfigDictionary&);
     ~ParticleVector() override;
     
     LocalParticleVector* local() { return local_.get(); }

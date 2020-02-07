@@ -10,17 +10,13 @@
 namespace mirheo
 {
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder,
-                         Undumper *undumper, const Config *post) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder) :
     MirObject("postprocess"),
     comm_(comm),
     interComm_(interComm),
     checkpointFolder_(checkpointFolder)
 {
     info("Postprocessing initialized");
-    if (undumper != nullptr && post != nullptr) {
-        fprintf(stderr, "POSTPROCESS READ SNAPSHOT NOT IMPLEMENTED\n");
-    }
 }
 
 Postprocess::~Postprocess() = default;

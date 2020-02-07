@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
+#include <mirheo/core/interactions/factory.h>
+#include <mirheo/core/interactions/pairwise.h>
 #include <mirheo/core/logger.h>
+#include <mirheo/core/mirheo.h>
 #include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/type_traits.h>
 
 using namespace mirheo;
 
@@ -21,11 +25,19 @@ struct Struct1 {
     int b;
     double a;
     std::string c;
+
+    friend bool operator==(const Struct1 &x, const Struct1 &y) {
+        return x.b == y.b && x.a == y.a && x.c == y.c;
+    };
 };
 
 struct Struct2 {
     int x;
     Struct1 y;  // Test that recursion works.
+
+    friend bool operator==(const Struct2 &a, const Struct2 &b) {
+        return a.x == b.x && a.y == b.y;
+    };
 };
 
 struct Struct3 {
@@ -43,6 +55,14 @@ struct mirheo::ConfigDumper<Struct1>
             {"b", dumper(s.b)},
             {"a", dumper(s.a)},
             {"c", dumper(s.c)},
+        };
+    }
+    static Struct1 undump(Undumper& un, const Config& config)
+    {
+        return Struct1{
+            un.undump<int>(config.at("b")),
+            un.undump<double>(config.at("a")),
+            un.undump<std::string>(config.at("c")),
         };
     }
 };
@@ -127,6 +147,54 @@ TEST(Snapshot, ParseJSON)
     ASSERT_EQ(10,   configFromJSON("10").getInt());
     ASSERT_EQ(10.5, configFromJSON("10.5").getFloat());
     ASSERT_EQ(1e10, configFromJSON("1e10").getFloat());
+}
+
+template <typename T>
+void roundTrip(const T &value) {
+    Dumper dumper{DumpContext{}};
+    Config dump = dumper(value);
+
+    Undumper undumper{UndumpContext{}};
+    auto recovered = undumper.undump<T>(dump);
+
+    ASSERT_EQ(value, recovered);
+}
+
+TEST(Snapshot, DumpUndumpRoundTrip)
+{
+    roundTrip(10);
+    roundTrip(10.5);
+    roundTrip(std::string("abc"));
+    roundTrip(std::vector<int>{10, 20, 30});
+    roundTrip(std::map<std::string, int>{{"c", 10}, {"a", 20}, {"b", 30}});
+
+    using Variant1 = mpark::variant<int, float>;
+    roundTrip(Variant1{100});
+    roundTrip(Variant1{100.4f});
+
+    using Variant2 = mpark::variant<Struct1, Struct2>;
+    roundTrip(Variant2{Struct1{10, 15.5, "abc"}});
+    roundTrip(Variant2{Struct2{-20, Struct1{10, 15.5, "abc"}}});
+}
+
+TEST(Snapshot, DumpUndumpInteractions)
+{
+    Dumper dumper{DumpContext{}};
+    Undumper undumper{UndumpContext{}};
+
+    Mirheo mirheo{MPI_COMM_WORLD, {1, 1, 1}, {10.0_r, 10.0_r, 10.0_r}, 0.1_r, {"log", 3, true}, {}, false};
+    auto pairwise = InteractionFactory::createPairwiseInteraction(
+            mirheo.getState(), "interaction", 1.0, "DPD",
+            {{"a", 10.0_r}, {"gamma", 10.0_r}, {"kBT", 1.0_r}, {"power", 0.5_r}});
+
+    {
+        dumper(pairwise);
+        Config config = dumper.getConfig().at("Interaction").at(0);
+        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), undumper, config.getDict());
+        dumper(pairwise2);
+        Config config2 = dumper.getConfig().at("Interaction").at(1);
+        ASSERT_STREQ(config.toJSONString().c_str(), config2.toJSONString().c_str());
+    }
 }
 
 int main(int argc, char **argv)

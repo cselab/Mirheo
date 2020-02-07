@@ -37,6 +37,12 @@ class ConfigDictionary : public FlatOrderedDict<std::string, Config>
 
 public:
     using Base::Base;
+
+    /// Get the element matching the given key if it exists, othewise terminate.
+    Config& at(const std::string &key);
+    const Config& at(const std::string &key) const;
+    Config& at(const char *key);
+    const Config& at(const char *key) const;
 };
 
 class Config
@@ -84,10 +90,10 @@ public:
 
     /// Get the element matching the given key. Terminates if not a dict, or if
     /// the key was not found.
-    Config& at(const std::string &key);
-    Config& at(const char *key);
-    const Config& at(const std::string &key) const;
-    const Config& at(const char *key) const;
+    Config& at(const std::string &key)             { return getDict().at(key); }
+    Config& at(const char *key)                    { return getDict().at(key); }
+    const Config& at(const std::string &key) const { return getDict().at(key); }
+    const Config& at(const char *key) const        { return getDict().at(key); }
 
     /// Get the list element. Terminates if not a list or if out of range.
     Config& at(size_t i);
@@ -215,6 +221,24 @@ namespace detail
         Config::Dictionary *dict_;
         Dumper *dumper_;
     };
+
+    template <typename T>
+    struct UndumpHandler {
+        template <typename... Args>
+        T process(Args ...items) const
+        {
+            return T{std::move(items)...};
+        }
+
+        template <typename Item>
+        Item operator()(const std::string &name, const Item *) const
+        {
+            return un_->undump<Item>(dict_->at(name));
+        }
+
+        const Config::Dictionary *dict_;
+        Undumper *un_;
+    };
 } // namespace detail
 
 #define MIRHEO_DUMPER_PRIMITIVE(TYPE, ELTYPE)                                  \
@@ -295,6 +319,12 @@ struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<
         MemberVars<T>::foreach(detail::DumpHandler{&dict, &dumper}, &t);
         return std::move(dict);
     }
+    static T undump(Undumper& un, const Config& config)
+    {
+        return MemberVars<T>::foreach(
+                detail::UndumpHandler<T>{&config.getDict(), &un},
+                (const T *)nullptr);
+    }
 };
 
 /// ConfigDumper for pointer-like (dereferenceable) types. Redirects to the
@@ -321,6 +351,15 @@ struct ConfigDumper<std::vector<T>>
             list.push_back(dumper(value));
         return std::move(list);
     }
+    static std::vector<T> undump(Undumper& un, const Config& config)
+    {
+        const Config::List& list = config.getList();
+        std::vector<T> out;
+        out.reserve(list.size());
+        for (const Config& item : list)
+            out.push_back(un.undump<T>(item));
+        return out;
+    }
 };
 
 /// ConfigDumper for std::map<std::string, T>.
@@ -336,12 +375,28 @@ struct ConfigDumper<std::map<std::string, T>>
             dict.unsafe_insert(pair.first, dumper(pair.second));
         return std::move(dict);
     }
+    static std::map<std::string, T> undump(Undumper& un, const Config& config)
+    {
+        std::map<std::string, T> out;
+        for (const auto& pair : config.getDict())
+            out.emplace(pair.first, un.undump<T>(pair.second));
+        return out;
+    }
 };
 
 /// ConfigDumper for mpark::variant.
+void _variantDumperError [[noreturn]] (size_t index, size_t size);
 template <typename... Ts>
 struct ConfigDumper<mpark::variant<Ts...>>
 {
+    using Variant = mpark::variant<Ts...>;
+
+    template <typename T>
+    static Variant _undump(Undumper& un, const Config& config)
+    {
+        return Variant{un.undump<T>(config)};
+    }
+
     template <typename Variant>  // Const or not.
     static Config dump(Dumper& dumper, Variant& value)
     {
@@ -350,6 +405,19 @@ struct ConfigDumper<mpark::variant<Ts...>>
         dict.unsafe_insert("__index", static_cast<Config::Int>(value.index()));
         dict.unsafe_insert("value", mpark::visit(dumper, value));
         return dict;
+    }
+    static Variant undump(Undumper& un, const Config& config)
+    {
+        const ConfigDictionary& dict = config.getDict();
+        size_t index = un.undump<size_t>(dict.at("__index"));
+        if (index >= sizeof...(Ts))
+            _variantDumperError(index, sizeof...(Ts));
+
+        // Compile an array of _undump functions, one for each type.
+        // Pick index-th on runtime.
+        using UndumperPtr = Variant(*)(Undumper&, const Config&);
+        const UndumperPtr funcs[]{(&_undump<Ts>)...};
+        return funcs[index](un, dict.at("value"));
     }
 };
 

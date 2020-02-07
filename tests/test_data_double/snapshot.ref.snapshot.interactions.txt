@@ -9,6 +9,7 @@
     "Interaction": [
         {
             "__type": "PairwiseInteraction",
+            "rc": 1,
             "varParams": {
                 "__index": 0,
                 "value": {
