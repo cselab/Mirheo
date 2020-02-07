@@ -42,7 +42,7 @@ find_package(LIBBFD REQUIRED)
 # Setup compiler flags
 
 set(cxx_flags -g)
-set(cuda_flags --expt-extended-lambda)
+set(cuda_flags --expt-extended-lambda --expt-relaxed-constexpr)
 
 set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion -Werror -Wshadow)
 set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas -Werror -Wshadow")

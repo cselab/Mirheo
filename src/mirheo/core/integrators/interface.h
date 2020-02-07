@@ -10,12 +10,11 @@ namespace mirheo
 
 class ParticleVector;
 
-
 /**
    \defgroup  Integrators Integrators
  */
 
-/** \brief Advance \c ParticleVector objects in time
+/** \brief Advance \c ParticleVector objects in time.
     \ingroup Integrators
 
     \c Integrator objects are responsible to advance the state of \c ParticleVector 
@@ -28,21 +27,33 @@ class Integrator : public MirSimulationObject
 {
 public:
     
-    /// Set the name of the integrator and state
+    /** \brief Construct a \c Integrator object.
+        \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
+        \param [in] name The name of the integrator.
+    */
     Integrator(const MirState *state, const std::string& name);
-
     virtual ~Integrator();
 
-    virtual void execute(ParticleVector *pv, cudaStream_t stream) = 0;
-
-    /**
-     * Ask ParticleVectors which the class will be working with to have specific properties
-     * Default: ask nothing
-     * Called from Simulation right after setup
+    /** \brief Setup conditions on the \c ParticledVector.
+        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+        
+        Set specific properties to pv that will be modified during execute().
+        Default: ask nothing.
+        Must be called before execute() with the same pv.
      */
     virtual void setPrerequisites(ParticleVector *pv);
 
+
+    /** \brief Advance the \c ParticledVector for one time step.
+        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+        \param [in] stream The stream used for execution.
+     */
+    virtual void execute(ParticleVector *pv, cudaStream_t stream) = 0;
+
 protected:
+    /** \brief Invalidate \c ParticledVector cell-lists, halo and redistributed statuses.
+        \param [in,out] pv The \c ParticleVector that must be invalidated.
+     */
     void invalidatePV_(ParticleVector *pv);
 };
 

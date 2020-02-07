@@ -7,3 +7,4 @@ Library API
 
    api/bouncers
    api/ics
+   api/integrators

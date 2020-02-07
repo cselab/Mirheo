@@ -7,10 +7,6 @@
 namespace mirheo
 {
 
-/**
- * @param vel Velocity magnitude
- * @param period Sine wave period
- */
 IntegratorOscillate::IntegratorOscillate(const MirState *state, const std::string& name, real3 vel, real period) :
     Integrator(state, name),
     vel_(vel),
