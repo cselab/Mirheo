@@ -13,7 +13,6 @@ namespace mirheo
 class Interaction;
 
 /** \brief Advance one \c ObjectVector associated with internal forces with smaller time step.
-    \ingroup Integrators
 
     We distinguish slow forces, which are computed outside of this class, from fast forces, 
     computed only inside this class.

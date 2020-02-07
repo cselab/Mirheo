@@ -8,7 +8,6 @@ namespace mirheo
 {
 
 /** \brief Restrict \c ParticleVector velocities to a sine wave.
-    \ingroup Integrators
     
     \rst
     Set velocities to follow a sine wave:

@@ -8,7 +8,6 @@ namespace mirheo
 {
 
 /** \brief Restrict \c ParticleVector velocities to a constant.
-    \ingroup Integrators
     
     The positions are integrated with forwards euler with a constant velocity.
  */

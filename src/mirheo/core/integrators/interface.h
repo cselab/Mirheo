@@ -10,12 +10,7 @@ namespace mirheo
 
 class ParticleVector;
 
-/**
-   \defgroup  Integrators Integrators
- */
-
 /** \brief Advance \c ParticleVector objects in time.
-    \ingroup Integrators
 
     \c Integrator objects are responsible to advance the state of \c ParticleVector 
     objects on the device.

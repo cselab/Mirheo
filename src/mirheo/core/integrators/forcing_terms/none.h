@@ -8,7 +8,6 @@ namespace mirheo
 class ParticleVector;
 
 /** \brief No forcing term.
-    \ingroup Integrators
  */
 class ForcingTermNone : public ForcingTerm
 {

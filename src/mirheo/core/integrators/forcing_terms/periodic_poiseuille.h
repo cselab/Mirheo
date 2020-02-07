@@ -11,7 +11,6 @@ namespace mirheo
 class ParticleVector;
 
 /**\brief Apply equal but opposite forces in two halves of the global domain.
-    \ingroup Integrators
 
     \rst
 

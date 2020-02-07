@@ -6,7 +6,6 @@ namespace mirheo
 {
 
 /** \brief Initialize \c MembraneVector objects with a typeId
-    \ingroup ICs
     
     \see MembraneIC
     Attach an additional typeId field to each membrane.

@@ -11,7 +11,6 @@ namespace mirheo
 class ParticleVector;
 
 /** \brief Apply a constant force independently of the position.
-    \ingroup Integrators
  */
 class ForcingTermConstDP: public ForcingTerm
 {

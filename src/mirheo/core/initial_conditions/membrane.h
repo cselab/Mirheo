@@ -16,7 +16,6 @@ namespace mirheo
 class ParticleVector;
 
 /** \brief Initialize MembraneVector objects
-    \ingroup ICs
     
     Initialize membrane objects from center of mass positions and orientations.
 */

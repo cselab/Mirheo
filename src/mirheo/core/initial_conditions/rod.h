@@ -13,7 +13,6 @@ namespace mirheo
 {
 
 /** \brief Initialize \c RodVector objects
-    \ingroup ICs
     
     All rods will have the same torsion and centerline in there frame of reference.
     Each rod has a specific center of mass and orientation. 

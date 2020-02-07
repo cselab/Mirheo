@@ -6,7 +6,6 @@ namespace mirheo
 {
 
 /** \brief Rotate \c ParticleVector objects with a constant angular velocity.
-    \ingroup Integrators
 
     The center of rotation is defined in the global coordinate system.
  */

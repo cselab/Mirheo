@@ -8,7 +8,6 @@ namespace mirheo
 {
 
 /** \brief Initialize a \c ParticleVector from a checkpoint file
-    \ingroup ICs
     
     Will call the restart() member function of the given \c ParticleVector.
  */

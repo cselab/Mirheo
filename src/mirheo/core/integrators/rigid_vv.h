@@ -6,7 +6,6 @@ namespace mirheo
 {
 
 /** \brief Integrate \c RigidObjectVector objects given torque and force.
-    \ingroup Integrators
     
     \rst
     Advance the RigidMotion and the frozen particles of the \c RigidObjectVector objects.

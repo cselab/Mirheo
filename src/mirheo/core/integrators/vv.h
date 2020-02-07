@@ -6,7 +6,6 @@ namespace mirheo
 {
 
 /** \brief Advance individual particles with Velocity-Verlet scheme.
-    \ingroup Integrators
     
     \tparam ForcingTerm a functor that can add additional force to the particles 
             depending on their position

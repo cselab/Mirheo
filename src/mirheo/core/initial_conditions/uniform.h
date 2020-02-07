@@ -7,7 +7,6 @@ namespace mirheo
 {
 
 /** \brief Fill the domain with uniform number density
-    \ingroup ICs
     
     Initialize particles uniformly with the given number density on the whole domain.
     The domain considered is that of the \c ParticleVector.

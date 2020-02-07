@@ -10,7 +10,6 @@
 namespace mirheo
 {
 /** \brief Initialize particles to given positions and velocities.
-    \ingroup ICs
 
     ObjectVector objects are not supported.
 */

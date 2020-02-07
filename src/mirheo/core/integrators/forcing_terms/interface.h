@@ -9,7 +9,6 @@ namespace mirheo
 class ParticleVector;
 
 /** \brief Interface for assitional force functors.
-    \ingroup Integrators
  */
 class ForcingTerm
 {
