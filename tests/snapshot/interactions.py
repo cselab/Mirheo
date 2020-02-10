@@ -6,14 +6,14 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--ranks', type=int, nargs=3, required=True)
-parser.add_argument('--write', type=str, required=True)
-parser.add_argument('--read', type=str)
+parser.add_argument('--save-to', type=str, required=True)
+parser.add_argument('--load-from', type=str)
 args = parser.parse_args()
 
 domain = (4, 6, 8)
 dt = 0.1
 
-if not args.read:
+if not args.load_from:
     u = mir.Mirheo(args.ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
 
     pv = mir.ParticleVectors.ParticleVector('pv', mass=1)
@@ -24,16 +24,16 @@ if not args.read:
 
     u.registerInteraction(dpd)
     u.setInteraction(dpd, pv, pv)
-    u.writeSnapshot(args.write)
+    u.saveSnapshot(args.save_to)
 else:
-    u = mir.Mirheo(args.ranks, snapshot=args.read, debug_level=3, log_filename='log', no_splash=True)
-    u.writeSnapshot(args.write)
+    u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
+    u.saveSnapshot(args.save_to)
 
 # TEST: snapshot.interactions
 # cd snapshot
 # echo rm -rf snapshot1/ snapshot2/
-# mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --write snapshot1/
-# mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --write snapshot2/ --read snapshot1/
+# mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot1/
+# mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
 # git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
 # git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
 # h5diff snapshot1/pv.PV.h5 snapshot2/pv.PV.h5

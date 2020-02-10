@@ -6,6 +6,7 @@
 #include <mirheo/core/integrators/interface.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/logger.h>
+#include <mirheo/core/mirheo_undump.h>
 #include <mirheo/core/object_belonging/interface.h>
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/postproc.h>
@@ -70,13 +71,9 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 
 void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-                  Undumper *undumper, [[maybe_unused]] Config *compConfig,
-                  [[maybe_unused]] Config *postConfig)
+                  UndumpContext *undump)
 {
-    assert((bool)compConfig == (bool)postConfig);  // Either neither or both should be set.
-    const Config *stateConfig = compConfig ? &compConfig->at("Mirheo").at(0).at("state") : nullptr;
-    // const Config *simConfig   = compConfig ? &compConfig->at("Simulation").at(0) : nullptr;
-    // const Config *ppConfig    = postConfig ? &postConfig->at("Postprocess").at(0) : nullptr;
+    const Config *stateConfig = undump ? &undump->getComp()["Mirheo"][0]["state"] : nullptr;
 
     int nranks;
 
@@ -102,7 +99,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         createCartComm(comm_, nranks3D, &cartComm_);
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, undumper, stateConfig);
+                                             dt, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
                                             checkpointInfo, gpuAwareMPI);
         computeTask_ = 0;
@@ -131,7 +128,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         createCartComm(compComm_, nranks3D, &cartComm_);
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, undumper, stateConfig);
+                                             dt, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
                                             checkpointInfo, gpuAwareMPI);
     }
@@ -151,19 +148,17 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 void Mirheo::initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
                            LogInfo logInfo, bool gpuAwareMPI)
 {
-    Config compConfig = configFromJSONFile(joinPaths(snapshotPath, "config.compute.json"));
-    Config postConfig = configFromJSONFile(joinPaths(snapshotPath, "config.post.json"));
+    UndumpContext context{snapshotPath};
+    Undumper undumper{&context};
 
-    Undumper undumper{UndumpContext{snapshotPath, comm_}};
+    const Config& mirState = context.getComp()["Mirheo"][0]["state"];
+    real  dt               = mirState["dt"];
+    real3 globalDomainSize = mirState["domainGlobalSize"];
+    auto  checkpointInfo   = undumper.undump<CheckpointInfo>(
+            context.getComp()["Simulation"][0]["checkpointInfo"]);
 
-    const Config& mirState = compConfig.at("Mirheo").at(0).at("state");
-    auto dt = undumper.undump<real>(mirState.at("dt"));
-    auto globalDomainSize = undumper.undump<real3>(mirState.at("domainGlobalSize"));
-    auto checkpointInfo = undumper.undump<CheckpointInfo>(compConfig.at("Simulation").at(0).at("checkpointInfo"));
-
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI,
-         &undumper, &compConfig, &postConfig);
-    importSnapshot(undumper, compConfig, postConfig);
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, &context);
+    importSnapshot(this, undumper);
 }
 
 void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
@@ -733,7 +728,7 @@ static void storeToFile(const std::string& content, const std::string& filename)
     fwrite(content.data(), 1, content.size(), f.get());
 }
 
-void Mirheo::writeSnapshot(std::string path)
+void Mirheo::saveSnapshot(std::string path)
 {
     // Prepare context and the dumper.
     DumpContext context;

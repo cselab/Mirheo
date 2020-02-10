@@ -360,16 +360,20 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize, defaultStream);
 }
 
-ConfigDictionary ParticleVector::writeSnapshot(Dumper& dumper)
+void ParticleVector::saveSnapshotAndRegister(Dumper& dumper)
+{
+    dumper.registerObject<ParticleVector>(this, _saveSnapshot(dumper, "ParticleVector"));
+}
+
+ConfigDictionary ParticleVector::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     // The filename does not include the extension.
     std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartPVIdentifier);
     _snapshotParticleData(dumper.getContext().groupComm, filename);
-    return {
-        {"__category", dumper("ParticleVector")},
-        {"__type",     dumper("ParticleVector")},
-        {"mass",       dumper(mass)},
-    };
+    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(
+            dumper, "ParticleVector", typeName);
+    dict.emplace("mass", dumper(mass));
+    return dict;
 }
 
 ParticleVector::ParticleVector(const MirState *state, Undumper& un, const ConfigDictionary& dict) :

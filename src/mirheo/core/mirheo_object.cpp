@@ -4,8 +4,6 @@
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/config.h>
 
-#include <typeinfo>
-
 namespace mirheo
 {
 
@@ -23,10 +21,22 @@ MirObject::~MirObject()
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
 
-ConfigDictionary MirObject::writeSnapshot(Dumper&)
+void MirObject::saveSnapshotAndRegister(Dumper& dumper)
 {
-    std::string name = typeid(*this).name();
-    throw std::runtime_error("getConfig not implemented for class " + name);
+    // This will always trigger a /function not implemented/ runtime error,
+    // because MirObject is effectively an abstract class.
+    dumper.registerObject<MirObject>(
+            this, _saveSnapshot(dumper, "UnknownCategory", "MirObject"));
+}
+
+ConfigDictionary MirObject::_saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName)
+{
+    ConfigDictionary dict;
+    // "Unsafe" == skip checking whether the key is already in use.
+    dict.unsafe_insert("__category", dumper(category));
+    dict.unsafe_insert("__type", dumper(typeName));
+    dict.unsafe_insert("name", dumper(name_));
+    return dict;
 }
 
 
@@ -92,12 +102,9 @@ void MirSimulationObject::setState(const MirState *state)
 
 Config ConfigMirObjectDumper::dump(Dumper& dumper, MirObject& obj)
 {
-    if (dumper.isObjectRegistered(&obj))
-        return dumper.getObjectDescription(&obj);
-    ConfigDictionary dict = obj.writeSnapshot(dumper);
-    dict.insert_or_assign("name", dumper(obj.getName()));
-    // Returns a replacement string (a reference-like string).
-    return dumper.registerObject(&obj, std::move(dict));
+    if (!dumper.isObjectRegistered(&obj))
+        obj.saveSnapshotAndRegister(dumper);
+    return dumper.getObjectRefString(&obj);
 }
 
 } // namespace mirheo

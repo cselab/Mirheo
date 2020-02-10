@@ -5,6 +5,7 @@
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/type_traits.h>
+#include <mirheo/core/mirheo_undump.h>
 
 using namespace mirheo;
 
@@ -60,9 +61,9 @@ struct mirheo::ConfigDumper<Struct1>
     static Struct1 undump(Undumper& un, const Config& config)
     {
         return Struct1{
-            un.undump<int>(config.at("b")),
-            un.undump<double>(config.at("a")),
-            un.undump<std::string>(config.at("c")),
+            un.undump<int>(config["b"]),
+            un.undump<double>(config["a"]),
+            un.undump<std::string>(config["c"]),
         };
     }
 };
@@ -154,7 +155,8 @@ void roundTrip(const T &value) {
     Dumper dumper{DumpContext{}};
     Config dump = dumper(value);
 
-    Undumper undumper{UndumpContext{}};
+    UndumpContext undumpContext{ConfigDictionary{}, ConfigDictionary{}};
+    Undumper undumper{&undumpContext};
     auto recovered = undumper.undump<T>(dump);
 
     ASSERT_EQ(value, recovered);
@@ -180,7 +182,6 @@ TEST(Snapshot, DumpUndumpRoundTrip)
 TEST(Snapshot, DumpUndumpInteractions)
 {
     Dumper dumper{DumpContext{}};
-    Undumper undumper{UndumpContext{}};
 
     Mirheo mirheo{MPI_COMM_WORLD, {1, 1, 1}, {10.0_r, 10.0_r, 10.0_r}, 0.1_r, {"log", 3, true}, {}, false};
     auto pairwise = InteractionFactory::createPairwiseInteraction(
@@ -189,10 +190,13 @@ TEST(Snapshot, DumpUndumpInteractions)
 
     {
         dumper(pairwise);
-        Config config = dumper.getConfig().at("Interaction").at(0);
+        Config config = dumper.getConfig()["Interaction"][0];
+
+        UndumpContext undumpContext{config, ConfigDictionary{}};
+        Undumper undumper{&undumpContext};
         auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), undumper, config.getDict());
         dumper(pairwise2);
-        Config config2 = dumper.getConfig().at("Interaction").at(1);
+        Config config2 = dumper.getConfig()["Interaction"][1];
         ASSERT_STREQ(config.toJSONString().c_str(), config2.toJSONString().c_str());
     }
 }

@@ -60,7 +60,7 @@ public:
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
-    ConfigDictionary writeSnapshot(Dumper &dumper) override;
+    void saveSnapshotAndRegister(Dumper& dumper) override;
 
     template<typename T>
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,
@@ -78,12 +78,13 @@ protected:
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,
                  std::unique_ptr<LocalParticleVector>&& halo);
-    
+
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
     virtual void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms);
-    
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+
 private:
-    void _snapshotObjectData  (MPI_Comm comm, const std::string& filename);
+    void _snapshotObjectData(MPI_Comm comm, const std::string& filename);
 
     template<typename T>
     void requireDataPerObject(LocalObjectVector* lov, const std::string& name,

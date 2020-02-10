@@ -9,6 +9,7 @@
 #include <map>
 #include <mpi.h>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 #include <extern/variant/include/mpark/variant.hpp>
@@ -16,6 +17,16 @@
 
 namespace mirheo
 {
+
+// Move this to utils/type_checker.h?
+void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
+template <typename T>
+void assertType(T *thisPtr)
+{
+    if (typeid(*thisPtr) != typeid(T))
+        _typeMismatchError(typeid(*thisPtr).name(), typeid(T).name());
+}
+
 
 class Dumper;
 class Undumper;
@@ -28,7 +39,34 @@ struct ConfigDumper
     static_assert(always_false<T>::value, "Not implemented.");
 
     static Config dump(Dumper&, T& value);
-    static T undump(Undumper&, const Config &);
+
+    /// Context-free parsing. Only for simple types!
+    static T parse(const Config&);
+
+    /// Context-aware undump.
+    static T undump(Undumper&, const Config&);
+};
+
+class ConfigList : public std::vector<Config>
+{
+    using Base = std::vector<Config>;
+public:
+    using Base::Base;
+
+
+    /// Overwrite operator[] with bound checks.
+    Config&       operator[](size_t i)       { return at(i); }
+    const Config& operator[](size_t i) const { return at(i); }
+
+    Config& at(size_t i) {
+        return i < size() ? Base::operator[](i) : _outOfBound(i, size());
+    }
+    const Config& at(size_t i) const {
+        return i < size() ? Base::operator[](i) : (const Config&)_outOfBound(i, size());
+    }
+
+private:
+    Config& _outOfBound [[noreturn]] (size_t index, size_t size) const;
 };
 
 class ConfigDictionary : public FlatOrderedDict<std::string, Config>
@@ -38,11 +76,22 @@ class ConfigDictionary : public FlatOrderedDict<std::string, Config>
 public:
     using Base::Base;
 
-    /// Get the element matching the given key if it exists, othewise terminate.
-    Config& at(const std::string &key);
+    /// Overwrite operator[] with bound checks.
+    Config&       operator[](const std::string &key)       { return at(key); }
+    const Config& operator[](const std::string &key) const { return at(key); }
+    Config&       operator[](const char *key)              { return at(key); }
+    const Config& operator[](const char *key) const        { return at(key); }
+
+    Config&       at(const std::string &key);
     const Config& at(const std::string &key) const;
-    Config& at(const char *key);
+    Config&       at(const char *key);
     const Config& at(const char *key) const;
+
+    /// Get the pointer to the key if it exists, otherwise return a nullptr.
+    Config*       get(const std::string &key) &;
+    const Config* get(const std::string &key) const&;
+    Config*       get(const char *key) &;
+    const Config* get(const char *key) const&;
 };
 
 class Config
@@ -51,7 +100,7 @@ public:
     using Int        = long long;
     using Float      = double;
     using String     = std::string;
-    using List       = std::vector<Config>;
+    using List       = ConfigList;
     using Dictionary = ConfigDictionary;
     using Variant    = mpark::variant<Int, Float, String, List, Dictionary>;
 
@@ -88,20 +137,57 @@ public:
     const Dictionary& getDict() const;
     Dictionary& getDict();
 
+    /// Check if the key exists. Terminates if not a dict.
+    bool contains(const std::string &key) const { return getDict().contains(key); }
+    bool contains(const char *key)        const { return getDict().contains(key); }
+
     /// Get the element matching the given key. Terminates if not a dict, or if
     /// the key was not found.
-    Config& at(const std::string &key)             { return getDict().at(key); }
-    Config& at(const char *key)                    { return getDict().at(key); }
-    const Config& at(const std::string &key) const { return getDict().at(key); }
-    const Config& at(const char *key) const        { return getDict().at(key); }
+    Config&       operator[](const std::string &key)       { return getDict().at(key); }
+    const Config& operator[](const std::string &key) const { return getDict().at(key); }
+    Config&       operator[](const char *key)              { return getDict().at(key); }
+    const Config& operator[](const char *key) const        { return getDict().at(key); }
 
     /// Get the list element. Terminates if not a list or if out of range.
-    Config& at(size_t i);
-    const Config& at(size_t i) const;
+    Config&       operator[](size_t i)       { return getList()[i]; }
+    const Config& operator[](size_t i) const { return getList()[i]; }
+    Config&       operator[](int i)       { return getList()[static_cast<size_t>(i)]; }
+    const Config& operator[](int i) const { return getList()[static_cast<size_t>(i)]; }
 
-    Config& at(int i) { return at(static_cast<size_t>(i)); }
-    const Config& at(int i) const { return at(static_cast<size_t>(i)); }
+    /// Get the element if it exists, or null otherwise. Terminates if not a dict.
+    Config*       get(const std::string &key) &      { return getDict().get(key); }
+    const Config* get(const std::string &key) const& { return getDict().get(key); }
+    Config*       get(const char *key) &             { return getDict().get(key); }
+    const Config* get(const char *key) const&        { return getDict().get(key); }
 
+    /// Implicit cast to simple types.
+    template <typename T>
+    operator T() const { return ConfigDumper<T>::parse(*this); }
+
+    /// Implicit cast to specific types.
+    operator Config::Int() const { return getInt(); }
+    operator Config::Float() const { return getFloat(); }
+    operator const std::string&() const { return getString(); }
+
+    /// String concatenation operator.
+    friend std::string operator+(const Config& a, const char *b)
+    {
+        return a.getString() + b;
+    }
+    friend std::string operator+(const char *a, const Config& b)
+    {
+        return a + b.getString();
+    }
+    friend std::string operator+(const Config& a, const std::string& b)
+    {
+        return a.getString() + b;
+    }
+    friend std::string operator+(const std::string& a, const Config& b)
+    {
+        return a + b.getString();
+    }
+
+    /// Low-level getter.
     template <typename T>
     inline const T& get() const
     {
@@ -131,12 +217,6 @@ struct DumpContext
     std::map<std::string, int> counters;
 
     bool isGroupMasterTask() const;
-};
-
-struct UndumpContext
-{
-    std::string path {"snapshot/"};
-    MPI_Comm groupComm {MPI_COMM_NULL};
 };
 
 class Dumper
@@ -170,22 +250,30 @@ public:
     }
 
     bool isObjectRegistered(const void*) const noexcept;
-    const std::string& getObjectDescription(const void*) const;
-    const std::string& registerObject(const void*, Config newItem);
+    const ConfigRefString& getObjectRefString(const void*) const;
+
+    template <typename T>
+    const ConfigRefString& registerObject(const T *obj, Config newItem)
+    {
+        assertType(obj);
+        return _registerObject((const void *)obj, std::move(newItem));
+    }
 
 private:
+    const ConfigRefString& _registerObject(const void *, Config newItem);
+
     Config config_;
-    std::map<const void*, std::string> descriptions_;
+    std::map<const void*, ConfigRefString> descriptions_;
     DumpContext context_;
 };
 
+class UndumpContext;
 class Undumper
 {
 public:
-    Undumper(UndumpContext context);
-    ~Undumper();
+    Undumper(UndumpContext *context) : context_(context) {}
 
-    UndumpContext& getContext() noexcept { return context_; }
+    UndumpContext& getContext() noexcept { return *context_; }
 
     template <typename T>
     T undump(const Config &config)
@@ -194,7 +282,7 @@ public:
     }
 
 private:
-    UndumpContext context_;
+    UndumpContext *context_;
 };
 
 namespace detail
@@ -249,6 +337,10 @@ namespace detail
         {                                                                      \
             return static_cast<Config::ELTYPE>(x);                             \
         }                                                                      \
+        static TYPE parse(const Config &value)                                 \
+        {                                                                      \
+            return static_cast<TYPE>(value.get##ELTYPE());                     \
+        }                                                                      \
         static TYPE undump(Undumper&, const Config &value)                     \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
@@ -272,6 +364,7 @@ struct ConfigDumper<const char*>
     {
         return std::string(str);
     }
+    static const char* parse(const Config&) = delete;
     static const char* undump(Undumper&, const Config&) = delete;
 };
 
@@ -281,6 +374,10 @@ struct ConfigDumper<std::string>
     static Config dump(Dumper&, std::string x)
     {
         return std::move(x);
+    }
+    static const std::string& parse(const Config &config)
+    {
+        return config.getString();
     }
     static const std::string& undump(Undumper&, const Config &config)
     {
@@ -292,19 +389,28 @@ template <>
 struct ConfigDumper<float3>
 {
     static Config dump(Dumper&, float3 v);
-    static float3 undump(Undumper& un, const Config &config);
+    static float3 parse(const Config &config);
+    static float3 undump(Undumper&, const Config &config)
+    {
+        return parse(config);
+    }
 };
 
 /// ConfigDumper for enum types.
 template <typename T>
 struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
 {
-    static Config dump(Dumper&, T t) {
+    static Config dump(Dumper&, T t)
+    {
         return static_cast<Config::Int>(t);
+    }
+    static T parse(const Config &config)
+    {
+        return static_cast<T>(config.getInt());
     }
     static T undump(Undumper&, const Config &config)
     {
-        return static_cast<T>(config.getInt());
+        return parse(config);
     }
 };
 

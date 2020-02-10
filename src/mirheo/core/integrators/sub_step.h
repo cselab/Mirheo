@@ -18,15 +18,17 @@ public:
     IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                       const std::vector<Interaction*>& fastForces);
     ~IntegratorSubStep();
-    ConfigDictionary writeSnapshot(Dumper& dumper) override;
-    
+    void saveSnapshotAndRegister(Dumper& dumper) override;
+
     void stage1(ParticleVector *pv, cudaStream_t stream) override;
     void stage2(ParticleVector *pv, cudaStream_t stream) override;
 
     void setPrerequisites(ParticleVector *pv) override;
 
-private:
+protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
+private:
     std::vector<Interaction*> fastForces_; /* interactions (self) called `substeps` times per time step */
     std::unique_ptr<Integrator> subIntegrator_;
     MirState subState_;

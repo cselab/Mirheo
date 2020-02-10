@@ -22,13 +22,19 @@ template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 template<class ForcingTerm>
-ConfigDictionary IntegratorVV<ForcingTerm>::writeSnapshot(Dumper& dumper)
+void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category",  dumper("Integrator")},
-        {"__type",      dumper("IntegratorVV<...>")},  // TODO: Template parameter name.
-        {"forcingTerm", dumper(forcingTerm_)},
-    };
+    dumper.registerObject<IntegratorVV<ForcingTerm>>(
+            this, _saveSnapshot(dumper, "IntegratorVV<...>"));
+}
+
+template<class ForcingTerm>
+ConfigDictionary IntegratorVV<ForcingTerm>::_saveSnapshot(
+        Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = Integrator::_saveSnapshot(dumper, typeName);
+    dict.emplace("forcingTerm", dumper(forcingTerm_));
+    return dict;
 }
 
 template<class ForcingTerm>

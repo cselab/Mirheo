@@ -42,7 +42,7 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
-    ConfigDictionary writeSnapshot(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Dumper&) override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
@@ -96,6 +96,9 @@ public:
     real getMaxEffectiveCutoff() const;
     
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
+
+protected:
+    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
 
 private:
 

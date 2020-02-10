@@ -1,6 +1,8 @@
 #include "interface.h"
 
+#include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/macros.h>
 
 namespace mirheo
@@ -53,5 +55,29 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
 }
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
+
+ConfigDictionary Interaction::_saveSnapshotWithoutImpl(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(dumper, "Interaction", typeName);
+    dict.emplace("rc", dumper(rc));
+    return dict;
+}
+
+ConfigDictionary Interaction::_saveSnapshotWithImpl(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = _saveSnapshotWithoutImpl(dumper, typeName);
+    dict.emplace("impl", dumper(impl));
+    return dict;
+}
+
+ConfigDictionary Interaction::_saveImplSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(dumper, "InteractionImpl", typeName);
+    dict.emplace("rc", dumper(rc));
+    if (impl)
+        die("Impl interaction has impl?");
+    return dict;
+}
+
 
 } // namespace mirheo

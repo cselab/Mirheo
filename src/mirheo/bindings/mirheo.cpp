@@ -344,9 +344,9 @@ void exportMirheo(py::module& m)
              R"(
              output compile times options in the log
         )")
-        .def("writeSnapshot", &Mirheo::writeSnapshot,
+        .def("saveSnapshot", &Mirheo::saveSnapshot,
             "path"_a, R"(
-            Write a snapshot of the simulation setup and state to the given folder.
+            Save a snapshot of the simulation setup and state to the given folder.
 
             Args:
                 path: Target folder.

@@ -170,23 +170,24 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
-    ConfigDictionary writeSnapshot(Dumper& dumper) override
+    void saveSnapshotAndRegister(Dumper& dumper)
     {
-        return {
-            {"__category",     dumper("InteractionImpl")},
-            {"__type",         dumper("MembraneInteractionImpl<...>")},
-            {"rc",             dumper(rc)},
-            {"growUntil",      dumper(growUntil)},
-            {"parameters",     dumper(parameters)},
-            {"dihedralParams", dumper(dihedralParams)},
-            {"triangleParams", dumper(triangleParams)},
-            {"filter",         dumper(filter)},
-            {"stepGen",        dumper("<<not implemented>")},
-        };
+        dumper.registerObject<MembraneInteractionImpl>(
+                this, _saveSnapshot(dumper, "MembraneInteractionImpl<...>"));
     }
 
-    
 protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName)
+    {
+        ConfigDictionary dict = Interaction::_saveImplSnapshot(dumper, typeName);
+        dict.emplace("growUntil",      dumper(growUntil));
+        dict.emplace("parameters",     dumper(parameters));
+        dict.emplace("dihedralParams", dumper(dihedralParams));
+        dict.emplace("triangleParams", dumper(triangleParams));
+        dict.emplace("filter",         dumper(filter));
+        dict.emplace("stepGen",        dumper("<<not implemented>"));
+        return dict;
+    }
 
     real growUntil;
     CommonMembraneParameters parameters;

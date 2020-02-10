@@ -11,9 +11,10 @@ class MembraneVector: public ObjectVector
 {
 public:
     MembraneVector(const MirState *state, const std::string& name, real mass, std::shared_ptr<MembraneMesh> mptr, int nObjects = 0);
+    MembraneVector(const MirState *state, Undumper&, const ConfigDictionary&);
     ~MembraneVector();
 
-    ConfigDictionary writeSnapshot(Dumper &dumper) override;
+    void saveSnapshotAndRegister(Dumper& dumper) override;
 };
 
 } // namespace mirheo

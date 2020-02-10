@@ -24,7 +24,10 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-    ConfigDictionary writeSnapshot(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Dumper& dumper) override;
+
+protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     std::string ovName_;
@@ -46,7 +49,10 @@ public:
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    ConfigDictionary writeSnapshot(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Dumper& dumper) override;
+
+protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     std::string path_;

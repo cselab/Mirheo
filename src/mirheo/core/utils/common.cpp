@@ -100,14 +100,10 @@ Config ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& 
     };
 }
 
-CheckpointInfo ConfigDumper<CheckpointInfo>::undump(Undumper& un, const Config& config)
+CheckpointInfo ConfigDumper<CheckpointInfo>::undump(Undumper&, const Config& config)
 {
-    assert(config.at("__type") == "CheckpointInfo");
-    return CheckpointInfo{
-        un.undump<int>(config.at("every")),
-        un.undump<std::string>(config.at("folder")),
-        un.undump<CheckpointIdAdvanceMode>(config.at("mode")),
-    };
+    assert(config["__type"] == "CheckpointInfo");
+    return CheckpointInfo{config["every"], config["folder"], config["mode"]};
 }
 
 } // namespace mirheo

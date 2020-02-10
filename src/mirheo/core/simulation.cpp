@@ -1377,34 +1377,37 @@ MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
 MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
 MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
-ConfigDictionary Simulation::writeSnapshot(Dumper& dumper)
+void Simulation::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category",          dumper("Simulation")},
-        {"__type",              dumper("Simulation")},
-        {"checkpointId",        dumper(checkpointId_)},
-        {"checkpointInfo",      dumper(checkpointInfo_)},
+    dumper.registerObject<Simulation>(this, _saveSnapshot(dumper, "Simulation"));
+}
 
-        {"particleVectors",     dumper(particleVectors_)},
+ConfigDictionary Simulation::_saveSnapshot(Dumper& dumper, const std::string &typeName)
+{
+    ConfigDictionary dict = MirObject::_saveSnapshot(dumper, "Simulation", typeName);
+    dict.emplace("checkpointId",        dumper(checkpointId_));
+    dict.emplace("checkpointInfo",      dumper(checkpointInfo_));
 
-        {"bouncerMap",          dumper(bouncerMap_)},
-        {"integratorMap",       dumper(integratorMap_)},
-        {"interactionMap",      dumper(interactionMap_)},
-        {"wallMap",             dumper(wallMap_)},
-        {"belongingCheckerMap", dumper(belongingCheckerMap_)},
+    dict.emplace("particleVectors",     dumper(particleVectors_));
 
-        {"plugins",             dumper(plugins)},
+    dict.emplace("bouncerMap",          dumper(bouncerMap_));
+    dict.emplace("integratorMap",       dumper(integratorMap_));
+    dict.emplace("interactionMap",      dumper(interactionMap_));
+    dict.emplace("wallMap",             dumper(wallMap_));
+    dict.emplace("belongingCheckerMap", dumper(belongingCheckerMap_));
 
-        {"integratorPrototypes",          dumper(integratorPrototypes_)},
-        {"interactionPrototypes",         dumper(interactionPrototypes_)},
-        {"wallPrototypes",                dumper(wallPrototypes_)},
-        {"checkWallPrototypes",           dumper(checkWallPrototypes_)},
-        {"bouncerPrototypes",             dumper(bouncerPrototypes_)},
-        {"belongingCorrectionPrototypes", dumper(belongingCorrectionPrototypes_)},
-        {"splitterPrototypes",            dumper(splitterPrototypes_)},
+    dict.emplace("plugins",             dumper(plugins));
 
-        {"pvsIntegratorMap",    dumper(pvsIntegratorMap_)},
-    };
+    dict.emplace("integratorPrototypes",          dumper(integratorPrototypes_));
+    dict.emplace("interactionPrototypes",         dumper(interactionPrototypes_));
+    dict.emplace("wallPrototypes",                dumper(wallPrototypes_));
+    dict.emplace("checkWallPrototypes",           dumper(checkWallPrototypes_));
+    dict.emplace("bouncerPrototypes",             dumper(bouncerPrototypes_));
+    dict.emplace("belongingCorrectionPrototypes", dumper(belongingCorrectionPrototypes_));
+    dict.emplace("splitterPrototypes",            dumper(splitterPrototypes_));
+
+    dict.emplace("pvsIntegratorMap",    dumper(pvsIntegratorMap_));
+    return dict;
 }
 
 void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool current) const

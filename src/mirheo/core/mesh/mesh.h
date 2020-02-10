@@ -21,6 +21,7 @@ public:
     Mesh(const std::string& fileName);
     Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh);
     Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
+    Mesh(Undumper&, const ConfigDictionary&);
 
     Mesh(Mesh&&);
     Mesh& operator=(Mesh&&);
@@ -34,7 +35,13 @@ public:
     PyTypes::VectorOfReal3 getVertices();
     PyTypes::VectorOfInt3  getTriangles();
 
+    /// Store the mesh, register the object and return the reference string.
+    virtual void saveSnapshotAndRegister(Dumper&);
+
 protected:
+    /// Store the mesh and prepare the config dictionary.
+    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
+
     void _computeMaxDegree();
     void _check() const;
 

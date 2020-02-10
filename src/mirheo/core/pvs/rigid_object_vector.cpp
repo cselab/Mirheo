@@ -196,6 +196,25 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     debug("Checkpoint for rigid object vector '%s' successfully written", getCName());
 }
 
+void RigidObjectVector::saveSnapshotAndRegister(Dumper& dumper)
+{
+    dumper.registerObject<RigidObjectVector>(this, _saveSnapshot(dumper, "RigidObjectVector"));
+}
+
+ConfigDictionary RigidObjectVector::_saveSnapshot(Dumper &dumper, const std::string& typeName)
+{
+    die("RigitObjectVector::_saveSnapshot not tested.");
+    // The filename does not include the extension.
+    std::string xdmfFilename = joinPaths(dumper.getContext().path, getName() + "." + RestartROVIdentifier);
+    std::string ipFilename   = joinPaths(dumper.getContext().path, getName() + "." + RestartIPIdentifier);
+    _snapshotObjectData(dumper.getContext().groupComm, xdmfFilename, ipFilename);
+
+    ConfigDictionary dict = ObjectVector::_saveSnapshot(dumper, typeName);
+    dict.emplace("J", dumper(J));
+    // `initialPositions` is stored in `_snapshotObjectData`.
+    return dict;
+}
+
 void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
 {
     auto xdmfFilename = createCheckpointNameWithId(path, RestartROVIdentifier, "", checkpointId);
@@ -248,23 +267,6 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     initialPositions = readInitialPositions(comm, filename, objSize);
 
     info("Successfully read object infos of '%s'", getCName());
-}
-
-ConfigDictionary RigidObjectVector::writeSnapshot(Dumper &dumper)
-{
-    die("RigitObjectVector::writeSnapshot not tested.");
-    // The filename does not include the extension.
-    std::string xdmfFilename = joinPaths(dumper.getContext().path, getName() + "." + RestartROVIdentifier);
-    std::string ipFilename   = joinPaths(dumper.getContext().path, getName() + "." + RestartIPIdentifier);
-    _snapshotObjectData(dumper.getContext().groupComm, xdmfFilename, ipFilename);
-
-    ConfigDictionary dict = ParticleVector::writeSnapshot(dumper);
-    dict.insert_or_assign("__type", dumper("RigidObjectVector"));
-    dict.emplace("objSize",         dumper(objSize));
-    dict.emplace("mesh",            dumper(mesh));
-    dict.emplace("J",               dumper(J));
-    // `initialPositions` are stored in `_snapshotObjectData`.
-    return dict;
 }
 
 } // namespace mirheo

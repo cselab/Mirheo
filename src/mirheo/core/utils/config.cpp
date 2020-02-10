@@ -8,6 +8,12 @@
 namespace mirheo
 {
 
+void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName)
+{
+    die("Missing implementation of a virtual member function. Var type=%s class type=%s",
+        thisTypeName, classTypeName);
+}
+
 static std::string doubleToString(double x)
 {
     char str[32];
@@ -168,8 +174,6 @@ std::string ConfigToJSON::generate()
     return std::move(stream).str();
 }
 
-
-
 Config& ConfigDictionary::at(const std::string &key)
 {
     auto it = find(key);
@@ -191,6 +195,25 @@ Config& ConfigDictionary::at(const char *key)
 const Config& ConfigDictionary::at(const char *key) const
 {
     return at(std::string(key));
+}
+
+Config* ConfigDictionary::get(const std::string &key) &
+{
+    auto it = find(key);
+    return it != end() ? &it->second : nullptr;
+}
+const Config* ConfigDictionary::get(const std::string &key) const&
+{
+    auto it = find(key);
+    return it != end() ? &it->second : nullptr;
+}
+Config* ConfigDictionary::get(const char *key) &
+{
+    return get(std::string(key));
+}
+const Config* ConfigDictionary::get(const char *key) const&
+{
+    return get(std::string(key));
 }
 
 
@@ -256,22 +279,11 @@ Config::Dictionary& Config::getDict()
     die("getDict on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-Config& Config::at(size_t i)
+Config& ConfigList::_outOfBound [[noreturn]] (size_t index, size_t size) const
 {
-    auto &list = getList();
-    if (i > list.size())
-        die("Index %zu out of range (size=%zu):\n%s", i, list.size(), toJSONString().c_str());
-    return list[i];
+    die("Index %zu out of range (size=%zu):\n%s",
+        index, size, Config{*this}.toJSONString().c_str());
 }
-
-const Config& Config::at(size_t i) const
-{
-    auto &list = getList();
-    if (i > list.size())
-        die("Index %zu out of range (size=%zu):\n%s", i, list.size(), toJSONString().c_str());
-    return list[i];
-}
-
 
 bool DumpContext::isGroupMasterTask() const
 {
@@ -291,13 +303,13 @@ bool Dumper::isObjectRegistered(const void *ptr) const noexcept
 {
     return descriptions_.find(ptr) != descriptions_.end();
 }
-const std::string& Dumper::getObjectDescription(const void *ptr) const
+const std::string& Dumper::getObjectRefString(const void *ptr) const
 {
     assert(isObjectRegistered(ptr));
     return descriptions_.find(ptr)->second;
 }
 
-const std::string& Dumper::registerObject(const void *ptr, Config object)
+const std::string& Dumper::_registerObject(const void *ptr, Config object)
 {
     assert(!isObjectRegistered(ptr));
 
@@ -341,25 +353,16 @@ const std::string& Dumper::registerObject(const void *ptr, Config object)
 }
 
 
-Undumper::Undumper(UndumpContext context) :
-    context_{std::move(context)}
-{}
-
-Undumper::~Undumper() = default;
-
-
 Config ConfigDumper<float3>::dump(Dumper&, float3 v)
 {
     return Config::List{(double)v.x, (double)v.y, (double)v.z};
 }
-float3 ConfigDumper<float3>::undump(Undumper& un, const Config &config)
+float3 ConfigDumper<float3>::parse(const Config &config)
 {
     const auto& list = config.getList();
     if (list.size() != 3)
         die("Expected 3 elements, got %zu.", list.size());
-    return float3{un.undump<float>(list[0]),
-                  un.undump<float>(list[1]),
-                  un.undump<float>(list[2])};
+    return float3{(float)list[0], (float)list[1], (float)list[2]};
 }
 
 void _variantDumperError [[noreturn]] (size_t index, size_t size)
@@ -372,9 +375,7 @@ void _variantDumperError [[noreturn]] (size_t index, size_t size)
 /// Terminates if the file is not found.
 static std::string readWholeFile(const std::string& filename)
 {
-    FileWrapper file;
-    if (file.open(filename, "r") != FileWrapper::Status::Success)
-        die("Error reading config JSON file \"%s\".", filename.c_str());
+    FileWrapper file(filename, "r");
 
     // https://stackoverflow.com/questions/14002954/c-programming-how-to-read-the-whole-file-contents-into-a-buffer
     fseek(file.get(), 0, SEEK_END);

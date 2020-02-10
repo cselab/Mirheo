@@ -6,13 +6,27 @@
 namespace mirheo
 {
 
+using ConfigRefString = std::string;
 class Dumper;
 class Undumper;
 class Config;
 class ConfigDictionary;
-
 template <typename T, typename Enable = void>
 struct ConfigDumper;
+
+/**
+ * Assert that the dynamic type of T* is exactly T.
+ *
+ * Useful for detecting virtual function that are missing an implementation:
+ *      void SomeClass::functionThatMustAlwaysBeOverriden(...) {
+ *          checkType(this);
+ *          ...
+ *      }
+ *
+ * Since this function requires typeid(), its definition is in `config.h`.
+ */
+template <typename T>
+void assertType(T *obj);
 
 /**
  * Channel names used in several places of the program
@@ -98,6 +112,7 @@ template <>
 struct ConfigDumper<CheckpointInfo>
 {
     static Config dump(Dumper&, const CheckpointInfo&);
+    static CheckpointInfo parse(const Config&) = delete; // Context-free not supported
     static CheckpointInfo undump(Undumper&, const Config&);
 };
 

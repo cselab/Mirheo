@@ -38,7 +38,10 @@ public:
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
     }
 
+    void saveSnapshotAndRegister(Dumper& dumper);
+
 protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;
 
@@ -47,8 +50,6 @@ private:
                              const std::string& initialPosFilename);
 
 public:
-    ConfigDictionary writeSnapshot(Dumper &dumper) override;
-
     PinnedBuffer<real4> initialPositions;
 
     /// Diagonal of the inertia tensor in the principal axes

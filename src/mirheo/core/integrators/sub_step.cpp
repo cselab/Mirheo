@@ -45,15 +45,18 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
 
 IntegratorSubStep::~IntegratorSubStep() = default;
 
-ConfigDictionary IntegratorSubStep::writeSnapshot(Dumper& dumper)
+void IntegratorSubStep::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category",    dumper("Integrator")},
-        {"__type",        dumper("IntegratorSubStep")},
-        {"fastForces",    dumper(fastForces_)},
-        {"subIntegrator", dumper(subIntegrator_)},
-        {"substeps",      dumper(substeps_)},
-    };
+    dumper.registerObject<IntegratorSubStep>(this, _saveSnapshot(dumper, "IntegratorSubStep"));
+}
+
+ConfigDictionary IntegratorSubStep::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = Integrator::_saveSnapshot(dumper, typeName);
+    dict.emplace("fastForces",    dumper(fastForces_));
+    dict.emplace("subIntegrator", dumper(subIntegrator_));
+    dict.emplace("substeps",      dumper(substeps_));
+    return dict;
 }
 
 void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)

@@ -1,4 +1,5 @@
 #include "file_wrapper.h"
+#include <mirheo/core/logger.h>
 
 namespace mirheo
 {
@@ -6,6 +7,16 @@ namespace mirheo
 FileWrapper::FileWrapper(bool forceFlushOnClose) :
     forceFlushOnClose_(forceFlushOnClose)
 {}
+
+FileWrapper::FileWrapper(const std::string& fname, const std::string& mode,
+                         bool forceFlushOnClose) :
+    forceFlushOnClose_(forceFlushOnClose)
+{
+    if (open(fname, mode) != FileWrapper::Status::Success) {
+        die("Could not open the file \"%s\" in mode \"%s\".",
+            fname.c_str(), mode.c_str());
+    }
+}
 
 FileWrapper::~FileWrapper()
 {

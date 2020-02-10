@@ -112,6 +112,15 @@ public:
     real rc;
 
 protected:
+    /// Base snapshot function for Interaction objects that store all
+    /// parameters themselves.
+    ConfigDictionary _saveSnapshotWithoutImpl(Dumper& dumper, const std::string &typeName);
+
+    /// Base snapshot function that need to serialize the impl object as well.
+    ConfigDictionary _saveSnapshotWithImpl(Dumper& dumper, const std::string &typeName);
+
+    /// Base snapshot function for impl interactions.
+    ConfigDictionary _saveImplSnapshot(Dumper& dumper, const std::string &typeName);
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };

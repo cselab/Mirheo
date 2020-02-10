@@ -71,7 +71,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    ConfigDictionary writeSnapshot(Dumper &) override;
+    void saveSnapshotAndRegister(Dumper&) override;
     
     // Python getters / setters
     // Use default blocking stream
@@ -96,6 +96,8 @@ protected:
     ParticleVector(const MirState *state, const std::string& name, real mass,
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
+
+    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
 
     using ExchMap = std::vector<int>;
     struct ExchMapSize

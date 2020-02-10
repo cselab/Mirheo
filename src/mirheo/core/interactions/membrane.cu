@@ -73,14 +73,11 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
 
 MembraneInteraction::~MembraneInteraction() = default;
 
-ConfigDictionary MembraneInteraction::writeSnapshot(Dumper& dumper)
+void MembraneInteraction::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category", dumper("Interaction")},
-        {"__type",     dumper("MembraneInteraction")},
-        {"rc",         dumper(rc)},
-        {"impl",       dumper(impl)},
-    };
+    // MembraneInteraction does not modify _saveSnapshot.
+    dumper.registerObject<MembraneInteraction>(
+            this, Interaction::_saveSnapshotWithImpl(dumper, "MembraneInteraction"));
 }
 
 void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)

@@ -44,6 +44,7 @@ public:
     size_t size() const noexcept { return c_.size(); }
     void reserve(size_t size) { c_.reserve(size); }
 
+    /// Returns true if the container contains the given key, otherwise false.
     bool contains(const Key& key) const { return find(key) != end(); }
 
     iterator find(const Key& key)

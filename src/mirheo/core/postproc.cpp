@@ -148,18 +148,17 @@ void Postprocess::checkpoint(int checkpointId)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
-ConfigDictionary Postprocess::writeSnapshot(Dumper& dumper)
+void Postprocess::saveSnapshotAndRegister(Dumper& dumper)
 {
-    Config::List pluginsConfig;
-    pluginsConfig.reserve(plugins_.size());
-    for (const auto &plugin : plugins_)
-        pluginsConfig.emplace_back(dumper(plugin.get()));
-    return {
-        {"__category",       dumper("Postprocess")},
-        {"__type",           dumper("Postprocess")},
-        {"checkpointFolder", dumper(checkpointFolder_)},
-        {"plugins",          std::move(pluginsConfig)},
-    };
+    dumper.registerObject<Postprocess>(this, _saveSnapshot(dumper, "Postprocess"));
+}
+
+ConfigDictionary Postprocess::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = MirObject::_saveSnapshot(dumper, "Postprocess", typeName);
+    dict.emplace("checkpointFolder", dumper(checkpointFolder_));
+    dict.emplace("plugins",          dumper(plugins_));
+    return dict;
 }
 
 } // namespace mirheo

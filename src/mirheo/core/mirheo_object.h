@@ -26,11 +26,16 @@ public:
     
     virtual void checkpoint(MPI_Comm comm, const std::string& path, int checkPointId);  /// Save handler state
     virtual void restart   (MPI_Comm comm, const std::string& path);  /// Restore handler state
-    virtual ConfigDictionary writeSnapshot(Dumper& dumper);
+
+    /// Dump object data, create config, register the object and returns its refstring.
+    virtual void saveSnapshotAndRegister(Dumper& dumper);
 
     std::string createCheckpointName      (const std::string& path, const std::string& identifier, const std::string& extension) const;
     std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
     void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
+
+protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName);
 
 private:
     const std::string name_;

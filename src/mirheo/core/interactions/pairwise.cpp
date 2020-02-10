@@ -8,25 +8,26 @@ namespace mirheo
 PairwiseInteraction::PairwiseInteraction(const MirState *state, Undumper& un,
                                          const ConfigDictionary& dict) :
     PairwiseInteraction{
-        state,
-        un.undump<std::string>(dict.at("name")),
-        un.undump<real>(dict.at("rc")),
-        un.undump<VarPairwiseParams>(dict.at("varParams")),
-        un.undump<VarStressParams>(dict.at("varStressParams")),
+        state, dict["name"], dict["rc"],
+        un.undump<VarPairwiseParams>(dict["varParams"]),
+        un.undump<VarStressParams>(dict["varStressParams"]),
     }
 {
-    assert(dict.at("__type").getString() == "PairwiseInteraction");
+    assert(dict["__type"].getString() == "PairwiseInteraction");
 }
 
-ConfigDictionary PairwiseInteraction::writeSnapshot(Dumper& dumper)
+void PairwiseInteraction::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category",      dumper("Interaction")},
-        {"__type",          dumper("PairwiseInteraction")},
-        {"rc",              dumper(rc)},
-        {"varParams",       dumper(varParams)},
-        {"varStressParams", dumper(varStressParams)},
-    };
+    dumper.registerObject<PairwiseInteraction>(
+            this, _saveSnapshot(dumper, "PairwiseInteraction"));
+}
+
+ConfigDictionary PairwiseInteraction::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = Interaction::_saveSnapshotWithoutImpl(dumper, typeName);
+    dict.emplace("varParams",       dumper(varParams));
+    dict.emplace("varStressParams", dumper(varStressParams));
+    return dict;
 }
 
 } // namespace mirheo

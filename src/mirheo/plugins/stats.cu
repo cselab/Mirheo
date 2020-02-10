@@ -105,13 +105,16 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-ConfigDictionary SimulationStats::writeSnapshot(Dumper& dumper)
+void SimulationStats::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category", dumper("SimulationPlugin")},
-        {"__type",     dumper("SimulationStats")},
-        {"fetchEvery", dumper(fetchEvery_)},
-    };
+    dumper.registerObject<SimulationStats>(this, _saveSnapshot(dumper, "SimulationStats"));
+}
+
+ConfigDictionary SimulationStats::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = SimulationPlugin::_saveSnapshot(dumper, typeName);
+    dict.emplace("fetchEvery", dumper(fetchEvery_));
+    return dict;
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
@@ -176,13 +179,16 @@ void PostprocessStats::deserialize()
     }
 }
 
-ConfigDictionary PostprocessStats::writeSnapshot(Dumper& dumper)
+void PostprocessStats::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category", dumper("PostprocessPlugin")},
-        {"__type",     dumper("PostprocessStats")},
-        {"filename",   dumper(filename_)},
-    };
+    dumper.registerObject<PostprocessStats>(this, _saveSnapshot(dumper, "PostprocessPlugin"));
+}
+
+ConfigDictionary PostprocessStats::_saveSnapshot(Dumper& dumper, const std::string &typeName)
+{
+    ConfigDictionary dict = PostprocessPlugin::_saveSnapshot(dumper, typeName);
+    dict.emplace("filename", dumper(filename_));
+    return dict;
 }
 
 } // namespace mirheo

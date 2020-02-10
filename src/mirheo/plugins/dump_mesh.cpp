@@ -62,14 +62,17 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     send(sendBuffer_);
 }
 
-ConfigDictionary MeshPlugin::writeSnapshot(Dumper& dumper)
+void MeshPlugin::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category", dumper("SimulationPlugin")},
-        {"__type",     dumper("MeshPlugin")},
-        {"dumpEvery",  dumper(dumpEvery_)},
-        {"ovName",     dumper(ovName_)},  // `ov_` potentially not yet initialized.
-    };
+    dumper.registerObject<MeshPlugin>(this, _saveSnapshot(dumper, "MeshPlugin"));
+}
+
+ConfigDictionary MeshPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = SimulationPlugin::_saveSnapshot(dumper, typeName);
+    dict.emplace("dumpEvery", dumper(dumpEvery_));
+    dict.emplace("ovName",    dumper(ovName_)); // `ov_` potentially not yet initialized.
+    return dict;
 }
 
 //=================================================================================
@@ -195,13 +198,16 @@ void MeshDumper::deserialize()
     }
 }
 
-ConfigDictionary MeshDumper::writeSnapshot(Dumper &dumper)
+void MeshDumper::saveSnapshotAndRegister(Dumper& dumper)
 {
-    return {
-        {"__category", dumper("PostprocessPlugin")},
-        {"__type",     dumper("MeshDumper")},
-        {"path",       dumper(path_)},
-    };
+    dumper.registerObject<MeshDumper>(this, _saveSnapshot(dumper, "MeshDumper"));
+}
+
+ConfigDictionary MeshDumper::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+{
+    ConfigDictionary dict = PostprocessPlugin::_saveSnapshot(dumper, typeName);
+    dict.emplace("path", dumper(path_));
+    return dict;
 }
 
 } // namespace mirheo

@@ -27,6 +27,7 @@ class Bouncer;
 class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
+class UndumpContext;
 
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
@@ -114,12 +115,9 @@ public:
                                                                 std::string outside = "");    
 
     void logCompileOptions() const;
-    void writeSnapshot(std::string path);
+    void saveSnapshot(std::string path);
     
 private:
-    // In mirheo_dump.cpp
-    void importSnapshot(Undumper&, const Config& compConfig, const Config& postConfig);
-
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
     std::shared_ptr<MirState> state_;
@@ -139,8 +137,8 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI, Undumper *undumper = nullptr,
-              Config *simConfig = nullptr, Config *postConfig = nullptr);
+              CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+              UndumpContext *undump = nullptr);
     void initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
                           LogInfo logInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);

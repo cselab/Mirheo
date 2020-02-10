@@ -14,10 +14,13 @@ class IntegratorVV : public Integrator
 public:
     IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm);
     ~IntegratorVV();
-    ConfigDictionary writeSnapshot(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Dumper& dumper);
 
     void stage1(ParticleVector *pv, cudaStream_t stream) override;
     void stage2(ParticleVector *pv, cudaStream_t stream) override;
+
+protected:
+    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     ForcingTerm forcingTerm_;

@@ -18,9 +18,8 @@ class MirState
 public:
     using TimeType = double;
     using StepType = long long;
-    
-    MirState(DomainInfo domain, real dt,
-             Undumper *un = nullptr, const Config *state = nullptr);
+
+    MirState(DomainInfo domain, real dt, const Config *state = nullptr);
     MirState(const MirState&);
     MirState& operator=(MirState other);
 

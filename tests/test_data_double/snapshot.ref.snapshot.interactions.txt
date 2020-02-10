@@ -2,13 +2,14 @@
     "ParticleVector": [
         {
             "__type": "ParticleVector",
-            "mass": 1,
-            "name": "pv"
+            "name": "pv",
+            "mass": 1
         }
     ],
     "Interaction": [
         {
             "__type": "PairwiseInteraction",
+            "name": "dpd",
             "rc": 1,
             "varParams": {
                 "__index": 0,
@@ -22,13 +23,13 @@
             "varStressParams": {
                 "__index": 0,
                 "value": {}
-            },
-            "name": "dpd"
+            }
         }
     ],
     "Simulation": [
         {
             "__type": "Simulation",
+            "name": "simulation",
             "checkpointId": 0,
             "checkpointInfo": {
                 "__type": "CheckpointInfo",
@@ -61,8 +62,7 @@
             "bouncerPrototypes": [],
             "belongingCorrectionPrototypes": [],
             "splitterPrototypes": [],
-            "pvsIntegratorMap": {},
-            "name": "simulation"
+            "pvsIntegratorMap": {}
         }
     ],
     "Mirheo": [
@@ -92,9 +92,9 @@
     "Postprocess": [
         {
             "__type": "Postprocess",
+            "name": "postprocess",
             "checkpointFolder": "restart/",
-            "plugins": [],
-            "name": "postprocess"
+            "plugins": []
         }
     ],
     "Mirheo": [
