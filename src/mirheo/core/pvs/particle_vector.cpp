@@ -365,23 +365,23 @@ void ParticleVector::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<ParticleVector>(this, _saveSnapshot(dumper, "ParticleVector"));
 }
 
-ConfigDictionary ParticleVector::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject ParticleVector::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     // The filename does not include the extension.
     std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartPVIdentifier);
     _snapshotParticleData(dumper.getContext().groupComm, filename);
-    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(
+    ConfigObject config = MirSimulationObject::_saveSnapshot(
             dumper, "ParticleVector", typeName);
-    dict.emplace("mass", dumper(mass));
-    return dict;
+    config.emplace("mass", dumper(mass));
+    return config;
 }
 
-ParticleVector::ParticleVector(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
+ParticleVector::ParticleVector(const MirState *state, Undumper& un, const ConfigObject& config) :
     ParticleVector{state,
-                   un.undump<std::string>(dict.at("name")),
-                   un.undump<real>(dict.at("mass"))}
+                   un.undump<std::string>(config.at("name")),
+                   un.undump<real>(config.at("mass"))}
 {
-    assert(dict.at("__type").getString() == "ParticleVector");
+    assert(config.at("__type").getString() == "ParticleVector");
     // Note: Particles loaded by RestartIC.
 }
 

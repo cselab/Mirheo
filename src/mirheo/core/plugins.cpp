@@ -99,7 +99,7 @@ void SimulationPlugin::send(const void *data, size_t sizeInBytes)
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank, _dataTag(), interComm, &dataReq_) );
 }
 
-ConfigDictionary SimulationPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject SimulationPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     return MirSimulationObject::_saveSnapshot(dumper, "SimulationPlugin", typeName);
 }
@@ -143,7 +143,7 @@ void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     _setup(comm, interComm);
 }
 
-ConfigDictionary PostprocessPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject PostprocessPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     return MirObject::_saveSnapshot(dumper, "PostprocessPlugin", typeName);
 }

@@ -20,7 +20,7 @@ public:
     void stage2(ParticleVector *pv, cudaStream_t stream) override;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     ForcingTerm forcingTerm_;

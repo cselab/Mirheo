@@ -26,7 +26,7 @@ public:
     void setPrerequisites(ParticleVector *pv) override;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     std::vector<Interaction*> fastForces_; /* interactions (self) called `substeps` times per time step */

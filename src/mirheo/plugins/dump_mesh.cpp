@@ -67,12 +67,12 @@ void MeshPlugin::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<MeshPlugin>(this, _saveSnapshot(dumper, "MeshPlugin"));
 }
 
-ConfigDictionary MeshPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MeshPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = SimulationPlugin::_saveSnapshot(dumper, typeName);
-    dict.emplace("dumpEvery", dumper(dumpEvery_));
-    dict.emplace("ovName",    dumper(ovName_)); // `ov_` potentially not yet initialized.
-    return dict;
+    ConfigObject config = SimulationPlugin::_saveSnapshot(dumper, typeName);
+    config.emplace("dumpEvery", dumper(dumpEvery_));
+    config.emplace("ovName",    dumper(ovName_)); // `ov_` potentially not yet initialized.
+    return config;
 }
 
 //=================================================================================
@@ -203,11 +203,11 @@ void MeshDumper::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<MeshDumper>(this, _saveSnapshot(dumper, "MeshDumper"));
 }
 
-ConfigDictionary MeshDumper::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MeshDumper::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = PostprocessPlugin::_saveSnapshot(dumper, typeName);
-    dict.emplace("path", dumper(path_));
-    return dict;
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(dumper, typeName);
+    config.emplace("path", dumper(path_));
+    return config;
 }
 
 } // namespace mirheo

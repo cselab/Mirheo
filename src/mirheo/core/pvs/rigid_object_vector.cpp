@@ -201,7 +201,7 @@ void RigidObjectVector::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<RigidObjectVector>(this, _saveSnapshot(dumper, "RigidObjectVector"));
 }
 
-ConfigDictionary RigidObjectVector::_saveSnapshot(Dumper &dumper, const std::string& typeName)
+ConfigObject RigidObjectVector::_saveSnapshot(Dumper &dumper, const std::string& typeName)
 {
     die("RigitObjectVector::_saveSnapshot not tested.");
     // The filename does not include the extension.
@@ -209,10 +209,10 @@ ConfigDictionary RigidObjectVector::_saveSnapshot(Dumper &dumper, const std::str
     std::string ipFilename   = joinPaths(dumper.getContext().path, getName() + "." + RestartIPIdentifier);
     _snapshotObjectData(dumper.getContext().groupComm, xdmfFilename, ipFilename);
 
-    ConfigDictionary dict = ObjectVector::_saveSnapshot(dumper, typeName);
-    dict.emplace("J", dumper(J));
+    ConfigObject config = ObjectVector::_saveSnapshot(dumper, typeName);
+    config.emplace("J", dumper(J));
     // `initialPositions` is stored in `_snapshotObjectData`.
-    return dict;
+    return config;
 }
 
 void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)

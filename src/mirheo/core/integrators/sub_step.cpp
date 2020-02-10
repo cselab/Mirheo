@@ -50,13 +50,13 @@ void IntegratorSubStep::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<IntegratorSubStep>(this, _saveSnapshot(dumper, "IntegratorSubStep"));
 }
 
-ConfigDictionary IntegratorSubStep::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject IntegratorSubStep::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = Integrator::_saveSnapshot(dumper, typeName);
-    dict.emplace("fastForces",    dumper(fastForces_));
-    dict.emplace("subIntegrator", dumper(subIntegrator_));
-    dict.emplace("substeps",      dumper(substeps_));
-    return dict;
+    ConfigObject config = Integrator::_saveSnapshot(dumper, typeName);
+    config.emplace("fastForces",    dumper(fastForces_));
+    config.emplace("subIntegrator", dumper(subIntegrator_));
+    config.emplace("substeps",      dumper(substeps_));
+    return config;
 }
 
 void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)

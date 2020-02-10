@@ -12,7 +12,7 @@ Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),
     rc(rc)
 {}
-Interaction::Interaction(const MirState *state, Undumper& undumper, const ConfigDictionary& config) :
+Interaction::Interaction(const MirState *state, Undumper& undumper, const ConfigObject& config) :
     MirSimulationObject(state, undumper, config),
     rc(config["rc"])
 {
@@ -65,27 +65,27 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
 
-ConfigDictionary Interaction::_saveSnapshotWithoutImpl(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveSnapshotWithoutImpl(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(dumper, "Interaction", typeName);
-    dict.emplace("rc", dumper(rc));
-    return dict;
+    ConfigObject config = MirSimulationObject::_saveSnapshot(dumper, "Interaction", typeName);
+    config.emplace("rc", dumper(rc));
+    return config;
 }
 
-ConfigDictionary Interaction::_saveSnapshotWithImpl(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveSnapshotWithImpl(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = _saveSnapshotWithoutImpl(dumper, typeName);
-    dict.emplace("impl", dumper(impl));
-    return dict;
+    ConfigObject config = _saveSnapshotWithoutImpl(dumper, typeName);
+    config.emplace("impl", dumper(impl));
+    return config;
 }
 
-ConfigDictionary Interaction::_saveImplSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveImplSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = MirSimulationObject::_saveSnapshot(dumper, "InteractionImpl", typeName);
-    dict.emplace("rc", dumper(rc));
+    ConfigObject config = MirSimulationObject::_saveSnapshot(dumper, "InteractionImpl", typeName);
+    config.emplace("rc", dumper(rc));
     if (impl)
         die("Impl interaction has impl?");
-    return dict;
+    return config;
 }
 
 

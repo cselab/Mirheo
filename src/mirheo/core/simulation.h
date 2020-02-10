@@ -98,7 +98,7 @@ public:
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
 
 private:
 

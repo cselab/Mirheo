@@ -98,16 +98,16 @@ namespace {
 
         const MirState *state;
         Undumper& undumper;
-        const ConfigDictionary& implConfig;
+        const ConfigObject& implConfig;
         const std::string& implTypeName;
         std::unique_ptr<Interaction> *impl;
     };
 } // anonymous namespace
 
-MembraneInteraction::MembraneInteraction(const MirState *state, Undumper& undumper, const ConfigDictionary& config) :
+MembraneInteraction::MembraneInteraction(const MirState *state, Undumper& undumper, const ConfigObject& config) :
     Interaction(state, undumper, config)
 {
-    const ConfigDictionary& implConfig =
+    const ConfigObject& implConfig =
             undumper.getContext().getCompObjectConfig("InteractionImpl", getName());
     const std::string& implTypeName = implConfig["__type"].getString();
 

@@ -73,7 +73,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
                   UndumpContext *undump)
 {
-    const Config *stateConfig = undump ? &undump->getComp()["Mirheo"][0]["state"] : nullptr;
+    const ConfigValue *stateConfig = undump ? &undump->getComp()["Mirheo"][0]["state"] : nullptr;
 
     int nranks;
 
@@ -151,7 +151,7 @@ void Mirheo::initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
     UndumpContext context{snapshotPath};
     Undumper undumper{&context};
 
-    const Config& mirState = context.getComp()["Mirheo"][0]["state"];
+    const ConfigValue& mirState = context.getComp()["Mirheo"][0]["state"];
     real  dt               = mirState["dt"];
     real3 globalDomainSize = mirState["domainGlobalSize"];
     auto  checkpointInfo   = undumper.undump<CheckpointInfo>(
@@ -744,16 +744,16 @@ void Mirheo::saveSnapshot(std::string path)
             die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
 
     // Dump the Mirheo object and the whole simulation recursively.
-    Config::Dictionary dict;
-    dict.emplace("__category", dumper("Mirheo"));
-    dict.emplace("__type",     dumper("Mirheo"));
+    ConfigValue::Object config;
+    config.emplace("__category", dumper("Mirheo"));
+    config.emplace("__type",     dumper("Mirheo"));
     if (state_)
-        dict.emplace("state",  dumper(state_));
+        config.emplace("state",  dumper(state_));
     if (sim_)
-        dict.emplace("simulation", dumper(sim_));
+        config.emplace("simulation", dumper(sim_));
     if (post_)
-        dict.emplace("postprocess", dumper(post_));
-    dumper.registerObject(this, std::move(dict));
+        config.emplace("postprocess", dumper(post_));
+    dumper.registerObject(this, std::move(config));
 
     // Store the config files to the disk.
     if (isSimulationMasterTask() || isPostprocessMasterTask()) {

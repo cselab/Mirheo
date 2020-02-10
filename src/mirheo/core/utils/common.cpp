@@ -90,9 +90,9 @@ bool CheckpointInfo::needDump() const
     return every != 0;
 }
 
-Config ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& info)
+ConfigValue ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& info)
 {
-    return Config::Dictionary{
+    return ConfigValue::Object{
         {"__type", dumper("CheckpointInfo")},
         {"every",  dumper(info.every)},
         {"folder", dumper(info.folder)},
@@ -100,7 +100,7 @@ Config ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& 
     };
 }
 
-CheckpointInfo ConfigDumper<CheckpointInfo>::undump(Undumper&, const Config& config)
+CheckpointInfo ConfigDumper<CheckpointInfo>::undump(Undumper&, const ConfigValue& config)
 {
     assert(config["__type"] == "CheckpointInfo");
     return CheckpointInfo{config["every"], config["folder"], config["mode"]};

@@ -13,17 +13,17 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
     mesh = std::move(mptr);
 }
 
-MembraneVector::MembraneVector(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
-    MembraneVector{state, dict["name"], dict["mass"],
-                   un.getContext().getShared<MembraneMesh>(dict["mesh"]), 0}
+MembraneVector::MembraneVector(const MirState *state, Undumper& un, const ConfigObject& config) :
+    MembraneVector{state, config["name"], config["mass"],
+                   un.getContext().getShared<MembraneMesh>(config["mesh"]), 0}
 {
-    assert(dict["__type"] == "MembraneVector");
+    assert(config["__type"] == "MembraneVector");
 
-    int expectedSize = dict["objSize"];
+    int expectedSize = config["objSize"];
     int importedSize = this->mesh->getNvertices();
     if (expectedSize != importedSize) {
         die("Mesh \"%s\" has %d vertices instead of expected %d.",
-            dict["mesh"].getString().c_str(), importedSize, expectedSize);
+            config["mesh"].getString().c_str(), importedSize, expectedSize);
     }
 }
 

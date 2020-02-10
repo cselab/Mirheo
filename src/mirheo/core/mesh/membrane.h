@@ -21,7 +21,7 @@ public:
     MembraneMesh(const std::vector<real3>& vertices,
                  const std::vector<real3>& stressFreeVertices,
                  const std::vector<int3>& faces);
-    MembraneMesh(Undumper&, const ConfigDictionary&);
+    MembraneMesh(Undumper&, const ConfigObject&);
 
     MembraneMesh(MembraneMesh&&);
     MembraneMesh& operator=(MembraneMesh&&);
@@ -33,7 +33,7 @@ public:
     PinnedBuffer<real> initialLengths, initialAreas, initialDotProducts;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
     void findAdjacent();
 
     void _computeInitialQuantities(const PinnedBuffer<real4>& vertices);

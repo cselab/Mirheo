@@ -102,10 +102,10 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
     _computeInitialQuantities(stressFreeMesh.vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(Undumper& un, const ConfigDictionary& dict) :
-    Mesh(un, dict)
+MembraneMesh::MembraneMesh(Undumper& un, const ConfigObject& config) :
+    Mesh(un, config)
 {
-    std::string fileName = joinPaths(un.getContext().getPath(), dict["name"] + ".stressFree.dat");
+    std::string fileName = joinPaths(un.getContext().getPath(), config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "r");
     readReals(f.get(), &initialLengths);
     readReals(f.get(), &initialAreas);
@@ -123,16 +123,16 @@ void MembraneMesh::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<MembraneMesh>(this, _saveSnapshot(dumper, "MembraneMesh"));
 }
 
-ConfigDictionary MembraneMesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MembraneMesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary out = Mesh::_saveSnapshot(dumper, typeName);
+    ConfigObject config = Mesh::_saveSnapshot(dumper, typeName);
 
-    std::string fileName = joinPaths(dumper.getContext().path, out["name"] + ".stressFree.dat");
+    std::string fileName = joinPaths(dumper.getContext().path, config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "w");
     writeReals(f.get(), initialLengths);
     writeReals(f.get(), initialAreas);
     writeReals(f.get(), initialDotProducts);
-    return out;
+    return config;
 }
 
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;

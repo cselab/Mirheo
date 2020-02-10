@@ -9,7 +9,7 @@ namespace mirheo
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain, real dt, const Config *state) :
+MirState::MirState(DomainInfo domain, real dt, const ConfigValue *state) :
     domain(domain),
     dt(dt),
     currentTime(0.0),
@@ -83,9 +83,9 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     domain.localSize   = lsz;
 }
 
-Config ConfigDumper<MirState>::dump(Dumper& dumper, MirState& state)
+ConfigValue ConfigDumper<MirState>::dump(Dumper& dumper, MirState& state)
 {
-    return Config::Dictionary{
+    return ConfigValue::Object{
         {"__type",            dumper("MirState")},
         {"domainGlobalStart", dumper(state.domain.globalStart)},
         {"domainGlobalSize",  dumper(state.domain.globalSize)},

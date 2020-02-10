@@ -27,7 +27,7 @@ public:
     void saveSnapshotAndRegister(Dumper& dumper) override;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     std::string ovName_;
@@ -52,7 +52,7 @@ public:
     void saveSnapshotAndRegister(Dumper& dumper) override;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     std::string path_;

@@ -56,7 +56,7 @@ class ParticleVector : public MirSimulationObject
 public:
     
     ParticleVector(const MirState *state, const std::string& name, real mass, int n=0);
-    ParticleVector(const MirState *state, Undumper&, const ConfigDictionary&);
+    ParticleVector(const MirState *state, Undumper&, const ConfigObject&);
     ~ParticleVector() override;
     
     LocalParticleVector* local() { return local_.get(); }
@@ -97,7 +97,7 @@ protected:
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
-    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
 
     using ExchMap = std::vector<int>;
     struct ExchMapSize

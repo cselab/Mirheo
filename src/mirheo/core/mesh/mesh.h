@@ -21,7 +21,7 @@ public:
     Mesh(const std::string& fileName);
     Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh);
     Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
-    Mesh(Undumper&, const ConfigDictionary&);
+    Mesh(Undumper&, const ConfigObject&);
 
     Mesh(Mesh&&);
     Mesh& operator=(Mesh&&);
@@ -40,7 +40,7 @@ public:
 
 protected:
     /// Store the mesh and prepare the config dictionary.
-    ConfigDictionary _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
 
     void _computeMaxDegree();
     void _check() const;
@@ -66,7 +66,7 @@ struct MeshView
 template <>
 struct ConfigDumper<Mesh>
 {
-    static Config dump(Dumper&, Mesh&);
+    static ConfigValue dump(Dumper&, Mesh&);
 };
 
 } // namespace mirheo

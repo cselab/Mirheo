@@ -50,15 +50,15 @@ struct Struct3 {
 template <>
 struct mirheo::ConfigDumper<Struct1>
 {
-    static Config dump(Dumper& dumper, const Struct1& s)
+    static ConfigValue dump(Dumper& dumper, const Struct1& s)
     {
-        return Config::Dictionary{
+        return ConfigValue::Object{
             {"b", dumper(s.b)},
             {"a", dumper(s.a)},
             {"c", dumper(s.c)},
         };
     }
-    static Struct1 undump(Undumper& un, const Config& config)
+    static Struct1 undump(Undumper& un, const ConfigValue& config)
     {
         return Struct1{
             un.undump<int>(config["b"]),
@@ -109,40 +109,40 @@ TEST(Snapshot, InterfacesForConfigDumper)
     Dumper dumper{DumpContext{}};
 
     // Test ConfigDumper<> specialization dump() interface.
-    Config config1 = dumper(Struct1{10, 3.125, "hello"});
+    ConfigValue config1 = dumper(Struct1{10, 3.125, "hello"});
     ASSERT_STREQ(removeWhitespace(config1.toJSONString()).c_str(),
                  "{\"b\":10,\"a\":3.125,\"c\":\"hello\"}");
 
     // Test dumping using MemberVars.
-    Config config2 = dumper(Struct2{100, Struct1{10, 3.125, "hello"}});
+    ConfigValue config2 = dumper(Struct2{100, Struct1{10, 3.125, "hello"}});
     ASSERT_STREQ(removeWhitespace(config2.toJSONString()).c_str(),
                  "{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}");
 
     // Test dumping using MIRHEO_MEMBER_VARS.
-    Config config3 = dumper(Struct3{200, Struct2{100, Struct1{10, 3.125, "hello"}}});
+    ConfigValue config3 = dumper(Struct3{200, Struct2{100, Struct1{10, 3.125, "hello"}}});
     ASSERT_STREQ(removeWhitespace(config3.toJSONString()).c_str(),
                  "{\"z\":200,\"w\":{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}}");
 }
 
 TEST(Snapshot, ParseJSON)
 {
-    auto testParsing = [](const Config &config, const std::string &json) {
+    auto testParsing = [](const ConfigValue &config, const std::string &json) {
         std::string a = config.toJSONString();
         std::string b = configFromJSON(json).toJSONString();
         ASSERT_STREQ(a.c_str(), b.c_str());
     };
 
-    testParsing(Config{10LL}, "10");
-    testParsing(Config{10.125}, "10.125");
-    testParsing(Config{"abc"}, "\"abc\"");
-    testParsing(Config{"a\n\r\b\f\t\"bc"}, R"("a\n\r\b\f\t\"bc")");
-    testParsing(Config::List{10LL, 20.5, "abc"}, R"([10, 20.5, "abc"])");
-    testParsing(Config::Dictionary{{"b", 10LL}, {"a", 20.5}, {"c", "abc"}},
+    testParsing(ConfigValue{10LL}, "10");
+    testParsing(ConfigValue{10.125}, "10.125");
+    testParsing(ConfigValue{"abc"}, "\"abc\"");
+    testParsing(ConfigValue{"a\n\r\b\f\t\"bc"}, R"("a\n\r\b\f\t\"bc")");
+    testParsing(ConfigValue::List{10LL, 20.5, "abc"}, R"([10, 20.5, "abc"])");
+    testParsing(ConfigValue::Object{{"b", 10LL}, {"a", 20.5}, {"c", "abc"}},
                 R"(  {"b": 10, "a": 20.5, "c": "abc"}  )");
-    testParsing(Config::Dictionary{
+    testParsing(ConfigValue::Object{
             {"b", 10LL},
             {"a", 20.5},
-            {"c", Config::List{10LL, 20LL, 30LL, "abc"}}},
+            {"c", ConfigValue::List{10LL, 20LL, 30LL, "abc"}}},
             R"(  {"b": 10, "a": 20.5, "c": [10, 20, 30, "abc"]}  )");
 
     ASSERT_EQ(10,   configFromJSON("10").getInt());
@@ -153,9 +153,9 @@ TEST(Snapshot, ParseJSON)
 template <typename T>
 void roundTrip(const T &value) {
     Dumper dumper{DumpContext{}};
-    Config dump = dumper(value);
+    ConfigValue dump = dumper(value);
 
-    UndumpContext undumpContext{ConfigDictionary{}, ConfigDictionary{}};
+    UndumpContext undumpContext{ConfigObject{}, ConfigObject{}};
     Undumper undumper{&undumpContext};
     auto recovered = undumper.undump<T>(dump);
 
@@ -190,13 +190,13 @@ TEST(Snapshot, DumpUndumpInteractions)
 
     {
         dumper(pairwise);
-        Config config = dumper.getConfig()["Interaction"][0];
+        ConfigValue config = dumper.getConfig()["Interaction"][0];
 
-        UndumpContext undumpContext{config, ConfigDictionary{}};
+        UndumpContext undumpContext{config, ConfigObject{}};
         Undumper undumper{&undumpContext};
-        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), undumper, config.getDict());
+        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), undumper, config.getObject());
         dumper(pairwise2);
-        Config config2 = dumper.getConfig()["Interaction"][1];
+        ConfigValue config2 = dumper.getConfig()["Interaction"][1];
         ASSERT_STREQ(config.toJSONString().c_str(), config2.toJSONString().c_str());
     }
 }

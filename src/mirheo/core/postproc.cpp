@@ -153,12 +153,12 @@ void Postprocess::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<Postprocess>(this, _saveSnapshot(dumper, "Postprocess"));
 }
 
-ConfigDictionary Postprocess::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Postprocess::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = MirObject::_saveSnapshot(dumper, "Postprocess", typeName);
-    dict.emplace("checkpointFolder", dumper(checkpointFolder_));
-    dict.emplace("plugins",          dumper(plugins_));
-    return dict;
+    ConfigObject config = MirObject::_saveSnapshot(dumper, "Postprocess", typeName);
+    config.emplace("checkpointFolder", dumper(checkpointFolder_));
+    config.emplace("plugins",          dumper(plugins_));
+    return config;
 }
 
 } // namespace mirheo

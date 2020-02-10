@@ -41,7 +41,7 @@ public:
     void saveSnapshotAndRegister(Dumper& dumper);
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;
 

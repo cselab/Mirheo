@@ -19,7 +19,7 @@ public:
     using TimeType = double;
     using StepType = long long;
 
-    MirState(DomainInfo domain, real dt, const Config *state = nullptr);
+    MirState(DomainInfo domain, real dt, const ConfigValue *state = nullptr);
     MirState(const MirState&);
     MirState& operator=(MirState other);
 
@@ -41,7 +41,7 @@ public:
 template <>
 struct ConfigDumper<MirState>
 {
-    static Config dump(Dumper&, MirState& state);
+    static ConfigValue dump(Dumper&, MirState& state);
 };
 
 } // namespace mirheo

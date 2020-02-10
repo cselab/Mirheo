@@ -22,7 +22,7 @@ void Integrator::invalidatePV_(ParticleVector *pv)
     pv->cellListStamp++;
 }
 
-ConfigDictionary Integrator::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Integrator::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     return MirSimulationObject::_saveSnapshot(dumper, "Integrator", typeName);
 }

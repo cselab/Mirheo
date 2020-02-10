@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h" // Forward declarations of Config and ConfigDumper<>.
+#include "common.h" // Forward declarations of ConfigValue and ConfigDumper<>.
 #include "flat_ordered_dict.h"
 #include "reflection.h"
 #include "type_traits.h"
@@ -18,17 +18,19 @@
 namespace mirheo
 {
 
+/// Reference string used for null pointers.
 constexpr const char ConfigNullRefString[] = "<nullptr>";
 
-// Move this to utils/type_checker.h?
+/// Print the error about mismatched type and throw and exception.
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
+
+/// Throw an exception if pointer's dynamic type is not `T`.
 template <typename T>
 void assertType(T *thisPtr)
 {
     if (typeid(*thisPtr) != typeid(T))
         _typeMismatchError(typeid(*thisPtr).name(), typeid(T).name());
 }
-
 
 class Dumper;
 class Undumper;
@@ -40,91 +42,90 @@ struct ConfigDumper
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
 
-    static Config dump(Dumper&, T& value);
+    static ConfigValue dump(Dumper&, T& value);
 
     /// Context-free parsing. Only for simple types!
-    static T parse(const Config&);
+    static T parse(const ConfigValue&);
 
     /// Context-aware undump.
-    static T undump(Undumper&, const Config&);
+    static T undump(Undumper&, const ConfigValue&);
 };
 
-class ConfigList : public std::vector<Config>
+class ConfigList : public std::vector<ConfigValue>
 {
-    using Base = std::vector<Config>;
+    using Base = std::vector<ConfigValue>;
 public:
     using Base::Base;
 
-
     /// Overwrite operator[] with bound checks.
-    Config&       operator[](size_t i)       { return at(i); }
-    const Config& operator[](size_t i) const { return at(i); }
+    ConfigValue&       operator[](size_t i)       { return at(i); }
+    const ConfigValue& operator[](size_t i) const { return at(i); }
 
-    Config& at(size_t i) {
+    ConfigValue& at(size_t i) {
         return i < size() ? Base::operator[](i) : _outOfBound(i, size());
     }
-    const Config& at(size_t i) const {
-        return i < size() ? Base::operator[](i) : (const Config&)_outOfBound(i, size());
+    const ConfigValue& at(size_t i) const {
+        return i < size() ? Base::operator[](i) : (const ConfigValue&)_outOfBound(i, size());
     }
 
 private:
-    Config& _outOfBound [[noreturn]] (size_t index, size_t size) const;
+    ConfigValue& _outOfBound [[noreturn]] (size_t index, size_t size) const;
 };
 
-class ConfigDictionary : public FlatOrderedDict<std::string, Config>
+class ConfigObject : public FlatOrderedDict<std::string, ConfigValue>
 {
-    using Base = FlatOrderedDict<std::string, Config>;
+    using Base = FlatOrderedDict<std::string, ConfigValue>;
 
 public:
     using Base::Base;
 
     /// Overwrite operator[] with bound checks.
-    Config&       operator[](const std::string &key)       { return at(key); }
-    const Config& operator[](const std::string &key) const { return at(key); }
-    Config&       operator[](const char *key)              { return at(key); }
-    const Config& operator[](const char *key) const        { return at(key); }
+    ConfigValue&       operator[](const std::string &key)       { return at(key); }
+    const ConfigValue& operator[](const std::string &key) const { return at(key); }
+    ConfigValue&       operator[](const char *key)              { return at(key); }
+    const ConfigValue& operator[](const char *key) const        { return at(key); }
 
-    Config&       at(const std::string &key);
-    const Config& at(const std::string &key) const;
-    Config&       at(const char *key);
-    const Config& at(const char *key) const;
+    ConfigValue&       at(const std::string &key);
+    const ConfigValue& at(const std::string &key) const;
+    ConfigValue&       at(const char *key);
+    const ConfigValue& at(const char *key) const;
 
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
-    Config*       get(const std::string &key) &;
-    const Config* get(const std::string &key) const&;
-    Config*       get(const char *key) &;
-    const Config* get(const char *key) const&;
+    ConfigValue*       get(const std::string &key) &;
+    const ConfigValue* get(const std::string &key) const&;
+    ConfigValue*       get(const char *key) &;
+    const ConfigValue* get(const char *key) const&;
 };
 
-class Config
+class ConfigValue
 {
 public:
-    using Int        = long long;
-    using Float      = double;
-    using String     = std::string;
-    using List       = ConfigList;
-    using Dictionary = ConfigDictionary;
-    using Variant    = mpark::variant<Int, Float, String, List, Dictionary>;
+    using Int     = long long;
+    using Float   = double;
+    using String  = std::string;
+    using List    = ConfigList;
+    using Object  = ConfigObject;
+    using Variant = mpark::variant<Int, Float, String, List, Object>;
 
-    Config(Int value) : value_{value} {}
-    Config(Float value) : value_{value} {}
-    Config(String value) : value_{std::move(value)} {}
-    Config(Dictionary value) : value_{std::move(value)} {}
-    Config(List value) : value_{std::move(value)} {}
-    Config(const char *str) : value_{std::string(str)} {}
-    Config(const Config&) = default;
-    Config(Config&&)      = default;
-    Config& operator=(const Config&) = default;
-    Config& operator=(Config&&) = default;
+    ConfigValue(Int value) : value_{value} {}
+    ConfigValue(Float value) : value_{value} {}
+    ConfigValue(String value) : value_{std::move(value)} {}
+    ConfigValue(Object value) : value_{std::move(value)} {}
+    ConfigValue(List value) : value_{std::move(value)} {}
+    ConfigValue(const char *str) : value_{std::string(str)} {}
+    ConfigValue(const ConfigValue&) = default;
+    ConfigValue(ConfigValue&&)      = default;
+    ConfigValue& operator=(const ConfigValue&) = default;
+    ConfigValue& operator=(ConfigValue&&) = default;
 
     template <typename T>
-    Config(const T&)
+    ConfigValue(const T&)
     {
         static_assert(
             always_false<T>::value,
-            "Direct construction of the Config object available only "
-            "for variant types (Int, Float, String, Dictionary, List). "
-            "Did you mean `dumper(value)` instead of `Config{value}`?");
+            "Direct construction of the ConfigValue object available only "
+            "for variant types (Int, Float, String, Object, List). "
+            "Did you mean `dumper(value)` instead of `ConfigValue{value}`?");
     }
 
     std::string toJSONString() const;
@@ -136,55 +137,55 @@ public:
     const String& getString() const;
     const List& getList() const;
     List& getList();
-    const Dictionary& getDict() const;
-    Dictionary& getDict();
+    const Object& getObject() const;
+    Object& getObject();
 
-    /// Check if the key exists. Terminates if not a dict.
-    bool contains(const std::string &key) const { return getDict().contains(key); }
-    bool contains(const char *key)        const { return getDict().contains(key); }
+    /// Check if the key exists. Terminates if not an object.
+    bool contains(const std::string &key) const { return getObject().contains(key); }
+    bool contains(const char *key)        const { return getObject().contains(key); }
 
-    /// Get the element matching the given key. Terminates if not a dict, or if
-    /// the key was not found.
-    Config&       operator[](const std::string &key)       { return getDict().at(key); }
-    const Config& operator[](const std::string &key) const { return getDict().at(key); }
-    Config&       operator[](const char *key)              { return getDict().at(key); }
-    const Config& operator[](const char *key) const        { return getDict().at(key); }
+    /// Get the element matching the given key. Terminates if not an object, or
+    /// if the key was not found.
+    ConfigValue&       operator[](const std::string &key)       { return getObject().at(key); }
+    const ConfigValue& operator[](const std::string &key) const { return getObject().at(key); }
+    ConfigValue&       operator[](const char *key)              { return getObject().at(key); }
+    const ConfigValue& operator[](const char *key) const        { return getObject().at(key); }
 
     /// Get the list element. Terminates if not a list or if out of range.
-    Config&       operator[](size_t i)       { return getList()[i]; }
-    const Config& operator[](size_t i) const { return getList()[i]; }
-    Config&       operator[](int i)       { return getList()[static_cast<size_t>(i)]; }
-    const Config& operator[](int i) const { return getList()[static_cast<size_t>(i)]; }
+    ConfigValue&       operator[](size_t i)       { return getList()[i]; }
+    const ConfigValue& operator[](size_t i) const { return getList()[i]; }
+    ConfigValue&       operator[](int i)       { return getList()[static_cast<size_t>(i)]; }
+    const ConfigValue& operator[](int i) const { return getList()[static_cast<size_t>(i)]; }
 
-    /// Get the element if it exists, or null otherwise. Terminates if not a dict.
-    Config*       get(const std::string &key) &      { return getDict().get(key); }
-    const Config* get(const std::string &key) const& { return getDict().get(key); }
-    Config*       get(const char *key) &             { return getDict().get(key); }
-    const Config* get(const char *key) const&        { return getDict().get(key); }
+    /// Get the element if it exists, or null otherwise. Terminates if not an object.
+    ConfigValue*       get(const std::string &key) &      { return getObject().get(key); }
+    const ConfigValue* get(const std::string &key) const& { return getObject().get(key); }
+    ConfigValue*       get(const char *key) &             { return getObject().get(key); }
+    const ConfigValue* get(const char *key) const&        { return getObject().get(key); }
 
     /// Implicit cast to simple types.
     template <typename T>
     operator T() const { return ConfigDumper<T>::parse(*this); }
 
     /// Implicit cast to specific types.
-    operator Config::Int() const { return getInt(); }
-    operator Config::Float() const { return getFloat(); }
+    operator ConfigValue::Int() const { return getInt(); }
+    operator ConfigValue::Float() const { return getFloat(); }
     operator const std::string&() const { return getString(); }
 
     /// String concatenation operator.
-    friend std::string operator+(const Config& a, const char *b)
+    friend std::string operator+(const ConfigValue& a, const char *b)
     {
         return a.getString() + b;
     }
-    friend std::string operator+(const char *a, const Config& b)
+    friend std::string operator+(const char *a, const ConfigValue& b)
     {
         return a + b.getString();
     }
-    friend std::string operator+(const Config& a, const std::string& b)
+    friend std::string operator+(const ConfigValue& a, const std::string& b)
     {
         return a.getString() + b;
     }
-    friend std::string operator+(const std::string& a, const Config& b)
+    friend std::string operator+(const std::string& a, const ConfigValue& b)
     {
         return a + b.getString();
     }
@@ -228,25 +229,25 @@ public:
     ~Dumper();
 
     DumpContext& getContext() noexcept { return context_; }
-    const Config& getConfig() const noexcept { return config_; }
+    const ConfigValue& getConfig() const noexcept { return config_; }
 
     /// Dump.
     template <typename T>
-    Config operator()(T& t)
+    ConfigValue operator()(T& t)
     {
         return ConfigDumper<std::remove_const_t<T>>::dump(*this, t);
     }
     template <typename T>
-    Config operator()(const T& t)
+    ConfigValue operator()(const T& t)
     {
         return ConfigDumper<T>::dump(*this, t);
     }
     template <typename T>
-    Config operator()(T* t)
+    ConfigValue operator()(T* t)
     {
         return ConfigDumper<std::remove_const_t<T>*>::dump(*this, t);
     }
-    Config operator()(const char* t)
+    ConfigValue operator()(const char* t)
     {
         return std::string(t);
     }
@@ -255,16 +256,16 @@ public:
     const ConfigRefString& getObjectRefString(const void*) const;
 
     template <typename T>
-    const ConfigRefString& registerObject(const T *obj, Config newItem)
+    const ConfigRefString& registerObject(const T *obj, ConfigValue newItem)
     {
         assertType(obj);
         return _registerObject((const void *)obj, std::move(newItem));
     }
 
 private:
-    const ConfigRefString& _registerObject(const void *, Config newItem);
+    const ConfigRefString& _registerObject(const void *, ConfigValue newItem);
 
-    Config config_;
+    ConfigValue config_;
     std::map<const void*, ConfigRefString> descriptions_;
     DumpContext context_;
 };
@@ -278,7 +279,7 @@ public:
     UndumpContext& getContext() noexcept { return *context_; }
 
     template <typename T>
-    T undump(const Config &config)
+    T undump(const ConfigValue &config)
     {
         return ConfigDumper<T>::undump(*this, config);
     }
@@ -294,21 +295,21 @@ namespace detail
         template <typename... Args>
         void process(Args&& ...items)
         {
-            dict_->reserve(dict_->size() + sizeof...(items));
+            object_->reserve(object_->size() + sizeof...(items));
 
             // https://stackoverflow.com/a/51006031
             // Note: initializer list preserves the order of evaluation!
             using fold_expression = int[];
-            (void)fold_expression{0, (dict_->insert(std::forward<Args>(items)), 0)...};
+            (void)fold_expression{0, (object_->insert(std::forward<Args>(items)), 0)...};
         }
 
         template <typename T>
-        Config::Dictionary::value_type operator()(std::string name, T *t) const
+        ConfigValue::Object::value_type operator()(std::string name, T *t) const
         {
             return {std::move(name), (*dumper_)(*t)};
         }
 
-        Config::Dictionary *dict_;
+        ConfigValue::Object *object_;
         Dumper *dumper_;
     };
 
@@ -323,10 +324,10 @@ namespace detail
         template <typename Item>
         Item operator()(const std::string &name, const Item *) const
         {
-            return un_->undump<Item>(dict_->at(name));
+            return un_->undump<Item>(object_->at(name));
         }
 
-        const Config::Dictionary *dict_;
+        const ConfigValue::Object *object_;
         Undumper *un_;
     };
 } // namespace detail
@@ -335,15 +336,15 @@ namespace detail
     template <>                                                                \
     struct ConfigDumper<TYPE>                                                  \
     {                                                                          \
-        static Config dump(Dumper&, TYPE x)                                    \
+        static ConfigValue dump(Dumper&, TYPE x)                               \
         {                                                                      \
-            return static_cast<Config::ELTYPE>(x);                             \
+            return static_cast<ConfigValue::ELTYPE>(x);                        \
         }                                                                      \
-        static TYPE parse(const Config &value)                                 \
+        static TYPE parse(const ConfigValue &value)                            \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
-        static TYPE undump(Undumper&, const Config &value)                     \
+        static TYPE undump(Undumper&, const ConfigValue &value)                \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
@@ -362,26 +363,26 @@ MIRHEO_DUMPER_PRIMITIVE(double,             Float);
 template <>
 struct ConfigDumper<const char*>
 {
-    static Config dump(Dumper&, const char *str)
+    static ConfigValue dump(Dumper&, const char *str)
     {
         return std::string(str);
     }
-    static const char* parse(const Config&) = delete;
-    static const char* undump(Undumper&, const Config&) = delete;
+    static const char* parse(const ConfigValue&) = delete;
+    static const char* undump(Undumper&, const ConfigValue&) = delete;
 };
 
 template <>
 struct ConfigDumper<std::string>
 {
-    static Config dump(Dumper&, std::string x)
+    static ConfigValue dump(Dumper&, std::string x)
     {
         return std::move(x);
     }
-    static const std::string& parse(const Config &config)
+    static const std::string& parse(const ConfigValue &config)
     {
         return config.getString();
     }
-    static const std::string& undump(Undumper&, const Config &config)
+    static const std::string& undump(Undumper&, const ConfigValue &config)
     {
         return config.getString();
     }
@@ -390,9 +391,9 @@ struct ConfigDumper<std::string>
 template <>
 struct ConfigDumper<float3>
 {
-    static Config dump(Dumper&, float3 v);
-    static float3 parse(const Config &config);
-    static float3 undump(Undumper&, const Config &config)
+    static ConfigValue dump(Dumper&, float3 v);
+    static float3 parse(const ConfigValue &config);
+    static float3 undump(Undumper&, const ConfigValue &config)
     {
         return parse(config);
     }
@@ -402,15 +403,15 @@ struct ConfigDumper<float3>
 template <typename T>
 struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
 {
-    static Config dump(Dumper&, T t)
+    static ConfigValue dump(Dumper&, T t)
     {
-        return static_cast<Config::Int>(t);
+        return static_cast<ConfigValue::Int>(t);
     }
-    static T parse(const Config &config)
+    static T parse(const ConfigValue &config)
     {
         return static_cast<T>(config.getInt());
     }
-    static T undump(Undumper&, const Config &config)
+    static T undump(Undumper&, const ConfigValue &config)
     {
         return parse(config);
     }
@@ -421,16 +422,16 @@ template <typename T>
 struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<T>>::value>>
 {
     template <typename TT>  // Const or not.
-    static Config dump(Dumper& dumper, TT& t)
+    static ConfigValue dump(Dumper& dumper, TT& t)
     {
-        Config::Dictionary dict;
-        MemberVars<T>::foreach(detail::DumpHandler{&dict, &dumper}, &t);
-        return std::move(dict);
+        ConfigValue::Object object;
+        MemberVars<T>::foreach(detail::DumpHandler{&object, &dumper}, &t);
+        return std::move(object);
     }
-    static T undump(Undumper& un, const Config& config)
+    static T undump(Undumper& un, const ConfigValue& config)
     {
         return MemberVars<T>::foreach(
-                detail::UndumpHandler<T>{&config.getDict(), &un},
+                detail::UndumpHandler<T>{&config.getObject(), &un},
                 (const T *)nullptr);
     }
 };
@@ -440,9 +441,9 @@ struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<
 template <typename T>
 struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>>
 {
-    static Config dump(Dumper& dumper, const T& ptr)
+    static ConfigValue dump(Dumper& dumper, const T& ptr)
     {
-        return ptr ? dumper(*ptr) : Config{ConfigNullRefString};
+        return ptr ? dumper(*ptr) : ConfigValue{ConfigNullRefString};
     }
 };
 
@@ -451,20 +452,20 @@ template <typename T>
 struct ConfigDumper<std::vector<T>>
 {
     template <typename Vector>  // Const or not.
-    static Config dump(Dumper& dumper, Vector& values)
+    static ConfigValue dump(Dumper& dumper, Vector& values)
     {
-        Config::List list;
+        ConfigValue::List list;
         list.reserve(values.size());
         for (auto& value : values)
             list.push_back(dumper(value));
         return std::move(list);
     }
-    static std::vector<T> undump(Undumper& un, const Config& config)
+    static std::vector<T> undump(Undumper& un, const ConfigValue& config)
     {
-        const Config::List& list = config.getList();
+        const ConfigValue::List& list = config.getList();
         std::vector<T> out;
         out.reserve(list.size());
-        for (const Config& item : list)
+        for (const ConfigValue& item : list)
             out.push_back(un.undump<T>(item));
         return out;
     }
@@ -475,18 +476,18 @@ template <typename T>
 struct ConfigDumper<std::map<std::string, T>>
 {
     template <typename Map>  // Const or not.
-    static Config dump(Dumper& dumper, Map& values)
+    static ConfigValue dump(Dumper& dumper, Map& values)
     {
-        Config::Dictionary dict;
-        dict.reserve(values.size());
+        ConfigValue::Object object;
+        object.reserve(values.size());
         for (auto& pair : values)
-            dict.unsafe_insert(pair.first, dumper(pair.second));
-        return std::move(dict);
+            object.unsafe_insert(pair.first, dumper(pair.second));
+        return std::move(object);
     }
-    static std::map<std::string, T> undump(Undumper& un, const Config& config)
+    static std::map<std::string, T> undump(Undumper& un, const ConfigValue& config)
     {
         std::map<std::string, T> out;
-        for (const auto& pair : config.getDict())
+        for (const auto& pair : config.getObject())
             out.emplace(pair.first, un.undump<T>(pair.second));
         return out;
     }
@@ -500,36 +501,36 @@ struct ConfigDumper<mpark::variant<Ts...>>
     using Variant = mpark::variant<Ts...>;
 
     template <typename T>
-    static Variant _undump(Undumper& un, const Config& config)
+    static Variant _undump(Undumper& un, const ConfigValue& config)
     {
         return Variant{un.undump<T>(config)};
     }
 
     template <typename Variant>  // Const or not.
-    static Config dump(Dumper& dumper, Variant& value)
+    static ConfigValue dump(Dumper& dumper, Variant& value)
     {
-        Config::Dictionary dict;
-        dict.reserve(2);
-        dict.unsafe_insert("__index", static_cast<Config::Int>(value.index()));
-        dict.unsafe_insert("value", mpark::visit(dumper, value));
-        return dict;
+        ConfigValue::Object object;
+        object.reserve(2);
+        object.unsafe_insert("__index", static_cast<ConfigValue::Int>(value.index()));
+        object.unsafe_insert("value", mpark::visit(dumper, value));
+        return object;
     }
-    static Variant undump(Undumper& un, const Config& config)
+    static Variant undump(Undumper& un, const ConfigValue& config)
     {
-        const ConfigDictionary& dict = config.getDict();
-        size_t index = un.undump<size_t>(dict.at("__index"));
+        const ConfigObject& object = config.getObject();
+        size_t index = un.undump<size_t>(object.at("__index"));
         if (index >= sizeof...(Ts))
             _variantDumperError(index, sizeof...(Ts));
 
         // Compile an array of _undump functions, one for each type.
         // Pick index-th on runtime.
-        using UndumperPtr = Variant(*)(Undumper&, const Config&);
+        using UndumperPtr = Variant(*)(Undumper&, const ConfigValue&);
         const UndumperPtr funcs[]{(&_undump<Ts>)...};
-        return funcs[index](un, dict.at("value"));
+        return funcs[index](un, object.at("value"));
     }
 };
 
-Config configFromJSONFile(const std::string& filename);
-Config configFromJSON(const std::string& json);
+ConfigValue configFromJSONFile(const std::string& filename);
+ConfigValue configFromJSON(const std::string& json);
 
 } // namespace mirheo

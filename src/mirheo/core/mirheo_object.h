@@ -35,7 +35,7 @@ public:
     void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName);
 
 private:
     const std::string name_;
@@ -49,7 +49,7 @@ class MirSimulationObject : public MirObject
 {
 public:
     MirSimulationObject(const MirState *state, const std::string& name);
-    MirSimulationObject(const MirState *state, Undumper&, const ConfigDictionary&);
+    MirSimulationObject(const MirState *state, Undumper&, const ConfigObject&);
     ~MirSimulationObject();
 
     const MirState* getState() const {return state_;}
@@ -60,10 +60,10 @@ private:
 };
 
 // Common dumper to the template dumper below. This way we don't need the
-// definition of Config here.
+// definition of ConfigValue here.
 struct ConfigMirObjectDumper {
     // Automatically adds `name` key to the returned dictionary. 
-    static Config dump(Dumper& dumper, MirObject& obj);
+    static ConfigValue dump(Dumper& dumper, MirObject& obj);
 };
 
 /// ConfigDumper specialization for MirObject and derived classes.

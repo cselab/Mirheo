@@ -29,12 +29,12 @@ void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Dumper& dumper)
 }
 
 template<class ForcingTerm>
-ConfigDictionary IntegratorVV<ForcingTerm>::_saveSnapshot(
+ConfigObject IntegratorVV<ForcingTerm>::_saveSnapshot(
         Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = Integrator::_saveSnapshot(dumper, typeName);
-    dict.emplace("forcingTerm", dumper(forcingTerm_));
-    return dict;
+    ConfigObject config = Integrator::_saveSnapshot(dumper, typeName);
+    config.emplace("forcingTerm", dumper(forcingTerm_));
+    return config;
 }
 
 template<class ForcingTerm>

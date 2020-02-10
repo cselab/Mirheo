@@ -81,13 +81,13 @@ public:
         filter(filter),
         stepGen(seed)
     {}
-    MembraneInteractionImpl(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
-        Interaction(state, un, dict),
-        growUntil{dict["growUntil"]},
-        parameters{un.undump<CommonMembraneParameters>(dict["parameters"])},
-        dihedralParams{un.undump<typename DihedralInteraction::ParametersType>(dict["dihedralParams"])},
-        triangleParams{un.undump<typename TriangleInteraction::ParametersType>(dict["triangleParams"])},
-        filter{un.undump<Filter>(dict["filter"])},
+    MembraneInteractionImpl(const MirState *state, Undumper& un, const ConfigObject& config) :
+        Interaction(state, un, config),
+        growUntil{config["growUntil"]},
+        parameters{un.undump<CommonMembraneParameters>(config["parameters"])},
+        dihedralParams{un.undump<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
+        triangleParams{un.undump<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
+        filter{un.undump<Filter>(config["filter"])},
         stepGen(42424242)
     {
         warn("stepGen save/load not imported, resetting the seed!");
@@ -192,16 +192,16 @@ public:
     }
 
 protected:
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName)
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName)
     {
-        ConfigDictionary dict = Interaction::_saveImplSnapshot(dumper, typeName);
-        dict.emplace("growUntil",      dumper(growUntil));
-        dict.emplace("parameters",     dumper(parameters));
-        dict.emplace("dihedralParams", dumper(dihedralParams));
-        dict.emplace("triangleParams", dumper(triangleParams));
-        dict.emplace("filter",         dumper(filter));
-        dict.emplace("stepGen",        dumper("<<not implemented>"));
-        return dict;
+        ConfigObject config = Interaction::_saveImplSnapshot(dumper, typeName);
+        config.emplace("growUntil",      dumper(growUntil));
+        config.emplace("parameters",     dumper(parameters));
+        config.emplace("dihedralParams", dumper(dihedralParams));
+        config.emplace("triangleParams", dumper(triangleParams));
+        config.emplace("filter",         dumper(filter));
+        config.emplace("stepGen",        dumper("<<not implemented>"));
+        return config;
     }
 
     real growUntil;

@@ -61,7 +61,7 @@ namespace {
         // For simplicity, we merge Int, Float and String tokens into std::string.
         using Token = mpark::variant<std::string, Tag>;
 
-        void process(const Config& element);
+        void process(const ConfigValue& element);
         std::string generate();
 
     private:
@@ -69,7 +69,7 @@ namespace {
     };
 } // anonymous namespace
 
-void ConfigToJSON::process(const Config& element)
+void ConfigToJSON::process(const ConfigValue& element)
 {
     if (auto *v = element.get_if<long long>()) {
         tokens_.push_back(std::to_string(*v));
@@ -77,18 +77,18 @@ void ConfigToJSON::process(const Config& element)
         tokens_.push_back(doubleToString(*v));
     } else if (auto *v = element.get_if<std::string>()) {
         tokens_.push_back(stringToJSON(*v));
-    } else if (auto *dict = element.get_if<Config::Dictionary>()) {
+    } else if (auto *obj = element.get_if<ConfigValue::Object>()) {
         tokens_.push_back(Tag::StartDict);
-        for (const auto &pair : *dict) {
+        for (const auto &pair : *obj) {
             tokens_.push_back(Tag::StartDictItem);
             tokens_.push_back(stringToJSON(pair.first));
             process(pair.second);
             tokens_.push_back(Tag::EndDictItem);
         }
         tokens_.push_back(Tag::EndDict);
-    } else if (auto *list = element.get_if<Config::List>()) {
+    } else if (auto *list = element.get_if<ConfigValue::List>()) {
         tokens_.push_back(Tag::StartList);
-        for (const Config& el : *list) {
+        for (const ConfigValue& el : *list) {
             tokens_.push_back(Tag::StartListItem);
             process(el);
             tokens_.push_back(Tag::EndListItem);
@@ -174,57 +174,57 @@ std::string ConfigToJSON::generate()
     return std::move(stream).str();
 }
 
-Config& ConfigDictionary::at(const std::string &key)
+ConfigValue& ConfigObject::at(const std::string &key)
 {
     auto it = find(key);
     if (it == end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), Config{*this}.toJSONString().c_str());
+        die("Key \"%s\" not found in\n%s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
     return it->second;
 }
-const Config& ConfigDictionary::at(const std::string &key) const
+const ConfigValue& ConfigObject::at(const std::string &key) const
 {
     auto it = find(key);
     if (it == end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), Config{*this}.toJSONString().c_str());
+        die("Key \"%s\" not found in\n%s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
     return it->second;
 }
-Config& ConfigDictionary::at(const char *key)
+ConfigValue& ConfigObject::at(const char *key)
 {
     return at(std::string(key));
 }
-const Config& ConfigDictionary::at(const char *key) const
+const ConfigValue& ConfigObject::at(const char *key) const
 {
     return at(std::string(key));
 }
 
-Config* ConfigDictionary::get(const std::string &key) &
+ConfigValue* ConfigObject::get(const std::string &key) &
 {
     auto it = find(key);
     return it != end() ? &it->second : nullptr;
 }
-const Config* ConfigDictionary::get(const std::string &key) const&
+const ConfigValue* ConfigObject::get(const std::string &key) const&
 {
     auto it = find(key);
     return it != end() ? &it->second : nullptr;
 }
-Config* ConfigDictionary::get(const char *key) &
+ConfigValue* ConfigObject::get(const char *key) &
 {
     return get(std::string(key));
 }
-const Config* ConfigDictionary::get(const char *key) const&
+const ConfigValue* ConfigObject::get(const char *key) const&
 {
     return get(std::string(key));
 }
 
 
-std::string Config::toJSONString() const
+std::string ConfigValue::toJSONString() const
 {
     ConfigToJSON writer;
     writer.process(*this);
     return writer.generate();
 }
 
-Config::Int Config::getInt() const
+ConfigValue::Int ConfigValue::getInt() const
 {
     if (const Int *v = get_if<Int>())
         return *v;
@@ -235,7 +235,7 @@ Config::Int Config::getInt() const
     die("getInt on a non-int object:\n%s", toJSONString().c_str());
 }
 
-Config::Float Config::getFloat() const
+ConfigValue::Float ConfigValue::getFloat() const
 {
     if (const Float *v = get_if<Float>())
         return *v;
@@ -245,44 +245,44 @@ Config::Float Config::getFloat() const
     die("getFloat on a non-float object:\n%s", toJSONString().c_str());
 }
 
-const Config::String& Config::getString() const {
+const ConfigValue::String& ConfigValue::getString() const {
     if (const String *v = get_if<String>())
         return *v;
     die("getString on a non-string object:\n%s", toJSONString().c_str());
 }
 
-const Config::List& Config::getList() const
+const ConfigValue::List& ConfigValue::getList() const
 {
     if (auto *list = get_if<List>())
         return *list;
     die("getList on a non-list object:\n%s", toJSONString().c_str());
 }
 
-Config::List& Config::getList()
+ConfigValue::List& ConfigValue::getList()
 {
     if (auto *list = get_if<List>())
         return *list;
     die("getList on a non-list object:\n%s", toJSONString().c_str());
 }
 
-const Config::Dictionary& Config::getDict() const
+const ConfigValue::Object& ConfigValue::getObject() const
 {
-    if (auto *dict = get_if<Dictionary>())
-        return *dict;
-    die("getDict on a non-dictionary object:\n%s", toJSONString().c_str());
+    if (auto *obj = get_if<Object>())
+        return *obj;
+    die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-Config::Dictionary& Config::getDict()
+ConfigValue::Object& ConfigValue::getObject()
 {
-    if (auto *dict = get_if<Dictionary>())
-        return *dict;
-    die("getDict on a non-dictionary object:\n%s", toJSONString().c_str());
+    if (auto *obj = get_if<Object>())
+        return *obj;
+    die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-Config& ConfigList::_outOfBound [[noreturn]] (size_t index, size_t size) const
+ConfigValue& ConfigList::_outOfBound [[noreturn]] (size_t index, size_t size) const
 {
     die("Index %zu out of range (size=%zu):\n%s",
-        index, size, Config{*this}.toJSONString().c_str());
+        index, size, ConfigValue{*this}.toJSONString().c_str());
 }
 
 bool DumpContext::isGroupMasterTask() const
@@ -294,7 +294,7 @@ bool DumpContext::isGroupMasterTask() const
 
 
 Dumper::Dumper(DumpContext context) :
-    config_{Config::Dictionary{}}, context_{std::move(context)}
+    config_{ConfigValue::Object{}}, context_{std::move(context)}
 {}
 
 Dumper::~Dumper() = default;
@@ -309,11 +309,11 @@ const std::string& Dumper::getObjectRefString(const void *ptr) const
     return descriptions_.find(ptr)->second;
 }
 
-const std::string& Dumper::_registerObject(const void *ptr, Config object)
+const std::string& Dumper::_registerObject(const void *ptr, ConfigValue object)
 {
     assert(!isObjectRegistered(ptr));
 
-    auto *newDict = object.get_if<Config::Dictionary>();
+    auto *newDict = object.get_if<ConfigValue::Object>();
     if (newDict == nullptr)
         die("Expected a dictionary, instead got:\n%s", object.toJSONString().c_str());
 
@@ -326,11 +326,11 @@ const std::string& Dumper::_registerObject(const void *ptr, Config object)
     std::string category = std::move(itCategory)->second.getString();
     newDict->erase(itCategory);
 
-    // Find the category in the master dict. Add an empty list if not found.
-    auto& dict = config_.getDict();
-    auto it = dict.find(category);
-    if (it == dict.end())
-        it = dict.emplace(category, Config::List{}).first;
+    // Find the category in the master object. Add an empty list if not found.
+    auto& obj = config_.getObject();
+    auto it = obj.find(category);
+    if (it == obj.end())
+        it = obj.emplace(category, ConfigValue::List{}).first;
 
     // Get the object name, if it exists.
     auto itName = newDict->find("name");
@@ -353,11 +353,11 @@ const std::string& Dumper::_registerObject(const void *ptr, Config object)
 }
 
 
-Config ConfigDumper<float3>::dump(Dumper&, float3 v)
+ConfigValue ConfigDumper<float3>::dump(Dumper&, float3 v)
 {
-    return Config::List{(double)v.x, (double)v.y, (double)v.z};
+    return ConfigValue::List{(double)v.x, (double)v.y, (double)v.z};
 }
-float3 ConfigDumper<float3>::parse(const Config &config)
+float3 ConfigDumper<float3>::parse(const ConfigValue &config)
 {
     const auto& list = config.getList();
     if (list.size() != 3)
@@ -390,34 +390,34 @@ static std::string readWholeFile(const std::string& filename)
 
 namespace {
     /**
-     * Parse JSON and return a Config.
+     * Parse JSON and return a ConfigValue.
      *
      * Usage:
-     *      Config config = JSonParser{"[10, 20, 30.5"]}.parse();
+     *      ConfigValue config = JSonParser{"[10, 20, 30.5"]}.parse();
      */
     class JSONParser {
     public:
         JSONParser(const char *s) : str_(s) {}
 
-        Config parse() {
+        ConfigValue parse() {
             Token token = nextToken(TT::AnyValue);
             if (token == TT::OpenBrace) {
-                Config::Dictionary dict;
+                ConfigValue::Object obj;
                 for (;;) {
                     if (peekToken(TT::AnyValue, TT::ClosedBrace) == TT::ClosedBrace)
                         break;
-                    std::string key = mpark::get<Config::String>(nextToken(TT::String).value);
+                    std::string key = mpark::get<ConfigValue::String>(nextToken(TT::String).value);
                     nextToken(TT::Colon);
-                    dict.emplace(key, parse());
+                    obj.emplace(key, parse());
                     if (peekToken(TT::Comma, TT::ClosedBrace) == TT::Comma) {
                         nextToken(TT::Comma);  // Consume.
                         continue;
                     }
                 }
                 nextToken(TT::ClosedBrace);  // Consume.
-                return Config{std::move(dict)};
+                return ConfigValue{std::move(obj)};
             } else if (token == TT::OpenSquare) {
-                Config::List list;
+                ConfigValue::List list;
                 for (;;) {
                     if (peekToken(TT::AnyValue, TT::ClosedSquare) == TT::ClosedSquare)
                         break;
@@ -428,13 +428,13 @@ namespace {
                     }
                 }
                 nextToken(TT::ClosedSquare);  // Consume.
-                return Config{std::move(list)};
+                return ConfigValue{std::move(list)};
             } else if (token == TT::Int) {
-                return mpark::get<Config::Int>(token.value);
+                return mpark::get<ConfigValue::Int>(token.value);
             } else if (token == TT::Float) {
-                return mpark::get<Config::Float>(token.value);
+                return mpark::get<ConfigValue::Float>(token.value);
             } else if (token == TT::String) {
-                return std::move(mpark::get<Config::String>(token.value));
+                return std::move(mpark::get<ConfigValue::String>(token.value));
             }
             die("Unreachable.");
         }
@@ -456,7 +456,7 @@ namespace {
         };
 
         struct Token {
-            mpark::variant<Config::Int, Config::Float, Config::String> value {Config::Int{0}};
+            mpark::variant<ConfigValue::Int, ConfigValue::Float, ConfigValue::String> value {ConfigValue::Int{0}};
             TT type {TT::Unspecified};
 
             Token(TT t) : type{t} {}
@@ -580,12 +580,12 @@ namespace {
 } // anonymous namespace
 
 
-Config configFromJSON(const std::string& json)
+ConfigValue configFromJSON(const std::string& json)
 {
     return JSONParser{json.c_str()}.parse();
 }
 
-Config configFromJSONFile(const std::string& filename)
+ConfigValue configFromJSONFile(const std::string& filename)
 {
     return configFromJSON(readWholeFile(filename));
 }

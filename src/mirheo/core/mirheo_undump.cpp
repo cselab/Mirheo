@@ -34,12 +34,12 @@ void _unknownReferenceError [[noreturn]] (const std::string &name)
 // TODO: Make a mesh factory file.
 static std::shared_ptr<Mesh>
 importMesh(const MirState *, Undumper& un,
-           const Config::Dictionary& dict, const std::string &type)
+           const ConfigObject& config, const std::string &type)
 {
     if (type == "Mesh")
-        return std::make_shared<Mesh>(un, dict);
+        return std::make_shared<Mesh>(un, config);
     if (type == "MembraneMesh")
-        return std::make_shared<MembraneMesh>(un, dict);
+        return std::make_shared<MembraneMesh>(un, config);
     return {};
 }
 
@@ -47,12 +47,12 @@ importMesh(const MirState *, Undumper& un,
 // TODO: Make a PV factory file.
 static std::shared_ptr<ParticleVector>
 importParticleVector(const MirState *state, Undumper& un,
-                     const Config::Dictionary& dict, const std::string &type)
+                     const ConfigObject& config, const std::string &type)
 {
     if (type == "ParticleVector")
-        return std::make_shared<ParticleVector>(state, un, dict);
+        return std::make_shared<ParticleVector>(state, un, config);
     if (type == "MembraneVector")
-        return std::make_shared<MembraneVector>(state, un, dict);
+        return std::make_shared<MembraneVector>(state, un, config);
     return {};
 }
 
@@ -60,12 +60,12 @@ importParticleVector(const MirState *state, Undumper& un,
 // TODO: Make an interaction factory file.
 static std::shared_ptr<Interaction>
 importInteraction(const MirState *state, Undumper& un,
-                  const Config::Dictionary& dict, const std::string &type)
+                  const ConfigObject& config, const std::string &type)
 {
     if (type == "PairwiseInteraction")
-        return std::make_shared<PairwiseInteraction>(state, un, dict);
+        return std::make_shared<PairwiseInteraction>(state, un, config);
     if (type == "MembraneInteraction")
-        return std::make_shared<MembraneInteraction>(state, un, dict);
+        return std::make_shared<MembraneInteraction>(state, un, config);
     return {};
 }
 
@@ -75,7 +75,7 @@ UndumpContext::UndumpContext(std::string path) :
                   std::move(path)}
 {}
 
-UndumpContext::UndumpContext(Config compute, Config postprocess,
+UndumpContext::UndumpContext(ConfigValue compute, ConfigValue postprocess,
                              std::string snapshotPath) :
     path_{std::move(snapshotPath)},
     compConfig_{std::move(compute)},
@@ -84,12 +84,12 @@ UndumpContext::UndumpContext(Config compute, Config postprocess,
 
 UndumpContext::~UndumpContext() = default;
 
-const ConfigDictionary& UndumpContext::getCompObjectConfig(
+const ConfigObject& UndumpContext::getCompObjectConfig(
         const std::string& category, const std::string& name)
 {
-    for (const Config& obj : getComp()[category].getList())
-        if (obj.getDict()["name"].getString() == name)
-            return obj.getDict();
+    for (const ConfigValue& obj : getComp()[category].getList())
+        if (obj.getObject()["name"].getString() == name)
+            return obj.getObject();
     die("Object category=\"%s\" name=\"%s\" not found.", category.c_str(), name.c_str());
 }
 
@@ -112,16 +112,16 @@ std::shared_ptr<MembraneMesh> UndumpContextGetPtr<MembraneMesh>::getShared(
 void importSnapshot(Mirheo *mir, Undumper& un)
 {
     auto& context = un.getContext();
-    const Config& compConfig = context.getComp();
+    const ConfigValue& compConfig = context.getComp();
 
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
 
     auto importObject = [mir, &un](
-            const Config& info,
+            const ConfigValue& info,
             auto &objects,
             auto func) -> decltype(auto)
     {
-        auto ptr = func(mir->getState(), un, info.getDict(), info["__type"]);
+        auto ptr = func(mir->getState(), un, info.getObject(), info["__type"]);
         if (!ptr)
             die("Unknown or unimplemented object type: %s", info.toJSONString().c_str());
         auto it = objects.emplace(info["name"], std::move(ptr)).first;
@@ -153,7 +153,7 @@ void importSnapshot(Mirheo *mir, Undumper& un)
             }
         }
 
-        const Config& sim = compConfig["Simulation"][0];
+        const ConfigValue& sim = compConfig["Simulation"][0];
         if (auto *interactionPrototypes = sim.get("interactionPrototypes")) {
             for (const auto& info : interactionPrototypes->getList()) {
                 const auto& pv1 = context.getShared<ParticleVector>(info["pv1"]);

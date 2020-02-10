@@ -9,8 +9,8 @@ namespace mirheo
 using ConfigRefString = std::string;
 class Dumper;
 class Undumper;
-class Config;
-class ConfigDictionary;
+class ConfigValue;
+class ConfigObject;
 template <typename T, typename Enable = void>
 struct ConfigDumper;
 
@@ -111,9 +111,9 @@ struct CheckpointInfo
 template <>
 struct ConfigDumper<CheckpointInfo>
 {
-    static Config dump(Dumper&, const CheckpointInfo&);
-    static CheckpointInfo parse(const Config&) = delete; // Context-free not supported
-    static CheckpointInfo undump(Undumper&, const Config&);
+    static ConfigValue dump(Dumper&, const CheckpointInfo&);
+    static CheckpointInfo parse(const ConfigValue&) = delete; // Context-free not supported
+    static CheckpointInfo undump(Undumper&, const ConfigValue&);
 };
 
 // tag used to stop the postprocess side to stop

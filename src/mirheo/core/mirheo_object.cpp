@@ -29,14 +29,14 @@ void MirObject::saveSnapshotAndRegister(Dumper& dumper)
             this, _saveSnapshot(dumper, "UnknownCategory", "MirObject"));
 }
 
-ConfigDictionary MirObject::_saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName)
+ConfigObject MirObject::_saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName)
 {
-    ConfigDictionary dict;
+    ConfigObject config;
     // "Unsafe" == skip checking whether the key is already in use.
-    dict.unsafe_insert("__category", dumper(category));
-    dict.unsafe_insert("__type", dumper(typeName));
-    dict.unsafe_insert("name", dumper(name_));
-    return dict;
+    config.unsafe_insert("__category", dumper(category));
+    config.unsafe_insert("__type", dumper(typeName));
+    config.unsafe_insert("name", dumper(name_));
+    return config;
 }
 
 
@@ -92,7 +92,7 @@ MirSimulationObject::MirSimulationObject(const MirState *state, const std::strin
     MirObject(name),
     state_(state)
 {}
-MirSimulationObject::MirSimulationObject(const MirState *state, Undumper&, const ConfigDictionary& config) :
+MirSimulationObject::MirSimulationObject(const MirState *state, Undumper&, const ConfigObject& config) :
     MirSimulationObject(state, config["name"])
 {}
 
@@ -103,7 +103,7 @@ void MirSimulationObject::setState(const MirState *state)
     state_ = state;
 }
 
-Config ConfigMirObjectDumper::dump(Dumper& dumper, MirObject& obj)
+ConfigValue ConfigMirObjectDumper::dump(Dumper& dumper, MirObject& obj)
 {
     if (!dumper.isObjectRegistered(&obj))
         obj.saveSnapshotAndRegister(dumper);

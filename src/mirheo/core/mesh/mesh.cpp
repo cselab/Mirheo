@@ -24,10 +24,10 @@ Mesh::Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh) :
     Mesh(std::get<0>(mesh), std::get<1>(mesh))
 {}
 
-Mesh::Mesh(Undumper& un, const ConfigDictionary& dict) :
-    Mesh(joinPaths(un.getContext().getPath(), dict["name"] + ".off"))
+Mesh::Mesh(Undumper& un, const ConfigObject& config) :
+    Mesh(joinPaths(un.getContext().getPath(), config["name"] + ".off"))
 {
-    assert(dict["__type"] == "Mesh");
+    assert(config["__type"] == "Mesh");
 }
 
 Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
@@ -102,7 +102,7 @@ void Mesh::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<Mesh>(this, _saveSnapshot(dumper, "Mesh"));
 }
 
-ConfigDictionary Mesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Mesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
     // Increment the "mesh" context counter and the old value as an ID.
     int id = dumper.getContext().counters["mesh"]++;
@@ -122,7 +122,7 @@ ConfigDictionary Mesh::_saveSnapshot(Dumper& dumper, const std::string& typeName
     }
 
     // Note: The mesh file name can be constructed from the object name.
-    return ConfigDictionary{
+    return ConfigObject{
         {"__category", dumper("Mesh")},
         {"__type",     dumper(typeName)},
         {"name",       dumper(name)},
@@ -166,7 +166,7 @@ MeshView::MeshView(const Mesh *m) :
     triangles  (m->triangles.devPtr())   
 {}
 
-Config ConfigDumper<Mesh>::dump(Dumper& dumper, Mesh& mesh)
+ConfigValue ConfigDumper<Mesh>::dump(Dumper& dumper, Mesh& mesh)
 {
     if (!dumper.isObjectRegistered(&mesh))
         mesh.saveSnapshotAndRegister(dumper);

@@ -81,7 +81,7 @@ protected:
 
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
     virtual void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms);
-    ConfigDictionary _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
 
 private:
     void _snapshotObjectData(MPI_Comm comm, const std::string& filename);

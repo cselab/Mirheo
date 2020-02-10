@@ -110,11 +110,11 @@ void SimulationStats::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<SimulationStats>(this, _saveSnapshot(dumper, "SimulationStats"));
 }
 
-ConfigDictionary SimulationStats::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject SimulationStats::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 {
-    ConfigDictionary dict = SimulationPlugin::_saveSnapshot(dumper, typeName);
-    dict.emplace("fetchEvery", dumper(fetchEvery_));
-    return dict;
+    ConfigObject config = SimulationPlugin::_saveSnapshot(dumper, typeName);
+    config.emplace("fetchEvery", dumper(fetchEvery_));
+    return config;
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
@@ -184,11 +184,11 @@ void PostprocessStats::saveSnapshotAndRegister(Dumper& dumper)
     dumper.registerObject<PostprocessStats>(this, _saveSnapshot(dumper, "PostprocessPlugin"));
 }
 
-ConfigDictionary PostprocessStats::_saveSnapshot(Dumper& dumper, const std::string &typeName)
+ConfigObject PostprocessStats::_saveSnapshot(Dumper& dumper, const std::string &typeName)
 {
-    ConfigDictionary dict = PostprocessPlugin::_saveSnapshot(dumper, typeName);
-    dict.emplace("filename", dumper(filename_));
-    return dict;
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(dumper, typeName);
+    config.emplace("filename", dumper(filename_));
+    return config;
 }
 
 } // namespace mirheo

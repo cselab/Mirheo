@@ -22,12 +22,12 @@ struct UndumpContextGetPtr;
 class UndumpContext {
 public:
     UndumpContext(std::string snapshotPath);
-    UndumpContext(Config compute, Config postprocess,
+    UndumpContext(ConfigValue compute, ConfigValue postprocess,
                   std::string snapshotPath = "snapshot/");
     ~UndumpContext();
 
-    const ConfigDictionary& getCompObjectConfig(const std::string& category,
-                                                const std::string& name);
+    const ConfigObject& getCompObjectConfig(const std::string& category,
+                                            const std::string& name);
 
     template <typename T>
     decltype(auto) getShared(const std::string& ref)
@@ -52,8 +52,8 @@ public:
     }
 
     const std::string& getPath() const { return path_; }
-    const Config& getComp() const { return compConfig_; }
-    const Config& getPost() const { return postConfig_; }
+    const ConfigObject& getComp() const { return compConfig_.getObject(); }
+    const ConfigObject& getPost() const { return postConfig_.getObject(); }
 
 private:
 
@@ -64,8 +64,8 @@ private:
     std::tuple<
         std::map<std::string, std::unique_ptr<Interaction>>> unique_;
     std::string path_;
-    Config compConfig_;
-    Config postConfig_;
+    ConfigValue compConfig_;
+    ConfigValue postConfig_;
 };
 
 
