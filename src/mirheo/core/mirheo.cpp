@@ -733,7 +733,9 @@ void Mirheo::saveSnapshot(std::string path)
     // Prepare context and the dumper.
     DumpContext context;
     context.path = path;
-    context.groupComm = isComputeTask() ? compComm_ : ioComm_;
+    context.groupComm = isComputeTask() ? cartComm_ : ioComm_;
+    if (context.groupComm == MPI_COMM_NULL)
+        die("something's wrong with the comm.");
     Dumper dumper(std::move(context));
 
     // Create the snapshot folder before creating the dump.

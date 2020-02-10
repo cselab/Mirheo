@@ -41,6 +41,9 @@ public:
     
     Interaction(const MirState *state, std::string name, real rc);
 
+    /// Load `name` and `rc` from the config. The `impl` is NOT loaded!
+    Interaction(const MirState *state, Undumper&, const ConfigDictionary&);
+
     virtual ~Interaction();
 
     /**

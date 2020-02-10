@@ -26,19 +26,31 @@ public:
                   std::string snapshotPath = "snapshot/");
     ~UndumpContext();
 
+    const ConfigDictionary& getCompObjectConfig(const std::string& category,
+                                                const std::string& name);
+
     template <typename T>
-    decltype(auto) get(const std::string &ref)
+    decltype(auto) getShared(const std::string& ref)
     {
-        return UndumpContextGetPtr<T>::get(this, ref);
+        return UndumpContextGetPtr<T>::getShared(this, ref);
+    }
+    template <typename T>
+    std::unique_ptr<T> getUnique(const std::string& ref)
+    {
+        return UndumpContextGetPtr<T>::getUnique(this, ref);
     }
 
     template <typename T>
-    std::map<std::string, std::shared_ptr<T>>& getContainer()
+    std::map<std::string, std::shared_ptr<T>>& getContainerShared()
     {
-        return std::get<std::map<std::string, std::shared_ptr<T>>>(objects_);
+        return std::get<std::map<std::string, std::shared_ptr<T>>>(shared_);
+    }
+    template <typename T>
+    std::map<std::string, std::unique_ptr<T>>& getContainerUnique()
+    {
+        return std::get<std::map<std::string, std::unique_ptr<T>>>(unique_);
     }
 
-    decltype(auto) getAllObjects() { return objects_; }
     const std::string& getPath() const { return path_; }
     const Config& getComp() const { return compConfig_; }
     const Config& getPost() const { return postConfig_; }
@@ -48,7 +60,9 @@ private:
     std::tuple<
         std::map<std::string, std::shared_ptr<Mesh>>,
         std::map<std::string, std::shared_ptr<ParticleVector>>,
-        std::map<std::string, std::shared_ptr<Interaction>>> objects_;
+        std::map<std::string, std::shared_ptr<Interaction>>> shared_;
+    std::tuple<
+        std::map<std::string, std::unique_ptr<Interaction>>> unique_;
     std::string path_;
     Config compConfig_;
     Config postConfig_;
@@ -57,19 +71,28 @@ private:
 
 template <typename T>
 struct UndumpContextGetPtr {
-    static const std::shared_ptr<T>& get(UndumpContext *context, const std::string &ref) {
-        const auto &container = std::get<std::map<std::string, std::shared_ptr<T>>>(
-                context->getAllObjects());
+    static const std::shared_ptr<T>& getShared(UndumpContext *context, const std::string& ref) {
+        const auto& container = context->getContainerShared<T>();
         auto it = container.find(_parseNameFromReference(ref));
         if (it == container.end())
             _unknownReferenceError(ref);
         return it->second;
     }
+    static std::unique_ptr<T> getUnique(UndumpContext *context, const std::string& ref)
+    {
+        if (ref == ConfigNullRefString)
+            return nullptr;
+        auto& container = context->getContainerUnique<T>();
+        auto it = container.find(_parseNameFromReference(ref));
+        if (it == container.end())
+            _unknownReferenceError(ref);
+        return std::move(it->second);
+    }
 };
 
 template <>
 struct UndumpContextGetPtr<MembraneMesh> {
-    static std::shared_ptr<MembraneMesh> get(UndumpContext*, const std::string &ref);
+    static std::shared_ptr<MembraneMesh> getShared(UndumpContext*, const std::string &ref);
 };
 
 

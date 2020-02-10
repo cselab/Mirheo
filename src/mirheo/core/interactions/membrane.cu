@@ -7,15 +7,16 @@
 #include "membrane/kernels/triangle/wlc.h"
 #include "membrane/impl.h"
 
+#include <mirheo/core/mirheo_undump.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/variant_foreach.h>
 
 namespace mirheo
 {
-
 
 namespace MembraneInteractionKernels
 {
@@ -71,13 +72,60 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
     }, varBendingParams, varShearParams, varFilter);
 }
 
+namespace {
+    struct MembraneImplVisitor
+    {
+        template <typename BendingParams, typename ShearParams, typename FilterType>
+        void operator()()
+        {
+            using DihedralForce = typename BendingParams::DihedralForce;
+
+            {
+                using TriangleForce = typename ShearParams::TriangleForce <StressFreeState::Active>;
+                using Impl = MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>;
+                if (Impl::getTypeName() == implTypeName) {
+                    *impl = std::make_unique<Impl>(state, undumper, implConfig);
+                    return;
+                }
+            }
+            {
+                using TriangleForce = typename ShearParams::TriangleForce <StressFreeState::Inactive>;
+                using Impl = MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>;
+                if (Impl::getTypeName() == implTypeName)
+                    *impl = std::make_unique<Impl>(state, undumper, implConfig);
+            }
+        }
+
+        const MirState *state;
+        Undumper& undumper;
+        const ConfigDictionary& implConfig;
+        const std::string& implTypeName;
+        std::unique_ptr<Interaction> *impl;
+    };
+} // anonymous namespace
+
+MembraneInteraction::MembraneInteraction(const MirState *state, Undumper& undumper, const ConfigDictionary& config) :
+    Interaction(state, undumper, config)
+{
+    const ConfigDictionary& implConfig =
+            undumper.getContext().getCompObjectConfig("InteractionImpl", getName());
+    const std::string& implTypeName = implConfig["__type"].getString();
+
+    /// Check all possible template combinations and match with the `implTypeName`.
+    variantForeach<MembraneImplVisitor, VarBendingParams, VarShearParams, VarMembraneFilter>(
+            MembraneImplVisitor{state, undumper, implConfig, implTypeName, &impl});
+
+    if (!impl)
+        die("Unrecognized impl type \"%s\".", implTypeName.c_str());
+}
+
+
 MembraneInteraction::~MembraneInteraction() = default;
 
 void MembraneInteraction::saveSnapshotAndRegister(Dumper& dumper)
 {
-    // MembraneInteraction does not modify _saveSnapshot.
-    dumper.registerObject<MembraneInteraction>(
-            this, Interaction::_saveSnapshotWithImpl(dumper, "MembraneInteraction"));
+    dumper.registerObject<MembraneInteraction>(this, _saveSnapshotWithImpl(
+                dumper, "MembraneInteraction"));
 }
 
 void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)

@@ -1,5 +1,6 @@
 #include "mirheo_undump.h"
 #include <mirheo/core/initial_conditions/restart.h>
+#include <mirheo/core/interactions/membrane.h>
 #include <mirheo/core/interactions/pairwise.h>
 #include <mirheo/core/mesh/membrane.h>
 #include <mirheo/core/mesh/mesh.h>
@@ -26,7 +27,7 @@ std::string _parseNameFromReference(const std::string &ref)
 
 void _unknownReferenceError [[noreturn]] (const std::string &name)
 {
-    die("Unknown object reference \"name\".", name.c_str());
+    die("Unknown object reference \"%s\".", name.c_str());
 }
 
 
@@ -63,6 +64,8 @@ importInteraction(const MirState *state, Undumper& un,
 {
     if (type == "PairwiseInteraction")
         return std::make_shared<PairwiseInteraction>(state, un, dict);
+    if (type == "MembraneInteraction")
+        return std::make_shared<MembraneInteraction>(state, un, dict);
     return {};
 }
 
@@ -81,6 +84,15 @@ UndumpContext::UndumpContext(Config compute, Config postprocess,
 
 UndumpContext::~UndumpContext() = default;
 
+const ConfigDictionary& UndumpContext::getCompObjectConfig(
+        const std::string& category, const std::string& name)
+{
+    for (const Config& obj : getComp()[category].getList())
+        if (obj.getDict()["name"].getString() == name)
+            return obj.getDict();
+    die("Object category=\"%s\" name=\"%s\" not found.", category.c_str(), name.c_str());
+}
+
 template <typename T, typename U>
 static std::shared_ptr<T> dynamic_ptr_cast(const std::shared_ptr<U>& ptr)
 {
@@ -90,10 +102,10 @@ static std::shared_ptr<T> dynamic_ptr_cast(const std::shared_ptr<U>& ptr)
         typeid(U).name(), typeid(T).name());
 }
 
-std::shared_ptr<MembraneMesh> UndumpContextGetPtr<MembraneMesh>::get(
+std::shared_ptr<MembraneMesh> UndumpContextGetPtr<MembraneMesh>::getShared(
         UndumpContext *context, const std::string &ref)
 {
-    return dynamic_ptr_cast<MembraneMesh>(context->get<Mesh>(ref));
+    return dynamic_ptr_cast<MembraneMesh>(context->getShared<Mesh>(ref));
 }
 
 
@@ -119,13 +131,13 @@ void importSnapshot(Mirheo *mir, Undumper& un)
     };
 
     if (auto *meshInfos = compConfig.get("Mesh")) {
-        auto &meshes = context.getContainer<Mesh>();
+        auto &meshes = context.getContainerShared<Mesh>();
         for (const auto& info : meshInfos->getList())
             importObject(info, meshes, importMesh);
     }
 
     if (auto *pvInfos = compConfig.get("ParticleVector")) {
-        auto &pvs = context.getContainer<ParticleVector>();
+        auto &pvs = context.getContainerShared<ParticleVector>();
         for (const auto& info : pvInfos->getList()) {
             const auto &pv = importObject(info, pvs, importParticleVector);
             mir->registerParticleVector(pv, ic);
@@ -134,7 +146,7 @@ void importSnapshot(Mirheo *mir, Undumper& un)
 
     if (mir->isComputeTask()) {
         if (auto *interactionInfos = compConfig.get("Interaction")) {
-            auto &interactions = context.getContainer<Interaction>();
+            auto &interactions = context.getContainerShared<Interaction>();
             for (const auto& info : interactionInfos->getList()) {
                 const auto& interaction = importObject(info, interactions, importInteraction);
                 mir->registerInteraction(interaction);
@@ -144,9 +156,9 @@ void importSnapshot(Mirheo *mir, Undumper& un)
         const Config& sim = compConfig["Simulation"][0];
         if (auto *interactionPrototypes = sim.get("interactionPrototypes")) {
             for (const auto& info : interactionPrototypes->getList()) {
-                const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
-                const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
-                const auto& interaction = context.get<Interaction>(info["interaction"]);
+                const auto& pv1 = context.getShared<ParticleVector>(info["pv1"]);
+                const auto& pv2 = context.getShared<ParticleVector>(info["pv2"]);
+                const auto& interaction = context.getShared<Interaction>(info["interaction"]);
                 real rc = un.undump<real>(info["rc"]);
                 if (rc != interaction->rc)
                     die("Interaction rc do not match: %f != %f.", rc, interaction->rc);

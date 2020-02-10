@@ -25,6 +25,7 @@ public:
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                         VarBendingParams varBendingParams, VarShearParams varShearParams,
                         bool stressFree, real growUntil, VarMembraneFilter varFilter);
+    MembraneInteraction(const MirState *state, Undumper&, const ConfigDictionary&);
     ~MembraneInteraction();
     void saveSnapshotAndRegister(Dumper& dumper) override;
     

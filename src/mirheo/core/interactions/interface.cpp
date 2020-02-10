@@ -12,6 +12,15 @@ Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),
     rc(rc)
 {}
+Interaction::Interaction(const MirState *state, Undumper& undumper, const ConfigDictionary& config) :
+    MirSimulationObject(state, undumper, config),
+    rc(config["rc"])
+{
+    // Note: we do NOT load the `impl` object here. Since impl typically has
+    // template arguments, that must be done from the derived class. See the
+    // implementation of MembraneInteraction's constructor using
+    // variantForeach.
+}
 
 Interaction::~Interaction() = default;
 

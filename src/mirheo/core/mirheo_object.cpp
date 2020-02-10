@@ -92,6 +92,9 @@ MirSimulationObject::MirSimulationObject(const MirState *state, const std::strin
     MirObject(name),
     state_(state)
 {}
+MirSimulationObject::MirSimulationObject(const MirState *state, Undumper&, const ConfigDictionary& config) :
+    MirSimulationObject(state, config["name"])
+{}
 
 MirSimulationObject::~MirSimulationObject() = default;
 

@@ -18,6 +18,8 @@
 namespace mirheo
 {
 
+constexpr const char ConfigNullRefString[] = "<nullptr>";
+
 // Move this to utils/type_checker.h?
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
 template <typename T>
@@ -440,7 +442,7 @@ struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>>
 {
     static Config dump(Dumper& dumper, const T& ptr)
     {
-        return ptr ? dumper(*ptr) : "<nullptr>";
+        return ptr ? dumper(*ptr) : Config{ConfigNullRefString};
     }
 };
 

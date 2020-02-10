@@ -49,6 +49,7 @@ class MirSimulationObject : public MirObject
 {
 public:
     MirSimulationObject(const MirState *state, const std::string& name);
+    MirSimulationObject(const MirState *state, Undumper&, const ConfigDictionary&);
     ~MirSimulationObject();
 
     const MirState* getState() const {return state_;}

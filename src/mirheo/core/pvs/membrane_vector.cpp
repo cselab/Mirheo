@@ -15,7 +15,7 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
 
 MembraneVector::MembraneVector(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
     MembraneVector{state, dict["name"], dict["mass"],
-                   un.getContext().get<MembraneMesh>(dict["mesh"]), 0}
+                   un.getContext().getShared<MembraneMesh>(dict["mesh"]), 0}
 {
     assert(dict["__type"] == "MembraneVector");
 

@@ -74,13 +74,24 @@ public:
                             typename DihedralInteraction::ParametersType dihedralParams,
                             real growUntil, Filter filter, long seed = 42424242) :
         Interaction(state, name, 1.0_r),
-        parameters(parameters),
         growUntil(growUntil),
+        parameters(parameters),
         dihedralParams(dihedralParams),
         triangleParams(triangleParams),
         filter(filter),
         stepGen(seed)
     {}
+    MembraneInteractionImpl(const MirState *state, Undumper& un, const ConfigDictionary& dict) :
+        Interaction(state, un, dict),
+        growUntil{dict["growUntil"]},
+        parameters{un.undump<CommonMembraneParameters>(dict["parameters"])},
+        dihedralParams{un.undump<typename DihedralInteraction::ParametersType>(dict["dihedralParams"])},
+        triangleParams{un.undump<typename TriangleInteraction::ParametersType>(dict["triangleParams"])},
+        filter{un.undump<Filter>(dict["filter"])},
+        stepGen(42424242)
+    {
+        warn("stepGen save/load not imported, resetting the seed!");
+    }
 
     ~MembraneInteractionImpl() = default;
 
@@ -170,10 +181,14 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
+    static std::string getTypeName()
+    {
+        return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
+                "MembraneInteractionImpl");
+    }
     void saveSnapshotAndRegister(Dumper& dumper)
     {
-        dumper.registerObject<MembraneInteractionImpl>(
-                this, _saveSnapshot(dumper, "MembraneInteractionImpl<...>"));
+        dumper.registerObject<MembraneInteractionImpl>(this, _saveSnapshot(dumper, getTypeName()));
     }
 
 protected:
@@ -195,7 +210,6 @@ protected:
     typename TriangleInteraction::ParametersType triangleParams;
     Filter filter;
     StepRandomGen stepGen;
-    
 };
 
 } // namespace mirheo
