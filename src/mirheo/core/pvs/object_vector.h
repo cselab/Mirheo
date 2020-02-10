@@ -60,7 +60,7 @@ public:
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
-    void saveSnapshotAndRegister(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Saver&) override;
 
     template<typename T>
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,
@@ -81,7 +81,7 @@ protected:
 
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
     virtual void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms);
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
 private:
     void _snapshotObjectData(MPI_Comm comm, const std::string& filename);

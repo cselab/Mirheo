@@ -196,21 +196,21 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     debug("Checkpoint for rigid object vector '%s' successfully written", getCName());
 }
 
-void RigidObjectVector::saveSnapshotAndRegister(Dumper& dumper)
+void RigidObjectVector::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<RigidObjectVector>(this, _saveSnapshot(dumper, "RigidObjectVector"));
+    saver.registerObject<RigidObjectVector>(this, _saveSnapshot(saver, "RigidObjectVector"));
 }
 
-ConfigObject RigidObjectVector::_saveSnapshot(Dumper &dumper, const std::string& typeName)
+ConfigObject RigidObjectVector::_saveSnapshot(Saver &saver, const std::string& typeName)
 {
     die("RigitObjectVector::_saveSnapshot not tested.");
     // The filename does not include the extension.
-    std::string xdmfFilename = joinPaths(dumper.getContext().path, getName() + "." + RestartROVIdentifier);
-    std::string ipFilename   = joinPaths(dumper.getContext().path, getName() + "." + RestartIPIdentifier);
-    _snapshotObjectData(dumper.getContext().groupComm, xdmfFilename, ipFilename);
+    std::string xdmfFilename = joinPaths(saver.getContext().path, getName() + "." + RestartROVIdentifier);
+    std::string ipFilename   = joinPaths(saver.getContext().path, getName() + "." + RestartIPIdentifier);
+    _snapshotObjectData(saver.getContext().groupComm, xdmfFilename, ipFilename);
 
-    ConfigObject config = ObjectVector::_saveSnapshot(dumper, typeName);
-    config.emplace("J", dumper(J));
+    ConfigObject config = ObjectVector::_saveSnapshot(saver, typeName);
+    config.emplace("J", saver(J));
     // `initialPositions` is stored in `_snapshotObjectData`.
     return config;
 }

@@ -235,4 +235,15 @@ InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::s
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }
 
+std::shared_ptr<Interaction> InteractionFactory::loadInteraction(
+        const MirState *state, Loader& loader,
+        const ConfigObject& config, const std::string &type)
+{
+    if (type == "PairwiseInteraction")
+        return std::make_shared<PairwiseInteraction>(state, loader, config);
+    if (type == "MembraneInteraction")
+        return std::make_shared<MembraneInteraction>(state, loader, config);
+    die("Unrecognized or unimplemented interaction type \"%s\".", type.c_str());
+}
+
 } // namespace mirheo

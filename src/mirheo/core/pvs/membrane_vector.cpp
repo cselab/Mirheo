@@ -1,5 +1,6 @@
 #include "membrane_vector.h"
-#include <mirheo/core/mirheo_undump.h>
+#include <mirheo/core/mesh/membrane.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/config.h>
 
 namespace mirheo
@@ -13,9 +14,9 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
     mesh = std::move(mptr);
 }
 
-MembraneVector::MembraneVector(const MirState *state, Undumper& un, const ConfigObject& config) :
+MembraneVector::MembraneVector(const MirState *state, Loader& loader, const ConfigObject& config) :
     MembraneVector{state, config["name"], config["mass"],
-                   un.getContext().getShared<MembraneMesh>(config["mesh"]), 0}
+                   loader.getContext().getShared<MembraneMesh, Mesh>(config["mesh"]), 0}
 {
     assert(config["__type"] == "MembraneVector");
 
@@ -29,11 +30,11 @@ MembraneVector::MembraneVector(const MirState *state, Undumper& un, const Config
 
 MembraneVector::~MembraneVector() = default;
 
-void MembraneVector::saveSnapshotAndRegister(Dumper& dumper)
+void MembraneVector::saveSnapshotAndRegister(Saver& saver)
 {
     // MembraneVector does not modify _saveSnapshot.
-    dumper.registerObject<MembraneVector>(
-            this, ObjectVector::_saveSnapshot(dumper, "MembraneVector"));
+    saver.registerObject<MembraneVector>(
+            this, ObjectVector::_saveSnapshot(saver, "MembraneVector"));
 }
 
 } // namespace mirheo

@@ -42,7 +42,7 @@ public:
     Interaction(const MirState *state, std::string name, real rc);
 
     /// Load `name` and `rc` from the config. The `impl` is NOT loaded!
-    Interaction(const MirState *state, Undumper&, const ConfigObject&);
+    Interaction(const MirState *state, Loader&, const ConfigObject&);
 
     virtual ~Interaction();
 
@@ -117,13 +117,13 @@ public:
 protected:
     /// Base snapshot function for Interaction objects that store all
     /// parameters themselves.
-    ConfigObject _saveSnapshotWithoutImpl(Dumper& dumper, const std::string &typeName);
+    ConfigObject _saveSnapshotWithoutImpl(Saver&, const std::string &typeName);
 
     /// Base snapshot function that need to serialize the impl object as well.
-    ConfigObject _saveSnapshotWithImpl(Dumper& dumper, const std::string &typeName);
+    ConfigObject _saveSnapshotWithImpl(Saver&, const std::string &typeName);
 
     /// Base snapshot function for impl interactions.
-    ConfigObject _saveImplSnapshot(Dumper& dumper, const std::string &typeName);
+    ConfigObject _saveImplSnapshot(Saver&, const std::string &typeName);
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };

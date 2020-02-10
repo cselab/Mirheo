@@ -13,7 +13,7 @@ public:
     
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         const VarPairwiseParams& varParams, const VarStressParams& varStressParams);
-    PairwiseInteraction(const MirState *state, Undumper&, const ConfigObject&);
+    PairwiseInteraction(const MirState *state, Loader&, const ConfigObject&);
     ~PairwiseInteraction();
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
@@ -28,12 +28,12 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    void saveSnapshotAndRegister(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Saver& saver) override;
 
     void setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, const ParametersWrap::MapParams& desc);
 
 protected:
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     VarPairwiseParams varParams;

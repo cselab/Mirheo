@@ -8,6 +8,23 @@
 namespace mirheo
 {
 
+std::string parseNameFromRefString(const ConfigRefString &ref)
+{
+    // Format: "<TYPENAME with name=NAME>".
+    size_t pos = ref.find("with name=");
+    if (pos == std::string::npos)
+        die("Unrecognized or unnamed reference format: %s", ref.c_str());
+    pos += 4 + 1 + 5;
+    return ref.substr(pos, ref.size() - pos - 1);
+}
+
+/// Create a string that refers to an object located elsewhere in the JSON file.
+static inline ConfigRefString createRefString(const char *typeName, const char *objectName)
+{
+    return objectName ? strprintf("<%s with name=%s>", typeName, objectName)
+                      : strprintf("<%s>", typeName);
+}
+
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName)
 {
     die("Missing implementation of a virtual member function. Var type=%s class type=%s",
@@ -25,7 +42,7 @@ static std::string stringToJSON(const std::string& input)
 {
     std::string output;
     output.reserve(2 + input.size());
-    output.push_back('"');
+    output += '"';
     for (char c : input) {
         switch (c) {
         case '"': output += "\\\""; break;
@@ -36,25 +53,28 @@ static std::string stringToJSON(const std::string& input)
         case '\t': output += "\\t"; break;
         case '\\': output += "\\\\"; break;
         default:
-            output.push_back(c);
+            output += c;
         }
     }
-    output.push_back('"');
+    output += '"';
     return output;
 }
 
-namespace {
-    class ConfigToJSON {
+namespace
+{
+    class ConfigToJSON
+    {
     public:
-        enum class Tag {
-            StartDict,
-            EndDict,
-            StartList,
-            EndList,
-            StartDictItem,
-            EndDictItem,
-            StartListItem,
-            EndListItem,
+        enum class Tag
+        {
+            StartObject,
+            EndObject,
+            StartArray,
+            EndArray,
+            StartObjectItem,
+            EndObjectItem,
+            StartArrayItem,
+            EndArrayItem,
             Dummy
         };
 
@@ -78,22 +98,22 @@ void ConfigToJSON::process(const ConfigValue& element)
     } else if (auto *v = element.get_if<std::string>()) {
         tokens_.push_back(stringToJSON(*v));
     } else if (auto *obj = element.get_if<ConfigValue::Object>()) {
-        tokens_.push_back(Tag::StartDict);
+        tokens_.push_back(Tag::StartObject);
         for (const auto &pair : *obj) {
-            tokens_.push_back(Tag::StartDictItem);
+            tokens_.push_back(Tag::StartObjectItem);
             tokens_.push_back(stringToJSON(pair.first));
             process(pair.second);
-            tokens_.push_back(Tag::EndDictItem);
+            tokens_.push_back(Tag::EndObjectItem);
         }
-        tokens_.push_back(Tag::EndDict);
-    } else if (auto *list = element.get_if<ConfigValue::List>()) {
-        tokens_.push_back(Tag::StartList);
-        for (const ConfigValue& el : *list) {
-            tokens_.push_back(Tag::StartListItem);
+        tokens_.push_back(Tag::EndObject);
+    } else if (auto *array = element.get_if<ConfigValue::Array>()) {
+        tokens_.push_back(Tag::StartArray);
+        for (const ConfigValue& el : *array) {
+            tokens_.push_back(Tag::StartArrayItem);
             process(el);
-            tokens_.push_back(Tag::EndListItem);
+            tokens_.push_back(Tag::EndArrayItem);
         }
-        tokens_.push_back(Tag::EndList);
+        tokens_.push_back(Tag::EndArray);
     } else {
         assert(false);
     }
@@ -104,7 +124,7 @@ std::string ConfigToJSON::generate()
     std::ostringstream stream;
     std::string nlindent {'\n'};
 
-    enum class ObjectType { Dict, List };
+    enum class ObjectType { Object, Array };
 
     auto push = [&]() { nlindent += "    "; };
     auto pop  = [&]() { nlindent.erase(nlindent.size() - 4); };
@@ -126,8 +146,8 @@ std::string ConfigToJSON::generate()
             nextTag = Tag::Dummy;
 
         switch (tag) {
-        case Tag::StartDict:
-            if (nextTag == Tag::EndDict) {
+        case Tag::StartObject:
+            if (nextTag == Tag::EndObject) {
                 stream << "{}";
                 ++i;
                 break;
@@ -135,12 +155,12 @@ std::string ConfigToJSON::generate()
             stream << '{';
             push();
             break;
-        case Tag::EndDict:
+        case Tag::EndObject:
             pop();
             stream << nlindent << '}';
             break;
-        case Tag::StartList:
-            if (nextTag == Tag::EndList) {
+        case Tag::StartArray:
+            if (nextTag == Tag::EndArray) {
                 stream << "[]";
                 ++i;
                 break;
@@ -148,22 +168,22 @@ std::string ConfigToJSON::generate()
             stream << '[';
             push();
             break;
-        case Tag::EndList:
+        case Tag::EndArray:
             pop();
             stream << nlindent << ']';
             break;
-        case Tag::StartDictItem:
+        case Tag::StartObjectItem:
             stream << nlindent;
             stream << mpark::get<std::string>(nextToken); // Key.
             stream << ": ";
             ++i;
             break;
-        case Tag::StartListItem:
+        case Tag::StartArrayItem:
             stream << nlindent;
             break;
-        case Tag::EndDictItem:
-        case Tag::EndListItem:
-            if (nextTag == Tag::EndDict || nextTag == Tag::EndList)
+        case Tag::EndObjectItem:
+        case Tag::EndArrayItem:
+            if (nextTag == Tag::EndObject || nextTag == Tag::EndArray)
                 break;
             stream << ',';
             break;
@@ -251,18 +271,18 @@ const ConfigValue::String& ConfigValue::getString() const {
     die("getString on a non-string object:\n%s", toJSONString().c_str());
 }
 
-const ConfigValue::List& ConfigValue::getList() const
+const ConfigValue::Array& ConfigValue::getArray() const
 {
-    if (auto *list = get_if<List>())
-        return *list;
-    die("getList on a non-list object:\n%s", toJSONString().c_str());
+    if (auto *array = get_if<Array>())
+        return *array;
+    die("getArray on a non-array object:\n%s", toJSONString().c_str());
 }
 
-ConfigValue::List& ConfigValue::getList()
+ConfigValue::Array& ConfigValue::getArray()
 {
-    if (auto *list = get_if<List>())
-        return *list;
-    die("getList on a non-list object:\n%s", toJSONString().c_str());
+    if (auto *array = get_if<Array>())
+        return *array;
+    die("getArray on a non-array object:\n%s", toJSONString().c_str());
 }
 
 const ConfigValue::Object& ConfigValue::getObject() const
@@ -279,7 +299,7 @@ ConfigValue::Object& ConfigValue::getObject()
     die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-ConfigValue& ConfigList::_outOfBound [[noreturn]] (size_t index, size_t size) const
+ConfigValue& ConfigArray::_outOfBound [[noreturn]] (size_t index, size_t size) const
 {
     die("Index %zu out of range (size=%zu):\n%s",
         index, size, ConfigValue{*this}.toJSONString().c_str());
@@ -293,76 +313,76 @@ bool DumpContext::isGroupMasterTask() const
 }
 
 
-Dumper::Dumper(DumpContext context) :
+Saver::Saver(DumpContext context) :
     config_{ConfigValue::Object{}}, context_{std::move(context)}
 {}
 
-Dumper::~Dumper() = default;
+Saver::~Saver() = default;
 
-bool Dumper::isObjectRegistered(const void *ptr) const noexcept
+bool Saver::isObjectRegistered(const void *ptr) const noexcept
 {
     return descriptions_.find(ptr) != descriptions_.end();
 }
-const std::string& Dumper::getObjectRefString(const void *ptr) const
+const std::string& Saver::getObjectRefString(const void *ptr) const
 {
     assert(isObjectRegistered(ptr));
     return descriptions_.find(ptr)->second;
 }
 
-const std::string& Dumper::_registerObject(const void *ptr, ConfigValue object)
+const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
 {
     assert(!isObjectRegistered(ptr));
 
-    auto *newDict = object.get_if<ConfigValue::Object>();
-    if (newDict == nullptr)
+    auto *newObject = object.get_if<ConfigValue::Object>();
+    if (newObject == nullptr)
         die("Expected a dictionary, instead got:\n%s", object.toJSONString().c_str());
 
     // Get the category name and remove it from the dictionary.
-    auto itCategory = newDict->find("__category");
-    if (itCategory == newDict->end()) {
+    auto itCategory = newObject->find("__category");
+    if (itCategory == newObject->end()) {
         die("Key \"%s\" not found in the config:\n%s",
             "__category", object.toJSONString().c_str());
     }
     std::string category = std::move(itCategory)->second.getString();
-    newDict->erase(itCategory);
+    newObject->erase(itCategory);
 
-    // Find the category in the master object. Add an empty list if not found.
+    // Find the category in the master object. Add an empty array if not found.
     auto& obj = config_.getObject();
     auto it = obj.find(category);
     if (it == obj.end())
-        it = obj.emplace(category, ConfigValue::List{}).first;
+        it = obj.emplace(category, ConfigValue::Array{}).first;
 
     // Get the object name, if it exists.
-    auto itName = newDict->find("name");
+    auto itName = newObject->find("name");
     const char *name =
-        itName != newDict->end() ? itName->second.getString().c_str() : nullptr;
+        itName != newObject->end() ? itName->second.getString().c_str() : nullptr;
 
     // Get the object type.
-    auto itType = newDict->find("__type");
-    if (itType == newDict->end()) {
+    auto itType = newObject->find("__type");
+    if (itType == newObject->end()) {
         die("Key \"%s\" not found in the config:\n%s",
             "__type", object.toJSONString().c_str());
     }
 
+    // Genreate the refstring before moving the object, just in case.
     const char *type = itType->second.getString().c_str();
-    std::string ref = name ? strprintf("<%s with name=%s>", type, name)
-                           : strprintf("<%s>", type);
-    it->second.getList().emplace_back(std::move(object));
+    ConfigRefString ref = createRefString(type, name);
+    it->second.getArray().emplace_back(std::move(object));
 
     return descriptions_.emplace(ptr, std::move(ref)).first->second;
 }
 
 
-ConfigValue ConfigDumper<float3>::dump(Dumper&, float3 v)
+ConfigValue TypeLoadSave<float3>::save(Saver&, float3 v)
 {
-    return ConfigValue::List{(double)v.x, (double)v.y, (double)v.z};
+    return ConfigValue::Array{(double)v.x, (double)v.y, (double)v.z};
 }
-float3 ConfigDumper<float3>::parse(const ConfigValue &config)
+float3 TypeLoadSave<float3>::parse(const ConfigValue &config)
 {
-    const auto& list = config.getList();
-    if (list.size() != 3)
-        die("Expected 3 elements, got %zu.", list.size());
-    return float3{(float)list[0], (float)list[1], (float)list[2]};
+    const auto& array = config.getArray();
+    if (array.size() != 3)
+        die("Expected 3 elements, got %zu.", array.size());
+    return float3{(float)array[0], (float)array[1], (float)array[2]};
 }
 
 void _variantDumperError [[noreturn]] (size_t index, size_t size)
@@ -417,18 +437,18 @@ namespace {
                 nextToken(TT::ClosedBrace);  // Consume.
                 return ConfigValue{std::move(obj)};
             } else if (token == TT::OpenSquare) {
-                ConfigValue::List list;
+                ConfigValue::Array array;
                 for (;;) {
                     if (peekToken(TT::AnyValue, TT::ClosedSquare) == TT::ClosedSquare)
                         break;
-                    list.push_back(parse());
+                    array.push_back(parse());
                     if (peekToken(TT::ClosedSquare, TT::Comma) == TT::Comma) {
                         nextToken(TT::Comma);  // Consume.
                         continue;
                     }
                 }
                 nextToken(TT::ClosedSquare);  // Consume.
-                return ConfigValue{std::move(list)};
+                return ConfigValue{std::move(array)};
             } else if (token == TT::Int) {
                 return mpark::get<ConfigValue::Int>(token.value);
             } else if (token == TT::Float) {

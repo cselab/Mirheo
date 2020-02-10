@@ -39,9 +39,9 @@ public:
 };
 
 template <>
-struct ConfigDumper<MirState>
+struct TypeLoadSave<MirState>
 {
-    static ConfigValue dump(Dumper&, MirState& state);
+    static ConfigValue save(Saver&, MirState& state);
 };
 
 } // namespace mirheo

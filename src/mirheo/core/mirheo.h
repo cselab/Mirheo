@@ -27,7 +27,7 @@ class Bouncer;
 class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
-class UndumpContext;
+class LoaderContext;
 
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
@@ -138,7 +138,7 @@ private:
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-              UndumpContext *undump = nullptr);
+              LoaderContext *context = nullptr);
     void initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
                           LogInfo logInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);

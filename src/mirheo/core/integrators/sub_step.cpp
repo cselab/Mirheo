@@ -45,17 +45,17 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
 
 IntegratorSubStep::~IntegratorSubStep() = default;
 
-void IntegratorSubStep::saveSnapshotAndRegister(Dumper& dumper)
+void IntegratorSubStep::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<IntegratorSubStep>(this, _saveSnapshot(dumper, "IntegratorSubStep"));
+    saver.registerObject<IntegratorSubStep>(this, _saveSnapshot(saver, "IntegratorSubStep"));
 }
 
-ConfigObject IntegratorSubStep::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject IntegratorSubStep::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = Integrator::_saveSnapshot(dumper, typeName);
-    config.emplace("fastForces",    dumper(fastForces_));
-    config.emplace("subIntegrator", dumper(subIntegrator_));
-    config.emplace("substeps",      dumper(substeps_));
+    ConfigObject config = Integrator::_saveSnapshot(saver, typeName);
+    config.emplace("fastForces",    saver(fastForces_));
+    config.emplace("subIntegrator", saver(subIntegrator_));
+    config.emplace("substeps",      saver(substeps_));
     return config;
 }
 

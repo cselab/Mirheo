@@ -21,10 +21,10 @@ public:
 
     void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
-    void saveSnapshotAndRegister(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Saver&) override;
 
 protected:
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
 private:
     MPI_Request listenSimulation(int tag, int *msg) const;
@@ -33,7 +33,7 @@ private:
     using MirObject::checkpoint;
 
 private:
-    friend Dumper;
+    friend Saver;
 
     MPI_Comm comm_;
     MPI_Comm interComm_;

@@ -21,21 +21,21 @@ MirObject::~MirObject()
 void MirObject::checkpoint(__UNUSED MPI_Comm comm, __UNUSED const std::string& path, __UNUSED int checkpointId) {}
 void MirObject::restart   (__UNUSED MPI_Comm comm, __UNUSED const std::string& path) {}
 
-void MirObject::saveSnapshotAndRegister(Dumper& dumper)
+void MirObject::saveSnapshotAndRegister(Saver& saver)
 {
     // This will always trigger a /function not implemented/ runtime error,
     // because MirObject is effectively an abstract class.
-    dumper.registerObject<MirObject>(
-            this, _saveSnapshot(dumper, "UnknownCategory", "MirObject"));
+    saver.registerObject<MirObject>(
+            this, _saveSnapshot(saver, "UnknownCategory", "MirObject"));
 }
 
-ConfigObject MirObject::_saveSnapshot(Dumper& dumper, const std::string& category, const std::string& typeName)
+ConfigObject MirObject::_saveSnapshot(Saver& saver, const std::string& category, const std::string& typeName)
 {
     ConfigObject config;
     // "Unsafe" == skip checking whether the key is already in use.
-    config.unsafe_insert("__category", dumper(category));
-    config.unsafe_insert("__type", dumper(typeName));
-    config.unsafe_insert("name", dumper(name_));
+    config.unsafe_insert("__category", saver(category));
+    config.unsafe_insert("__type",     saver(typeName));
+    config.unsafe_insert("name",       saver(name_));
     return config;
 }
 
@@ -92,7 +92,7 @@ MirSimulationObject::MirSimulationObject(const MirState *state, const std::strin
     MirObject(name),
     state_(state)
 {}
-MirSimulationObject::MirSimulationObject(const MirState *state, Undumper&, const ConfigObject& config) :
+MirSimulationObject::MirSimulationObject(const MirState *state, Loader&, const ConfigObject& config) :
     MirSimulationObject(state, config["name"])
 {}
 
@@ -103,11 +103,11 @@ void MirSimulationObject::setState(const MirState *state)
     state_ = state;
 }
 
-ConfigValue ConfigMirObjectDumper::dump(Dumper& dumper, MirObject& obj)
+ConfigValue ConfigMirObjectLoadSave::save(Saver& saver, MirObject& obj)
 {
-    if (!dumper.isObjectRegistered(&obj))
-        obj.saveSnapshotAndRegister(dumper);
-    return dumper.getObjectRefString(&obj);
+    if (!saver.isObjectRegistered(&obj))
+        obj.saveSnapshotAndRegister(saver);
+    return saver.getObjectRefString(&obj);
 }
 
 } // namespace mirheo

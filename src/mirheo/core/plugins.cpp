@@ -99,9 +99,9 @@ void SimulationPlugin::send(const void *data, size_t sizeInBytes)
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank, _dataTag(), interComm, &dataReq_) );
 }
 
-ConfigObject SimulationPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject SimulationPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    return MirSimulationObject::_saveSnapshot(dumper, "SimulationPlugin", typeName);
+    return MirSimulationObject::_saveSnapshot(saver, "SimulationPlugin", typeName);
 }
 
 // PostprocessPlugin
@@ -143,9 +143,9 @@ void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
     _setup(comm, interComm);
 }
 
-ConfigObject PostprocessPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject PostprocessPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    return MirObject::_saveSnapshot(dumper, "PostprocessPlugin", typeName);
+    return MirObject::_saveSnapshot(saver, "PostprocessPlugin", typeName);
 }
 
 } // namespace mirheo

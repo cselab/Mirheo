@@ -1,7 +1,7 @@
 #include "mesh.h"
 
 #include <mirheo/core/mesh/off.h>
-#include <mirheo/core/mirheo_undump.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
@@ -24,8 +24,8 @@ Mesh::Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh) :
     Mesh(std::get<0>(mesh), std::get<1>(mesh))
 {}
 
-Mesh::Mesh(Undumper& un, const ConfigObject& config) :
-    Mesh(joinPaths(un.getContext().getPath(), config["name"] + ".off"))
+Mesh::Mesh(Loader& loader, const ConfigObject& config) :
+    Mesh(joinPaths(loader.getContext().getPath(), config["name"] + ".off"))
 {
     assert(config["__type"] == "Mesh");
 }
@@ -97,20 +97,20 @@ PyTypes::VectorOfInt3 Mesh::getTriangles()
     return ret;
 }
 
-void Mesh::saveSnapshotAndRegister(Dumper& dumper)
+void Mesh::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<Mesh>(this, _saveSnapshot(dumper, "Mesh"));
+    saver.registerObject<Mesh>(this, _saveSnapshot(saver, "Mesh"));
 }
 
-ConfigObject Mesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Mesh::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     // Increment the "mesh" context counter and the old value as an ID.
-    int id = dumper.getContext().counters["mesh"]++;
+    int id = saver.getContext().counters["mesh"]++;
     std::string name = "mesh_" + std::to_string(id);
 
-    if (dumper.getContext().isGroupMasterTask()) {
+    if (saver.getContext().isGroupMasterTask()) {
         // Dump the mesh to a file.
-        std::string fileName = joinPaths(dumper.getContext().path, name + ".off");
+        std::string fileName = joinPaths(saver.getContext().path, name + ".off");
         std::vector<int3> tmpTriangles(triangles.begin(), triangles.end());
         std::vector<real3> tmpVertices(vertexCoordinates.size());
         for (size_t i = 0; i < tmpVertices.size(); ++i) {
@@ -123,9 +123,9 @@ ConfigObject Mesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
 
     // Note: The mesh file name can be constructed from the object name.
     return ConfigObject{
-        {"__category", dumper("Mesh")},
-        {"__type",     dumper(typeName)},
-        {"name",       dumper(name)},
+        {"__category", saver("Mesh")},
+        {"__type",     saver(typeName)},
+        {"name",       saver(name)},
     };
 }
 
@@ -166,11 +166,11 @@ MeshView::MeshView(const Mesh *m) :
     triangles  (m->triangles.devPtr())   
 {}
 
-ConfigValue ConfigDumper<Mesh>::dump(Dumper& dumper, Mesh& mesh)
+ConfigValue TypeLoadSave<Mesh>::save(Saver& saver, Mesh& mesh)
 {
-    if (!dumper.isObjectRegistered(&mesh))
-        mesh.saveSnapshotAndRegister(dumper);
-    return dumper.getObjectRefString(&mesh);
+    if (!saver.isObjectRegistered(&mesh))
+        mesh.saveSnapshotAndRegister(saver);
+    return saver.getObjectRefString(&mesh);
 }
 
 } // namespace mirheo

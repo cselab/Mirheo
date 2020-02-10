@@ -56,7 +56,7 @@ class ParticleVector : public MirSimulationObject
 public:
     
     ParticleVector(const MirState *state, const std::string& name, real mass, int n=0);
-    ParticleVector(const MirState *state, Undumper&, const ConfigObject&);
+    ParticleVector(const MirState *state, Loader&, const ConfigObject&);
     ~ParticleVector() override;
     
     LocalParticleVector* local() { return local_.get(); }
@@ -71,7 +71,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    void saveSnapshotAndRegister(Dumper&) override;
+    void saveSnapshotAndRegister(Saver&) override;
     
     // Python getters / setters
     // Use default blocking stream
@@ -97,7 +97,7 @@ protected:
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
 
-    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
     using ExchMap = std::vector<int>;
     struct ExchMapSize

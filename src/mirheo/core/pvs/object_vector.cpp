@@ -214,20 +214,20 @@ void ObjectVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize * objSize, defaultStream);
 }
 
-void ObjectVector::saveSnapshotAndRegister(Dumper& dumper)
+void ObjectVector::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<ObjectVector>(this, _saveSnapshot(dumper, "ObjectVector"));
+    saver.registerObject<ObjectVector>(this, _saveSnapshot(saver, "ObjectVector"));
 }
 
-ConfigObject ObjectVector::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject ObjectVector::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     // The filename does not include the extension.
-    std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartOVIdentifier);
-    _snapshotObjectData(dumper.getContext().groupComm, filename);
+    std::string filename = joinPaths(saver.getContext().path, getName() + "." + RestartOVIdentifier);
+    _snapshotObjectData(saver.getContext().groupComm, filename);
 
-    ConfigObject config = ParticleVector::_saveSnapshot(dumper, typeName);
-    config.emplace("objSize", dumper(objSize));
-    config.emplace("mesh",    dumper(mesh));
+    ConfigObject config = ParticleVector::_saveSnapshot(saver, typeName);
+    config.emplace("objSize", saver(objSize));
+    config.emplace("mesh",    saver(mesh));
     return config;
 }
 

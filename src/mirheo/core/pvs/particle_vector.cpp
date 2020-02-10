@@ -360,28 +360,26 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     local()->resize(ms.newSize, defaultStream);
 }
 
-void ParticleVector::saveSnapshotAndRegister(Dumper& dumper)
+void ParticleVector::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<ParticleVector>(this, _saveSnapshot(dumper, "ParticleVector"));
+    saver.registerObject<ParticleVector>(this, _saveSnapshot(saver, "ParticleVector"));
 }
 
-ConfigObject ParticleVector::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject ParticleVector::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     // The filename does not include the extension.
-    std::string filename = joinPaths(dumper.getContext().path, getName() + "." + RestartPVIdentifier);
-    _snapshotParticleData(dumper.getContext().groupComm, filename);
+    std::string filename = joinPaths(saver.getContext().path, getName() + "." + RestartPVIdentifier);
+    _snapshotParticleData(saver.getContext().groupComm, filename);
     ConfigObject config = MirSimulationObject::_saveSnapshot(
-            dumper, "ParticleVector", typeName);
-    config.emplace("mass", dumper(mass));
+            saver, "ParticleVector", typeName);
+    config.emplace("mass", saver(mass));
     return config;
 }
 
-ParticleVector::ParticleVector(const MirState *state, Undumper& un, const ConfigObject& config) :
-    ParticleVector{state,
-                   un.undump<std::string>(config.at("name")),
-                   un.undump<real>(config.at("mass"))}
+ParticleVector::ParticleVector(const MirState *state, Loader&, const ConfigObject& config) :
+    ParticleVector{state, (const std::string&)config["name"], (real)config["mass"]}
 {
-    assert(config.at("__type").getString() == "ParticleVector");
+    assert(config["__type"].getString() == "ParticleVector");
     // Note: Particles loaded by RestartIC.
 }
 

@@ -22,9 +22,9 @@ void Integrator::invalidatePV_(ParticleVector *pv)
     pv->cellListStamp++;
 }
 
-ConfigObject Integrator::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Integrator::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    return MirSimulationObject::_saveSnapshot(dumper, "Integrator", typeName);
+    return MirSimulationObject::_saveSnapshot(saver, "Integrator", typeName);
 }
 
 } // namespace mirheo

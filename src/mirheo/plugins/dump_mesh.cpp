@@ -62,16 +62,16 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     send(sendBuffer_);
 }
 
-void MeshPlugin::saveSnapshotAndRegister(Dumper& dumper)
+void MeshPlugin::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<MeshPlugin>(this, _saveSnapshot(dumper, "MeshPlugin"));
+    saver.registerObject<MeshPlugin>(this, _saveSnapshot(saver, "MeshPlugin"));
 }
 
-ConfigObject MeshPlugin::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MeshPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = SimulationPlugin::_saveSnapshot(dumper, typeName);
-    config.emplace("dumpEvery", dumper(dumpEvery_));
-    config.emplace("ovName",    dumper(ovName_)); // `ov_` potentially not yet initialized.
+    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("dumpEvery", saver(dumpEvery_));
+    config.emplace("ovName",    saver(ovName_)); // `ov_` potentially not yet initialized.
     return config;
 }
 
@@ -198,15 +198,15 @@ void MeshDumper::deserialize()
     }
 }
 
-void MeshDumper::saveSnapshotAndRegister(Dumper& dumper)
+void MeshDumper::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<MeshDumper>(this, _saveSnapshot(dumper, "MeshDumper"));
+    saver.registerObject<MeshDumper>(this, _saveSnapshot(saver, "MeshDumper"));
 }
 
-ConfigObject MeshDumper::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MeshDumper::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(dumper, typeName);
-    config.emplace("path", dumper(path_));
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("path", saver(path_));
     return config;
 }
 

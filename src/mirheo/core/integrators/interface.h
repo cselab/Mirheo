@@ -54,7 +54,7 @@ public:
 
 protected:
     void invalidatePV_(ParticleVector *pv);
-    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 };
 
 } // namespace mirheo

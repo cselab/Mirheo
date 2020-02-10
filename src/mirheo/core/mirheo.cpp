@@ -6,13 +6,13 @@
 #include <mirheo/core/integrators/interface.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/logger.h>
-#include <mirheo/core/mirheo_undump.h>
 #include <mirheo/core/object_belonging/interface.h>
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/postproc.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
@@ -71,9 +71,9 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 
 void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-                  UndumpContext *undump)
+                  LoaderContext *load)
 {
-    const ConfigValue *stateConfig = undump ? &undump->getComp()["Mirheo"][0]["state"] : nullptr;
+    const ConfigValue *stateConfig = load ? &load->getComp()["Mirheo"][0]["state"] : nullptr;
 
     int nranks;
 
@@ -148,17 +148,17 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 void Mirheo::initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
                            LogInfo logInfo, bool gpuAwareMPI)
 {
-    UndumpContext context{snapshotPath};
-    Undumper undumper{&context};
+    LoaderContext context{snapshotPath};
+    Loader loader{&context};
 
     const ConfigValue& mirState = context.getComp()["Mirheo"][0]["state"];
     real  dt               = mirState["dt"];
     real3 globalDomainSize = mirState["domainGlobalSize"];
-    auto  checkpointInfo   = undumper.undump<CheckpointInfo>(
+    auto  checkpointInfo   = loader.load<CheckpointInfo>(
             context.getComp()["Simulation"][0]["checkpointInfo"]);
 
     init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, &context);
-    importSnapshot(this, undumper);
+    loadSnapshot(this, loader);
 }
 
 void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
@@ -730,34 +730,34 @@ static void storeToFile(const std::string& content, const std::string& filename)
 
 void Mirheo::saveSnapshot(std::string path)
 {
-    // Prepare context and the dumper.
+    // Prepare context and the saver.
     DumpContext context;
     context.path = path;
     context.groupComm = isComputeTask() ? cartComm_ : ioComm_;
     if (context.groupComm == MPI_COMM_NULL)
         die("something's wrong with the comm.");
-    Dumper dumper(std::move(context));
+    Saver saver(std::move(context));
 
-    // Create the snapshot folder before creating the dump.
+    // Create the snapshot folder before saving.
     if (!path.empty())
         if (!createFoldersCollective(comm_, path))
             die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
 
     // Dump the Mirheo object and the whole simulation recursively.
     ConfigValue::Object config;
-    config.emplace("__category", dumper("Mirheo"));
-    config.emplace("__type",     dumper("Mirheo"));
+    config.emplace("__category", saver("Mirheo"));
+    config.emplace("__type",     saver("Mirheo"));
     if (state_)
-        config.emplace("state",  dumper(state_));
+        config.emplace("state",  saver(state_));
     if (sim_)
-        config.emplace("simulation", dumper(sim_));
+        config.emplace("simulation", saver(sim_));
     if (post_)
-        config.emplace("postprocess", dumper(post_));
-    dumper.registerObject(this, std::move(config));
+        config.emplace("postprocess", saver(post_));
+    saver.registerObject(this, std::move(config));
 
     // Store the config files to the disk.
     if (isSimulationMasterTask() || isPostprocessMasterTask()) {
-        std::string content = dumper.getConfig().toJSONString() + '\n';
+        std::string content = saver.getConfig().toJSONString() + '\n';
         std::string jsonName = isComputeTask() ? "config.compute.json" : "config.post.json";
         storeToFile(content, joinPaths(path, jsonName));
     }

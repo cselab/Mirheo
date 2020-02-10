@@ -1,6 +1,6 @@
 #include "membrane.h"
 
-#include <mirheo/core/mirheo_undump.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/file_wrapper.h>
@@ -102,10 +102,10 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
     _computeInitialQuantities(stressFreeMesh.vertexCoordinates);
 }
 
-MembraneMesh::MembraneMesh(Undumper& un, const ConfigObject& config) :
-    Mesh(un, config)
+MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :
+    Mesh(loader, config)
 {
-    std::string fileName = joinPaths(un.getContext().getPath(), config["name"] + ".stressFree.dat");
+    std::string fileName = joinPaths(loader.getContext().getPath(), config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "r");
     readReals(f.get(), &initialLengths);
     readReals(f.get(), &initialAreas);
@@ -118,16 +118,16 @@ MembraneMesh& MembraneMesh::operator=(MembraneMesh&&) = default;
 
 MembraneMesh::~MembraneMesh() = default;
 
-void MembraneMesh::saveSnapshotAndRegister(Dumper& dumper)
+void MembraneMesh::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<MembraneMesh>(this, _saveSnapshot(dumper, "MembraneMesh"));
+    saver.registerObject<MembraneMesh>(this, _saveSnapshot(saver, "MembraneMesh"));
 }
 
-ConfigObject MembraneMesh::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject MembraneMesh::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = Mesh::_saveSnapshot(dumper, typeName);
+    ConfigObject config = Mesh::_saveSnapshot(saver, typeName);
 
-    std::string fileName = joinPaths(dumper.getContext().path, config["name"] + ".stressFree.dat");
+    std::string fileName = joinPaths(saver.getContext().path, config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "w");
     writeReals(f.get(), initialLengths);
     writeReals(f.get(), initialAreas);

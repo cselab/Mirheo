@@ -90,17 +90,17 @@ bool CheckpointInfo::needDump() const
     return every != 0;
 }
 
-ConfigValue ConfigDumper<CheckpointInfo>::dump(Dumper& dumper, const CheckpointInfo& info)
+ConfigValue TypeLoadSave<CheckpointInfo>::save(Saver& saver, const CheckpointInfo& info)
 {
     return ConfigValue::Object{
-        {"__type", dumper("CheckpointInfo")},
-        {"every",  dumper(info.every)},
-        {"folder", dumper(info.folder)},
-        {"mode",   dumper(info.mode)},
+        {"__type", saver("CheckpointInfo")},
+        {"every",  saver(info.every)},
+        {"folder", saver(info.folder)},
+        {"mode",   saver(info.mode)},
     };
 }
 
-CheckpointInfo ConfigDumper<CheckpointInfo>::undump(Undumper&, const ConfigValue& config)
+CheckpointInfo TypeLoadSave<CheckpointInfo>::load(Loader&, const ConfigValue& config)
 {
     assert(config["__type"] == "CheckpointInfo");
     return CheckpointInfo{config["every"], config["folder"], config["mode"]};

@@ -3,9 +3,9 @@
 #include <mirheo/core/interactions/pairwise.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/type_traits.h>
-#include <mirheo/core/mirheo_undump.h>
 
 using namespace mirheo;
 
@@ -48,27 +48,27 @@ struct Struct3 {
 
 // Test manual specialization.
 template <>
-struct mirheo::ConfigDumper<Struct1>
+struct mirheo::TypeLoadSave<Struct1>
 {
-    static ConfigValue dump(Dumper& dumper, const Struct1& s)
+    static ConfigValue save(Saver& saver, const Struct1& s)
     {
         return ConfigValue::Object{
-            {"b", dumper(s.b)},
-            {"a", dumper(s.a)},
-            {"c", dumper(s.c)},
+            {"b", saver(s.b)},
+            {"a", saver(s.a)},
+            {"c", saver(s.c)},
         };
     }
-    static Struct1 undump(Undumper& un, const ConfigValue& config)
+    static Struct1 load(Loader& loader, const ConfigValue& config)
     {
         return Struct1{
-            un.undump<int>(config["b"]),
-            un.undump<double>(config["a"]),
-            un.undump<std::string>(config["c"]),
+            loader.load<int>(config["b"]),
+            loader.load<double>(config["a"]),
+            loader.load<std::string>(config["c"]),
         };
     }
 };
 
-// Test dumping through reflection.
+// Test saving through reflection.
 template <>
 struct mirheo::MemberVars<Struct2>
 {
@@ -87,39 +87,39 @@ MIRHEO_MEMBER_VARS_2(Struct3, z, w);
 
 TEST(Snapshot, BasicConfigToJSON)
 {
-    Dumper dumper{DumpContext{}};
+    Saver saver{DumpContext{}};
 
     // Test basic variant types.
-    ASSERT_STREQ(dumper(10).toJSONString().c_str(), "10");
-    ASSERT_STREQ(dumper(12.125).toJSONString().c_str(), "12.125");
-    ASSERT_STREQ(dumper("asdf").toJSONString().c_str(), "\"asdf\"");
-    ASSERT_STREQ(dumper(std::vector<int>{10, 20, 30}).toJSONString().c_str(),
+    ASSERT_STREQ(saver(10).toJSONString().c_str(), "10");
+    ASSERT_STREQ(saver(12.125).toJSONString().c_str(), "12.125");
+    ASSERT_STREQ(saver("asdf").toJSONString().c_str(), "\"asdf\"");
+    ASSERT_STREQ(saver(std::vector<int>{10, 20, 30}).toJSONString().c_str(),
                  "[\n    10,\n    20,\n    30\n]");
-    ASSERT_STREQ(dumper(std::map<std::string, int>{{"a", 10}, {"b", 20}}).toJSONString().c_str(),
+    ASSERT_STREQ(saver(std::map<std::string, int>{{"a", 10}, {"b", 20}}).toJSONString().c_str(),
                  "{\n    \"a\": 10,\n    \"b\": 20\n}");
 
     // Test escaping special characters.
-    ASSERT_STREQ(dumper("\"  '  \\  \f  \b  \r  \n  \t").toJSONString().c_str(),
+    ASSERT_STREQ(saver("\"  '  \\  \f  \b  \r  \n  \t").toJSONString().c_str(),
                  "\"\\\"  '  \\\\  \\f  \\b  \\r  \\n  \\t\"");
 }
 
-/// Test ConfigDumper various interfaces.
-TEST(Snapshot, InterfacesForConfigDumper)
+/// Test TypeLoadSave various interfaces.
+TEST(Snapshot, InterfacesForTypeLoadSave)
 {
-    Dumper dumper{DumpContext{}};
+    Saver saver{DumpContext{}};
 
-    // Test ConfigDumper<> specialization dump() interface.
-    ConfigValue config1 = dumper(Struct1{10, 3.125, "hello"});
+    // Test TypeLoadSave<> specialization save() interface.
+    ConfigValue config1 = saver(Struct1{10, 3.125, "hello"});
     ASSERT_STREQ(removeWhitespace(config1.toJSONString()).c_str(),
                  "{\"b\":10,\"a\":3.125,\"c\":\"hello\"}");
 
-    // Test dumping using MemberVars.
-    ConfigValue config2 = dumper(Struct2{100, Struct1{10, 3.125, "hello"}});
+    // Test saving using MemberVars.
+    ConfigValue config2 = saver(Struct2{100, Struct1{10, 3.125, "hello"}});
     ASSERT_STREQ(removeWhitespace(config2.toJSONString()).c_str(),
                  "{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}");
 
-    // Test dumping using MIRHEO_MEMBER_VARS.
-    ConfigValue config3 = dumper(Struct3{200, Struct2{100, Struct1{10, 3.125, "hello"}}});
+    // Test saving using MIRHEO_MEMBER_VARS.
+    ConfigValue config3 = saver(Struct3{200, Struct2{100, Struct1{10, 3.125, "hello"}}});
     ASSERT_STREQ(removeWhitespace(config3.toJSONString()).c_str(),
                  "{\"z\":200,\"w\":{\"x\":100,\"y\":{\"b\":10,\"a\":3.125,\"c\":\"hello\"}}}");
 }
@@ -136,13 +136,13 @@ TEST(Snapshot, ParseJSON)
     testParsing(ConfigValue{10.125}, "10.125");
     testParsing(ConfigValue{"abc"}, "\"abc\"");
     testParsing(ConfigValue{"a\n\r\b\f\t\"bc"}, R"("a\n\r\b\f\t\"bc")");
-    testParsing(ConfigValue::List{10LL, 20.5, "abc"}, R"([10, 20.5, "abc"])");
+    testParsing(ConfigValue::Array{10LL, 20.5, "abc"}, R"([10, 20.5, "abc"])");
     testParsing(ConfigValue::Object{{"b", 10LL}, {"a", 20.5}, {"c", "abc"}},
                 R"(  {"b": 10, "a": 20.5, "c": "abc"}  )");
     testParsing(ConfigValue::Object{
             {"b", 10LL},
             {"a", 20.5},
-            {"c", ConfigValue::List{10LL, 20LL, 30LL, "abc"}}},
+            {"c", ConfigValue::Array{10LL, 20LL, 30LL, "abc"}}},
             R"(  {"b": 10, "a": 20.5, "c": [10, 20, 30, "abc"]}  )");
 
     ASSERT_EQ(10,   configFromJSON("10").getInt());
@@ -152,12 +152,12 @@ TEST(Snapshot, ParseJSON)
 
 template <typename T>
 void roundTrip(const T &value) {
-    Dumper dumper{DumpContext{}};
-    ConfigValue dump = dumper(value);
+    Saver saver{DumpContext{}};
+    ConfigValue saved = saver(value);
 
-    UndumpContext undumpContext{ConfigObject{}, ConfigObject{}};
-    Undumper undumper{&undumpContext};
-    auto recovered = undumper.undump<T>(dump);
+    LoaderContext loaderContext{ConfigObject{}, ConfigObject{}};
+    Loader loader{&loaderContext};
+    auto recovered = loader.load<T>(saved);
 
     ASSERT_EQ(value, recovered);
 }
@@ -181,7 +181,7 @@ TEST(Snapshot, DumpUndumpRoundTrip)
 
 TEST(Snapshot, DumpUndumpInteractions)
 {
-    Dumper dumper{DumpContext{}};
+    Saver saver{DumpContext{}};
 
     Mirheo mirheo{MPI_COMM_WORLD, {1, 1, 1}, {10.0_r, 10.0_r, 10.0_r}, 0.1_r, {"log", 3, true}, {}, false};
     auto pairwise = InteractionFactory::createPairwiseInteraction(
@@ -189,14 +189,14 @@ TEST(Snapshot, DumpUndumpInteractions)
             {{"a", 10.0_r}, {"gamma", 10.0_r}, {"kBT", 1.0_r}, {"power", 0.5_r}});
 
     {
-        dumper(pairwise);
-        ConfigValue config = dumper.getConfig()["Interaction"][0];
+        saver(pairwise);
+        ConfigValue config = saver.getConfig()["Interaction"][0];
 
-        UndumpContext undumpContext{config, ConfigObject{}};
-        Undumper undumper{&undumpContext};
-        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), undumper, config.getObject());
-        dumper(pairwise2);
-        ConfigValue config2 = dumper.getConfig()["Interaction"][1];
+        LoaderContext loaderContext{config, ConfigObject{}};
+        Loader loader{&loaderContext};
+        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), loader, config.getObject());
+        saver(pairwise2);
+        ConfigValue config2 = saver.getConfig()["Interaction"][1];
         ASSERT_STREQ(config.toJSONString().c_str(), config2.toJSONString().c_str());
     }
 }

@@ -6,28 +6,31 @@ namespace mirheo
 {
 
 template <typename... Variants>
-struct VisitHelper;
+struct VariantForeachHelper;
 
 template <typename... Args>
-struct VisitHelper<mpark::variant<Args...>>
+struct VariantForeachHelper<mpark::variant<Args...>>
 {
     template <typename Visitor, typename ...OtherArgs>
     static void eval(Visitor &vis)
     {
         // https://stackoverflow.com/a/51006031
         using fold_expression = int[];
+
+        // First expand the `OtherArgs` variadic template, then `Args`.
         (void)fold_expression{0, (vis.template operator()<OtherArgs..., Args>(), 0)...};
     }
 };
 
 template <typename... Args, typename... Variants>
-struct VisitHelper<mpark::variant<Args...>, Variants...>
+struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
 {
     template <typename Visitor, typename ...OtherArgs>
     static void eval(Visitor &vis)
     {
         using fold_expression = int[];
-        (void)fold_expression{0, (VisitHelper<Variants...>::template eval<Visitor, OtherArgs..., Args>(vis), 0)...};
+        (void)fold_expression{0, (VariantForeachHelper<Variants...>::template eval<
+                Visitor, OtherArgs..., Args>(vis), 0)...};
     }
 };
 
@@ -60,11 +63,14 @@ struct VisitHelper<mpark::variant<Args...>, Variants...>
 
     Returns:
         Forwards back the Visitor object.
+
+    Note:
+        If necessary, this can be generalized to arbitrary variadic templates.
  */
 template <typename Visitor, typename... Variants>
 decltype(auto) variantForeach(Visitor &&vis)
 {
-    VisitHelper<Variants...>::template eval<Visitor>(vis);
+    VariantForeachHelper<Variants...>::template eval<Visitor>(vis);
     return static_cast<Visitor&&>(vis); // Forward.
 }
 

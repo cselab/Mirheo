@@ -148,16 +148,16 @@ void Postprocess::checkpoint(int checkpointId)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
-void Postprocess::saveSnapshotAndRegister(Dumper& dumper)
+void Postprocess::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<Postprocess>(this, _saveSnapshot(dumper, "Postprocess"));
+    saver.registerObject<Postprocess>(this, _saveSnapshot(saver, "Postprocess"));
 }
 
-ConfigObject Postprocess::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Postprocess::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = MirObject::_saveSnapshot(dumper, "Postprocess", typeName);
-    config.emplace("checkpointFolder", dumper(checkpointFolder_));
-    config.emplace("plugins",          dumper(plugins_));
+    ConfigObject config = MirObject::_saveSnapshot(saver, "Postprocess", typeName);
+    config.emplace("checkpointFolder", saver(checkpointFolder_));
+    config.emplace("plugins",          saver(plugins_));
     return config;
 }
 

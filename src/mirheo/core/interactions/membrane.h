@@ -25,9 +25,9 @@ public:
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                         VarBendingParams varBendingParams, VarShearParams varShearParams,
                         bool stressFree, real growUntil, VarMembraneFilter varFilter);
-    MembraneInteraction(const MirState *state, Undumper&, const ConfigObject&);
+    MembraneInteraction(const MirState *state, Loader&, const ConfigObject&);
     ~MembraneInteraction();
-    void saveSnapshotAndRegister(Dumper& dumper) override;
+    void saveSnapshotAndRegister(Saver&) override;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 

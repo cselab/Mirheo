@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-class Dumper;
+class Saver;
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -42,7 +42,7 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
-    void saveSnapshotAndRegister(Dumper&) override;
+    void saveSnapshotAndRegister(Saver&) override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
@@ -98,7 +98,7 @@ public:
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
 
 protected:
-    ConfigObject _saveSnapshot(Dumper&, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
 private:
 
@@ -175,7 +175,7 @@ private:
     };
 
 private:
-    friend Dumper;
+    friend Saver;
 
     const int3 nranks3D_;
     const int3 rank3D_;

@@ -105,15 +105,15 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-void SimulationStats::saveSnapshotAndRegister(Dumper& dumper)
+void SimulationStats::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<SimulationStats>(this, _saveSnapshot(dumper, "SimulationStats"));
+    saver.registerObject<SimulationStats>(this, _saveSnapshot(saver, "SimulationStats"));
 }
 
-ConfigObject SimulationStats::_saveSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject SimulationStats::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = SimulationPlugin::_saveSnapshot(dumper, typeName);
-    config.emplace("fetchEvery", dumper(fetchEvery_));
+    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("fetchEvery", saver(fetchEvery_));
     return config;
 }
 
@@ -179,15 +179,15 @@ void PostprocessStats::deserialize()
     }
 }
 
-void PostprocessStats::saveSnapshotAndRegister(Dumper& dumper)
+void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<PostprocessStats>(this, _saveSnapshot(dumper, "PostprocessPlugin"));
+    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessPlugin"));
 }
 
-ConfigObject PostprocessStats::_saveSnapshot(Dumper& dumper, const std::string &typeName)
+ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)
 {
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(dumper, typeName);
-    config.emplace("filename", dumper(filename_));
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("filename", saver(filename_));
     return config;
 }
 

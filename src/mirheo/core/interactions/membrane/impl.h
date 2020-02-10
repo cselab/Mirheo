@@ -81,13 +81,13 @@ public:
         filter(filter),
         stepGen(seed)
     {}
-    MembraneInteractionImpl(const MirState *state, Undumper& un, const ConfigObject& config) :
-        Interaction(state, un, config),
+    MembraneInteractionImpl(const MirState *state, Loader& loader, const ConfigObject& config) :
+        Interaction(state, loader, config),
         growUntil{config["growUntil"]},
-        parameters{un.undump<CommonMembraneParameters>(config["parameters"])},
-        dihedralParams{un.undump<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
-        triangleParams{un.undump<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
-        filter{un.undump<Filter>(config["filter"])},
+        parameters{loader.load<CommonMembraneParameters>(config["parameters"])},
+        dihedralParams{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
+        triangleParams{loader.load<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
+        filter{loader.load<Filter>(config["filter"])},
         stepGen(42424242)
     {
         warn("stepGen save/load not imported, resetting the seed!");
@@ -186,21 +186,21 @@ public:
         return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
                 "MembraneInteractionImpl");
     }
-    void saveSnapshotAndRegister(Dumper& dumper)
+    void saveSnapshotAndRegister(Saver& saver)
     {
-        dumper.registerObject<MembraneInteractionImpl>(this, _saveSnapshot(dumper, getTypeName()));
+        saver.registerObject<MembraneInteractionImpl>(this, _saveSnapshot(saver, getTypeName()));
     }
 
 protected:
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName)
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
-        ConfigObject config = Interaction::_saveImplSnapshot(dumper, typeName);
-        config.emplace("growUntil",      dumper(growUntil));
-        config.emplace("parameters",     dumper(parameters));
-        config.emplace("dihedralParams", dumper(dihedralParams));
-        config.emplace("triangleParams", dumper(triangleParams));
-        config.emplace("filter",         dumper(filter));
-        config.emplace("stepGen",        dumper("<<not implemented>"));
+        ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
+        config.emplace("growUntil",      saver(growUntil));
+        config.emplace("parameters",     saver(parameters));
+        config.emplace("dihedralParams", saver(dihedralParams));
+        config.emplace("triangleParams", saver(triangleParams));
+        config.emplace("filter",         saver(filter));
+        config.emplace("stepGen",        saver("<<not implemented>"));
         return config;
     }
 

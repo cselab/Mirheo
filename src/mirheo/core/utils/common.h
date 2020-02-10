@@ -6,13 +6,14 @@
 namespace mirheo
 {
 
+/// Config/snapshot-related classes.
 using ConfigRefString = std::string;
-class Dumper;
-class Undumper;
+class Saver;
+class Loader;
 class ConfigValue;
 class ConfigObject;
 template <typename T, typename Enable = void>
-struct ConfigDumper;
+struct TypeLoadSave;
 
 /**
  * Assert that the dynamic type of T* is exactly T.
@@ -109,11 +110,11 @@ struct CheckpointInfo
 };
 
 template <>
-struct ConfigDumper<CheckpointInfo>
+struct TypeLoadSave<CheckpointInfo>
 {
-    static ConfigValue dump(Dumper&, const CheckpointInfo&);
+    static ConfigValue save(Saver&, const CheckpointInfo&);
     static CheckpointInfo parse(const ConfigValue&) = delete; // Context-free not supported
-    static CheckpointInfo undump(Undumper&, const ConfigValue&);
+    static CheckpointInfo load(Loader&, const ConfigValue&);
 };
 
 // tag used to stop the postprocess side to stop

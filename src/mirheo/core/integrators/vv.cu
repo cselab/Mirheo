@@ -22,18 +22,18 @@ template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 template<class ForcingTerm>
-void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Dumper& dumper)
+void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<IntegratorVV<ForcingTerm>>(
-            this, _saveSnapshot(dumper, "IntegratorVV<...>"));
+    saver.registerObject<IntegratorVV<ForcingTerm>>(
+            this, _saveSnapshot(saver, "IntegratorVV<...>"));
 }
 
 template<class ForcingTerm>
 ConfigObject IntegratorVV<ForcingTerm>::_saveSnapshot(
-        Dumper& dumper, const std::string& typeName)
+        Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = Integrator::_saveSnapshot(dumper, typeName);
-    config.emplace("forcingTerm", dumper(forcingTerm_));
+    ConfigObject config = Integrator::_saveSnapshot(saver, typeName);
+    config.emplace("forcingTerm", saver(forcingTerm_));
     return config;
 }
 

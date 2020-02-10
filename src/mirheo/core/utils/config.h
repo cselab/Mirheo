@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h" // Forward declarations of ConfigValue and ConfigDumper<>.
+#include "common.h" // Forward declarations of ConfigValue and TypeLoadSave<>.
 #include "flat_ordered_dict.h"
 #include "reflection.h"
 #include "type_traits.h"
@@ -21,10 +21,13 @@ namespace mirheo
 /// Reference string used for null pointers.
 constexpr const char ConfigNullRefString[] = "<nullptr>";
 
+/// Extract the object name from ConfigRefString.
+std::string parseNameFromRefString(const ConfigRefString &ref);
+
 /// Print the error about mismatched type and throw and exception.
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
 
-/// Throw an exception if pointer's dynamic type is not `T`.
+/// Throw an exception if object's dynamic type is not `T`.
 template <typename T>
 void assertType(T *thisPtr)
 {
@@ -32,26 +35,26 @@ void assertType(T *thisPtr)
         _typeMismatchError(typeid(*thisPtr).name(), typeid(T).name());
 }
 
-class Dumper;
-class Undumper;
+class Saver;
+class Loader;
 
 template <typename T, typename Enable>
-struct ConfigDumper
+struct TypeLoadSave
 {
     static_assert(std::is_same<remove_cvref_t<T>, T>::value,
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
 
-    static ConfigValue dump(Dumper&, T& value);
+    static ConfigValue save(Saver&, T& value);
 
     /// Context-free parsing. Only for simple types!
     static T parse(const ConfigValue&);
 
-    /// Context-aware undump.
-    static T undump(Undumper&, const ConfigValue&);
+    /// Context-aware load.
+    static T load(Loader&, const ConfigValue&);
 };
 
-class ConfigList : public std::vector<ConfigValue>
+class ConfigArray : public std::vector<ConfigValue>
 {
     using Base = std::vector<ConfigValue>;
 public:
@@ -97,21 +100,25 @@ public:
     const ConfigValue* get(const char *key) const&;
 };
 
+/** Generic configuration JSON-like value class.
+
+    It can represent integers, floats, strings, arrays and objects (dictionaries).
+  */
 class ConfigValue
 {
 public:
     using Int     = long long;
     using Float   = double;
     using String  = std::string;
-    using List    = ConfigList;
+    using Array    = ConfigArray;
     using Object  = ConfigObject;
-    using Variant = mpark::variant<Int, Float, String, List, Object>;
+    using Variant = mpark::variant<Int, Float, String, Array, Object>;
 
     ConfigValue(Int value) : value_{value} {}
     ConfigValue(Float value) : value_{value} {}
     ConfigValue(String value) : value_{std::move(value)} {}
     ConfigValue(Object value) : value_{std::move(value)} {}
-    ConfigValue(List value) : value_{std::move(value)} {}
+    ConfigValue(Array value) : value_{std::move(value)} {}
     ConfigValue(const char *str) : value_{std::string(str)} {}
     ConfigValue(const ConfigValue&) = default;
     ConfigValue(ConfigValue&&)      = default;
@@ -124,8 +131,8 @@ public:
         static_assert(
             always_false<T>::value,
             "Direct construction of the ConfigValue object available only "
-            "for variant types (Int, Float, String, Object, List). "
-            "Did you mean `dumper(value)` instead of `ConfigValue{value}`?");
+            "for variant types (Int, Float, String, Object, Array). "
+            "Did you mean `saver(value)` instead of `ConfigValue{value}`?");
     }
 
     std::string toJSONString() const;
@@ -135,8 +142,8 @@ public:
     Int getInt() const;
     Float getFloat() const;
     const String& getString() const;
-    const List& getList() const;
-    List& getList();
+    const Array& getArray() const;
+    Array& getArray();
     const Object& getObject() const;
     Object& getObject();
 
@@ -151,11 +158,11 @@ public:
     ConfigValue&       operator[](const char *key)              { return getObject().at(key); }
     const ConfigValue& operator[](const char *key) const        { return getObject().at(key); }
 
-    /// Get the list element. Terminates if not a list or if out of range.
-    ConfigValue&       operator[](size_t i)       { return getList()[i]; }
-    const ConfigValue& operator[](size_t i) const { return getList()[i]; }
-    ConfigValue&       operator[](int i)       { return getList()[static_cast<size_t>(i)]; }
-    const ConfigValue& operator[](int i) const { return getList()[static_cast<size_t>(i)]; }
+    /// Get the array element. Terminates if not a array or if out of range.
+    ConfigValue&       operator[](size_t i)       { return getArray()[i]; }
+    const ConfigValue& operator[](size_t i) const { return getArray()[i]; }
+    ConfigValue&       operator[](int i)       { return getArray()[static_cast<size_t>(i)]; }
+    const ConfigValue& operator[](int i) const { return getArray()[static_cast<size_t>(i)]; }
 
     /// Get the element if it exists, or null otherwise. Terminates if not an object.
     ConfigValue*       get(const std::string &key) &      { return getObject().get(key); }
@@ -163,9 +170,9 @@ public:
     ConfigValue*       get(const char *key) &             { return getObject().get(key); }
     const ConfigValue* get(const char *key) const&        { return getObject().get(key); }
 
-    /// Implicit cast to simple types.
+    /// Implicit cast to simple types. Risky since it implicitly enables weird operator overloads.
     template <typename T>
-    operator T() const { return ConfigDumper<T>::parse(*this); }
+    operator T() const { return TypeLoadSave<T>::parse(*this); }
 
     /// Implicit cast to specific types.
     operator ConfigValue::Int() const { return getInt(); }
@@ -222,11 +229,11 @@ struct DumpContext
     bool isGroupMasterTask() const;
 };
 
-class Dumper
+class Saver
 {
 public:
-    Dumper(DumpContext context);
-    ~Dumper();
+    Saver(DumpContext context);
+    ~Saver();
 
     DumpContext& getContext() noexcept { return context_; }
     const ConfigValue& getConfig() const noexcept { return config_; }
@@ -235,17 +242,17 @@ public:
     template <typename T>
     ConfigValue operator()(T& t)
     {
-        return ConfigDumper<std::remove_const_t<T>>::dump(*this, t);
+        return TypeLoadSave<std::remove_const_t<T>>::save(*this, t);
     }
     template <typename T>
     ConfigValue operator()(const T& t)
     {
-        return ConfigDumper<T>::dump(*this, t);
+        return TypeLoadSave<T>::save(*this, t);
     }
     template <typename T>
     ConfigValue operator()(T* t)
     {
-        return ConfigDumper<std::remove_const_t<T>*>::dump(*this, t);
+        return TypeLoadSave<std::remove_const_t<T>*>::save(*this, t);
     }
     ConfigValue operator()(const char* t)
     {
@@ -270,22 +277,22 @@ private:
     DumpContext context_;
 };
 
-class UndumpContext;
-class Undumper
+class LoaderContext;
+class Loader
 {
 public:
-    Undumper(UndumpContext *context) : context_(context) {}
+    Loader(LoaderContext *context) : context_(context) {}
 
-    UndumpContext& getContext() noexcept { return *context_; }
+    LoaderContext& getContext() noexcept { return *context_; }
 
     template <typename T>
-    T undump(const ConfigValue &config)
+    T load(const ConfigValue &config)
     {
-        return ConfigDumper<T>::undump(*this, config);
+        return TypeLoadSave<T>::load(*this, config);
     }
 
 private:
-    UndumpContext *context_;
+    LoaderContext *context_;
 };
 
 namespace detail
@@ -306,15 +313,15 @@ namespace detail
         template <typename T>
         ConfigValue::Object::value_type operator()(std::string name, T *t) const
         {
-            return {std::move(name), (*dumper_)(*t)};
+            return {std::move(name), (*saver_)(*t)};
         }
 
         ConfigValue::Object *object_;
-        Dumper *dumper_;
+        Saver *saver_;
     };
 
     template <typename T>
-    struct UndumpHandler {
+    struct LoadHandler {
         template <typename... Args>
         T process(Args ...items) const
         {
@@ -324,19 +331,19 @@ namespace detail
         template <typename Item>
         Item operator()(const std::string &name, const Item *) const
         {
-            return un_->undump<Item>(object_->at(name));
+            return un_->load<Item>(object_->at(name));
         }
 
         const ConfigValue::Object *object_;
-        Undumper *un_;
+        Loader *un_;
     };
 } // namespace detail
 
 #define MIRHEO_DUMPER_PRIMITIVE(TYPE, ELTYPE)                                  \
     template <>                                                                \
-    struct ConfigDumper<TYPE>                                                  \
+    struct TypeLoadSave<TYPE>                                                  \
     {                                                                          \
-        static ConfigValue dump(Dumper&, TYPE x)                               \
+        static ConfigValue save(Saver&, TYPE x)                                \
         {                                                                      \
             return static_cast<ConfigValue::ELTYPE>(x);                        \
         }                                                                      \
@@ -344,7 +351,7 @@ namespace detail
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
-        static TYPE undump(Undumper&, const ConfigValue &value)                \
+        static TYPE load(Loader&, const ConfigValue &value)                    \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
@@ -361,20 +368,20 @@ MIRHEO_DUMPER_PRIMITIVE(double,             Float);
 #undef MIRHEO_DUMPER_PRIMITIVE
 
 template <>
-struct ConfigDumper<const char*>
+struct TypeLoadSave<const char*>
 {
-    static ConfigValue dump(Dumper&, const char *str)
+    static ConfigValue save(Saver&, const char *str)
     {
         return std::string(str);
     }
     static const char* parse(const ConfigValue&) = delete;
-    static const char* undump(Undumper&, const ConfigValue&) = delete;
+    static const char* load(Loader&, const ConfigValue&) = delete;
 };
 
 template <>
-struct ConfigDumper<std::string>
+struct TypeLoadSave<std::string>
 {
-    static ConfigValue dump(Dumper&, std::string x)
+    static ConfigValue save(Saver&, std::string x)
     {
         return std::move(x);
     }
@@ -382,28 +389,28 @@ struct ConfigDumper<std::string>
     {
         return config.getString();
     }
-    static const std::string& undump(Undumper&, const ConfigValue &config)
+    static const std::string& load(Loader&, const ConfigValue &config)
     {
         return config.getString();
     }
 };
 
 template <>
-struct ConfigDumper<float3>
+struct TypeLoadSave<float3>
 {
-    static ConfigValue dump(Dumper&, float3 v);
+    static ConfigValue save(Saver&, float3 v);
     static float3 parse(const ConfigValue &config);
-    static float3 undump(Undumper&, const ConfigValue &config)
+    static float3 load(Loader&, const ConfigValue &config)
     {
         return parse(config);
     }
 };
 
-/// ConfigDumper for enum types.
+/// TypeLoadSave for enum types.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
+struct TypeLoadSave<T, std::enable_if_t<std::is_enum<T>::value>>
 {
-    static ConfigValue dump(Dumper&, T t)
+    static ConfigValue save(Saver&, T t)
     {
         return static_cast<ConfigValue::Int>(t);
     }
@@ -411,122 +418,122 @@ struct ConfigDumper<T, std::enable_if_t<std::is_enum<T>::value>>
     {
         return static_cast<T>(config.getInt());
     }
-    static T undump(Undumper&, const ConfigValue &config)
+    static T load(Loader&, const ConfigValue &config)
     {
         return parse(config);
     }
 };
 
-/// ConfigDumper for structs with reflection information.
+/// TypeLoadSave for structs with reflection information.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<T>>::value>>
+struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<T>>::value>>
 {
     template <typename TT>  // Const or not.
-    static ConfigValue dump(Dumper& dumper, TT& t)
+    static ConfigValue save(Saver& saver, TT& t)
     {
-        ConfigValue::Object object;
-        MemberVars<T>::foreach(detail::DumpHandler{&object, &dumper}, &t);
+        ConfigObject object;
+        MemberVars<T>::foreach(detail::DumpHandler{&object, &saver}, &t);
         return std::move(object);
     }
-    static T undump(Undumper& un, const ConfigValue& config)
+    static T load(Loader& loader, const ConfigValue& config)
     {
         return MemberVars<T>::foreach(
-                detail::UndumpHandler<T>{&config.getObject(), &un},
+                detail::LoadHandler<T>{&config.getObject(), &loader},
                 (const T *)nullptr);
     }
 };
 
-/// ConfigDumper for pointer-like (dereferenceable) types. Redirects to the
+/// TypeLoadSave for pointer-like (dereferenceable) types. Redirects to the
 /// underlying object if not nullptr, otherwise returns a "<nullptr>" string.
 template <typename T>
-struct ConfigDumper<T, std::enable_if_t<is_dereferenceable<T>::value>>
+struct TypeLoadSave<T, std::enable_if_t<is_dereferenceable<T>::value>>
 {
-    static ConfigValue dump(Dumper& dumper, const T& ptr)
+    static ConfigValue save(Saver& saver, const T& ptr)
     {
-        return ptr ? dumper(*ptr) : ConfigValue{ConfigNullRefString};
+        return ptr ? saver(*ptr) : ConfigValue{ConfigNullRefString};
     }
 };
 
-/// ConfigDumper for std::vector<T>.
+/// TypeLoadSave for std::vector<T>.
 template <typename T>
-struct ConfigDumper<std::vector<T>>
+struct TypeLoadSave<std::vector<T>>
 {
     template <typename Vector>  // Const or not.
-    static ConfigValue dump(Dumper& dumper, Vector& values)
+    static ConfigValue save(Saver& saver, Vector& values)
     {
-        ConfigValue::List list;
-        list.reserve(values.size());
+        ConfigValue::Array array;
+        array.reserve(values.size());
         for (auto& value : values)
-            list.push_back(dumper(value));
-        return std::move(list);
+            array.push_back(saver(value));
+        return std::move(array);
     }
-    static std::vector<T> undump(Undumper& un, const ConfigValue& config)
+    static std::vector<T> load(Loader& loader, const ConfigValue& config)
     {
-        const ConfigValue::List& list = config.getList();
+        const ConfigValue::Array& array = config.getArray();
         std::vector<T> out;
-        out.reserve(list.size());
-        for (const ConfigValue& item : list)
-            out.push_back(un.undump<T>(item));
+        out.reserve(array.size());
+        for (const ConfigValue& item : array)
+            out.push_back(loader.load<T>(item));
         return out;
     }
 };
 
-/// ConfigDumper for std::map<std::string, T>.
+/// TypeLoadSave for std::map<std::string, T>.
 template <typename T>
-struct ConfigDumper<std::map<std::string, T>>
+struct TypeLoadSave<std::map<std::string, T>>
 {
     template <typename Map>  // Const or not.
-    static ConfigValue dump(Dumper& dumper, Map& values)
+    static ConfigValue save(Saver& saver, Map& values)
     {
         ConfigValue::Object object;
         object.reserve(values.size());
         for (auto& pair : values)
-            object.unsafe_insert(pair.first, dumper(pair.second));
+            object.unsafe_insert(pair.first, saver(pair.second));
         return std::move(object);
     }
-    static std::map<std::string, T> undump(Undumper& un, const ConfigValue& config)
+    static std::map<std::string, T> load(Loader& loader, const ConfigValue& config)
     {
         std::map<std::string, T> out;
         for (const auto& pair : config.getObject())
-            out.emplace(pair.first, un.undump<T>(pair.second));
+            out.emplace(pair.first, loader.load<T>(pair.second));
         return out;
     }
 };
 
-/// ConfigDumper for mpark::variant.
+/// TypeLoadSave for mpark::variant.
 void _variantDumperError [[noreturn]] (size_t index, size_t size);
 template <typename... Ts>
-struct ConfigDumper<mpark::variant<Ts...>>
+struct TypeLoadSave<mpark::variant<Ts...>>
 {
     using Variant = mpark::variant<Ts...>;
 
     template <typename T>
-    static Variant _undump(Undumper& un, const ConfigValue& config)
+    static Variant _load(Loader& loader, const ConfigValue& config)
     {
-        return Variant{un.undump<T>(config)};
+        return Variant{loader.load<T>(config)};
     }
 
     template <typename Variant>  // Const or not.
-    static ConfigValue dump(Dumper& dumper, Variant& value)
+    static ConfigValue save(Saver& saver, Variant& value)
     {
         ConfigValue::Object object;
         object.reserve(2);
         object.unsafe_insert("__index", static_cast<ConfigValue::Int>(value.index()));
-        object.unsafe_insert("value", mpark::visit(dumper, value));
+        object.unsafe_insert("value", mpark::visit(saver, value));
         return object;
     }
-    static Variant undump(Undumper& un, const ConfigValue& config)
+    static Variant load(Loader& loader, const ConfigValue& config)
     {
         const ConfigObject& object = config.getObject();
-        size_t index = un.undump<size_t>(object.at("__index"));
+        size_t index = loader.load<size_t>(object.at("__index"));
         if (index >= sizeof...(Ts))
             _variantDumperError(index, sizeof...(Ts));
 
-        // Compile an array of _undump functions, one for each type.
+        // Compile an array of _load functions, one for each type.
         // Pick index-th on runtime.
-        using UndumperPtr = Variant(*)(Undumper&, const ConfigValue&);
-        const UndumperPtr funcs[]{(&_undump<Ts>)...};
-        return funcs[index](un, object.at("value"));
+        using LoaderPtr = Variant(*)(Loader&, const ConfigValue&);
+        const LoaderPtr funcs[]{(&_load<Ts>)...};
+        return funcs[index](loader, object.at("value"));
     }
 };
 

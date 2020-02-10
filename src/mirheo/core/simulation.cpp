@@ -1360,36 +1360,36 @@ MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
 MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
 MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
-void Simulation::saveSnapshotAndRegister(Dumper& dumper)
+void Simulation::saveSnapshotAndRegister(Saver& saver)
 {
-    dumper.registerObject<Simulation>(this, _saveSnapshot(dumper, "Simulation"));
+    saver.registerObject<Simulation>(this, _saveSnapshot(saver, "Simulation"));
 }
 
-ConfigObject Simulation::_saveSnapshot(Dumper& dumper, const std::string &typeName)
+ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string &typeName)
 {
-    ConfigObject config = MirObject::_saveSnapshot(dumper, "Simulation", typeName);
-    config.emplace("checkpointId",        dumper(checkpointId_));
-    config.emplace("checkpointInfo",      dumper(checkpointInfo_));
+    ConfigObject config = MirObject::_saveSnapshot(saver, "Simulation", typeName);
+    config.emplace("checkpointId",        saver(checkpointId_));
+    config.emplace("checkpointInfo",      saver(checkpointInfo_));
 
-    config.emplace("particleVectors",     dumper(particleVectors_));
+    config.emplace("particleVectors",     saver(particleVectors_));
 
-    config.emplace("bouncerMap",          dumper(bouncerMap_));
-    config.emplace("integratorMap",       dumper(integratorMap_));
-    config.emplace("interactionMap",      dumper(interactionMap_));
-    config.emplace("wallMap",             dumper(wallMap_));
-    config.emplace("belongingCheckerMap", dumper(belongingCheckerMap_));
+    config.emplace("bouncerMap",          saver(bouncerMap_));
+    config.emplace("integratorMap",       saver(integratorMap_));
+    config.emplace("interactionMap",      saver(interactionMap_));
+    config.emplace("wallMap",             saver(wallMap_));
+    config.emplace("belongingCheckerMap", saver(belongingCheckerMap_));
 
-    config.emplace("plugins",             dumper(plugins));
+    config.emplace("plugins",             saver(plugins));
 
-    config.emplace("integratorPrototypes",          dumper(integratorPrototypes_));
-    config.emplace("interactionPrototypes",         dumper(interactionPrototypes_));
-    config.emplace("wallPrototypes",                dumper(wallPrototypes_));
-    config.emplace("checkWallPrototypes",           dumper(checkWallPrototypes_));
-    config.emplace("bouncerPrototypes",             dumper(bouncerPrototypes_));
-    config.emplace("belongingCorrectionPrototypes", dumper(belongingCorrectionPrototypes_));
-    config.emplace("splitterPrototypes",            dumper(splitterPrototypes_));
+    config.emplace("integratorPrototypes",          saver(integratorPrototypes_));
+    config.emplace("interactionPrototypes",         saver(interactionPrototypes_));
+    config.emplace("wallPrototypes",                saver(wallPrototypes_));
+    config.emplace("checkWallPrototypes",           saver(checkWallPrototypes_));
+    config.emplace("bouncerPrototypes",             saver(bouncerPrototypes_));
+    config.emplace("belongingCorrectionPrototypes", saver(belongingCorrectionPrototypes_));
+    config.emplace("splitterPrototypes",            saver(splitterPrototypes_));
 
-    config.emplace("pvsIntegratorMap",    dumper(pvsIntegratorMap_));
+    config.emplace("pvsIntegratorMap",    saver(pvsIntegratorMap_));
     return config;
 }
 

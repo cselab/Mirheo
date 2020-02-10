@@ -12,8 +12,8 @@ Interaction::Interaction(const MirState *state, std::string name, real rc) :
     MirSimulationObject(state, name),
     rc(rc)
 {}
-Interaction::Interaction(const MirState *state, Undumper& undumper, const ConfigObject& config) :
-    MirSimulationObject(state, undumper, config),
+Interaction::Interaction(const MirState *state, Loader& loader, const ConfigObject& config) :
+    MirSimulationObject(state, loader, config),
     rc(config["rc"])
 {
     // Note: we do NOT load the `impl` object here. Since impl typically has
@@ -65,24 +65,24 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
 
-ConfigObject Interaction::_saveSnapshotWithoutImpl(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveSnapshotWithoutImpl(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = MirSimulationObject::_saveSnapshot(dumper, "Interaction", typeName);
-    config.emplace("rc", dumper(rc));
+    ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "Interaction", typeName);
+    config.emplace("rc", saver(rc));
     return config;
 }
 
-ConfigObject Interaction::_saveSnapshotWithImpl(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveSnapshotWithImpl(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = _saveSnapshotWithoutImpl(dumper, typeName);
-    config.emplace("impl", dumper(impl));
+    ConfigObject config = _saveSnapshotWithoutImpl(saver, typeName);
+    config.emplace("impl", saver(impl));
     return config;
 }
 
-ConfigObject Interaction::_saveImplSnapshot(Dumper& dumper, const std::string& typeName)
+ConfigObject Interaction::_saveImplSnapshot(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = MirSimulationObject::_saveSnapshot(dumper, "InteractionImpl", typeName);
-    config.emplace("rc", dumper(rc));
+    ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "InteractionImpl", typeName);
+    config.emplace("rc", saver(rc));
     if (impl)
         die("Impl interaction has impl?");
     return config;

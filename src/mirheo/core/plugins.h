@@ -58,7 +58,7 @@ protected:
     void waitPrevSend();
     void send(const std::vector<char>& data);
     void send(const void *data, size_t sizeInBytes);
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
 private:
     int localSendSize_;
@@ -82,7 +82,7 @@ public:
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);    
 
 protected:
-    ConfigObject _saveSnapshot(Dumper& dumper, const std::string& typeName);
+    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
     std::vector<char> data;
     int size;    

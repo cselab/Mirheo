@@ -65,6 +65,11 @@ createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real 
         (state, name, mass, objSize, ell, std::move(mesh));
 }
 
+/// Load the particle vector snapshot.
+std::shared_ptr<ParticleVector> loadParticleVector(
+        const MirState *state, Loader& loader,
+        const ConfigObject& config, const std::string &type);
+
 } // namespace ParticleVectorFactory
 
 } // namespace mirheo

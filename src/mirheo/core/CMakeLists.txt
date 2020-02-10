@@ -27,18 +27,19 @@ set(sources_cpp
   logger.cpp
   managers/interactions.cpp
   marching_cubes.cpp
+  mesh/factory.cpp
   mesh/membrane.cpp
   mesh/mesh.cpp
   mesh/off.cpp
   mirheo.cpp
   mirheo_object.cpp
   mirheo_state.cpp
-  mirheo_undump.cpp
   object_belonging/interface.cpp
   plugins.cpp
   postproc.cpp
   pvs/checkpoint/helpers.cpp
   pvs/data_manager.cpp
+  pvs/factory.cpp
   pvs/membrane_vector.cpp
   pvs/object_vector.cpp
   pvs/packers/generic_packer.cpp
@@ -55,6 +56,7 @@ set(sources_cpp
   pvs/views/rov.cpp
   pvs/views/rv.cpp
   simulation.cpp
+  snapshot.cpp
   task_scheduler.cpp
   types/str.cpp
   types/variant_type_wrapper.cpp
