@@ -63,6 +63,7 @@ set(sources_cpp
   utils/file_wrapper.cpp
   utils/folders.cpp
   utils/nvtx.cpp
+  utils/reflection.cpp
   utils/stacktrace_explicit.cpp
   utils/strprintf.cpp
   version.cpp

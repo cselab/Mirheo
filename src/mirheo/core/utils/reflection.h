@@ -1,40 +1,81 @@
 #pragma once
 
 #include "type_traits.h"
+#include <string>
 
 namespace mirheo
 {
 
+template <typename T>
+struct TypeName
+{
+    static_assert(always_false<T>::value, "TypeName not available.");
+    static constexpr const char *name = "UnknownTypeName";
+};
+
+#define MIRHEO_TYPE_NAME(TYPE, NAME)              \
+    template <>                                   \
+    struct TypeName<TYPE> {                       \
+        static constexpr const char* name = NAME; \
+    };
+#define MIRHEO_TYPE_NAME_AUTO(TYPE)               \
+    MIRHEO_TYPE_NAME(TYPE, #TYPE)
+
+
+/** Helper function of `constructTypeName`.
+    C-style variadic argument is used as a compile-time-friendly solution.
+
+    Example:
+        std::string name = _constructTypeName("Foo", 3, "A", "Boo", "Cookie");
+        --> "Foo<A, Boo, Cookie>"
+ */
+std::string _constructTypeName(const char *base, int N, ...);
+
+/** Construct a template instantiation name.
+
+    Example:
+        MIRHEO_TYPE_NAME(A, "A");
+        MIRHEO_TYPE_NAME(B, "Boo");
+        MIRHEO_TYPE_NAME(C, "Cookie");
+        std::string name = constructTypeName<A, B, C>("Foo");
+        --> "Foo<A, Boo, Cookie>"
+ */
+template <typename... Args>
+inline std::string constructTypeName(const char *templateName)
+{
+    return _constructTypeName(templateName, sizeof...(Args), TypeName<Args>::name...);
+}
+
 /**
- * `MemberVars<T>` implements a function `foreach` with which the member
- * variables of `T` can be inspected. Useful for serializing and unserializing
- * objects.
- *
- * Example implementation:
- *
- *      template <>
- *      struct MemberVars<LogInfo>
- *      {
- *          template <typename Handler, typename Me>
- *          auto foreach(Handler &&h, Me *me)
- *          {
- *              return h.process(
- *                  h("fileName",     &me->fileName);
- *                  h("verbosityLvl", &me->verbosityLvl);
- *                  h("noSplash",     &me->noSplash));
- *          }
- *      };
- *
- * The `Handler` is a class which implements two functions:
- *      template <typename MemberVar>
- *      <non-void type> operator()(const char *name, MemberVar *);
- * and
- *      template <typename ...Args>
- *      <any type> process()(Args &&...);
- * where `Args` are always equal to the non-void type from operator().
- *
- * Note: The order of evaluation of the function operator() is unspecified!
- *       Order-sensitive operations MUST be done in the process() function.
+   `MemberVars<T>` implements a function `foreach` with which the member
+   variables of `T` can be inspected. Useful for serializing and unserializing
+   objects.
+
+   Example implementation:
+
+        template <>
+        struct MemberVars<LogInfo>
+        {
+            template <typename Handler, typename Me>
+            auto foreach(Handler &&h, Me *me)
+            {
+                return h.process(
+                    h("fileName",     &me->fileName);
+                    h("verbosityLvl", &me->verbosityLvl);
+                    h("noSplash",     &me->noSplash));
+            }
+        };
+
+   The `Handler` is a class which implements two functions:
+        template <typename MemberVar>
+        <non-void type> operator()(const char *name, MemberVar *);
+   and
+        template <typename ...Args>
+        <any type> process()(Args &&...);
+   where `Args` are always equal to the non-void type from operator().
+
+   Note: The order of evaluation of the function operator() is unspecified!
+         Order-sensitive operations MUST be done in the process() function.
  */
 template <typename T>
 struct MemberVars
@@ -58,9 +99,13 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
 // Implementation detail.
 #define MIRHEO_MEMBER_VARS_BEGIN_(TYPE)            \
     template <>                                    \
-    struct MemberVars<TYPE>                        \
+    struct TypeName<TYPE>                          \
     {                                              \
         static constexpr const char *name = #TYPE; \
+    };                                             \
+    template <>                                    \
+    struct MemberVars<TYPE>                        \
+    {                                              \
         template <typename Handler, typename Me>   \
         static auto foreach(Handler &&h, Me *me)   \
         {                                          \
@@ -118,19 +163,19 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
     }
 
 /**
- * Generate `MemberVars<TYPE>` for the given type `TYPE`.
- *
- * Example:
- *      namespace mirheo {
- *          struct S { int a, b; double c; };
- *          MIRHEO_MEMBER_VARS_3(S, a, b, c);
- *      } // namespace mirheo
- *
- *
- * Note:
- *      The implementation which doesn't require manually specifying the number
- *      of arguments can be found here:
- *      https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
+   Generate `MemberVars<TYPE>` for the given type `TYPE`.
+
+   Example:
+        namespace mirheo {
+            struct S { int a, b; double c; };
+            MIRHEO_MEMBER_VARS_3(S, a, b, c);
+        } // namespace mirheo
+
+
+   Note:
+        The implementation which doesn't require manually specifying the number
+        of arguments can be found here:
+        https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
  */
 #define MIRHEO_MEMBER_VARS_0(TYPE)   \
     MIRHEO_MEMBER_VARS_BEGIN_(TYPE)  \
