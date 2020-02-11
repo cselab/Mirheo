@@ -8,6 +8,7 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -24,8 +25,9 @@ IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 template<class ForcingTerm>
 void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Saver& saver)
 {
+    std::string typeName = constructTypeName<ForcingTerm>("IntegratorVV");
     saver.registerObject<IntegratorVV<ForcingTerm>>(
-            this, _saveSnapshot(saver, "IntegratorVV<...>"));
+            this, _saveSnapshot(saver, typeName));
 }
 
 template<class ForcingTerm>

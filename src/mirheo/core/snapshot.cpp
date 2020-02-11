@@ -1,10 +1,11 @@
 #include "snapshot.h"
 #include <mirheo/core/initial_conditions/restart.h>
-#include <mirheo/core/mesh/factory.h>
-#include <mirheo/core/pvs/factory.h>
+#include <mirheo/core/integrators/factory.h>
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/mesh/factory.h>
 #include <mirheo/core/mirheo.h>
+#include <mirheo/core/pvs/factory.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
 
@@ -47,56 +48,60 @@ const ConfigObject& LoaderContext::getCompObjectConfig(
     die("Object category=\"%s\" name=\"%s\" not found.", category.c_str(), name.c_str());
 }
 
+template <typename T, typename Factory>
+const std::shared_ptr<T>& loadObject(Loader& loader, Mirheo *mir,
+                                     const ConfigValue& info, Factory factory)
+{
+    auto ptr = factory(mir->getState(), loader, info.getObject(), info["__type"]);
+    if (!ptr)
+        die("Factory returned a nullptr for object: %s", info.toJSONString().c_str());
+    auto it = loader.getContext().getContainer<T>().emplace(info["name"], std::move(ptr)).first;
+    debug("Loaded the object \"%s\".\n", it->first.c_str());
+    return it->second;
+}
+
 
 void loadSnapshot(Mirheo *mir, Loader& loader)
 {
-    auto& context = loader.getContext();
-    const ConfigValue& compConfig = context.getComp();
-
+    LoaderContext& context = loader.getContext();
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
 
-    auto loadObject = [mir, &loader](
-            const ConfigValue& info,
-            auto &objects,
-            auto func) -> decltype(auto)
-    {
-        auto ptr = func(mir->getState(), loader, info.getObject(), info["__type"]);
-        if (!ptr)
-            die("Factory returned a nullptr for object: %s", info.toJSONString().c_str());
-        auto it = objects.emplace(info["name"], std::move(ptr)).first;
-        debug("Loaded the object \"%s\".\n", it->first.c_str());
-        return it->second;
-    };
-
-    if (auto *meshInfos = compConfig.get("Mesh")) {
-        auto &meshes = context.getContainerShared<Mesh>();
-        for (const auto& info : meshInfos->getArray())
-            loadObject(info, meshes, loadMesh);
+    if (auto *infos = context.getComp().get("Mesh")) {
+        for (const auto& info : infos->getArray())
+            loadObject<Mesh>(loader, mir, info, loadMesh);
     }
 
-    if (auto *pvInfos = compConfig.get("ParticleVector")) {
-        auto &pvs = context.getContainerShared<ParticleVector>();
-        for (const auto& info : pvInfos->getArray()) {
-            const auto &pv = loadObject(info, pvs, ParticleVectorFactory::loadParticleVector);
+    if (auto *infos = context.getComp().get("ParticleVector")) {
+        for (const auto& info : infos->getArray()) {
+            const auto &pv = loadObject<ParticleVector>(
+                    loader, mir, info, ParticleVectorFactory::loadParticleVector);
             mir->registerParticleVector(pv, ic);
         }
     }
 
     if (mir->isComputeTask()) {
-        if (auto *interactionInfos = compConfig.get("Interaction")) {
-            auto &interactions = context.getContainerShared<Interaction>();
-            for (const auto& info : interactionInfos->getArray()) {
-                const auto& interaction = loadObject(info, interactions, InteractionFactory::loadInteraction);
+        if (auto *infos = context.getComp().get("Interaction")) {
+            for (const auto& info : infos->getArray()) {
+                const auto& interaction = loadObject<Interaction>(
+                        loader, mir, info, InteractionFactory::loadInteraction);
                 mir->registerInteraction(interaction);
             }
         }
 
-        const ConfigValue& sim = compConfig["Simulation"][0];
+        if (auto *infos = context.getComp().get("Integrator")) {
+            for (const auto& info : infos->getArray()) {
+                const auto& integrator = loadObject<Integrator>(
+                        loader, mir, info, IntegratorFactory::loadIntegrator);
+                mir->registerIntegrator(integrator);
+            }
+        }
+
+        const ConfigValue& sim = context.getComp()["Simulation"][0];
         if (auto *interactionPrototypes = sim.get("interactionPrototypes")) {
             for (const auto& info : interactionPrototypes->getArray()) {
-                const auto& pv1 = context.getShared<ParticleVector>(info["pv1"]);
-                const auto& pv2 = context.getShared<ParticleVector>(info["pv2"]);
-                const auto& interaction = context.getShared<Interaction>(info["interaction"]);
+                const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
+                const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
+                const auto& interaction = context.get<Interaction>(info["interaction"]);
                 real rc = loader.load<real>(info["rc"]);
                 if (rc != interaction->rc)
                     die("Interaction rc do not match: %f != %f.", rc, interaction->rc);

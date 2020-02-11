@@ -16,7 +16,7 @@ MembraneVector::MembraneVector(const MirState *state, const std::string& name, r
 
 MembraneVector::MembraneVector(const MirState *state, Loader& loader, const ConfigObject& config) :
     MembraneVector{state, config["name"], config["mass"],
-                   loader.getContext().getShared<MembraneMesh, Mesh>(config["mesh"]), 0}
+                   loader.getContext().get<MembraneMesh, Mesh>(config["mesh"]), 0}
 {
     assert(config["__type"] == "MembraneVector");
 

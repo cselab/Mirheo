@@ -17,6 +17,7 @@ class IntegratorSubStep : public Integrator
 public:
     IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                       const std::vector<Interaction*>& fastForces);
+    IntegratorSubStep(const MirState *state, Loader&, const ConfigObject&);
     ~IntegratorSubStep();
     void saveSnapshotAndRegister(Saver&) override;
 

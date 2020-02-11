@@ -76,6 +76,11 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
 {
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }    
+
+/// Load integrator snapshot.
+std::shared_ptr<Integrator>
+loadIntegrator(const MirState *state, Loader&, const ConfigObject& config, const std::string& type);
+
 } // namespace IntegratorFactory
 
 } // namespace mirheo

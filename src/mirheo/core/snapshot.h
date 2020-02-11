@@ -12,6 +12,7 @@ class Mirheo;
 class Mesh;
 class ParticleVector;
 class Interaction;
+class Integrator;
 
 void _unknownRefStringError [[noreturn]] (const std::string &ref);
 void _dynamicCastError [[noreturn]] (const char *from, const char *to);
@@ -27,9 +28,9 @@ public:
                                             const std::string& name);
 
     template <typename T, typename ContainerT = T>
-    std::shared_ptr<T> getShared(const ConfigRefString& ref)
+    std::shared_ptr<T> get(const ConfigRefString& ref)
     {
-        const auto& container = getContainerShared<ContainerT>();
+        const auto& container = getContainer<ContainerT>();
         auto it = container.find(parseNameFromRefString(ref));
         if (it == container.end())
             _unknownRefStringError(ref);
@@ -39,26 +40,9 @@ public:
     }
 
     template <typename T>
-    std::unique_ptr<T> getUnique(const ConfigRefString& ref)
+    std::map<std::string, std::shared_ptr<T>>& getContainer()
     {
-        if (ref == ConfigNullRefString)
-            return nullptr;
-        auto& container = getContainerUnique<T>();
-        auto it = container.find(parseNameFromRefString(ref));
-        if (it == container.end())
-            _unknownRefStringError(ref);
-        return std::move(it->second);
-    }
-
-    template <typename T>
-    std::map<std::string, std::shared_ptr<T>>& getContainerShared()
-    {
-        return std::get<std::map<std::string, std::shared_ptr<T>>>(shared_);
-    }
-    template <typename T>
-    std::map<std::string, std::unique_ptr<T>>& getContainerUnique()
-    {
-        return std::get<std::map<std::string, std::unique_ptr<T>>>(unique_);
+        return std::get<std::map<std::string, std::shared_ptr<T>>>(objects_);
     }
 
     const std::string& getPath() const { return path_; }
@@ -66,13 +50,14 @@ public:
     const ConfigObject& getPost() const { return postConfig_.getObject(); }
 
 private:
+    template <typename T, typename Factory>
+    const std::shared_ptr<T>& _loadObject(Mirheo *mir, Factory factory);
 
     std::tuple<
         std::map<std::string, std::shared_ptr<Mesh>>,
         std::map<std::string, std::shared_ptr<ParticleVector>>,
-        std::map<std::string, std::shared_ptr<Interaction>>> shared_;
-    std::tuple<
-        std::map<std::string, std::unique_ptr<Interaction>>> unique_;
+        std::map<std::string, std::shared_ptr<Interaction>>,
+        std::map<std::string, std::shared_ptr<Integrator>>> objects_;
     std::string path_;
     ConfigValue compConfig_;
     ConfigValue postConfig_;

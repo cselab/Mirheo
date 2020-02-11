@@ -17,6 +17,7 @@ set(sources_cpp
   initial_conditions/uniform.cpp
   initial_conditions/uniform_filtered.cpp
   initial_conditions/uniform_sphere.cpp
+  integrators/factory.cpp
   integrators/interface.cpp
   integrators/sub_step.cpp
   interactions/factory.cpp
