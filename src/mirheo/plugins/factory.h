@@ -119,5 +119,12 @@ PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, st
 
 PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
                                           int sampleEvery, int dumpEvery, std::string filename);
+
+
+/// Construct the plugins described by (sim, post) pair.
+/// Returns {nullptr, nullptr} if the plugin type names are not recognized.
+PairPlugin loadPlugins(bool computeTask, const MirState *state, Loader& loader,
+                       const ConfigObject *sim, const ConfigObject* post);
+
 } // namespace PluginFactory
 } // namespace mirheo

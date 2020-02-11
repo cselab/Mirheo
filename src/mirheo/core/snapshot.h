@@ -8,11 +8,14 @@
 namespace mirheo
 {
 
-class Mirheo;
-class Mesh;
-class ParticleVector;
-class Interaction;
 class Integrator;
+class Interaction;
+class Mesh;
+class Mirheo;
+class MirState;
+class ParticleVector;
+class PostprocessPlugin;
+class SimulationPlugin;
 
 void _unknownRefStringError [[noreturn]] (const std::string &ref);
 void _dynamicCastError [[noreturn]] (const char *from, const char *to);
@@ -63,6 +66,45 @@ private:
     ConfigValue postConfig_;
 };
 
+/** This is a mechanism for avoiding undefined symbols during the linking phase
+    since the Mirheo core is compiled independently from plugins. In other
+    words, since plugins are treated as optional, this is a mechanism to add
+    factory for loading plugin snapshots.
+
+    First, each plugin set (such as the one provided with Mirheo) registers its
+    factory. Then, during the snapshot loading, for each pair of stored
+    compute/postprocess plugins, the `loadSnapshot` function will traverse
+    every factory until one of them successfully constructs the plugins. If
+    none of them do, an exception will be thrown.
+ */
+class PluginFactoryContainer
+{
+public:
+    using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
+                                 std::shared_ptr<PostprocessPlugin>>;
+
+    /// Factory type. The factory receives the MirState object, loader, and at
+    /// least one of the simulation and postprocess plugin configs.
+    /// Note: Can be changed to std::function if needed.
+    using FactoryType = PairPlugin(*)(
+            bool computeTask, const MirState *, Loader&,
+            const ConfigObject *sim, const ConfigObject *post);
+
+    /// Get singleton.
+    static PluginFactoryContainer& get() noexcept;
+
+    /// Register the factory.
+    void registerPluginFactory(FactoryType factory);
+
+    /// Getter for the vector of factories.
+    const std::vector<FactoryType>& getFactories() const noexcept {
+        return factories_;
+    }
+private:
+    std::vector<FactoryType> factories_;
+};
+
+/// Load the snapshot to the Mirheo object.
 void loadSnapshot(Mirheo *mir, Loader& loader);
 
 } // namespace mirheo

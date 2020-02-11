@@ -273,7 +273,7 @@ private:
     const ConfigRefString& _registerObject(const void *, ConfigValue newItem);
 
     ConfigValue config_;
-    std::map<const void*, ConfigRefString> descriptions_;
+    std::map<const void*, ConfigRefString> refStrings_;
     DumpContext context_;
 };
 

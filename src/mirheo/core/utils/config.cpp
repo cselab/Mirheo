@@ -321,17 +321,21 @@ Saver::~Saver() = default;
 
 bool Saver::isObjectRegistered(const void *ptr) const noexcept
 {
-    return descriptions_.find(ptr) != descriptions_.end();
+    return refStrings_.find(ptr) != refStrings_.end();
 }
 const std::string& Saver::getObjectRefString(const void *ptr) const
 {
-    assert(isObjectRegistered(ptr));
-    return descriptions_.find(ptr)->second;
+    if (!isObjectRegistered(ptr)) {
+        die("Object %p not registered. Could be the pointer was shifted due to "
+            "multiple inheritance. Specialize TypeLoadSave for this type.", ptr);
+    }
+    return refStrings_.find(ptr)->second;
 }
 
 const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
 {
-    assert(!isObjectRegistered(ptr));
+    if (isObjectRegistered(ptr))
+        die("Object %p already registered.", ptr);
 
     auto *newObject = object.get_if<ConfigValue::Object>();
     if (newObject == nullptr)
@@ -369,7 +373,7 @@ const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
     ConfigRefString ref = createRefString(type, name);
     it->second.getArray().emplace_back(std::move(object));
 
-    return descriptions_.emplace(ptr, std::move(ref)).first->second;
+    return refStrings_.emplace(ptr, std::move(ref)).first->second;
 }
 
 

@@ -103,7 +103,7 @@ void MirSimulationObject::setState(const MirState *state)
     state_ = state;
 }
 
-ConfigValue ConfigMirObjectLoadSave::save(Saver& saver, MirObject& obj)
+ConfigValue MirObjectLoadSave::save(Saver& saver, MirObject& obj)
 {
     if (!saver.isObjectRegistered(&obj))
         obj.saveSnapshotAndRegister(saver);

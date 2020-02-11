@@ -20,6 +20,9 @@ MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovNa
     ovName_(ovName),
     dumpEvery_(dumpEvery)
 {}
+MeshPlugin::MeshPlugin(const MirState *state, Loader&, const ConfigObject& config) :
+    MeshPlugin(state, config["name"], config["ovName"], config["dumpEvery"])
+{}
 
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
@@ -167,6 +170,9 @@ static void writePLY(
 MeshDumper::MeshDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path_(makePath(path))
+{}
+MeshDumper::MeshDumper(Loader&, const ConfigObject& config) :
+    MeshDumper(config["name"], config["path"])
 {}
 
 MeshDumper::~MeshDumper() = default;

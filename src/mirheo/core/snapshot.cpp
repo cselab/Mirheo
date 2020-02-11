@@ -8,6 +8,7 @@
 #include <mirheo/core/pvs/factory.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/plugins/factory.h>
 
 #include <typeinfo>
 
@@ -49,7 +50,7 @@ const ConfigObject& LoaderContext::getCompObjectConfig(
 }
 
 template <typename T, typename Factory>
-const std::shared_ptr<T>& loadObject(Loader& loader, Mirheo *mir,
+const std::shared_ptr<T>& loadObject(Mirheo *mir, Loader& loader,
                                      const ConfigValue& info, Factory factory)
 {
     auto ptr = factory(mir->getState(), loader, info.getObject(), info["__type"]);
@@ -61,6 +62,94 @@ const std::shared_ptr<T>& loadObject(Loader& loader, Mirheo *mir,
 }
 
 
+static void loadPlugins(Mirheo *mir, Loader& loader)
+{
+    auto& context = loader.getContext();
+    const ConfigValue *_refsSim  = context.getComp()["Simulation"][0].get("plugins");
+    const ConfigValue *_refsPost = context.getPost()["Postprocess"][0].get("plugins");
+
+    const ConfigArray empty;
+    const ConfigArray& refsSim  = _refsSim ? _refsSim->getArray() : empty;
+    const ConfigArray& refsPost = _refsPost ? _refsPost->getArray() : empty;
+
+    // Map from plugin name to the corresponding ConfigObject.
+    std::map<std::string, const ConfigObject*> infosSim;
+    std::map<std::string, const ConfigObject*> infosPost;
+    if (auto *infos = context.getComp().get("SimulationPlugin"))
+        for (const ConfigValue& info : infos->getArray())
+            infosSim.emplace(info["name"], &info.getObject());
+    if (auto *infos = context.getPost().get("PostprocessPlugin"))
+        for (const ConfigValue& info : infos->getArray())
+            infosPost.emplace(info["name"], &info.getObject());
+
+    /// Load i-th simulation plugin and j-th postprocess plugin. If the plugin has no
+    /// simulation or postprocess plugin object, the corresponding value is -1.
+    auto loadPlugin = [&](int i, int j)
+    {
+        const ConfigObject* configSim =
+                i >= 0 ? infosSim.at(parseNameFromRefString(refsSim[i])) : nullptr;
+        const ConfigObject* configPost =
+                j >= 0 ? infosPost.at(parseNameFromRefString(refsPost[i])) : nullptr;
+
+        const auto &factories = PluginFactoryContainer::get().getFactories();
+        for (const auto& factory : factories) {
+            auto plugins = factory(mir->isComputeTask(), mir->getState(),
+                                   loader, configSim, configPost);
+            if (plugins.first != nullptr || plugins.second != nullptr) {
+                mir->registerPlugins(std::move(plugins));
+                return;
+            }
+        }
+        die("None of the %zu factories implements or recognizes a plugin pair (%s, %s).",
+            factories.size(),
+            configSim  ? configSim ->at("__type").getString().c_str() : "<null>",
+            configPost ? configPost->at("__type").getString().c_str() : "<null>");
+    };
+
+    // We have to load compute and postprocess plugins in the correct order,
+    // while having only (L1) the ordered list of compute plugins and (L2) the
+    // ordered list of postprocess plugins. There are three kinds of plugins:
+    // (A) compute-only, (B) postprocess-only and (C) combined. The code below
+    // iterates simultaneously through L1 and L2 and loads plugins in such a
+    // way to preserve the order between two As, between As and CS, and between
+    // Bs and Cs. The order between As and Bs is not necessarily preserved.
+    int i = 0, j = 0;
+    while (i < (int)refsSim.size()) {
+        // Look for a postprocess plugin with a matching name.
+        std::string nameSim = parseNameFromRefString(refsSim[i]);
+        auto it = infosPost.find(nameSim);
+
+        if (it == infosPost.end()) {
+            // Matching postprocess plugin not found.
+            loadPlugin(i, -1);
+            ++i;
+        } else if (parseNameFromRefString(refsPost[j]) != nameSim) {
+            // Found, but there are other postprocess plugins that have to be loaded first.
+            loadPlugin(-1, j);
+            ++j;
+        } else {
+            // Found, load simulation and postprocess plugins together.
+            loadPlugin(i, j);
+            ++i;
+            ++j;
+        }
+    }
+    // Load remaining postprocess plugins.
+    for (; j < (int)refsPost.size(); ++j)
+        loadPlugin(-1, j);
+}
+
+PluginFactoryContainer& PluginFactoryContainer::get() noexcept
+{
+    static PluginFactoryContainer singleton;
+    return singleton;
+}
+
+void PluginFactoryContainer::registerPluginFactory(FactoryType factory)
+{
+    factories_.push_back(std::move(factory));
+}
+
 void loadSnapshot(Mirheo *mir, Loader& loader)
 {
     LoaderContext& context = loader.getContext();
@@ -68,13 +157,13 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
 
     if (auto *infos = context.getComp().get("Mesh")) {
         for (const auto& info : infos->getArray())
-            loadObject<Mesh>(loader, mir, info, loadMesh);
+            loadObject<Mesh>(mir, loader, info, loadMesh);
     }
 
     if (auto *infos = context.getComp().get("ParticleVector")) {
         for (const auto& info : infos->getArray()) {
             const auto &pv = loadObject<ParticleVector>(
-                    loader, mir, info, ParticleVectorFactory::loadParticleVector);
+                    mir, loader, info, ParticleVectorFactory::loadParticleVector);
             mir->registerParticleVector(pv, ic);
         }
     }
@@ -83,7 +172,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
         if (auto *infos = context.getComp().get("Interaction")) {
             for (const auto& info : infos->getArray()) {
                 const auto& interaction = loadObject<Interaction>(
-                        loader, mir, info, InteractionFactory::loadInteraction);
+                        mir, loader, info, InteractionFactory::loadInteraction);
                 mir->registerInteraction(interaction);
             }
         }
@@ -91,7 +180,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
         if (auto *infos = context.getComp().get("Integrator")) {
             for (const auto& info : infos->getArray()) {
                 const auto& integrator = loadObject<Integrator>(
-                        loader, mir, info, IntegratorFactory::loadIntegrator);
+                        mir, loader, info, IntegratorFactory::loadIntegrator);
                 mir->registerIntegrator(integrator);
             }
         }
@@ -117,6 +206,8 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
             }
         }
     }
+
+    loadPlugins(mir, loader);
 }
 
 } // namespace mirheo

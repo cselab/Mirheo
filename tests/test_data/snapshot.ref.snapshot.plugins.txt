@@ -1,0 +1,116 @@
+{
+    "Mesh": [
+        {
+            "__type": "MembraneMesh",
+            "name": "mesh_0"
+        }
+    ],
+    "ParticleVector": [
+        {
+            "__type": "MembraneVector",
+            "name": "ov",
+            "mass": 1,
+            "objSize": 6,
+            "mesh": "<MembraneMesh with name=mesh_0>"
+        }
+    ],
+    "SimulationPlugin": [
+        {
+            "__type": "SimulationStats",
+            "name": "stats",
+            "fetchEvery": 10
+        },
+        {
+            "__type": "MeshPlugin",
+            "name": "rbcs",
+            "dumpEvery": 15,
+            "ovName": "ov"
+        }
+    ],
+    "Simulation": [
+        {
+            "__type": "Simulation",
+            "name": "simulation",
+            "checkpointId": 0,
+            "checkpointInfo": {
+                "__type": "CheckpointInfo",
+                "every": 0,
+                "folder": "restart/",
+                "mode": 0
+            },
+            "particleVectors": [
+                "<MembraneVector with name=ov>"
+            ],
+            "bouncerMap": {},
+            "integratorMap": {},
+            "interactionMap": {},
+            "wallMap": {},
+            "belongingCheckerMap": {},
+            "plugins": [
+                "<SimulationStats with name=stats>",
+                "<MeshPlugin with name=rbcs>"
+            ],
+            "integratorPrototypes": [],
+            "interactionPrototypes": [],
+            "wallPrototypes": [],
+            "checkWallPrototypes": [],
+            "bouncerPrototypes": [],
+            "belongingCorrectionPrototypes": [],
+            "splitterPrototypes": [],
+            "pvsIntegratorMap": {}
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "state": {
+                "__type": "MirState",
+                "domainGlobalStart": [
+                    0,
+                    0,
+                    0
+                ],
+                "domainGlobalSize": [
+                    4,
+                    6,
+                    8
+                ],
+                "dt": 0.10000000149011612,
+                "currentTime": 0,
+                "currentStep": 0
+            },
+            "simulation": "<Simulation with name=simulation>"
+        }
+    ]
+}
+{
+    "PostprocessPlugin": [
+        {
+            "__type": "PostprocessStats",
+            "name": "stats",
+            "filename": "stats.txt"
+        },
+        {
+            "__type": "MeshDumper",
+            "name": "rbcs",
+            "path": "ply/"
+        }
+    ],
+    "Postprocess": [
+        {
+            "__type": "Postprocess",
+            "name": "postprocess",
+            "checkpointFolder": "restart/",
+            "plugins": [
+                "<PostprocessStats with name=stats>",
+                "<MeshDumper with name=rbcs>"
+            ]
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "postprocess": "<Postprocess with name=postprocess>"
+        }
+    ]
+}

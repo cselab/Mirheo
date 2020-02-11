@@ -33,6 +33,9 @@
 #include "wall_force_collector.h"
 #include "wall_repulsion.h"
 
+#include <mirheo/core/snapshot.h>
+#include <mirheo/core/utils/config.h>
+
 namespace mirheo
 {
 namespace PluginFactory
@@ -399,6 +402,37 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
     return { simPl, postPl };
 }
 
+PairPlugin loadPlugins(bool computeTask, const MirState *state, Loader& loader,
+                       const ConfigObject *sim, const ConfigObject* post)
+{
+    std::string simType  = sim  ? sim->at("__type").getString()  : std::string();
+    std::string postType = post ? post->at("__type").getString() : std::string();
+
+    /// Create a pair of sim and post plugins if the type names match.
+#define MIR_LOAD_PLUGIN_PAIR(A, B)                                             \
+    if (simType == #A && postType == #B) {                                     \
+        if (computeTask)                                                       \
+            return {std::make_shared<A>(state, loader, *sim), nullptr};        \
+        else                                                                   \
+            return {nullptr, std::make_shared<B>(loader, *post)};              \
+    }
+    MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
+    MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
+#undef MIR_LOAD_PLUGIN_PAIR
+    return {nullptr, nullptr};
+}
+
+namespace
+{
+    /// Register `loadPlugin` factory at startup.
+    struct RegisterPluginFactory
+    {
+        RegisterPluginFactory()
+        {
+            PluginFactoryContainer::get().registerPluginFactory(loadPlugins);
+        }
+    } registerPluginFactory_;
+} // anonymous namespace
 
 } // namespace PluginFactory
 } // namespace mirheo

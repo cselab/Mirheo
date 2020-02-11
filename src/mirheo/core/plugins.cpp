@@ -148,4 +148,18 @@ ConfigObject PostprocessPlugin::_saveSnapshot(Saver& saver, const std::string& t
     return MirObject::_saveSnapshot(saver, "PostprocessPlugin", typeName);
 }
 
+ConfigValue TypeLoadSave<SimulationPlugin>::save(Saver& saver, SimulationPlugin& plugin)
+{
+    if (!saver.isObjectRegistered(&plugin))
+        plugin.saveSnapshotAndRegister(saver);
+    return saver.getObjectRefString(&plugin);
+}
+
+ConfigValue TypeLoadSave<PostprocessPlugin>::save(Saver& saver, PostprocessPlugin& plugin)
+{
+    if (!saver.isObjectRegistered(&plugin))
+        plugin.saveSnapshotAndRegister(saver);
+    return saver.getObjectRefString(&plugin);
+}
+
 } // namespace mirheo

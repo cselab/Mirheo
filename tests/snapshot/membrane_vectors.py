@@ -27,8 +27,8 @@ if not args.load_from:
     ov1 = mir.ParticleVectors.MembraneVector('ov1', mesh=mesh1, mass=1)
     ov2 = mir.ParticleVectors.MembraneVector('ov2', mesh=mesh2, mass=1)
     ic = mir.InitialConditions.Membrane([])
-    u.registerParticleVector(pv=ov1, ic=ic)
-    u.registerParticleVector(pv=ov2, ic=ic)
+    u.registerParticleVector(ov1, ic)
+    u.registerParticleVector(ov2, ic)
     u.saveSnapshot(args.save_to)
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)

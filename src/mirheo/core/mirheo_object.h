@@ -61,15 +61,18 @@ private:
 
 // Common saver to the template saver below. This way we don't need the
 // definition of ConfigValue here.
-struct ConfigMirObjectLoadSave {
-    // Automatically adds `name` key to the returned dictionary. 
+struct MirObjectLoadSave
+{
+    // Automatically adds `name` key to the returned dictionary.
     static ConfigValue save(Saver&, MirObject& obj);
 };
 
 /// TypeLoadSave specialization for MirObject and derived classes.
+/// Note: this will also match derived class where MirObject is not the first
+/// base class. The registration of these objects will fail.
 template <typename T>
 struct TypeLoadSave<T, std::enable_if_t<std::is_base_of<MirObject, T>::value>>
-    : ConfigMirObjectLoadSave
+    : MirObjectLoadSave
 { };
 
 } // namespace mirheo

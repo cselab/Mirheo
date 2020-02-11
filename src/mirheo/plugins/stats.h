@@ -21,6 +21,7 @@ class SimulationStats : public SimulationPlugin
 {
 public:
     SimulationStats(const MirState *state, std::string name, int fetchEvery);
+    SimulationStats(const MirState *state, Loader&, const ConfigObject& config);
     ~SimulationStats();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -52,6 +53,7 @@ class PostprocessStats : public PostprocessPlugin
 {
 public:
     PostprocessStats(std::string name, std::string filename = "");
+    PostprocessStats(Loader&, const ConfigObject& config);
 
     void deserialize() override;
     void saveSnapshotAndRegister(Saver&) override;

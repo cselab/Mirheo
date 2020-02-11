@@ -54,6 +54,9 @@ SimulationStats::SimulationStats(const MirState *state, std::string name, int fe
     SimulationPlugin(state, name),
     fetchEvery_(fetchEvery)
 {}
+SimulationStats::SimulationStats(const MirState *state, Loader&, const ConfigObject& config)
+    : SimulationStats(state, config["name"], config["fetchEvery"])
+{}
 
 SimulationStats::~SimulationStats() = default;
 
@@ -130,6 +133,9 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
         fprintf(fdump_.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
 }
+PostprocessStats::PostprocessStats(Loader&, const ConfigObject& config) :
+    PostprocessStats(config["name"].getString(), config["filename"].getString())
+{}
 
 void PostprocessStats::deserialize()
 {
@@ -181,7 +187,7 @@ void PostprocessStats::deserialize()
 
 void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
 {
-    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessPlugin"));
+    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessStats"));
 }
 
 ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)

@@ -17,6 +17,7 @@ class MeshPlugin : public SimulationPlugin
 {
 public:
     MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
+    MeshPlugin(const MirState *state, Loader&, const ConfigObject&);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -45,6 +46,7 @@ class MeshDumper : public PostprocessPlugin
 {
 public:
     MeshDumper(std::string name, std::string path);
+    MeshDumper(Loader&, const ConfigObject&);
     ~MeshDumper();
 
     void deserialize() override;
