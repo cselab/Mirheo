@@ -96,9 +96,9 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
             }
         }
 
-        const ConfigValue& sim = context.getComp()["Simulation"][0];
-        if (auto *interactionPrototypes = sim.get("interactionPrototypes")) {
-            for (const auto& info : interactionPrototypes->getArray()) {
+        const ConfigObject& sim = context.getComp()["Simulation"][0].getObject();
+        if (auto *infos = sim.get("interactionPrototypes")) {
+            for (const auto& info : infos->getArray()) {
                 const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
                 const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
                 const auto& interaction = context.get<Interaction>(info["interaction"]);
@@ -106,6 +106,14 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
                 if (rc != interaction->rc)
                     die("Interaction rc do not match: %f != %f.", rc, interaction->rc);
                 mir->setInteraction(interaction.get(), pv1.get(), pv2.get());
+            }
+        }
+
+        if (auto *infos = sim.get("integratorPrototypes")) {
+            for (const auto& info : infos->getArray()) {
+                const auto& pv = context.get<ParticleVector>(info["pv"]);
+                const auto& integrator = context.get<Integrator>(info["integrator"]);
+                mir->setIntegrator(integrator.get(), pv.get());
             }
         }
     }

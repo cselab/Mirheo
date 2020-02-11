@@ -158,13 +158,13 @@ public:
     ConfigValue&       operator[](const char *key)              { return getObject().at(key); }
     const ConfigValue& operator[](const char *key) const        { return getObject().at(key); }
 
-    /// Get the array element. Terminates if not a array or if out of range.
+    /// Get the array element. Terminates if not an array or if out of range.
     ConfigValue&       operator[](size_t i)       { return getArray()[i]; }
     const ConfigValue& operator[](size_t i) const { return getArray()[i]; }
     ConfigValue&       operator[](int i)       { return getArray()[static_cast<size_t>(i)]; }
     const ConfigValue& operator[](int i) const { return getArray()[static_cast<size_t>(i)]; }
 
-    /// Get the element if it exists, or null otherwise. Terminates if not an object.
+    /// Get the element if it exists, or nullptr otherwise. Terminates if not an object.
     ConfigValue*       get(const std::string &key) &      { return getObject().get(key); }
     const ConfigValue* get(const std::string &key) const& { return getObject().get(key); }
     ConfigValue*       get(const char *key) &             { return getObject().get(key); }
