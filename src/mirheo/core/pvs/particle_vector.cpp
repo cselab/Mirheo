@@ -2,7 +2,7 @@
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
-#include <mirheo/core/utils/config.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/type_map.h>

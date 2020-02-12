@@ -200,7 +200,7 @@ protected:
         config.emplace("dihedralParams", saver(dihedralParams));
         config.emplace("triangleParams", saver(triangleParams));
         config.emplace("filter",         saver(filter));
-        config.emplace("stepGen",        saver("<<not implemented>"));
+        config.emplace("stepGen",        saver("<<not implemented>>"));
         return config;
     }
 

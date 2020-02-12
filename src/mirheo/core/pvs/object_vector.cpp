@@ -4,7 +4,7 @@
 #include "restart/helpers.h"
 #include "utils/compute_com_extents.h"
 
-#include <mirheo/core/utils/config.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/xdmf.h>
 

@@ -4,6 +4,7 @@
 #include <mirheo/core/utils/config.h>
 
 #include <algorithm>
+#include <cassert>
 
 namespace mirheo
 {

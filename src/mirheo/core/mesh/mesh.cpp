@@ -8,6 +8,7 @@
 #include <mirheo/core/utils/helper_math.h>
 
 #include <algorithm>
+#include <cassert>
 #include <vector>
 
 namespace mirheo

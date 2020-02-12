@@ -305,16 +305,9 @@ ConfigValue& ConfigArray::_outOfBound [[noreturn]] (size_t index, size_t size) c
         index, size, ConfigValue{*this}.toJSONString().c_str());
 }
 
-bool DumpContext::isGroupMasterTask() const
-{
-    int rank;
-    MPI_Comm_rank(groupComm, &rank);
-    return rank == 0;
-}
 
-
-Saver::Saver(DumpContext context) :
-    config_{ConfigValue::Object{}}, context_{std::move(context)}
+Saver::Saver(SaverContext *context) :
+    config_{ConfigValue::Object{}}, context_{context}
 {}
 
 Saver::~Saver() = default;
@@ -389,9 +382,18 @@ float3 TypeLoadSave<float3>::parse(const ConfigValue &config)
     return float3{(float)array[0], (float)array[1], (float)array[2]};
 }
 
-void _variantDumperError [[noreturn]] (size_t index, size_t size)
+void _variantLoadIndexError [[noreturn]] (size_t index, size_t size)
 {
     die("Variant index %zu out of range (size=%zu).", index, size);
+}
+ConfigValue _variantSave(ConfigValue::Int index, ConfigValue value)
+{
+    ConfigValue config{ConfigObject{}};
+    ConfigObject *object = config.get_if<ConfigObject>();
+    object->reserve(2);
+    object->unsafe_insert("__index", index);
+    object->unsafe_insert("value", std::move(value));
+    return config;
 }
 
 

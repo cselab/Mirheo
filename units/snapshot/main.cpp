@@ -87,7 +87,8 @@ MIRHEO_MEMBER_VARS_2(Struct3, z, w);
 
 TEST(Snapshot, BasicConfigToJSON)
 {
-    Saver saver{DumpContext{}};
+    SaverContext context;
+    Saver saver{&context};
 
     // Test basic variant types.
     ASSERT_STREQ(saver(10).toJSONString().c_str(), "10");
@@ -106,7 +107,8 @@ TEST(Snapshot, BasicConfigToJSON)
 /// Test TypeLoadSave various interfaces.
 TEST(Snapshot, InterfacesForTypeLoadSave)
 {
-    Saver saver{DumpContext{}};
+    SaverContext context;
+    Saver saver{&context};
 
     // Test TypeLoadSave<> specialization save() interface.
     ConfigValue config1 = saver(Struct1{10, 3.125, "hello"});
@@ -152,7 +154,8 @@ TEST(Snapshot, ParseJSON)
 
 template <typename T>
 void roundTrip(const T &value) {
-    Saver saver{DumpContext{}};
+    SaverContext context;
+    Saver saver{&context};
     ConfigValue saved = saver(value);
 
     LoaderContext loaderContext{ConfigObject{}, ConfigObject{}};
@@ -181,7 +184,8 @@ TEST(Snapshot, DumpUndumpRoundTrip)
 
 TEST(Snapshot, DumpUndumpInteractions)
 {
-    Saver saver{DumpContext{}};
+    SaverContext context;
+    Saver saver{&context};
 
     Mirheo mirheo{MPI_COMM_WORLD, {1, 1, 1}, {10.0_r, 10.0_r, 10.0_r}, 0.1_r, {"log", 3, true}, {}, false};
     auto pairwise = InteractionFactory::createPairwiseInteraction(

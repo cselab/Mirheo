@@ -24,6 +24,13 @@ void _dynamicCastError [[noreturn]] (const char *from, const char *to)
     die("Dynamic cast error from runtime type \"%s\" to static type \"%s\".", from, to);
 }
 
+bool SaverContext::isGroupMasterTask() const
+{
+    int rank;
+    MPI_Comm_rank(groupComm, &rank);
+    return rank == 0;
+}
+
 
 LoaderContext::LoaderContext(std::string path) :
     LoaderContext{configFromJSONFile(joinPaths(path, "config.compute.json")),

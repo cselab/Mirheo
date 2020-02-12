@@ -2,6 +2,7 @@
 
 #include <mirheo/core/utils/config.h>
 
+#include <mpi.h>
 #include <tuple>
 #include <typeinfo>
 
@@ -19,6 +20,16 @@ class SimulationPlugin;
 
 void _unknownRefStringError [[noreturn]] (const std::string &ref);
 void _dynamicCastError [[noreturn]] (const char *from, const char *to);
+
+class SaverContext
+{
+public:
+    std::string path {"snapshot/"};
+    MPI_Comm groupComm {MPI_COMM_NULL};
+    std::map<std::string, int> counters;
+
+    bool isGroupMasterTask() const;
+};
 
 class LoaderContext {
 public:

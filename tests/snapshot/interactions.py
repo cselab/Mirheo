@@ -31,7 +31,7 @@ else:
 
 # TEST: snapshot.interactions
 # cd snapshot
-# echo rm -rf snapshot1/ snapshot2/
+# rm -rf snapshot1/ snapshot2/
 # mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot1/
 # mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
 # git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json

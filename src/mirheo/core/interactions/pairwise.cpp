@@ -2,6 +2,8 @@
 
 #include <mirheo/core/utils/config.h>
 
+#include <cassert>
+
 namespace mirheo
 {
 

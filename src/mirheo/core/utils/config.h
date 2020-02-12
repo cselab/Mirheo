@@ -5,9 +5,7 @@
 #include "reflection.h"
 #include "type_traits.h"
 
-#include <cassert>
 #include <map>
-#include <mpi.h>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -45,6 +43,7 @@ struct TypeLoadSave
                   "Type must be a non-const non-reference type.");
     static_assert(always_false<T>::value, "Not implemented.");
 
+    /// Store any data in files and prepare the ConfigValue describing the object.
     static ConfigValue save(Saver&, T& value);
 
     /// Context-free parsing. Only for simple types!
@@ -54,6 +53,7 @@ struct TypeLoadSave
     static T load(Loader&, const ConfigValue&);
 };
 
+/// std::vector<ConfigValue>-like array with bound checks.
 class ConfigArray : public std::vector<ConfigValue>
 {
     using Base = std::vector<ConfigValue>;
@@ -179,6 +179,14 @@ public:
     operator ConfigValue::Float() const { return getFloat(); }
     operator const std::string&() const { return getString(); }
 
+    /// Comparison operators.
+    friend bool operator==(const ConfigValue& a, const char *b) noexcept
+    {
+        if (auto *s = a.get_if<ConfigValue::String>())
+            return *s == b;
+        return false;
+    }
+
     /// String concatenation operator.
     friend std::string operator+(const ConfigValue& a, const char *b)
     {
@@ -220,22 +228,14 @@ private:
     Variant value_;
 };
 
-struct DumpContext
-{
-    std::string path {"snapshot/"};
-    MPI_Comm groupComm {MPI_COMM_NULL};
-    std::map<std::string, int> counters;
-
-    bool isGroupMasterTask() const;
-};
-
+class SaverContext;
 class Saver
 {
 public:
-    Saver(DumpContext context);
+    Saver(SaverContext *context);
     ~Saver();
 
-    DumpContext& getContext() noexcept { return context_; }
+    SaverContext& getContext() noexcept { return *context_; }
     const ConfigValue& getConfig() const noexcept { return config_; }
 
     /// Dump.
@@ -274,7 +274,7 @@ private:
 
     ConfigValue config_;
     std::map<const void*, ConfigRefString> refStrings_;
-    DumpContext context_;
+    SaverContext *context_;
 };
 
 class LoaderContext;
@@ -426,7 +426,7 @@ struct TypeLoadSave<T, std::enable_if_t<std::is_enum<T>::value>>
 
 /// TypeLoadSave for structs with reflection information.
 template <typename T>
-struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<std::remove_const_t<T>>::value>>
+struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<T>::value>>
 {
     template <typename TT>  // Const or not.
     static ConfigValue save(Saver& saver, TT& t)
@@ -500,8 +500,13 @@ struct TypeLoadSave<std::map<std::string, T>>
     }
 };
 
-/// TypeLoadSave for mpark::variant.
-void _variantDumperError [[noreturn]] (size_t index, size_t size);
+/// Helper for TypeLoadSave<variant<...>>. Report that the variant index is invalid.
+void _variantLoadIndexError [[noreturn]] (size_t index, size_t size);
+
+/// Template-argument-independent part of TypeLoadSave<variant<...>>::save.
+ConfigValue _variantSave(ConfigValue::Int index, ConfigValue value);
+
+/// Specialization of TypeLoadSave for mpark::variant<...>.
 template <typename... Ts>
 struct TypeLoadSave<mpark::variant<Ts...>>
 {
@@ -516,18 +521,15 @@ struct TypeLoadSave<mpark::variant<Ts...>>
     template <typename Variant>  // Const or not.
     static ConfigValue save(Saver& saver, Variant& value)
     {
-        ConfigValue::Object object;
-        object.reserve(2);
-        object.unsafe_insert("__index", static_cast<ConfigValue::Int>(value.index()));
-        object.unsafe_insert("value", mpark::visit(saver, value));
-        return object;
+        return _variantSave(static_cast<ConfigValue::Int>(value.index()),
+                            mpark::visit(saver, value));
     }
     static Variant load(Loader& loader, const ConfigValue& config)
     {
         const ConfigObject& object = config.getObject();
         size_t index = loader.load<size_t>(object.at("__index"));
         if (index >= sizeof...(Ts))
-            _variantDumperError(index, sizeof...(Ts));
+            _variantLoadIndexError(index, sizeof...(Ts));
 
         // Compile an array of _load functions, one for each type.
         // Pick index-th on runtime.
@@ -537,7 +539,10 @@ struct TypeLoadSave<mpark::variant<Ts...>>
     }
 };
 
+/// Load a ConfigValue from a JSON file.
 ConfigValue configFromJSONFile(const std::string& filename);
+
+/// Load a ConfigValue from a JSON string.
 ConfigValue configFromJSON(const std::string& json);
 
 } // namespace mirheo

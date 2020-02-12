@@ -731,12 +731,12 @@ static void storeToFile(const std::string& content, const std::string& filename)
 void Mirheo::saveSnapshot(std::string path)
 {
     // Prepare context and the saver.
-    DumpContext context;
+    SaverContext context;
     context.path = path;
     context.groupComm = isComputeTask() ? cartComm_ : ioComm_;
     if (context.groupComm == MPI_COMM_NULL)
         die("something's wrong with the comm.");
-    Saver saver(std::move(context));
+    Saver saver{&context};
 
     // Create the snapshot folder before saving.
     if (!path.empty())
