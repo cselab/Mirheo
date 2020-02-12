@@ -33,9 +33,6 @@
 #include "wall_force_collector.h"
 #include "wall_repulsion.h"
 
-#include <mirheo/core/snapshot.h>
-#include <mirheo/core/utils/config.h>
-
 namespace mirheo
 {
 namespace PluginFactory
@@ -402,24 +399,42 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
     return { simPl, postPl };
 }
 
-PairPlugin loadPlugins(bool computeTask, const MirState *state, Loader& loader,
-                       const ConfigObject *sim, const ConfigObject* post)
+PluginFactoryContainer::OptionalPluginPair loadPlugins(
+        bool computeTask, const MirState *state, Loader& loader,
+        const ConfigObject *sim, const ConfigObject* post)
 {
     std::string simType  = sim  ? sim->at("__type").getString()  : std::string();
     std::string postType = post ? post->at("__type").getString() : std::string();
 
-    /// Create a pair of sim and post plugins if the type names match.
+    // Create a pair of sim and post plugins if the type names match.
 #define MIR_LOAD_PLUGIN_PAIR(A, B)                                             \
     if (simType == #A && postType == #B) {                                     \
         if (computeTask)                                                       \
-            return {std::make_shared<A>(state, loader, *sim), nullptr};        \
+            return {true, std::make_shared<A>(state, loader, *sim), nullptr};  \
         else                                                                   \
-            return {nullptr, std::make_shared<B>(loader, *post)};              \
-    }
+            return {true, nullptr, std::make_shared<B>(loader, *post)};        \
+    }                                                                          \
+    static_assert(true, "Semicolon missing")
+
+    // Create a simulation-only plugin, if the type names match.
+#define MIR_LOAD_SIM_PLUGIN(A)                                                 \
+    if (simType == #A && postType.empty()) {                                   \
+        return {true,                                                          \
+                computeTask ? std::make_shared<A>(state, loader, *sim)         \
+                            : nullptr,                                         \
+                nullptr};                                                      \
+    }                                                                          \
+    static_assert(true, "Semicolon missing")
+
+    // List all supported plugins.
     MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
     MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
+    MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
+
+#undef MIR_LOAD_SIM_PLUGIN
 #undef MIR_LOAD_PLUGIN_PAIR
-    return {nullptr, nullptr};
+
+    return {false, nullptr, nullptr};
 }
 
 namespace

@@ -25,6 +25,27 @@ static inline ConfigRefString createRefString(const char *typeName, const char *
                       : strprintf("<%s>", typeName);
 }
 
+std::string readWholeFile(const std::string& filename)
+{
+    FileWrapper file(filename, "r");
+
+    // https://stackoverflow.com/questions/14002954/c-programming-how-to-read-the-whole-file-contents-into-a-buffer
+    fseek(file.get(), 0, SEEK_END);
+    long size = ftell(file.get());
+    fseek(file.get(), 0, SEEK_SET);  /* same as rewind(f); */
+
+    std::string output(size, '_');
+    fread(&output[0], 1, size, file.get());
+    return output;
+}
+
+void writeToFile(const std::string& filename, const std::string& content)
+{
+    FileWrapper f(filename, "w");
+    fwrite(content.data(), 1, content.size(), f.get());
+}
+
+
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName)
 {
     die("Missing implementation of a virtual member function. Var type=%s class type=%s",
@@ -62,7 +83,7 @@ static std::string stringToJSON(const std::string& input)
 
 namespace
 {
-    class ConfigToJSON
+    class ConfigExporter
     {
     public:
         enum class Tag
@@ -82,14 +103,14 @@ namespace
         using Token = mpark::variant<std::string, Tag>;
 
         void process(const ConfigValue& element);
-        std::string generate();
+        std::string exportJSON();
 
     private:
         std::vector<Token> tokens_;
     };
 } // anonymous namespace
 
-void ConfigToJSON::process(const ConfigValue& element)
+void ConfigExporter::process(const ConfigValue& element)
 {
     if (auto *v = element.get_if<long long>()) {
         tokens_.push_back(std::to_string(*v));
@@ -119,7 +140,7 @@ void ConfigToJSON::process(const ConfigValue& element)
     }
 }
 
-std::string ConfigToJSON::generate()
+std::string ConfigExporter::exportJSON()
 {
     std::ostringstream stream;
     std::string nlindent {'\n'};
@@ -239,9 +260,9 @@ const ConfigValue* ConfigObject::get(const char *key) const&
 
 std::string ConfigValue::toJSONString() const
 {
-    ConfigToJSON writer;
+    ConfigExporter writer;
     writer.process(*this);
-    return writer.generate();
+    return writer.exportJSON();
 }
 
 ConfigValue::Int ConfigValue::getInt() const
@@ -394,23 +415,6 @@ ConfigValue _variantSave(ConfigValue::Int index, ConfigValue value)
     object->unsafe_insert("__index", index);
     object->unsafe_insert("value", std::move(value));
     return config;
-}
-
-
-/// Read an return the content of a file as a string.
-/// Terminates if the file is not found.
-static std::string readWholeFile(const std::string& filename)
-{
-    FileWrapper file(filename, "r");
-
-    // https://stackoverflow.com/questions/14002954/c-programming-how-to-read-the-whole-file-contents-into-a-buffer
-    fseek(file.get(), 0, SEEK_END);
-    long size = ftell(file.get());
-    fseek(file.get(), 0, SEEK_SET);  /* same as rewind(f); */
-
-    std::string output(size, '_');
-    fread(&output[0], 1, size, file.get());
-    return output;
 }
 
 

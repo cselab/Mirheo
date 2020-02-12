@@ -5,6 +5,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/rod_vector.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/walls/interface.h>
 
 #include <functional>
@@ -122,9 +123,11 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
 
 
 /// Construct the plugins described by (sim, post) pair.
-/// Returns {nullptr, nullptr} if the plugin type names are not recognized.
-PairPlugin loadPlugins(bool computeTask, const MirState *state, Loader& loader,
-                       const ConfigObject *sim, const ConfigObject* post);
+/// Returns {true, simPtr, postPtr} if the plugins are recognized,
+/// {false, nullptr, nullptr} otherwise.
+PluginFactoryContainer::OptionalPluginPair loadPlugins(
+        bool computeTask, const MirState *state, Loader& loader,
+        const ConfigObject *sim, const ConfigObject* post);
 
 } // namespace PluginFactory
 } // namespace mirheo

@@ -102,8 +102,9 @@ static void loadPlugins(Mirheo *mir, Loader& loader)
         for (const auto& factory : factories) {
             auto plugins = factory(mir->isComputeTask(), mir->getState(),
                                    loader, configSim, configPost);
-            if (plugins.first != nullptr || plugins.second != nullptr) {
-                mir->registerPlugins(std::move(plugins));
+            if (std::get<0>(plugins)) {
+                mir->registerPlugins(std::move(std::get<1>(plugins)),
+                                     std::move(std::get<2>(plugins)));
                 return;
             }
         }

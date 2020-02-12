@@ -21,6 +21,10 @@ if not args.load_from:
     u.registerPlugins(mir.Plugins.createStats('stats', every=10, filename='stats.txt'))
     u.registerPlugins(mir.Plugins.createDumpMesh('rbcs', ov, dump_every=15, path='ply'))
 
+    # Stores extraForce.dat. We do not check the content of the file, only that it is correctly reloaded.
+    forces = [[0.01 * k, 0.02 * k, 0.03 * k] for k in range(6)]
+    u.registerPlugins(mir.Plugins.createMembraneExtraForce('extraForce', ov, forces))
+
     u.saveSnapshot(args.save_to)
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
@@ -33,4 +37,5 @@ else:
 # mir.run --runargs "-n 4" ./plugins.py --ranks 2 1 1 --save-to snapshot2/ --load-from snapshot1/
 # git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
 # git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
+# git --no-pager diff --no-index snapshot1/extraForce.dat snapshot2/extraForce.dat
 # cat snapshot1/config.compute.json snapshot1/config.post.json > snapshot.out.txt

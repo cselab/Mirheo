@@ -25,6 +25,11 @@
             "name": "rbcs",
             "dumpEvery": 15,
             "ovName": "ov"
+        },
+        {
+            "__type": "MembraneExtraForcePlugin",
+            "name": "extraForce",
+            "pvName": "ov"
         }
     ],
     "Simulation": [
@@ -48,7 +53,8 @@
             "belongingCheckerMap": {},
             "plugins": [
                 "<SimulationStats with name=stats>",
-                "<MeshPlugin with name=rbcs>"
+                "<MeshPlugin with name=rbcs>",
+                "<MembraneExtraForcePlugin with name=extraForce>"
             ],
             "integratorPrototypes": [],
             "interactionPrototypes": [],

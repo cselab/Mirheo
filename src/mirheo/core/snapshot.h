@@ -91,13 +91,18 @@ private:
 class PluginFactoryContainer
 {
 public:
-    using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
-                                 std::shared_ptr<PostprocessPlugin>>;
+    // We cannot differentiate between e.g. simulation-only plugins that return
+    // {nullptr, nullptr} on postprocess ranks and an unrecognized plugin
+    // factory result {nullptr, nullptr}, so we add an optional-like bool.
+    using OptionalPluginPair = std::tuple<
+        bool,
+        std::shared_ptr<SimulationPlugin>,
+        std::shared_ptr<PostprocessPlugin>>;
 
     /// Factory type. The factory receives the MirState object, loader, and at
     /// least one of the simulation and postprocess plugin configs.
     /// Note: Can be changed to std::function if needed.
-    using FactoryType = PairPlugin(*)(
+    using FactoryType = OptionalPluginPair(*)(
             bool computeTask, const MirState *, Loader&,
             const ConfigObject *sim, const ConfigObject *post);
 

@@ -22,6 +22,12 @@ constexpr const char ConfigNullRefString[] = "<nullptr>";
 /// Extract the object name from ConfigRefString.
 std::string parseNameFromRefString(const ConfigRefString &ref);
 
+/// Read an return the content of a file. Terminates if the file is not found.
+std::string readWholeFile(const std::string& filename);
+
+/// Write a string to the file.
+void writeToFile(const std::string& filename, const std::string& content);
+
 /// Print the error about mismatched type and throw and exception.
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
 
@@ -238,11 +244,11 @@ public:
     SaverContext& getContext() noexcept { return *context_; }
     const ConfigValue& getConfig() const noexcept { return config_; }
 
-    /// Dump.
+    /// Save snapshot and prepare a config.
     template <typename T>
     ConfigValue operator()(T& t)
     {
-        return TypeLoadSave<std::remove_const_t<T>>::save(*this, t);
+        return TypeLoadSave<T>::save(*this, t);
     }
     template <typename T>
     ConfigValue operator()(const T& t)
@@ -259,6 +265,18 @@ public:
         return std::string(t);
     }
 
+    /// Process a generic array.
+    template <typename T>
+    ConfigValue operator()(T *data, size_t size)
+    {
+        ConfigValue::Array array;
+        array.reserve(size);
+        for (size_t i = 0; i < size; ++i)
+            array.push_back((*this)(data[i]));
+        return std::move(array);
+    }
+
+    /// Object handling.
     bool isObjectRegistered(const void*) const noexcept;
     const ConfigRefString& getObjectRefString(const void*) const;
 
@@ -461,11 +479,7 @@ struct TypeLoadSave<std::vector<T>>
     template <typename Vector>  // Const or not.
     static ConfigValue save(Saver& saver, Vector& values)
     {
-        ConfigValue::Array array;
-        array.reserve(values.size());
-        for (auto& value : values)
-            array.push_back(saver(value));
-        return std::move(array);
+        return saver(values.data(), values.size());
     }
     static std::vector<T> load(Loader& loader, const ConfigValue& config)
     {
@@ -542,7 +556,7 @@ struct TypeLoadSave<mpark::variant<Ts...>>
 /// Load a ConfigValue from a JSON file.
 ConfigValue configFromJSONFile(const std::string& filename);
 
-/// Load a ConfigValue from a JSON string.
+/// Parse a ConfigValue from a JSON string.
 ConfigValue configFromJSON(const std::string& json);
 
 } // namespace mirheo
