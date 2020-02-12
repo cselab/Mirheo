@@ -3,6 +3,7 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 
 #include <memory>
 #include <mpi.h>
@@ -116,11 +117,17 @@ public:
 
     void logCompileOptions() const;
     void saveSnapshot(std::string path);
-    
+
+    // User-defined attributes. Useful for adding custom information to snapshots.
+    void setAttribute(const std::string& name, ConfigValue value);
+    void setAttribute(const std::string& name, long long value);
+    long long getAttributeInt(const std::string& name);
+
 private:
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
     std::shared_ptr<MirState> state_;
+    ConfigObject attributes_;
     
     int rank_;
     int computeTask_;

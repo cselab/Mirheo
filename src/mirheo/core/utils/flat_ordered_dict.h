@@ -41,6 +41,7 @@ public:
     iterator       end() noexcept { return c_.end(); }
     const_iterator end() const noexcept { return c_.end(); }
 
+    bool empty() const noexcept { return c_.empty(); }
     size_t size() const noexcept { return c_.size(); }
     void reserve(size_t size) { c_.reserve(size); }
 

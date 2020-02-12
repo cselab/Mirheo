@@ -350,6 +350,22 @@ void exportMirheo(py::module& m)
 
             Args:
                 path: Target folder.
+        )")
+        .def("setAttribute", (void(Mirheo::*)(const std::string&, long long))&Mirheo::setAttribute,
+            "name"_a, "value"_a, R"(
+            Add or update a user-defined attribute. Useful for adding custom information to snapshots.
+
+            Args:
+                name: attribute name
+                value: value
+        )")
+        .def("getAttributeInt", &Mirheo::getAttributeInt,
+            "name"_a, R"(
+            Read a user-defined attribute as an integer.
+            Throws an exception if the attribute is not found or if its value is not an integer.
+
+            Args:
+                name: attribute name
         )");
 }
 

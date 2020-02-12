@@ -219,14 +219,14 @@ ConfigValue& ConfigObject::at(const std::string &key)
 {
     auto it = find(key);
     if (it == end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
+        die("Key \"%s\" not found in %s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
     return it->second;
 }
 const ConfigValue& ConfigObject::at(const std::string &key) const
 {
     auto it = find(key);
     if (it == end())
-        die("Key \"%s\" not found in\n%s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
+        die("Key \"%s\" not found in %s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
     return it->second;
 }
 ConfigValue& ConfigObject::at(const char *key)

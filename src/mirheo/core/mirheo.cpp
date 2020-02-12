@@ -747,6 +747,8 @@ void Mirheo::saveSnapshot(std::string path)
     ConfigValue::Object config;
     config.emplace("__category", saver("Mirheo"));
     config.emplace("__type",     saver("Mirheo"));
+    if (!attributes_.empty())
+        config.emplace("attributes", attributes_);
     if (state_)
         config.emplace("state",  saver(state_));
     if (sim_)
@@ -761,6 +763,19 @@ void Mirheo::saveSnapshot(std::string path)
         std::string jsonName = isComputeTask() ? "config.compute.json" : "config.post.json";
         storeToFile(content, joinPaths(path, jsonName));
     }
+}
+
+void Mirheo::setAttribute(const std::string& name, ConfigValue value)
+{
+    attributes_.insert_or_assign(name, std::move(value));
+}
+void Mirheo::setAttribute(const std::string& name, long long value)
+{
+    attributes_.insert_or_assign(name, value);
+}
+long long Mirheo::getAttributeInt(const std::string& name)
+{
+    return attributes_.at(name).getInt();
 }
 
 } // namespace mirheo

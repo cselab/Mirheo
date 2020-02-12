@@ -163,6 +163,14 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
     LoaderContext& context = loader.getContext();
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
 
+    const ConfigObject& localConfig =
+        mir->isComputeTask() ? context.getComp() : context.getPost();
+    const ConfigObject& mirConfig = localConfig["Mirheo"][0].getObject();
+    if (auto* attrs = mirConfig.get("attributes")) {
+        for (const auto& pair : attrs->getObject())
+            mir->setAttribute(pair.first, pair.second);
+    }
+
     if (auto *infos = context.getComp().get("Mesh")) {
         for (const auto& info : infos->getArray())
             loadObject<Mesh>(mir, loader, info, loadMesh);
