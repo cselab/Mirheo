@@ -56,7 +56,7 @@ struct GenericPackerHandler
 
     inline __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
     {
-        assert (nChannels == dst.nChannels);
+        assert (nChannels_ == dst.nChannels_);
         
         for (int i = 0; i < nChannels_; ++i)
         {
