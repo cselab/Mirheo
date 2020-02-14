@@ -112,12 +112,12 @@ namespace
 
 void ConfigExporter::process(const ConfigValue& element)
 {
-    if (auto *v = element.get_if<long long>()) {
-        tokens_.push_back(std::to_string(*v));
-    } else if (auto *v = element.get_if<double>()) {
-        tokens_.push_back(doubleToString(*v));
-    } else if (auto *v = element.get_if<std::string>()) {
-        tokens_.push_back(stringToJSON(*v));
+    if (auto *ll = element.get_if<long long>()) {
+        tokens_.push_back(std::to_string(*ll));
+    } else if (auto *d = element.get_if<double>()) {
+        tokens_.push_back(doubleToString(*d));
+    } else if (auto *s = element.get_if<std::string>()) {
+        tokens_.push_back(stringToJSON(*s));
     } else if (auto *obj = element.get_if<ConfigValue::Object>()) {
         tokens_.push_back(Tag::StartObject);
         for (const auto &pair : *obj) {

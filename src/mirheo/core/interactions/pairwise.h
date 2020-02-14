@@ -32,12 +32,14 @@ public:
 
     void setSpecificPair(ParticleVector *pv1, ParticleVector *pv2, const ParametersWrap::MapParams& desc);
 
+    real getCutoffRadius() const override;
+
 protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
-    VarPairwiseParams varParams;
-    VarStressParams varStressParams;
+    VarPairwiseParams varParams_;
+    VarStressParams varStressParams_;
 };
 
 } // namespace mirheo

@@ -279,7 +279,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
     if (auto ov = dynamic_cast<ObjectVector*>(pv.get()))
     {
         info("Registered object vector '%s', %d objects, %d particles",
-             getCName(), ov->local()->nObjects, ov->local()->size());
+             getCName(), ov->local()->getNumObjects(), ov->local()->size());
         objectVectors_.push_back(ov);
     }
     else
@@ -396,7 +396,7 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
         die("No such interaction: %s", interactionName.c_str());
     auto interaction = interactionMap_[interactionName].get();    
 
-    real rc = interaction->rc;
+    const real rc = interaction->getCutoffRadius();
     interactionPrototypes_.push_back({rc, pv1, pv2, interaction});
 }
 
@@ -477,13 +477,13 @@ void Simulation::applyObjectBelongingChecker(const std::string& checkerName, con
 
     if (inside != "none" && getPVbyName(inside) == nullptr)
     {
-        pvInside = std::make_shared<ParticleVector> (state_, inside, pvSource->mass);
+        pvInside = std::make_shared<ParticleVector> (state_, inside, pvSource->getMassPerParticle());
         registerParticleVector(pvInside, noIC);
     }
 
     if (outside != "none" && getPVbyName(outside) == nullptr)
     {
-        pvOutside = std::make_shared<ParticleVector> (state_, outside, pvSource->mass);
+        pvOutside = std::make_shared<ParticleVector> (state_, outside, pvSource->getMassPerParticle());
         registerParticleVector(pvOutside, noIC);
     }
 
@@ -950,8 +950,7 @@ void Simulation::createTasks()
         auto integrator = prototype.integrator;
         scheduler_->addTask(tasks_->integration, [integrator, pv] (cudaStream_t stream)
         {
-            integrator->stage1(pv, stream);
-            integrator->stage2(pv, stream);
+            integrator->execute(pv, stream);
         });
     }
 

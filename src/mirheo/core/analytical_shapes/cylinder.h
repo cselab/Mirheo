@@ -1,21 +1,31 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include "interface.h"
+
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
 {
 
-class Cylinder
+/** \brief Represents a finite cylinder.
+
+    The cylinder is centered at the origin and is oriented along the z axis.
+    It is fully described by its length and its radius.
+ */
+class Cylinder: public AnalyticShape
 {
 public:
+    /** \brief Constructs a \c Cylinder.
+        \param [in] R the radius of the cylinder. Must be positive
+        \param [in] L the length of the cylinder. Must be positive.
+    */
     Cylinder(real R, real L) :
         R_(R),
         halfL_(0.5_r * L)
     {}
 
-    __HD__ inline real inOutFunction(real3 coo) const
+    __HD__ inline real inOutFunction(real3 coo) const override
     {
         const real dr = math::sqrt(sqr(coo.x) + sqr(coo.y)) - R_;
         const real dz = math::abs(coo.z) - halfL_;
@@ -29,7 +39,7 @@ public:
             : math::min(dist2cyl, dist2disk);
     }
 
-    __HD__ inline real3 normal(real3 coo) const
+    __HD__ inline real3 normal(real3 coo) const override
     {
         constexpr real eps   = 1e-6_r;
         constexpr real delta = 1e-3_r;
@@ -51,7 +61,7 @@ public:
     }
     
 
-    inline real3 inertiaTensor(real totalMass) const
+    inline real3 inertiaTensor(real totalMass) const override
     {
         const real xx = totalMass * R_ * R_ * 0.25_r;
         const real yy = xx;
@@ -60,7 +70,7 @@ public:
         return make_real3(yy + zz, xx + zz, xx + yy);
     }
 
-    static const char *desc;
+    static const char *desc;  ///< the description of shape.
     
 private:
     

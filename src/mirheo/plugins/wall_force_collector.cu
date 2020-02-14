@@ -112,11 +112,11 @@ void WallForceDumperPlugin::deserialize()
     int nsamples;
     double localForce[3], totalForce[3] = {0.0, 0.0, 0.0};
 
-    SimpleSerializer::deserialize(data, currentTime, nsamples, localForce);
+    SimpleSerializer::deserialize(data_, currentTime, nsamples, localForce);
     
-    MPI_Check( MPI_Reduce(localForce, totalForce, 3, MPI_DOUBLE, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(localForce, totalForce, 3, MPI_DOUBLE, MPI_SUM, 0, comm_) );
 
-    if (rank == 0)
+    if (rank_ == 0)
     {
         totalForce[0] /= (double)nsamples;
         totalForce[1] /= (double)nsamples;

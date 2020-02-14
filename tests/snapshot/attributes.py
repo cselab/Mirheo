@@ -12,11 +12,11 @@ args = parser.parse_args()
 
 if not args.load_from:
     u = mir.Mirheo(args.ranks, domain=(4, 6, 8), dt=0.1, debug_level=3, log_filename='log', no_splash=True)
-    u.setAttribute("attrInt", 123)
+    u.setAttribute('attrInt', 123)
     u.saveSnapshot(args.save_to)
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
-    assert u.getAttributeInt("attrInt") == 123
+    assert u.getAttributeInt('attrInt') == 123
     u.saveSnapshot(args.save_to)
 
 # TEST: snapshot.attributes

@@ -11,7 +11,6 @@ namespace mirheo
 {
 
 /** \brief Fill the domain with uniform number density in a given region
-    \ingroup ICs
     
     Initialize particles uniformly with the given number density on a specified region of the domain.
     The region is specified by a filter functor.

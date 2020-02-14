@@ -73,22 +73,22 @@ public:
                             typename TriangleInteraction::ParametersType triangleParams,
                             typename DihedralInteraction::ParametersType dihedralParams,
                             real growUntil, Filter filter, long seed = 42424242) :
-        Interaction(state, name, 1.0_r),
-        growUntil(growUntil),
-        parameters(parameters),
-        dihedralParams(dihedralParams),
-        triangleParams(triangleParams),
-        filter(filter),
-        stepGen(seed)
+        Interaction(state, name),
+        parameters_(parameters),
+        growUntil_(growUntil),
+        dihedralParams_(dihedralParams),
+        triangleParams_(triangleParams),
+        filter_(filter),
+        stepGen_(seed)
     {}
     MembraneInteractionImpl(const MirState *state, Loader& loader, const ConfigObject& config) :
         Interaction(state, loader, config),
-        growUntil{config["growUntil"]},
-        parameters{loader.load<CommonMembraneParameters>(config["parameters"])},
-        dihedralParams{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
-        triangleParams{loader.load<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
-        filter{loader.load<Filter>(config["filter"])},
-        stepGen(42424242)
+        growUntil_{config["growUntil"]},
+        parameters_{loader.load<CommonMembraneParameters>(config["parameters"])},
+        dihedralParams_{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
+        triangleParams_{loader.load<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
+        filter_{loader.load<Filter>(config["filter"])},
+        stepGen_(42424242)
     {
         warn("stepGen save/load not imported, resetting the seed!");
     }
@@ -96,7 +96,7 @@ public:
     ~MembraneInteractionImpl() = default;
 
     real scaleFromTime(real t) const {
-        return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil));
+        return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil_));
     }
     
     void local(ParticleVector *pv1,
@@ -109,14 +109,14 @@ public:
         
         auto ov = dynamic_cast<MembraneVector *>(pv1);
 
-        if (ov->objSize != ov->mesh->getNvertices())
+        if (ov->getObjectSize() != ov->mesh->getNvertices())
             die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-                ov->getCName(), ov->objSize, ov->mesh->getNvertices());
+                ov->getCName(), ov->getObjectSize(), ov->mesh->getNvertices());
 
         debug("Computing internal membrane forces for %d cells of '%s'",
-              ov->local()->nObjects, ov->getCName());
+              ov->local()->getNumObjects(), ov->getCName());
 
-        auto currentParams = parameters;
+        auto currentParams = parameters_;
         const real scale = scaleFromTime(getState()->currentTime);
         rescaleParameters(currentParams, scale);
 
@@ -128,17 +128,17 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        const auto devParams = setParams(currentParams, stepGen, getState());
+        const auto devParams = setParams(currentParams, stepGen_, getState());
 
-        DihedralInteraction dihedralInteraction(dihedralParams, scale);
-        TriangleInteraction triangleInteraction(triangleParams, mesh, scale);
-        filter.setup(ov);
+        DihedralInteraction dihedralInteraction(dihedralParams_, scale);
+        TriangleInteraction triangleInteraction(triangleParams_, mesh, scale);
+        filter_.setup(ov);
         
         SAFE_KERNEL_LAUNCH(MembraneForcesKernels::computeMembraneForces,
                            nblocks, nthreads, 0, stream,
                            triangleInteraction,
                            dihedralInteraction, dihedralView,
-                           view, meshView, devParams, filter);
+                           view, meshView, devParams, filter_);
 
     }
 
@@ -151,11 +151,11 @@ public:
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        setPrerequisitesPerEnergy(dihedralParams, pv1, pv2, cl1, cl2);
-        setPrerequisitesPerEnergy(triangleParams, pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(dihedralParams_, pv1, pv2, cl1, cl2);
+        setPrerequisitesPerEnergy(triangleParams_, pv1, pv2, cl1, cl2);
 
         if (auto mv = dynamic_cast<MembraneVector*>(pv1))
-            filter.setPrerequisites(mv);
+            filter_.setPrerequisites(mv);
         else
             die("Interaction '%s' needs a membrane vector (given '%s')",
                 this->getCName(), pv1->getCName());
@@ -163,21 +163,21 @@ public:
 
     void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
     {
-        precomputeQuantitiesPerEnergy(dihedralParams, pv1, stream);
-        precomputeQuantitiesPerEnergy(triangleParams, pv1, stream);
+        precomputeQuantitiesPerEnergy(dihedralParams_, pv1, stream);
+        precomputeQuantitiesPerEnergy(triangleParams_, pv1, stream);
     }
     
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         const auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
-        TextIO::write(fname, stepGen);
+        TextIO::write(fname, stepGen_);
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
     void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
-        const bool good = TextIO::read(fname, stepGen);
+        const bool good = TextIO::read(fname, stepGen_);
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
@@ -195,21 +195,21 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
         ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
-        config.emplace("growUntil",      saver(growUntil));
-        config.emplace("parameters",     saver(parameters));
-        config.emplace("dihedralParams", saver(dihedralParams));
-        config.emplace("triangleParams", saver(triangleParams));
-        config.emplace("filter",         saver(filter));
+        config.emplace("growUntil",      saver(growUntil_));
+        config.emplace("parameters",     saver(parameters_));
+        config.emplace("dihedralParams", saver(dihedralParams_));
+        config.emplace("triangleParams", saver(triangleParams_));
+        config.emplace("filter",         saver(filter_));
         config.emplace("stepGen",        saver("<<not implemented>>"));
         return config;
     }
 
-    real growUntil;
-    CommonMembraneParameters parameters;
-    typename DihedralInteraction::ParametersType dihedralParams;
-    typename TriangleInteraction::ParametersType triangleParams;
-    Filter filter;
-    StepRandomGen stepGen;
+    real growUntil_;
+    CommonMembraneParameters parameters_;
+    typename DihedralInteraction::ParametersType dihedralParams_;
+    typename TriangleInteraction::ParametersType triangleParams_;
+    Filter filter_;
+    StepRandomGen stepGen_;
 };
 
 } // namespace mirheo

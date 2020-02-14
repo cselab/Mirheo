@@ -27,8 +27,9 @@ void PairwiseInteraction::saveSnapshotAndRegister(Saver& saver)
 ConfigObject PairwiseInteraction::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = Interaction::_saveSnapshotWithoutImpl(saver, typeName);
-    config.emplace("varParams",       saver(varParams));
-    config.emplace("varStressParams", saver(varStressParams));
+    config.emplace("rc",              saver(getCutoffRadius()));
+    config.emplace("varParams",       saver(varParams_));
+    config.emplace("varStressParams", saver(varStressParams_));
     return config;
 }
 

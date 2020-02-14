@@ -21,8 +21,8 @@ public:
     void setTag(int tag);
     
 protected:
-    MPI_Comm comm, interComm;
-    int rank, nranks;
+    MPI_Comm comm_, interComm_;
+    int rank_, nranks_;
     
     void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
 
@@ -84,8 +84,9 @@ public:
 protected:
     ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 
-    std::vector<char> data;
-    int size;    
+    std::vector<char> data_;
+private:
+    int size_;
 };
 
 // MirObject TypeLoadSave specialization works only if the derived class has

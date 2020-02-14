@@ -50,7 +50,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (!exchanger_->needExchange(i))
-            debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->name.c_str());
+            debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->getCName());
     
     // Post irecv for sizes
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -115,7 +115,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
 
 void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)
 {
-    std::string pvName = helper->name;
+    std::string pvName = helper->getName();
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
@@ -142,7 +142,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)
  */
 void MPIExchangeEngine::sendSizes(ExchangeHelper *helper)
 {
-    std::string pvName = helper->name;
+    std::string pvName = helper->getName();
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
@@ -180,7 +180,7 @@ static void safeWaitAll(int count, MPI_Request array_of_requests[])
 
 void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
 {
-    std::string pvName = helper->name;
+    std::string pvName = helper->getName();
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;
@@ -234,7 +234,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
  */
 void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
 {
-    std::string pvName = helper->name;
+    std::string pvName = helper->getName();
 
     const auto rSizesBytes   = helper->recv.sizesBytes.  hostPtr();
     const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
@@ -276,7 +276,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
     }
 
     // And report!
-    debug("Completed receive for '%s', waiting took %f ms", helper->name.c_str(), waitTime);
+    debug("Completed receive for '%s', waiting took %f ms", helper->getCName(), waitTime);
 }
 
 /**
@@ -285,7 +285,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
  */
 void MPIExchangeEngine::send(ExchangeHelper *helper, cudaStream_t stream)
 {
-    std::string pvName = helper->name;
+    std::string pvName = helper->getName();
 
     auto nBuffers = helper->nBuffers;
     auto bulkId   = helper->bulkId;

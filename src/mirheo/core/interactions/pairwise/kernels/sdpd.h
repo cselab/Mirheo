@@ -29,11 +29,11 @@ public:
     
     PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real fRfact) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
-        inv_rc(1.0 / rc),
-        pressure(pressure),
-        densityKernel(densityKernel),
-        fRfact(fRfact),
-        fDfact(viscosity * zeta)
+        invrc_(1.0 / rc),
+        pressure_(pressure),
+        densityKernel_(densityKernel),
+        fRfact_(fRfact),
+        fDfact_(viscosity * zeta_)
     {}
 
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
@@ -42,27 +42,27 @@ public:
         const real3 dr = dst.p.r - src.p.r;
         const real rij2 = dot(dr, dr);
 
-        if (rij2 > rc2 || rij2 < eps)
+        if (rij2 > rc2_ || rij2 < eps)
             return make_real3(0.0_r);
         
         const real di = dst.d;
         const real dj = src.d;
         
-        const real pi = pressure(di * dst.m);
-        const real pj = pressure(dj * src.m);
+        const real pi = pressure_(di * dst.m);
+        const real pj = pressure_(dj * src.m);
 
         const real inv_disq = 1._r / (di * di);
         const real inv_djsq = 1._r / (dj * dj);
 
         const real inv_rij = math::rsqrt(rij2);
         const real rij = rij2 * inv_rij;
-        const real dWdr = densityKernel.derivative(rij, inv_rc);
+        const real dWdr = densityKernel_.derivative(rij, invrc_);
 
         const real3 er = dr * inv_rij;
         const real3 du = dst.p.u - src.p.u;
         const real erdotdu = dot(er, du);
 
-        const real myrandnr = Logistic::mean0var1(seed,
+        const real myrandnr = Logistic::mean0var1(seed_,
                                                   math::min(static_cast<int>(src.p.i1), static_cast<int>(dst.p.i1)),
                                                   math::max(static_cast<int>(src.p.i1), static_cast<int>(dst.p.i1)));
 
@@ -70,8 +70,8 @@ public:
         const real Aij_rij = math::min(-0.0_r, Aij * inv_rij); // must be negative because of sqrt below
         
         const real fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
-        const real fD = fDfact *             Aij_rij  * erdotdu;
-        const real fR = fRfact * math::sqrt(-Aij_rij) * myrandnr;
+        const real fD = fDfact_ *             Aij_rij  * erdotdu;
+        const real fR = fRfact_ * math::sqrt(-Aij_rij) * myrandnr;
         
         return (fC + fD + fR) * er;
     }
@@ -80,13 +80,13 @@ public:
 
 protected:
 
-    static constexpr real zeta = 3 + 2;
+    static constexpr real zeta_ = 3 + 2;
 
-    real inv_rc;
-    real seed {0._r};
-    PressureEOS pressure;
-    DensityKernel densityKernel;
-    real fDfact, fRfact;
+    real invrc_;
+    real seed_ {0._r};
+    PressureEOS pressure_;
+    DensityKernel densityKernel_;
+    real fDfact_, fRfact_;
 };
 
 template <typename PressureEOS, typename DensityKernel>
@@ -98,9 +98,9 @@ public:
     
     PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, real dt, long seed = 42424242) :
         PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
-        stepGen(seed),
-        viscosity(viscosity),
-        kBT(kBT)
+        stepGen_(seed),
+        viscosity_(viscosity),
+        kBT_(kBT)
     {}
 
     const HandlerType& handler() const
@@ -113,18 +113,18 @@ public:
                __UNUSED CellList *cl1,
                __UNUSED CellList *cl2, const MirState *state) override
     {
-        this->seed = stepGen.generate(state);
-        this->fRfact = computeFRfact(this->viscosity, this->kBT, state->dt);
+        this->seed_ = stepGen_.generate(state);
+        this->fRfact_ = computeFRfact(this->viscosity_, this->kBT_, state->dt);
     }
 
     void writeState(std::ofstream& fout) override
     {
-        TextIO::writeToStream(fout, stepGen);
+        TextIO::writeToStream(fout, stepGen_);
     }
 
     bool readState(std::ifstream& fin) override
     {
-        return TextIO::readFromStream(fin, stepGen);
+        return TextIO::readFromStream(fin, stepGen_);
     }
     
     
@@ -132,12 +132,12 @@ protected:
 
     static real computeFRfact(real viscosity, real kBT, real dt)
     {
-        return math::sqrt(2 * HandlerType::zeta * viscosity * kBT / dt);
+        return math::sqrt(2 * HandlerType::zeta_ * viscosity * kBT / dt);
     }
     
-    StepRandomGen stepGen;
-    real viscosity;
-    real kBT;
+    StepRandomGen stepGen_;
+    real viscosity_;
+    real kBT_;
 };
 
 } // namespace mirheo

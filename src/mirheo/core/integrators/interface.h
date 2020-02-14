@@ -10,49 +10,45 @@ namespace mirheo
 
 class ParticleVector;
 
-/**
- * Integrate ParticleVectors
- *
- * Should implement movement of the particles or objects due to the applied forces.
- *
- * \rst
- * .. attention::
- *    The interface defines two integration stages that should be called before
- *    and after the forces are computed, but currently stage1() will never be called.
- *    So all the integration for now is done in stage2()
- * \endrst
+/** \brief Advance \c ParticleVector objects in time.
+
+    \c Integrator objects are responsible to advance the state of \c ParticleVector 
+    objects on the device.
+    After executed, the \c CellList of the \c ParticleVector object might be outdated;
+    in that case, the \c Integrator is invalidates the current cell-lists, halo and 
+    redistribution status on the \c ParticleVector. 
  */
 class Integrator : public MirSimulationObject
 {
 public:
     
-    /// Set the name of the integrator and state
+    /** \brief Construct a \c Integrator object.
+        \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
+        \param [in] name The name of the integrator.
+    */
     Integrator(const MirState *state, const std::string& name);
-
     virtual ~Integrator();
 
-    /**
-     * First integration stage, to be called before the forces are computed
-     *
-     * @param pv ParticleVector to be integrated
-     */
-    virtual void stage1(ParticleVector *pv, cudaStream_t stream) = 0;
-
-    /**
-     * Second integration stage, to be called after the forces are computed
-     *
-     * @param pv ParticleVector to be integrated
-     */
-    virtual void stage2(ParticleVector *pv, cudaStream_t stream) = 0;
-
-    /**
-     * Ask ParticleVectors which the class will be working with to have specific properties
-     * Default: ask nothing
-     * Called from Simulation right after setup
+    /** \brief Setup conditions on the \c ParticledVector.
+        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+        
+        Set specific properties to pv that will be modified during execute().
+        Default: ask nothing.
+        Must be called before execute() with the same pv.
      */
     virtual void setPrerequisites(ParticleVector *pv);
 
+
+    /** \brief Advance the \c ParticledVector for one time step.
+        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+        \param [in] stream The stream used for execution.
+     */
+    virtual void execute(ParticleVector *pv, cudaStream_t stream) = 0;
+
 protected:
+    /** \brief Invalidate \c ParticledVector cell-lists, halo and redistributed statuses.
+        \param [in,out] pv The \c ParticleVector that must be invalidated.
+     */
     void invalidatePV_(ParticleVector *pv);
     ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
 };

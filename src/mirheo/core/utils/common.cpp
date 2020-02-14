@@ -79,11 +79,11 @@ const std::string torque     = "torques";
 
 } // namespace ChannelNames
 
-CheckpointInfo::CheckpointInfo(int every, const std::string& folder,
-                               CheckpointIdAdvanceMode mode) :
-    every(every),
-    folder(folder),
-    mode(mode)
+CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
+                               CheckpointIdAdvanceMode mode_) :
+    every(every_),
+    folder(folder_),
+    mode(mode_)
 {}
 
 bool CheckpointInfo::needDump() const

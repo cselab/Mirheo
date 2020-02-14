@@ -12,7 +12,7 @@ PVview::PVview(ParticleVector *pv, LocalParticleVector *lpv)
     velocities = lpv->velocities().devPtr();
     forces     = reinterpret_cast<real4*>(lpv->forces().devPtr());
 
-    mass = pv->mass;
+    mass = pv->getMassPerParticle();
     invMass = 1.0_r / mass;
 }
 

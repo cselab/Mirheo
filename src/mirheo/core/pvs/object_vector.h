@@ -28,16 +28,18 @@ public:
     virtual PinnedBuffer<real4>* getOldMeshVertices(cudaStream_t stream);
     virtual PinnedBuffer<Force>* getMeshForces(cudaStream_t stream);
 
+    int getObjectSize() const;
+    int getNumObjects() const;
+    
+private:
+    int _computeNobjects(int np) const;
 
 public:
-    int nObjects { 0 };
-    int objSize  { 0 };
-    
     DataManager dataPerObject;
 
-protected:
-
-    int getNobjects(int np) const;
+private:
+    int objSize_;
+    int nObjects_;
 };
 
 
@@ -66,13 +68,11 @@ public:
     void requireDataPerObject(const std::string& name, DataManager::PersistenceMode persistence,
                               DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerObject<T>(local(), name, persistence, shift);
-        requireDataPerObject<T>(halo(),  name, persistence, shift);
+        _requireDataPerObject<T>(local(), name, persistence, shift);
+        _requireDataPerObject<T>(halo(),  name, persistence, shift);
     }
 
-public:
-    int objSize;
-    std::shared_ptr<Mesh> mesh;
+    int getObjectSize() const;
     
 protected:
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
@@ -87,14 +87,20 @@ private:
     void _snapshotObjectData(MPI_Comm comm, const std::string& filename);
 
     template<typename T>
-    void requireDataPerObject(LocalObjectVector* lov, const std::string& name,
-                              DataManager::PersistenceMode persistence,
-                              DataManager::ShiftMode shift)
+    void _requireDataPerObject(LocalObjectVector* lov, const std::string& name,
+                               DataManager::PersistenceMode persistence,
+                               DataManager::ShiftMode shift)
     {
-        lov->dataPerObject.createData<T> (name, lov->nObjects);
+        lov->dataPerObject.createData<T> (name, lov->getNumObjects());
         lov->dataPerObject.setPersistenceMode(name, persistence);
         lov->dataPerObject.setShiftMode(name, shift);
     }
+
+public:
+    std::shared_ptr<Mesh> mesh;
+
+private:
+    int objSize_;
 };
 
 } // namespace mirheo

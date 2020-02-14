@@ -15,8 +15,7 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirS
         state->currentStep = i;
         state->currentTime = i * state->dt;
         
-        integrator->stage1(pv, defaultStream);
-        integrator->stage2(pv, defaultStream);
+        integrator->execute(pv, defaultStream);
     }
 
     pv->local()->positions ().downloadFromDevice(defaultStream, ContainersSynch::Asynch);

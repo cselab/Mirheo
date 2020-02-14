@@ -26,44 +26,44 @@ public:
     
     PairwiseDPDHandler(real rc, real a, real gamma, real sigma, real power) :
         ParticleFetcherWithVelocity(rc),
-        a(a),
-        gamma(gamma),
-        sigma(sigma),
-        power(power),
-        invrc(1.0 / rc)
+        a_(a),
+        gamma_(gamma),
+        sigma_(sigma),
+        power_(power),
+        invrc_(1.0 / rc)
     {}
     
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2) return make_real3(0.0_r);
+        if (rij2 > rc2_) return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;
-        const real argwr = 1.0_r - rij * invrc;
-        const real wr = fastPower(argwr, power);
+        const real argwr = 1.0_r - rij * invrc_;
+        const real wr = fastPower(argwr, power_);
 
         const real3 dr_r = dr * invrij;
         const real3 du = dst.u - src.u;
         const real rdotv = dot(dr_r, du);
 
-        const real myrandnr = Logistic::mean0var1(seed,
+        const real myrandnr = Logistic::mean0var1(seed_,
                                                   math::min(static_cast<int>(src.i1), static_cast<int>(dst.i1)),
                                                   math::max(static_cast<int>(src.i1), static_cast<int>(dst.i1)));
 
-        const real strength = a * argwr - (gamma * wr * rdotv + sigma * myrandnr) * wr;
+        const real strength = a_ * argwr - (gamma_ * wr * rdotv + sigma_ * myrandnr) * wr;
 
         return dr_r * strength;
     }
 
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
-protected:
 
-    real a, gamma, sigma, power;
-    real invrc;
-    real seed;
+protected:
+    real a_, gamma_, sigma_, power_;
+    real invrc_;
+    real seed_ {0};
 };
 
 class PairwiseDPD : public PairwiseKernel, public PairwiseDPDHandler
@@ -74,8 +74,8 @@ public:
     
     PairwiseDPD(real rc, real a, real gamma, real kBT, real dt, real power, long seed=42424242) :
         PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
-        stepGen(seed),
-        kBT(kBT)
+        stepGen_(seed),
+        kBT_(kBT)
     {}
 
     PairwiseDPD(real rc, const DPDParams& p, real dt, long seed=42424242) :
@@ -93,30 +93,29 @@ public:
                __UNUSED CellList *cl2,
                const MirState *state) override
     {
-        this->seed = stepGen.generate(state);
-        sigma = computeSigma(gamma, kBT, state->dt);
+        seed_ = stepGen_.generate(state);
+        sigma_ = computeSigma(gamma_, kBT_, state->dt);
     }
 
     void writeState(std::ofstream& fout) override
     {
-        TextIO::writeToStream(fout, stepGen);
+        TextIO::writeToStream(fout, stepGen_);
     }
 
     bool readState(std::ifstream& fin) override
     {
-        return TextIO::readFromStream(fin, stepGen);
+        return TextIO::readFromStream(fin, stepGen_);
     }
     
-
-protected:
+private:
 
     static real computeSigma(real gamma, real kBT, real dt)
     {
         return math::sqrt(2.0 * gamma * kBT / dt);
     }
     
-    StepRandomGen stepGen;
-    real kBT;
+    StepRandomGen stepGen_;
+    real kBT_;
 };
 
 } // namespace mirheo

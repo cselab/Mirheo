@@ -125,7 +125,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     if (rv == nullptr)
         die("rods can only be generated out of rod vectors; provided '%s'", pv->getCName());
 
-    const int objSize = rv->objSize;
+    const int objSize = rv->getObjectSize();
     const int nSegments = (objSize - 1) / 5;
     int nObjs = 0;
 

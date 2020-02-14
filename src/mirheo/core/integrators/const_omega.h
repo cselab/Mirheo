@@ -5,24 +5,25 @@
 namespace mirheo
 {
 
-/**
- * Rotate the particles around #center (defined in global coordinate system)
- * with the angular velocity #omega. All the forces are disregarded.
- *
- * Useful for implementing Taylor-Couette flow (see examples)
+/** \brief Rotate \c ParticleVector objects with a constant angular velocity.
+
+    The center of rotation is defined in the global coordinate system.
  */
 class IntegratorConstOmega : public Integrator
 {
 public:
-
+    /** \brief Construct a \c IntegratorConstOmega object.
+        \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
+        \param [in] name The name of the integrator.
+        \param [in] center The center of rotation, in global coordinates system.
+        \param [in] omega The angular velocity of rotation.
+    */
     IntegratorConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega);
     ~IntegratorConstOmega();
 
-    void stage1(ParticleVector *pv, cudaStream_t stream) override;
-    void stage2(ParticleVector *pv, cudaStream_t stream) override;
+    void execute(ParticleVector *pv, cudaStream_t stream) override;
 
 private:
-
     real3 center_, omega_;
 };
 

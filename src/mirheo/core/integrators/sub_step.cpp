@@ -18,7 +18,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
                                      const std::vector<Interaction*>& fastForces) :
     Integrator(state, name),
     fastForces_(fastForces),
-    subIntegrator_(std::make_unique<IntegratorVV<Forcing_None>> (state, name + "_sub", Forcing_None())),
+    subIntegrator_(std::make_unique<IntegratorVV<ForcingTermNone>> (state, name + "_sub", ForcingTermNone())),
     subState_(*state),
     substeps_(substeps)
 {
@@ -80,10 +80,7 @@ ConfigObject IntegratorSubStep::_saveSnapshot(Saver& saver, const std::string& t
     return config;
 }
 
-void IntegratorSubStep::stage1(__UNUSED ParticleVector *pv, __UNUSED cudaStream_t stream)
-{}
-
-void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
     slowForces_.copyFromDevice(pv->local()->forces(), stream);
@@ -109,7 +106,7 @@ void IntegratorSubStep::stage2(ParticleVector *pv, cudaStream_t stream)
         for (auto ff : fastForces_)
             ff->local(pv, pv, nullptr, nullptr, stream);
         
-        subIntegrator_->stage2(pv, stream);
+        subIntegrator_->execute(pv, stream);
 
         subState_.currentTime += subState_.dt;
         subState_.currentStep ++;

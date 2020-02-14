@@ -9,10 +9,10 @@ namespace mirheo
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain, real dt, const ConfigValue *state) :
-    domain(domain),
-    dt(dt),
-    currentTime(0.0),
+MirState::MirState(DomainInfo domain_, real dt_, const ConfigValue *state) :
+    domain(domain_),
+    dt(dt_),
+    currentTime(0),
     currentStep(0)
 {
     if (state) {

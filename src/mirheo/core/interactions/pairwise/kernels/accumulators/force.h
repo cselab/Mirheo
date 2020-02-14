@@ -13,7 +13,7 @@ class ForceAccumulator
 public:
 
     __D__ inline ForceAccumulator() :
-        frc({0._r, 0._r, 0._r})
+        frc_({0._r, 0._r, 0._r})
     {}
     
     __D__ inline void atomicAddToDst(real3 f, PVview& view, int id) const
@@ -26,11 +26,11 @@ public:
         atomicAdd(view.forces + id, -f);
     }
 
-    __D__ inline real3 get() const {return frc;}
-    __D__ inline void add(real3 f) {frc += f;}
+    __D__ inline real3 get() const {return frc_;}
+    __D__ inline void add(real3 f) {frc_ += f;}
     
 private:
-    real3 frc;
+    real3 frc_;
 };
 
 } // namespace mirheo

@@ -16,17 +16,17 @@ class PairwiseInteractionWithStressImpl : public Interaction
 {
 public:
     PairwiseInteractionWithStressImpl(const MirState *state, const std::string& name, real rc, real stressPeriod, PairwiseKernel pair) :
-        Interaction(state, name, rc),
-        stressPeriod(stressPeriod),
-        interaction(state, name, rc, pair),
-        interactionWithStress(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseKernel>(pair))
+        Interaction(state, name),
+        stressPeriod_(stressPeriod),
+        interaction_(state, name, rc, pair),
+        interactionWithStress_(state, name + "_withStress", rc, PairwiseStressWrapper<PairwiseKernel>(pair))
     {}
 
     ~PairwiseInteractionWithStressImpl() = default;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
-        interaction.setPrerequisites(pv1, pv2, cl1, cl2);
+        interaction_.setPrerequisites(pv1, pv2, cl1, cl2);
         
         pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
         pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
@@ -39,16 +39,16 @@ public:
     {
         const real t = getState()->currentTime;
         
-        if (lastStressTime+stressPeriod <= t || lastStressTime == t)
+        if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
         {
             debug("Executing interaction '%s' with stress", getCName());
             
-            interactionWithStress.local(pv1, pv2, cl1, cl2, stream);
-            lastStressTime = t;
+            interactionWithStress_.local(pv1, pv2, cl1, cl2, stream);
+            lastStressTime_ = t;
         }
         else
         {
-            interaction.local(pv1, pv2, cl1, cl2, stream);
+            interaction_.local(pv1, pv2, cl1, cl2, stream);
         }
     }
     
@@ -56,38 +56,38 @@ public:
     {
         const real t = getState()->currentTime;
     
-        if (lastStressTime+stressPeriod <= t || lastStressTime == t)
+        if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
         {
             debug("Executing interaction '%s' with stress", getCName());
 
-            interactionWithStress.halo(pv1, pv2, cl1, cl2, stream);
-            lastStressTime = t;
+            interactionWithStress_.halo(pv1, pv2, cl1, cl2, stream);
+            lastStressTime_ = t;
         }
         else
         {
-            interaction.halo(pv1, pv2, cl1, cl2, stream);
+            interaction_.halo(pv1, pv2, cl1, cl2, stream);
         }
     }
 
     void setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
     {
-        interaction.          setSpecificPair(pv1name, pv2name, pair);
-        interactionWithStress.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseKernel>(pair));
+        interaction_.          setSpecificPair(pv1name, pv2name, pair);
+        interactionWithStress_.setSpecificPair(pv1name, pv2name, PairwiseStressWrapper<PairwiseKernel>(pair));
     }
 
     std::vector<InteractionChannel> getInputChannels() const override
     {
-        return interaction.getInputChannels();
+        return interaction_.getInputChannels();
     }
     
     std::vector<InteractionChannel> getOutputChannels() const override
     {
-        auto channels = interaction.getOutputChannels();
+        auto channels = interaction_.getOutputChannels();
         
         auto activePredicateStress = [this]()
         {
             const real t = getState()->currentTime;
-            return (lastStressTime+stressPeriod <= t) || (lastStressTime == t);
+            return (lastStressTime_+stressPeriod_ <= t) || (lastStressTime_ == t);
         };
 
         channels.push_back({ChannelNames::stresses, activePredicateStress});
@@ -97,23 +97,23 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
-        interaction          .checkpoint(comm, path, checkpointId);
-        interactionWithStress.checkpoint(comm, path, checkpointId);
+        interaction_          .checkpoint(comm, path, checkpointId);
+        interactionWithStress_.checkpoint(comm, path, checkpointId);
     }
     
     void restart(MPI_Comm comm, const std::string& path) override
     {
-        interaction          .restart(comm, path);
-        interactionWithStress.restart(comm, path);
+        interaction_          .restart(comm, path);
+        interactionWithStress_.restart(comm, path);
     }
 
     
 private:
-    real stressPeriod;
-    real lastStressTime{-1e6};
+    real stressPeriod_;
+    real lastStressTime_ {-1e6};
 
-    PairwiseInteractionImpl<PairwiseKernel> interaction;
-    PairwiseInteractionImpl<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress;
+    PairwiseInteractionImpl<PairwiseKernel> interaction_;
+    PairwiseInteractionImpl<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress_;
 };
 
 } // namespace mirheo

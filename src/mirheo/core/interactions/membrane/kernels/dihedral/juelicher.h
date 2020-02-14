@@ -18,18 +18,18 @@ public:
     using ParametersType = JuelicherBendingParameters;
     
     DihedralJuelicher(ParametersType p, mReal lscale) :
-        scurv(0)
+        scurv_(0)
     {
-        kb     = p.kb         * lscale*lscale;
-        kad_pi = p.kad * M_PI * lscale*lscale;
+        kb_    = p.kb         * lscale*lscale;
+        kadPi_ = p.kad * M_PI * lscale*lscale;
 
-        H0  = p.C0 / (2*lscale);        
-        DA0 = p.DA0 / (lscale*lscale);
+        H0_  = p.C0 / (2*lscale);        
+        DA0_ = p.DA0 / (lscale*lscale);
     }
 
     __D__ inline void computeCommon(const ViewType& view, int rbcId)
     {
-        scurv = getScurv(view, rbcId);
+        scurv_ = _getScurv(view, rbcId);
     }
     
     __D__ inline mReal3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
@@ -37,22 +37,22 @@ public:
         mReal3 f0;
         const mReal theta = supplementaryDihedralAngle(v0.r, v1.r, v2.r, v3.r);
         
-        f0  = force_len   (theta, v0,     v2        );
-        f0 += force_theta (       v0, v1, v2, v3, f1);
-        f0 += force_area  (       v0, v1, v2        );
+        f0  = _forceLen   (theta, v0,     v2        );
+        f0 += _forceTheta (       v0, v1, v2, v3, f1);
+        f0 += _forceArea  (       v0, v1, v2        );
 
         return f0;
     }
 
 private:
 
-    __D__ inline mReal3 force_len(mReal theta, VertexType v0, VertexType v2) const
+    __D__ inline mReal3 _forceLen(mReal theta, VertexType v0, VertexType v2) const
     {
         const mReal3 d = normalize(v0.r - v2.r);
-        return - ( kb * (v0.H + v2.H - 2 * H0) + kad_pi * scurv ) * theta * d;
+        return - ( kb_ * (v0.H + v2.H - 2 * H0_) + kadPi_ * scurv_ ) * theta * d;
     }
 
-    __D__ inline mReal3 force_theta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
+    __D__ inline mReal3 _forceTheta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
         const mReal3 v20 = v0.r - v2.r;
         const mReal3 v21 = v1.r - v2.r;
@@ -72,17 +72,17 @@ private:
             (-cotangent2n * inv_lenn) * n +
             (-cotangent2k * inv_lenk) * k;
 
-        const mReal coef = kb * (v0.H + v2.H - 2*H0)  +  kad_pi * scurv;
+        const mReal coef = kb_ * (v0.H + v2.H - 2*H0_)  +  kadPi_ * scurv_;
 
         f1 = -coef * d1;
         return -coef * d0;
     }
 
-    __D__ inline mReal3 force_area(VertexType v0, VertexType v1, VertexType v2) const
+    __D__ inline mReal3 _forceArea(VertexType v0, VertexType v1, VertexType v2) const
     {
         const mReal coef =
-            0.6666667_mr * kb     * (v0.H * v0.H + v1.H * v1.H + v2.H * v2.H - 3 * H0 * H0)
-            + 0.5_mr     * kad_pi * scurv * scurv;
+            0.6666667_mr * kb_     * (v0.H * v0.H + v1.H * v1.H + v2.H * v2.H - 3 * H0_ * H0_)
+            + 0.5_mr     * kadPi_ * scurv_ * scurv_;
 
         const mReal3 n  = normalize(cross(v1.r-v0.r, v2.r-v0.r));
         const mReal3 d0 = 0.5_mr * cross(n, v2.r - v1.r);
@@ -90,19 +90,22 @@ private:
         return coef * d0;
     }
 
-    __D__ inline mReal getScurv(const ViewType& view, int rbcId) const
+    __D__ inline mReal _getScurv(const ViewType& view, int rbcId) const
     {
         const mReal totArea     = view.area_volumes[rbcId].x;
         const mReal totLenTheta = view.lenThetaTot [rbcId];
 
-        return (0.5_mr * totLenTheta - DA0) / totArea;
+        return (0.5_mr * totLenTheta - DA0_) / totArea;
     }
 
     
 private:    
     
-    mReal kb, H0, kad_pi, DA0;
-    mReal scurv;
+    mReal kb_;
+    mReal H0_;
+    mReal kadPi_; ///< kAD * Pi
+    mReal DA0_;
+    mReal scurv_;
 };
 
 MIRHEO_TYPE_NAME_AUTO(DihedralJuelicher);

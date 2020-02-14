@@ -55,11 +55,10 @@ public:
     void handshake() override;
 
 private:
-    bool activated;
-    std::string path;
+    bool activated_;
+    std::string path_;
 
-    FileWrapper fout;
-    std::vector<real4> forces, torques;
+    FileWrapper fout_;
 };
 
 } // namespace mirheo

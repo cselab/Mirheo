@@ -78,3 +78,41 @@ Some exceptions in Mirheo:
 
 - Do not fail with exceptions. Mirheo crashes with the ``die`` method from the logger. This will print the full stacktrace.
   
+
+Style
+-----
+
+The indentation uses 4 spaces (no tabs).
+Here are a few coding examples of the style:
+
+.. code-block:: c++
+
+   // loops
+   for (int i = 0; i < n; ++i)
+   {
+       // multi line commands
+       ...
+   }
+   
+   for (int i = 0; i < n; ++i)
+       // one line command
+
+   // if
+   if (condition)
+       doThat();
+   else
+       doThis();
+
+   // for multi line, all entries must have braces
+   if (condition)
+   {
+       doThat();
+       andThis();
+   }
+   else
+   {
+       doThis();
+   }
+   
+   
+More can be found directly in the code.

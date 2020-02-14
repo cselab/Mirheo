@@ -21,8 +21,8 @@ public:
     {
         const mReal theta0 = p.theta / 180.0 * M_PI;
         
-        cost0kb = math::cos(theta0) * p.kb * lscale * lscale;
-        sint0kb = math::sin(theta0) * p.kb * lscale * lscale;
+        cost0kb_ = math::cos(theta0) * p.kb * lscale * lscale;
+        sint0kb_ = math::sin(theta0) * p.kb * lscale * lscale;
     }
 
     __D__ inline void computeCommon(const ViewType& view, int rbcId)
@@ -30,12 +30,12 @@ public:
     
     __D__ inline mReal3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
-        return kantor(v1, v0, v2, v3, f1);
+        return _kantor(v1, v0, v2, v3, f1);
     }
     
 private:
 
-    __D__ inline mReal3 kantor(VertexType v1, VertexType v2, VertexType v3, VertexType v4, mReal3 &f1) const
+    __D__ inline mReal3 _kantor(VertexType v1, VertexType v2, VertexType v3, VertexType v4, mReal3 &f1) const
     {
         const mReal3 ksi   = cross(v1 - v2, v1 - v3);
         const mReal3 dzeta = cross(v3 - v4, v2 - v4);
@@ -48,7 +48,7 @@ private:
 
         const mReal rawST_1 = math::rsqrt(max(IsinThetaI2, 1.0e-6_mr));
         const mReal sinTheta_1 = copysignf( rawST_1, dot(ksi - dzeta, v4 - v1) ); // because the normals look inside
-        const mReal beta = cost0kb - cosTheta * sint0kb * sinTheta_1;
+        const mReal beta = cost0kb_ - cosTheta * sint0kb_ * sinTheta_1;
 
         const mReal b11 = -beta * cosTheta *  overIksiI   * overIksiI;
         const mReal b12 =  beta *             overIksiI   * overIdzetaI;
@@ -59,7 +59,7 @@ private:
         return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
     }
 
-    mReal cost0kb, sint0kb;
+    mReal cost0kb_, sint0kb_;
 };
 
 MIRHEO_TYPE_NAME_AUTO(DihedralKantor);

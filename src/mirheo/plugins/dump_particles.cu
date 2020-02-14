@@ -125,8 +125,8 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
 
     const auto& srcDesc = lov->dataPerObject.getChannelDescOrDie(channelName);
 
-    const int objSize  = lov->objSize;
-    const int nObjects = lov->nObjects;
+    const int objSize  = lov->getObjectSize();
+    const int nObjects = lov->getNumObjects();
 
     mpark::visit([&](auto srcBufferPtr)
     {
@@ -154,8 +154,8 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
 
     const auto& srcDesc = lrv->dataPerBisegment.getChannelDescOrDie(channelName);
 
-    const int objSize  = lrv->objSize;
-    const int nObjects = lrv->nObjects;
+    const int objSize  = lrv->getObjectSize();
+    const int nObjects = lrv->getNumObjects();
     const int numBiSegmentsPerObject = lrv->getNumSegmentsPerRod() - 1;
 
     mpark::visit([&](auto srcBufferPtr)
@@ -252,7 +252,7 @@ void ParticleDumperPlugin::handshake()
     std::vector<XDMF::Channel::NumberType> numberTypes;
     std::vector<std::string> typeDescriptorsStr;
 
-    SimpleSerializer::deserialize(data, names, dataForms, numberTypes, typeDescriptorsStr);
+    SimpleSerializer::deserialize(data_, names, dataForms, numberTypes, typeDescriptorsStr);
     
     auto initChannel = [] (const std::string& name, XDMF::Channel::DataForm dataForm,
                            XDMF::Channel::NumberType numberType, TypeDescriptor datatype,
@@ -280,7 +280,7 @@ void ParticleDumperPlugin::handshake()
     }
     
     // Create the required folder
-    createFoldersCollective(comm, parentPath(path_));
+    createFoldersCollective(comm_, parentPath(path_));
 
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s",
            getCName(), allNames.c_str(), path_.c_str());
@@ -306,7 +306,7 @@ static void unpackParticles(const std::vector<real4> &pos4, const std::vector<re
 void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp)
 {
     int c = 0;
-    SimpleSerializer::deserialize(data, timeStamp, time, pos4_, vel4_, channelData_);
+    SimpleSerializer::deserialize(data_, timeStamp, time, pos4_, vel4_, channelData_);
         
     unpackParticles(pos4_, vel4_, *positions_, velocities_, ids_);
 
@@ -327,8 +327,8 @@ void ParticleDumperPlugin::deserialize()
     
     std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
     
-    XDMF::VertexGrid grid(positions_, comm);
-    XDMF::write(fname, &grid, channels_, time, comm);
+    XDMF::VertexGrid grid(positions_, comm_);
+    XDMF::write(fname, &grid, channels_, time, comm_);
 }
 
 } // namespace mirheo

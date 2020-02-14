@@ -89,16 +89,18 @@ public:
     BufferOffsetsSizesWrap wrapSendData();
     BufferOffsetsSizesWrap wrapRecvData();
 
+    const std::string& getName() const;
+    const char* getCName() const;
+    
 public:
     const int nBuffers = FragmentMapping::numFragments;   ///< equal to number of neighbours + 1, for now fixed
     const int bulkId   = FragmentMapping::bulkId;
-
-    std::string name;                ///< corresponding ParticleVector name
     
     BufferInfos send, recv;
     std::vector<int> recvRequestIdxs;
     
 private:
+    std::string name_;                ///< corresponding ParticleVector name
     int uniqueId_;                   ///< a unique exchange id: used for tags
     ParticlePacker *packer_;
 };

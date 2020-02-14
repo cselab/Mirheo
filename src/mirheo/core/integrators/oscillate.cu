@@ -7,10 +7,6 @@
 namespace mirheo
 {
 
-/**
- * @param vel Velocity magnitude
- * @param period Sine wave period
- */
 IntegratorOscillate::IntegratorOscillate(const MirState *state, const std::string& name, real3 vel, real period) :
     Integrator(state, name),
     vel_(vel),
@@ -25,7 +21,7 @@ IntegratorOscillate::~IntegratorOscillate() = default;
 /**
  * Oscillate with cos wave in time, regardless force
  */
-void IntegratorOscillate::stage2(ParticleVector *pv, cudaStream_t stream)
+void IntegratorOscillate::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto t = static_cast<real>(getState()->currentTime);
     

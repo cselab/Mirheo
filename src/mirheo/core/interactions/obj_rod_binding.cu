@@ -111,10 +111,10 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
 
 ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
                                                          real torque, real3 relAnchor, real kBound) :
-    Interaction(state, name, /*rc*/ 1.0_r),
-    torque(torque),
-    relAnchor(relAnchor),
-    kBound(kBound)
+    Interaction(state, name),
+    torque_(torque),
+    relAnchor_(relAnchor),
+    kBound_(kBound)
 {}
 
 ObjectRodBindingInteraction::~ObjectRodBindingInteraction() = default;
@@ -166,7 +166,7 @@ void ObjectRodBindingInteraction::_local(RigidObjectVector *rov, RodVector *rv, 
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
     
-    ObjRodBindingKernels::BindingParams params {relAnchor, torque, kBound};
+    ObjRodBindingKernels::BindingParams params {relAnchor_, torque_, kBound_};
     
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,
@@ -183,7 +183,7 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
     
-    ObjRodBindingKernels::BindingParams params {relAnchor, torque, kBound};
+    ObjRodBindingKernels::BindingParams params {relAnchor_, torque_, kBound_};
     
     SAFE_KERNEL_LAUNCH(
         ObjRodBindingKernels::computeBindingForces,

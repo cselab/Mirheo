@@ -12,7 +12,6 @@ namespace mirheo
 {
 
 /** \brief Initialize \c RigidObjectVector objects
-    \ingroup ICs
     
     Initialize rigid objects from center of mass positions, orientations and frozen particles.
 */

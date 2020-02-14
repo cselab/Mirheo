@@ -8,18 +8,15 @@
 namespace mirheo
 {
 
-Interaction::Interaction(const MirState *state, std::string name, real rc) :
-    MirSimulationObject(state, name),
-    rc(rc)
+Interaction::Interaction(const MirState *state, std::string name) :
+    MirSimulationObject(state, name)
 {}
 Interaction::Interaction(const MirState *state, Loader& loader, const ConfigObject& config) :
-    MirSimulationObject(state, loader, config),
-    rc(config["rc"])
+    MirSimulationObject(state, loader, config)
 {
     // Note: we do NOT load the `impl` object here. Since impl typically has
-    // template arguments, that must be done from the derived class. See the
-    // implementation of MembraneInteraction's constructor using
-    // variantForeach.
+    // template arguments, loading must be done from the derived class. For
+    // example, see the MembraneInteraction's constructor and variantForeach.
 }
 
 Interaction::~Interaction() = default;
@@ -63,13 +60,16 @@ void Interaction::restart(MPI_Comm comm, const std::string& path)
     impl->restart(comm, path);
 }
 
+real Interaction::getCutoffRadius() const
+{
+    return 1.0_r;
+}
+
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
 
 ConfigObject Interaction::_saveSnapshotWithoutImpl(Saver& saver, const std::string& typeName)
 {
-    ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "Interaction", typeName);
-    config.emplace("rc", saver(rc));
-    return config;
+    return MirSimulationObject::_saveSnapshot(saver, "Interaction", typeName);
 }
 
 ConfigObject Interaction::_saveSnapshotWithImpl(Saver& saver, const std::string& typeName)
@@ -82,11 +82,9 @@ ConfigObject Interaction::_saveSnapshotWithImpl(Saver& saver, const std::string&
 ConfigObject Interaction::_saveImplSnapshot(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "InteractionImpl", typeName);
-    config.emplace("rc", saver(rc));
     if (impl)
         die("Impl interaction has impl?");
     return config;
 }
-
 
 } // namespace mirheo

@@ -22,7 +22,7 @@ auto instantiateImpl(const MirState *state, std::string name, RodParameters para
 
 RodInteraction::RodInteraction(const MirState *state, std::string name, RodParameters parameters,
                                VarSpinParams varSpinParams, bool saveEnergies) :
-    Interaction(state, name, /*rc*/ 1._r)
+    Interaction(state, name)
 {
     int nstates = parameters.kappaEq.size();
 

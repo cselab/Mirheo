@@ -11,7 +11,7 @@ struct RSOVview : public ROVview
 {
     RSOVview(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         ROVview(rsov, lrov),
-        shape(rsov->shape)
+        shape(rsov->getShape())
     {}
 
     Shape shape;

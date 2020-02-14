@@ -122,7 +122,7 @@ void VirialPressureDumper::handshake()
     recv();
 
     std::string pvName;
-    SimpleSerializer::deserialize(data, pvName);
+    SimpleSerializer::deserialize(data_, pvName);
 
     if (activated_)
     {
@@ -139,12 +139,12 @@ void VirialPressureDumper::deserialize()
     MirState::TimeType curTime;
     VirialPressure::ReductionType localPressure, totalPressure;
 
-    SimpleSerializer::deserialize(data, curTime, localPressure);
+    SimpleSerializer::deserialize(data_, curTime, localPressure);
 
     if (!activated_) return;
 
     const auto dataType = getMPIFloatType<VirialPressure::ReductionType>();
-    MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm_) );
 
     fprintf(fdump_.get(), "%g %.6e\n", curTime, totalPressure);
 }

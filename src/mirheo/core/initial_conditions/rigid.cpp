@@ -132,7 +132,7 @@ static void setParticlesFromMotions(RigidObjectVector *rov, cudaStream_t stream)
     const real dummyDt = 0._r;
     const MirState dummyState(rov->getState()->domain, dummyDt);
     IntegratorVVRigid integrator(&dummyState, "__dummy__");
-    integrator.stage2(rov, stream);
+    integrator.execute(rov, stream);
 }
 
 void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
@@ -148,14 +148,14 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
 
     auto lrov = rov->local();
     
-    if (rov->objSize != static_cast<int>(rov->initialPositions.size()))
+    if (rov->getObjectSize() != static_cast<int>(rov->initialPositions.size()))
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
-            rov->getCName(), rov->objSize, rov->initialPositions.size());
+            rov->getCName(), rov->getObjectSize(), rov->initialPositions.size());
 
     const auto motions = createMotions(domain, comQ_, comVelocities_);
     const auto nObjs = static_cast<int>(motions.size());
     
-    lrov->resize_anew(nObjs * rov->objSize);
+    lrov->resize_anew(nObjs * rov->getObjectSize());
 
     auto& rovMotions = *lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
     std::copy(motions.begin(), motions.end(), rovMotions.begin());

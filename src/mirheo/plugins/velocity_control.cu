@@ -140,8 +140,8 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
 
     const long nSamplesLoc = nSamples_[0];
     
-    MPI_Check( MPI_Allreduce(&nSamplesLoc,         &nSamplesTot, 1, MPI_LONG,   MPI_SUM, comm) );
-    MPI_Check( MPI_Allreduce(&accumulatedTotVel_,  &totVelTot,   3, MPI_DOUBLE, MPI_SUM, comm) );
+    MPI_Check( MPI_Allreduce(&nSamplesLoc,         &nSamplesTot, 1, MPI_LONG,   MPI_SUM, comm_) );
+    MPI_Check( MPI_Allreduce(&accumulatedTotVel_,  &totVelTot,   3, MPI_DOUBLE, MPI_SUM, comm_) );
 
     currentVel_ = nSamplesTot ? make_real3(totVelTot / nSamplesTot) : make_real3(0._r, 0._r, 0._r);
     force_ = pid_.update(targetVel_ - currentVel_);
@@ -191,9 +191,10 @@ void PostprocessVelocityControl::deserialize()
     MirState::TimeType currentTime;
     real3 vel, force;
 
-    SimpleSerializer::deserialize(data, currentTime, currentTimeStep, vel, force);
+    SimpleSerializer::deserialize(data_, currentTime, currentTimeStep, vel, force);
 
-    if (rank == 0) {
+    if (rank_ == 0)
+    {
         fprintf(fdump_.get(),
                 "%g %lld "
                 "%g %g %g "

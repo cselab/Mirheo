@@ -24,7 +24,7 @@ std::string getParticleVectorLocalityStr(ParticleVectorLocality locality)
 }
 
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int numParts) :
-    pv(pv)
+    pv_(pv)
 {
     dataPerParticle.createData<real4>(ChannelNames::positions,  numParts);
     dataPerParticle.createData<real4>(ChannelNames::velocities, numParts);
@@ -40,7 +40,7 @@ LocalParticleVector::~LocalParticleVector() = default;
 
 void swap(LocalParticleVector& a, LocalParticleVector &b)
 {
-    std::swap(a.pv, b.pv);
+    std::swap(a.pv_, b.pv_);
     swap(a.dataPerParticle, b.dataPerParticle);
     std::swap(a.np_, b.np_);
 }
@@ -115,7 +115,7 @@ ParticleVector::ParticleVector(const MirState *state, const std::string& name, r
                                std::unique_ptr<LocalParticleVector>&& local,
                                std::unique_ptr<LocalParticleVector>&& halo) :
     MirSimulationObject(state, name),
-    mass(mass),
+    mass_(mass),
     local_(std::move(local)),
     halo_(std::move(halo))
 {
@@ -248,6 +248,11 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
+real ParticleVector::getMassPerParticle() const
+{
+    return mass_;
+}
+
 void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
@@ -372,7 +377,7 @@ ConfigObject ParticleVector::_saveSnapshot(Saver& saver, const std::string& type
     _snapshotParticleData(saver.getContext().groupComm, filename);
     ConfigObject config = MirSimulationObject::_saveSnapshot(
             saver, "ParticleVector", typeName);
-    config.emplace("mass", saver(mass));
+    config.emplace("mass", saver(mass_));
     return config;
 }
 

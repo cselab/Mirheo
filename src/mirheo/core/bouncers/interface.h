@@ -15,12 +15,7 @@ class ParticleVector;
 class ObjectVector;
 enum class ParticleVectorLocality;
 
-/**
-   \defgroup Bouncers Bouncers
- */
-
 /** \brief Avoid penetration of particles inside onjects
-    \ingroup Bouncers
 
     Interface class for Bouncers.
     Bouncers are responsible to reflect particles on the surface of the attached object.

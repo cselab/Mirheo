@@ -27,18 +27,18 @@ public:
     using ParametersType          = LimParameters;
     
     TriangleLimForce(ParametersType p, const Mesh *mesh, mReal lscale) :
-        lscale(lscale)
+        lscale_(lscale)
     {
-        a3 = p.a3;
-        a4 = p.a4;
-        b1 = p.b1;
-        b2 = p.b2;
+        a3_ = p.a3;
+        a4_ = p.a4;
+        b1_ = p.b1;
+        b2_ = p.b2;
 
-        ka = p.ka * lscale * lscale;
-        mu = p.mu * lscale * lscale;
+        ka_ = p.ka * lscale_ * lscale_;
+        mu_ = p.mu * lscale_ * lscale_;
         
-        area0   = p.totArea0 * lscale * lscale / mesh->getNtriangles();
-        length0 = math::sqrt(area0 * 4.0 / math::sqrt(3.0));
+        area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
+        length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
     }
 
     __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const
@@ -46,17 +46,17 @@ public:
         EquilibriumTriangleDesc eq;
         if (stressFreeState == StressFreeState::Active)
         {
-            eq.l0   = mesh.initialLengths    [i0] * lscale;
-            eq.l1   = mesh.initialLengths    [i1] * lscale;
-            eq.a    = mesh.initialAreas      [i0] * lscale * lscale;
-            eq.dotp = mesh.initialDotProducts[i0] * lscale * lscale;
+            eq.l0   = mesh.initialLengths    [i0] * lscale_;
+            eq.l1   = mesh.initialLengths    [i1] * lscale_;
+            eq.a    = mesh.initialAreas      [i0] * lscale_ * lscale_;
+            eq.dotp = mesh.initialDotProducts[i0] * lscale_ * lscale_;
         }
         else
         {
-            eq.l0   = this->length0;
-            eq.l1   = this->length0;
-            eq.a    = this->area0;
-            eq.dotp = this->length0 * 0.5_mr;
+            eq.l0   = length0_;
+            eq.l1   = length0_;
+            eq.a    = area0_;
+            eq.dotp = length0_ * 0.5_mr;
         }
         return eq;
     }
@@ -80,7 +80,7 @@ public:
         const mReal3 derArea  = (0.25_mr * area_inv) * cross(normalArea2, x32);
 
         const mReal alpha = area * area0_inv - 1;
-        const mReal coeffAlpha = 0.5_mr * ka * alpha * (2 + alpha * (3 * a3 + alpha * 4 * a4));
+        const mReal coeffAlpha = 0.5_mr * ka_ * alpha * (2 + alpha * (3 * a3_ + alpha * 4 * a4_));
 
         const mReal3 fArea = coeffAlpha * derArea;
         
@@ -102,8 +102,8 @@ public:
         
         const mReal3 derAlpha = area0_inv * derArea;
             
-        const mReal coefAlpha = eq.a * mu * b1 * beta;
-        const mReal coefBeta  = eq.a * mu * (2*b2*beta + alpha * b1 + 1);
+        const mReal coefAlpha = eq.a * mu_ * b1_ * beta;
+        const mReal coefBeta  = eq.a * mu_ * (2*b2_*beta + alpha * b1_ + 1);
 
         const mReal3 fShear = coefAlpha * derAlpha + coefBeta * derBeta;
 
@@ -112,11 +112,16 @@ public:
         
 private:
     
-    mReal ka, mu;
-    mReal a3, a4, b1, b2;
+    mReal ka_;
+    mReal mu_;
+    mReal a3_;
+    mReal a4_;
+    mReal b1_;
+    mReal b2_;
 
-    mReal length0, area0; ///< only useful when StressFree is false
-    mReal lscale;
+    mReal length0_; ///< only useful when StressFree is false
+    mReal area0_;   ///< only useful when StressFree is false
+    mReal lscale_;
 };
 
 MIRHEO_TYPE_NAME(TriangleLimForce<StressFreeState::Active>, "TriangleLimForce<Active>");

@@ -1,21 +1,38 @@
 #pragma once
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include "interface.h"
+
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
 namespace mirheo
 {
 
-class Capsule
+/** \brief Represents a capsule.
+
+    A capsule is represented by a segment and a radius.
+    Its surfae is the set of points whose distance to the 
+    segment is equal to the radius.
+
+    In more visual terms, a capsule looks like a finite cylinder 
+    with two half spheres on its ends.
+
+    The capsule is centered at the origin and oriented along the z axis.
+ */
+class Capsule: public AnalyticShape
 {
 public:
+    /** \brief Construct a \c Capsule.
+        \param [in] R the radius of the capsule.  Must be positive.
+        \param [in] L the length of the segment used to represent the
+                      capsule. Must be positive. 
+    */
     Capsule(real R, real L) :
         R_(R),
         halfL_(0.5_r * L)
     {}
 
-    __HD__ inline real inOutFunction(real3 coo) const
+    __HD__ real inOutFunction(real3 coo) const override
     {
         const real dz = math::abs(coo.z) - halfL_;
 
@@ -26,7 +43,7 @@ public:
         return dr;
     }
 
-    __HD__ inline real3 normal(real3 coo) const
+    __HD__ real3 normal(real3 coo) const override
     {
         constexpr real eps = 1e-6_r;
 
@@ -44,7 +61,7 @@ public:
     }
     
 
-    inline real3 inertiaTensor(real totalMass) const
+    real3 inertiaTensor(real totalMass) const override
     {
         const real R2 = R_ * R_;
         const real R3 = R2 * R_;
@@ -68,7 +85,7 @@ public:
         return make_real3(yy + zz, xx + zz, xx + yy);
     }
 
-    static const char *desc;
+    static const char *desc;  ///< the description of shape.
     
 private:
     

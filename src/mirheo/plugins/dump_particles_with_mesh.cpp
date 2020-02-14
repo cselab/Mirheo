@@ -49,7 +49,7 @@ void ParticleWithMeshDumperPlugin::handshake()
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     recv();
 
-    SimpleSerializer::deserialize(data, nvertices_, triangles_);
+    SimpleSerializer::deserialize(data_, nvertices_, triangles_);
     debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", getCName(), triangles_.size(), nvertices_);
 }
 
@@ -63,7 +63,7 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
 
     const int ntriangles = static_cast<int>(triangles_.size());
     
-    MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_INT, MPI_SUM, comm) );
+    MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_INT, MPI_SUM, comm_) );
 
     allTriangles_->resize(nobjects * ntriangles);
 
@@ -95,8 +95,8 @@ void ParticleWithMeshDumperPlugin::deserialize()
 
     const std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
     
-    const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm);
-    XDMF::write(fname, &grid, channels_, time, comm);
+    const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm_);
+    XDMF::write(fname, &grid, channels_, time, comm_);
 }
 
 } // namespace mirheo

@@ -56,9 +56,9 @@ std::vector<T> extractChannel(const std::string& name, ListData& channels)
         {
             mpark::visit([&](const auto& vec)
             {
-                using VecType = typename std::remove_reference<decltype(vec)>::type::value_type;
+                using VectorType = typename std::remove_reference<decltype(vec)>::type::value_type;
                 die ("could not retrieve channel '%s' with given type: got %s instead of %s",
-                     name.c_str(), typeid(VecType).name(), typeid(T).name());
+                     name.c_str(), typeid(VectorType).name(), typeid(T).name());
             }, it->data);
         }
     }

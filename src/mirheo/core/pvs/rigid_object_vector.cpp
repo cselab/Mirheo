@@ -22,13 +22,13 @@ LocalRigidObjectVector::LocalRigidObjectVector(ParticleVector* pv, int objSize, 
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
+    auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
-    meshVertices_.resize_anew(nObjects * mesh->getNvertices());
+    meshVertices_.resize_anew(getNumObjects() * mesh->getNvertices());
 
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
-    fakeView.size      = mesh->getNvertices() * nObjects;
+    fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshVertices_.devPtr();
 
     RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
@@ -39,15 +39,15 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
 
 PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t stream)
 {
-    auto ov = dynamic_cast<RigidObjectVector*>(pv);
+    auto ov = dynamic_cast<RigidObjectVector*>(parent());
     auto& mesh = ov->mesh;
-    meshOldVertices_.resize_anew(nObjects * mesh->getNvertices());
+    meshOldVertices_.resize_anew(getNumObjects() * mesh->getNvertices());
 
     // Overwrite particles with vertices
     // Overwrite motions with the old_motions
     ROVview fakeView(ov, this);
     fakeView.objSize   = mesh->getNvertices();
-    fakeView.size      = mesh->getNvertices() * nObjects;
+    fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshOldVertices_.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
@@ -59,14 +59,14 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
 
 PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
 {
-    auto ov = dynamic_cast<ObjectVector*>(pv);
-    meshForces_.resize_anew(nObjects * ov->mesh->getNvertices());
+    auto ov = dynamic_cast<ObjectVector*>(parent());
+    meshForces_.resize_anew(getNumObjects() * ov->mesh->getNvertices());
     return &meshForces_;
 }
 
 void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 {
-    ROVview view(static_cast<RigidObjectVector*>(pv), this);
+    ROVview view(static_cast<RigidObjectVector*>(parent()), this);
     RigidOperations::clearRigidForcesFromMotions(view, stream);
 }
 
@@ -75,13 +75,13 @@ void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 
 RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& name, real partMass,
                                      real3 J, const int objSize,
-                                     std::shared_ptr<Mesh> mesh, const int nObjects) :
+                                     std::shared_ptr<Mesh> mesh_, const int nObjects) :
     ObjectVector( state, name, partMass, objSize,
                   std::make_unique<LocalRigidObjectVector>(this, objSize, nObjects),
                   std::make_unique<LocalRigidObjectVector>(this, objSize, 0) ),
-    J(J)
+    J_(J)
 {
-    this->mesh = std::move(mesh);
+    mesh = std::move(mesh_);
 
     if (length(J) < 1e-5)
         die("Wrong momentum of inertia: [%f %f %f]", J.x, J.y, J.z);
@@ -210,7 +210,7 @@ ConfigObject RigidObjectVector::_saveSnapshot(Saver &saver, const std::string& t
     _snapshotObjectData(saver.getContext().groupComm, xdmfFilename, ipFilename);
 
     ConfigObject config = ObjectVector::_saveSnapshot(saver, typeName);
-    config.emplace("J", saver(J));
+    config.emplace("J", saver(J_));
     // `initialPositions` is stored in `_snapshotObjectData`.
     return config;
 }
@@ -264,7 +264,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
 
 
     filename = createCheckpointName(path, RestartIPIdentifier, "coords");
-    initialPositions = readInitialPositions(comm, filename, objSize);
+    initialPositions = readInitialPositions(comm, filename, getObjectSize());
 
     info("Successfully read object infos of '%s'", getCName());
 }

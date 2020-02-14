@@ -40,12 +40,12 @@ __global__ void sampleRelative(
 } // namespace AverageRelativeFlowKernels
 
 AverageRelative3D::AverageRelative3D(
-    const MirState *state, std::string name, std::vector<std::string> pvNames,
-    std::vector<std::string> channelNames, int sampleEvery,
-    int dumpEvery, real3 binSize, std::string relativeOVname, int relativeID) :
+       const MirState *state, std::string name, std::vector<std::string> pvNames,
+       std::vector<std::string> channelNames, int sampleEvery,
+       int dumpEvery, real3 binSize, std::string relativeOVname, int relativeID) :
     Average3D(state, name, pvNames, channelNames, sampleEvery, dumpEvery, binSize),
-    relativeOVname(relativeOVname),
-    relativeID(relativeID)
+    relativeOVname_(relativeOVname),
+    relativeID_(relativeID)
 {}
 
 void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -53,20 +53,20 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     Average3D::setup(simulation, comm, interComm);
 
     int local_size = numberDensity_.size();
-    int global_size = local_size * nranks;
+    int global_size = local_size * nranks_;
     
-    localNumberDensity      .resize(local_size);
+    localNumberDensity_      .resize(local_size);
     numberDensity_           .resize_anew(global_size);
     accumulatedNumberDensity_.resize_anew(global_size);
     numberDensity_.clear(defaultStream);
 
-    localChannels.resize(channelsInfo_.n);
+    localChannels_.resize(channelsInfo_.n);
 
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
         local_size  = channelsInfo_.average[i].size();
-        global_size = local_size * nranks;
-        localChannels[i].resize(local_size);
+        global_size = local_size * nranks_;
+        localChannels_[i].resize(local_size);
         channelsInfo_.average[i].resize_anew(global_size);
         accumulatedAverage_  [i].resize_anew(global_size);
         channelsInfo_.average[i].clear(defaultStream);
@@ -77,19 +77,19 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     channelsInfo_.types.uploadToDevice(defaultStream);
 
     // Relative stuff
-    relativeOV = simulation->getOVbyNameOrDie(relativeOVname);
+    relativeOV_ = simulation->getOVbyNameOrDie(relativeOVname_);
 
-    if ( !relativeOV->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
-        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV->getCName());
+    if ( !relativeOV_->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
+        die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV_->getCName());
 
-    int locsize = relativeOV->local()->nObjects;
-    int totsize;
+    const int locsize = relativeOV_->local()->getNumObjects();
+    int totsize {0};
 
     MPI_Check( MPI_Reduce(&locsize, &totsize, 1, MPI_INT, MPI_SUM, 0, comm) );
 
-    if (rank == 0 && relativeID >= totsize)
+    if (rank_ == 0 && relativeID_ >= totsize)
         die("Too few objects in OV '%s' (only %d); but requested id %d",
-            relativeOV->getCName(), totsize, relativeID);
+            relativeOV_->getCName(), totsize, relativeID_);
 }
 
 void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cudaStream_t stream)
@@ -118,25 +118,25 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     // Find and broadcast the position and velocity of the relative object
     MPI_Request req;
-    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm, &req) );
+    MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm_, &req) );
 
-    auto ids     = relativeOV->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = relativeOV->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ids     = relativeOV_->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto motions = relativeOV_->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
 
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
     motions->downloadFromDevice(stream, ContainersSynch::Synch);
 
     for (size_t i = 0; i < ids->size(); i++)
     {
-        if ((*ids)[i] == relativeID)
+        if ((*ids)[i] == relativeID_)
         {
             real3 params[2] = { make_real3( (*motions)[i].r   ),
                                 make_real3( (*motions)[i].vel ) };
 
             params[0] = getState()->domain.local2global(params[0]);
 
-            for (int r = 0; r < nranks; r++)
-                MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm);
+            for (int r = 0; r < nranks_; r++)
+                MPI_Send(&params, NCOMPONENTS, getMPIFloatType<real>(), r, TAG, comm_);
 
             break;
         }
@@ -151,7 +151,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 
     accumulateSampledAndClear(stream);
     
-    averageRelativeVelocity += relativeParams[1];
+    averageRelativeVelocity_ += relativeParams[1];
 
     nSamples_++;
 }
@@ -163,7 +163,7 @@ void AverageRelative3D::extractLocalBlock()
     
     auto oneChannel = [this] (const PinnedBuffer<double>& channel, Average3D::ChannelType type, double scale, std::vector<double>& dest) {
 
-        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm) );
+        MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm_) );
 
         const int ncomponents = this->getNcomponents(type);
 
@@ -193,10 +193,10 @@ void AverageRelative3D::extractLocalBlock()
     };
 
     // Order is important! Density comes first
-    oneChannel(accumulatedNumberDensity_, Average3D::ChannelType::Scalar, 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z), localNumberDensity);
+    oneChannel(accumulatedNumberDensity_, Average3D::ChannelType::Scalar, 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z), localNumberDensity_);
 
     for (int i = 0; i < channelsInfo_.n; ++i)
-        oneChannel(accumulatedAverage_[i], channelsInfo_.types[i], scale_by_density, localChannels[i]);
+        oneChannel(accumulatedAverage_[i], channelsInfo_.types[i], scale_by_density, localChannels_[i]);
 }
 
 void AverageRelative3D::serializeAndSend(cudaStream_t stream)
@@ -216,9 +216,9 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
                 (SamplingHelpersKernels::correctVelocity,
                  getNblocks(numVec3, nthreads), nthreads, 0, stream,
                  numVec3, reinterpret_cast<double3*> (data.devPtr()),
-                 accumulatedNumberDensity_.devPtr(), averageRelativeVelocity / static_cast<real>(nSamples_));
+                 accumulatedNumberDensity_.devPtr(), averageRelativeVelocity_ / static_cast<real>(nSamples_));
         
-            averageRelativeVelocity = make_real3(0.0_r);
+            averageRelativeVelocity_ = make_real3(0.0_r);
         }
     }
         
@@ -240,7 +240,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", getCName());
     waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity, localChannels);
+    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity_, localChannels_);
     send(sendBuffer_);
 }
 

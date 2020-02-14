@@ -25,8 +25,9 @@ class PairwiseInteractionImpl : public Interaction
 public:
     
     PairwiseInteractionImpl(const MirState *state, const std::string& name, real rc, PairwiseKernel pair) :
-        Interaction(state, name, rc),
-        defaultPair(pair)
+        Interaction(state, name),
+        rc_(rc),
+        defaultPair_(pair)
     {}
     
     ~PairwiseInteractionImpl() = default;
@@ -130,8 +131,8 @@ public:
     
     void setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
     {
-        intMap.insert({{pv1name, pv2name}, pair});
-        intMap.insert({{pv2name, pv1name}, pair});
+        intMap_.insert({{pv1name, pv2name}, pair});
+        intMap_.insert({{pv2name, pv1name}, pair});
     }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
@@ -139,8 +140,8 @@ public:
         auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt", checkpointId);
         {
             std::ofstream fout(fname);
-            defaultPair.writeState(fout);
-            for (auto& entry : intMap)
+            defaultPair_.writeState(fout);
+            for (auto& entry : intMap_)
                 entry.second.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
@@ -157,15 +158,15 @@ public:
 
         check(fin.good());
         
-        check( defaultPair.readState(fin) );
-        for (auto& entry : intMap)
+        check( defaultPair_.readState(fin) );
+        for (auto& entry : intMap_)
             check( entry.second.readState(fin) );
     }
 
-private:
-
-    PairwiseKernel defaultPair;
-    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap;
+    real getCutoffRadius() const override
+    {
+        return rc_;
+    }
 
 private:
 
@@ -180,7 +181,7 @@ private:
         SAFE_KERNEL_LAUNCH(                                                         \
                 computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
                 getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
-                dstView, cl2->cellInfo(), srcView, rc*rc, INTERACTION_FUNCTION); } while (0)
+                dstView, cl2->cellInfo(), srcView, rc_*rc_, INTERACTION_FUNCTION); } while (0)
 
     #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                        \
         do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); } \
@@ -229,9 +230,9 @@ private:
 
             auto cinfo = cl1->cellInfo();
             SAFE_KERNEL_LAUNCH(
-                               computeSelfInteractions,
-                               getNblocks(np, nth), nth, 0, stream,
-                               cinfo, view, rc*rc, pair.handler());
+                 computeSelfInteractions,
+                 getNblocks(np, nth), nth, 0, stream,
+                 cinfo, view, rc_*rc_, pair.handler());
         }
         else /*  External interaction */
         {
@@ -275,8 +276,8 @@ private:
 
     PairwiseKernel& getPairwiseKernel(const std::string& pv1name, const std::string& pv2name)
     {
-        auto it = intMap.find({pv1name, pv2name});
-        if (it != intMap.end())
+        auto it = intMap_.find({pv1name, pv2name});
+        if (it != intMap_.end())
         {
             debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
             return it->second;
@@ -284,9 +285,14 @@ private:
         else
         {
             debug("Using default parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
-            return defaultPair;
+            return defaultPair_;
         }
     }
+
+private:
+    real rc_;
+    PairwiseKernel defaultPair_;
+    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap_;
 };
 
 } // namespace mirheo

@@ -48,10 +48,10 @@ class RodInteractionImpl : public Interaction
 {
 public:
     RodInteractionImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
-        Interaction(state, name, /* rc */ 1.0_r),
-        parameters(parameters),
-        stateParameters(stateParameters),
-        saveEnergies(saveEnergies)
+        Interaction(state, name),
+        parameters_(parameters),
+        stateParameters_(stateParameters),
+        saveEnergies_(saveEnergies)
     {}
 
     ~RodInteractionImpl() = default;
@@ -63,11 +63,12 @@ public:
     {
         auto rv1 = dynamic_cast<RodVector *> (pv1);
 
-        if (saveEnergies) rv1->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+        if (saveEnergies_)
+            rv1->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
 
         if (Nstates > 1)
         {
-            rv1->requireDataPerBisegment<int>     (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+            rv1->requireDataPerBisegment<int>    (ChannelNames::polyStates, DataManager::PersistenceMode::None);
             rv1->requireDataPerBisegment<real4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
             rv1->requireDataPerBisegment<real2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
         }
@@ -82,11 +83,11 @@ public:
         auto rv = dynamic_cast<RodVector *>(pv1);
 
         debug("Computing internal rod forces for %d rods of '%s'",
-              rv->local()->nObjects, rv->getCName());
+              rv->local()->getNumObjects(), rv->getCName());
 
-        computeBoundForces                    (rv, stream);
-        updatePolymorphicStatesAndApplyForces (rv, stream);
-        computeElasticForces                  (rv, stream);
+        _computeBoundForces                    (rv, stream);
+        _updatePolymorphicStatesAndApplyForces (rv, stream);
+        _computeElasticForces                  (rv, stream);
     }
 
     void halo(__UNUSED ParticleVector *pv1,
@@ -98,26 +99,26 @@ public:
     
 protected:
 
-    void computeBoundForces(RodVector *rv, cudaStream_t stream)
+    void _computeBoundForces(RodVector *rv, cudaStream_t stream)
     {
         RVview view(rv, rv->local());
 
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.nObjects * view.nSegments, nthreads);
         
-        auto devParams = getBoundParams(parameters);
+        auto devParams = getBoundParams(parameters_);
         
         SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
                            nblocks, nthreads, 0, stream,
                            view, devParams);
     }
 
-    void updatePolymorphicStatesAndApplyForces(RodVector *rv, cudaStream_t stream)
+    void _updatePolymorphicStatesAndApplyForces(RodVector *rv, cudaStream_t stream)
     {
         if (Nstates > 1)
         {
             RVview view(rv, rv->local());
-            auto devParams = getBiSegmentParams<Nstates>(parameters);
+            auto devParams = getBiSegmentParams<Nstates>(parameters_);
 
             auto kappa = rv->local()->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
             auto tau_l = rv->local()->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
@@ -129,28 +130,28 @@ protected:
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
 
-            updateStatesAndApplyForces<Nstates>(rv, devParams, stateParameters, stream);
+            updateStatesAndApplyForces<Nstates>(rv, devParams, stateParameters_, stream);
         }
     }
     
-    void computeElasticForces(RodVector *rv, cudaStream_t stream)
+    void _computeElasticForces(RodVector *rv, cudaStream_t stream)
     {
         RVview view(rv, rv->local());
-        auto devParams = getBiSegmentParams<Nstates>(parameters);
+        auto devParams = getBiSegmentParams<Nstates>(parameters_);
         
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
 
         SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
                            nblocks, nthreads, 0, stream,
-                           view, devParams, saveEnergies);
+                           view, devParams, saveEnergies_);
     }
 
 protected:
 
-    RodParameters parameters;
-    StateParameters stateParameters;
-    bool saveEnergies;
+    RodParameters parameters_;
+    StateParameters stateParameters_;
+    bool saveEnergies_;
 };
 
 } // namespace mirheo

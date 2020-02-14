@@ -38,6 +38,8 @@ public:
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
     }
 
+    real3 getInertialTensor() const {return J_;}
+
     void saveSnapshotAndRegister(Saver&);
 
 protected:
@@ -52,10 +54,10 @@ private:
 public:
     PinnedBuffer<real4> initialPositions;
 
+private:
     /// Diagonal of the inertia tensor in the principal axes
     /// The axes should be aligned with ox, oy, oz when q = {1 0 0 0}
-    real3 J;
-
+    real3 J_;
 };
 
 } // namespace mirheo

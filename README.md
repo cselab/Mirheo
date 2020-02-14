@@ -21,6 +21,9 @@ make install
 
 ### unreleased
 
+* add basic structure for the development documentation
+* renamed most private variables: now should have a trailing `_`
+* enabled -Wshadow
 * particle checker plugin dumps all particle fields when triggered
 * **bug fix**: avoid avoid division by zero and nan in several places:
   * SDPD kernel

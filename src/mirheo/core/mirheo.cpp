@@ -28,10 +28,10 @@
 namespace mirheo
 {
 
-LogInfo::LogInfo(const std::string& fileName, int verbosityLvl, bool noSplash) :
-    fileName(fileName),
-    verbosityLvl(verbosityLvl),
-    noSplash(noSplash)
+LogInfo::LogInfo(const std::string& fileName_, int verbosityLvl_, bool noSplash_) :
+    fileName(fileName_),
+    verbosityLvl(verbosityLvl_),
+    noSplash(noSplash_)
 {}
 MIRHEO_MEMBER_VARS_3(LogInfo, fileName, verbosityLvl, noSplash);
 
@@ -505,8 +505,8 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     
     info("Generating frozen particles for rigid object '%s'...\n\n", shape->getCName());
 
-    if (shape->local()->nObjects > 1)
-        die("expected no more than one object vector; given %d", shape->local()->nObjects);
+    if (shape->local()->getNumObjects() > 1)
+        die("expected no more than one object vector; given %d", shape->local()->getNumObjects());
     
 
     const real mass = 1.0_r;

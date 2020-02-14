@@ -11,7 +11,7 @@ class DensityAccumulator
 public:
 
     __D__ inline DensityAccumulator() :
-        den(0._r)
+        den_(0._r)
     {}
     
     __D__ inline void atomicAddToDst(real d, PVviewWithDensities& view, int id) const
@@ -24,11 +24,11 @@ public:
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline real get() const {return den;}
-    __D__ inline void add(real d) {den += d;}
+    __D__ inline real get() const {return den_;}
+    __D__ inline void add(real d) {den_ += d;}
     
 private:
-    real den;
+    real den_;
 };
 
 } // namespace mirheo

@@ -41,12 +41,15 @@ public:
     PinnedBuffer<real4>& velocities();
 
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
+
+    ParticleVector* parent() {return pv_;}
+    const ParticleVector* parent() const {return pv_;}
     
 public:
-    ParticleVector *pv;
     DataManager dataPerParticle;
 
 private:
+    ParticleVector *pv_;
     int np_;
 };
 
@@ -88,10 +91,12 @@ public:
     void requireDataPerParticle(const std::string& name, DataManager::PersistenceMode persistence,
                                 DataManager::ShiftMode shift = DataManager::ShiftMode::None)
     {
-        requireDataPerParticle<T>(local(), name, persistence, shift);
-        requireDataPerParticle<T>(halo(),  name, persistence, shift);
+        _requireDataPerParticle<T>(local(), name, persistence, shift);
+        _requireDataPerParticle<T>(halo(),  name, persistence, shift);
     }
 
+    real getMassPerParticle() const;
+    
 protected:
     ParticleVector(const MirState *state, const std::string& name, real mass,
                    std::unique_ptr<LocalParticleVector>&& local,
@@ -113,9 +118,9 @@ protected:
 private:
 
     template<typename T>
-    void requireDataPerParticle(LocalParticleVector *lpv, const std::string& name,
-                                DataManager::PersistenceMode persistence,
-                                DataManager::ShiftMode shift)
+    void _requireDataPerParticle(LocalParticleVector *lpv, const std::string& name,
+                                 DataManager::PersistenceMode persistence,
+                                 DataManager::ShiftMode shift)
     {
         lpv->dataPerParticle.createData<T> (name, lpv->size());
         lpv->dataPerParticle.setPersistenceMode(name, persistence);
@@ -123,14 +128,13 @@ private:
     }
 
 public:    
-    real mass;
-
     bool haloValid   {false};
     bool redistValid {false};
 
     int cellListStamp{0};
 
 private:
+    real mass_;
     std::unique_ptr<LocalParticleVector> local_, halo_;
 };
 

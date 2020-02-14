@@ -1,54 +1,53 @@
 #pragma once
 
-#include <mirheo/core/datatypes.h>
-#include <mirheo/core/pvs/particle_vector.h>
+#include "interface.h"
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
+#include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
 
-/**
- * Apply equal but opposite forces in two halves of the global domain.
- */
-class Forcing_PeriodicPoiseuille
+class ParticleVector;
+
+/**\brief Apply equal but opposite forces in two halves of the global domain.
+
+    \rst
+
+    .. math::
+
+        f_x = \begin{cases} 
+        F, & y_p > L_y / 2 \\
+        -F, & y_p \leqslant L_y / 2
+        \end{cases}
+    
+    Similarly, if the force is parallel to the y axis, its sign will
+    depend on z; parallel to z it will depend on x.
+    \endrst
+*/
+class ForcingTermPeriodicPoiseuille : public ForcingTerm
 {
 public:
+    /** \brief Encode directions
+     */
     enum class Direction {x, y, z};
 
-    /**
-     * Setup the forcing term
-     *
-     * @param magnitude force magnitude to be applied
-     * @param dir force will be applied parallel to the specified axis.
+    /** \brief Construct a \c ForcingTermPeriodicPoiseuille object
+        \param magnitude force magnitude to be applied.
+        \param dir The force will be applied parallel to the specified axis.
      */
-    Forcing_PeriodicPoiseuille(real magnitude, Direction dir) :
+    ForcingTermPeriodicPoiseuille(real magnitude, Direction dir) :
         magnitude_(magnitude),
         dir_(dir)
     {}
 
-    void setup(ParticleVector* pv, __UNUSED real t)
+    void setup(ParticleVector* pv, __UNUSED real t) override
     {
         domain_ = pv->getState()->domain;
     }
 
-    /**
-     * If the force is parallel to \e x axis, its sign will depend on \e y
-     * coordinate of a particle (\f$ \vec D \f$ is the global domain size,
-     * ParticleVector::Domain::globalSize):
-     *
-     * \f$ f_x = \begin{cases}
-     *  M, & y_p > D_y / 2 \\
-     *  -M, & y_p \leqslant D_y / 2
-     * \end{cases}
-     * \f$
-     *
-     * Similarly, if the force is parallel to \e y axis, its sign will
-     * depend on \e z, parallel to \e z -- will depend on \e x
-     */
-    __D__ inline real3 operator()(real3 original, Particle p) const
+    __D__ inline real3 operator()(real3 original, Particle p) const override
     {
         const real3 gr = domain_.local2global(p.r);
         real3 ef {0.0_r, 0.0_r, 0.0_r};
@@ -66,9 +65,9 @@ private:
 
     DomainInfo domain_;
 
-    friend MemberVars<Forcing_PeriodicPoiseuille>;
+    friend MemberVars<ForcingTermPeriodicPoiseuille>;
 };
 
-MIRHEO_MEMBER_VARS_2(Forcing_PeriodicPoiseuille, magnitude_, dir_);
+MIRHEO_MEMBER_VARS_2(ForcingTermPeriodicPoiseuille, magnitude_, dir_);
 
 } // namespace mirheo

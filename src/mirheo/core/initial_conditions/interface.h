@@ -8,12 +8,7 @@ namespace mirheo
 
 class ParticleVector;
 
-/**
-   \defgroup ICs Initial Conditions
- */
-
 /** \brief Initializer for objects in group PVs.
-    \ingroup ICs
 
     ICs are temporary objects and do not need name or chekpoint/restart mechanism.
     The \ref exec() member function is called by the Simulation when the \c ParticleVector

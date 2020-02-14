@@ -22,8 +22,8 @@ class ForceStressAccumulator
 public:
 
     __D__ inline ForceStressAccumulator() :
-        frcStress({{0._r, 0._r, 0._r},
-                   {0._r, 0._r, 0._r, 0._r, 0._r, 0._r}})
+        frcStress_({{0._r, 0._r, 0._r},
+                    {0._r, 0._r, 0._r, 0._r, 0._r, 0._r}})
     {}
     
     __D__ inline void atomicAddToDst(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
@@ -38,21 +38,21 @@ public:
         atomicAddStress(view.stresses + id,  fs.stress);
     }
 
-    __D__ inline ForceStress get() const {return frcStress;}
+    __D__ inline ForceStress get() const {return frcStress_;}
 
     __D__ inline void add(const ForceStress& fs)
     {
-        frcStress.force += fs.force;
-        frcStress.stress.xx += fs.stress.xx;
-        frcStress.stress.xy += fs.stress.xy;
-        frcStress.stress.xz += fs.stress.xz;
-        frcStress.stress.yy += fs.stress.yy;
-        frcStress.stress.yz += fs.stress.yz;
-        frcStress.stress.zz += fs.stress.zz;
+        frcStress_.force += fs.force;
+        frcStress_.stress.xx += fs.stress.xx;
+        frcStress_.stress.xy += fs.stress.xy;
+        frcStress_.stress.xz += fs.stress.xz;
+        frcStress_.stress.yy += fs.stress.yy;
+        frcStress_.stress.yz += fs.stress.yz;
+        frcStress_.stress.zz += fs.stress.zz;
     }
     
 private:
-    ForceStress frcStress;
+    ForceStress frcStress_;
 
     __D__ inline void atomicAddStress(Stress *dst, const Stress& s) const
     {

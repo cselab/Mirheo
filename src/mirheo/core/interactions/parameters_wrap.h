@@ -20,18 +20,18 @@ public:
     using MapParams = std::map<std::string, VarParam>;
     
     ParametersWrap(const MapParams& params) :
-        params(params)
+        params_(params)
     {
-        for (const auto& p : params)
-            readParams[p.first] = false;
+        for (const auto& p : params_)
+            readParams_[p.first] = false;
     }
 
     template <typename T>
     bool exists(const std::string& key)
     {
-        auto it = params.find(key);
+        auto it = params_.find(key);
 
-        if (it == params.end())
+        if (it == params_.end())
             return false;
 
         if (!mpark::holds_alternative<T>(it->second))
@@ -42,7 +42,7 @@ public:
 
     void checkAllRead() const
     {
-        for (const auto& p : readParams)
+        for (const auto& p : readParams_)
             if (p.second == false)
                 die("invalid parameter '%s'", p.first.c_str());
     }
@@ -50,7 +50,7 @@ public:
     template <typename T>
     T read(const std::string& key)
     {
-        return read(key, Identity<T>());
+        return _read(key, Identity<T>());
     }
 
 private:
@@ -62,21 +62,21 @@ private:
     struct Identity { using Type = T; };
     
     template <typename T>
-    T read(const std::string& key, Identity<T>)
+    T _read(const std::string& key, Identity<T>)
     {
-        auto it = params.find(key);
+        auto it = params_.find(key);
     
-        if (it == params.end())
+        if (it == params_.end())
             die("missing parameter '%s'", key.c_str());
 
         if (!mpark::holds_alternative<T>(it->second))
             die("'%s': invalid type", key.c_str());
 
-        readParams[key] = true;
+        readParams_[key] = true;
         return mpark::get<T>(it->second);
     }
 
-    real2 read(const std::string& key, Identity<real2>)
+    real2 _read(const std::string& key, Identity<real2>)
     {
         const auto v = read<std::vector<real>>(key);
         if (v.size() != 2)
@@ -84,7 +84,7 @@ private:
         return {v[0], v[1]};
     }
 
-    real3 read(const std::string& key, Identity<real3>)
+    real3 _read(const std::string& key, Identity<real3>)
     {
         const auto v = read<std::vector<real>>(key);
         if (v.size() != 3)
@@ -93,8 +93,8 @@ private:
     }
 
 private:
-    const MapParams& params;
-    std::map<std::string, bool> readParams;
+    const MapParams& params_;
+    std::map<std::string, bool> readParams_;
 };
 
 } // namespace mirheo

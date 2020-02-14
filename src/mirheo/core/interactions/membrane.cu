@@ -47,7 +47,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 MembraneInteraction::MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                                          VarBendingParams varBendingParams, VarShearParams varShearParams,
                                          bool stressFree, real growUntil, VarMembraneFilter varFilter) :
-    Interaction(state, name, /* default cutoff rc */ 1.0)
+    Interaction(state, name)
 {
     mpark::visit([&](auto bendingParams, auto shearParams, auto filter)
     {                     
@@ -170,12 +170,12 @@ void MembraneInteraction::precomputeQuantities(ParticleVector *pv1, cudaStream_t
 {
     auto ov = dynamic_cast<MembraneVector *>(pv1);
 
-    if (ov->objSize != ov->mesh->getNvertices())
+    if (ov->getObjectSize() != ov->mesh->getNvertices())
         die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
-            ov->getCName(), ov->objSize, ov->mesh->getNvertices());
+            ov->getCName(), ov->getObjectSize(), ov->mesh->getNvertices());
 
     debug("Computing areas and volumes for %d cells of '%s'",
-          ov->local()->nObjects, ov->getCName());
+          ov->local()->getNumObjects(), ov->getCName());
 
     OVviewWithAreaVolume view(ov, ov->local());
 

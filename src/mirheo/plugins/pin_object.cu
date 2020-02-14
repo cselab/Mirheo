@@ -141,8 +141,8 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 
     ov_ = simulation->getOVbyNameOrDie(ovName_);
 
-    const int myNObj = ov_->local()->nObjects;
-    int totObjs;
+    const int myNObj = ov_->local()->getNumObjects();
+    int totObjs {0};
     MPI_Check( MPI_Allreduce(&myNObj, &totObjs, 1, MPI_INT, MPI_SUM, comm) );
 
     forces_.resize_anew(totObjs);
@@ -158,14 +158,12 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 
     info("Plugin '%s' is setup for OV '%s' and will impose the following velocity: [%s %s %s]; and following rotation: [%s %s %s]",
          getCName(), ovName_.c_str(),
-
-          translation_.x == Unrestricted ? "?" : std::to_string(translation_.x).c_str(),
-          translation_.y == Unrestricted ? "?" : std::to_string(translation_.y).c_str(),
-          translation_.z == Unrestricted ? "?" : std::to_string(translation_.z).c_str(),
-
-          rotation_.x == Unrestricted ? "?" : std::to_string(rotation_.x).c_str(),
-          rotation_.y == Unrestricted ? "?" : std::to_string(rotation_.y).c_str(),
-          rotation_.z == Unrestricted ? "?" : std::to_string(rotation_.z).c_str() );
+         translation_.x == Unrestricted ? "?" : std::to_string(translation_.x).c_str(),
+         translation_.y == Unrestricted ? "?" : std::to_string(translation_.y).c_str(),
+         translation_.z == Unrestricted ? "?" : std::to_string(translation_.z).c_str(),
+         rotation_.x == Unrestricted ? "?" : std::to_string(rotation_.x).c_str(),
+         rotation_.y == Unrestricted ? "?" : std::to_string(rotation_.y).c_str(),
+         rotation_.z == Unrestricted ? "?" : std::to_string(rotation_.z).c_str() );
 }
 
 
@@ -228,13 +226,13 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
 
 ReportPinObjectPlugin::ReportPinObjectPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
-    path(makePath(path))
+    path_(makePath(path))
 {}
 
 void ReportPinObjectPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated = createFoldersCollective(comm, path);
+    activated_ = createFoldersCollective(comm, path_);
 }
 
 void ReportPinObjectPlugin::handshake()
@@ -244,11 +242,11 @@ void ReportPinObjectPlugin::handshake()
     recv();
 
     std::string ovName;
-    SimpleSerializer::deserialize(data, ovName);
-    if (activated && rank == 0)
+    SimpleSerializer::deserialize(data_, ovName);
+    if (activated_ && rank_ == 0)
     {
-        std::string fname = path + ovName + ".txt";
-        auto status = fout.open(fname, "w" );
+        std::string fname = path_ + ovName + ".txt";
+        auto status = fout_.open(fname, "w" );
         if (status != FileWrapper::Status::Success)
             die("could not open file '%s'", fname.c_str());
     }
@@ -260,29 +258,29 @@ void ReportPinObjectPlugin::deserialize()
     MirState::TimeType currentTime;
     int nsamples;
 
-    SimpleSerializer::deserialize(data, currentTime, nsamples, forces, torques);
+    SimpleSerializer::deserialize(data_, currentTime, nsamples, forces, torques);
 
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm) );
-    MPI_Check( MPI_Reduce( (rank == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm) );
+    MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : forces.data()),  forces.data(),  forces.size()*4,  getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce( (rank_ == 0 ? MPI_IN_PLACE : torques.data()), torques.data(), torques.size()*4, getMPIFloatType<real>(), MPI_SUM, 0, comm_) );
 
-    if (activated && rank == 0)
+    if (activated_ && rank_ == 0)
     {
         for (size_t i = 0; i < forces.size(); ++i)
         {
             forces[i] /= nsamples;
-            fprintf(fout.get(), "%lu  %f  %f %f %f",
+            fprintf(fout_.get(), "%lu  %f  %f %f %f",
                     i, currentTime, forces[i].x, forces[i].y, forces[i].z);
 
             if (i < torques.size())
             {
                 torques[i] /= nsamples;
-                fprintf(fout.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
+                fprintf(fout_.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
             }
 
-            fprintf(fout.get(), "\n");
+            fprintf(fout_.get(), "\n");
         }
 
-        fflush(fout.get());
+        fflush(fout_.get());
     }
 }
 

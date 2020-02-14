@@ -8,8 +8,8 @@ namespace mirheo
 OVview::OVview(ObjectVector *ov, LocalObjectVector *lov) :
     PVview(ov, lov)
 {
-    nObjects = lov->nObjects;
-    objSize  = ov->objSize;
+    nObjects = lov->getNumObjects();
+    objSize  = ov->getObjectSize();
     objMass  = static_cast<real>(objSize) * mass;
     invObjMass = 1.0_r / objMass;
 

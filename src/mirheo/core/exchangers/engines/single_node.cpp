@@ -19,7 +19,7 @@ void SingleNodeEngine::init(cudaStream_t stream)
     
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (!exchanger_->needExchange(i))
-            debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->name.c_str());
+            debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->getCName());
     
     // Derived class determines what to send
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -54,7 +54,7 @@ void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream
     
     if (helper->send.sizes[bulkId] != 0)
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
-              "working with particle vector '%s'", helper->name.c_str());
+              "working with particle vector '%s'", helper->getCName());
 
     // copy (not swap) as we may need sizes from other classes
     helper->recv.sizes       .copy(helper->send.sizes,        stream);

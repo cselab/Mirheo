@@ -1,9 +1,7 @@
 #pragma once
 
-#include <mirheo/core/datatypes.h>
+#include "interface.h"
 
-#include <mirheo/core/utils/cpu_gpu_defines.h>
-#include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
@@ -11,18 +9,20 @@ namespace mirheo
 
 class ParticleVector;
 
-class Forcing_None
+/** \brief No forcing term.
+ */
+class ForcingTermNone : public ForcingTerm
 {
 public:
-    void setup(__UNUSED ParticleVector* pv, __UNUSED real t)
+    void setup(__UNUSED ParticleVector *pv, __UNUSED real t) override
     {}
 
-    __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const
+    __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const override
     {
         return original;
     }
 };
 
-MIRHEO_MEMBER_VARS_0(Forcing_None);
+MIRHEO_MEMBER_VARS_0(ForcingTermNone);
 
 } // namespace mirheo

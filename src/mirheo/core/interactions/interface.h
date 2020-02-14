@@ -39,7 +39,7 @@ public:
 
     enum class Stage {Intermediate, Final};
     
-    Interaction(const MirState *state, std::string name, real rc);
+    Interaction(const MirState *state, std::string name);
 
     /// Load `name` and `rc` from the config. The `impl` is NOT loaded!
     Interaction(const MirState *state, Loader&, const ConfigObject&);
@@ -104,25 +104,21 @@ public:
      */
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
+    virtual real getCutoffRadius() const;
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
     
     static const ActivePredicate alwaysActive;
     
-public:
-    /// Cut-off raduis
-    real rc;
-
 protected:
-    /// Base snapshot function for Interaction objects that store all
-    /// parameters themselves.
+    /// Base snapshot function for non-impl interactions, without the impl object.
     ConfigObject _saveSnapshotWithoutImpl(Saver&, const std::string &typeName);
 
-    /// Base snapshot function that need to serialize the impl object as well.
+    /// Base snapshot function for non-impl interactions, with the impl object.
     ConfigObject _saveSnapshotWithImpl(Saver&, const std::string &typeName);
 
-    /// Base snapshot function for impl interactions.
+    /// Base snapshot function for impl interactions (saves to a different type category).
     ConfigObject _saveImplSnapshot(Saver&, const std::string &typeName);
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions

@@ -208,8 +208,9 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
                 const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
                 const auto& interaction = context.get<Interaction>(info["interaction"]);
                 real rc = loader.load<real>(info["rc"]);
-                if (rc != interaction->rc)
-                    die("Interaction rc do not match: %f != %f.", rc, interaction->rc);
+                real irc = interaction->getCutoffRadius();
+                if (rc != irc)
+                    die("Interaction rc do not match: %f != %f.", rc, irc);
                 mir->setInteraction(interaction.get(), pv1.get(), pv2.get());
             }
         }

@@ -17,7 +17,10 @@ public:
         
     virtual ~RigidShapedObjectVector();
 
-    Shape shape;
+    const Shape& getShape() const {return shape_;}
+    
+private:
+    Shape shape_;
 };
 
 } // namespace mirheo

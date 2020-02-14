@@ -69,12 +69,12 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
 
     debug("Bouncing %d '%s' particles from %d '%s' objects (%s)",
           pv->local()->size(), pv->getCName(),
-          activeOV->nObjects,  ov_->getCName(),
+          activeOV->getNumObjects(),  ov_->getCName(),
           getParticleVectorLocalityStr(locality).c_str());
 
     ov_->findExtentAndCOM(stream, locality);
 
-    const int totalTriangles = ov_->mesh->getNtriangles() * activeOV->nObjects;
+    const int totalTriangles = ov_->mesh->getNtriangles() * activeOV->getNumObjects();
 
     // Set maximum possible number of _coarse_ and _fine_ collisions with triangles
     // In case of crash, the estimate should be increased

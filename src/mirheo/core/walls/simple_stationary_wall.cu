@@ -383,7 +383,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
                  ov->getCName(), this->getCName());
 
             // Copy temporary buffers back
-            ov->local()->resize_anew(nRemaining[0] * ov->objSize);
+            ov->local()->resize_anew(nRemaining[0] * ov->getObjectSize());
             ovView = OVview(ov, ov->local());
             packer.update(ov->local(), defaultStream);
 
@@ -494,7 +494,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 {
     const int nthreads = 128;
     const int np = lpv->size();
-    auto pv = lpv->pv;
+    auto pv = lpv->parent();
 
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",

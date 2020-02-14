@@ -19,6 +19,8 @@ Derived classes
    :project: mirheo
    :members:
 
+The following class employs :ref:`dev-analytic-shapes` implicit surface representation.
+
 .. doxygenclass:: mirheo::BounceFromRigidShape
    :project: mirheo
    :members:
