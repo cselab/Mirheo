@@ -60,11 +60,11 @@ __global__ void unpackParticles(int n, int dstOffset, const char *inputBuffer, P
 
 } // namespace ObjectBelongingKernels
 
-ObjectBelongingChecker_Common::ObjectBelongingChecker_Common(const MirState *state, const std::string& name) :
+ObjectVectorBelongingChecker::ObjectVectorBelongingChecker(const MirState *state, const std::string& name) :
     ObjectBelongingChecker(state, name)
 {}
 
-ObjectBelongingChecker_Common::~ObjectBelongingChecker_Common() = default;
+ObjectVectorBelongingChecker::~ObjectVectorBelongingChecker() = default;
 
 
 static bool keepAllpersistentDataPredicate(const DataManager::NamedChannelDesc& namedDesc)
@@ -87,7 +87,7 @@ static void copyToLpv(int start, int n, const char *buffer, LocalParticleVector 
          n, start, buffer, packer.handler(), n);
 }
 
-void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream)
+void ObjectVectorBelongingChecker::splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream)
 {
     if (dynamic_cast<ObjectVector*>(src) != nullptr)
         error("Trying to split object vector %s into two per-particle, probably that's not what you wanted",
@@ -153,7 +153,7 @@ void ObjectBelongingChecker_Common::splitByBelonging(ParticleVector *src, Partic
     }
 }
 
-void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
+void ObjectVectorBelongingChecker::checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     tagInner(pv, cl, stream);
 
@@ -176,17 +176,17 @@ void ObjectBelongingChecker_Common::checkInner(ParticleVector *pv, CellList *cl,
          pv->getCName(), ov_->getCName(), nInside_[0], nOutside_[0], pv->local()->size());
 }
 
-void ObjectBelongingChecker_Common::setup(ObjectVector *ov)
+void ObjectVectorBelongingChecker::setup(ObjectVector *ov)
 {
     ov_ = ov;
 }
 
-std::vector<std::string> ObjectBelongingChecker_Common::getChannelsToBeExchanged() const
+std::vector<std::string> ObjectVectorBelongingChecker::getChannelsToBeExchanged() const
 {
     return {ChannelNames::motions};
 }
 
-ObjectVector* ObjectBelongingChecker_Common::getObjectVector()
+ObjectVector* ObjectVectorBelongingChecker::getObjectVector()
 {
     return ov_;
 }

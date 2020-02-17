@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-class RodBelongingChecker : public ObjectBelongingChecker_Common
+class RodBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
     RodBelongingChecker(const MirState *state, const std::string& name, real radius);

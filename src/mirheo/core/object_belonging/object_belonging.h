@@ -11,12 +11,11 @@ enum class BelongingTags
     Outside = 0, Inside = 1
 };
 
-class ObjectBelongingChecker_Common : public ObjectBelongingChecker
+class ObjectVectorBelongingChecker : public ObjectBelongingChecker
 {
 public:
-    ObjectBelongingChecker_Common(const MirState *state, const std::string& name);
-
-    ~ObjectBelongingChecker_Common() override;
+    ObjectVectorBelongingChecker(const MirState *state, const std::string& name);
+    ~ObjectVectorBelongingChecker() override;
 
     /**
      * Particle with tags == BelongingTags::Outside  will be copied to pvOut

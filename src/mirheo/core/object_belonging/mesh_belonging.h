@@ -5,10 +5,10 @@
 namespace mirheo
 {
 
-class MeshBelongingChecker : public ObjectBelongingChecker_Common
+class MeshBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
-    using ObjectBelongingChecker_Common::ObjectBelongingChecker_Common;
+    using ObjectVectorBelongingChecker::ObjectVectorBelongingChecker;
 
     void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 };

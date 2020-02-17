@@ -6,10 +6,10 @@ namespace mirheo
 {
 
 template <class Shape>
-class ShapeBelongingChecker : public ObjectBelongingChecker_Common
+class ShapeBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
-    using ObjectBelongingChecker_Common::ObjectBelongingChecker_Common;
+    using ObjectVectorBelongingChecker::ObjectVectorBelongingChecker;
 
     void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 };

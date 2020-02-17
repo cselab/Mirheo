@@ -87,7 +87,7 @@ __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellLis
 
 
 RodBelongingChecker::RodBelongingChecker(const MirState *state, const std::string& name, real radius) :
-    ObjectBelongingChecker_Common(state, name),
+    ObjectVectorBelongingChecker(state, name),
     radius_(radius)
 {}
 
