@@ -16,7 +16,7 @@ INPUT = ../src/mirheo/core/initial_conditions \
         ../src/mirheo/core/bouncers \
 	../src/mirheo/core/integrators \
 	../src/mirheo/core/analytical_shapes \
-	../src/mirheo/core/object_belonging/interface.h
+	../src/mirheo/core/object_belonging
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

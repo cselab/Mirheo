@@ -57,7 +57,7 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
 } // namespace ShapeBelongingKernels
 
 template <class Shape>
-void ShapeBelongingChecker<Shape>::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
+void ShapeBelongingChecker<Shape>::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     auto rsov = dynamic_cast<RigidShapedObjectVector<Shape>*> (ov_);
     if (rsov == nullptr)

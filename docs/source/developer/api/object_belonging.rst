@@ -15,4 +15,20 @@ Base class
 Derived classes
 ---------------
 
-TODO
+.. doxygenclass:: mirheo::ObjectVectorBelongingChecker
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::MeshBelongingChecker
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::RodBelongingChecker
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ShapeBelongingChecker
+   :project: mirheo
+   :members:
+
+

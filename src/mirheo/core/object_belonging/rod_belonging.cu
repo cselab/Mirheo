@@ -91,7 +91,7 @@ RodBelongingChecker::RodBelongingChecker(const MirState *state, const std::strin
     radius_(radius)
 {}
 
-void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
+void RodBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     auto rv = dynamic_cast<RodVector*> (ov_);
     if (rv == nullptr)

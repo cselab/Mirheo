@@ -155,7 +155,7 @@ void ObjectVectorBelongingChecker::splitByBelonging(ParticleVector *src, Particl
 
 void ObjectVectorBelongingChecker::checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
-    tagInner(pv, cl, stream);
+    _tagInner(pv, cl, stream);
 
     nInside_ .clear(stream);
     nOutside_.clear(stream);
