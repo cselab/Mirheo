@@ -23,6 +23,10 @@ Derived classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::WallWithVelocity
+   :project: mirheo
+   :members:
+
 
 Wall shapes
 -----------
@@ -53,4 +57,18 @@ Wall shapes
 Velocity fields
 ---------------
 
-TODO
+.. doxygenclass:: mirheo::VelocityFieldNone
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VelocityFieldOscillate
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VelocityFieldRotate
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VelocityFieldTranslate
+   :project: mirheo
+   :members:
