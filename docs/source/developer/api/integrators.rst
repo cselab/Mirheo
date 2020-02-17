@@ -43,12 +43,7 @@ Derived classes
 Forcing terms
 -------------
 
-The forcing terms must follow the following interface:
-
-.. doxygenclass:: mirheo::ForcingTerm
-   :project: mirheo
-   :members:
-
+The forcing terms must follow the same interface.
 Currently implemented forcing terms:
 
 .. doxygenclass:: mirheo::ForcingTermNone
