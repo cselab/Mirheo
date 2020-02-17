@@ -17,11 +17,6 @@ public:
     ObjectVectorBelongingChecker(const MirState *state, const std::string& name);
     ~ObjectVectorBelongingChecker() override;
 
-    /**
-     * Particle with tags == BelongingTags::Outside  will be copied to pvOut
-     *                    == BelongingTags::Inside   will be copied to pvIn
-     * Other particles are DROPPED (boundary particles)
-     */
     void splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream) override;
     void checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;

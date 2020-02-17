@@ -9,3 +9,4 @@ Library API
    api/bouncers
    api/ics
    api/integrators
+   api/object_belonging
