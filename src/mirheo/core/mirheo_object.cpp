@@ -103,11 +103,4 @@ void MirSimulationObject::setState(const MirState *state)
     state_ = state;
 }
 
-ConfigValue MirObjectLoadSave::save(Saver& saver, MirObject& obj)
-{
-    if (!saver.isObjectRegistered(&obj))
-        obj.saveSnapshotAndRegister(saver);
-    return saver.getObjectRefString(&obj);
-}
-
 } // namespace mirheo

@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-class Mesh
+class Mesh : public AutoObjectSnapshotTag
 {
 public:
     PinnedBuffer<int3> triangles;
@@ -72,13 +72,6 @@ struct MeshView
     int3 *triangles;
 
     MeshView(const Mesh *m);
-};
-
-
-template <>
-struct TypeLoadSave<Mesh>
-{
-    static ConfigValue save(Saver&, Mesh&);
 };
 
 } // namespace mirheo

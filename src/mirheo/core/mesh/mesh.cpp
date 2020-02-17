@@ -167,11 +167,4 @@ MeshView::MeshView(const Mesh *m) :
     triangles  (m->triangles.devPtr())   
 {}
 
-ConfigValue TypeLoadSave<Mesh>::save(Saver& saver, Mesh& mesh)
-{
-    if (!saver.isObjectRegistered(&mesh))
-        mesh.saveSnapshotAndRegister(saver);
-    return saver.getObjectRefString(&mesh);
-}
-
 } // namespace mirheo

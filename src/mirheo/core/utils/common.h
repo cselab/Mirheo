@@ -8,26 +8,13 @@ namespace mirheo
 
 /// Config/snapshot-related classes.
 using ConfigRefString = std::string;
+struct AutoObjectSnapshotTag { };
 class Saver;
 class Loader;
 class ConfigValue;
 class ConfigObject;
 template <typename T, typename Enable = void>
 struct TypeLoadSave;
-
-/**
- * Assert that the dynamic type of T* is exactly T.
- *
- * Useful for detecting virtual function that are missing an implementation:
- *      void SomeClass::functionThatMustAlwaysBeOverriden(...) {
- *          checkType(this);
- *          ...
- *      }
- *
- * Since this function requires typeid(), its definition is in `config.h`.
- */
-template <typename T>
-void assertType(T *obj);
 
 /**
  * Channel names used in several places of the program

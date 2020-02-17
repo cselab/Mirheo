@@ -22,13 +22,13 @@ constexpr const char ConfigNullRefString[] = "<nullptr>";
 /// Extract the object name from ConfigRefString.
 std::string parseNameFromRefString(const ConfigRefString &ref);
 
-/// Read an return the content of a file. Terminates if the file is not found.
+/// Read and return the content of a file. Terminates if the file is not found.
 std::string readWholeFile(const std::string& filename);
 
 /// Write a string to the file.
 void writeToFile(const std::string& filename, const std::string& content);
 
-/// Print the error about mismatched type and throw and exception.
+/// Print the error about mismatched type and throw an exception.
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
 
 /// Throw an exception if object's dynamic type is not `T`.
@@ -550,6 +550,19 @@ struct TypeLoadSave<mpark::variant<Ts...>>
         using LoaderPtr = Variant(*)(Loader&, const ConfigValue&);
         const LoaderPtr funcs[]{(&_load<Ts>)...};
         return funcs[index](loader, object.at("value"));
+    }
+};
+
+/// TypeLoadSave for types tagged with AutoObjectSnapshotTag.
+template <typename T>
+struct TypeLoadSave<T, std::enable_if_t<std::is_base_of<AutoObjectSnapshotTag, T>::value>>
+{
+    template <typename TT>  // Const or not.
+    static ConfigValue save(Saver& saver, TT& t)
+    {
+        if (!saver.isObjectRegistered(&t))
+            t.saveSnapshotAndRegister(saver);
+        return saver.getObjectRefString(&t);
     }
 };
 

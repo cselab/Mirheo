@@ -15,7 +15,7 @@ namespace mirheo
  * Only stores name and provides interface for
  * checkpoint / restart mechanism
  */
-class MirObject
+class MirObject : public AutoObjectSnapshotTag
 {
 public:
     MirObject(const std::string& name);
@@ -72,21 +72,5 @@ public:
 private:
     const MirState *state_;
 };
-
-// Common saver to the template saver below. This way we don't need the
-// definition of ConfigValue here.
-struct MirObjectLoadSave
-{
-    // Automatically adds `name` key to the returned dictionary.
-    static ConfigValue save(Saver&, MirObject& obj);
-};
-
-/// TypeLoadSave specialization for MirObject and derived classes.
-/// Note: this will also match derived class where MirObject is not the first
-/// base class. The registration of these objects will fail.
-template <typename T>
-struct TypeLoadSave<T, std::enable_if_t<std::is_base_of<MirObject, T>::value>>
-    : MirObjectLoadSave
-{ };
 
 } // namespace mirheo

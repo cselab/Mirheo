@@ -98,21 +98,4 @@ private:
     int size_;
 };
 
-// MirObject TypeLoadSave specialization works only if the derived class has
-// MirObject as its first base class. The specialization cannot be easily fixed
-// without including config.h from mirheo_object.h (to get ConfigValue
-// definition), which would slow down the compilation. Instead, we specialize
-// TypeLoadSave for plugins.
-template <>
-struct TypeLoadSave<SimulationPlugin>
-{
-    static ConfigValue save(Saver&, SimulationPlugin& obj);
-};
-
-template <>
-struct TypeLoadSave<PostprocessPlugin>
-{
-    static ConfigValue save(Saver&, PostprocessPlugin& obj);
-};
-
 } // namespace mirheo
