@@ -65,7 +65,12 @@ createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real 
         (state, name, mass, objSize, ell, std::move(mesh));
 }
 
-/// Load the particle vector snapshot.
+/** \brief Particle vector factory. Instantiate the correct vector type depending on the snapshot parameters.
+    \param [in] state The global state of the system.
+    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+    \param [in] config The parameters of the particle vector.
+    \param [in] type Convenience parameter, equal to `config.at("__type")`.
+ */
 std::shared_ptr<ParticleVector> loadParticleVector(
         const MirState *state, Loader& loader,
         const ConfigObject& config, const std::string &type);

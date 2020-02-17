@@ -42,16 +42,33 @@ public:
     */
     IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                       const std::vector<Interaction*>& fastForces);
-    IntegratorSubStep(const MirState *state, Loader&, const ConfigObject&);
+
+    /** \brief Construct an \c IntegratorSubStep from a snapshot.
+        \param [in] state The global state of the system.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the integrator.
+     */
+    IntegratorSubStep(const MirState *state, Loader& loader, const ConfigObject& config);
+
     ~IntegratorSubStep();
-    void saveSnapshotAndRegister(Saver&) override;
+
+    /** \brief Create a \c ConfigObject describing the integrator state and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c IntegratorSubStep.
+      */
+    void saveSnapshotAndRegister(Saver& saver) override;
 
     void execute(ParticleVector *pv, cudaStream_t stream) override;
 
     void setPrerequisites(ParticleVector *pv) override;
 
 protected:
-    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::vector<Interaction*> fastForces_; /* interactions (self) called `substeps` times per time step */

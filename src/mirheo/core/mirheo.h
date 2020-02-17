@@ -116,11 +116,28 @@ public:
                                                                 std::string outside = "");    
 
     void logCompileOptions() const;
+
+    /** \brief Save snapshot of the Mirheo simulation to the given folder.
+        \param [in] path The target folder path.
+      */
     void saveSnapshot(std::string path);
 
-    // User-defined attributes. Useful for adding custom information to snapshots.
+    /** \brief Set a user-defined attribute to the given value. Useful for attaching extra information to snapshot.
+        \param [in] name The attribute name.
+        \param [in] value The attribute value. Can be an integer, floating point number, array or an object (dictionary).
+      */
     void setAttribute(const std::string& name, ConfigValue value);
+
+    /** \brief Temporary specialization of `setAttribute` for integers.
+        \param [in] name The attribute name.
+        \param [in] value The attribute value.
+      */
     void setAttribute(const std::string& name, long long value);
+
+    /** \brief Read a user-defined attribute of the given name as an integer.
+        \param [in] name The attribute name.
+        \return The attribute value. Throws an exception if the attribute is not found or the value is not an integer.
+      */
     long long getAttributeInt(const std::string& name);
 
 private:

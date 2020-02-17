@@ -25,9 +25,22 @@ public:
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters commonParams,
                         VarBendingParams varBendingParams, VarShearParams varShearParams,
                         bool stressFree, real growUntil, VarMembraneFilter varFilter);
-    MembraneInteraction(const MirState *state, Loader&, const ConfigObject&);
+
+    /** \brief Construct the interaction from a snapshot.
+        \param [in] state The global state of the system.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the interaction.
+     */
+    MembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
+
     ~MembraneInteraction();
-    void saveSnapshotAndRegister(Saver&) override;
+
+    /** \brief Create a \c ConfigObject describing the interaction and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c MembraneInteraction.
+      */
+    void saveSnapshotAndRegister(Saver& saver) override;
     
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 

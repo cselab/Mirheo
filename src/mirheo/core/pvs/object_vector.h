@@ -62,6 +62,12 @@ public:
 
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
+
+    /** \brief Dump the OV h5 files, create a \c ConfigObject with OV metadata and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c ObjectVector.
+      */
     void saveSnapshotAndRegister(Saver&) override;
 
     template<typename T>
@@ -81,7 +87,12 @@ protected:
 
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
     virtual void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms);
-    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
+
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     void _snapshotObjectData(MPI_Comm comm, const std::string& filename);

@@ -21,7 +21,12 @@ public:
     Mesh(const std::string& fileName);
     Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh);
     Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces);
-    Mesh(Loader&, const ConfigObject&);
+
+    /** \brief Construct a mesh from its snapshot.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The mesh parameters.
+     */
+    Mesh(Loader& loader, const ConfigObject& config);
 
     Mesh(Mesh&&);
     Mesh& operator=(Mesh&&);
@@ -35,12 +40,19 @@ public:
     PyTypes::VectorOfReal3 getVertices();
     PyTypes::VectorOfInt3  getTriangles();
 
-    /// Store the mesh, register the object and return the reference string.
-    virtual void saveSnapshotAndRegister(Saver&);
+    /** \brief Dump the mesh in an .off file, create a \c ConfigObject with the mesh name  and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c Mesh.
+      */
+    virtual void saveSnapshotAndRegister(Saver& saver);
 
 protected:
-    /// Store the mesh and prepare the config dictionary.
-    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     void _computeMaxDegree();
     void _check() const;

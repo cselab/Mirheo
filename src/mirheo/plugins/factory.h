@@ -122,12 +122,26 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
                                           int sampleEvery, int dumpEvery, std::string filename);
 
 
-/// Construct the plugins described by (sim, post) pair.
-/// Returns {true, simPtr, postPtr} if the plugins are recognized,
-/// {false, nullptr, nullptr} otherwise.
+/** \brief Construct a simulation & postprocess plugin pair given their ConfigObjects.
+    \param [in] computeTask True if the current rank is a compute rank, false otherwise.
+    \param [in] state The Mirheo state object.
+    \param [in,out] loader The \c Loader object. Provides load context and unserialization functions.
+    \param [in] sim The ConfigObject describing the simulation part of the plugin pair (optional).
+    \param [in] post The ConfigObject describing the postprocess part of the plugin pair (optional).
+
+    This factory function tries to match the given type names (`__type` field of ConfigObjects) with builtin plugins names.
+    If the match is found, the corresponding plugins are created and returned.
+    The \c ConfigObject arguments are optional, but at least one of them has to be given.
+    Depending on whether the current rank is a compute or a postprocess rank, the simulation or postprocess plugin will be created.
+
+    If the type names are not recognized, the factory returns null pointers.
+    The error should be diagnosed by the caller.
+
+    \return An optional-like 3-tuple (bool matchFound, simulation plugin shared pointer, postprocess plugin shared pointer).
+ */
 PluginFactoryContainer::OptionalPluginPair loadPlugins(
         bool computeTask, const MirState *state, Loader& loader,
-        const ConfigObject *sim, const ConfigObject* post);
+        const ConfigObject *sim = nullptr, const ConfigObject* post = nullptr);
 
 } // namespace PluginFactory
 } // namespace mirheo

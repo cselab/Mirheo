@@ -17,7 +17,13 @@ class MeshPlugin : public SimulationPlugin
 {
 public:
     MeshPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
-    MeshPlugin(const MirState *state, Loader&, const ConfigObject&);
+
+    /** \brief Construct a \c MeshPlugin simulation plugin object from its snapshot.
+        \param [in] state The global state of the system.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the plugin.
+     */
+    MeshPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -25,10 +31,20 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-    void saveSnapshotAndRegister(Saver&) override;
+
+    /** \brief Create a \c ConfigObject describing the plugin state and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c MeshPlugin.
+      */
+    void saveSnapshotAndRegister(Saver& saver) override;
 
 protected:
-    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string ovName_;
@@ -46,15 +62,31 @@ class MeshDumper : public PostprocessPlugin
 {
 public:
     MeshDumper(std::string name, std::string path);
-    MeshDumper(Loader&, const ConfigObject&);
+
+    /** \brief Construct a \c MeshDumper postprocess plugin object from its snapshot.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the plugin.
+     */
+    MeshDumper(Loader& loader, const ConfigObject& config);
+
     ~MeshDumper();
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    void saveSnapshotAndRegister(Saver&) override;
+
+    /** \brief Create a \c ConfigObject describing the plugin state and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c MeshDumper.
+      */
+    void saveSnapshotAndRegister(Saver& saver) override;
 
 protected:
-    ConfigObject _saveSnapshot(Saver&, const std::string& typeName);
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string path_;

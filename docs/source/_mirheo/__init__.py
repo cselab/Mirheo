@@ -27,7 +27,10 @@ class Mirheo:
     
     """
     def __init__():
-        r"""__init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
 
 
                 Create the Mirheo coordinator.
@@ -66,6 +69,21 @@ class Mirheo:
                     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
                     checkpoint_folder: folder where the checkpoint files will reside
                     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
+                    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
+                    no_splash: don't display the splash screen when at the start-up.
+                    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+        
+
+2. __init__(nranks: int3, snapshot: str, log_filename: str = 'log', debug_level: int = 3, cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+
+
+                Create the Mirheo coordinator from a snapshot.
+
+                Args:
+                    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
+                    snapshot: path to the snapshot folder.
+                    log_filename: prefix of the log files that will be created.
+                    debug_level: Debug level from 0 to 8, see above.
                     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
                     no_splash: don't display the splash screen when at the start-up.
                     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -123,6 +141,20 @@ class Mirheo:
                     walls: list of walls to dump; the output sdf will be the union of all walls inside
                     h: cell-size of the resulting grid
                     filename: base filename output, will create to files filename.xmf and filename.h5 
+        
+
+        """
+        pass
+
+    def getAttributeInt():
+        r"""getAttributeInt(name: str) -> int
+
+
+            Read a user-defined attribute as an integer.
+            Throws an exception if the attribute is not found or if its value is not an integer.
+
+            Args:
+                name: attribute name
         
 
         """
@@ -336,6 +368,19 @@ Register Plugins
         """
         pass
 
+    def saveSnapshot():
+        r"""saveSnapshot(path: str) -> None
+
+
+            Save a snapshot of the simulation setup and state to the given folder.
+
+            Args:
+                path: Target folder.
+        
+
+        """
+        pass
+
     def save_dependency_graph_graphml():
         r"""save_dependency_graph_graphml(fname: str, current: bool = True) -> None
 
@@ -349,6 +394,20 @@ Register Plugins
              .. warning::
                  if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          
+
+        """
+        pass
+
+    def setAttribute():
+        r"""setAttribute(name: str, value: int) -> None
+
+
+            Add or update a user-defined attribute. Useful for adding custom information to snapshots.
+
+            Args:
+                name: attribute name
+                value: value
+        
 
         """
         pass

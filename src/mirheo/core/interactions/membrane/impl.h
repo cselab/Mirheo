@@ -81,6 +81,12 @@ public:
         filter_(filter),
         stepGen_(seed)
     {}
+
+    /** \brief Construct the interaction object from a snapshot.
+        \param [in] state The global state of the system.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the interaction.
+     */
     MembraneInteractionImpl(const MirState *state, Loader& loader, const ConfigObject& config) :
         Interaction(state, loader, config),
         growUntil_{config["growUntil"]},
@@ -192,6 +198,10 @@ public:
     }
 
 protected:
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
         ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
