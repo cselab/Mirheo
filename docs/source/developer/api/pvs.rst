@@ -51,3 +51,68 @@ Local Particle Vectors
    :project: mirheo
    :members:
 
+Views
+-----
+
+.. doxygenstruct:: mirheo::PVview
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::PVviewWithOldParticles
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::PVviewWithDensities
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::PVviewWithStresses
+   :project: mirheo
+   :members:
+
+
+
+.. doxygenstruct:: mirheo::OVview
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::OVviewWithAreaVolume
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::OVviewWithJuelicherQuants
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::OVviewWithNewOldVertices
+   :project: mirheo
+   :members:
+
+
+
+.. doxygenstruct:: mirheo::ROVview
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::ROVviewWithOldMotion
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::RSOVview
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::RSOVviewWithOldMotion
+   :project: mirheo
+   :members:
+
+
+
+.. doxygenstruct:: mirheo::RVview
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::RVviewWithOldParticles
+   :project: mirheo
+   :members:
+
