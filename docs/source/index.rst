@@ -50,3 +50,4 @@ as well as exposing code internals for the developers wishing to contribute to t
 
    developer/coding_conventions
    developer/api
+   developer/snapshots
