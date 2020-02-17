@@ -11,12 +11,12 @@ namespace mirheo
 
 class ParticleVector;
 
-class StationaryWall_Cylinder
+class StationaryWallCylinder
 {
 public:
     enum class Direction {x, y, z};
 
-    StationaryWall_Cylinder(real2 center, real radius, Direction dir, bool inside) :
+    StationaryWallCylinder(real2 center, real radius, Direction dir, bool inside) :
         center_(center),
         radius_(radius),
         dir_(dir),
@@ -28,7 +28,7 @@ public:
         domain_ = domain;
     }
 
-    const StationaryWall_Cylinder& handler() const
+    const StationaryWallCylinder& handler() const
     {
         return *this;
     }

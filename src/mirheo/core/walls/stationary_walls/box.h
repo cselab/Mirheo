@@ -11,10 +11,10 @@ namespace mirheo
 
 class ParticleVector;
 
-class StationaryWall_Box
+class StationaryWallBox
 {
 public:
-    StationaryWall_Box(real3 lo, real3 hi, bool inside) :
+    StationaryWallBox(real3 lo, real3 hi, bool inside) :
         lo_(lo),
         hi_(hi),
         inside_(inside)
@@ -25,7 +25,7 @@ public:
         domain_ = domain;
     }
 
-    const StationaryWall_Box& handler() const
+    const StationaryWallBox& handler() const
     {
         return *this;
     }

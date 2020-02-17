@@ -11,10 +11,10 @@ namespace mirheo
 
 class ParticleVector;
 
-class StationaryWall_Plane
+class StationaryWallPlane
 {
 public:
-    StationaryWall_Plane(real3 normal, real3 pointThrough) :
+    StationaryWallPlane(real3 normal, real3 pointThrough) :
         normal_(normalize(normal)),
         pointThrough_(pointThrough)
     {}
@@ -24,7 +24,7 @@ public:
         domain_ = domain;
     }
 
-    const StationaryWall_Plane& handler() const
+    const StationaryWallPlane& handler() const
     {
         return *this;
     }

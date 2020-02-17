@@ -6,11 +6,11 @@
 namespace mirheo
 {
 
-class StationaryWall_SDF
+class StationaryWallSDF
 {
 public:
-    StationaryWall_SDF(const MirState *state, std::string sdfFileName, real3 sdfH);
-    StationaryWall_SDF(StationaryWall_SDF&&);
+    StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH);
+    StationaryWallSDF(StationaryWallSDF&&);
 
     void setup(MPI_Comm& comm, DomainInfo domain);
 

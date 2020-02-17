@@ -19,7 +19,7 @@ void exportWalls(py::module& m)
         As a result, its particles will not be removed from the inside of the wall.
     )");
 
-    py::handlers_class< SimpleStationaryWall<StationaryWall_Box> >(m, "Box", pywall, R"(
+    py::handlers_class< SimpleStationaryWall<StationaryWallBox> >(m, "Box", pywall, R"(
         Rectangular cuboid wall with edges aligned with the coordinate axes.
 
     )")
@@ -32,7 +32,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the box or outside of it
         )");
         
-    py::handlers_class< SimpleStationaryWall<StationaryWall_Sphere> >(m, "Sphere", pywall, R"(
+    py::handlers_class< SimpleStationaryWall<StationaryWallSphere> >(m, "Sphere", pywall, R"(
         Spherical wall.
 
     )")
@@ -45,7 +45,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the sphere or outside of it
         )");
         
-    py::handlers_class< SimpleStationaryWall<StationaryWall_Plane> >(m, "Plane", pywall, R"(
+    py::handlers_class< SimpleStationaryWall<StationaryWallPlane> >(m, "Plane", pywall, R"(
         Planar infinitely stretching wall. Inside is determined by the normal direction .
 
     )")
@@ -57,7 +57,7 @@ void exportWalls(py::module& m)
                 pointThrough: point that belongs to the plane
         )");
         
-    py::handlers_class< SimpleStationaryWall<StationaryWall_Cylinder> >(m, "Cylinder", pywall, R"(
+    py::handlers_class< SimpleStationaryWall<StationaryWallCylinder> >(m, "Cylinder", pywall, R"(
         Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
     )")
         .def(py::init(&WallFactory::createCylinderWall),
@@ -70,7 +70,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the cylinder or outside of it
         )");
         
-    py::handlers_class< SimpleStationaryWall<StationaryWall_SDF> >(m, "SDF", pywall, R"(
+    py::handlers_class< SimpleStationaryWall<StationaryWallSDF> >(m, "SDF", pywall, R"(
         This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular cartesian grid.
         The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
         
@@ -91,7 +91,7 @@ void exportWalls(py::module& m)
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall, R"(
         Cylindrical wall rotating with constant angular velocity along its axis.
     )")
         .def(py::init(&WallFactory::createMovingCylinderWall),
@@ -105,7 +105,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the cylinder or outside of it
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWall_Plane, VelocityField_Translate> >(m, "MovingPlane", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityField_Translate> >(m, "MovingPlane", pywall, R"(
         Planar wall that is moving along itself with constant velocity.
         Can be used to produce Couette velocity profile in combination with 
         The boundary conditions on such wall are no-through and constant velocity (specified).
@@ -119,7 +119,7 @@ void exportWalls(py::module& m)
                 velocity: wall velocity, should be orthogonal to the normal
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate> >(m, "OscillatingPlane", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityField_Oscillate> >(m, "OscillatingPlane", pywall, R"(
         Planar wall that is moving along itself with periodically changing velocity:
         
         .. math::

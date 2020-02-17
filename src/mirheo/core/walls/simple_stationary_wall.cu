@@ -563,10 +563,10 @@ PinnedBuffer<double3>* SimpleStationaryWall<InsideWallChecker>::getCurrentBounce
     return &bounceForce_;
 }
 
-template class SimpleStationaryWall<StationaryWall_Sphere>;
-template class SimpleStationaryWall<StationaryWall_Cylinder>;
-template class SimpleStationaryWall<StationaryWall_SDF>;
-template class SimpleStationaryWall<StationaryWall_Plane>;
-template class SimpleStationaryWall<StationaryWall_Box>;
+template class SimpleStationaryWall<StationaryWallSphere>;
+template class SimpleStationaryWall<StationaryWallCylinder>;
+template class SimpleStationaryWall<StationaryWallSDF>;
+template class SimpleStationaryWall<StationaryWallPlane>;
+template class SimpleStationaryWall<StationaryWallBox>;
 
 } // namespace mirheo
