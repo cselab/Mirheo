@@ -1,8 +1,6 @@
-#include "simple_stationary_wall.h"
-
 #pragma once
 
-#include "interface.h"
+#include "simple_stationary_wall.h"
 
 #include <mirheo/core/containers.h>
 
@@ -11,7 +9,6 @@ namespace mirheo
 
 class ParticleVector;
 class CellList;
-
 
 template<class InsideWallChecker, class VelocityField>
 class WallWithVelocity : public SimpleStationaryWall<InsideWallChecker>

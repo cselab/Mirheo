@@ -12,7 +12,7 @@ class ParticleVector;
 class CellList;
 
 template<class InsideWallChecker>
-class SimpleStationaryWall : public SDF_basedWall
+class SimpleStationaryWall : public SDFBasedWall
 {
 public:
 

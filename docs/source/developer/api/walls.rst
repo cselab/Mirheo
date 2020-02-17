@@ -12,7 +12,7 @@ Base classes
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::SDF_basedWall
+.. doxygenclass:: mirheo::SDFBasedWall
    :project: mirheo
    :members:
 

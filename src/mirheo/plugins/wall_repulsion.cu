@@ -50,7 +50,7 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
     SimulationPlugin::setup(simulation, comm, interComm);
 
     pv_ = simulation->getPVbyNameOrDie(pvName_);
-    wall_ = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName_));
+    wall_ = dynamic_cast<SDFBasedWall*>(simulation->getWallByNameOrDie(wallName_));
     
     pv_->requireDataPerParticle<real>(ChannelNames::sdf, DataManager::PersistenceMode::None);
     pv_->requireDataPerParticle<real3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);

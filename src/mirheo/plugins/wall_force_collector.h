@@ -10,7 +10,7 @@ namespace mirheo
 {
 
 class ParticleVector;
-class SDF_basedWall;
+class SDFBasedWall;
 
 class WallForceCollectorPlugin : public SimulationPlugin
 {
@@ -36,7 +36,7 @@ private:
     
     bool needToDump_ {false};
 
-    SDF_basedWall *wall_;
+    SDFBasedWall *wall_;
     ParticleVector *pv_;
     
     PinnedBuffer<double3> *bounceForceBuffer_ {nullptr};

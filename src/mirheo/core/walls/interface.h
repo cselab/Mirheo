@@ -90,11 +90,11 @@ public:
     The surface of the wall is the zero level set of its SDF.
     The SDF has positive values **outside** the simulation domain (called inside the walls), and is negative **inside** the simulation domain.
  */
-class SDF_basedWall : public Wall
+class SDFBasedWall : public Wall
 {
 public:
     using Wall::Wall;
-    ~SDF_basedWall();
+    ~SDFBasedWall();
 
     /** \brief Compute the wall SDF at particles positions.
         \param [in] lpv Input particles.

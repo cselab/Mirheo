@@ -250,7 +250,7 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, real *sdfs, InsideWallCh
 
 template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker) :
-    SDF_basedWall(state, name),
+    SDFBasedWall(state, name),
     insideWallChecker_(std::move(insideWallChecker))
 {
     bounceForce_.clear(defaultStream);
