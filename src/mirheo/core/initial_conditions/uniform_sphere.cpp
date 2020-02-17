@@ -25,7 +25,7 @@ void UniformSphereIC::exec(const MPI_Comm& comm, ParticleVector* pv, cudaStream_
         else         return !is_inside;
     };
     
-    addUniformParticles(numDensity_, comm, pv, filterSphere, stream);
+    setUniformParticles(numDensity_, comm, pv, filterSphere, stream);
 }
 
 } // namespace mirheo

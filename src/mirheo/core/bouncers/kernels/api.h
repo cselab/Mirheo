@@ -8,6 +8,7 @@
 namespace mirheo
 {
 
+/// a variant that contains one of the bounce kernels
 using VarBounceKernel = mpark::variant<BounceBack,
                                        BounceMaxwell>;
 

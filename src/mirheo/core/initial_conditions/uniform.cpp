@@ -34,7 +34,7 @@ UniformIC::~UniformIC() = default;
 void UniformIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto filterInKeepAll = [](real3) {return true;};
-    addUniformParticles(numDensity_, comm, pv, filterInKeepAll, stream);
+    setUniformParticles(numDensity_, comm, pv, filterInKeepAll, stream);
 }
 
 } // namespace mirheo

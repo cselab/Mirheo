@@ -55,7 +55,7 @@ public:
         \param [in] path The checkpoint/restart directory.
         \param [in] identifier An additional identifier, ignored if empty.
         \param [in] extension File extension.
-        \param [in] checkPointId Dump Id.
+        \param [in] checkpointId Dump Id.
         \return The file name.
     */
     std::string createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
@@ -65,7 +65,7 @@ public:
         \param [in] path The checkpoint/restart directory.
         \param [in] identifier An additional identifier, ignored if empty.
         \param [in] extension File extension.
-        \param [in] checkPointId Dump Id.
+        \param [in] checkpointId Dump Id.
     */
     void createCheckpointSymlink(MPI_Comm comm, const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const;
 
