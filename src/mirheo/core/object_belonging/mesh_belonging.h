@@ -10,6 +10,7 @@ class MeshBelongingChecker : public ObjectVectorBelongingChecker
 public:
     using ObjectVectorBelongingChecker::ObjectVectorBelongingChecker;
 
+protected:
     void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 };
 

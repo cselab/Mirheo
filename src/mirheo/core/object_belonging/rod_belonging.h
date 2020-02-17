@@ -9,7 +9,8 @@ class RodBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
     RodBelongingChecker(const MirState *state, const std::string& name, real radius);
-    
+
+protected:
     void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 
 private:
