@@ -12,7 +12,8 @@ QUIET             = YES
 JAVADOC_AUTOBRIEF = YES
 WARN_IF_UNDOCUMENTED = YES
 
-INPUT = ../src/mirheo/core/initial_conditions \
+INPUT = ../src/mirheo/core/mirheo_object.h \
+        ../src/mirheo/core/initial_conditions \
         ../src/mirheo/core/bouncers \
 	../src/mirheo/core/integrators \
 	../src/mirheo/core/analytical_shapes \
