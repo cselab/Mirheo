@@ -18,7 +18,13 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/integrators \
 	../src/mirheo/core/analytical_shapes \
 	../src/mirheo/core/object_belonging \
-	../src/mirheo/core/walls
+	../src/mirheo/core/walls \
+	../src/mirheo/core/pvs/particle_vector.h \
+	../src/mirheo/core/pvs/object_vector.h \
+	../src/mirheo/core/pvs/membrane_vector.h \
+	../src/mirheo/core/pvs/rigid_object_vector.h \
+	../src/mirheo/core/pvs/rigid_ashape_object_vector.h \
+	../src/mirheo/core/pvs/rod_vector.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
