@@ -91,7 +91,7 @@ void exportWalls(py::module& m)
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityField_Rotate> >(m, "RotatingCylinder", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate> >(m, "RotatingCylinder", pywall, R"(
         Cylindrical wall rotating with constant angular velocity along its axis.
     )")
         .def(py::init(&WallFactory::createMovingCylinderWall),
@@ -105,7 +105,7 @@ void exportWalls(py::module& m)
                 inside: whether the domain is inside the cylinder or outside of it
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityField_Translate> >(m, "MovingPlane", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate> >(m, "MovingPlane", pywall, R"(
         Planar wall that is moving along itself with constant velocity.
         Can be used to produce Couette velocity profile in combination with 
         The boundary conditions on such wall are no-through and constant velocity (specified).
@@ -119,7 +119,7 @@ void exportWalls(py::module& m)
                 velocity: wall velocity, should be orthogonal to the normal
         )");
         
-    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityField_Oscillate> >(m, "OscillatingPlane", pywall, R"(
+    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate> >(m, "OscillatingPlane", pywall, R"(
         Planar wall that is moving along itself with periodically changing velocity:
         
         .. math::

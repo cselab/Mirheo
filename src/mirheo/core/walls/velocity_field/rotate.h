@@ -11,10 +11,10 @@ namespace mirheo
 
 class ParticleVector;
 
-class VelocityField_Rotate
+class VelocityFieldRotate
 {
 public:
-    VelocityField_Rotate(real3 omega, real3 center) :
+    VelocityFieldRotate(real3 omega, real3 center) :
         omega_(omega),
         center_(center)
     {}
@@ -24,7 +24,7 @@ public:
         domain_ = domain;
     }
 
-    const VelocityField_Rotate& handler() const
+    const VelocityFieldRotate& handler() const
     {
         return *this;
     }

@@ -461,7 +461,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
                 view, cl->cellInfo(),
                 bc.devPtr(), bc.size(), dt,
                 insideWallChecker_.handler(),
-                VelocityField_None(),
+                VelocityFieldNone{},
                 bounceForce_.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );

@@ -7,14 +7,14 @@
 namespace mirheo
 {
 
-class VelocityField_None
+class VelocityFieldNone
 {
 public:
 
     void setup(__UNUSED real t, __UNUSED DomainInfo domain)
     {}
 
-    const VelocityField_None& handler() const
+    const VelocityFieldNone& handler() const
     {
         return *this;
     }

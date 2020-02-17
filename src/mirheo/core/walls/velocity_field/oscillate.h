@@ -11,10 +11,10 @@ namespace mirheo
 
 class ParticleVector;
 
-class VelocityField_Oscillate
+class VelocityFieldOscillate
 {
 public:
-    VelocityField_Oscillate(real3 vel, real period) :
+    VelocityFieldOscillate(real3 vel, real period) :
         vel_(vel),
         period_(period)
     {
@@ -27,7 +27,7 @@ public:
         cosOmega_ = math::cos(2*M_PI * t / period_);
     }
 
-    const VelocityField_Oscillate& handler() const { return *this; }
+    const VelocityFieldOscillate& handler() const { return *this; }
 
     __D__ inline real3 operator()(__UNUSED real3 coo) const
     {

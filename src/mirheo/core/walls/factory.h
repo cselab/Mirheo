@@ -66,7 +66,7 @@ createSDFWall(const MirState *state, const std::string& name, const std::string&
 
 // Moving walls
 
-inline std::shared_ptr<WallWithVelocity<StationaryWallCylinder, VelocityField_Rotate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>>
 createMovingCylinderWall(const MirState *state, const std::string& name, real2 center, real radius, const std::string& axis, real omega, bool inside)
 {
     StationaryWallCylinder::Direction dir;
@@ -93,25 +93,25 @@ createMovingCylinderWall(const MirState *state, const std::string& name, real2 c
         omega3  = {0.0_r,    0.0_r,    omega};
         break;
     }
-    VelocityField_Rotate rotate(omega3, center3);
+    VelocityFieldRotate rotate(omega3, center3);
 
-    return std::make_shared<WallWithVelocity<StationaryWallCylinder, VelocityField_Rotate>> (state, name, std::move(cylinder), std::move(rotate));
+    return std::make_shared<WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>> (state, name, std::move(cylinder), std::move(rotate));
 }
 
-inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityField_Translate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate>>
 createMovingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity)
 {
     StationaryWallPlane plane(normalize(normal), pointThrough);
-    VelocityField_Translate translate(velocity);
-    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityField_Translate>> (state, name, std::move(plane), std::move(translate));
+    VelocityFieldTranslate translate(velocity);
+    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate>> (state, name, std::move(plane), std::move(translate));
 }
 
-inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityField_Oscillate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>>
 createOscillatingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity, real period)
 {
     StationaryWallPlane plane(normalize(normal), pointThrough);
-    VelocityField_Oscillate osc(velocity, period);
-    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityField_Oscillate>> (state, name, std::move(plane), std::move(osc));
+    VelocityFieldOscillate osc(velocity, period);
+    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>> (state, name, std::move(plane), std::move(osc));
 }
 } // namespace WallFactory
 

@@ -11,17 +11,17 @@ namespace mirheo
 
 class ParticleVector;
 
-class VelocityField_Translate
+class VelocityFieldTranslate
 {
 public:
-    VelocityField_Translate(real3 vel) :
+    VelocityFieldTranslate(real3 vel) :
         vel_(vel)
     {}
 
     void setup(__UNUSED real t, __UNUSED DomainInfo domain)
     {}
 
-    const VelocityField_Translate& handler() const
+    const VelocityFieldTranslate& handler() const
     {
         return *this;
     }

@@ -114,9 +114,9 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
 }
 
 
-template class WallWithVelocity<StationaryWallSphere,   VelocityField_Rotate>;
-template class WallWithVelocity<StationaryWallCylinder, VelocityField_Rotate>;
-template class WallWithVelocity<StationaryWallPlane,    VelocityField_Translate>;
-template class WallWithVelocity<StationaryWallPlane,    VelocityField_Oscillate>;
+template class WallWithVelocity<StationaryWallSphere,   VelocityFieldRotate>;
+template class WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>;
+template class WallWithVelocity<StationaryWallPlane,    VelocityFieldTranslate>;
+template class WallWithVelocity<StationaryWallPlane,    VelocityFieldOscillate>;
 
 } // namespace mirheo
