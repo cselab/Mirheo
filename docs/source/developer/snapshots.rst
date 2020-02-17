@@ -13,63 +13,24 @@ Snapshot format
 ---------------
 
 The current implementation saves the whole simulation state as a single folder containing the following:
+
 - two JSON files describing the simulation setup, one for simulation side, one for postprocessing side of Mirheo,
-- HDF5 files (particle and object vector data),
-- .off files (meshes),
+- HDF5 files for particle and object vector data,
+- .off files for meshes,
 - other .dat files and similar.
 
 The JSON files store the metadata of all particle vectors, interactions, integrators, plugins and other special objects like meshes or the ``Mirheo`` class instance.
-The Mirheo setup and interdependency of objects can be represented as a Directed Acyclic Graph.
-To transform it into a tree-like JSON structure, we group objects by their categories (``Mesh``, ``ParticleVector``, ``Interaction``...), and use *reference strings* (``using ConfigRefString = std::string;``) to link one object to another.
+The Mirheo setup and interdependency of objects can be represented as a directed acyclic graph (DAG).
+To transform it into a tree-like JSON structure, we group objects by their categories (``Mesh``, ``ParticleVector``, ``Interaction``...), and use *reference strings* to link one object to another (e.g. ``"<TYPE with name=NAME>"``, ``using ConfigRefString = std::string;``).
 
-The following is a preview of a simulation-side JSON object generated from an RBC simulation:
+The following is a preview of the two JSON objects (simulation and postprocess) from the interactions test case:
 
-.. code-block:: javascript
+.. NOTE: If replacing this test case with another, don't forget to update comments in the corresponding .py files!
 
-   {
-        "Mesh": [
-            {
-                "__type": "MembraneMesh",
-                "name": "rbcMesh"
-            },
-            ...
-        ],
-       "ParticleVector": [
-           {
-               "__type": "MembraneVector",
-               "name": "rbcOV",
-               "mass": 1,
-               "objSize": 1234,
-               "mesh": "<MembraneMesh with name=rbcMesh>"
-           },
-           ...
-       ],
-       "Simulation": [
-           {
-               "__type": "Simulation",
-               "name": "simulation",
-               "particleVectors": [
-                   "<MembraneVector with name=rbcOV>",
-                   ...
-               ],
-               ...
-           }
-       ],
-       "Mirheo": [
-           {
-               "__type": "Mirheo",
-               "state": {
-                   "__type": "MirState",
-                   "domainGlobalStart": [0, 0, 0],
-                   "domainGlobalSize": [4, 6, 8],
-                   "dt": 0.10000000149011612,
-                   "currentTime": 0,
-                   "currentStep": 0
-               },
-               "simulation": "<Simulation with name=simulation>"
-           }
-       ]
-   }
+.. literalinclude:: ../../../tests/test_data/snapshot.ref.snapshot.interactions.txt
+    :name: snapshot.ref.snapshot.interactions.txt
+    :caption: `snapshot.ref.snapshot.interactions.txt`
+
 
 
 Internal representation of the JSON
@@ -106,13 +67,13 @@ The following table shows the name of JSON data types and their aliases:
 
 Originally we intended this not to be restricted to JSON, since it may be desirable to dump a Python code that recreates the simulation.
 However, at this point, it seems like any JSON implementation would do.
-Nevertheless, the 3rd party libraries we tried so far were not desirable for various reasons like: (a) huge git history, (b) complicated compilation procedures, (c) 32-bits numbers instead of 64-bit, (d) no differentiation between integers and floats, (e) not fully implemented etc.
+Nevertheless, the 3rd party libraries we tried so far were not desirable for various reasons like: (a) huge git history, (b) complicated compilation procedures, (c) 32-bits numbers instead of 64-bit, (d) no differentiation between integers and floats, (e) incomplete implementations, (f) C++17 etc.
 
 
 Snapshot saving and loading
 ---------------------------
 
-Each C++ type that is potentially stored in a snapshot has to specialize the template class ``TypeLoadSave`` and implements its member functions:
+Each C++ type that is potentially stored in a snapshot has to specialize the template class ``TypeLoadSave`` and implement its member functions:
 
 .. code-block:: C++
 
@@ -129,19 +90,35 @@ Each C++ type that is potentially stored in a snapshot has to specialize the tem
        static T load(Loader&, const ConfigValue&);
    };
 
-This class is specialized for all important primitive types (``int``, ``float``...), simple struct types (``float3``, ...), Mirheo data structures (interaction parameters), pointers and pointer-like types, template classes (``std::vector``, ``std::map``, ``mpark::variant``...), and for special types like ``MirObject`` and ``Mesh``.
+This class is specialized for all important primitive types (``int``, ``float``...), simple structs (``float3``, ...), Mirheo-specific simple structs (interaction parameters), pointers and pointer-like types, template classes (``std::vector``, ``std::map``, ``mpark::variant``...), and for polymorphic classes like ``MirObject``, ``Mesh`` and their derived classes.
 The only exception is the ``Mirheo`` class, which is responsible for initiating the saving or loading of a snapshot.
-The template class pattern is used to increase type safety and avoid any implicit conversions during saving or loading, i.e. avoiding that a save or load function of one type is used for another type.
+The template class pattern is used to increase type safety and to avoid any implicit conversions during saving or loading, i.e. avoiding that snapshotting logic of one type is used for some other type.
 
 Referenceable types like ``MirObject``, ``Mesh`` and their derived classes are treated differently from simple types.
 Their ``save`` and ``load`` functions must ensure that the objects are saved and loaded only once.
-This is done by registering them in the ``Saver`` or ``Loader``. The details can be found in the code.
+For developers, it is sufficient for the base class to inherit from ``AutoObjectSnapshotTag``.
+A partial specialization of ``TypeLoadSave`` will take care of the rest.
+The details can be found in the code.
 
-It is important to note that ``MirObject`` and ``Mesh`` classes are also polymorphic types and thus behave differently than ordinary types.
-For saving, each derived class must implement a public virtual function ``saveSnapshotAndRegister``, which saves any data on the disk, creates the ``ConfigObject`` description of the object, and registers itself in the saver.
-To ensure that every class overrides this function, they check for the dynamic type of the ``this`` pointer.
-However, that prevents us from reusing base class saving procedure in its derived classes.
-For that reason, the ``saveSnapshotAndRegister`` function is implemented as a thin wrapper around a reusable protected function ``_saveSnapshot``, which only saves the data and creates the ``ConfigObject``, but performs no type check or registration.
+Saving
+^^^^^^
+
+The ``MirObject`` and ``Mesh`` classes are also polymorphic types, so there are three things to keep in mind:
+
+- there must be a virtual dispatch to the correct save function,
+- there should be a mechanism to detect if an implementation of save functions is missing,
+- there should be a way to extend base class's save function.
+
+To address these three points, we organize our snapshot saving code in two functions:
+
+- a protected non-virtual function ``ConfigObject _saveSnapshot(Saver& saver, [const std::string& category, ] const std::string& typeName);``
+- a public virtual function ``void saveSnapshotAndRegister(Saver& saver);``
+
+The former function saves any large data to disk and returns a ``ConfigObject`` that describes the object.
+The latter function is a thin wrapper around ``_saveSnapshot`` which checks the dynamic type of the ``this`` pointer and registers the object.
+
+Loading
+^^^^^^^
 
 To load a snapshot, the user passes the snapshot path to the ``Mirheo`` constructor.
 The code in ``mirheo/core/snapshot.cpp`` parses the JSON files, creates all objects and invokes appropriate ``Mirheo::register*`` functions.
@@ -149,11 +126,22 @@ This way the loading phase is implemented as another front-end equivalent to the
 Although the saving phase always requires the saver object to be passed, for brevity we enabled loader-free conversion of JSON values to simple and very common types.
 See the ``parse`` function above and ``mirheo/core/utils/config.h`` for more details.
 
+Loading objects from snapshots is more explicit than saving.
+We must manually match type names to the class names and invoke the correct constructors.
+To keep things clean and to avoid increasing the compilation time greatly, the code is organized into factory functions, one per category.
 
-Implementation details
-----------------------
+
+Attributes
+----------
+
+Sometimes it's useful to attach custom information to snapshots, such as the desired number of time steps.
+The ``Mirheo`` object therefore implements a ``setAttribute(name, value)`` function that can add or update a user-defined attribute, and ``getAttribute*(name)`` functions to read the values.
+
+
+Code organization
+-----------------
 
 The code is split into ``mirheo/core/utils/config.h`` which has no Mirheo-specific information, and ``mirheo/core/snapshot.h`` which contains information about ``MirObject`` classes and other.
 To minimize the effect on compilation time, we use forward declarations, pass-by-reference and templates whenever possible.
-The ``TypeLoadSave`` specialization for various parameter structs is done through a single partial specialization based on type reflection. See ``mirheo/core/utils/reflection.h`` for more details.
-Similarly, the base class of polymorphic referenceable types should inherit from ``AutoObjectSnapshotTag`` defined in ``mirheo/core/utils/common.h``.
+The ``TypeLoadSave`` specialization for various parameter structs is done through a single partial specialization based on type reflection.
+See ``mirheo/core/utils/reflection.h`` for more details.

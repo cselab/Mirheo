@@ -29,6 +29,9 @@ else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
 
+# NOTE: The development docs include this test case as a JSON sample.
+#       Currently it assumes it contains only the two JSON objects.
+
 # TEST: snapshot.interactions
 # cd snapshot
 # rm -rf snapshot1/ snapshot2/
