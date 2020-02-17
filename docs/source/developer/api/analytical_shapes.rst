@@ -4,16 +4,7 @@ Analytic Shapes
 ===============
 
 Utility classes used to represent closed shapes with an implicit function.
-
-Base class
-----------
-
-.. doxygenclass:: mirheo::AnalyticShape
-   :project: mirheo
-   :members:
-
-Derived classes
----------------
+They must all have the same interface.
 
 .. doxygenclass:: mirheo::Capsule
    :project: mirheo
