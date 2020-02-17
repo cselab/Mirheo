@@ -11,3 +11,4 @@ Library API
    api/ics
    api/integrators
    api/object_belonging
+   api/walls

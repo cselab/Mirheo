@@ -17,7 +17,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
         ../src/mirheo/core/bouncers \
 	../src/mirheo/core/integrators \
 	../src/mirheo/core/analytical_shapes \
-	../src/mirheo/core/object_belonging
+	../src/mirheo/core/object_belonging \
+	../src/mirheo/core/walls/interface.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
