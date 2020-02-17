@@ -11,11 +11,18 @@ class LocalParticleVector;
 class ParticleVector;
 class CellList;
 
+/** \brief SDF based Wall with zero velocity boundary conditions.
+    \tparam InsideWallChecker Wall shape representation.
+ */
 template<class InsideWallChecker>
 class SimpleStationaryWall : public SDFBasedWall
 {
 public:
-
+    /** \brief Construct a \c SimpleStationaryWall object.
+        \param [in] state The simulation state.
+        \param [in] name The wall name.
+        \param [in] insideWallChecker A functor that represents the wall surface (see stationary_walls/).
+     */
     SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker);
     ~SimpleStationaryWall();
 
@@ -35,23 +42,23 @@ public:
     void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) override;
     void sdfOnGrid(real3 gridH, GPUcontainer *sdfs, cudaStream_t stream) override;
 
-
+    /// get a reference of the wall surfae representation.
     InsideWallChecker& getChecker() { return insideWallChecker_; }
 
     PinnedBuffer<double3>* getCurrentBounceForce() override;
 
 private:
-    ParticleVector *frozen_ {nullptr};
-    PinnedBuffer<int> nInside_{1};
+    ParticleVector *frozen_ {nullptr}; ///< frozen particles attached to the wall
+    PinnedBuffer<int> nInside_{1};     ///< number of particles inside (work space)
     
 protected:
-    InsideWallChecker insideWallChecker_;
+    InsideWallChecker insideWallChecker_; ///< The wall shape representation
 
-    std::vector<ParticleVector*> particleVectors_;
-    std::vector<CellList*> cellLists_;
+    std::vector<ParticleVector*> particleVectors_; ///< list of pvs that are attached for bounce
+    std::vector<CellList*> cellLists_;             ///< list of cell lists corresponding to particleVectors_
 
-    std::vector<DeviceBuffer<int>> boundaryCells_;
-    PinnedBuffer<double3> bounceForce_{1};    
+    std::vector<DeviceBuffer<int>> boundaryCells_; ///< ids of all cells adjacent to the wall surface
+    PinnedBuffer<double3> bounceForce_{1};         ///< total force exerced on the walls via particles bounce
 };
 
 } // namespace mirheo

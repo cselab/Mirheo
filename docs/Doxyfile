@@ -18,7 +18,10 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/integrators \
 	../src/mirheo/core/analytical_shapes \
 	../src/mirheo/core/object_belonging \
-	../src/mirheo/core/walls/interface.h
+	../src/mirheo/core/walls/interface.h \
+	../src/mirheo/core/walls/simple_stationary_wall.h \
+	../src/mirheo/core/walls/wall_with_velocity.h \
+	../src/mirheo/core/walls/stationary_walls
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

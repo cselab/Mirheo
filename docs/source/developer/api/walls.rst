@@ -19,4 +19,38 @@ Base classes
 Derived classes
 ---------------
 
+.. doxygenclass:: mirheo::SimpleStationaryWall
+   :project: mirheo
+   :members:
+
+
+Wall shapes
+-----------
+
+.. doxygenclass:: mirheo::StationaryWallBox
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::StationaryWallCylinder
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::StationaryWallPlane
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::StationaryWallSDF
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::StationaryWallSphere
+   :project: mirheo
+   :members:
+
+
+
+Velocity fields
+---------------
+
 TODO
