@@ -25,11 +25,12 @@ using VarVector = mpark::variant<
 #undef MAKE_WRAPPER
     >;
 
+/// Simple structure that describes a channel of data
 struct NamedData
 {
-    std::string name;
-    VarVector data;
-    bool needShift;
+    std::string name; ///< channel name
+    VarVector data;   ///< channel data
+    bool needShift;   ///< channel shift mode
 };
 
 using ListData = std::vector<NamedData>;
