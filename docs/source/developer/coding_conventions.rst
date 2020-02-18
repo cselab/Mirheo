@@ -116,3 +116,31 @@ Here are a few coding examples of the style:
    
    
 More can be found directly in the code.
+
+Includes
+--------
+
+Every header file must include all files required such that it compiles on its own.
+The includes must be grouped into 3 groups with the following order:
+
+1. local files (relative path)
+2. mirheo files (path relative to mirheo src dir)
+3. external libraries and std library
+
+Each subgroup must be sorted alphabetically.
+The first group has the quotes style while the other groups must use bracket style.
+
+Example:
+
+.. code-block:: c++
+
+   #include "data_manager.h"
+
+   #include <mirheo/core/containers.h>
+   #include <mirheo/core/datatypes.h>
+   #include <mirheo/core/mirheo_object.h>
+   #include <mirheo/core/utils/pytypes.h>
+
+   #include <memory>
+   #include <string>
+   #include <vector>
