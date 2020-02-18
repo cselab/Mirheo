@@ -1,10 +1,10 @@
 #include "membrane.h"
 
-#include "membrane/kernels/common.h"
-#include "membrane/kernels/dihedral/kantor.h"
-#include "membrane/kernels/dihedral/juelicher.h"
-#include "membrane/kernels/triangle/lim.h"
-#include "membrane/kernels/triangle/wlc.h"
+#include "membrane/force_kernels/common.h"
+#include "membrane/force_kernels/dihedral/kantor.h"
+#include "membrane/force_kernels/dihedral/juelicher.h"
+#include "membrane/force_kernels/triangle/lim.h"
+#include "membrane/force_kernels/triangle/wlc.h"
 #include "membrane/impl.h"
 
 #include <mirheo/core/pvs/membrane_vector.h>

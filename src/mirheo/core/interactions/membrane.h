@@ -2,7 +2,7 @@
 
 #include "interface.h"
 #include "membrane/filters/api.h"
-#include "membrane/kernels/parameters.h"
+#include "membrane/force_kernels/parameters.h"
 
 #include <extern/variant/include/mpark/variant.hpp>
 

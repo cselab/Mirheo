@@ -22,6 +22,7 @@ set(sources_cpp
   integrators/sub_step.cpp
   interactions/factory.cpp
   interactions/interface.cpp
+  interactions/membrane/prerequisites.cu
   interactions/pairwise.cpp
   interactions/pairwise/factory_helper.cpp
   interactions/parameters_wrap.cpp

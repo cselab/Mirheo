@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kernels/common.h"
+#include "force_kernels/common.h"
 
 namespace mirheo
 {

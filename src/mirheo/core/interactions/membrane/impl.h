@@ -1,7 +1,7 @@
 #pragma once
 
 #include "drivers.h"
-#include "kernels/parameters.h"
+#include "force_kernels/parameters.h"
 #include "prerequisites.h"
 
 #include <mirheo/core/interactions/interface.h>
@@ -155,22 +155,35 @@ public:
               __UNUSED cudaStream_t stream) override
     {}
 
-    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
+    void setPrerequisites(ParticleVector *pv1,
+                          __UNUSED ParticleVector *pv2,
+                          __UNUSED CellList *cl1,
+                          __UNUSED CellList *cl2) override
     {
-        setPrerequisitesPerEnergy(dihedralParams_, pv1, pv2, cl1, cl2);
-        setPrerequisitesPerEnergy(triangleParams_, pv1, pv2, cl1, cl2);
-
         if (auto mv = dynamic_cast<MembraneVector*>(pv1))
+        {
+            setPrerequisitesPerEnergy(dihedralParams_, mv);
+            setPrerequisitesPerEnergy(triangleParams_, mv);
             filter_.setPrerequisites(mv);
+        }
         else
+        {
             die("Interaction '%s' needs a membrane vector (given '%s')",
                 this->getCName(), pv1->getCName());
+        }
     }
 
-    void precomputeQuantities(ParticleVector *pv1, cudaStream_t stream)
+    void precomputeQuantities(ParticleVector *pv, cudaStream_t stream)
     {
-        precomputeQuantitiesPerEnergy(dihedralParams_, pv1, stream);
-        precomputeQuantitiesPerEnergy(triangleParams_, pv1, stream);
+        if (auto mv = dynamic_cast<MembraneVector*>(pv))
+        {
+            precomputeQuantitiesPerEnergy(dihedralParams_, mv, stream);
+            precomputeQuantitiesPerEnergy(triangleParams_, mv, stream);
+        }
+        else
+        {
+            die("%s is not a Membrane Vector", pv->getCName());
+        }
     }
     
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override

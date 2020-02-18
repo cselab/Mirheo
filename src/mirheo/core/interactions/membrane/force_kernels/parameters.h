@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
