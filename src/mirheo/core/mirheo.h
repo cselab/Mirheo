@@ -155,7 +155,7 @@ private:
     bool initializedMpi_ = false;
 
     MPI_Comm comm_      {MPI_COMM_NULL}; ///< base communicator (world)
-    MPI_Comm cartComm_  {MPI_COMM_NULL}; ///< cartesian communicator for simulation part; might be from comm if no postprocess
+    MPI_Comm cartComm_  {MPI_COMM_NULL}; ///< Cartesian communicator for simulation part; might be from comm if no postprocess
     MPI_Comm ioComm_    {MPI_COMM_NULL}; ///< postprocess communicator
     MPI_Comm compComm_  {MPI_COMM_NULL}; ///< simulation communicator
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation

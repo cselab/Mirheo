@@ -33,7 +33,7 @@ LogInfo::LogInfo(const std::string& fileName_, int verbosityLvl_, bool noSplash_
     verbosityLvl(verbosityLvl_),
     noSplash(noSplash_)
 {}
-MIRHEO_MEMBER_VARS(3, LogInfo, fileName, verbosityLvl, noSplash);
+MIRHEO_MEMBER_VARS(LogInfo, fileName, verbosityLvl, noSplash);
 
 static void createCartComm(MPI_Comm comm, int3 nranks3D, MPI_Comm *cartComm)
 {

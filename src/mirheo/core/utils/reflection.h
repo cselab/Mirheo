@@ -99,7 +99,8 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
 };
 
 // Implementation detail.
-#define MIRHEO_MEMBER_VARS_BEGIN_(TYPE)            \
+#define MIRHEO_MEMBER_VARS_BEGIN_(TYPE) MIRHEO_MEMBER_VARS_BEGIN2_(TYPE)
+#define MIRHEO_MEMBER_VARS_BEGIN2_(TYPE)           \
     template <>                                    \
     struct TypeName<TYPE>                          \
     {                                              \
@@ -114,35 +115,35 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
             (void)h;                               \
             (void)me;                              \
             return std::forward<Handler>(h).process(
-#define MIRHEO_MEMBER_VARS_DUMP_0_(TYPE)
-#define MIRHEO_MEMBER_VARS_DUMP_1_(TYPE, A) \
+#define MIRHEO_MEMBER_VARS_0_(TYPE)
+#define MIRHEO_MEMBER_VARS_1_(TYPE, A) \
                 h(#A, &me->A)
-#define MIRHEO_MEMBER_VARS_DUMP_2_(TYPE, A, B) \
+#define MIRHEO_MEMBER_VARS_2_(TYPE, A, B) \
                 h(#A, &me->A), \
                 h(#B, &me->B)
-#define MIRHEO_MEMBER_VARS_DUMP_3_(TYPE, A, B, C) \
+#define MIRHEO_MEMBER_VARS_3_(TYPE, A, B, C) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C)
-#define MIRHEO_MEMBER_VARS_DUMP_4_(TYPE, A, B, C, D) \
+#define MIRHEO_MEMBER_VARS_4_(TYPE, A, B, C, D) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C), \
                 h(#D, &me->D)
-#define MIRHEO_MEMBER_VARS_DUMP_5_(TYPE, A, B, C, D, E) \
+#define MIRHEO_MEMBER_VARS_5_(TYPE, A, B, C, D, E) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C), \
                 h(#D, &me->D), \
                 h(#E, &me->E)
-#define MIRHEO_MEMBER_VARS_DUMP_6_(TYPE, A, B, C, D, E, F) \
+#define MIRHEO_MEMBER_VARS_6_(TYPE, A, B, C, D, E, F) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C), \
                 h(#D, &me->D), \
                 h(#E, &me->E), \
                 h(#F, &me->F)
-#define MIRHEO_MEMBER_VARS_DUMP_7_(TYPE, A, B, C, D, E, F, G) \
+#define MIRHEO_MEMBER_VARS_7_(TYPE, A, B, C, D, E, F, G) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C), \
@@ -150,7 +151,7 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
                 h(#E, &me->E), \
                 h(#F, &me->F), \
                 h(#G, &me->G)
-#define MIRHEO_MEMBER_VARS_DUMP_8_(TYPE, A, B, C, D, E, F, G, H) \
+#define MIRHEO_MEMBER_VARS_8_(TYPE, A, B, C, D, E, F, G, H) \
                 h(#A, &me->A), \
                 h(#B, &me->B), \
                 h(#C, &me->C), \
@@ -159,13 +160,27 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
                 h(#F, &me->F), \
                 h(#G, &me->G), \
                 h(#H, &me->H)
-#define MIRHEO_MEMBER_VARS_END_(TYPE) \
-            );                        \
-        }                             \
+#define MIRHEO_MEMBER_VARS_END_ \
+            );                  \
+        }                       \
     }
 
+/// Get the first element of a __VA_ARGS__.
 #define MIRHEO_FIRST_HELPER_(FIRST, ...) FIRST
-#define MIRHEO_FIRST_(...) MIRHEO_FIRST_HELPER_(__VA_ARGS__, dummy)
+#define MIRHEO_FIRST(...) MIRHEO_FIRST_HELPER_(__VA_ARGS__, dummy)
+
+/// Concatete three tokens.
+#define MIRHEO_CONCAT3_(A, B, C)  A##B##C
+#define MIRHEO_CONCAT3(A, B, C) MIRHEO_CONCAT3_(A, B, C)
+
+/// Evaluate a macro, assuming a non-zero number of arguments.
+#define MIRHEO_EVAL(MACRO, ...) MACRO(__VA_ARGS__)
+
+/// Get the number of arguments, reduced by 1. This way we get around the
+/// restriction that __VA_ARGS__ must be non-empty.
+#define MIRHEO_NARGS_MINUS_1_(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, N, ...) N
+#define MIRHEO_NARGS_MINUS_1(...) \
+    MIRHEO_NARGS_MINUS_1_(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1)
 
 /** \brief Generate `MemberVars<TYPE>` for the given type `TYPE`.
 
@@ -176,16 +191,12 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
          } // namespace mirheo
 
     Note:
-         The implementation which doesn't require manually specifying the number
-         of arguments can be found here:
-         https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
-
          Alternatively, we can simply use std::tie(__VA_ARGS__):
          https://github.com/KonanM/tser/blob/abf343c9ad018ffdbe61d66c0065b198380ed972/include/tser/serialize.hpp#L275-L277
  */
-#define MIRHEO_MEMBER_VARS(NUM, ...)                      \
-    MIRHEO_MEMBER_VARS_BEGIN_(MIRHEO_FIRST_(__VA_ARGS__)) \
-    MIRHEO_MEMBER_VARS_DUMP_##NUM##_(__VA_ARGS__)         \
-    MIRHEO_MEMBER_VARS_END_(MIRHEO_FIRST_(__VA_ARGS__))
+#define MIRHEO_MEMBER_VARS(...)                          \
+    MIRHEO_MEMBER_VARS_BEGIN_(MIRHEO_FIRST(__VA_ARGS__)) \
+    MIRHEO_EVAL(MIRHEO_CONCAT3(MIRHEO_MEMBER_VARS_, MIRHEO_NARGS_MINUS_1(__VA_ARGS__), _), __VA_ARGS__) \
+    MIRHEO_MEMBER_VARS_END_
 
 } // namespace mirheo

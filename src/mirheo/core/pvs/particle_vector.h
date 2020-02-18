@@ -204,20 +204,20 @@ protected:
     };
     
     /** Dump particle data into a file
-        \param [in] comm MPI cartesian comm used to perform I/O and exchange data across ranks
+        \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] filename Destination file.
      */
     void _snapshotParticleData(MPI_Comm comm, const std::string& filename);
 
     /** Dump particle data into a file
-        \param [in] comm MPI carthesian comm used to perform I/O and exchange data across ranks
+        \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Destination folder
         \param [in] checkpointId The Id of the dump  
      */
     virtual void _checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId);
 
     /** Load particle data from a file
-        \param [in] comm MPI carthesian comm used to perform I/O and exchange data across ranks
+        \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Source folder that contains the file
         \param [in] chunkSize Every chunk of this number of particles will always stay together. 
                               This is useful for \c ObjectVector.

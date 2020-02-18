@@ -35,6 +35,6 @@ public:
     }
 };
 
-MIRHEO_MEMBER_VARS(0, ForcingTermNone);
+MIRHEO_MEMBER_VARS(ForcingTermNone);
 
 } // namespace mirheo

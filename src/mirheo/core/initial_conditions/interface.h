@@ -10,7 +10,7 @@ class ParticleVector;
 
 /** \brief Initializer for objects in group PVs.
 
-    ICs are temporary objects and do not need name or chekpoint/restart mechanism.
+    ICs are temporary objects and do not need name or checkpoint/restart mechanism.
     The \ref exec() member function is called by the Simulation when the \c ParticleVector
     is registered.
  */
@@ -20,7 +20,7 @@ public:
     virtual ~InitialConditions() = default;
 
     /** \brief Initialize a given \c ParticleVector.
-        \param [in] comm A carthesian MPI communicator from the simulation tasks
+        \param [in] comm A Cartesian MPI communicator from the simulation tasks
         \param [in,out] pv The resulting \c ParticleVector to be initialized (on chip data) 
         \param [in] stream cuda stream
      */

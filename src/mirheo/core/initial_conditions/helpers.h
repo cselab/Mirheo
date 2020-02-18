@@ -15,7 +15,7 @@ class ParticleVector;
 
 /** \brief Create particles uniformly inside a given domain.
     \param [in] numberDensity The target number density of particles to generate.
-    \param [in] comm MPI communicator with carthesian topology.
+    \param [in] comm MPI communicator with Cartesian topology.
     \param [in,out] pv \c ParticleVector that will store the new particles.
     \param [in] filterOut Indicator function that is true inside the considered domain.
     \param [in] stream The stream used to upload data.

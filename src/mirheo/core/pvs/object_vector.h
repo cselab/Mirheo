@@ -135,14 +135,14 @@ protected:
                  std::unique_ptr<LocalParticleVector>&& halo);
 
     /** Dump object data into a file
-        \param [in] comm MPI carthesian comm used to perform I/O and exchange data across ranks
+        \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Destination folder
         \param [in] checkpointId The Id of the dump  
      */
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
 
     /** Load object data from a file
-        \param [in] comm MPI carthesian comm used to perform I/O and exchange data across ranks
+        \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Source folder that contains the file
         \param [in] ms Map to exchange the object data accross ranks, computed from _restartParticleData()
     */

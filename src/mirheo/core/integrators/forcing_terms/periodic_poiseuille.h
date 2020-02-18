@@ -79,6 +79,6 @@ private:
     friend MemberVars<ForcingTermPeriodicPoiseuille>;
 };
 
-MIRHEO_MEMBER_VARS(2, ForcingTermPeriodicPoiseuille, magnitude_, dir_);
+MIRHEO_MEMBER_VARS(ForcingTermPeriodicPoiseuille, magnitude_, dir_);
 
 } // namespace mirheo

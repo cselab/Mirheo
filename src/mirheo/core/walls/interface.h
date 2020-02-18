@@ -31,7 +31,7 @@ public:
     virtual ~Wall();
 
     /** \brief Initialize the wall internal state.
-        \param [in] comm The MPI carthesian communicator of the simulation.
+        \param [in] comm The MPI Cartesian communicator of the simulation.
 
         This must be called before any other wall operations that involve its surface. 
      */

@@ -41,6 +41,6 @@ private:
     friend MemberVars<FilterKeepByTypeId>;
 };
 
-MIRHEO_MEMBER_VARS(1, FilterKeepByTypeId, whiteListTypeId_);
+MIRHEO_MEMBER_VARS(FilterKeepByTypeId, whiteListTypeId_);
 
 } // namespace mirheo

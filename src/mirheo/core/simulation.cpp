@@ -87,7 +87,7 @@ static void checkCartesianTopology(const MPI_Comm& cartComm)
     MPI_Check( MPI_Topo_test(cartComm, &topology) );
 
     if (topology != MPI_CART)
-        die("Simulation expects a cartesian communicator");
+        die("Simulation expects a Cartesian communicator");
 }
 
 struct Rank3DInfos
@@ -1351,13 +1351,13 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-MIRHEO_MEMBER_VARS(2, Simulation::IntegratorPrototype, pv, integrator);
-MIRHEO_MEMBER_VARS(4, Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
-MIRHEO_MEMBER_VARS(3, Simulation::WallPrototype, wall, pv, maximumPartTravel);
-MIRHEO_MEMBER_VARS(2, Simulation::CheckWallPrototype, wall, every);
-MIRHEO_MEMBER_VARS(2, Simulation::BouncerPrototype, bouncer, pv);
-MIRHEO_MEMBER_VARS(4, Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
-MIRHEO_MEMBER_VARS(4, Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
+MIRHEO_MEMBER_VARS(Simulation::IntegratorPrototype, pv, integrator);
+MIRHEO_MEMBER_VARS(Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
+MIRHEO_MEMBER_VARS(Simulation::WallPrototype, wall, pv, maximumPartTravel);
+MIRHEO_MEMBER_VARS(Simulation::CheckWallPrototype, wall, every);
+MIRHEO_MEMBER_VARS(Simulation::BouncerPrototype, bouncer, pv);
+MIRHEO_MEMBER_VARS(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
+MIRHEO_MEMBER_VARS(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
 void Simulation::saveSnapshotAndRegister(Saver& saver)
 {
