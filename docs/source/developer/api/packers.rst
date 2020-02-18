@@ -20,3 +20,39 @@ All packers contain generic packers that are used to pack different kind of data
 .. doxygenclass:: mirheo::GenericPacker
    :project: mirheo
    :members:
+
+
+Particles Packer
+----------------
+
+.. doxygenstruct:: mirheo::ParticlePackerHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticlePacker
+   :project: mirheo
+   :members:
+
+
+Objects Packer
+--------------
+
+.. doxygenstruct:: mirheo::ObjectPackerHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ObjectPacker
+   :project: mirheo
+   :members:
+
+
+Rods Packer
+-----------
+
+.. doxygenstruct:: mirheo::RodPackerHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::RodPacker
+   :project: mirheo
+   :members:

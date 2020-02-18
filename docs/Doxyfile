@@ -27,7 +27,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/pvs/rod_vector.h \
 	../src/mirheo/core/pvs/views \
 	../src/mirheo/core/pvs/data_manager.h \
-	../src/mirheo/core/pvs/packers/generic_packer.h
+	../src/mirheo/core/pvs/packers
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
@@ -43,6 +43,7 @@ PREDEFINED  += __align__(x)=          \
              __HD__=                  \
              __D__=                   \
              __UNUSED=                \
+             __CUDACC__=1             \
              MIRHEO_MEMBER_VARS(...)=
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"

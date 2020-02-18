@@ -42,6 +42,7 @@ struct GenericPackerHandler
         \param [in] dstId Index of the datum to store in dstBuffer space (in number of elements).
         \param [out] dstBuffer Destination buffer
         \param [in] numElements Total number of elements that will be packed in the buffer.
+        \return The size (in bytes) taken by the packed data (numElements elements)
      */
     __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
@@ -55,6 +56,7 @@ struct GenericPackerHandler
         \param [out] dstBuffer Destination buffer
         \param [in] numElements Total number of elements that will be packed in the buffer.
         \param [in] shift The coordinate shift
+        \return The size (in bytes) taken by the packed data (numElements elements)
 
         Only channels with active shift will be shifted.
      */
@@ -70,6 +72,7 @@ struct GenericPackerHandler
         \param [in] dstId Index of the datum to store in the registered channels (in number of elements).
         \param [in] srcBuffer Source buffer that contains packed data.
         \param [in] numElements Total number of elements that are packed in the buffer.
+        \return The size (in bytes) taken by the packed data (numElements elements)
      */
     __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
@@ -83,6 +86,7 @@ struct GenericPackerHandler
         \param [in] srcBuffer Source buffer that contains packed data.
         \param [in] numElements Total number of elements that are packed in the buffer.
         \param [in] eps Only elements that are larger than this tolerance will be added.
+        \return The size (in bytes) taken by the packed data (numElements elements)
      */
     __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
                                         const char *srcBuffer, int numElements,
@@ -98,6 +102,7 @@ struct GenericPackerHandler
         \param [in] srcBuffer Source buffer that contains packed data.
         \param [in] numElements Total number of elements that are packed in the buffer.
         \param [in] shift The coordinate shift
+        \return The size (in bytes) taken by the packed data (numElements elements)
      */
     __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
