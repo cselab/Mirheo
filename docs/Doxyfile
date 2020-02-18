@@ -25,7 +25,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/pvs/rigid_object_vector.h \
 	../src/mirheo/core/pvs/rigid_ashape_object_vector.h \
 	../src/mirheo/core/pvs/rod_vector.h \
-	../src/mirheo/core/pvs/views
+	../src/mirheo/core/pvs/views \
+	../src/mirheo/core/pvs/data_manager.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

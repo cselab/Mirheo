@@ -16,66 +16,89 @@
 namespace mirheo
 {
 
+/// a variant that points to a \c PinnedBuffer of one of the supported types (see <mirheo/core/types/type_list.h>)
 using VarPinnedBufferPtr = mpark::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 
+/// transform a \c VarPinnedBufferPtr into a cuda variant, usable in device code.
 CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf);
 
-/**
- * \class DataManager
- *
- * @brief Class that holds and manages \c PinnedBuffers (just buffers later, or channels) of arbitrary data
- *
- * Used by \c ParticleVector and \c ObjectVector to hold data per particle and per object correspondingly
- * Holds data itself, knows whether the data should migrate with the particles in MPI functions
- * and whether the data should be changed by coordinate shift when crossing to another MPI rank
+/** \brief Container for multiple channels on device and host.
+
+    Used by \c ParticleVector and \c ObjectVector to hold data per particle and per object correspondingly.
+    All channels are stored as \c PinnedBuffer, which allows to easily transfer the data between host and device.
+    Channels can hold data of types listed in \c VarPinnedBufferPtr variant.
+    See \c ChannelDescription for the description of one channel.
  */
 class DataManager
 {
 public:
 
+    /** The persistence mode describes if the data of a channel
+        must be conserved when redistribution accross ranks occurs.
+
+        Example: The velocities of the particles must be copied and reordered together with the 
+        positions of the particles. 
+     */
     enum class PersistenceMode { None, Active };
+
+    /** The shift mode describes if the data of a channel
+        must be shifted in space when redistribution or exchange accross ranks occurs.
+
+        Example: the positions of the particles must be converted to the local coordinate system 
+        of the neighbour rank if transfered there, while the velocities require no "shift".
+     */
     enum class ShiftMode       { None, Active };
-    
+
+    /** \brief Holds information and data of a single channel.
+        
+        A channel has a type, persistence mode and shift mode.
+     */
     struct ChannelDescription 
     {
-        std::unique_ptr<GPUcontainer> container;
-        VarPinnedBufferPtr varDataPtr;
+        std::unique_ptr<GPUcontainer> container; ///< The data stored in the channel. Internally stored as a \c PinnedBuffer
+        VarPinnedBufferPtr varDataPtr; ///< Pointer to container that holds the correct type.
         
-        PersistenceMode persistence {PersistenceMode::None};
-        ShiftMode       shift       {ShiftMode::None};
+        PersistenceMode persistence {PersistenceMode::None}; ///< The persistence mode of the channel
+        ShiftMode       shift       {ShiftMode::None};       ///< The shift mode of the channel
 
+        /// returns true if the channel's data needs to be shifted when exchanged or redistributed.
         inline bool needShift() const {return shift == ShiftMode::Active;}
     };
 
+    /// The full description of a channel, contains its name and description     
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
 
 
     DataManager() = default;
 
+    /// copy and move constructors
+    /// \{
     DataManager           (const DataManager& b);
     DataManager& operator=(const DataManager& b);
 
     DataManager           (DataManager&& b);
     DataManager& operator=(DataManager&& b);
-
+    /// \}
     ~DataManager() = default;
 
+    /// swap two \c DataManager
     friend void swap(DataManager& a, DataManager& b);
 
-    /// Copy channel names and their types from a given DataManager.
+    /// Copy channel names and their types from a given \c DataManager.
     /// Does not copy data or resize buffers. New buffers are empty.
     void copyChannelMap(const DataManager &);
     
-    /**
-     * Allocate a new \c PinnedBuffer of data
-     *
-     * @param name buffer name
-     * @param size resize buffer to \c size elements
-     * \tparam T datatype of the buffer element. \c sizeof(T) should be divisible by 4
+    /** \brief Allocate a new channel
+        \tparam T datatype of the buffer element. \c sizeof(T) should be compatible with \c VarPinnedBufferPtr
+        \param [in] name buffer name
+        \param [in] size resize buffer to \c size elements
+
+        This method will die if a channel with different type but same name already exists.
+        If a channel with the same name and same type exists, this method will not allocate a new channel.
      */
     template<typename T>
     void createData(const std::string& name, int size = 0)
@@ -105,28 +128,46 @@ public:
         sortChannels();
     }
 
-    /**
-     * set persistence of the data: the data will stick to the particles/objects
-     * can only add persistence; does nothing otherwise
+    /** \brief Set the persistence mode of the data
+        \param [in] name The name of the channel to modify
+        \param [in] persistence Persistence mode to add to the channel.
+
+        \rst
+        This method will die if the required name does not exist.
+        .. warning::
+            This method can only increase the persistence. If the channel is already persistent,
+            this method can not set its persistent mode to None.
+        \endrst
      */
     void setPersistenceMode(const std::string& name, PersistenceMode persistence);
 
+    /** \brief Set the shift mode of the data
+        \param [in] name The name of the channel to modify
+        \param [in] shift Shift mode to add to the channel.
+
+        \rst
+        This method will die if the required name does not exist.
+        .. warning::
+            This method can only increase the shift mode. If the channel already needs shift,
+            this method can not set its shift mode to None.
+        \endrst
+     */
     void setShiftMode(const std::string& name, ShiftMode shift);
 
-    /**
-     * Get gpu buffer by name
-     *
-     * @param name buffer name
-     * @return pointer to \c GPUcontainer corresponding to the given name
+    /** \brief Get gpu buffer by name
+        \param [in] name buffer name
+        \return pointer to \c GPUcontainer corresponding to the given name
+
+        This method will die if the required name does not exist.
      */
     GPUcontainer* getGenericData(const std::string& name);    
     
-    /**
-     * Get buffer by name
-     *
-     * @param name buffer name
-     * \tparam T type of the element of the \c PinnedBuffer
-     * @return pointer to \c PinnedBuffer<T> corresponding to the given name
+    /** \brief Get buffer by name
+        \param [in] name buffer name
+        \tparam T type of the element of the \c PinnedBuffer
+        \return pointer to \c PinnedBuffer<T> corresponding to the given name
+
+        This method will die if the required name does not exist or if T is of the wrong type.
      */
     template<typename T>
     PinnedBuffer<T>* getData(const std::string& name)
@@ -141,40 +182,34 @@ public:
         return mpark::get<HeldType>(desc.varDataPtr);
     }
 
-    /**
-     * Get device buffer pointer regardless type
-     *
-     * @param name buffer name
-     * @return pointer to device data held by the corresponding \c PinnedBuffer
+    /** \brief Get device buffer pointer regardless of its type
+        \param [in] name buffer name
+        \return pointer to device data held by the corresponding \c PinnedBuffer
+
+        This method will die if the required name does not exist.
      */
     void* getGenericPtr(const std::string& name);
 
-    /**
-     * \c true if channel with given \c name exists, \c false otherwise
-     */
+    /// \c true if channel with given \c name exists, \c false otherwise
     bool checkChannelExists(const std::string& name) const;
 
-    /**
-     * @return vector of channels sorted (descending) by size of their elements
-     */
+    /// \return vector of channels sorted (descending) by size of their elements (and then name)
     const std::vector<NamedChannelDesc>& getSortedChannels() const;
 
-    /**
-     * Returns true if the channel is persistent
-     */
+    /// \return \c true if the channel is persistent
     bool checkPersistence(const std::string& name) const;
 
-    /// Resize all the channels, keep their data
+    /// Resize all the channels and preserve their data
     void resize(int n, cudaStream_t stream);
 
-    /// Resize all the channels, don't care about existing data
+    /// Resize all the channels without preserving the data
     void resize_anew(int n);
 
-    /// Get entry from channelMap or die if it is not found
+    /// Get channel from its name or die if it is not found
+    /// \{
     ChannelDescription& getChannelDescOrDie(const std::string& name);
-
-    /// Get constant entry from channelMap or die if it is not found
     const ChannelDescription& getChannelDescOrDie(const std::string& name) const;
+    /// \}
 
 private:
     /// Delete the channel with the given name.
