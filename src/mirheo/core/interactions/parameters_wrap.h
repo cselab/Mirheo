@@ -44,7 +44,6 @@ public:
     }
 
 private:
-
     // have to do template specialization trick because explicit
     // specializations have to be at namespace scope in C++
     
