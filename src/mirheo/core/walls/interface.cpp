@@ -12,6 +12,6 @@ Wall::~Wall() = default;
 void Wall::setPrerequisites(__UNUSED ParticleVector *pv)
 {}
 
-SDF_basedWall::~SDF_basedWall() = default;
+SDFBasedWall::~SDFBasedWall() = default;
 
 } // namespace mirheo

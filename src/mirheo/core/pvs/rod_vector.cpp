@@ -38,7 +38,7 @@ void LocalRodVector::resize_anew(int np)
 {
     LocalObjectVector::resize_anew(np);
     
-    int totNumBisegments = (getNumSegmentsPerRod() - 1) * getNumObjects();
+    const int totNumBisegments = (getNumSegmentsPerRod() - 1) * getNumObjects();
 
     dataPerBisegment.resize_anew(totNumBisegments);
 }

@@ -11,22 +11,32 @@ namespace mirheo
 
 class ParticleVector;
 
-class VelocityField_Translate
+/// Constant velocity field
+class VelocityFieldTranslate
 {
 public:
-    VelocityField_Translate(real3 vel) :
+    /** Construct a \c VelocityFieldTranslate
+        \param [in] vel The constant velocity
+    */
+    VelocityFieldTranslate(real3 vel) :
         vel_(vel)
     {}
 
+    /// to fir the interface
     void setup(__UNUSED real t, __UNUSED DomainInfo domain)
     {}
 
-    const VelocityField_Translate& handler() const
+    /// get a handler that can be used on the device
+    const VelocityFieldTranslate& handler() const
     {
         return *this;
     }
 
-    __D__ inline real3 operator()(__UNUSED real3 coo) const
+    /** Evaluate the velocity field at a given position
+        \param [in] r The position in local coordinates
+        \return The velocity value
+    */
+    __D__ inline real3 operator()(__UNUSED real3 r) const
     {
         return vel_;
     }

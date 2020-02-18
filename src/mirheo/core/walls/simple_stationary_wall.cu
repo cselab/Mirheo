@@ -250,7 +250,7 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, real *sdfs, InsideWallCh
 
 template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker) :
-    SDF_basedWall(state, name),
+    SDFBasedWall(state, name),
     insideWallChecker_(std::move(insideWallChecker))
 {
     bounceForce_.clear(defaultStream);
@@ -461,7 +461,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
                 view, cl->cellInfo(),
                 bc.devPtr(), bc.size(), dt,
                 insideWallChecker_.handler(),
-                VelocityField_None(),
+                VelocityFieldNone{},
                 bounceForce_.devPtr());
 
         CUDA_Check( cudaPeekAtLastError() );
@@ -522,7 +522,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream)
 {
-    int n = positions->size();
+    const int n = positions->size();
     
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %d (sampling sdf on positions)",
@@ -563,10 +563,10 @@ PinnedBuffer<double3>* SimpleStationaryWall<InsideWallChecker>::getCurrentBounce
     return &bounceForce_;
 }
 
-template class SimpleStationaryWall<StationaryWall_Sphere>;
-template class SimpleStationaryWall<StationaryWall_Cylinder>;
-template class SimpleStationaryWall<StationaryWall_SDF>;
-template class SimpleStationaryWall<StationaryWall_Plane>;
-template class SimpleStationaryWall<StationaryWall_Box>;
+template class SimpleStationaryWall<StationaryWallSphere>;
+template class SimpleStationaryWall<StationaryWallCylinder>;
+template class SimpleStationaryWall<StationaryWallSDF>;
+template class SimpleStationaryWall<StationaryWallPlane>;
+template class SimpleStationaryWall<StationaryWallBox>;
 
 } // namespace mirheo

@@ -87,11 +87,11 @@ __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellLis
 
 
 RodBelongingChecker::RodBelongingChecker(const MirState *state, const std::string& name, real radius) :
-    ObjectBelongingChecker_Common(state, name),
+    ObjectVectorBelongingChecker(state, name),
     radius_(radius)
 {}
 
-void RodBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
+void RodBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     auto rv = dynamic_cast<RodVector*> (ov_);
     if (rv == nullptr)

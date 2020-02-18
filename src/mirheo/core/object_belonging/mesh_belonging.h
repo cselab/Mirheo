@@ -4,13 +4,14 @@
 
 namespace mirheo
 {
-
-class MeshBelongingChecker : public ObjectBelongingChecker_Common
+/// \brief Check in/out status of particles against an \c ObjectVector with a triangle mesh.
+class MeshBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
-    using ObjectBelongingChecker_Common::ObjectBelongingChecker_Common;
+    using ObjectVectorBelongingChecker::ObjectVectorBelongingChecker;
 
-    void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
+protected:
+    void _tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
 };
 
 } // namespace mirheo

@@ -375,10 +375,10 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, c
 
     info("Dumping SDF into XDMF:\n");
 
-    std::vector<SDF_basedWall*> sdfWalls;
+    std::vector<SDFBasedWall*> sdfWalls;
     for (auto &wall : walls)
     {
-        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
         if (sdfWall == nullptr)
             die("Only sdf-based walls are supported!");        
         else
@@ -397,10 +397,10 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
 
     info("Computing volume inside walls\n");
     
-    std::vector<SDF_basedWall*> sdfWalls;
+    std::vector<SDFBasedWall*> sdfWalls;
     for (auto &wall : walls)
     {
-        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
         if (sdfWall == nullptr)
             die("Only sdf-based walls are supported!");        
         else
@@ -431,10 +431,10 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     
     info("Generating frozen particles for walls");
 
-    std::vector<SDF_basedWall*> sdfWalls;
+    std::vector<SDFBasedWall*> sdfWalls;
 
     for (auto &wall : walls) {
-        auto sdfWall = dynamic_cast<SDF_basedWall*>(wall.get());
+        auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
         if (sdfWall == nullptr)
             die("Only sdf-based walls are supported now!");        
         else

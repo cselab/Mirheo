@@ -24,94 +24,94 @@ class CellList;
 
 namespace WallFactory
 {
-inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Sphere>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWallSphere>>
 createSphereWall(const MirState *state, const std::string& name, real3 center, real radius, bool inside)
 {
-    StationaryWall_Sphere sphere(center, radius, inside);
-    return std::make_shared<SimpleStationaryWall<StationaryWall_Sphere>> (state, name, std::move(sphere));
+    StationaryWallSphere sphere(center, radius, inside);
+    return std::make_shared<SimpleStationaryWall<StationaryWallSphere>> (state, name, std::move(sphere));
 }
 
-inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Box>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWallBox>>
 createBoxWall(const MirState *state, const std::string& name, real3 low, real3 high, bool inside)
 {
-    StationaryWall_Box box(low, high, inside);
-    return std::make_shared<SimpleStationaryWall<StationaryWall_Box>> (state, name, std::move(box));
+    StationaryWallBox box(low, high, inside);
+    return std::make_shared<SimpleStationaryWall<StationaryWallBox>> (state, name, std::move(box));
 }
 
-inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Cylinder>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWallCylinder>>
 createCylinderWall(const MirState *state, const std::string& name, real2 center, real radius, const std::string& axis, bool inside)
 {
-    StationaryWall_Cylinder::Direction dir;
-    if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
-    if (axis == "y") dir = StationaryWall_Cylinder::Direction::y;
-    if (axis == "z") dir = StationaryWall_Cylinder::Direction::z;
+    StationaryWallCylinder::Direction dir;
+    if (axis == "x") dir = StationaryWallCylinder::Direction::x;
+    if (axis == "y") dir = StationaryWallCylinder::Direction::y;
+    if (axis == "z") dir = StationaryWallCylinder::Direction::z;
 
-    StationaryWall_Cylinder cylinder(center, radius, dir, inside);
-    return std::make_shared<SimpleStationaryWall<StationaryWall_Cylinder>> (state, name, std::move(cylinder));
+    StationaryWallCylinder cylinder(center, radius, dir, inside);
+    return std::make_shared<SimpleStationaryWall<StationaryWallCylinder>> (state, name, std::move(cylinder));
 }
 
-inline std::shared_ptr<SimpleStationaryWall<StationaryWall_Plane>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWallPlane>>
 createPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough)
 {
-    StationaryWall_Plane plane(normalize(normal), pointThrough);
-    return std::make_shared<SimpleStationaryWall<StationaryWall_Plane>> (state, name, std::move(plane));
+    StationaryWallPlane plane(normalize(normal), pointThrough);
+    return std::make_shared<SimpleStationaryWall<StationaryWallPlane>> (state, name, std::move(plane));
 }
 
-inline std::shared_ptr<SimpleStationaryWall<StationaryWall_SDF>>
+inline std::shared_ptr<SimpleStationaryWall<StationaryWallSDF>>
 createSDFWall(const MirState *state, const std::string& name, const std::string& sdfFilename, real3 h)
 {
-    StationaryWall_SDF sdf(state, sdfFilename, h);
-    return std::make_shared<SimpleStationaryWall<StationaryWall_SDF>> (state, name, std::move(sdf));
+    StationaryWallSDF sdf(state, sdfFilename, h);
+    return std::make_shared<SimpleStationaryWall<StationaryWallSDF>> (state, name, std::move(sdf));
 }
 
 // Moving walls
 
-inline std::shared_ptr<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>>
 createMovingCylinderWall(const MirState *state, const std::string& name, real2 center, real radius, const std::string& axis, real omega, bool inside)
 {
-    StationaryWall_Cylinder::Direction dir;
-    if (axis == "x") dir = StationaryWall_Cylinder::Direction::x;
-    if (axis == "y") dir = StationaryWall_Cylinder::Direction::y;
-    if (axis == "z") dir = StationaryWall_Cylinder::Direction::z;
+    StationaryWallCylinder::Direction dir;
+    if (axis == "x") dir = StationaryWallCylinder::Direction::x;
+    if (axis == "y") dir = StationaryWallCylinder::Direction::y;
+    if (axis == "z") dir = StationaryWallCylinder::Direction::z;
 
-    StationaryWall_Cylinder cylinder(center, radius, dir, inside);
+    StationaryWallCylinder cylinder(center, radius, dir, inside);
     real3 omega3, center3;
     switch (dir)
     {
-    case StationaryWall_Cylinder::Direction::x :
+    case StationaryWallCylinder::Direction::x :
         center3 = {0.0_r, center.x, center.y};
         omega3  = {omega,    0.0_r,    0.0_r};
         break;
 
-    case StationaryWall_Cylinder::Direction::y :
+    case StationaryWallCylinder::Direction::y :
         center3 = {center.x, 0.0_r, center.y};
         omega3  = {0.0_r,    omega,    0.0_r};
         break;
 
-    case StationaryWall_Cylinder::Direction::z :
+    case StationaryWallCylinder::Direction::z :
         center3 = {center.x, center.y, 0.0_r};
         omega3  = {0.0_r,    0.0_r,    omega};
         break;
     }
-    VelocityField_Rotate rotate(omega3, center3);
+    VelocityFieldRotate rotate(omega3, center3);
 
-    return std::make_shared<WallWithVelocity<StationaryWall_Cylinder, VelocityField_Rotate>> (state, name, std::move(cylinder), std::move(rotate));
+    return std::make_shared<WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>> (state, name, std::move(cylinder), std::move(rotate));
 }
 
-inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate>>
 createMovingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity)
 {
-    StationaryWall_Plane plane(normalize(normal), pointThrough);
-    VelocityField_Translate translate(velocity);
-    return std::make_shared<WallWithVelocity<StationaryWall_Plane, VelocityField_Translate>> (state, name, std::move(plane), std::move(translate));
+    StationaryWallPlane plane(normalize(normal), pointThrough);
+    VelocityFieldTranslate translate(velocity);
+    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate>> (state, name, std::move(plane), std::move(translate));
 }
 
-inline std::shared_ptr<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>>
+inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>>
 createOscillatingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough, real3 velocity, real period)
 {
-    StationaryWall_Plane plane(normalize(normal), pointThrough);
-    VelocityField_Oscillate osc(velocity, period);
-    return std::make_shared<WallWithVelocity<StationaryWall_Plane, VelocityField_Oscillate>> (state, name, std::move(plane), std::move(osc));
+    StationaryWallPlane plane(normalize(normal), pointThrough);
+    VelocityFieldOscillate osc(velocity, period);
+    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>> (state, name, std::move(plane), std::move(osc));
 }
 } // namespace WallFactory
 

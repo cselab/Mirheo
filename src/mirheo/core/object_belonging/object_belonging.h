@@ -6,37 +6,47 @@
 namespace mirheo
 {
 
+/// \brief Represent the in/out status of a single particle.
 enum class BelongingTags
 {
-    Outside = 0, Inside = 1
+    Outside = 0, ///< The particle is outside.
+    Inside  = 1  ///< The particle is inside.
 };
 
-class ObjectBelongingChecker_Common : public ObjectBelongingChecker
+/// \brief \c ObjectBelongingChecker base implementation.
+class ObjectVectorBelongingChecker : public ObjectBelongingChecker
 {
 public:
-    ObjectBelongingChecker_Common(const MirState *state, const std::string& name);
-
-    ~ObjectBelongingChecker_Common() override;
-
-    /**
-     * Particle with tags == BelongingTags::Outside  will be copied to pvOut
-     *                    == BelongingTags::Inside   will be copied to pvIn
-     * Other particles are DROPPED (boundary particles)
+    /** \brief Construct a \c ObjectVectorBelongingChecker object.
+        \param [in] state Simulation state.
+        \param [in] name Name of the bouncer.
      */
+    ObjectVectorBelongingChecker(const MirState *state, const std::string& name);
+    ~ObjectVectorBelongingChecker() override;
+
     void splitByBelonging(ParticleVector *src, ParticleVector *pvIn, ParticleVector *pvOut, cudaStream_t stream) override;
     void checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) override;
     void setup(ObjectVector *ov) override;
 
     std::vector<std::string> getChannelsToBeExchanged() const override;
     ObjectVector* getObjectVector() override;
-    
+
 protected:
-    ObjectVector *ov_;
+    /** \brief Compute the in/out status of particles against the registered \c ObjectVector.
+        \param [in] pv Particles to be tagged.
+        \param [in] cl Cell lists of pv.
+        \param [in] stream Stream on which to execute.
 
-    DeviceBuffer<BelongingTags> tags_;
-    PinnedBuffer<int> nInside_{1}, nOutside_{1};
+        The in/out status will be stored in \ref tags_.
+     */
+    virtual void _tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 
-    virtual void tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
+protected:
+    ObjectVector *ov_; ///< The registered \c ObjectVector.
+
+    DeviceBuffer<BelongingTags> tags_; ///< Work space to store the in/out status of each input particle.
+    PinnedBuffer<int> nInside_{1};  ///< Number of particles inside the registered \c ObjectVector.
+    PinnedBuffer<int> nOutside_{1}; ///< Number of particles outside the registered \c ObjectVector.
 };
 
 } // namespace mirheo

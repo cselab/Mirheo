@@ -49,7 +49,7 @@ void WallForceCollectorPlugin::setup(Simulation *simulation, const MPI_Comm& com
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
-    wall_ = dynamic_cast<SDF_basedWall*>(simulation->getWallByNameOrDie(wallName_));
+    wall_ = dynamic_cast<SDFBasedWall*>(simulation->getWallByNameOrDie(wallName_));
 
     if (wall_ == nullptr)
         die("Plugin '%s' expects a SDF based wall (got '%s')\n", getCName(), wallName_.c_str());

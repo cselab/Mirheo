@@ -8,7 +8,7 @@ namespace mirheo
 {
 
 class ParticleVector;
-class SDF_basedWall;
+class SDFBasedWall;
 
 class WallRepulsionPlugin : public SimulationPlugin
 {
@@ -25,7 +25,7 @@ public:
 private:
     std::string pvName_, wallName_;
     ParticleVector *pv_;
-    SDF_basedWall *wall_;
+    SDFBasedWall *wall_;
 
     real C_, h_, maxForce_;
 };

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "interface.h"
-
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
@@ -19,7 +19,7 @@ namespace mirheo
 
     The capsule is centered at the origin and oriented along the z axis.
  */
-class Capsule: public AnalyticShape
+class Capsule
 {
 public:
     /** \brief Construct a \c Capsule.
@@ -32,36 +32,55 @@ public:
         halfL_(0.5_r * L)
     {}
 
-    __HD__ real inOutFunction(real3 coo) const override
-    {
-        const real dz = math::abs(coo.z) - halfL_;
+    /**\brief Implicit surface representation.
+       \param [in] r The position at which to evaluate the in/out field.
+       \return The value of the field at the given position.
 
-        real drsq = sqr(coo.x) + sqr(coo.y);
+       This scalar field is a smooth function of the position.
+       It is negative inside the capsule and positive outside.
+       The zero level set of that field is the surface of the capsule.
+    */
+    __HD__ real inOutFunction(real3 r) const
+    {
+        const real dz = math::abs(r.z) - halfL_;
+
+        real drsq = sqr(r.x) + sqr(r.y);
         if (dz > 0) drsq += sqr(dz);
 
         const real dr = math::sqrt(drsq) - R_;
         return dr;
     }
 
-    __HD__ real3 normal(real3 coo) const override
+    /**\brief Get the normal pointing outside the capsule.
+       \param [in] r The position at which to evaluate the normal.
+       \return The normal at r (length of this return must be 1).
+
+       This vector field is defined everywhere in space.
+       On the surface, it represents the normal vector of the surface.
+    */
+    __HD__ real3 normal(real3 r) const
     {
         constexpr real eps = 1e-6_r;
 
-        const real dz = math::abs(coo.z) - halfL_;
+        const real dz = math::abs(r.z) - halfL_;
 
-        real rsq = sqr(coo.x) + sqr(coo.y);
+        real rsq = sqr(r.x) + sqr(r.y);
         if (dz > 0) rsq += sqr(dz);
 
         const real rinv = rsq > eps ? math::rsqrt(rsq) : 0._r;
 
-        const real3 n {coo.x,
-                        coo.y,
-                        dz > 0 ? dz : 0._r};
+        const real3 n {r.x,
+                       r.y,
+                       dz > 0 ? dz : 0._r};
         return rinv * n;
     }
     
 
-    real3 inertiaTensor(real totalMass) const override
+    /**\brief Get the inertia tensor of the capsule in its frame of reference.
+       \param [in] totalMass The total mass of the capsule.
+       \return The diagonal of the inertia tensor.
+    */
+    real3 inertiaTensor(real totalMass) const
     {
         const real R2 = R_ * R_;
         const real R3 = R2 * R_;
@@ -88,8 +107,8 @@ public:
     static const char *desc;  ///< the description of shape.
     
 private:
-    
-    real R_, halfL_;
+    real R_;     ///< radius
+    real halfL_; ///< half length between the two sphere centers
 };
 
 } // namespace mirheo

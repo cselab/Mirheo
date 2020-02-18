@@ -1,6 +1,7 @@
 #pragma once
 
-#include "interface.h"
+#include <mirheo/core/datatypes.h>
+#include <mirheo/core/utils/cpu_gpu_defines.h>
 
 #include <mirheo/core/utils/reflection.h>
 
@@ -11,13 +12,24 @@ class ParticleVector;
 
 /** \brief No forcing term.
  */
-class ForcingTermNone : public ForcingTerm
+class ForcingTermNone
 {
 public:
-    void setup(__UNUSED ParticleVector *pv, __UNUSED real t) override
+    /**\brief Initialize internal state
+       \param [in] pv the \c ParticleVector that will be updated
+       \param [in] t Current simulation time
+
+       This method must be called at every time step
+    */
+    void setup(__UNUSED ParticleVector *pv, __UNUSED real t)
     {}
 
-    __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const override
+    /**\brief Add the additional force to the current one on a particle
+       \param [in] original Original force acting on the particle
+       \param [in] p Particle on which to apply the additional force
+       \return The total force that must be applied to the particle
+    */
+    __D__ inline real3 operator()(real3 original, __UNUSED Particle p) const
     {
         return original;
     }

@@ -148,7 +148,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const real4
 
 } // namespace MeshBelongingKernels
 
-void MeshBelongingChecker::tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
+void MeshBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
     tags_.resize_anew(pv->local()->size());
     tags_.clearDevice(stream);
