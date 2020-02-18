@@ -125,7 +125,7 @@ public:
         desc.container  = std::move(ptr);
 
         sortedChannels_.push_back({name, &channelMap_[name]});
-        sortChannels();
+        _sortChannels();
     }
 
     /** \brief Set the persistence mode of the data
@@ -213,22 +213,22 @@ public:
 
 private:
     /// Delete the channel with the given name.
-    void deleteChannel(const std::string &name);
+    /// dies if the channel does not exist
+    void _deleteChannel(const std::string &name);
 
+    /// Sort the channels such that largest types are first
+    void _sortChannels();
+
+private:
     using ChannelMap = std::map< std::string, ChannelDescription >;
 
     /// Quick access to the channels by name
     ChannelMap channelMap_;
 
-    /**
-     * Channels sorted by their element size (large to small)
-     * Used by the packers so that larger elements are packed first
+    /** Channels sorted by their element size (large to small)
+        Used by the packers so that larger elements are packed first
      */
     std::vector<NamedChannelDesc> sortedChannels_;
-
-private:
-    
-    void sortChannels();
 };
 
 } // namespace mirheo

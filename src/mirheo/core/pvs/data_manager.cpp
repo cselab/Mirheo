@@ -26,7 +26,7 @@ DataManager::DataManager(const DataManager& b)
 
         sortedChannels_.push_back({name, &channelMap_[name]});
     }
-    sortChannels();
+    _sortChannels();
 }
 
 DataManager& DataManager::operator=(const DataManager& b)
@@ -62,7 +62,7 @@ void DataManager::copyChannelMap(const DataManager &other)
             if (it == channelMap_.end()) {
                 this->createData<T>(pair.first);
             } else if (!mpark::holds_alternative<Buffer*>(it->second.varDataPtr)) {
-                this->deleteChannel(pair.first);
+                this->_deleteChannel(pair.first);
                 this->createData<T>(pair.first);
             }
             this->setPersistenceMode(pair.first, pair.second.persistence);
@@ -77,10 +77,10 @@ void DataManager::copyChannelMap(const DataManager &other)
         // We have too many channels, delete the surplus.
         for (const auto &pair : channelMap_)
             if (other.channelMap_.find(pair.first) == other.channelMap_.end())
-                deleteChannel(pair.first);
+                _deleteChannel(pair.first);
     }
 
-    sortChannels();
+    _sortChannels();
 }
 
 void swap(DataManager& a, DataManager& b)
@@ -155,8 +155,7 @@ void DataManager::resize_anew(int n)
 
 
 
-
-void DataManager::sortChannels()
+void DataManager::_sortChannels()
 {
     std::sort(sortedChannels_.begin(),
               sortedChannels_.end(),
@@ -187,7 +186,7 @@ const DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const st
 }
 
 
-void DataManager::deleteChannel(const std::string& name)
+void DataManager::_deleteChannel(const std::string& name)
 {
     if (!channelMap_.erase(name))
     {
