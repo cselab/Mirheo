@@ -27,9 +27,7 @@ Mesh::Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh) :
 
 Mesh::Mesh(Loader& loader, const ConfigObject& config) :
     Mesh(joinPaths(loader.getContext().getPath(), config["name"] + ".off"))
-{
-    assert(config["__type"] == "Mesh");
-}
+{}
 
 Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
     nvertices_ (static_cast<int>(vertices.size())),

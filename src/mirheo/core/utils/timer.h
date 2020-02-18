@@ -11,8 +11,8 @@ class Timer
 public:
 
     Timer() :
-        start_ {none_},
-        end_   {none_}
+        start_ {_none()},
+        end_   {_none()}
     {
         static_assert(std::chrono::__is_ratio<Ratio>::value, "timer must be specialized with ratio");
     }
@@ -20,7 +20,7 @@ public:
     void start()
     {
         start_ = Clock::now();
-        end_   = none_;
+        end_   = _none();
     }
 
     void stop()
@@ -30,7 +30,7 @@ public:
 
     double elapsed()
     {
-        if (end_ == none_) end_ = Clock::now();
+        if (end_ == _none()) end_ = Clock::now();
         return std::chrono::duration <double, Ratio>(end_ - start_).count();
     }
 
@@ -38,18 +38,20 @@ public:
     {
         const double t = elapsed();
         start_ = end_;
-        end_ = none_;
+        end_ = _none();
         return t;
     }
 
 private:
     using Clock = std::chrono::high_resolution_clock;
     using Time = std::chrono::time_point<Clock>;
-    
+
+    static constexpr Time _none() {
+        return Time::min();
+    }
+
     Time start_;
     Time end_;
-
-    static constexpr Time none_ {Time::min()};
 };
 
 using uTimer = Timer<std::micro>;
