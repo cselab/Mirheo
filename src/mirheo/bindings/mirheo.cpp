@@ -59,49 +59,49 @@ void exportMirheo(py::module& m)
                                                            checkpointInfo, cudaMPI);
                 }
             } ),
-            py::return_value_policy::take_ownership,
-            "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
+             py::return_value_policy::take_ownership,
+             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
              "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
              "no_splash"_a=false, "comm_ptr"_a=0, R"(
-                Create the Mirheo coordinator.
-                
-                .. warning::
-                    Debug level determines the amount of output produced by each of the simulation processes:
+Create the Mirheo coordinator.
+
+.. warning::
+    Debug level determines the amount of output produced by each of the simulation processes:
+
+        0. silent: no log output
+        1. only report fatal errors
+        2. report serious errors
+        3. report important information steps of simulation and warnings (this is the default level)
+        4. report not critical information
+        5. report some debug information
+        6. report more debug
+        7. report all the debug
+        8. force flushing to the file after each message
+    
+    Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
+    Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
 
 
-                        0. silent: no log output
-                        1. only report fatal errors
-                        2. report serious errors
-                        3. report important information steps of simulation and warnings (this is the default level)
-                        4. report not critical information
-                        5. report some debug information
-                        6. report more debug
-                        7. report all the debug
-                        8. force flushing to the file after each message
-                    
-                    Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
-                    Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
-                
-                Args:
-                    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-                    domain: size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries. The domain will be split in equal chunks between the MPI ranks.
-                        The largest chunk size that a single MPI rank can have depends on the total number of particles,
-                        handlers and hardware, and is typically about :math:`120^3 - 200^3`.
-                    dt: timestep of the simulation
-                    log_filename: prefix of the log files that will be created. 
-                        Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
-                        will be created, where NP is the total number of MPI ranks. 
-                        Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
-                        the individual ones and sorting with respect to time.
-                        If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
-                        there is no guarantee that messages from different ranks are synchronized.
-                    debug_level: Debug level from 0 to 8, see above.
-                    checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-                    checkpoint_folder: folder where the checkpoint files will reside
-                    checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
-                    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
-                    no_splash: don't display the splash screen when at the start-up.
-                    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+Args:
+    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
+    domain: size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries. The domain will be split in equal chunks between the MPI ranks.
+        The largest chunk size that a single MPI rank can have depends on the total number of particles,
+        handlers and hardware, and is typically about :math:`120^3 - 200^3`.
+    dt: timestep of the simulation
+    log_filename: prefix of the log files that will be created. 
+        Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
+        will be created, where NP is the total number of MPI ranks. 
+        Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
+        the individual ones and sorting with respect to time.
+        If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
+        there is no guarantee that messages from different ranks are synchronized.
+    debug_level: Debug level from 0 to 8, see above.
+    checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
+    checkpoint_folder: folder where the checkpoint files will reside
+    checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
+    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
+    no_splash: don't display the splash screen when at the start-up.
+    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         )")
         .def(py::init( [] (int3 nranks, const std::string& snapshotPath, std::string log, int debuglvl,
                            bool cudaMPI, bool noSplash, long commPtr)
@@ -116,19 +116,19 @@ void exportMirheo(py::module& m)
                     return std::make_unique<Mirheo> (comm, nranks, snapshotPath, logInfo, cudaMPI);
                 }
             } ),
-            py::return_value_policy::take_ownership,
-            "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=3,
+             py::return_value_policy::take_ownership,
+             "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=3,
              "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
-                Create the Mirheo coordinator from a snapshot.
+Create the Mirheo coordinator from a snapshot.
 
-                Args:
-                    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-                    snapshot: path to the snapshot folder.
-                    log_filename: prefix of the log files that will be created.
-                    debug_level: Debug level from 0 to 8, see above.
-                    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
-                    no_splash: don't display the splash screen when at the start-up.
-                    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+Args:
+    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
+    snapshot: path to the snapshot folder.
+    log_filename: prefix of the log files that will be created.
+    debug_level: Debug level from 0 to 8, see above.
+    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
+    no_splash: don't display the splash screen when at the start-up.
+    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         )")
         
         .def("registerParticleVector", &Mirheo::registerParticleVector,
