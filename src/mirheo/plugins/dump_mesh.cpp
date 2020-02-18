@@ -6,6 +6,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 
@@ -18,6 +19,9 @@ MeshPlugin::MeshPlugin(const MirState *state, std::string name, std::string ovNa
     SimulationPlugin(state, name),
     ovName_(ovName),
     dumpEvery_(dumpEvery)
+{}
+MeshPlugin::MeshPlugin(const MirState *state, Loader&, const ConfigObject& config) :
+    MeshPlugin(state, config["name"], config["ovName"], config["dumpEvery"])
 {}
 
 void MeshPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -59,6 +63,19 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
                                 vertices_);
 
     send(sendBuffer_);
+}
+
+void MeshPlugin::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<MeshPlugin>(this, _saveSnapshot(saver, "MeshPlugin"));
+}
+
+ConfigObject MeshPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("dumpEvery", saver(dumpEvery_));
+    config.emplace("ovName",    saver(ovName_)); // `ov_` potentially not yet initialized.
+    return config;
 }
 
 //=================================================================================
@@ -154,6 +171,9 @@ MeshDumper::MeshDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
     path_(makePath(path))
 {}
+MeshDumper::MeshDumper(Loader&, const ConfigObject& config) :
+    MeshDumper(config["name"], config["path"])
+{}
 
 MeshDumper::~MeshDumper() = default;
 
@@ -182,6 +202,18 @@ void MeshDumper::deserialize()
                 nObjects,
                 connectivity_, vertices_);
     }
+}
+
+void MeshDumper::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<MeshDumper>(this, _saveSnapshot(saver, "MeshDumper"));
+}
+
+ConfigObject MeshDumper::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("path", saver(path_));
+    return config;
 }
 
 } // namespace mirheo

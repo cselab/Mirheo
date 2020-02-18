@@ -17,15 +17,18 @@ set(sources_cpp
   initial_conditions/uniform.cpp
   initial_conditions/uniform_filtered.cpp
   initial_conditions/uniform_sphere.cpp
+  integrators/factory.cpp
   integrators/interface.cpp
   integrators/sub_step.cpp
   interactions/factory.cpp
   interactions/interface.cpp
+  interactions/pairwise.cpp
   interactions/pairwise/factory_helper.cpp
   interactions/utils/step_random_gen.cpp
   logger.cpp
   managers/interactions.cpp
   marching_cubes.cpp
+  mesh/factory.cpp
   mesh/membrane.cpp
   mesh/mesh.cpp
   mesh/off.cpp
@@ -37,6 +40,7 @@ set(sources_cpp
   postproc.cpp
   pvs/checkpoint/helpers.cpp
   pvs/data_manager.cpp
+  pvs/factory.cpp
   pvs/membrane_vector.cpp
   pvs/object_vector.cpp
   pvs/packers/generic_packer.cpp
@@ -53,13 +57,16 @@ set(sources_cpp
   pvs/views/rov.cpp
   pvs/views/rv.cpp
   simulation.cpp
+  snapshot.cpp
   task_scheduler.cpp
   types/str.cpp
   types/variant_type_wrapper.cpp
   utils/common.cpp
+  utils/config.cpp
   utils/file_wrapper.cpp
   utils/folders.cpp
   utils/nvtx.cpp
+  utils/reflection.cpp
   utils/stacktrace_explicit.cpp
   utils/strprintf.cpp
   version.cpp

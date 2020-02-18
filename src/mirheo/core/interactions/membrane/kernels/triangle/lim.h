@@ -124,4 +124,7 @@ private:
     mReal lscale_;
 };
 
+MIRHEO_TYPE_NAME(TriangleLimForce<StressFreeState::Active>, "TriangleLimForce<Active>");
+MIRHEO_TYPE_NAME(TriangleLimForce<StressFreeState::Inactive>, "TriangleLimForce<Inactive>");
+
 } // namespace mirheo

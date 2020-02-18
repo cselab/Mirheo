@@ -7,6 +7,8 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -20,6 +22,22 @@ IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, const std::string
 template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
+template<class ForcingTerm>
+void IntegratorVV<ForcingTerm>::saveSnapshotAndRegister(Saver& saver)
+{
+    std::string typeName = constructTypeName<ForcingTerm>("IntegratorVV");
+    saver.registerObject<IntegratorVV<ForcingTerm>>(
+            this, _saveSnapshot(saver, typeName));
+}
+
+template<class ForcingTerm>
+ConfigObject IntegratorVV<ForcingTerm>::_saveSnapshot(
+        Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = Integrator::_saveSnapshot(saver, typeName);
+    config.emplace("forcingTerm", saver(forcingTerm_));
+    return config;
+}
 
 /**
  * The new coordinates and velocities of a particle will be computed

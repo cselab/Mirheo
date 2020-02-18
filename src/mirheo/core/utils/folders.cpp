@@ -53,6 +53,18 @@ std::string relativePath(std::string path)
         return path.substr(pos + 1);
 }
 
+std::string joinPaths(const std::string &A, const std::string &B) {
+    std::string out;
+    out.reserve(A.size() + B.size() + 1);
+    if (!A.empty()) {
+        out += A;
+        if (A.back() != '/')
+            out += '/';
+    }
+    out += B;
+    return out;
+}
+
 static bool createFolders(std::string path)
 {
     std::string command = "mkdir -p " + path;

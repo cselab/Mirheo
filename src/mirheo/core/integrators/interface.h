@@ -50,6 +50,12 @@ protected:
         \param [in,out] pv The \c ParticleVector that must be invalidated.
      */
     void invalidatePV_(ParticleVector *pv);
+    
+    /** \brief Snapshot base function. Sets the category to "Integrator".
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved, the `__type` field.
+     */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 };
 
 } // namespace mirheo

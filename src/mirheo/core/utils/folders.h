@@ -15,6 +15,10 @@ std::string makePath    (std::string path); ///< append '/' at the end of 'path'
 std::string parentPath  (std::string path);
 std::string relativePath(std::string path);
 
+/// Concat two paths A and B. Adds a '/' between A and B if A is non-empty and
+/// if it doesn't already end in '/'.
+std::string joinPaths(const std::string &A, const std::string &B);
+
 bool createFoldersCollective(const MPI_Comm& comm, std::string path);
 
 } // namespace mirheo

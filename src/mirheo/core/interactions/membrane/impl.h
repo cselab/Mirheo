@@ -8,13 +8,12 @@
 #include <mirheo/core/interactions/utils/step_random_gen.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/restart_helpers.h>
 
 #include <cmath>
-#include <functional>
-#include <random>
 
 namespace mirheo
 {
@@ -76,14 +75,35 @@ public:
                             real growUntil, Filter filter, long seed = 42424242) :
         Interaction(state, name),
         parameters_(parameters),
-        scaleFromTime_( [growUntil] (real t) { return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil)); } ),
+        growUntil_(growUntil),
         dihedralParams_(dihedralParams),
         triangleParams_(triangleParams),
         filter_(filter),
         stepGen_(seed)
     {}
 
+    /** \brief Construct the interaction object from a snapshot.
+        \param [in] state The global state of the system.
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the interaction.
+     */
+    MembraneInteractionImpl(const MirState *state, Loader& loader, const ConfigObject& config) :
+        Interaction(state, loader, config),
+        growUntil_{config["growUntil"]},
+        parameters_{loader.load<CommonMembraneParameters>(config["parameters"])},
+        dihedralParams_{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
+        triangleParams_{loader.load<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
+        filter_{loader.load<Filter>(config["filter"])},
+        stepGen_(42424242)
+    {
+        warn("stepGen save/load not imported, resetting the seed!");
+    }
+
     ~MembraneInteractionImpl() = default;
+
+    real scaleFromTime(real t) const {
+        return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil_));
+    }
     
     void local(ParticleVector *pv1,
                __UNUSED ParticleVector *pv2,
@@ -103,7 +123,7 @@ public:
               ov->local()->getNumObjects(), ov->getCName());
 
         auto currentParams = parameters_;
-        const real scale = scaleFromTime_(getState()->currentTime);
+        const real scale = scaleFromTime(getState()->currentTime);
         rescaleParameters(currentParams, scale);
 
         OVviewWithAreaVolume view(ov, ov->local());
@@ -167,10 +187,34 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
-    
-protected:
+    static std::string getTypeName()
+    {
+        return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
+                "MembraneInteractionImpl");
+    }
+    void saveSnapshotAndRegister(Saver& saver)
+    {
+        saver.registerObject<MembraneInteractionImpl>(this, _saveSnapshot(saver, getTypeName()));
+    }
 
-    std::function< real(real) > scaleFromTime_;
+protected:
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
+    {
+        ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
+        config.emplace("growUntil",      saver(growUntil_));
+        config.emplace("parameters",     saver(parameters_));
+        config.emplace("dihedralParams", saver(dihedralParams_));
+        config.emplace("triangleParams", saver(triangleParams_));
+        config.emplace("filter",         saver(filter_));
+        config.emplace("stepGen",        saver("<<not implemented>>"));
+        return config;
+    }
+
+    real growUntil_;
     CommonMembraneParameters parameters_;
     typename DihedralInteraction::ParametersType dihedralParams_;
     typename TriangleInteraction::ParametersType triangleParams_;

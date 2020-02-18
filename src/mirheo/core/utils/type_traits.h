@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 namespace mirheo
 {
 
@@ -12,5 +14,29 @@ namespace mirheo
 
 template<typename... Ts> struct make_void { typedef void type;};
 template<typename... Ts> using void_t = typename make_void<Ts...>::type;
+
+template<typename... Ts>
+struct always_false {
+    static constexpr bool value = false;
+};
+
+template<typename T>
+struct remove_cvref {
+    using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+};
+
+template<typename T>
+using remove_cvref_t = typename remove_cvref<T>::type;
+
+template<typename T, typename Enable = void>
+struct is_dereferenceable {
+    static constexpr bool value = false;
+};
+
+template<typename T>
+struct is_dereferenceable<T, std::enable_if_t<std::is_same<
+        decltype(*std::declval<T>()), decltype(*std::declval<T>())>::value>> {
+    static constexpr bool value = true;
+};
 
 } // namespace mirheo

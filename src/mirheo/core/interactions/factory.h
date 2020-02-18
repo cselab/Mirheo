@@ -4,8 +4,6 @@
 
 #include <mirheo/core/mirheo_state.h>
 
-#include <extern/variant/include/mpark/variant.hpp>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -13,6 +11,7 @@
 namespace mirheo
 {
 
+class Interaction;
 class MembraneInteraction;
 class RodInteraction;
 class PairwiseInteraction;
@@ -40,6 +39,16 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
 std::shared_ptr<ObjectRodBindingInteraction>
 createInteractionObjRodBinding(const MirState *state, std::string name,
                                real torque, real3 relAnchor, real kBound);
+
+/** \brief Interaction factory. Instantiate the correct interaction object depending on the snapshot parameters.
+    \param [in] state The global state of the system.
+    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+    \param [in] config The interaction parameters.
+    \param [in] type Convenience parameter, equal to `config.at("__type")`.
+ */
+std::shared_ptr<Interaction> loadInteraction(
+        const MirState *state, Loader& loader,
+        const ConfigObject& config, const std::string &type);
 
 } // namespace InteractionFactory
 

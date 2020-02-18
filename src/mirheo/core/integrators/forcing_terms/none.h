@@ -3,6 +3,8 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 
+#include <mirheo/core/utils/reflection.h>
+
 namespace mirheo
 {
 
@@ -32,5 +34,7 @@ public:
         return original;
     }
 };
+
+MIRHEO_MEMBER_VARS_0(ForcingTermNone);
 
 } // namespace mirheo

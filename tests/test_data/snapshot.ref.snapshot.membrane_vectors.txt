@@ -1,0 +1,189 @@
+{
+    "Mesh": [
+        {
+            "__type": "MembraneMesh",
+            "name": "mesh_0"
+        },
+        {
+            "__type": "MembraneMesh",
+            "name": "mesh_1"
+        }
+    ],
+    "ParticleVector": [
+        {
+            "__type": "MembraneVector",
+            "name": "ov1",
+            "mass": 1,
+            "objSize": 6,
+            "mesh": "<MembraneMesh with name=mesh_0>"
+        },
+        {
+            "__type": "MembraneVector",
+            "name": "ov2",
+            "mass": 1,
+            "objSize": 6,
+            "mesh": "<MembraneMesh with name=mesh_1>"
+        }
+    ],
+    "Simulation": [
+        {
+            "__type": "Simulation",
+            "name": "simulation",
+            "checkpointId": 0,
+            "checkpointInfo": {
+                "__type": "CheckpointInfo",
+                "every": 0,
+                "folder": "restart/",
+                "mode": 0
+            },
+            "particleVectors": [
+                "<MembraneVector with name=ov1>",
+                "<MembraneVector with name=ov2>"
+            ],
+            "bouncerMap": {},
+            "integratorMap": {},
+            "interactionMap": {},
+            "wallMap": {},
+            "belongingCheckerMap": {},
+            "plugins": [],
+            "integratorPrototypes": [],
+            "interactionPrototypes": [],
+            "wallPrototypes": [],
+            "checkWallPrototypes": [],
+            "bouncerPrototypes": [],
+            "belongingCorrectionPrototypes": [],
+            "splitterPrototypes": [],
+            "pvsIntegratorMap": {}
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "state": {
+                "__type": "MirState",
+                "domainGlobalStart": [
+                    0,
+                    0,
+                    0
+                ],
+                "domainGlobalSize": [
+                    4,
+                    6,
+                    8
+                ],
+                "dt": 0.10000000149011612,
+                "currentTime": 0,
+                "currentStep": 0
+            },
+            "simulation": "<Simulation with name=simulation>"
+        }
+    ]
+}
+{
+    "Postprocess": [
+        {
+            "__type": "Postprocess",
+            "name": "postprocess",
+            "checkpointFolder": "restart/",
+            "plugins": []
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "postprocess": "<Postprocess with name=postprocess>"
+        }
+    ]
+}
+OFF
+6 4 0
+0.5 0.5 0.5
+1.5 0.5 0.5
+2.5 0.5 0.5
+0.5 1.5 0.5
+1.5 1.5 0.5
+2.5 1.5 0.5
+3 0 1 4
+3 0 3 4
+3 1 2 5
+3 1 4 5
+OFF
+6 4 0
+0.5 0.5 0.5
+10.5 0.5 0.5
+20.5 0.5 0.5
+0.5 10.5 0.5
+10.5 10.5 0.5
+20.5 10.5 0.5
+3 0 1 4
+3 0 3 4
+3 1 2 5
+3 1 4 5
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+	<Domain>
+		<Grid Name="mesh" GridType="Uniform">
+			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
+			<Geometry GeometryType="XYZ">
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.PV.h5:/position</DataItem>
+			</Geometry>
+			<Attribute Name="velocities" AttributeType="Vector" Center="Node">
+				<Information Name="Typeinfo" Value="Vector" Datatype="float" RequireShift="False" />
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.PV.h5:/velocities</DataItem>
+			</Attribute>
+			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
+				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
+				<DataItem Dimensions="0 1" NumberType="Int" Precision="8" Format="HDF">ov1.PV.h5:/ids</DataItem>
+			</Attribute>
+		</Grid>
+	</Domain>
+</Xdmf>
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+	<Domain>
+		<Grid Name="mesh" GridType="Uniform">
+			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
+			<Geometry GeometryType="XYZ">
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.PV.h5:/position</DataItem>
+			</Geometry>
+			<Attribute Name="velocities" AttributeType="Vector" Center="Node">
+				<Information Name="Typeinfo" Value="Vector" Datatype="float" RequireShift="False" />
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.PV.h5:/velocities</DataItem>
+			</Attribute>
+			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
+				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
+				<DataItem Dimensions="0 1" NumberType="Int" Precision="8" Format="HDF">ov2.PV.h5:/ids</DataItem>
+			</Attribute>
+		</Grid>
+	</Domain>
+</Xdmf>
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+	<Domain>
+		<Grid Name="mesh" GridType="Uniform">
+			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
+			<Geometry GeometryType="XYZ">
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.OV.h5:/position</DataItem>
+			</Geometry>
+			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
+				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
+				<DataItem Dimensions="0 1" NumberType="Int" Precision="8" Format="HDF">ov1.OV.h5:/ids</DataItem>
+			</Attribute>
+		</Grid>
+	</Domain>
+</Xdmf>
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+	<Domain>
+		<Grid Name="mesh" GridType="Uniform">
+			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
+			<Geometry GeometryType="XYZ">
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.OV.h5:/position</DataItem>
+			</Geometry>
+			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
+				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
+				<DataItem Dimensions="0 1" NumberType="Int" Precision="8" Format="HDF">ov2.OV.h5:/ids</DataItem>
+			</Attribute>
+		</Grid>
+	</Domain>
+</Xdmf>

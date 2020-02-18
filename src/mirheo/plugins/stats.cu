@@ -6,6 +6,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
@@ -52,6 +53,9 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
 SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
     fetchEvery_(fetchEvery)
+{}
+SimulationStats::SimulationStats(const MirState *state, Loader&, const ConfigObject& config)
+    : SimulationStats(state, config["name"], config["fetchEvery"])
 {}
 
 SimulationStats::~SimulationStats() = default;
@@ -104,18 +108,34 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-PostprocessStats::PostprocessStats(std::string name, std::string filename) :
-    PostprocessPlugin(name)
+void SimulationStats::saveSnapshotAndRegister(Saver& saver)
 {
-    if (filename != "")
+    saver.registerObject<SimulationStats>(this, _saveSnapshot(saver, "SimulationStats"));
+}
+
+ConfigObject SimulationStats::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("fetchEvery", saver(fetchEvery_));
+    return config;
+}
+
+PostprocessStats::PostprocessStats(std::string name, std::string filename) :
+    PostprocessPlugin(name),
+    filename_(std::move(filename))
+{
+    if (filename_ != "")
     {
-        auto status = fdump_.open(filename, "w");
+        auto status = fdump_.open(filename_, "w");
         if (status != FileWrapper::Status::Success)
-            die("Could not open file '%s'", filename.c_str());
+            die("Could not open file '%s'", filename_.c_str());
 
         fprintf(fdump_.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
     }
 }
+PostprocessStats::PostprocessStats(Loader&, const ConfigObject& config) :
+    PostprocessStats(config["name"].getString(), config["filename"].getString())
+{}
 
 void PostprocessStats::deserialize()
 {
@@ -163,6 +183,18 @@ void PostprocessStats::deserialize()
             fflush(fdump_.get());
         }
     }
+}
+
+void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessStats"));
+}
+
+ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)
+{
+    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
+    config.emplace("filename", saver(filename_));
+    return config;
 }
 
 } // namespace mirheo

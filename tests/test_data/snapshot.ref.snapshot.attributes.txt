@@ -1,0 +1,74 @@
+{
+    "Simulation": [
+        {
+            "__type": "Simulation",
+            "name": "simulation",
+            "checkpointId": 0,
+            "checkpointInfo": {
+                "__type": "CheckpointInfo",
+                "every": 0,
+                "folder": "restart/",
+                "mode": 0
+            },
+            "particleVectors": [],
+            "bouncerMap": {},
+            "integratorMap": {},
+            "interactionMap": {},
+            "wallMap": {},
+            "belongingCheckerMap": {},
+            "plugins": [],
+            "integratorPrototypes": [],
+            "interactionPrototypes": [],
+            "wallPrototypes": [],
+            "checkWallPrototypes": [],
+            "bouncerPrototypes": [],
+            "belongingCorrectionPrototypes": [],
+            "splitterPrototypes": [],
+            "pvsIntegratorMap": {}
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "attributes": {
+                "attrInt": 123
+            },
+            "state": {
+                "__type": "MirState",
+                "domainGlobalStart": [
+                    0,
+                    0,
+                    0
+                ],
+                "domainGlobalSize": [
+                    4,
+                    6,
+                    8
+                ],
+                "dt": 0.10000000149011612,
+                "currentTime": 0,
+                "currentStep": 0
+            },
+            "simulation": "<Simulation with name=simulation>"
+        }
+    ]
+}
+{
+    "Postprocess": [
+        {
+            "__type": "Postprocess",
+            "name": "postprocess",
+            "checkpointFolder": "restart/",
+            "plugins": []
+        }
+    ],
+    "Mirheo": [
+        {
+            "__type": "Mirheo",
+            "attributes": {
+                "attrInt": 123
+            },
+            "postprocess": "<Postprocess with name=postprocess>"
+        }
+    ]
+}

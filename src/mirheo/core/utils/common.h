@@ -6,6 +6,16 @@
 namespace mirheo
 {
 
+/// Config/snapshot-related classes.
+using ConfigRefString = std::string;
+struct AutoObjectSnapshotTag { };
+class Saver;
+class Loader;
+class ConfigValue;
+class ConfigObject;
+template <typename T, typename Enable = void>
+struct TypeLoadSave;
+
 /**
  * Channel names used in several places of the program
  */
@@ -84,6 +94,14 @@ struct CheckpointInfo
     int every;
     std::string folder;
     CheckpointIdAdvanceMode mode;
+};
+
+template <>
+struct TypeLoadSave<CheckpointInfo>
+{
+    static ConfigValue save(Saver&, const CheckpointInfo&);
+    static CheckpointInfo parse(const ConfigValue&) = delete; // Context-free not supported
+    static CheckpointInfo load(Loader&, const ConfigValue&);
 };
 
 // tag used to stop the postprocess side to stop

@@ -1,4 +1,5 @@
 #include "step_random_gen.h"
+#include <fstream>
 
 namespace mirheo
 {

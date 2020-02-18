@@ -1,8 +1,10 @@
 #include "common.h"
 
 #include <mirheo/core/logger.h>
+#include <mirheo/core/utils/config.h>
 
 #include <algorithm>
+#include <cassert>
 
 namespace mirheo
 {
@@ -87,6 +89,22 @@ CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
 bool CheckpointInfo::needDump() const
 {
     return every != 0;
+}
+
+ConfigValue TypeLoadSave<CheckpointInfo>::save(Saver& saver, const CheckpointInfo& info)
+{
+    return ConfigValue::Object{
+        {"__type", saver("CheckpointInfo")},
+        {"every",  saver(info.every)},
+        {"folder", saver(info.folder)},
+        {"mode",   saver(info.mode)},
+    };
+}
+
+CheckpointInfo TypeLoadSave<CheckpointInfo>::load(Loader&, const ConfigValue& config)
+{
+    assert(config["__type"] == "CheckpointInfo");
+    return CheckpointInfo{config["every"], config["folder"], config["mode"]};
 }
 
 } // namespace mirheo

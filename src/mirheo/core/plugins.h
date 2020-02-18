@@ -59,6 +59,12 @@ protected:
     void send(const std::vector<char>& data);
     void send(const void *data, size_t sizeInBytes);
 
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
 private:
     int localSendSize_;
     MPI_Request sizeReq_, dataReq_;
@@ -81,6 +87,12 @@ public:
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);    
 
 protected:
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
     std::vector<char> data_;
 private:
     int size_;

@@ -1,6 +1,10 @@
 #include "membrane.h"
 
+#include <mirheo/core/snapshot.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
+#include <mirheo/core/utils/file_wrapper.h>
+#include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/helper_math.h>
 
 #include <fstream>
@@ -11,6 +15,26 @@
 namespace mirheo
 {
 
+/// Allocate and read a buffer of reals.
+static void readReals(FILE *f, PinnedBuffer<real> *buffer)
+{
+    size_t size;
+    fscanf(f, "%zu", &size);
+    buffer->resize_anew(size);
+    for (size_t i = 0; i < buffer->size(); ++i)
+        fscanf(f, "%g", &(*buffer)[i]);
+    buffer->uploadToDevice(defaultStream);
+}
+
+/// Print a buffer of reals to a given file.
+static void writeReals(FILE *f, const PinnedBuffer<real> &buffer)
+{
+    fprintf(f, "%zu\n", buffer.size());
+    for (size_t i = 0; i < buffer.size(); ++i)
+        fprintf(f, "%*g\n", std::numeric_limits<real>::max_digits10, buffer[i]);
+}
+
+
 MembraneMesh::MembraneMesh()
 {}
 
@@ -20,6 +44,8 @@ MembraneMesh::MembraneMesh(const std::string& initialMesh) :
     findAdjacent();
     _computeInitialQuantities(vertexCoordinates);
 }
+
+
 
 static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>& facesB)
 {
@@ -76,11 +102,38 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
     _computeInitialQuantities(stressFreeMesh.vertexCoordinates);
 }
 
+MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :
+    Mesh(loader, config)
+{
+    std::string fileName = joinPaths(loader.getContext().getPath(), config["name"] + ".stressFree.dat");
+    FileWrapper f(fileName, "r");
+    readReals(f.get(), &initialLengths);
+    readReals(f.get(), &initialAreas);
+    readReals(f.get(), &initialDotProducts);
+}
+
 
 MembraneMesh::MembraneMesh(MembraneMesh&&) = default;
 MembraneMesh& MembraneMesh::operator=(MembraneMesh&&) = default;
 
 MembraneMesh::~MembraneMesh() = default;
+
+void MembraneMesh::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<MembraneMesh>(this, _saveSnapshot(saver, "MembraneMesh"));
+}
+
+ConfigObject MembraneMesh::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = Mesh::_saveSnapshot(saver, typeName);
+
+    std::string fileName = joinPaths(saver.getContext().path, config["name"] + ".stressFree.dat");
+    FileWrapper f(fileName, "w");
+    writeReals(f.get(), initialLengths);
+    writeReals(f.get(), initialAreas);
+    writeReals(f.get(), initialDotProducts);
+    return config;
+}
 
 using EdgeMapPerVertex = std::vector< std::map<int, int> >;
 constexpr int invalidId = -1;

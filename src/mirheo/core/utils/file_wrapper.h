@@ -13,6 +13,7 @@ public:
     enum class SpecialStream {Cout, Cerr};
     enum class Status {Success, Failed};
     
+    FileWrapper(const std::string& fname, const std::string& mode, bool forceFlushOnClose = false);
     explicit FileWrapper(bool forceFlushOnClose = false);
     ~FileWrapper();
 

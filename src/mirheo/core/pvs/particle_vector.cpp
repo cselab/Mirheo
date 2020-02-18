@@ -2,6 +2,7 @@
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"
 
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/type_map.h>
@@ -252,11 +253,10 @@ real ParticleVector::getMassPerParticle() const
     return mass_;
 }
 
-void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId)
+void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
     info("Checkpoint for particle vector '%s', writing to file %s",
          getCName(), filename.c_str());
 
@@ -295,10 +295,17 @@ void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& p
                                          XDMF::Channel::NeedShift::False});
 
     XDMF::write(filename, &grid, channels, comm);
-
-    createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
     
     debug("Checkpoint for particle vector '%s' successfully written", getCName());
+}
+
+void ParticleVector::_checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto filename = createCheckpointNameWithId(path, RestartPVIdentifier, "", checkpointId);
+    _snapshotParticleData(comm, filename);
+
+    createCheckpointSymlink(comm, path, RestartPVIdentifier, "xmf", checkpointId);
+    debug("Created a symlink for particle vector '%s'", getCName());
 }
 
 ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, const std::string& path,
@@ -356,6 +363,29 @@ void ParticleVector::restart(MPI_Comm comm, const std::string& path)
     constexpr int particleChunkSize = 1;
     const auto ms = _restartParticleData(comm, path, particleChunkSize);
     local()->resize(ms.newSize, defaultStream);
+}
+
+void ParticleVector::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<ParticleVector>(this, _saveSnapshot(saver, "ParticleVector"));
+}
+
+ConfigObject ParticleVector::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    // The filename does not include the extension.
+    std::string filename = joinPaths(saver.getContext().path, getName() + "." + RestartPVIdentifier);
+    _snapshotParticleData(saver.getContext().groupComm, filename);
+    ConfigObject config = MirSimulationObject::_saveSnapshot(
+            saver, "ParticleVector", typeName);
+    config.emplace("mass", saver(mass_));
+    return config;
+}
+
+ParticleVector::ParticleVector(const MirState *state, Loader&, const ConfigObject& config) :
+    ParticleVector{state, (const std::string&)config["name"], (real)config["mass"]}
+{
+    assert(config["__type"].getString() == "ParticleVector");
+    // Note: Particles loaded by RestartIC.
 }
 
 } // namespace mirheo

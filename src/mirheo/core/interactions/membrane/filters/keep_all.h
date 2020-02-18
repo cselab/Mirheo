@@ -2,6 +2,7 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/macros.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -11,8 +12,6 @@ class MembraneVector;
 class FilterKeepAll
 {
 public:
-    FilterKeepAll() = default;
-
     void setPrerequisites(__UNUSED MembraneVector *mv) const {}
     void setup           (__UNUSED MembraneVector *mv)       {}
     
@@ -21,5 +20,7 @@ public:
         return true;
     }
 };
+
+MIRHEO_MEMBER_VARS_0(FilterKeepAll);
 
 } // namespace mirheo

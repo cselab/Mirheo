@@ -79,6 +79,10 @@ h5
 /restart/log_00001.log
 /restart/log_00002.log
 /restart/log_00003.log
+/restart/log_00004.log
+/restart/log_00005.log
+/restart/log_00006.log
+/restart/log_00007.log
 /restart/parts.txt
 /restart/pos.txt
 /restart/rbc_mesh.off
@@ -108,7 +112,13 @@ h5
 /sdpd/pos.txt
 /sdpd/stats.txt
 /sdpd/stats/
-/snapshot/
+/snapshot/log_00000.log
+/snapshot/log_00001.log
+/snapshot/log_00002.log
+/snapshot/log_00003.log
+/snapshot/stats.txt
+/snapshot/snapshot1/
+/snapshot/snapshot2/
 /stress/log_00000.log
 /stress/log_00001.log
 /stress/pressure.txt

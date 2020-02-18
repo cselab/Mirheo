@@ -4,6 +4,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -74,6 +75,10 @@ private:
     Direction dir_;  ///< direction of the force
 
     DomainInfo domain_; ///< domain info
+
+    friend MemberVars<ForcingTermPeriodicPoiseuille>;
 };
+
+MIRHEO_MEMBER_VARS_2(ForcingTermPeriodicPoiseuille, magnitude_, dir_);
 
 } // namespace mirheo

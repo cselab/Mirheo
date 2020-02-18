@@ -2,18 +2,24 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/restart_helpers.h>
+#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain_, real dt_) :
+MirState::MirState(DomainInfo domain_, real dt_, const ConfigValue *state) :
     domain(domain_),
     dt(dt_),
     currentTime(0),
     currentStep(0)
-{}
+{
+    if (state) {
+        currentTime = (*state)["currentTime"];
+        currentStep = (*state)["currentStep"];
+    }
+}
 
 MirState::MirState(const MirState&) = default;
 
@@ -38,12 +44,6 @@ static bool isMasterRank(MPI_Comm comm)
     int rank;
     MPI_Check( MPI_Comm_rank(comm, &rank) );
     return rank == 0;
-}
-
-void MirState::reinitTime()
-{
-    currentTime = 0;
-    currentStep = 0;
 }
 
 void MirState::checkpoint(MPI_Comm comm, std::string folder)
@@ -81,6 +81,18 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     domain.globalSize  = gsz;
     domain.globalStart = gst;
     domain.localSize   = lsz;
+}
+
+ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
+{
+    return ConfigValue::Object{
+        {"__type",            saver("MirState")},
+        {"domainGlobalStart", saver(state.domain.globalStart)},
+        {"domainGlobalSize",  saver(state.domain.globalSize)},
+        {"dt",                saver(state.dt)},
+        {"currentTime",       saver(state.currentTime)},
+        {"currentStep",       saver(state.currentStep)},
+    };
 }
 
 } // namespace mirheo

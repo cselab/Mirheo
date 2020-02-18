@@ -3,6 +3,7 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 
 #include <memory>
 #include <mpi.h>
@@ -27,6 +28,7 @@ class Bouncer;
 class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
+class LoaderContext;
 
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
@@ -48,11 +50,19 @@ public:
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
+    Mirheo(int3 nranks3D, const std::string &snapshotPath,
+           LogInfo logInfo, bool gpuAwareMPI=false);
+
+    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string &snapshotPath,
+           LogInfo logInfo, bool gpuAwareMPI=false);
+
     ~Mirheo();
     
     void restart(std::string folder="restart/");
     bool isComputeTask() const;
     bool isMasterTask() const;
+    bool isSimulationMasterTask() const;
+    bool isPostprocessMasterTask() const;
     void startProfiler();
     void stopProfiler();
     void saveDependencyGraph_GraphML(std::string fname, bool current) const;
@@ -106,11 +116,35 @@ public:
                                                                 std::string outside = "");    
 
     void logCompileOptions() const;
-    
+
+    /** \brief Save snapshot of the Mirheo simulation to the given folder.
+        \param [in] path The target folder path.
+      */
+    void saveSnapshot(std::string path);
+
+    /** \brief Set a user-defined attribute to the given value. Useful for attaching extra information to snapshot.
+        \param [in] name The attribute name.
+        \param [in] value The attribute value. Can be an integer, floating point number, array or an object (dictionary).
+      */
+    void setAttribute(const std::string& name, ConfigValue value);
+
+    /// Temporary overload for `setAttribute` for bindings.
+    void setAttribute(const std::string& name, long long value);
+
+    /** \brief Read a user-defined attribute of the given name as an integer.
+        \param [in] name The attribute name.
+        \return The attribute value. Throws an exception if the attribute is not found or the value is not an integer.
+      */
+    const ConfigValue& getAttribute(const std::string& name);
+
+    /// Temporary overload for `getAttribute` for bindings.
+    long long getAttributeInt(const std::string& name);
+
 private:
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
     std::shared_ptr<MirState> state_;
+    ConfigObject attributes_;
     
     int rank_;
     int computeTask_;
@@ -127,7 +161,10 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+              LoaderContext *context = nullptr);
+    void initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
+                          LogInfo logInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();

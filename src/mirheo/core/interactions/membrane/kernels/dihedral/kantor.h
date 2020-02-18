@@ -62,4 +62,6 @@ private:
     mReal cost0kb_, sint0kb_;
 };
 
+MIRHEO_TYPE_NAME_AUTO(DihedralKantor);
+
 } // namespace mirheo

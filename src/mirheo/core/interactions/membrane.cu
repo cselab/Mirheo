@@ -9,12 +9,14 @@
 
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/snapshot.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/variant_foreach.h>
 
 namespace mirheo
 {
-
 
 namespace MembraneInteractionKernels
 {
@@ -70,7 +72,61 @@ MembraneInteraction::MembraneInteraction(const MirState *state, std::string name
     }, varBendingParams, varShearParams, varFilter);
 }
 
+namespace {
+    struct MembraneImplVisitor
+    {
+        template <typename BendingParams, typename ShearParams, typename FilterType>
+        void operator()()
+        {
+            using DihedralForce = typename BendingParams::DihedralForce;
+
+            {
+                using TriangleForce = typename ShearParams::TriangleForce <StressFreeState::Active>;
+                using Impl = MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>;
+                if (Impl::getTypeName() == implTypeName) {
+                    *impl = std::make_unique<Impl>(state, loader, implConfig);
+                    return;
+                }
+            }
+            {
+                using TriangleForce = typename ShearParams::TriangleForce <StressFreeState::Inactive>;
+                using Impl = MembraneInteractionImpl<TriangleForce, DihedralForce, FilterType>;
+                if (Impl::getTypeName() == implTypeName)
+                    *impl = std::make_unique<Impl>(state, loader, implConfig);
+            }
+        }
+
+        const MirState *state;
+        Loader& loader;
+        const ConfigObject& implConfig;
+        const std::string& implTypeName;
+        std::unique_ptr<Interaction> *impl;
+    };
+} // anonymous namespace
+
+MembraneInteraction::MembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
+    Interaction(state, loader, config)
+{
+    const ConfigObject& implConfig =
+            loader.getContext().getCompObjectConfig("InteractionImpl", getName());
+    const std::string& implTypeName = implConfig["__type"].getString();
+
+    /// Check all possible template combinations and match with the `implTypeName`.
+    variantForeach<MembraneImplVisitor, VarBendingParams, VarShearParams, VarMembraneFilter>(
+            MembraneImplVisitor{state, loader, implConfig, implTypeName, &impl});
+
+    if (!impl)
+        die("Unrecognized impl type \"%s\".", implTypeName.c_str());
+}
+
+
 MembraneInteraction::~MembraneInteraction() = default;
+
+void MembraneInteraction::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<MembraneInteraction>(this, _saveSnapshotWithImpl(
+                saver, "MembraneInteraction"));
+}
 
 void MembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {

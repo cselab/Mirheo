@@ -41,6 +41,9 @@ public:
     
     Interaction(const MirState *state, std::string name);
 
+    /// Load `name` and `rc` from the config. The `impl` is NOT loaded!
+    Interaction(const MirState *state, Loader&, const ConfigObject&);
+
     virtual ~Interaction();
 
     /**
@@ -109,6 +112,23 @@ public:
     static const ActivePredicate alwaysActive;
     
 protected:
+    /** \brief Base snapshot function for non-impl interactions. Does not save the impl object.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshotWithoutImpl(Saver& saver, const std::string &typeName);
+
+    /** \brief Base snapshot function for non-impl interactions. Saves the impl object.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshotWithImpl(Saver& saver, const std::string &typeName);
+
+    /** \brief Base snapshot function for interaction implementations (template interaction classes).
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveImplSnapshot(Saver& saver, const std::string &typeName);
 
     std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };

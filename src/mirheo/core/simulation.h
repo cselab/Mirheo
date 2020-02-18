@@ -14,6 +14,7 @@
 namespace mirheo
 {
 
+class Saver;
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -41,6 +42,13 @@ public:
     
     void restart(const std::string& folder);
     void checkpoint();
+
+    /** \brief Dump all simulation data, create a \c ConfigObject describing the simulation state and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c Simulation.
+      */
+    void saveSnapshotAndRegister(Saver& saver) override;
 
     void registerParticleVector         (std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic);
     void registerWall                   (std::shared_ptr<Wall> wall, int checkEvery=0);
@@ -94,6 +102,13 @@ public:
     real getMaxEffectiveCutoff() const;
     
     void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
+
+protected:
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
 
@@ -170,7 +185,8 @@ private:
     };
 
 private:
-    
+    friend Saver;
+
     const int3 nranks3D_;
     const int3 rank3D_;
 

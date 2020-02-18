@@ -18,16 +18,14 @@ class MirState
 public:
     using TimeType = double;
     using StepType = long long;
-    
-    MirState(DomainInfo domain, real dt);
+
+    MirState(DomainInfo domain, real dt, const ConfigValue *state = nullptr);
     MirState(const MirState&);
     MirState& operator=(MirState other);
 
     virtual ~MirState();
 
     void swap(MirState& other);
-
-    void reinitTime();
 
     void checkpoint(MPI_Comm comm, std::string path);  /// Save state to file
     void restart   (MPI_Comm comm, std::string path);  /// Restore state from file
@@ -40,5 +38,10 @@ public:
     StepType currentStep;
 };
 
+template <>
+struct TypeLoadSave<MirState>
+{
+    static ConfigValue save(Saver&, MirState& state);
+};
 
 } // namespace mirheo

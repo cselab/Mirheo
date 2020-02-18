@@ -4,6 +4,7 @@
 #include "restart/helpers.h"
 #include "utils/compute_com_extents.h"
 
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
@@ -153,11 +154,10 @@ static std::vector<real3> getCom(DomainInfo domain,
     return pos;
 }
 
-void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+void ObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
-    auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
     info("Checkpoint for object vector '%s', writing to file %s",
          getCName(), filename.c_str());
 
@@ -174,9 +174,15 @@ void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path,
     
     XDMF::write(filename, &grid, channels, comm);
 
-    createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
-
     debug("Checkpoint for object vector '%s' successfully written", getCName());
+}
+
+void ObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto filename = createCheckpointNameWithId(path, RestartOVIdentifier, "", checkpointId);
+    _snapshotObjectData(comm, filename);
+    createCheckpointSymlink(comm, path, RestartOVIdentifier, "xmf", checkpointId);
+    debug("Created a symlink for object vector '%s'", getCName());
 }
 
 void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
@@ -221,6 +227,23 @@ void ObjectVector::restart(MPI_Comm comm, const std::string& path)
 int ObjectVector::getObjectSize() const
 {
     return objSize_;
+}
+
+void ObjectVector::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<ObjectVector>(this, _saveSnapshot(saver, "ObjectVector"));
+}
+
+ConfigObject ObjectVector::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    // The filename does not include the extension.
+    std::string filename = joinPaths(saver.getContext().path, getName() + "." + RestartOVIdentifier);
+    _snapshotObjectData(saver.getContext().groupComm, filename);
+
+    ConfigObject config = ParticleVector::_saveSnapshot(saver, typeName);
+    config.emplace("objSize", saver(objSize_));
+    config.emplace("mesh",    saver(mesh));
+    return config;
 }
 
 } // namespace mirheo

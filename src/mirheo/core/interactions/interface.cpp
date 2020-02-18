@@ -1,6 +1,8 @@
 #include "interface.h"
 
+#include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/macros.h>
 
 namespace mirheo
@@ -9,6 +11,13 @@ namespace mirheo
 Interaction::Interaction(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
+Interaction::Interaction(const MirState *state, Loader& loader, const ConfigObject& config) :
+    MirSimulationObject(state, loader, config)
+{
+    // Note: we do NOT load the `impl` object here. Since impl typically has
+    // template arguments, loading must be done from the derived class. For
+    // example, see the MembraneInteraction's constructor and variantForeach.
+}
 
 Interaction::~Interaction() = default;
 
@@ -57,5 +66,25 @@ real Interaction::getCutoffRadius() const
 }
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
+
+ConfigObject Interaction::_saveSnapshotWithoutImpl(Saver& saver, const std::string& typeName)
+{
+    return MirSimulationObject::_saveSnapshot(saver, "Interaction", typeName);
+}
+
+ConfigObject Interaction::_saveSnapshotWithImpl(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = _saveSnapshotWithoutImpl(saver, typeName);
+    config.emplace("impl", saver(impl));
+    return config;
+}
+
+ConfigObject Interaction::_saveImplSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "InteractionImpl", typeName);
+    if (impl)
+        die("Impl interaction has impl?");
+    return config;
+}
 
 } // namespace mirheo

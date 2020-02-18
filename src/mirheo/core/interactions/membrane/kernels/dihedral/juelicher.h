@@ -108,4 +108,6 @@ private:
     mReal scurv_;
 };
 
+MIRHEO_TYPE_NAME_AUTO(DihedralJuelicher);
+
 } // namespace mirheo

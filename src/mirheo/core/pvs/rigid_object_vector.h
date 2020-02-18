@@ -72,9 +72,21 @@ public:
     /// get diagonal entries of the inertia tensor
     real3 getInertialTensor() const {return J_;}
 
+    void saveSnapshotAndRegister(Saver&);
+
 protected:
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
     void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void _restartObjectData   (MPI_Comm comm, const std::string& path, const ExchMapSize& ms) override;
+
+private:
+    void _snapshotObjectData(MPI_Comm comm, const std::string& filename,
+                             const std::string& initialPosFilename);
 
 public:
     PinnedBuffer<real4> initialPositions; ///< Coordinates of the frozen particles in the frame of reference of the object

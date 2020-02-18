@@ -2,6 +2,7 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/config.h>
 
 #include <mpi.h>
 #include <vector>
@@ -145,6 +146,19 @@ void Postprocess::checkpoint(int checkpointId)
     
     for (auto& pl : plugins_)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
+}
+
+void Postprocess::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<Postprocess>(this, _saveSnapshot(saver, "Postprocess"));
+}
+
+ConfigObject Postprocess::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = MirObject::_saveSnapshot(saver, "Postprocess", typeName);
+    config.emplace("checkpointFolder", saver(checkpointFolder_));
+    config.emplace("plugins",          saver(plugins_));
+    return config;
 }
 
 } // namespace mirheo
