@@ -13,34 +13,50 @@
 namespace mirheo
 {
 
+/// This is used to filter channels that need to be packed
 using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&) >;
 
+/** \brief A device-friendly structure that is used to pack and unpack multiple channels into a single buffer.
+    
+    Additionally to being packed and unpacked, the data can be shifted.
+    This facilitate the exchange and redistribute operations.
+
+    The packed channels are structured in a single buffer containing:
+    1. The first channel data
+    2. padding 
+    3. The second channel data
+    4. padding
+    5. ...
+
+    Hence, the number of elements must be known in advance before packing.
+    This is generally not a limitation, as memory must be allocated before packing.
+ */
 struct GenericPackerHandler
 {
     /// Alignment sufficient for all types used in channels. Useful for
     /// external codes that operate with Mirheo's packing functions. 
     static constexpr size_t alignment = getPaddedSize<char>(1);
 
-    inline __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
+    __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
-    inline __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
+    __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                                   real3 shift) const
     {
         TransformShift t {shift, needShift_};
         return pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
-    inline __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
+    __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
         TransformNone t;
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
+    __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
                                                const char *srcBuffer, int numElements,
                                                real eps) const
     {
@@ -48,13 +64,13 @@ struct GenericPackerHandler
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
+    __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
         TransformShift t {shift, needShift_};
         return unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    inline __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
+    __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
     {
         assert (nChannels_ == dst.nChannels_);
         
@@ -71,7 +87,7 @@ struct GenericPackerHandler
         }
     }
 
-    inline __D__ size_t getSizeBytes(int numElements) const
+    __D__ size_t getSizeBytes(int numElements) const
     {
         size_t sz = 0;
 
@@ -87,11 +103,10 @@ struct GenericPackerHandler
     }
 
 private:
-
     struct TransformNone
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, const T& val, __UNUSED int channelId) const
+        __D__ void operator()(T *addr, const T& val, __UNUSED int channelId) const
         {
             *addr = val;
         }
@@ -100,7 +115,7 @@ private:
     struct TransformShift
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, T val, int channelId) const
+        __D__ void operator()(T *addr, T val, int channelId) const
         {
             if (needShift[channelId])
                 TypeShift::apply(val, shift);
@@ -114,7 +129,7 @@ private:
     struct TransformAtomicAdd
     {
         template <typename T>
-        inline __D__ void operator()(T *addr, T val, __UNUSED int channelId) const
+        __D__ void operator()(T *addr, T val, __UNUSED int channelId) const
         {
             TypeAtomicAdd::apply(addr, val, eps);
         }
@@ -123,7 +138,7 @@ private:
     };
 
     template <class Transform>
-    inline __D__ size_t pack(const Transform& transform, int srcId, int dstId,
+    __D__ size_t pack(const Transform& transform, int srcId, int dstId,
                              char *dstBuffer, int numElements) const
     {
         size_t totPacked = 0;
@@ -142,7 +157,7 @@ private:
     }
 
     template <class Transform>
-    inline __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
+    __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
                                const char *srcBuffer, int numElements) const
     {
         size_t totPacked = 0;
