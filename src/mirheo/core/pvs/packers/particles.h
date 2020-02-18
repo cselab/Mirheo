@@ -15,7 +15,7 @@ struct ParticlePackerHandler
 {
     GenericPackerHandler particles;
 
-    inline __D__ size_t getSizeBytes(int numElements) const
+    __D__ size_t getSizeBytes(int numElements) const
     {
         return particles.getSizeBytes(numElements);
     }

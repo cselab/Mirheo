@@ -12,7 +12,7 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     int objSize;
     GenericPackerHandler objects;
 
-    inline __D__ size_t getSizeBytes(int numElements) const
+    __D__ size_t getSizeBytes(int numElements) const
     {
         return ParticlePackerHandler::getSizeBytes(numElements * objSize) +
             objects.getSizeBytes(numElements);
@@ -22,37 +22,37 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     // used in exchangers
     
 #ifdef __CUDACC__
-    inline __device__ size_t blockPack(int numElements, char *buffer,
-                                       int srcObjId, int dstObjId) const
+    __device__ size_t blockPack(int numElements, char *buffer,
+                                int srcObjId, int dstObjId) const
     {
-        return blockApply<PackOp>({}, numElements, buffer, srcObjId, dstObjId);
+        return _blockApply<PackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    inline __device__ size_t blockPackShift(int numElements, char *buffer,
-                                            int srcObjId, int dstObjId, real3 shift) const
+    __device__ size_t blockPackShift(int numElements, char *buffer,
+                                     int srcObjId, int dstObjId, real3 shift) const
     {
-        return blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
+        return _blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    inline __device__ size_t blockUnpack(int numElements, const char *buffer,
-                                         int srcObjId, int dstObjId) const
+    __device__ size_t blockUnpack(int numElements, const char *buffer,
+                                  int srcObjId, int dstObjId) const
     {
-        return blockApply<UnpackOp>({}, numElements, buffer, srcObjId, dstObjId);
+        return _blockApply<UnpackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    inline __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
-                                                   int srcObjId, int dstObjId, real eps) const
+    __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
+                                            int srcObjId, int dstObjId, real eps) const
     {
-         return blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
+         return _blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    inline __device__ size_t blockUnpackShift(int numElements, const char *buffer,
-                                              int srcObjId, int dstObjId, real3 shift) const
+    __device__ size_t blockUnpackShift(int numElements, const char *buffer,
+                                       int srcObjId, int dstObjId, real3 shift) const
     {
-        return blockApply<UnpackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
+        return _blockApply<UnpackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    inline __device__ void blockCopyParticlesTo(ParticlePackerHandler &dst, int srcObjId, int dstPartIdOffset) const
+    __device__ void blockCopyParticlesTo(ParticlePackerHandler &dst, int srcObjId, int dstPartIdOffset) const
     {
         const int tid = threadIdx.x;
         for (int pid = tid; pid < objSize; pid += blockDim.x)
@@ -64,7 +64,7 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         }
     }
 
-    inline __device__ void blockCopyTo(ObjectPackerHandler &dst, int srcObjId, int dstObjId) const
+    __device__ void blockCopyTo(ObjectPackerHandler &dst, int srcObjId, int dstObjId) const
     {
         blockCopyParticlesTo(static_cast<ParticlePackerHandler &>(dst), srcObjId, dstObjId * objSize);
 
@@ -73,13 +73,11 @@ struct ObjectPackerHandler : public ParticlePackerHandler
             objects.copyTo(dst.objects, srcObjId, dstObjId);
     }
 
-
 protected:
-
     struct PackOp
     {
-        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
-                                          int srcId, int dstId, char *buffer, int numElements)
+        __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                   int srcId, int dstId, char *buffer, int numElements)
         {
             return gpacker.pack(srcId, dstId, buffer, numElements);
         }
@@ -88,8 +86,8 @@ protected:
     struct PackShiftOp
     {
         real3 shift;
-        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
-                                          int srcId, int dstId, char *buffer, int numElements)
+        __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                   int srcId, int dstId, char *buffer, int numElements)
         {
             return gpacker.packShift(srcId, dstId, buffer, numElements, shift);
         }
@@ -97,9 +95,9 @@ protected:
 
     struct UnpackOp
     {
-        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
-                                          int srcId, int dstId, const char *buffer,
-                                          int numElements)
+        __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                   int srcId, int dstId, const char *buffer,
+                                   int numElements)
         {
             return gpacker.unpack(srcId, dstId, buffer, numElements);
         }
@@ -108,9 +106,9 @@ protected:
     struct UnpackAddOp
     {
         real eps;
-        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
-                                          int srcId, int dstId, const char *buffer,
-                                          int numElements)
+        __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                   int srcId, int dstId, const char *buffer,
+                                   int numElements)
         {
             return gpacker.unpackAtomicAddNonZero(srcId, dstId, buffer, numElements, eps);
         }
@@ -119,9 +117,9 @@ protected:
     struct UnpackShiftOp
     {
         real3 shift;
-        inline __device__ auto operator()(const GenericPackerHandler& gpacker,
-                                          int srcId, int dstId, const char *buffer,
-                                          int numElements)
+        __device__ auto operator()(const GenericPackerHandler& gpacker,
+                                   int srcId, int dstId, const char *buffer,
+                                   int numElements)
         {
             return gpacker.unpackShift(srcId, dstId, buffer, numElements, shift);
         }
@@ -129,8 +127,8 @@ protected:
 
 
     template <class Operation, typename BuffType>
-    inline __device__ size_t blockApply(Operation op, int numElements, BuffType buffer,
-                                        int srcObjId, int dstObjId) const
+    __device__ size_t _blockApply(Operation op, int numElements, BuffType buffer,
+                                 int srcObjId, int dstObjId) const
     {
         const int tid = threadIdx.x;
         __shared__ size_t offsetBytes;
