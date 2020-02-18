@@ -40,34 +40,34 @@ struct GenericPackerHandler
     __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
-        return pack(t, srcId, dstId, dstBuffer, numElements);
+        return _pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
     __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
-                                  real3 shift) const
+                           real3 shift) const
     {
         TransformShift t {shift, needShift_};
-        return pack(t, srcId, dstId, dstBuffer, numElements);
+        return _pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
     __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
         TransformNone t;
-        return unpack(t, srcId, dstId, srcBuffer, numElements);
+        return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
     __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
-                                               const char *srcBuffer, int numElements,
-                                               real eps) const
+                                        const char *srcBuffer, int numElements,
+                                        real eps) const
     {
         TransformAtomicAdd t {eps};
-        return unpack(t, srcId, dstId, srcBuffer, numElements);
+        return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
     __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
         TransformShift t {shift, needShift_};
-        return unpack(t, srcId, dstId, srcBuffer, numElements);
+        return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
     __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
@@ -80,7 +80,7 @@ struct GenericPackerHandler
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
                 auto dstPtr = cuda_variant::get_alternative<T*>(dst.varChannelData_[i]);
-
+                
                 dstPtr[dstId]= srcPtr[srcId];
                 
             }, varChannelData_[i]);
@@ -138,8 +138,8 @@ private:
     };
 
     template <class Transform>
-    __D__ size_t pack(const Transform& transform, int srcId, int dstId,
-                             char *dstBuffer, int numElements) const
+    __D__ size_t _pack(const Transform& transform, int srcId, int dstId,
+                       char *dstBuffer, int numElements) const
     {
         size_t totPacked = 0;
         for (int i = 0; i < nChannels_; ++i)
@@ -157,8 +157,8 @@ private:
     }
 
     template <class Transform>
-    __D__ size_t unpack(const Transform& transform, int srcId, int dstId,
-                               const char *srcBuffer, int numElements) const
+    __D__ size_t _unpack(const Transform& transform, int srcId, int dstId,
+                         const char *srcBuffer, int numElements) const
     {
         size_t totPacked = 0;
         for (int i = 0; i < nChannels_; i++)
@@ -191,8 +191,8 @@ public:
     size_t getSizeBytes(int numElements) const;
     
 private:
-    void registerChannel(CudaVarPtr varPtr, bool needShift,
-                         bool& needUpload, cudaStream_t stream);
+    void _registerChannel(CudaVarPtr varPtr, bool needShift,
+                          bool& needUpload, cudaStream_t stream);
     
     PinnedBuffer<CudaVarPtr> channelData_;
     PinnedBuffer<bool> needShiftData_;

@@ -19,7 +19,7 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
 
         auto varPtr = getDevPtr(desc->varDataPtr);
 
-        registerChannel(varPtr, desc->needShift(), needUpload, stream);
+        _registerChannel(varPtr, desc->needShift(), needUpload, stream);
     }
 
     if (needUpload)
@@ -37,8 +37,8 @@ GenericPackerHandler& GenericPacker::handler()
     return *static_cast<GenericPackerHandler*> (this);
 }
 
-void GenericPacker::registerChannel(CudaVarPtr varPtr, bool needShift,
-                                    bool& needUpload, cudaStream_t stream)
+void GenericPacker::_registerChannel(CudaVarPtr varPtr, bool needShift,
+                                     bool& needUpload, cudaStream_t stream)
 {
     if (static_cast<int>(channelData_.size()) <= nChannels_)
     {
