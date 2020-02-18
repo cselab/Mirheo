@@ -72,16 +72,7 @@ void GenericPacker::_registerChannel(CudaVarPtr varPtr, bool needShift,
 
 size_t GenericPacker::getSizeBytes(int numElements) const
 {
-    size_t size = 0;
-    for (auto varPtr : channelData_)
-    {
-        cuda_variant::apply_visitor([&](auto ptr)
-        {
-            using T = typename std::remove_pointer<decltype(ptr)>::type;
-            size += getPaddedSize<T>(numElements);
-        }, varPtr);
-    }
-    return size;
+    return GenericPackerHandler::getSizeBytes(numElements);
 }
 
 } // namespace mirheo

@@ -37,12 +37,27 @@ struct GenericPackerHandler
     /// external codes that operate with Mirheo's packing functions. 
     static constexpr size_t alignment = getPaddedSize<char>(1);
 
+    /** \brief Fetch one datum from the registered channels and pack it into a buffer
+        \param [in] srcId Index of the datum to fetch from registered channel space (in number of elements).
+        \param [in] dstId Index of the datum to store in dstBuffer space (in number of elements).
+        \param [out] dstBuffer Destination buffer
+        \param [in] numElements Total number of elements that will be packed in the buffer.
+     */
     __D__ size_t pack(int srcId, int dstId, char *dstBuffer, int numElements) const
     {
         TransformNone t;
         return _pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
+    /** \brief Fetch one datum from the registered channels, shift it (if applicable) and pack it into the buffer
+        \param [in] srcId Index of the datum to fetch from registered channel space (in number of elements).
+        \param [in] dstId Index of the datum to store in dstBuffer space (in number of elements).
+        \param [out] dstBuffer Destination buffer
+        \param [in] numElements Total number of elements that will be packed in the buffer.
+        \param [in] shift The coordinate shift
+
+        Only channels with active shift will be shifted.
+     */
     __D__ size_t packShift(int srcId, int dstId, char *dstBuffer, int numElements,
                            real3 shift) const
     {
@@ -50,12 +65,25 @@ struct GenericPackerHandler
         return _pack(t, srcId, dstId, dstBuffer, numElements);
     }
 
+    /** \brief Unpack one datum from the buffer and store it in the registered channels
+        \param [in] srcId Index of the datum to fetch from the buffer (in number of elements).
+        \param [in] dstId Index of the datum to store in the registered channels (in number of elements).
+        \param [in] srcBuffer Source buffer that contains packed data.
+        \param [in] numElements Total number of elements that are packed in the buffer.
+     */
     __D__ size_t unpack(int srcId, int dstId, const char *srcBuffer, int numElements) const
     {
         TransformNone t;
         return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
+    /** \brief Unpack one datum from the buffer and add it to the registered channels atomically.
+        \param [in] srcId Index of the datum to fetch from the buffer (in number of elements).
+        \param [in] dstId Index of the datum to add to the registered channels (in number of elements).
+        \param [in] srcBuffer Source buffer that contains packed data.
+        \param [in] numElements Total number of elements that are packed in the buffer.
+        \param [in] eps Only elements that are larger than this tolerance will be added.
+     */
     __D__ size_t unpackAtomicAddNonZero(int srcId, int dstId,
                                         const char *srcBuffer, int numElements,
                                         real eps) const
@@ -64,12 +92,24 @@ struct GenericPackerHandler
         return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
+    /** \brief Unpack and shift one datum from the buffer and store it in the registered channels.
+        \param [in] srcId Index of the datum to fetch from the buffer (in number of elements).
+        \param [in] dstId Index of the datum to store into the registered channels (in number of elements).
+        \param [in] srcBuffer Source buffer that contains packed data.
+        \param [in] numElements Total number of elements that are packed in the buffer.
+        \param [in] shift The coordinate shift
+     */
     __D__ size_t unpackShift(int srcId, int dstId, const char *srcBuffer, int numElements, real3 shift) const
     {
         TransformShift t {shift, needShift_};
         return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
+    /** \brief Copy one datum from the registered channels to the registered channels of another \c GenericPackerHandler.
+        \param [in] dst The other \c GenericPackerHandler that will receive the new datum.
+        \param [in] srcId Index of the datum to fetch from the registered channels (in number of elements).
+        \param [in] dstId Index of the datum to store into the dst registered channels (in number of elements).
+     */
     __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
     {
         assert (nChannels_ == dst.nChannels_);
@@ -87,7 +127,14 @@ struct GenericPackerHandler
         }
     }
 
-    __D__ size_t getSizeBytes(int numElements) const
+    /** \brief Get the size (in bytes) of the buffer that can hold the packed data of numElements elements from all registered channels.
+        \param [in] numElements The number of elements that the buffer must contain once packed.
+        \return The size (in bytes) of the buffer.
+
+        This must be used to allocate the buffer size. 
+        Because of padding, the size is not simply the sum of sizes of all elements.
+     */
+    __HD__ size_t getSizeBytes(int numElements) const
     {
         size_t sz = 0;
 
@@ -181,13 +228,24 @@ protected:
     bool *needShift_            {nullptr}; ///< flag per channel: true if data needs to be shifted
 };
 
+/// \brief This class is used to construct \c GenericPackerHandler, to be passed to the device.
 class GenericPacker : private GenericPackerHandler
 {
 public:
+    /** \brief Register all channels of a \c DataManager satisfying a predicate.
+        \param [in] dataManager The object that contains the channels to register
+        \param [in] predicate The filter (white list) that is used to select the channels to register, 
+                              based on their description and names
+        \param [in] stream The stream used to transfer the data on the device
+        
+        All previously registered channels will be removed before adding those described above.
+     */
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
 
+    /// Get a handler that can be used on the device.
     GenericPackerHandler& handler();
 
+    /// see GenericPackerHandler::getSizeBytes().
     size_t getSizeBytes(int numElements) const;
     
 private:
