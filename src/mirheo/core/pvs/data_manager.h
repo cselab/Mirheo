@@ -51,7 +51,7 @@ public:
         Example: the positions of the particles must be converted to the local coordinate system 
         of the neighbour rank if transfered there, while the velocities require no "shift".
      */
-    enum class ShiftMode       { None, Active };
+    enum class ShiftMode { None, Active };
 
     /** \brief Holds information and data of a single channel.
         
@@ -134,9 +134,11 @@ public:
 
         \rst
         This method will die if the required name does not exist.
+        
         .. warning::
             This method can only increase the persistence. If the channel is already persistent,
             this method can not set its persistent mode to None.
+
         \endrst
      */
     void setPersistenceMode(const std::string& name, PersistenceMode persistence);
@@ -147,6 +149,7 @@ public:
 
         \rst
         This method will die if the required name does not exist.
+
         .. warning::
             This method can only increase the shift mode. If the channel already needs shift,
             this method can not set its shift mode to None.

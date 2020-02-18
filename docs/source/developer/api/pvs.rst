@@ -116,3 +116,13 @@ Views
    :project: mirheo
    :members:
 
+
+Data Manager
+------------
+
+This is the building block to create particle vectors.
+
+.. doxygenclass:: mirheo::DataManager
+   :project: mirheo
+   :members:
+
