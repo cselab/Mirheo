@@ -39,5 +39,5 @@ else:
 # mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
 # git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
 # git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
-# h5diff snapshot1/pv.PV.h5 snapshot2/pv.PV.h5
+# mir.post h5diff snapshot1/pv.PV.h5 snapshot2/pv.PV.h5
 # cat snapshot1/config.compute.json snapshot1/config.post.json > snapshot.out.txt
