@@ -5,6 +5,20 @@
 #include <cassert>
 #include <sstream>
 
+/* Implementation notice:
+ *
+ * Currently we manually implement a JSON representation, exporting and importing.
+ * We considered using 3rd party libraries, but they were not desirable for
+ * various reasons. The most promising one seems to be
+ * https://github.com/Tencent/rapidjson
+ * due to its very high type safety (e.g. differentiates between signed and
+ * unsigned integers).
+ *
+ * The problem is its compilation procedure, based on old-style CMake. The
+ * implementation below and for the whole ConfigValue class can be replaced
+ * with this or some other JSON library if needed and found suitable.
+ */
+
 namespace mirheo
 {
 
