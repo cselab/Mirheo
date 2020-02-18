@@ -81,7 +81,7 @@ struct mirheo::MemberVars<Struct2>
 
 // Test the reflection macro.
 namespace mirheo {
-MIRHEO_MEMBER_VARS_2(Struct3, z, w);
+MIRHEO_MEMBER_VARS(2, Struct3, z, w);
 } // namespace mirheo
 
 

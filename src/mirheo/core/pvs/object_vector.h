@@ -102,7 +102,7 @@ public:
 
         Checks that the object type is exactly \c ObjectVector.
       */
-    void saveSnapshotAndRegister(Saver&) override;
+    void saveSnapshotAndRegister(Saver& saver) override;
 
     /** Add a new channel to hold additional data per object.
         \tparam T The type of data to add

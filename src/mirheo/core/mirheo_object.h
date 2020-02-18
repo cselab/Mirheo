@@ -44,7 +44,7 @@ public:
     virtual void restart(MPI_Comm comm, const std::string& path);
 
     /** \brief Dump object data, create config and register the object.
-        \param [in,out] save The \c Saver object. Provides save context and serialization functions.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
       */
     virtual void saveSnapshotAndRegister(Saver& saver);
 
@@ -103,7 +103,7 @@ public:
         \param [in] loader The \c Loader object. Provides load context and unserialization functions.
         \param [in] config The object parameters.
      */
-    MirSimulationObject(const MirState *state, Loader&, const ConfigObject&);
+    MirSimulationObject(const MirState *state, Loader& loader, const ConfigObject& config);
 
     ~MirSimulationObject();
 

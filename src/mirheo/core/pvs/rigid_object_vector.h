@@ -72,7 +72,8 @@ public:
     /// get diagonal entries of the inertia tensor
     real3 getInertialTensor() const {return J_;}
 
-    void saveSnapshotAndRegister(Saver&);
+    /// Save channels, create ConfigObject and register it.
+    void saveSnapshotAndRegister(Saver& saver);
 
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.

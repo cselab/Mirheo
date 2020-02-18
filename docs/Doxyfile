@@ -41,7 +41,8 @@ PREDEFINED  += __align__(x)=          \
              __H__=                   \
              __HD__=                  \
              __D__=                   \
-	     __UNUSED=
+             __UNUSED=                \
+             MIRHEO_MEMBER_VARS(...)=
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
 ALIASES += "endrst=\endverbatim"

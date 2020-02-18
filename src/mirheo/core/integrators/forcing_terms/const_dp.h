@@ -48,6 +48,6 @@ private:
     friend MemberVars<ForcingTermConstDP>;
 };
 
-MIRHEO_MEMBER_VARS_1(ForcingTermConstDP, extraForce_);
+MIRHEO_MEMBER_VARS(1, ForcingTermConstDP, extraForce_);
 
 } // namespace mirheo

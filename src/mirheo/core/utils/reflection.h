@@ -22,7 +22,8 @@ struct TypeName
     MIRHEO_TYPE_NAME(TYPE, #TYPE)
 
 
-/** Helper function of `constructTypeName`.
+/** \brief Helper function of `constructTypeName`.
+ *
     C-style variadic argument is used as a compile-time-friendly solution.
 
     Example:
@@ -31,7 +32,7 @@ struct TypeName
  */
 std::string _constructTypeName(const char *base, int N, ...);
 
-/** Construct a template instantiation name.
+/** \brief Construct a template instantiation name.
 
     Example:
         MIRHEO_TYPE_NAME(A, "A");
@@ -46,12 +47,13 @@ inline std::string constructTypeName(const char *templateName)
     return _constructTypeName(templateName, sizeof...(Args), TypeName<Args>::name...);
 }
 
-/**
-   `MemberVars<T>` implements a function `foreach` with which the member
-   variables of `T` can be inspected. Useful for serializing and unserializing
-   objects.
+/** \brief Struct reflection.
+ *
+    `MemberVars<T>` implements a function `foreach` with which the member
+    variables of `T` can be inspected. Useful for serializing and unserializing
+    objects.
 
-   Example implementation:
+    Example implementation:
 
         template <>
         struct MemberVars<LogInfo>
@@ -66,16 +68,16 @@ inline std::string constructTypeName(const char *templateName)
             }
         };
 
-   The `Handler` is a class which implements two functions:
-        template <typename MemberVar>
-        <non-void type> operator()(const char *name, MemberVar *);
-   and
-        template <typename ...Args>
-        <any type> process()(Args &&...);
-   where `Args` are always equal to the non-void type from operator().
+    The `Handler` is a class which implements two functions:
+         template <typename MemberVar>
+         <non-void type> operator()(const char *name, MemberVar *);
+    and
+         template <typename ...Args>
+         <any type> process()(Args &&...);
+    where `Args` are always equal to the non-void type from operator().
 
-   Note: The order of evaluation of the function operator() is unspecified!
-         Order-sensitive operations MUST be done in the process() function.
+    Note: The order of evaluation of the function operator() is unspecified!
+          Order-sensitive operations MUST be done in the process() function.
  */
 template <typename T>
 struct MemberVars
@@ -162,56 +164,28 @@ struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
         }                             \
     }
 
-/**
-   Generate `MemberVars<TYPE>` for the given type `TYPE`.
+#define MIRHEO_FIRST_HELPER_(FIRST, ...) FIRST
+#define MIRHEO_FIRST_(...) MIRHEO_FIRST_HELPER_(__VA_ARGS__, dummy)
 
-   Example:
-        namespace mirheo {
-            struct S { int a, b; double c; };
-            MIRHEO_MEMBER_VARS_3(S, a, b, c);
-        } // namespace mirheo
+/** \brief Generate `MemberVars<TYPE>` for the given type `TYPE`.
 
+    Example:
+         namespace mirheo {
+             struct S { int a, b; double c; };
+             MIRHEO_MEMBER_VARS(3, S, a, b, c);
+         } // namespace mirheo
 
-   Note:
-        The implementation which doesn't require manually specifying the number
-        of arguments can be found here:
-        https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
+    Note:
+         The implementation which doesn't require manually specifying the number
+         of arguments can be found here:
+         https://stackoverflow.com/questions/6707148/foreach-macro-on-macros-arguments
+
+         Alternatively, we can simply use std::tie(__VA_ARGS__):
+         https://github.com/KonanM/tser/blob/abf343c9ad018ffdbe61d66c0065b198380ed972/include/tser/serialize.hpp#L275-L277
  */
-#define MIRHEO_MEMBER_VARS_0(TYPE)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)  \
-    MIRHEO_MEMBER_VARS_DUMP_0_(TYPE) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_1(TYPE, A)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)     \
-    MIRHEO_MEMBER_VARS_DUMP_1_(TYPE, A) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_2(TYPE, A, B)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)        \
-    MIRHEO_MEMBER_VARS_DUMP_2_(TYPE, A, B) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_3(TYPE, A, B, C)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)           \
-    MIRHEO_MEMBER_VARS_DUMP_3_(TYPE, A, B, C) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_4(TYPE, A, B, C, D)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)              \
-    MIRHEO_MEMBER_VARS_DUMP_4_(TYPE, A, B, C, D) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_5(TYPE, A, B, C, D, E)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)                 \
-    MIRHEO_MEMBER_VARS_DUMP_5_(TYPE, A, B, C, D, E) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_6(TYPE, A, B, C, D, E, F)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)                    \
-    MIRHEO_MEMBER_VARS_DUMP_6_(TYPE, A, B, C, D, E, F) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_7(TYPE, A, B, C, D, E, F, G)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)                       \
-    MIRHEO_MEMBER_VARS_DUMP_7_(TYPE, A, B, C, D, E, F, G) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
-#define MIRHEO_MEMBER_VARS_8(TYPE, A, B, C, D, E, F, G, H)   \
-    MIRHEO_MEMBER_VARS_BEGIN_(TYPE)                          \
-    MIRHEO_MEMBER_VARS_DUMP_8_(TYPE, A, B, C, D, E, F, G, H) \
-    MIRHEO_MEMBER_VARS_END_(TYPE)
+#define MIRHEO_MEMBER_VARS(NUM, ...)                      \
+    MIRHEO_MEMBER_VARS_BEGIN_(MIRHEO_FIRST_(__VA_ARGS__)) \
+    MIRHEO_MEMBER_VARS_DUMP_##NUM##_(__VA_ARGS__)         \
+    MIRHEO_MEMBER_VARS_END_(MIRHEO_FIRST_(__VA_ARGS__))
 
 } // namespace mirheo

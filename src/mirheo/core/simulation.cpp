@@ -1351,13 +1351,13 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-MIRHEO_MEMBER_VARS_2(Simulation::IntegratorPrototype, pv, integrator);
-MIRHEO_MEMBER_VARS_4(Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
-MIRHEO_MEMBER_VARS_3(Simulation::WallPrototype, wall, pv, maximumPartTravel);
-MIRHEO_MEMBER_VARS_2(Simulation::CheckWallPrototype, wall, every);
-MIRHEO_MEMBER_VARS_2(Simulation::BouncerPrototype, bouncer, pv);
-MIRHEO_MEMBER_VARS_4(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
-MIRHEO_MEMBER_VARS_4(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
+MIRHEO_MEMBER_VARS(2, Simulation::IntegratorPrototype, pv, integrator);
+MIRHEO_MEMBER_VARS(4, Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
+MIRHEO_MEMBER_VARS(3, Simulation::WallPrototype, wall, pv, maximumPartTravel);
+MIRHEO_MEMBER_VARS(2, Simulation::CheckWallPrototype, wall, every);
+MIRHEO_MEMBER_VARS(2, Simulation::BouncerPrototype, bouncer, pv);
+MIRHEO_MEMBER_VARS(4, Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
+MIRHEO_MEMBER_VARS(4, Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
 void Simulation::saveSnapshotAndRegister(Saver& saver)
 {

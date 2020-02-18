@@ -112,7 +112,7 @@ public:
         \param [in] loader The \c Loader object. Provides load context and unserialization functions.
         \param [in] config The PV parameters.
      */
-    ParticleVector(const MirState *state, Loader&, const ConfigObject&);
+    ParticleVector(const MirState *state, Loader& loader, const ConfigObject& config);
 
     ~ParticleVector() override;
 

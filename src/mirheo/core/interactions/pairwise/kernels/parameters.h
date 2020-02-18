@@ -40,7 +40,7 @@ struct DPDParams
     using KernelType = PairwiseDPD;
     real a, gamma, kBT, power;
 };
-MIRHEO_MEMBER_VARS_4(DPDParams, a, gamma, kBT, power);
+MIRHEO_MEMBER_VARS(4, DPDParams, a, gamma, kBT, power);
 
 struct LJAwarenessParamsNone   {using KernelType = LJAwarenessNone;};
 struct LJAwarenessParamsObject {using KernelType = LJAwarenessObject;};
@@ -49,9 +49,9 @@ struct LJAwarenessParamsRod
     using KernelType = LJAwarenessRod;
     int minSegmentsDist;
 };
-MIRHEO_MEMBER_VARS_0(LJAwarenessParamsNone);
-MIRHEO_MEMBER_VARS_0(LJAwarenessParamsObject);
-MIRHEO_MEMBER_VARS_1(LJAwarenessParamsRod, minSegmentsDist);
+MIRHEO_MEMBER_VARS(0, LJAwarenessParamsNone);
+MIRHEO_MEMBER_VARS(0, LJAwarenessParamsObject);
+MIRHEO_MEMBER_VARS(1, LJAwarenessParamsRod, minSegmentsDist);
 
 using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
                                             LJAwarenessParamsObject,
@@ -62,20 +62,20 @@ struct LJParams
     real epsilon, sigma, maxForce;
     VarLJAwarenessParams varLJAwarenessParams;
 };
-MIRHEO_MEMBER_VARS_4(LJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
+MIRHEO_MEMBER_VARS(4, LJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
 
 struct MDPDParams
 {
     using KernelType = PairwiseMDPD;
     real rd, a, b, gamma, kBT, power;
 };
-MIRHEO_MEMBER_VARS_6(MDPDParams, rd, a, b, gamma, kBT, power);
+MIRHEO_MEMBER_VARS(6, MDPDParams, rd, a, b, gamma, kBT, power);
 
 
 struct SimpleMDPDDensityKernelParams {using KernelType = SimpleMDPDDensityKernel;};
 struct WendlandC2DensityKernelParams {using KernelType = WendlandC2DensityKernel;};
-MIRHEO_MEMBER_VARS_0(SimpleMDPDDensityKernelParams);
-MIRHEO_MEMBER_VARS_0(WendlandC2DensityKernelParams);
+MIRHEO_MEMBER_VARS(0, SimpleMDPDDensityKernelParams);
+MIRHEO_MEMBER_VARS(0, WendlandC2DensityKernelParams);
 
 using VarDensityKernelParams = mpark::variant<SimpleMDPDDensityKernelParams,
                                               WendlandC2DensityKernelParams>;
@@ -85,7 +85,7 @@ struct DensityParams
 {
     VarDensityKernelParams varDensityKernelParams;
 };
-MIRHEO_MEMBER_VARS_1(DensityParams, varDensityKernelParams);
+MIRHEO_MEMBER_VARS(1, DensityParams, varDensityKernelParams);
 
 
 struct LinearPressureEOSParams
@@ -93,14 +93,14 @@ struct LinearPressureEOSParams
     using KernelType = LinearPressureEOS;
     real soundSpeed, rho0;
 };
-MIRHEO_MEMBER_VARS_2(LinearPressureEOSParams, soundSpeed, rho0);
+MIRHEO_MEMBER_VARS(2, LinearPressureEOSParams, soundSpeed, rho0);
 
 struct QuasiIncompressiblePressureEOSParams
 {
     using KernelType = QuasiIncompressiblePressureEOS;
     real p0, rhor;
 };
-MIRHEO_MEMBER_VARS_2(QuasiIncompressiblePressureEOSParams, p0, rhor);
+MIRHEO_MEMBER_VARS(2, QuasiIncompressiblePressureEOSParams, p0, rhor);
 
 using VarEOSParams = mpark::variant<LinearPressureEOSParams,
                                     QuasiIncompressiblePressureEOSParams>;
@@ -114,7 +114,7 @@ struct SDPDParams
     VarEOSParams varEOSParams;
     VarSDPDDensityKernelParams varDensityKernelParams;
 };
-MIRHEO_MEMBER_VARS_4(SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelParams);
+MIRHEO_MEMBER_VARS(4, SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelParams);
 
 
 using VarPairwiseParams = mpark::variant<DPDParams,
@@ -125,13 +125,13 @@ using VarPairwiseParams = mpark::variant<DPDParams,
 
 
 struct StressNoneParams {};
-MIRHEO_MEMBER_VARS_0(StressNoneParams);
+MIRHEO_MEMBER_VARS(0, StressNoneParams);
 
 struct StressActiveParams
 {
     real period; // compute stresses every this time in time units
 };
-MIRHEO_MEMBER_VARS_1(StressActiveParams, period);
+MIRHEO_MEMBER_VARS(1, StressActiveParams, period);
 
 using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;
 
