@@ -19,12 +19,7 @@ public:
     using VarParam = mpark::variant<real, std::vector<real>, std::vector<real2>, std::string, bool>;
     using MapParams = std::map<std::string, VarParam>;
     
-    ParametersWrap(const MapParams& params) :
-        params_(params)
-    {
-        for (const auto& p : params_)
-            readParams_[p.first] = false;
-    }
+    ParametersWrap(const MapParams& params);
 
     template <typename T>
     bool exists(const std::string& key)
@@ -40,12 +35,7 @@ public:
         return true;
     }
 
-    void checkAllRead() const
-    {
-        for (const auto& p : readParams_)
-            if (p.second == false)
-                die("invalid parameter '%s'", p.first.c_str());
-    }
+    void checkAllRead() const;
 
     template <typename T>
     T read(const std::string& key)
@@ -56,7 +46,7 @@ public:
 private:
 
     // have to do template specialization trick because explicit
-    // specializations have to be at namespace scope inc C++
+    // specializations have to be at namespace scope in C++
     
     template<typename T>
     struct Identity { using Type = T; };
@@ -76,21 +66,8 @@ private:
         return mpark::get<T>(it->second);
     }
 
-    real2 _read(const std::string& key, Identity<real2>)
-    {
-        const auto v = read<std::vector<real>>(key);
-        if (v.size() != 2)
-            die("%s must have 2 components", key.c_str());
-        return {v[0], v[1]};
-    }
-
-    real3 _read(const std::string& key, Identity<real3>)
-    {
-        const auto v = read<std::vector<real>>(key);
-        if (v.size() != 3)
-            die("%s must have 3 components", key.c_str());
-        return {v[0], v[1], v[2]};
-    }
+    real2 _read(const std::string& key, Identity<real2>);
+    real3 _read(const std::string& key, Identity<real3>);
 
 private:
     const MapParams& params_;
