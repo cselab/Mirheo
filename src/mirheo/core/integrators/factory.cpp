@@ -8,9 +8,9 @@ namespace IntegratorFactory
 {
 
 std::shared_ptr<Integrator>
-loadIntegrator(const MirState *state, Loader& loader,
-               const ConfigObject& config, const std::string& type)
+loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config)
 {
+    const std::string& type = config["__type"];
     if (type == "IntegratorVV<Forcing_None>")
         return std::make_shared<IntegratorSubStep>(state, loader, config);
     if (type == "IntegratorSubStep")

@@ -60,7 +60,7 @@ template <typename T, typename Factory>
 const std::shared_ptr<T>& loadObject(Mirheo *mir, Loader& loader,
                                      const ConfigValue& info, Factory factory)
 {
-    auto ptr = factory(mir->getState(), loader, info.getObject(), info["__type"]);
+    auto ptr = factory(mir->getState(), loader, info.getObject());
     if (!ptr)
         die("Factory returned a nullptr for object: %s", info.toJSONString().c_str());
     auto it = loader.getContext().getContainer<T>().emplace(info["name"], std::move(ptr)).first;

@@ -69,11 +69,9 @@ createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real 
     \param [in] state The global state of the system.
     \param [in] loader The \c Loader object. Provides load context and unserialization functions.
     \param [in] config The parameters of the particle vector.
-    \param [in] type Convenience parameter, equal to `config.at("__type")`.
  */
 std::shared_ptr<ParticleVector> loadParticleVector(
-        const MirState *state, Loader& loader,
-        const ConfigObject& config, const std::string &type);
+        const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace ParticleVectorFactory
 

@@ -7,6 +7,7 @@
 #include "rod.h"
 
 #include <mirheo/core/logger.h>
+#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
@@ -236,9 +237,9 @@ InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::s
 }
 
 std::shared_ptr<Interaction> InteractionFactory::loadInteraction(
-        const MirState *state, Loader& loader,
-        const ConfigObject& config, const std::string &type)
+        const MirState *state, Loader& loader, const ConfigObject& config)
 {
+    const std::string& type = config["__type"];
     if (type == "PairwiseInteraction")
         return std::make_shared<PairwiseInteraction>(state, loader, config);
     if (type == "MembraneInteraction")

@@ -81,10 +81,9 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
     \param [in] state The global state of the system.
     \param [in] loader The \c Loader object. Provides load context and unserialization functions.
     \param [in] config The integrator parameters.
-    \param [in] type Convenience parameter, equal to `config.at("__type")`.
  */
 std::shared_ptr<Integrator>
-loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config, const std::string& type);
+loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace IntegratorFactory
 
