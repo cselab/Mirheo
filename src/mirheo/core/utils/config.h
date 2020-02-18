@@ -424,6 +424,17 @@ struct TypeLoadSave<float3>
     }
 };
 
+template <>
+struct TypeLoadSave<double3>
+{
+    static ConfigValue save(Saver&, double3 v);
+    static double3 parse(const ConfigValue &config);
+    static double3 load(Loader&, const ConfigValue &config)
+    {
+        return parse(config);
+    }
+};
+
 /// TypeLoadSave for enum types.
 template <typename T>
 struct TypeLoadSave<T, std::enable_if_t<std::is_enum<T>::value>>

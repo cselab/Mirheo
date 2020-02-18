@@ -43,9 +43,9 @@ TEST (STR_TYPES, float4)
 
 TEST (STR_TYPES, COMandExtent)
 {
-    const float3 com {1.1f, 2.2f, 3.3f};
-    const float3 lo {-4.f, -5.f, -6.f};
-    const float3 hi {4.f, 5.f, 6.f}; 
+    const real3 com {1.1_r, 2.2_r, 3.3_r};
+    const real3 lo {-4._r, -5._r, -6._r};
+    const real3 hi {4._r, 5._r, 6._r};
     const COMandExtent cae {com, lo, hi};
     
     ASSERT_EQ(printToStr(cae), "[com: 1.1 2.2 3.3, lo: -4 -5 -6, hi: 4 5 6]");

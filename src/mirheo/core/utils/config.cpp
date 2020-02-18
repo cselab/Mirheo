@@ -417,6 +417,18 @@ float3 TypeLoadSave<float3>::parse(const ConfigValue &config)
     return float3{(float)array[0], (float)array[1], (float)array[2]};
 }
 
+ConfigValue TypeLoadSave<double3>::save(Saver&, double3 v)
+{
+    return ConfigValue::Array{v.x, v.y, v.z};
+}
+double3 TypeLoadSave<double3>::parse(const ConfigValue &config)
+{
+    const auto& array = config.getArray();
+    if (array.size() != 3)
+        die("Expected 3 elements, got %zu.", array.size());
+    return double3{(double)array[0], (double)array[1], (double)array[2]};
+}
+
 void _variantLoadIndexError [[noreturn]] (size_t index, size_t size)
 {
     die("Variant index %zu out of range (size=%zu).", index, size);

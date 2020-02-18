@@ -12,9 +12,13 @@ namespace mirheo
 #ifdef MIRHEO_DOUBLE_PRECISION
 using real    = double;
 using integer = int64_t;
+#define MIRHEO_SCNgREAL "lg"  ///< scanf format for real, see <cinttypes>
+#define MIRHEO_PRIgREAL "g"   ///< printf format for real
 #else
 using real    = float;
 using integer = int32_t;
+#define MIRHEO_SCNgREAL "g"   ///< scanf format for real, see <cinttypes>
+#define MIRHEO_PRIgREAL "g"   ///< printf format for real
 #endif
 
 using real2 = VecTraits::Vec<real, 2>::Type;

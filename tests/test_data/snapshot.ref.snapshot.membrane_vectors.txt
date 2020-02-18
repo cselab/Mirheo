@@ -71,7 +71,7 @@
                     6,
                     8
                 ],
-                "dt": 0.10000000149011612,
+                "dt": 0.10000000000000001,
                 "currentTime": 0,
                 "currentStep": 0
             },
@@ -125,11 +125,11 @@ OFF
 		<Grid Name="mesh" GridType="Uniform">
 			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
 			<Geometry GeometryType="XYZ">
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.PV.h5:/position</DataItem>
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov1.PV.h5:/position</DataItem>
 			</Geometry>
 			<Attribute Name="velocities" AttributeType="Vector" Center="Node">
-				<Information Name="Typeinfo" Value="Vector" Datatype="float" RequireShift="False" />
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.PV.h5:/velocities</DataItem>
+				<Information Name="Typeinfo" Value="Vector" Datatype="double" RequireShift="False" />
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov1.PV.h5:/velocities</DataItem>
 			</Attribute>
 			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
 				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
@@ -144,11 +144,11 @@ OFF
 		<Grid Name="mesh" GridType="Uniform">
 			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
 			<Geometry GeometryType="XYZ">
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.PV.h5:/position</DataItem>
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov2.PV.h5:/position</DataItem>
 			</Geometry>
 			<Attribute Name="velocities" AttributeType="Vector" Center="Node">
-				<Information Name="Typeinfo" Value="Vector" Datatype="float" RequireShift="False" />
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.PV.h5:/velocities</DataItem>
+				<Information Name="Typeinfo" Value="Vector" Datatype="double" RequireShift="False" />
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov2.PV.h5:/velocities</DataItem>
 			</Attribute>
 			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
 				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
@@ -163,7 +163,7 @@ OFF
 		<Grid Name="mesh" GridType="Uniform">
 			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
 			<Geometry GeometryType="XYZ">
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov1.OV.h5:/position</DataItem>
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov1.OV.h5:/position</DataItem>
 			</Geometry>
 			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
 				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />
@@ -178,7 +178,7 @@ OFF
 		<Grid Name="mesh" GridType="Uniform">
 			<Topology TopologyType="Polyvertex" NumberOfElements="0" />
 			<Geometry GeometryType="XYZ">
-				<DataItem Dimensions="0 3" NumberType="Float" Precision="4" Format="HDF">ov2.OV.h5:/position</DataItem>
+				<DataItem Dimensions="0 3" NumberType="Float" Precision="8" Format="HDF">ov2.OV.h5:/position</DataItem>
 			</Geometry>
 			<Attribute Name="ids" AttributeType="Scalar" Center="Node">
 				<Information Name="Typeinfo" Value="Scalar" Datatype="int64_t" RequireShift="False" />

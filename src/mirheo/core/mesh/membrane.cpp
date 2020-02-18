@@ -22,7 +22,7 @@ static void readReals(FILE *f, PinnedBuffer<real> *buffer)
     fscanf(f, "%zu", &size);
     buffer->resize_anew(size);
     for (size_t i = 0; i < buffer->size(); ++i)
-        fscanf(f, "%g", &(*buffer)[i]);
+        fscanf(f, "%" MIRHEO_SCNgREAL, &(*buffer)[i]);
     buffer->uploadToDevice(defaultStream);
 }
 
@@ -30,8 +30,10 @@ static void readReals(FILE *f, PinnedBuffer<real> *buffer)
 static void writeReals(FILE *f, const PinnedBuffer<real> &buffer)
 {
     fprintf(f, "%zu\n", buffer.size());
-    for (size_t i = 0; i < buffer.size(); ++i)
-        fprintf(f, "%*g\n", std::numeric_limits<real>::max_digits10, buffer[i]);
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        fprintf(f, "%*" MIRHEO_PRIgREAL "\n",
+                std::numeric_limits<real>::max_digits10, buffer[i]);
+    }
 }
 
 
