@@ -18,6 +18,7 @@ class BaseMembraneInteraction : public Interaction
 public:
 
     BaseMembraneInteraction(const MirState *state, const std::string& name);
+    BaseMembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BaseMembraneInteraction();
 
     /** \brief Set the required channels to the concerned \c ParticleVector that will participate in the interactions.

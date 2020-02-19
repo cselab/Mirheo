@@ -23,6 +23,7 @@ set(sources_cpp
   interactions/factory.cpp
   interactions/interface.cpp
   interactions/membrane/base_membrane.cu
+  interactions/membrane/factory.cu
   interactions/membrane/prerequisites.cu
   interactions/pairwise.cpp
   interactions/pairwise/factory_helper.cpp

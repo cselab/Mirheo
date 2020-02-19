@@ -91,7 +91,7 @@ public:
         \param [in] config The parameters of the interaction.
     */
     MembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-        Interaction(state, loader, config),
+        BaseMembraneInteraction(state, loader, config),
         growUntil_{config["growUntil"]},
         parameters_{loader.load<CommonMembraneParameters>(config["parameters"])},
         dihedralParams_{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
@@ -190,6 +190,23 @@ public:
     void saveSnapshotAndRegister(Saver& saver)
     {
         saver.registerObject<MembraneInteraction>(this, _saveSnapshot(saver, getTypeName()));
+    }
+
+protected:
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+    */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
+    {
+        ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
+        config.emplace("growUntil",      saver(growUntil_));
+        config.emplace("parameters",     saver(parameters_));
+        config.emplace("dihedralParams", saver(dihedralParams_));
+        config.emplace("triangleParams", saver(triangleParams_));
+        config.emplace("filter",         saver(filter_));
+        config.emplace("stepGen",        saver("<<not implemented>>"));
+        return config;
     }
 
 private:
