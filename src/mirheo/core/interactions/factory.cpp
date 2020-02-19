@@ -1,6 +1,7 @@
 #include "factory.h"
 
-#include "membrane.h"
+#include "membrane/base_membrane.h"
+#include "membrane/factory.h"
 #include "obj_rod_binding.h"
 #include "pairwise.h"
 #include "pairwise/factory_helper.h"
@@ -91,7 +92,7 @@ static FilterKeepByTypeId readFilterKeepByTypeId(ParametersWrap& desc)
     return FilterKeepByTypeId{typeId};
 }
 
-std::shared_ptr<MembraneInteraction>
+std::shared_ptr<BaseMembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               std::string filterDesc, const MapParams& parameters,
@@ -117,8 +118,9 @@ InteractionFactory::createInteractionMembrane(const MirState *state, std::string
     else                                 die("No such filter parameters: '%s'", filterDesc.c_str());
     
     desc.checkAllRead();
-    return std::make_shared<MembraneInteraction>
-        (state, name, commonPrms, varBendingParams, varShearParams, stressFree, growUntil, varFilter);
+    return createInteractionMembrane(
+        state, name, commonPrms, varBendingParams, varShearParams, stressFree,
+        growUntil, varFilter);
 }
 
 static RodParameters readRodParameters(ParametersWrap& desc)
@@ -243,7 +245,7 @@ std::shared_ptr<Interaction> InteractionFactory::loadInteraction(
     if (type == "PairwiseInteraction")
         return std::make_shared<PairwiseInteraction>(state, loader, config);
     if (type == "MembraneInteraction")
-        return std::make_shared<MembraneInteraction>(state, loader, config);
+        return loadInteractionMembrane(state, loader, config);
     die("Unrecognized or unimplemented interaction type \"%s\".", type.c_str());
 }
 

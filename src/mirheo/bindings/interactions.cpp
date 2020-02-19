@@ -3,7 +3,7 @@
 #include <mirheo/core/interactions/pairwise.h>
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
-#include <mirheo/core/interactions/membrane.h>
+#include <mirheo/core/interactions/membrane/base_membrane.h>
 #include <mirheo/core/interactions/obj_rod_binding.h>
 #include <mirheo/core/interactions/rod.h>
 
@@ -39,7 +39,7 @@ castToMap(const py::kwargs& kwargs, const std::string& intName)
     return parameters;
 }
 
-static std::shared_ptr<MembraneInteraction>
+static std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc, std::string filterDesc,
                           bool stressFree, real growUntil, py::kwargs kwargs)
@@ -285,7 +285,7 @@ void exportInteractions(py::module& m)
             pv2: second :any:`ParticleVector`
     )");
     
-    py::handlers_class<MembraneInteraction> pyMembraneForces(m, "MembraneForces", pyInt, R"(
+    py::handlers_class<BaseMembraneInteraction> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_
 
