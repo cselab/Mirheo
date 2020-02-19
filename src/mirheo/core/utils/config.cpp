@@ -279,6 +279,38 @@ std::string ConfigValue::toJSONString() const
     return writer.exportJSON();
 }
 
+std::string ConfigValue::toString() const
+{
+    if (auto *v = get_if<Int>())
+        return std::to_string(*v);
+    if (auto *v = get_if<Float>())
+        return doubleToString(*v);
+    if (auto *v = get_if<String>())
+        return *v;
+
+    std::stringstream stream;
+    if (auto *v = get_if<Array>()) {
+        stream << '[';
+        for (size_t i = 0; i < v->size(); ++i) {
+            if (i > 0)
+                stream << ", ";
+            stream << (*v)[i].toJSONString();
+        }
+        stream << ']';
+    } else if (auto *obj = get_if<Object>()) {
+        stream << '{';
+        for (auto it = obj->begin(); it != obj->end(); ++it) {
+            if (it != obj->begin())
+                stream << ", ";
+            stream << stringToJSON(it->first) << ": " << it->second.toJSONString();
+        }
+        stream << '}';
+    } else {
+        die("Invalid ConfigValue.");
+    }
+    return std::move(stream).str();
+}
+
 ConfigValue::Int ConfigValue::getInt() const
 {
     if (const Int *v = get_if<Int>())

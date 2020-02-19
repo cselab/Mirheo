@@ -8,6 +8,7 @@ namespace mirheo
 namespace py = pybind11;
 
 void exportVectorTypes(py::module& m);
+void exportConfigValue(py::module& m);
 void exportMirheo(py::module& m);
 void exportInitialConditions(py::module& m);
 void exportParticleVectors(py::module& m);

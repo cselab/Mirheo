@@ -204,6 +204,18 @@ TEST(Snapshot, DumpUndumpInteractions)
     }
 }
 
+TEST(Snapshot, HumanReadableToString)
+{
+    ASSERT_STREQ(ConfigValue{10LL}.toString().c_str(), "10");
+    ASSERT_STREQ(ConfigValue{10.5}.toString().c_str(), "10.5");
+    ASSERT_STREQ(ConfigValue{"10"}.toString().c_str(), "10");
+    ASSERT_STREQ(ConfigValue{"hel\"lo"}.toString().c_str(), "hel\"lo");
+    ASSERT_STREQ(ConfigValue(ConfigArray{10LL, 20.5, "abc"}).toString().c_str(),
+                 "[10, 20.5, \"abc\"]");
+    ASSERT_STREQ(ConfigValue(ConfigObject{{"key", "value"}, {"a", 10LL}}).toString().c_str(),
+                 "{\"key\": \"value\", \"a\": 10}");
+}
+
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);

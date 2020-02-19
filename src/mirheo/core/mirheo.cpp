@@ -769,17 +769,9 @@ void Mirheo::setAttribute(const std::string& name, ConfigValue value)
 {
     attributes_.insert_or_assign(name, std::move(value));
 }
-void Mirheo::setAttribute(const std::string& name, long long value)
-{
-    attributes_.insert_or_assign(name, value);
-}
 const ConfigValue& Mirheo::getAttribute(const std::string& name)
 {
     return attributes_.at(name);
-}
-long long Mirheo::getAttributeInt(const std::string& name)
-{
-    return attributes_.at(name).getInt();
 }
 
 } // namespace mirheo

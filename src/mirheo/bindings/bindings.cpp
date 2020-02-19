@@ -7,6 +7,7 @@ PYBIND11_MODULE(libmirheo, m)
     using namespace mirheo;
 
     exportVectorTypes(m);
+    exportConfigValue(m);
     exportMirheo(m);
     
     auto ic = m.def_submodule("InitialConditions");

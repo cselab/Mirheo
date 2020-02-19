@@ -10,6 +10,7 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/walls/interface.h>
 
 #include <pybind11/stl.h>
@@ -29,6 +30,35 @@ CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
 
     die("Unknown checkpoint mode '%s'\n", mode.c_str());
     return CheckpointIdAdvanceMode::PingPong;
+}
+
+void exportConfigValue(py::module& m)
+{
+    py::class_<ConfigValue>(m, "ConfigValue", R"(
+        A JSON-like object representing an integer, floating point number,
+        string, array of ConfigValues or a dictionary mapping strings to
+        ConfigValues.
+
+        Currently only integers, floating point numbers and strings are supported.
+
+        Special conversions for a ``ConfigValue`` value ``v``:
+
+        - ``int(v)`` convert to an integer. Aborts if ``v`` is not an integer.
+        - ``float(v)`` converts to a float. Aborts if ``v`` is not a float nor an integer.
+        - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
+            Otherwise, a potentially approximate representation of the value is returned
+        - ``repr(v)`` converts to a JSON string.
+    R)")
+        .def(py::init<ConfigValue::Int>())
+        .def(py::init<ConfigValue::Float>())
+        .def(py::init<ConfigValue::String>())
+        .def("__int__", &ConfigValue::getInt)
+        .def("__float__", &ConfigValue::getFloat)
+        .def("__str__", &ConfigValue::toString)
+        .def("__repr__", &ConfigValue::toJSONString);
+    py::implicitly_convertible<ConfigValue::Int, ConfigValue>();
+    py::implicitly_convertible<ConfigValue::Float, ConfigValue>();
+    py::implicitly_convertible<ConfigValue::String, ConfigValue>();
 }
 
 void exportMirheo(py::module& m)
@@ -351,18 +381,19 @@ Args:
             Args:
                 path: Target folder.
         )")
-        .def("setAttribute", (void(Mirheo::*)(const std::string&, long long))&Mirheo::setAttribute,
+        .def("setAttribute", &Mirheo::setAttribute,
             "name"_a, "value"_a, R"(
             Add or update a user-defined attribute. Useful for adding custom information to snapshots.
+            Supports integers, floats and strings.
 
             Args:
                 name: attribute name
-                value: value
+                value: a JSON-like ``ConfigValue`` object
         )")
-        .def("getAttributeInt", &Mirheo::getAttributeInt,
+        .def("getAttribute", &Mirheo::getAttribute,
             "name"_a, R"(
-            Read a user-defined attribute as an integer.
-            Throws an exception if the attribute is not found or if its value is not an integer.
+            Read a user-defined attribute and returns a ``ConfigValue``, an object convertible to integers, floats and string.
+            Throws an exception if the attribute is not found.
 
             Args:
                 name: attribute name

@@ -16,6 +16,36 @@ Overloaded function.
         """
         pass
 
+class ConfigValue:
+    r"""
+        A JSON-like object representing an integer, floating point number,
+        string, array of ConfigValues or a dictionary mapping strings to
+        ConfigValues.
+
+        Currently only integers, floating point numbers and strings are supported.
+
+        Special conversions for a ``ConfigValue`` value ``v``:
+
+        - ``int(v)`` convert to an integer. Aborts if ``v`` is not an integer.
+        - ``float(v)`` converts to a float. Aborts if ``v`` is not a float nor an integer.
+        - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
+            Otherwise, a potentially approximate representation of the value is returned
+        - ``repr(v)`` converts to a JSON string.
+    R
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: int) -> None
+
+2. __init__(arg0: float) -> None
+
+3. __init__(arg0: str) -> None
+
+        """
+        pass
+
 class MirState:
     r"""
         state of the simulation shared by all simulation objects.
@@ -146,12 +176,12 @@ Args:
         """
         pass
 
-    def getAttributeInt():
-        r"""getAttributeInt(name: str) -> int
+    def getAttribute():
+        r"""getAttribute(name: str) -> ConfigValue
 
 
-            Read a user-defined attribute as an integer.
-            Throws an exception if the attribute is not found or if its value is not an integer.
+            Read a user-defined attribute and returns a ``ConfigValue``, an object convertible to integers, floats and string.
+            Throws an exception if the attribute is not found.
 
             Args:
                 name: attribute name
@@ -399,14 +429,15 @@ Register Plugins
         pass
 
     def setAttribute():
-        r"""setAttribute(name: str, value: int) -> None
+        r"""setAttribute(name: str, value: ConfigValue) -> None
 
 
             Add or update a user-defined attribute. Useful for adding custom information to snapshots.
+            Supports integers, floats and strings.
 
             Args:
                 name: attribute name
-                value: value
+                value: a JSON-like ``ConfigValue`` object
         
 
         """

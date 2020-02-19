@@ -128,17 +128,11 @@ public:
       */
     void setAttribute(const std::string& name, ConfigValue value);
 
-    /// Temporary overload for `setAttribute` for bindings.
-    void setAttribute(const std::string& name, long long value);
-
     /** \brief Read a user-defined attribute of the given name as an integer.
         \param [in] name The attribute name.
         \return The attribute value. Throws an exception if the attribute is not found or the value is not an integer.
       */
     const ConfigValue& getAttribute(const std::string& name);
-
-    /// Temporary overload for `getAttribute` for bindings.
-    long long getAttributeInt(const std::string& name);
 
 private:
     std::unique_ptr<Simulation> sim_;

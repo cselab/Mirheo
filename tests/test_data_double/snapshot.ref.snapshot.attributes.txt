@@ -31,7 +31,9 @@
         {
             "__type": "Mirheo",
             "attributes": {
-                "attrInt": 123
+                "attrInt": 123,
+                "attrFloat": 123.25,
+                "attrString": "hello"
             },
             "state": {
                 "__type": "MirState",
@@ -66,7 +68,9 @@
         {
             "__type": "Mirheo",
             "attributes": {
-                "attrInt": 123
+                "attrInt": 123,
+                "attrFloat": 123.25,
+                "attrString": "hello"
             },
             "postprocess": "<Postprocess with name=postprocess>"
         }

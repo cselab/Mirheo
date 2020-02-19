@@ -141,7 +141,21 @@ public:
             "Did you mean `saver(value)` instead of `ConfigValue{value}`?");
     }
 
+    /// Dump the value as a JSON string.
     std::string toJSONString() const;
+
+    /** \brief Return an approximate string representation of the value.
+
+        Not machine-readable! This function can be considered like `__str__`
+        function of `ConfigValue`, while `toJSONString()` a `__repr__`
+        function.
+
+        Examples:
+            ConfigValue{10}  .toString() == "10"
+            ConfigValue{10.5}.toString() == "10.5"
+            ConfigValue{"10"}.toString() == "10"
+     */
+    std::string toString() const;
 
     /// Getter functions. Terminate if the underlying type is different. Int
     /// and Float variants accept the other type if the conversion is lossless.
