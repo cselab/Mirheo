@@ -20,6 +20,19 @@ template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, Param
     if (power != defaultReal) p.power = power;
 }
 
+template <> void readParams<NoRandomDPDParams>(NoRandomDPDParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    const auto a     = reader.read<real>(desc, "a");
+    const auto gamma = reader.read<real>(desc, "gamma");
+    const auto kBT   = reader.read<real>(desc, "kBT");
+    const auto power = reader.read<real>(desc, "power");
+    
+    if (a     != defaultReal) p.a     = a;
+    if (gamma != defaultReal) p.gamma = gamma;
+    if (kBT   != defaultReal) p.kBT   = kBT;
+    if (power != defaultReal) p.power = power;
+}
+
 template <> void readParams<LJAwarenessParamsNone  >(__UNUSED LJAwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
 template <> void readParams<LJAwarenessParamsObject>(__UNUSED LJAwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
 template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)

@@ -3,6 +3,7 @@
 #include "accumulators/force.h"
 #include "fetchers.h"
 #include "interface.h"
+#include "parameters.h"
 
 #include <mirheo/core/mirheo_state.h>
 
@@ -22,6 +23,7 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     using HandlerType  = PairwiseNorandomDPD;
+    using ParamsType   = NoRandomDPDParams;
     
     PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real dt, real power) :
         ParticleFetcherWithVelocity(rc),
@@ -30,6 +32,10 @@ public:
         sigma_(math::sqrt(2 * gamma_ * kBT / dt)),
         power_(power),
         invrc_(1.0 / rc)
+    {}
+
+    PairwiseNorandomDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
+        PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, dt, p.power)
     {}
 
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const

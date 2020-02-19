@@ -7,7 +7,8 @@
 #include <mirheo/core/domain.h>
 #include <mirheo/core/exchangers/api.h>
 #include <mirheo/core/integrators/factory.h>
-#include <mirheo/core/interactions/pairwise.h>
+#include <mirheo/core/interactions/pairwise/factory.h>
+#include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
@@ -261,7 +262,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     SingleNodeEngine redistEngine(std::move(redistributor));
 
     const DPDParams dpdParams{adpd, gammadpd, kBT, powerdpd};
-    PairwiseInteraction dpd(&state, "dpd", rc, dpdParams, StressNoneParams{});
+    auto dpd = createInteractionPairwise(&state, "dpd", rc, dpdParams, StressNoneParams{});
 
     auto integrator = IntegratorFactory::createVV(&state, "vv");
     
@@ -282,12 +283,12 @@ void execute(real3 length, int niters, double& l2, double& linf)
 
         haloEngine.init(defStream);
         
-        dpd.setPrerequisites(&pv, &pv, &cells, &cells);
-        dpd.local(&pv, &pv, &cells, &cells, defStream);
+        dpd->setPrerequisites(&pv, &pv, &cells, &cells);
+        dpd->local(&pv, &pv, &cells, &cells, defStream);
 
         haloEngine.finalize(defStream);
 
-        dpd.halo(&pv, &pv, &cells, &cells, defStream);
+        dpd->halo(&pv, &pv, &cells, &cells, defStream);
 
         integrator->setPrerequisites(&pv);
         integrator->execute(&pv, defStream);

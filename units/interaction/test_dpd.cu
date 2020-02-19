@@ -5,7 +5,7 @@
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/containers.h>
-#include <mirheo/core/interactions/pairwise/impl.h>
+#include <mirheo/core/interactions/pairwise/pairwise.h>
 #include <mirheo/core/interactions/pairwise/kernels/norandom_dpd.h>
 #include <mirheo/core/initial_conditions/uniform.h>
 
@@ -119,8 +119,8 @@ void execute(MPI_Comm comm, real3 length)
     const real sigma_dt = sigmadpd / math::sqrt(dt);
     const real adpd = 50;
 
-    PairwiseNorandomDPD dpdInt(rc, adpd, gammadpd, kbT, dt, k);
-    std::unique_ptr<Interaction> inter = std::make_unique<PairwiseInteractionImpl<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdInt);
+    NoRandomDPDParams dpdParams {adpd, gammadpd, kbT, k};
+    std::unique_ptr<Interaction> inter = std::make_unique<PairwiseInteraction<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdParams);
 
     PinnedBuffer<int> counter(1);
 

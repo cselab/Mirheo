@@ -11,6 +11,7 @@ namespace mirheo
 // forward declaration of pairwise kernels
 
 class PairwiseDPD;
+class PairwiseNoRandomDPD;
 
 struct LJAwarenessNone;
 struct LJAwarenessObject;
@@ -41,6 +42,13 @@ struct DPDParams
     real a, gamma, kBT, power;
 };
 MIRHEO_MEMBER_VARS(DPDParams, a, gamma, kBT, power);
+
+struct NoRandomDPDParams
+{
+    using KernelType = PairwiseNoRandomDPD;
+    real a, gamma, kBT, power;
+};
+MIRHEO_MEMBER_VARS(NoRandomDPDParams, a, gamma, kBT, power);
 
 struct LJAwarenessParamsNone   {using KernelType = LJAwarenessNone;};
 struct LJAwarenessParamsObject {using KernelType = LJAwarenessObject;};

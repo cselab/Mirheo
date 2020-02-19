@@ -1,5 +1,7 @@
 #pragma once
 
+#include "parameters.h"
+
 #include <cmath>
 
 namespace mirheo

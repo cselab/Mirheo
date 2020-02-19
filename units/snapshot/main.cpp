@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <mirheo/core/interactions/factory.h>
-#include <mirheo/core/interactions/pairwise.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/snapshot.h>
