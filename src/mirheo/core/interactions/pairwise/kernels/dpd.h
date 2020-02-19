@@ -71,6 +71,7 @@ class PairwiseDPD : public PairwiseKernel, public PairwiseDPDHandler
 public:
 
     using HandlerType = PairwiseDPDHandler;
+    using ParamsType = DPDParams;
     
     PairwiseDPD(real rc, real a, real gamma, real kBT, real dt, real power, long seed=42424242) :
         PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
@@ -78,7 +79,7 @@ public:
         kBT_(kBT)
     {}
 
-    PairwiseDPD(real rc, const DPDParams& p, real dt, long seed=42424242) :
+    PairwiseDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
         PairwiseDPD(rc, p.a, p.gamma, p.kBT, dt, p.power, seed)
     {}
 

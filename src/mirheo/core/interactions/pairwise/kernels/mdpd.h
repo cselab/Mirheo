@@ -79,6 +79,7 @@ class PairwiseMDPD : public PairwiseKernel, public PairwiseMDPDHandler
 public:
 
     using HandlerType = PairwiseMDPDHandler;
+    using ParamsType  = MDPDParams;
     
     PairwiseMDPD(real rc, real rd, real a, real b, real gamma, real kBT, real dt, real power, long seed = 42424242) :
         PairwiseMDPDHandler(rc, rd, a, b, gamma, computeSigma(gamma, kBT, dt), power),
@@ -86,7 +87,7 @@ public:
         kBT_(kBT)
     {}
 
-    PairwiseMDPD(real rc, const MDPDParams& p, real dt, long seed = 42424242) :
+    PairwiseMDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
         PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, dt, p.power, seed)
     {}
 

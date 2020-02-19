@@ -4,6 +4,7 @@
 #include "density_kernels.h"
 #include "fetchers.h"
 #include "interface.h"
+#include "parameters.h"
 
 namespace mirheo
 {
@@ -19,11 +20,16 @@ public:
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleFetcher::ParticleType;
     using HandlerType  = PairwiseDensity;
+    using ParamsType   = DensityParams;
     
     PairwiseDensity(real rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),
         densityKernel_(densityKernel),
         invrc_(1.0 / rc)
+    {}
+
+    PairwiseDensity(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
+        PairwiseDensity(rc, mpark::get<DensityKernel>(p.varDensityKernelParams))
     {}
 
     __D__ inline real operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const

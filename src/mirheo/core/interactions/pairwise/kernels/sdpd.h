@@ -95,12 +95,23 @@ class PairwiseSDPD : public PairwiseKernel, public PairwiseSDPDHandler<PressureE
 public:
 
     using HandlerType = PairwiseSDPDHandler<PressureEOS, DensityKernel>;
+    using ParamsType  = SDPDParams;
     
     PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, real dt, long seed = 42424242) :
         PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
         stepGen_(seed),
         viscosity_(viscosity),
         kBT_(kBT)
+    {}
+
+    PairwiseSDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
+        PairwiseSDPD{rc,
+                     mpark::get<PressureEOS>(p.varEOSParams),
+                     mpark::get<DensityKernel>(p.varDensityKernelParams),
+                     p.viscosity,
+                     p.kBT,
+                     dt,
+                     seed}
     {}
 
     const HandlerType& handler() const

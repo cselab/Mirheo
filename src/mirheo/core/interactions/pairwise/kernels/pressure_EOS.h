@@ -10,7 +10,6 @@ namespace mirheo
 class LinearPressureEOS
 {
 public:
-
     LinearPressureEOS(real soundSpeed, real rho0) :
         cSq_(soundSpeed * soundSpeed),
         rho0_(rho0)
@@ -26,14 +25,14 @@ public:
     }
 
 private:
-    real cSq_, rho0_;
+    real cSq_;
+    real rho0_;
 };
 
 
 class QuasiIncompressiblePressureEOS
 {
 public:
-    
     QuasiIncompressiblePressureEOS(real p0, real rhor) :
         p0_(p0),
         invRhor_(1.0_r / rhor)
@@ -52,7 +51,8 @@ public:
     }
 
 private:
-    real p0_, invRhor_;
+    real p0_;
+    real invRhor_;
 };
 
 } // namespace mirheo

@@ -56,10 +56,16 @@ public:
 
     using ViewType     = typename HandlerType::ViewType;
     using ParticleType = typename HandlerType::ParticleType;
+    using ParamsType   = typename BasicPairwiseForce::ParamsType;
 
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
         BasicPairwiseForce(basicForce),
         basicForceWrapperHandler_(basicForce.handler())
+    {}
+
+    PairwiseStressWrapper(real rc, const ParamsType& p, real dt, long seed=42424242) :
+        BasicPairwiseForce(rc, p, dt, seed),
+        basicForceWrapperHandler_ {HandlerType{BasicPairwiseForce::handler()}}
     {}
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override

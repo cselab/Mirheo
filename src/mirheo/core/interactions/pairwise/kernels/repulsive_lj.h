@@ -116,6 +116,7 @@ public:
     using ViewType     = PVview;
     using ParticleType = Particle;
     using HandlerType  = PairwiseRepulsiveLJ;
+    using ParamsType   = LJParams;
     
     PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
         ParticleFetcher(rc),
@@ -134,6 +135,14 @@ public:
                 rm, rc, maxSigma, rm);
         }
     }
+
+    PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
+        PairwiseRepulsiveLJ{rc,
+                            p.epsilon,
+                            p.sigma,
+                            p.maxForce,
+                            mpark::get<Awareness>(p.varLJAwarenessParams)}
+    {}
 
     __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
