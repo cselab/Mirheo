@@ -149,7 +149,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
     auto lrov = rov->local();
     
     if (rov->getObjectSize() != static_cast<int>(rov->initialPositions.size()))
-        die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %d",
+        die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %zu",
             rov->getCName(), rov->getObjectSize(), rov->initialPositions.size());
 
     const auto motions = createMotions(domain, comQ_, comVelocities_);

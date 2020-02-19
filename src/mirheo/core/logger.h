@@ -92,7 +92,8 @@ public:
      * @param pattern  message pattern to be passed to \e printf
      * @param args     other relevant arguments to \e printf
      */
-    void log(const char *key, const char *filename, int line, const char *pattern, ...) const;
+    void log [[gnu::format(printf, 5, 6)]] (
+            const char *key, const char *filename, int line, const char *pattern, ...) const;
     void logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
 
     void printStacktrace() const;
@@ -104,7 +105,8 @@ public:
      *
      * @param args forwarded to log()
      */
-    void _die [[noreturn]](const char *filename, int line, const char *fmt, ...) const;
+    void _die [[gnu::format(printf, 4, 5)]] [[noreturn]] (
+            const char *filename, int line, const char *fmt, ...) const;
 
     /**
      * Wrapper around _die() that prints the current CUDA error.
@@ -113,7 +115,7 @@ public:
      * @param line  line number of the source file
      * @param code  error code (returned by a CUDA call)
      */
-    void _CUDA_die [[noreturn]](const char *filename, int line, cudaError_t code) const;
+    void _CUDA_die [[noreturn]] (const char *filename, int line, cudaError_t code) const;
 
     /**
      * Wrapper around _die() that prints the current MPI error.
@@ -122,7 +124,7 @@ public:
      * @param line  line number of the source file
      * @param code  error code (returned by an MPI call)
      */
-    void _MPI_die [[noreturn]](const char *filename, int line, int code) const;
+    void _MPI_die [[noreturn]] (const char *filename, int line, int code) const;
 
     /**
      * @param filename name of the current source file

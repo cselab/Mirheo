@@ -169,7 +169,7 @@ DensityParams readDensityParams(ParametersWrap& desc)
     }
     else
     {
-        die("unrecognized density kernel '%d'", kernel.c_str());
+        die("unrecognized density kernel '%s'", kernel.c_str());
     }
     return p;
 }
@@ -187,7 +187,7 @@ static VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& de
     }
     else
     {
-        die("unrecognized density kernel '%d'", kernel.c_str());
+        die("unrecognized density kernel '%s'", kernel.c_str());
     }
     return p;
 }

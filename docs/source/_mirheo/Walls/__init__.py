@@ -211,7 +211,7 @@ class RotatingCylinder(Wall):
 
 class SDF(Wall):
     r"""
-        This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular cartesian grid.
+        This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
         The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
         
         First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 

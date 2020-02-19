@@ -85,7 +85,7 @@ void UniformCartesianDumper::deserialize()
     MirState::StepType timeStamp;
     SimpleSerializer::deserialize(data_, t, timeStamp, recvNumberDnsity_, recvContainers_);
     
-    debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %d",
+    debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %lld",
            getCName(), t, timeStamp);
 
     convert(recvNumberDnsity_, numberDnsity_);    

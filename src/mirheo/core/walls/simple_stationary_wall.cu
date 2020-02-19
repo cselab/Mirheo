@@ -451,7 +451,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
         auto& bc = boundaryCells_[i];
         auto  view = cl->getView<PVviewWithOldParticles>();
 
-        debug2("Bouncing %d %s particles, %d boundary cells",
+        debug2("Bouncing %d %s particles, %zu boundary cells",
                pv->local()->size(), pv->getCName(), bc.size());
 
         const int nthreads = 64;
@@ -497,7 +497,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     auto pv = lpv->parent();
 
     if (sizeof(real) % sdfs->datatype_size() != 0)
-        die("Incompatible datatype size of container for SDF values: %d (working with PV '%s')",
+        die("Incompatible datatype size of container for SDF values: %zu (working with PV '%s')",
             sdfs->datatype_size(), pv->getCName());
     sdfs->resize_anew( np*sizeof(real) / sdfs->datatype_size());
 
@@ -505,7 +505,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     if (gradients != nullptr)
     {
         if (sizeof(real3) % gradients->datatype_size() != 0)
-            die("Incompatible datatype size of container for SDF gradients: %d (working with PV '%s')",
+            die("Incompatible datatype size of container for SDF gradients: %zu (working with PV '%s')",
                 gradients->datatype_size(), pv->getCName());
         gradients->resize_anew( np*sizeof(real3) / gradients->datatype_size());
     }
@@ -525,11 +525,11 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *posit
     const int n = positions->size();
     
     if (sizeof(real) % sdfs->datatype_size() != 0)
-        die("Incompatible datatype size of container for SDF values: %d (sampling sdf on positions)",
+        die("Incompatible datatype size of container for SDF values: %zu (sampling sdf on positions)",
             sdfs->datatype_size());
 
     if (sizeof(real3) % sdfs->datatype_size() != 0)
-        die("Incompatible datatype size of container for Psitions values: %d (sampling sdf on positions)",
+        die("Incompatible datatype size of container for Psitions values: %zu (sampling sdf on positions)",
             positions->datatype_size());
     
     const int nthreads = 128;
@@ -544,7 +544,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer* sdfs, cudaStream_t stream)
 {
     if (sizeof(real) % sdfs->datatype_size() != 0)
-        die("Incompatible datatype size of container for SDF values: %d (sampling sdf on a grid)",
+        die("Incompatible datatype size of container for SDF values: %zu (sampling sdf on a grid)",
             sdfs->datatype_size());
         
     const CellListInfo gridInfo(h, getState()->domain.localSize);

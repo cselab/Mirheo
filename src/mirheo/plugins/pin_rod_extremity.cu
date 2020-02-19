@@ -75,7 +75,7 @@ void PinRodExtremityPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
             getCName(), rvName_.c_str());
 
     if (segmentId_ < 0 || segmentId_ >= rv_->local()->getNumSegmentsPerRod())
-        die("Invalid segment id in plugin '%s'");
+        die("Invalid segment id in plugin '%s'", getCName());
 }
 
 void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
