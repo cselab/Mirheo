@@ -23,4 +23,17 @@ real BasePairwiseInteraction::getCutoffRadius() const
     return rc_;
 }
 
+void BasePairwiseInteraction::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject<BasePairwiseInteraction>(
+            this, _saveSnapshot(saver, "BasePairwiseInteraction"));
+}
+
+ConfigObject BasePairwiseInteraction::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = Interaction::_saveSnapshotWithoutImpl(saver, typeName);
+    config.emplace("rc", saver(getCutoffRadius()));
+    return config;
+}
+
 } // namespace mirheo

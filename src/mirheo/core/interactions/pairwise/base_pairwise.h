@@ -32,6 +32,20 @@ public:
 
     real getCutoffRadius() const override;
 
+    /** \brief Create a \c ConfigObject describing the interaction and register it in the saver.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+
+        Checks that the object type is exactly \c PairwiseInteraction.
+    */
+    void saveSnapshotAndRegister(Saver& saver) override;
+
+protected:
+    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+    */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
 protected:
     real rc_; ///< cut-off radius of the interaction
 };
