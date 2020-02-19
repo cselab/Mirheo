@@ -106,8 +106,8 @@ public:
 
     PairwiseSDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
         PairwiseSDPD{rc,
-                     mpark::get<PressureEOS>(p.varEOSParams),
-                     mpark::get<DensityKernel>(p.varDensityKernelParams),
+                     mpark::get<typename PressureEOS::ParamsType>(p.varEOSParams),
+                     mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
                      p.viscosity,
                      p.kBT,
                      dt,

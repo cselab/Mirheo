@@ -10,15 +10,17 @@ namespace mirheo
 class LinearPressureEOS
 {
 public:
+    using ParamsType = LinearPressureEOSParams;
+    
     LinearPressureEOS(real soundSpeed, real rho0) :
         cSq_(soundSpeed * soundSpeed),
         rho0_(rho0)
     {}
 
-    LinearPressureEOS(const LinearPressureEOSParams& p) :
+    LinearPressureEOS(const ParamsType& p) :
         LinearPressureEOS(p.soundSpeed, p.rho0)
     {}
-    
+
     __D__ inline real operator()(real rho) const
     {
         return cSq_ * (rho - rho0_);
@@ -33,12 +35,14 @@ private:
 class QuasiIncompressiblePressureEOS
 {
 public:
+    using ParamsType = QuasiIncompressiblePressureEOSParams;
+    
     QuasiIncompressiblePressureEOS(real p0, real rhor) :
         p0_(p0),
         invRhor_(1.0_r / rhor)
     {}
 
-    QuasiIncompressiblePressureEOS(const QuasiIncompressiblePressureEOSParams& p) :
+    QuasiIncompressiblePressureEOS(const ParamsType& p) :
         QuasiIncompressiblePressureEOS(p.p0, p.rhor)
     {}
     

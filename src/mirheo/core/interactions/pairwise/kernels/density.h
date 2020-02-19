@@ -29,7 +29,8 @@ public:
     {}
 
     PairwiseDensity(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
-        PairwiseDensity(rc, mpark::get<DensityKernel>(p.varDensityKernelParams))
+        PairwiseDensity{rc,
+                        mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams)}
     {}
 
     __D__ inline real operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const

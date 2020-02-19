@@ -15,8 +15,10 @@ namespace mirheo
 class LJAwarenessNone
 {
 public:
+    using ParamsType = LJAwarenessParamsNone;
+    
     LJAwarenessNone() = default;
-    LJAwarenessNone(__UNUSED const LJAwarenessParamsNone& params) {}
+    LJAwarenessNone(__UNUSED const ParamsType& params) {}
     
     void setup(__UNUSED LocalParticleVector *lpv1, __UNUSED LocalParticleVector *lpv2) {}
     __D__ inline bool interact(__UNUSED int srcId, __UNUSED int dstId) const {return true;}
@@ -25,8 +27,10 @@ public:
 class LJAwarenessObject
 {
 public:
+    using ParamsType = LJAwarenessParamsObject;
+    
     LJAwarenessObject() = default;
-    LJAwarenessObject(__UNUSED const LJAwarenessParamsObject& params) {}
+    LJAwarenessObject(__UNUSED const ParamsType& params) {}
     
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
@@ -62,11 +66,13 @@ private:
 class LJAwarenessRod
 {
 public:
+    using ParamsType = LJAwarenessParamsRod;
+    
     LJAwarenessRod(int minSegmentsDist) :
         minSegmentsDist_(minSegmentsDist)
     {}
 
-    LJAwarenessRod(const LJAwarenessParamsRod& params) :
+    LJAwarenessRod(const ParamsType& params) :
         LJAwarenessRod(params.minSegmentsDist)
     {}
 
@@ -141,7 +147,7 @@ public:
                             p.epsilon,
                             p.sigma,
                             p.maxForce,
-                            mpark::get<Awareness>(p.varLJAwarenessParams)}
+                            mpark::get<typename Awareness::ParamsType>(p.varLJAwarenessParams)}
     {}
 
     __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const

@@ -8,6 +8,11 @@ namespace mirheo
 class SimpleMDPDDensityKernel
 {
 public:
+    using ParamsType = SimpleMDPDDensityKernelParams;
+
+    SimpleMDPDDensityKernel() = default;
+    SimpleMDPDDensityKernel(const ParamsType&) {};
+
     __D__ inline real operator()(real r, real invrc) const
     {
         const real rm = (1._r - r * invrc) * invrc;
@@ -21,6 +26,11 @@ private:
 class WendlandC2DensityKernel
 {
 public:
+    using ParamsType = WendlandC2DensityKernelParams;
+    
+    WendlandC2DensityKernel() = default;
+    WendlandC2DensityKernel(const ParamsType&) {};
+
     __D__ inline real operator()(real r, real invrc) const
     {
         const real r_ = r * invrc;
