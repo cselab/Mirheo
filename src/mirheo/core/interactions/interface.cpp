@@ -37,27 +37,9 @@ std::vector<Interaction::InteractionChannel> Interaction::getOutputChannels() co
     return {{ChannelNames::forces, alwaysActive}};
 }
 
-void Interaction::setState(const MirState *state)
-{
-    MirSimulationObject::setState(state);
-    if (impl) impl->setState(state);
-}
-
 bool Interaction::isSelfObjectInteraction() const
 {
     return false;
-}
-
-void Interaction::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
-{
-    if (!impl) return;
-    impl->checkpoint(comm, path, checkpointId);
-}
-
-void Interaction::restart(MPI_Comm comm, const std::string& path)
-{
-    if (!impl) return;
-    impl->restart(comm, path);
 }
 
 real Interaction::getCutoffRadius() const
@@ -75,15 +57,15 @@ ConfigObject Interaction::_saveSnapshotWithoutImpl(Saver& saver, const std::stri
 ConfigObject Interaction::_saveSnapshotWithImpl(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = _saveSnapshotWithoutImpl(saver, typeName);
-    config.emplace("impl", saver(impl));
+    // config.emplace("impl", saver(impl));
     return config;
 }
 
 ConfigObject Interaction::_saveImplSnapshot(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = MirSimulationObject::_saveSnapshot(saver, "InteractionImpl", typeName);
-    if (impl)
-        die("Impl interaction has impl?");
+    // if (impl)
+    //     die("Impl interaction has impl?");
     return config;
 }
 

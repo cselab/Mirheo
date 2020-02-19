@@ -80,8 +80,6 @@ public:
     virtual void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
                       CellList *cl2, cudaStream_t stream) = 0;
 
-
-    void setState(const MirState *state) override;
     
     /**
      * true if the interaction is a self interaction for objects
@@ -106,9 +104,6 @@ public:
 
     virtual real getCutoffRadius() const;
 
-    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
-    void restart   (MPI_Comm comm, const std::string& path) override;
-    
     static const ActivePredicate alwaysActive;
     
 protected:
@@ -129,8 +124,6 @@ protected:
         \param [in] typeName The name of the type being saved.
       */
     ConfigObject _saveImplSnapshot(Saver& saver, const std::string &typeName);
-
-    std::unique_ptr<Interaction> impl; // concrete implementation of interactions
 };
 
 } // namespace mirheo
