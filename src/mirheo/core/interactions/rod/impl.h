@@ -3,7 +3,7 @@
 #include "drivers_forces.h"
 #include "drivers_states.h"
 #include "kernels/parameters.h"
-#include "poly_states.h"
+#include "polymorphic_states.h"
 
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/pvs/rod_vector.h>
