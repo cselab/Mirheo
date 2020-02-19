@@ -13,7 +13,7 @@ namespace mirheo
 class Interaction;
 class BaseMembraneInteraction;
 class RodInteraction;
-class PairwiseInteraction;
+class BasePairwiseInteraction;
 class ObjectRodBindingInteraction;
 
 namespace InteractionFactory
@@ -21,7 +21,7 @@ namespace InteractionFactory
 using VarParam = ParametersWrap::VarParam;
 using MapParams = ParametersWrap::MapParams;
 
-std::shared_ptr<PairwiseInteraction>
+std::shared_ptr<BasePairwiseInteraction>
 createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters);
 
 

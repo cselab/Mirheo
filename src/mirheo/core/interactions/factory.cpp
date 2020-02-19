@@ -3,7 +3,8 @@
 #include "membrane/base_membrane.h"
 #include "membrane/factory.h"
 #include "obj_rod_binding.h"
-#include "pairwise.h"
+#include "pairwise/base_pairwise.h"
+#include "pairwise/factory.h"
 #include "pairwise/factory_helper.h"
 #include "rod.h"
 
@@ -206,7 +207,7 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
     return std::make_shared<RodInteraction>(state, name, params, spinParams, saveEnergies);
 }
 
-std::shared_ptr<PairwiseInteraction>
+std::shared_ptr<BasePairwiseInteraction>
 InteractionFactory::createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
@@ -228,7 +229,7 @@ InteractionFactory::createPairwiseInteraction(const MirState *state, std::string
     const auto varStressParams = FactoryHelper::readStressParams(desc);
 
     desc.checkAllRead();
-    return std::make_shared<PairwiseInteraction>(state, name, rc, varParams, varStressParams);
+    return createInteractionPairwise(state, name, rc, varParams, varStressParams);
 }
 
 std::shared_ptr<ObjectRodBindingInteraction>
@@ -238,12 +239,12 @@ InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::s
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }
 
-std::shared_ptr<Interaction> InteractionFactory::loadInteraction(
-        const MirState *state, Loader& loader, const ConfigObject& config)
+std::shared_ptr<Interaction>
+InteractionFactory::loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config)
 {
     const std::string& type = config["__type"];
-    if (type == "PairwiseInteraction")
-        return std::make_shared<PairwiseInteraction>(state, loader, config);
+    // if (type == "PairwiseInteraction")
+    //     return std::make_shared<PairwiseInteraction>(state, loader, config);
     if (type == "MembraneInteraction")
         return loadInteractionMembrane(state, loader, config);
     die("Unrecognized or unimplemented interaction type \"%s\".", type.c_str());

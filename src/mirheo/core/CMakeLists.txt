@@ -22,7 +22,6 @@ set(sources_cpp
   integrators/sub_step.cpp
   interactions/factory.cpp
   interactions/interface.cpp
-  interactions/pairwise.cpp
   interactions/pairwise/base_pairwise.cpp
   interactions/pairwise/factory_helper.cpp
   interactions/parameters_wrap.cpp
@@ -103,7 +102,6 @@ set(sources_cu
   interactions/membrane/factory.cu
   interactions/membrane/prerequisites.cu
   interactions/obj_rod_binding.cu
-  interactions/pairwise.cu
   interactions/pairwise/factory.cu
   interactions/rod.cu
   object_belonging/mesh_belonging.cu

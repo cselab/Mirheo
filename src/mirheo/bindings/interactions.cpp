@@ -1,6 +1,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 
-#include <mirheo/core/interactions/pairwise.h>
+#include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
@@ -58,7 +58,7 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
     return InteractionFactory::createInteractionRod(state, name, stateUpdateDesc, dumpEnergies, parameters);
 }
 
-static std::shared_ptr<PairwiseInteraction>
+static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseInteraction(const MirState *state, const std::string& name,
                           real rc, const std::string& kind, py::kwargs kwargs)
 {
@@ -70,7 +70,7 @@ void exportInteractions(py::module& m)
 {
     py::handlers_class<Interaction> pyInt(m, "Interaction", "Base interaction class");
 
-    py::handlers_class<PairwiseInteraction> pyIntPairwise(m, "Pairwise", pyInt, R"(
+    py::handlers_class<BasePairwiseInteraction> pyIntPairwise(m, "Pairwise", pyInt, R"(
         Generic pairwise interaction class. 
         Can be applied between any kind of :any:`ParticleVector` classes.
         The following interactions are currently implemented:
@@ -270,10 +270,10 @@ void exportInteractions(py::module& m)
                 * **rho_r**: :math:`\rho_r`
     )");
     
-    pyIntPairwise.def("setSpecificPair", [](PairwiseInteraction *self, ParticleVector *pv1, ParticleVector *pv2, py::kwargs kwargs)
+    pyIntPairwise.def("setSpecificPair", [](BasePairwiseInteraction *self, ParticleVector *pv1, ParticleVector *pv2, py::kwargs kwargs)
     {
         auto params = castToMap(kwargs, self->getName());
-        self->setSpecificPair(pv1, pv2, params);
+        self->setSpecificPair(pv1->getName(), pv2->getName(), params);
     }, "pv1"_a, "pv2"_a, R"(
         Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.
         This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
