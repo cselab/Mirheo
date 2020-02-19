@@ -25,6 +25,7 @@ set(sources_cpp
   interactions/pairwise/base_pairwise.cpp
   interactions/pairwise/factory_helper.cpp
   interactions/parameters_wrap.cpp
+  interactions/rod/base_rod.cpp
   interactions/utils/step_random_gen.cpp
   logger.cpp
   managers/interactions.cpp
