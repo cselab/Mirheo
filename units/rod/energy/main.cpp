@@ -1,5 +1,6 @@
 #include <mirheo/core/initial_conditions/rod.h>
-#include <mirheo/core/interactions/rod.h>
+#include <mirheo/core/interactions/rod/base_rod.h>
+#include <mirheo/core/interactions/rod/factory.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/utils/cuda_common.h>
@@ -278,14 +279,14 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     params.a0       = 0._r;
     params.ksCenter = 0._r;
     params.ksFrame  = 0._r;
-    RodInteraction gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
-    gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+    auto gpuInt = createInteractionRod(&state, "twist_forces", params, StatesParametersNone{}, true);
+    gpuInt->setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
     
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
-    gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
+    gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
     auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
@@ -410,14 +411,14 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     params.a0       = 0._r;
     params.ksCenter = 0._r;
     params.ksFrame  = 0._r;
-    RodInteraction gpuInt(&state, "twist_forces", params, StatesParametersNone{}, true);
-    gpuInt.setPrerequisites(&rv, &rv, nullptr, nullptr);
+    auto gpuInt = createInteractionRod(&state, "twist_forces", params, StatesParametersNone{}, true);
+    gpuInt->setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
-    gpuInt.local(&rv, &rv, nullptr, nullptr, defaultStream);
+    gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
     auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
     gpuEnergies.downloadFromDevice(defaultStream);

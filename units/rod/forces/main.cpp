@@ -1,4 +1,5 @@
-#include <mirheo/core/interactions/rod.h>
+#include <mirheo/core/interactions/rod/base_rod.h>
+#include <mirheo/core/interactions/rod/factory.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/utils/helper_math.h>
@@ -420,7 +421,7 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
     
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    RodInteraction interactions(&state, "rod_interaction", params, StatesParametersNone{}, false);
+    auto interactions = createInteractionRod(&state, "rod_interaction", params, StatesParametersNone{}, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
@@ -429,8 +430,8 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
     twistForces(h, kt, tau0, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
-    interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);
@@ -479,7 +480,7 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
     
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    RodInteraction interactions(&state, "rod_interaction", params, StatesParametersNone{}, false);
+    auto interactions = createInteractionRod(&state, "rod_interaction", params, StatesParametersNone{}, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
@@ -489,8 +490,8 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
     bendingForces(h, B_, kappa, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
-    interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);
@@ -541,7 +542,7 @@ static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nS
     
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
-    RodInteraction interactions(&state, "rod_interaction", params, stateParams, false);
+    auto interactions = createInteractionRod(&state, "rod_interaction", params, stateParams, false);
     initializeRef(centerLine, nSegments, refPositions, refFrames);
     copyToRv(refPositions, rod);
 
@@ -549,8 +550,8 @@ static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nS
     smoothingForces(h, kSmoothing, refPositions, refForces);
 
     rod.local()->forces().clear(defaultStream);
-    interactions.setPrerequisites(&rod, &rod, nullptr, nullptr);
-    interactions.local(&rod, &rod, nullptr, nullptr, defaultStream);
+    interactions->setPrerequisites(&rod, &rod, nullptr, nullptr);
+    interactions->local(&rod, &rod, nullptr, nullptr, defaultStream);
 
     HostBuffer<Force> forces;
     forces.copy(rod.local()->forces(), defaultStream);
