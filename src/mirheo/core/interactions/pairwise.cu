@@ -156,58 +156,6 @@ void PairwiseInteraction::restart(MPI_Comm comm, const std::string& path)
     return impl->restart(comm, path);
 }
 
-template <class Params>
-static void readSpecificParams(Params& p, ParametersWrap& desc)
-{
-    using namespace FactoryHelper;
-    readParams(p, desc, {ParamsReader::Mode::DefaultIfNotFound});
-}
-
-static void readSpecificParams(LJParams& p, ParametersWrap& desc)
-{
-    using namespace FactoryHelper;
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& awareParams)
-    {
-        readParams(awareParams, desc, reader);
-    }, p.varLJAwarenessParams);
-}
-
-static void readSpecificParams(DensityParams& p, ParametersWrap& desc)
-{
-    using namespace FactoryHelper;
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& densityParams)
-    {
-        readParams(densityParams, desc, reader);
-    }, p.varDensityKernelParams);
-}
-
-static void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
-{
-    using namespace FactoryHelper;
-    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
-    readParams(p, desc, reader);
-
-    mpark::visit([&](auto& eosParams)
-    {
-        readParams(eosParams, desc, reader);
-    }, p.varEOSParams);
-
-    mpark::visit([&](auto& densityParams)
-    {
-        readParams(densityParams, desc, reader);
-    }, p.varDensityKernelParams);
-}
-
-
 struct SpecificPairInfo
 {
     ParticleVector *pv1, *pv2;
@@ -324,7 +272,7 @@ void PairwiseInteraction::setSpecificPair(ParticleVector *pv1, ParticleVector *p
     
     mpark::visit([&](auto& params)
     {
-        readSpecificParams(params, desc);
+        FactoryHelper::readSpecificParams(params, desc);
         setSpecificFromParams(getState(), rc, params, varStressParams_, info);
     }, varParamsSpecific);
     

@@ -250,6 +250,48 @@ VarStressParams readStressParams(ParametersWrap& desc)
     }
 }
 
+void readSpecificParams(LJParams& p, ParametersWrap& desc)
+{
+    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
+    
+    readParams(p, desc, reader);
+
+    mpark::visit([&](auto& awareParams)
+    {
+        readParams(awareParams, desc, reader);
+    }, p.varLJAwarenessParams);
+}
+
+void readSpecificParams(DensityParams& p, ParametersWrap& desc)
+{
+    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
+    
+    readParams(p, desc, reader);
+
+    mpark::visit([&](auto& densityParams)
+    {
+        readParams(densityParams, desc, reader);
+    }, p.varDensityKernelParams);
+}
+
+void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
+{
+    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
+    
+    readParams(p, desc, reader);
+
+    mpark::visit([&](auto& eosParams)
+    {
+        readParams(eosParams, desc, reader);
+    }, p.varEOSParams);
+
+    mpark::visit([&](auto& densityParams)
+    {
+        readParams(densityParams, desc, reader);
+    }, p.varDensityKernelParams);
+}
+
+
 } // namespace FactoryHelper
 
 } // namespace mirheo

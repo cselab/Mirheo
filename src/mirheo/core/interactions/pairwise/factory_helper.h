@@ -49,6 +49,19 @@ SDPDParams      readSDPDParams    (ParametersWrap& desc);
 
 VarStressParams readStressParams  (ParametersWrap& desc);
 
+
+
+template <class Params>
+void readSpecificParams(Params& p, ParametersWrap& desc)
+{
+    using namespace FactoryHelper;
+    readParams(p, desc, {ParamsReader::Mode::DefaultIfNotFound});
+}
+
+void readSpecificParams(LJParams&      p, ParametersWrap& desc);
+void readSpecificParams(DensityParams& p, ParametersWrap& desc);
+void readSpecificParams(SDPDParams&    p, ParametersWrap& desc);
+
 } // FactoryHelper
 
 } // namespace mirheo
