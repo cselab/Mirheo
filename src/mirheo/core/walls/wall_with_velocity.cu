@@ -97,7 +97,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
         auto& bc = this->boundaryCells_[i];
         auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
-        debug2("Bouncing %d %s particles with wall velocity, %d boundary cells",
+        debug2("Bouncing %d %s particles with wall velocity, %zu boundary cells",
                pv->local()->size(), pv->getCName(), bc.size());
 
         const int nthreads = 64;

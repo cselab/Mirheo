@@ -50,7 +50,8 @@ void ParticleWithMeshDumperPlugin::handshake()
     recv();
 
     SimpleSerializer::deserialize(data_, nvertices_, triangles_);
-    debug("handshake for plugin '%s': received %d triangles for a %d vertices mesh", getCName(), triangles_.size(), nvertices_);
+    debug("handshake for plugin '%s': received %zu triangles for a %d vertices mesh",
+          getCName(), triangles_.size(), nvertices_);
 }
 
 void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)

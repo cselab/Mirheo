@@ -5,6 +5,6 @@
 namespace mirheo
 {
 
-std::string strprintf(const char *fmt, ...);
+std::string strprintf [[gnu::format(printf, 1, 2)]] (const char *fmt, ...);
 
 } // namespace mirheo

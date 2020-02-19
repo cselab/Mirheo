@@ -58,7 +58,7 @@ bool isReserved(const std::string& name, const std::vector<std::string>& reserve
 void failIfReserved(const std::string& name, const std::vector<std::string>& reservedNames)
 {
     if (ChannelNames::isReserved(name, reservedNames))
-        die("Channel '%s' is reserved. Please choose another name");
+        die("Channel '%s' is reserved. Please choose another name", name.c_str());
 }
 
 namespace XDMF

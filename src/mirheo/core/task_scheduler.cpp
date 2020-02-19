@@ -228,7 +228,7 @@ void TaskScheduler::removeEmptyNodes()
 
 void TaskScheduler::logDepsGraph()
 {
-    debug("Task graph consists of total %d tasks:", nodes_.size());
+    debug("Task graph consists of total %zu tasks:", nodes_.size());
 
     for (auto& n : nodes_)
     {
@@ -349,7 +349,8 @@ void TaskScheduler::run()
             node->streams->pop();
         }
 
-        debug("Executing group %s on stream %lld with priority %d", tasks_[node->id].label.c_str(), (int64_t)stream, node->priority);
+        debug("Executing group %s on stream %lld with priority %d",
+              tasks_[node->id].label.c_str(), (long long)stream, node->priority);
         workMap.push_back({stream, node});
 
         {

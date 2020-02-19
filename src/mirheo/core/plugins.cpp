@@ -96,7 +96,7 @@ void SimulationPlugin::send(const void *data, size_t sizeInBytes)
 
     waitPrevSend();
         
-    debug2("Plugin '%s' is sending the data (%d bytes)", getCName(), sizeInBytes);
+    debug2("Plugin '%s' is sending the data (%zu bytes)", getCName(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize_, 1, MPI_INT,  rank_, _sizeTag(), interComm_, &sizeReq_) );
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank_, _dataTag(), interComm_, &dataReq_) );
 }

@@ -113,7 +113,7 @@ static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& send
     for (size_t i = 0; i < sendBufs.size(); ++i)
     {
         MPI_Request req;
-        debug3("Sending %d elements to rank %d", sendBufs[i].size(), i);
+        debug3("Sending %zu elements to rank %zu", sendBufs[i].size(), i);
         MPI_Check( MPI_Isend(sendBufs[i].data(), static_cast<int>(sendBufs[i].size() * sizeof(T)),
                              MPI_BYTE, (int) i, tag, comm, &req) );
         reqs.push_back(req);

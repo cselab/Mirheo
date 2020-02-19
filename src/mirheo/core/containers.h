@@ -112,7 +112,7 @@ public:
     /// Release resources and report if debug level is high enough
     ~DeviceBuffer()
     {
-        debug4("Destroying DeviceBuffer<%s> of capacity %d X %d",
+        debug4("Destroying DeviceBuffer<%s> of capacity %zu X %zu",
                typeid(T).name(), capacity_, sizeof(T));
         if (devPtr_ != nullptr)
         {
@@ -222,7 +222,7 @@ private:
 
         CUDA_Check(cudaFree(dold));
 
-        debug4("Allocating DeviceBuffer<%s> from %d x %d  to %d x %d",
+        debug4("Allocating DeviceBuffer<%s> from %zu x %zu  to %zu x %zu",
                 typeid(T).name(),
                 oldsize, datatype_size(),
                 size_,   datatype_size());
@@ -289,7 +289,7 @@ public:
     /// Release resources and report if debug level is high enough
     ~HostBuffer()
     {
-        debug4("Destroying HostBuffer<%s> of capacity %d X %d",
+        debug4("Destroying HostBuffer<%s> of capacity %zu X %zu",
                typeid(T).name(), capacity_, sizeof(T));
         CUDA_Check(cudaFreeHost(hostPtr_));
     }
@@ -346,7 +346,7 @@ public:
     void genericCopy(const GPUcontainer* cont, cudaStream_t stream)
     {
         if (cont->datatype_size() % sizeof(T) != 0)
-            die("Incompatible underlying datatype sizes when copying: %d %% %d != 0",
+            die("Incompatible underlying datatype sizes when copying: %zu %% %zu != 0",
                 cont->datatype_size(), sizeof(T));
         
         const size_t typeSizeFactor = cont->datatype_size() / sizeof(T);
@@ -387,7 +387,7 @@ private:
 
         CUDA_Check(cudaFreeHost(hold));
 
-        debug4("Allocating HostBuffer<%s> from %d x %d  to %d x %d",
+        debug4("Allocating HostBuffer<%s> from %zu x %zu  to %zu x %zu",
                 typeid(T).name(),
                 oldsize, datatype_size(),
                 size_,   datatype_size());
@@ -465,7 +465,7 @@ public:
     /// Release resources and report if debug level is high enough
     ~PinnedBuffer()
     {
-        debug4("Destroying PinnedBuffer<%s> of capacity %d X %d",
+        debug4("Destroying PinnedBuffer<%s> of capacity %zu X %zu",
                typeid(T).name(), capacity_, sizeof(T));
         if (devPtr_ != nullptr)
         {
@@ -507,8 +507,8 @@ public:
     {
         // TODO: check if we really need to do that
         // maybe everything is already downloaded
-    	debug4("GPU -> CPU (D2H) transfer of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), size_, datatype_size());
+        debug4("GPU -> CPU (D2H) transfer of PinnedBuffer<%s>, size %zu x %zu",
+               typeid(T).name(), size_, datatype_size());
 
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(hostPtr_, devPtr_, sizeof(T) * size_, cudaMemcpyDeviceToHost, stream) );
         if (synch == ContainersSynch::Synch) CUDA_Check( cudaStreamSynchronize(stream) );
@@ -517,8 +517,8 @@ public:
     /// Copy data from host to device
     inline void uploadToDevice(cudaStream_t stream)
     {
-    	debug4("CPU -> GPU (H2D) transfer of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), size_, datatype_size());
+        debug4("CPU -> GPU (H2D) transfer of PinnedBuffer<%s>, size %zu x %zu",
+               typeid(T).name(), size_, datatype_size());
 
         if (size_ > 0) CUDA_Check(cudaMemcpyAsync(devPtr_, hostPtr_, sizeof(T) * size_, cudaMemcpyHostToDevice, stream));
     }
@@ -533,8 +533,8 @@ public:
     /// Set all the bytes to 0 on device only
     inline void clearDevice(cudaStream_t stream) override
     {
-    	debug4("Clearing device memory of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), size_, datatype_size());
+        debug4("Clearing device memory of PinnedBuffer<%s>, size %zu x %zu",
+               typeid(T).name(), size_, datatype_size());
 
         if (size_ > 0) CUDA_Check( cudaMemsetAsync(devPtr_, 0, sizeof(T) * size_, stream) );
     }
@@ -542,8 +542,8 @@ public:
     /// Set all the bytes to 0 on host only
     inline void clearHost()
     {
-    	debug4("Clearing host memory of PinnedBuffer<%s>, size %d x %d",
-    	                typeid(T).name(), size_, datatype_size());
+        debug4("Clearing host memory of PinnedBuffer<%s>, size %zu x %zu",
+               typeid(T).name(), size_, datatype_size());
 
         if (size_ > 0) memset(static_cast<void*>(hostPtr_), 0, sizeof(T) * size_);
     }
@@ -624,7 +624,7 @@ private:
         const size_t conservative_estimate = static_cast<size_t>(std::ceil(1.1 * static_cast<double>(n) + 10.0));
         capacity_ = 128 * ((conservative_estimate + 127) / 128);
 
-        debug4("Allocating PinnedBuffer<%s> from %d x %d  to %d x %d",
+        debug4("Allocating PinnedBuffer<%s> from %zu x %zu  to %zu x %zu",
                 typeid(T).name(),
                 oldsize, datatype_size(),
                 size_,   datatype_size());

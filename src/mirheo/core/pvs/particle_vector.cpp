@@ -314,7 +314,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     CUDA_Check( cudaDeviceSynchronize() );
     
     const auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
-    info("Restarting particle data from file %s", getCName(), filename.c_str());
+    info("Restarting particle vector %s data from file %s", getCName(), filename.c_str());
 
     auto listData = RestartHelpers::readData(filename, comm, chunkSize);
 

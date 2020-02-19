@@ -226,7 +226,8 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
-    debug2("Plugin %s is packing now data consisting of %d particles", getCName(), positions_.size());
+    debug2("Plugin %s is packing now data consisting of %zu particles",
+           getCName(), positions_.size());
     waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, getState()->currentTime, positions_, velocities_, channelData_);
     send(sendBuffer_);

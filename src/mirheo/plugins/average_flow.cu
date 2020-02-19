@@ -118,9 +118,11 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     resolution_ = make_int3( math::floor(getState()->domain.localSize / binSize_) );
     binSize_ = getState()->domain.localSize / make_real3(resolution_);
 
-    if (resolution_.x <= 0 || resolution_.y <= 0 || resolution_.z <= 0)
+    if (resolution_.x <= 0 || resolution_.y <= 0 || resolution_.z <= 0) {
     	die("Plugin '%s' has to have at least 1 cell per rank per dimension, got %dx%dx%d."
-            "Please decrease the bin size", resolution_.x, resolution_.y, resolution_.z);
+            "Please decrease the bin size",
+            getCName(), resolution_.x, resolution_.y, resolution_.z);
+    }
 
     const int total = resolution_.x * resolution_.y * resolution_.z;
 
@@ -150,7 +152,7 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
     channelsInfo_.averagePtrs .uploadToDevice(defaultStream);
     channelsInfo_.types       .uploadToDevice(defaultStream);
 
-    info("Plugin '%s' initialized for the %d PVs and channels %s, resolution %dx%dx%d",
+    info("Plugin '%s' initialized for the %zu PVs and channels %s, resolution %dx%dx%d",
          getCName(), pvs_.size(), allChannels.c_str(),
          resolution_.x, resolution_.y, resolution_.z);
 }

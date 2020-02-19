@@ -26,7 +26,7 @@ TypeDescriptor stringToTypeDescriptor(const std::string& str)
 
 #undef IF_ENTRY
 
-    die("Unrecognized type '%s'", str);
+    die("Unrecognized type '%s'", str.c_str());
 
     return DataTypeWrapper<float>();
 }
