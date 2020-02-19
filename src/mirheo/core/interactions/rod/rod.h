@@ -1,11 +1,11 @@
 #pragma once
 
+#include "base_rod.h"
 #include "drivers_forces.h"
 #include "drivers_states.h"
 #include "kernels/parameters.h"
 #include "polymorphic_states.h"
 
-#include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/pvs/views/rv.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
@@ -44,33 +44,39 @@ static auto getBiSegmentParams(const RodParameters& p)
 }
 
 template <int Nstates, class StateParameters>
-class RodInteractionImpl : public Interaction
+class RodInteraction : public BaseRodInteraction
 {
 public:
-    RodInteractionImpl(const MirState *state, std::string name, RodParameters parameters, StateParameters stateParameters, bool saveEnergies) :
-        Interaction(state, name),
+    RodInteraction(const MirState *state, const std::string& name, RodParameters parameters,
+                   StateParameters stateParameters, bool saveEnergies) :
+        BaseRodInteraction(state, name),
         parameters_(parameters),
         stateParameters_(stateParameters),
         saveEnergies_(saveEnergies)
     {}
 
-    ~RodInteractionImpl() = default;
+    ~RodInteraction() = default;
 
     void setPrerequisites(ParticleVector *pv1,
                           __UNUSED ParticleVector *pv2,
                           __UNUSED CellList *cl1,
                           __UNUSED CellList *cl2) override
     {
-        auto rv1 = dynamic_cast<RodVector *> (pv1);
-
-        if (saveEnergies_)
-            rv1->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
-
-        if (Nstates > 1)
+        if (auto rv = dynamic_cast<RodVector*>(pv1))
         {
-            rv1->requireDataPerBisegment<int>    (ChannelNames::polyStates, DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<real4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
-            rv1->requireDataPerBisegment<real2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
+            if (saveEnergies_)
+                rv->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+
+            if (Nstates > 1)
+            {
+                rv->requireDataPerBisegment<int>    (ChannelNames::polyStates, DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<real4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<real2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
+            }
+        }
+        else
+        {
+            die("'%s' expects a Rod vector, given '%s'", this->getCName(), pv1->getCName());
         }
     }
     
@@ -80,7 +86,7 @@ public:
                __UNUSED CellList *cl2,
                cudaStream_t stream) override
     {
-        auto rv = dynamic_cast<RodVector *>(pv1);
+        auto rv = dynamic_cast<RodVector*>(pv1);
 
         debug("Computing internal rod forces for %d rods of '%s'",
               rv->local()->getNumObjects(), rv->getCName());
@@ -89,16 +95,8 @@ public:
         _updatePolymorphicStatesAndApplyForces (rv, stream);
         _computeElasticForces                  (rv, stream);
     }
-
-    void halo(__UNUSED ParticleVector *pv1,
-              __UNUSED ParticleVector *pv2,
-              __UNUSED CellList *cl1,
-              __UNUSED CellList *cl2,
-              __UNUSED cudaStream_t stream)
-    {}
     
-protected:
-
+private:
     void _computeBoundForces(RodVector *rv, cudaStream_t stream)
     {
         RVview view(rv, rv->local());
@@ -147,8 +145,7 @@ protected:
                            view, devParams, saveEnergies_);
     }
 
-protected:
-
+private:
     RodParameters parameters_;
     StateParameters stateParameters_;
     bool saveEnergies_;

@@ -12,7 +12,7 @@ namespace mirheo
 
 class Interaction;
 class BaseMembraneInteraction;
-class RodInteraction;
+class BaseRodInteraction;
 class BasePairwiseInteraction;
 class ObjectRodBindingInteraction;
 
@@ -31,7 +31,7 @@ createInteractionMembrane(const MirState *state, std::string name,
                           std::string filterDesc, const MapParams& parameters,
                           bool stressFree, real growUntil);
 
-std::shared_ptr<RodInteraction>
+std::shared_ptr<BaseRodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
                      bool saveEnergies, const MapParams& parameters);
 

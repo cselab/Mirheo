@@ -20,8 +20,6 @@ public:
     BaseRodInteraction(const MirState *state, const std::string& name);
     ~BaseRodInteraction();
 
-    void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
-    
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
 
     bool isSelfObjectInteraction() const final;

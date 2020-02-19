@@ -5,7 +5,7 @@
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
 #include <mirheo/core/interactions/obj_rod_binding.h>
-#include <mirheo/core/interactions/rod.h>
+#include <mirheo/core/interactions/rod/base_rod.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
@@ -50,7 +50,7 @@ createInteractionMembrane(const MirState *state, std::string name,
         (state, name, shearDesc, bendingDesc, filterDesc, parameters, stressFree, growUntil);
 }
 
-static std::shared_ptr<RodInteraction>
+static std::shared_ptr<BaseRodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdateDesc, bool dumpEnergies, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
@@ -434,7 +434,7 @@ void exportInteractions(py::module& m)
     )");
 
 
-    py::handlers_class<RodInteraction> pyRodForces(m, "RodForces", pyInt, R"(
+    py::handlers_class<BaseRodInteraction> pyRodForces(m, "RodForces", pyInt, R"(
         Forces acting on an elastic rod.
 
         The rod interactions are composed of forces comming from:

@@ -6,7 +6,8 @@
 #include "pairwise/base_pairwise.h"
 #include "pairwise/factory.h"
 #include "pairwise/factory_helper.h"
-#include "rod.h"
+#include "rod/base_rod.h"
+#include "rod/factory.h"
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/config.h>
@@ -185,7 +186,7 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 }
 
 
-std::shared_ptr<RodInteraction>
+std::shared_ptr<BaseRodInteraction>
 InteractionFactory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
                                          bool saveEnergies, const MapParams& parameters)
 {
@@ -204,7 +205,7 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
         die("unrecognised state update method: '%s'", stateUpdate.c_str());
     
     desc.checkAllRead();
-    return std::make_shared<RodInteraction>(state, name, params, spinParams, saveEnergies);
+    return createInteractionRod(state, name, params, spinParams, saveEnergies);
 }
 
 std::shared_ptr<BasePairwiseInteraction>

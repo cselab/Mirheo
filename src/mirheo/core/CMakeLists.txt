@@ -104,7 +104,7 @@ set(sources_cu
   interactions/membrane/prerequisites.cu
   interactions/obj_rod_binding.cu
   interactions/pairwise/factory.cu
-  interactions/rod.cu
+  interactions/rod/factory.cu
   object_belonging/mesh_belonging.cu
   object_belonging/object_belonging.cu
   object_belonging/rod_belonging.cu
