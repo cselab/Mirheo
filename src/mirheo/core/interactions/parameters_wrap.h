@@ -12,15 +12,26 @@
 namespace mirheo
 {
 
+/** \brief A tool to transform a map from string keys to variant parameters.
+    
+    The input map is typically an input from the python interface.
+ */
 class ParametersWrap
 {
 public:
-
+    /// A variant that contains the possible types to represent parameters
     using VarParam = mpark::variant<real, std::vector<real>, std::vector<real2>, std::string, bool>;
+    /// Represents the map from parameter names to parameter values
     using MapParams = std::map<std::string, VarParam>;
-    
+
+    /// \brief Construct a \c ParametersWrap object from a \c MapParams
     ParametersWrap(const MapParams& params);
 
+    /** \brief Check if a parameter of a given type and name exists in the map
+        \tparam T The type of the parameter
+        \param [in] key The name of the parameter to check
+        \return true if T and key match, false otherwise. 
+     */
     template <typename T>
     bool exists(const std::string& key)
     {
@@ -35,8 +46,18 @@ public:
         return true;
     }
 
+    /// \brief Die if some keys were not read (see read())
     void checkAllRead() const;
 
+    /** \brief Fetch a parameter value for a given key.
+        \tparam T the type of the parameter to read.
+        \param [in] key the parameter name to read.
+
+        On success, this method will also mark internally the parameter as read.
+        This allows to check if some parameters were never used (see checkAllRead()).
+
+        This method dies if key does not exist or if T is the wrong type.
+    */
     template <typename T>
     T read(const std::string& key)
     {
