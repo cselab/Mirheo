@@ -107,23 +107,11 @@ public:
     static const ActivePredicate alwaysActive;
     
 protected:
-    /** \brief Base snapshot function for non-impl interactions. Does not save the impl object.
+    /** \brief Base snapshot function for interactions, sets the category to "Interaction".
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
         \param [in] typeName The name of the type being saved.
       */
-    ConfigObject _saveSnapshotWithoutImpl(Saver& saver, const std::string &typeName);
-
-    /** \brief Base snapshot function for non-impl interactions. Saves the impl object.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshotWithImpl(Saver& saver, const std::string &typeName);
-
-    /** \brief Base snapshot function for interaction implementations (template interaction classes).
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveImplSnapshot(Saver& saver, const std::string &typeName);
+    ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 
 } // namespace mirheo

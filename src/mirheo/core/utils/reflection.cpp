@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-std::string _constructTypeName(const char *base, int N, ...)
+std::string constructTypeName(const char *base, int N, ...)
 {
     std::string out = base;
     out += '<';

@@ -30,6 +30,7 @@ private:
     real cSq_;
     real rho0_;
 };
+MIRHEO_TYPE_NAME_AUTO(LinearPressureEOS);
 
 
 class QuasiIncompressiblePressureEOS
@@ -58,5 +59,6 @@ private:
     real p0_;
     real invRhor_;
 };
+MIRHEO_TYPE_NAME_AUTO(QuasiIncompressiblePressureEOS);
 
 } // namespace mirheo

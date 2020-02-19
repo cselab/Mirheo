@@ -52,6 +52,11 @@ public:
     {
         return (const HandlerType&) (*this);
     }
+
+    static std::string getTypeName()
+    {
+        return constructTypeName<DensityKernel>("PairwiseDensity");
+    }
     
 protected:
 

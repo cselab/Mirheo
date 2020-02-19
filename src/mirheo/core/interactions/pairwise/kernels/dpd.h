@@ -108,6 +108,11 @@ public:
         return TextIO::readFromStream(fin, stepGen_);
     }
     
+    static std::string getTypeName()
+    {
+        return "PairwiseDPD";
+    }
+
 private:
 
     static real computeSigma(real gamma, real kBT, real dt)

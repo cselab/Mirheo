@@ -8,22 +8,16 @@
     ],
     "Interaction": [
         {
-            "__type": "PairwiseInteraction",
+            "__type": "PairwiseInteraction<PairwiseDPD>",
             "name": "dpd",
             "rc": 1,
-            "varParams": {
-                "__index": 0,
-                "value": {
-                    "a": 10,
-                    "gamma": 10,
-                    "kBT": 1,
-                    "power": 0.5
-                }
+            "pairParams": {
+                "a": 10,
+                "gamma": 10,
+                "kBT": 1,
+                "power": 0.5
             },
-            "varStressParams": {
-                "__index": 0,
-                "value": {}
-            }
+            "intMap": []
         }
     ],
     "Simulation": [
@@ -43,7 +37,7 @@
             "bouncerMap": {},
             "integratorMap": {},
             "interactionMap": {
-                "dpd": "<PairwiseInteraction with name=dpd>"
+                "dpd": "<PairwiseInteraction<PairwiseDPD> with name=dpd>"
             },
             "wallMap": {},
             "belongingCheckerMap": {},
@@ -54,7 +48,7 @@
                     "rc": 1,
                     "pv1": "<ParticleVector with name=pv>",
                     "pv2": "<ParticleVector with name=pv>",
-                    "interaction": "<PairwiseInteraction with name=dpd>"
+                    "dpd": "<PairwiseInteraction<PairwiseDPD> with name=dpd>"
                 }
             ],
             "wallPrototypes": [],

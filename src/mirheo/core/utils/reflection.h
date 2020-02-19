@@ -22,15 +22,15 @@ struct TypeName
     MIRHEO_TYPE_NAME(TYPE, #TYPE)
 
 
-/** \brief Helper function of `constructTypeName`.
- *
+/** \brief Construct a template class name from the template name and template argument names.
+
     C-style variadic argument is used as a compile-time-friendly solution.
 
     Example:
         std::string name = _constructTypeName("Foo", 3, "A", "Boo", "Cookie");
         --> "Foo<A, Boo, Cookie>"
  */
-std::string _constructTypeName(const char *base, int N, ...);
+std::string constructTypeName(const char *base, int N, ...);
 
 /** \brief Construct a template instantiation name.
 
@@ -44,7 +44,7 @@ std::string _constructTypeName(const char *base, int N, ...);
 template <typename... Args>
 inline std::string constructTypeName(const char *templateName)
 {
-    return _constructTypeName(templateName, sizeof...(Args), TypeName<Args>::name...);
+    return constructTypeName(templateName, sizeof...(Args), TypeName<Args>::name...);
 }
 
 /** \brief Struct reflection.

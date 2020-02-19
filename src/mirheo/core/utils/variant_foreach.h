@@ -5,20 +5,22 @@
 namespace mirheo
 {
 
+/// Identity meta type. Equivalent to C++20 std::type_identity<T>.
+template <typename T>
+struct type_identity {
+    using type = T;
+};
+
 template <typename... Variants>
 struct VariantForeachHelper;
 
-template <typename... Args>
-struct VariantForeachHelper<mpark::variant<Args...>>
+template <>
+struct VariantForeachHelper<>
 {
-    template <typename Visitor, typename ...OtherArgs>
+    template <typename Visitor, typename ...AllArgs>
     static void eval(Visitor &vis)
     {
-        // https://stackoverflow.com/a/51006031
-        using fold_expression = int[];
-
-        // First expand the `OtherArgs` variadic template, then `Args`.
-        (void)fold_expression{0, (vis.template operator()<OtherArgs..., Args>(), 0)...};
+        vis(type_identity<AllArgs>{}...);
     }
 };
 
@@ -37,16 +39,13 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
 
 /** Execute visitor's `eval` template function for each combination of variant types.
 
-    Example:
-        struct Visitor
-        {
-            template <typename A, typename B, typename C>
-            void operator()()
-            {
-                printf("A=%d B=%d C=%d\n", A::value, B::value, c::value);
-            }
+    Visitor is invoked with an instance of an empty wrapper struct, one for each type:
+        template <typename T>
+        struct type_identity {
+            using type = T;
         };
 
+    Example:
         struct A1 { static constexpr int value = 1; };
         struct A2 { static constexpr int value = 2; };
         struct B1 { static constexpr int value = 10; };
@@ -54,11 +53,25 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
         struct C1 { static constexpr int value = 100; };
         struct C2 { static constexpr int value = 200; };
         void test() {
-            // printf 8 combinations of values.
-            variantForeach<Visitor,
-                           mpark::variant<A1, A2>,
+            // Prints 8 combinations in row-major order:
+            //      1 10 100
+            //      1 10 200
+            //      1 20 100
+            //      1 20 200
+            //      2 10 100
+            //      2 10 200
+            //      2 20 100
+            //      2 20 200
+            variantForeach<mpark::variant<A1, A2>,
                            mpark::variant<B1, B2>,
-                           mpark::variant<C1, C2>>(Visitor{});
+                           mpark::variant<C1, C2>>(
+                []()(auto a, auto b, auto c)
+                {
+                    printf("A=%d B=%d C=%d\n",
+                           decltype(a)::type::value,
+                           decltype(b)::type::value,
+                           decltype(c)::type::value);
+                });
         }
 
     Returns:
@@ -67,8 +80,8 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
     Note:
         If necessary, this can be generalized to arbitrary variadic templates.
  */
-template <typename Visitor, typename... Variants>
-decltype(auto) variantForeach(Visitor &&vis)
+template <typename... Variants, typename Visitor>
+Visitor&& variantForeach(Visitor &&vis)
 {
     VariantForeachHelper<Variants...>::template eval<Visitor>(vis);
     return static_cast<Visitor&&>(vis); // Forward.

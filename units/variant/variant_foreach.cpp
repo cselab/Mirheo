@@ -17,27 +17,22 @@ struct C2 { static constexpr int value = 200; };
 struct D1 { static constexpr int value = 1000; };
 struct D2 { static constexpr int value = 2000; };
 
-using Array4 = std::array<int, 4>;
-
-struct Visitor
-{
-    template <typename A, typename B, typename C, typename D>
-    void operator()()
-    {
-        v_->push_back({A::value, B::value, C::value, D::value});
-    }
-
-    std::vector<Array4> *v_;
-};
-
 TEST(Variant, VariantForeach)
 {
-    std::vector<Array4> v;
-    variantForeach<Visitor,
-                   mpark::variant<A1, A2, A3>,
+    std::vector<std::array<int, 4>> v;
+    variantForeach<mpark::variant<A1, A2, A3>,
                    mpark::variant<B1, B2>,
                    mpark::variant<C1, C2>,
-                   mpark::variant<D1, D2>>(Visitor{&v});
+                   mpark::variant<D1, D2>>(
+            [&v](auto a, auto b, auto c, auto d)
+            {
+                v.push_back({
+                    decltype(a)::type::value,
+                    decltype(b)::type::value,
+                    decltype(c)::type::value,
+                    decltype(d)::type::value,
+                });
+            });
 
     /// Test that all 3 * 2 * 2 * 2 == 24 combinations were traversed in the
     /// "row-major" order.
@@ -47,7 +42,7 @@ TEST(Variant, VariantForeach)
     for (int c = 100; c <= 200; c += 100)
     for (int d = 1000; d <= 2000; d += 1000) {
         ASSERT_LT(k, v.size());
-        ASSERT_EQ(v[k], (Array4{a, b, c, d}));
+        ASSERT_EQ(v[k], (std::array<int, 4>{a, b, c, d}));
         ++k;
     }
 }

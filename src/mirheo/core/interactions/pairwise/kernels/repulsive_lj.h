@@ -23,6 +23,7 @@ public:
     void setup(__UNUSED LocalParticleVector *lpv1, __UNUSED LocalParticleVector *lpv2) {}
     __D__ inline bool interact(__UNUSED int srcId, __UNUSED int dstId) const {return true;}
 };
+MIRHEO_TYPE_NAME(LJAwarenessNone, "LJAwarenessNone");
 
 class LJAwarenessObject
 {
@@ -62,6 +63,7 @@ private:
     bool self_ {false};
     int objSize_ {0};
 };
+MIRHEO_TYPE_NAME(LJAwarenessObject, "LJAwarenessObject");
 
 class LJAwarenessRod
 {
@@ -113,6 +115,7 @@ private:
     int objSize_ {0};
     int minSegmentsDist_{0};
 };
+MIRHEO_TYPE_NAME(LJAwarenessRod, "LJAwarenessRod");
 
 template <class Awareness>
 class PairwiseRepulsiveLJ : public PairwiseKernel, public ParticleFetcher
@@ -185,7 +188,11 @@ public:
         awareness_.setup(lpv1, lpv2);
     }
 
-    
+    static std::string getTypeName()
+    {
+        return constructTypeName<Awareness>("PairwiseRepulsiveLJ");
+    }
+
 private:
 
     real sigma2_, maxForce_;

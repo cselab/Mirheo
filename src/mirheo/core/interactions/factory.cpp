@@ -240,13 +240,18 @@ InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::s
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
 }
 
+static bool startsWith(const std::string &text, const char *tmp)
+{
+    return text.compare(0, strlen(tmp), tmp) == 0;
+}
+
 std::shared_ptr<Interaction>
 InteractionFactory::loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config)
 {
     const std::string& type = config["__type"];
-    // if (type == "PairwiseInteraction")
-    //     return std::make_shared<PairwiseInteraction>(state, loader, config);
-    if (type == "MembraneInteraction")
+    if (startsWith(type, "PairwiseInteraction<"))
+        return loadInteractionPairwise(state, loader, config);
+    if (startsWith(type, "MembraneInteraction<"))
         return loadInteractionMembrane(state, loader, config);
     die("Unrecognized or unimplemented interaction type \"%s\".", type.c_str());
 }

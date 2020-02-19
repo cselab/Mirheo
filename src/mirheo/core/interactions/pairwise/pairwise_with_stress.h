@@ -15,8 +15,10 @@ template<class PairwiseKernel>
 class PairwiseInteractionWithStress : public BasePairwiseInteraction
 {
 public:
+    using KernelParams = typename PairwiseKernel::ParamsType;
+
     PairwiseInteractionWithStress(const MirState *state, const std::string& name, real rc, real stressPeriod,
-                                  typename PairwiseKernel::ParamsType pairParams, long seed = 42424242) :
+                                  KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         stressPeriod_(stressPeriod),
         interactionWithoutStress_(state, name, rc, pairParams, seed),
@@ -108,6 +110,11 @@ public:
         interactionWithStress_   .restart(comm, path);
     }
 
+    static std::string getTypeName()
+    {
+        return constructTypeName("PairwiseInteractionWithStress", 1,
+                                 PairwiseKernel::getTypeName().c_str());
+    }
     
 private:
     real stressPeriod_;

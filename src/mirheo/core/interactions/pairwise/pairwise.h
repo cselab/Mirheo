@@ -8,6 +8,8 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
+#include <mirheo/core/snapshot.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
@@ -23,13 +25,34 @@ template <class PairwiseKernel>
 class PairwiseInteraction : public BasePairwiseInteraction
 {
 public:
+    using KernelParams = typename PairwiseKernel::ParamsType;
     
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
-                        typename PairwiseKernel::ParamsType pairParams, long seed = 42424242) :
+                        KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         defaultPair_{rc, pairParams, state->dt, seed},
         _pairParams{pairParams}        
     {}
+    PairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
+        PairwiseInteraction(state, config["name"], config["rc"],
+                            loader.load<KernelParams>(config["pairParams"]))
+    {
+        long seed = 42424242;
+        warn("NOTE: Seed not serialized, resetting it!");
+        const ConfigArray& mapArray = config["intMap"].getArray();
+        if (mapArray.size() % 3 != 0) {
+            die("The array's number of elements is supposed to be a "
+                "multiple of 3, got %zu instead.", mapArray.size());
+        }
+        // intMap stored as an array [key1a, key1b, rawParams1, key2a, key2b, rawParams2, ...].
+        for (size_t i = 0; i < mapArray.size(); i += 3) {
+            KernelParams params = loader.load<KernelParams>(mapArray[i + 2]);
+            intMap_.emplace(
+                    std::make_pair(loader.load<std::string>(mapArray[i]),
+                                   loader.load<std::string>(mapArray[i + 1])),
+                    Kernel{PairwiseKernel{rc_, params, state->dt, seed}, params});
+        }
+    }
     
     ~PairwiseInteraction() = default;
 
@@ -123,7 +146,7 @@ public:
         auto params = _pairParams;
         FactoryHelper::readSpecificParams(params, desc);
         PairwiseKernel kernel {rc_, params, getState()->dt};
-        _setSpecificPair(pv1name, pv2name, kernel);
+        _setSpecificPair(pv1name, pv2name, kernel, params);
     }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
@@ -133,7 +156,7 @@ public:
             std::ofstream fout(fname);
             defaultPair_.writeState(fout);
             for (auto& entry : intMap_)
-                entry.second.writeState(fout);
+                entry.second.kernel.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
     }
@@ -151,15 +174,52 @@ public:
         
         check( defaultPair_.readState(fin) );
         for (auto& entry : intMap_)
-            check( entry.second.readState(fin) );
+            check( entry.second.kernel.readState(fin) );
+    }
+
+    static std::string getTypeName()
+    {
+        return constructTypeName("PairwiseInteraction", 1, PairwiseKernel::getTypeName().c_str());
+    }
+    void saveSnapshotAndRegister(Saver& saver) override
+    {
+        saver.registerObject<PairwiseInteraction>(
+                this, _saveSnapshot(saver, getTypeName()));
+    }
+
+protected:
+    /** \brief Serialize raw parameters of all kernels.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+    */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
+    {
+        ConfigObject config = BasePairwiseInteraction::_saveSnapshot(saver, typeName);
+        config.emplace("pairParams", saver(_pairParams));
+
+        // Key and value are stores as a list of three elements, two for the
+        // key, one for the value (raw parameters).
+        ConfigArray map;
+        map.reserve(intMap_.size());
+        for (const auto& pair : intMap_) {
+            ConfigArray item;
+            item.reserve(3);
+            item.emplace_back(pair.first.first);   // Key.
+            item.emplace_back(pair.first.second);  // Key.
+            item.emplace_back(saver(pair.second.rawParams));  // Value (raw params).
+            // TODO: Serialize RNG state.
+            map.emplace_back(std::move(item));
+        }
+        config.emplace("intMap", std::move(map));
+        return config;
     }
 
 private:
 
-    void _setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel pair)
+    void _setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel kernel, const KernelParams& rawParams)
     {
-        intMap_.insert({{pv1name, pv2name}, pair});
-        intMap_.insert({{pv2name, pv1name}, pair});
+        intMap_.insert({{pv1name, pv2name}, {kernel, rawParams}});
+        intMap_.insert({{pv2name, pv1name}, {kernel, rawParams}});
     }
 
     /** \brief  Convenience macro wrapper
@@ -255,7 +315,7 @@ private:
         if (it != intMap_.end())
         {
             debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
-            return it->second;
+            return it->second.kernel;
         }
         else
         {
@@ -266,8 +326,13 @@ private:
 
 private:
     PairwiseKernel defaultPair_;
-    typename PairwiseKernel::ParamsType _pairParams;
-    std::map< std::pair<std::string, std::string>, PairwiseKernel > intMap_;
+    KernelParams _pairParams;
+
+    struct Kernel {
+        PairwiseKernel kernel;
+        KernelParams rawParams;
+    };
+    std::map< std::pair<std::string, std::string>, Kernel > intMap_;
 };
 
 } // namespace mirheo

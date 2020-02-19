@@ -138,6 +138,10 @@ public:
         return TextIO::readFromStream(fin, stepGen_);
     }
     
+    static std::string getTypeName()
+    {
+        return constructTypeName<PressureEOS, DensityKernel>("PairwiseSDPD");
+    }
     
 protected:
 

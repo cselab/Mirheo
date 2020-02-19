@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <mirheo/core/interactions/factory.h>
+#include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/snapshot.h>
@@ -197,7 +198,8 @@ TEST(Snapshot, DumpUndumpInteractions)
 
         LoaderContext loaderContext{config, ConfigObject{}};
         Loader loader{&loaderContext};
-        auto pairwise2 = std::make_shared<PairwiseInteraction>(mirheo.getState(), loader, config.getObject());
+        auto pairwise2 = InteractionFactory::loadInteraction(
+                mirheo.getState(), loader, config.getObject());
         saver(pairwise2);
         ConfigValue config2 = saver.getConfig()["Interaction"][1];
         ASSERT_STREQ(config.toJSONString().c_str(), config2.toJSONString().c_str());

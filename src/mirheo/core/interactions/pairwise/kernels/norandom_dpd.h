@@ -66,6 +66,11 @@ public:
     {
         return (const HandlerType&) (*this);
     }
+
+    static std::string getTypeName()
+    {
+        return "PairwiseNorandomDPD";
+    }
     
 protected:
 

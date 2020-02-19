@@ -187,7 +187,7 @@ public:
         return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
                 "MembraneInteraction");
     }
-    void saveSnapshotAndRegister(Saver& saver)
+    void saveSnapshotAndRegister(Saver& saver) override
     {
         saver.registerObject<MembraneInteraction>(this, _saveSnapshot(saver, getTypeName()));
     }
@@ -199,7 +199,7 @@ protected:
     */
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
-        ConfigObject config = Interaction::_saveImplSnapshot(saver, typeName);
+        ConfigObject config = BaseMembraneInteraction::_saveSnapshot(saver, typeName);
         config.emplace("growUntil",      saver(growUntil_));
         config.emplace("parameters",     saver(parameters_));
         config.emplace("dihedralParams", saver(dihedralParams_));

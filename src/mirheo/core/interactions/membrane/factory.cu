@@ -46,21 +46,26 @@ createInteractionMembrane(const MirState *state, const std::string& name,
 }
 
 
-namespace
+std::shared_ptr<BaseMembraneInteraction>
+loadInteractionMembrane(const MirState *state, Loader& loader, const ConfigObject& config)
 {
-struct MembraneFactoryVisitor
-{
-    template <typename BendingParams, typename ShearParams, typename FilterType>
-    void operator()()
+    std::shared_ptr<BaseMembraneInteraction> impl;
+    const std::string& typeName = config["__type"].getString();
+
+    // The arguments are type_identity<T> for three different types T, empty
+    // structs carrying the type information.
+    auto visitor = [&](auto bending, auto shear, auto filter)
     {
-        using DihedralForce = typename BendingParams::DihedralForce;
+        using DihedralForce = typename decltype(bending)::type::DihedralForce;
+        using ShearParams   = typename decltype(shear)::type;
+        using FilterType  = typename decltype(filter)::type;
 
         {
             using TriangleForce = typename ShearParams::TriangleForce <StressFreeState::Active>;
             using Impl = MembraneInteraction<TriangleForce, DihedralForce, FilterType>;
             if (Impl::getTypeName() == typeName)
             {
-                *impl = std::make_shared<Impl>(state, loader, config);
+                impl = std::make_shared<Impl>(state, loader, config);
                 return;
             }
         }
@@ -69,36 +74,19 @@ struct MembraneFactoryVisitor
             using Impl = MembraneInteraction<TriangleForce, DihedralForce, FilterType>;
             if (Impl::getTypeName() == typeName)
             {
-                *impl = std::make_shared<Impl>(state, loader, config);
+                impl = std::make_shared<Impl>(state, loader, config);
                 return;
             }
         }
-    }
+    };
 
-    const MirState *state;
-    Loader& loader;
-    const ConfigObject& config;
-    const std::string& typeName;
-    std::shared_ptr<BaseMembraneInteraction> *impl;
-};
-} // anonymous namespace
-
-
-std::shared_ptr<BaseMembraneInteraction>
-loadInteractionMembrane(const MirState *state, Loader& loader, const ConfigObject& config)
-{
-    std::shared_ptr<BaseMembraneInteraction> impl;
-    const std::string& typeName = config["__type"].getString();
-
-    /// Check all possible template combinations and match with the `typeName`.
-    variantForeach<MembraneFactoryVisitor, VarBendingParams, VarShearParams, VarMembraneFilter>(
-            MembraneFactoryVisitor{state, loader, config, typeName, &impl});
+    // Check all possible template combinations and match with the `typeName`.
+    variantForeach<VarBendingParams, VarShearParams, VarMembraneFilter>(visitor);
 
     if (!impl)
         die("Unrecognized impl type \"%s\".", typeName.c_str());
 
     return std::move(impl);
-
 }
 
 } // namespace mirheo

@@ -242,8 +242,6 @@ public:
         return mpark::get_if<T>(&value_);
     }
 
-    size_t index() const noexcept { return value_.index(); }
-
 private:
     Variant value_;
 };

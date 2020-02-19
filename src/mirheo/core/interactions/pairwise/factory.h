@@ -16,5 +16,7 @@ std::shared_ptr<BasePairwiseInteraction>
 createInteractionPairwise(const MirState *state, const std::string& name, real rc,
                           const VarPairwiseParams& varParams, const VarStressParams& varStressParams);
 
+std::shared_ptr<BasePairwiseInteraction>
+loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace mirheo

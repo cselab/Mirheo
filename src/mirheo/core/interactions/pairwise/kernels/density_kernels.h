@@ -24,6 +24,7 @@ public:
 private:
     static constexpr real normalization_ = 15.0 / (2.0 * M_PI);
 };
+MIRHEO_TYPE_NAME_AUTO(SimpleMDPDDensityKernel);
 
 class WendlandC2DensityKernel
 {
@@ -54,6 +55,7 @@ public:
 private:
     static constexpr real normalization_ = 21.0 / (2.0 * M_PI);
 };
+MIRHEO_TYPE_NAME_AUTO(WendlandC2DensityKernel);
 
 
 } // namespace mirheo
