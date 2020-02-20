@@ -20,19 +20,36 @@ namespace mirheo
 {
 
 /** \brief Short-range symmetric pairwise interactions
+    \tparam PairwiseKernel The functor that describes the interaction between two particles (interaction kernel).
+    
+    See the pairwise interaction entry of the developer documentation for the interface requirements of the kernel. 
  */
 template <class PairwiseKernel>
 class PairwiseInteraction : public BasePairwiseInteraction
 {
 public:
+    /// The parameters corresponding to the interaction kernel.
     using KernelParams = typename PairwiseKernel::ParamsType;
-    
+
+    /** \brief Construct a \c PairwiseInteraction object
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+        \param [in] rc The cut-off radius of the interaction
+        \param [in] pairParams The parameters used to construct the interaction kernel
+        \param [in] seed used to initialize random number generator (needed to construct some interaction kernels).
+     */
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         defaultPair_{rc, pairParams, state->dt, seed},
         _pairParams{pairParams}        
     {}
+    
+    /** \brief Constructs a \c PairwiseInteraction object from a snapshot.
+        \param [in] state The global state of the system
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the interaction.
+     */
     PairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
         PairwiseInteraction(state, config["name"], config["rc"],
                             loader.load<KernelParams>(config["pairParams"]))
@@ -69,7 +86,6 @@ public:
         }
     }
     
-    /// Interface to computeLocal().
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         // if (pv1->local()->size() < pv2->local()->size())
@@ -78,8 +94,6 @@ public:
         //    computeLocal(pv2, pv1, cl2, cl1, state->currentTime, stream);
     }
 
-    /** \brief Interface to computeHalo().
-     */
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         const bool isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
@@ -177,10 +191,12 @@ public:
             check( entry.second.kernel.readState(fin) );
     }
 
+    /// \return A string that describes the type of this object
     static std::string getTypeName()
     {
         return constructTypeName("PairwiseInteraction", 1, PairwiseKernel::getTypeName().c_str());
     }
+    
     void saveSnapshotAndRegister(Saver& saver) override
     {
         saver.registerObject<PairwiseInteraction>(
@@ -242,7 +258,7 @@ private:
 
 
     /** \brief Compute forces between all the pairs of particles that are closer
-        than #rc to each other.
+        than rc to each other.
      
         Depending on type and whether pv1 == pv2 call
         computeSelfInteractions() or computeExternalInteractions_1tpp()

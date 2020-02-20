@@ -12,5 +12,6 @@ Library API
    api/bouncers
    api/ics
    api/integrators
+   api/interactions/pairwise
    api/object_belonging
    api/walls

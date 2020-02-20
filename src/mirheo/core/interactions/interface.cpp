@@ -11,13 +11,10 @@ namespace mirheo
 Interaction::Interaction(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
+
 Interaction::Interaction(const MirState *state, Loader& loader, const ConfigObject& config) :
     MirSimulationObject(state, loader, config)
-{
-    // Note: we do NOT load the `impl` object here. Since impl typically has
-    // template arguments, loading must be done from the derived class. For
-    // example, see the MembraneInteraction's constructor and variantForeach.
-}
+{}
 
 Interaction::~Interaction() = default;
 
