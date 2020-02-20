@@ -16,10 +16,49 @@ Implementation
 --------------
 
 The factory instantiates one of this templated class.
+See :ref:`dev-interactions-membrane-trikernels`, :ref:`dev-interactions-membrane-dihkernels` and :ref:`dev-interactions-membrane-filter` for possible template parameters.
 
 .. doxygenclass:: mirheo::MembraneInteraction
    :project: mirheo
    :members:
+
+.. _dev-interactions-membrane-trikernels:
+
+Triangle Kernels
+----------------
+
+TODO
+
+.. _dev-interactions-membrane-dihkernels:
+
+Dihedral Kernels
+----------------
+
+Each thread is mapped to one vertex `v0` and loops over all adjacent dihedrals labeled as follows:
+
+.. graphviz::
+   
+    graph dihedral {
+    node [shape=plaintext]
+    {rank = same; v2 ; v0}
+    v3 -- v2
+    v3 -- v0
+    v2 -- v0
+    v2 -- v1
+    v0 -- v1
+    }
+
+The output of the kernel is the forces of a given dihedral on `v0` and `v1`.
+The forces on `v2` and `v3` from the same dihedral are computed by the thread mapped on `v3`.
+
+.. doxygenclass:: mirheo::DihedralJuelicher
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::DihedralKantor
+   :project: mirheo
+   :members:
+
 
 .. _dev-interactions-membrane-filter:
 

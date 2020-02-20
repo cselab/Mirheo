@@ -10,13 +10,18 @@
 
 namespace mirheo
 {
-
+/// Compute bending forces from the extended Juelicher model.
 class DihedralJuelicher : public VertexFetcherWithMeanCurvatures
 {
 public:    
 
+    /// Type of parameters that describe the kernel
     using ParametersType = JuelicherBendingParameters;
-    
+
+    /** \brief Initialize the functor
+        \param [in] p The parameters of the functor
+        \param [in] lscale Scaling length factor, applied to all parameters
+     */
     DihedralJuelicher(ParametersType p, mReal lscale) :
         scurv_(0)
     {
@@ -27,11 +32,23 @@ public:
         DA0_ = p.DA0 / (lscale*lscale);
     }
 
-    __D__ inline void computeCommon(const ViewType& view, int rbcId)
+    /** \brief Precompute internal values that are common to all vertices in the cell.
+        \param [in] view The view that contains the required object channels
+        \param [in] rbcId The index of the membrane in the \p view
+     */
+    __D__ inline void computeInternalCommonQuantities(const ViewType& view, int rbcId)
     {
         scurv_ = _getScurv(view, rbcId);
     }
-    
+
+    /** \brief Compute the dihedral forces. See Developer docs for more details.
+        \param [in] v0 vertex 0
+        \param [in] v1 vertex 1
+        \param [in] v2 vertex 2
+        \param [in] v3 vertex 3
+        \param [in,out] f1 force acting on \p v1; this method will add (not set) the dihedral force to that quantity. 
+        \return The dihedral force acting on \p v0
+     */
     __D__ inline mReal3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
         mReal3 f0;
@@ -45,7 +62,6 @@ public:
     }
 
 private:
-
     __D__ inline mReal3 _forceLen(mReal theta, VertexType v0, VertexType v2) const
     {
         const mReal3 d = normalize(v0.r - v2.r);
@@ -100,14 +116,14 @@ private:
 
     
 private:    
-    
-    mReal kb_;
-    mReal H0_;
-    mReal kadPi_; ///< kAD * Pi
-    mReal DA0_;
-    mReal scurv_;
+    mReal kb_;    ///< bending magnitude 
+    mReal H0_;    ///< spntaneous mean curvature
+    mReal kadPi_; ///< kAD * pi
+    mReal DA0_;   ///< spontaneous area difference
+    mReal scurv_; ///< helper quantity
 };
 
+/// create name for that type
 MIRHEO_TYPE_NAME_AUTO(DihedralJuelicher);
 
 } // namespace mirheo

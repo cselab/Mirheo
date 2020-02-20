@@ -141,10 +141,10 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
     
     mReal3 f0 = make_mReal3(0.0_mr);
 
-    dihedralInteraction.computeCommon(view, rbcId);
+    dihedralInteraction.computeInternalCommonQuantities(view, rbcId);
 
 #pragma unroll 2
-    for (int i = 0; i < degree; i++)
+    for (int i = 0; i < degree; ++i)
     {
         mReal3 f1 = make_mReal3(0.0_mr);
         const int idv3 = offset + mesh.adjacent[startId + (i+2) % degree];
