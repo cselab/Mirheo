@@ -36,7 +36,7 @@ CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf);
 class DataManager
 {
 public:
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // bug in breathe
     /** The persistence mode describes if the data of a channel
         must be conserved when redistribution accross ranks occurs.
 
@@ -52,7 +52,8 @@ public:
         of the neighbour rank if transfered there, while the velocities require no "shift".
      */
     enum class ShiftMode { None, Active };
-
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+    
     /** \brief Holds information and data of a single channel.
         
         A channel has a type, persistence mode and shift mode.

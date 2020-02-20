@@ -11,12 +11,31 @@
 namespace mirheo
 {
 
+/** \brief Short-range symmetric pairwise interactions with stress output
+    \tparam PairwiseKernel The functor that describes the interaction between two particles (interaction kernel).
+
+    This object manages two interaction: one with stress, which is used every stressPeriod time,
+    and one with no stress wrapper, that is used the rest of the time.
+    This is motivated by the fact that stresses are not needed for the simulation but rather
+    for post processing; thus the stresses may not need to be computed at every time step.
+ */
 template<class PairwiseKernel>
 class PairwiseInteractionWithStress : public BasePairwiseInteraction
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // bug in breathe
+    /// The parameters corresponding to the interaction kernel.
     using KernelParams = typename PairwiseKernel::ParamsType;
-
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+    
+    /** \brief Construct a \c PairwiseInteractionWithStress object
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+        \param [in] rc The cut-off radius of the interaction
+        \param [in] stressPeriod The simulation time between two stress computation
+        \param [in] pairParams The parameters used to construct the interaction kernel
+        \param [in] seed used to initialize random number generator (needed to construct some interaction kernels).
+     */
     PairwiseInteractionWithStress(const MirState *state, const std::string& name, real rc, real stressPeriod,
                                   KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
@@ -110,6 +129,7 @@ public:
         interactionWithStress_   .restart(comm, path);
     }
 
+    /// \return A string that describes the type of this object
     static std::string getTypeName()
     {
         return constructTypeName("PairwiseInteractionWithStress", 1,
@@ -117,11 +137,11 @@ public:
     }
     
 private:
-    real stressPeriod_;
-    real lastStressTime_ {-1e6};
+    real stressPeriod_; ///< The stress will be computed every this amount of time
+    real lastStressTime_ {-1e6}; ///< to keep track of the last time stress was computed
 
-    PairwiseInteraction<PairwiseKernel> interactionWithoutStress_;
-    PairwiseInteraction<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress_;
+    PairwiseInteraction<PairwiseKernel> interactionWithoutStress_; ///< The interaction without stress wrapper
+    PairwiseInteraction<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress_; ///< The interaction with stress wrapper
 };
 
 } // namespace mirheo

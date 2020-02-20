@@ -22,7 +22,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/pvs \
 	../src/mirheo/core/interactions/interface.h \
 	../src/mirheo/core/interactions/pairwise/base_pairwise.h \
-	../src/mirheo/core/interactions/pairwise/pairwise.h
+	../src/mirheo/core/interactions/pairwise/pairwise.h \
+	../src/mirheo/core/interactions/pairwise/pairwise_with_stress.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
@@ -31,14 +32,15 @@ FILE_PATTERNS     = *.h
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-PREDEFINED  += __align__(x)=          \
-             __restrict__=            \
-             __launch_bounds__(x,y)=  \
-             __H__=                   \
-             __HD__=                  \
-             __D__=                   \
-             __UNUSED=                \
-             __CUDACC__=1             \
+PREDEFINED  += DOXYGEN_SHOULD_SKIP_THIS \
+	     __align__(x)=              \
+             __restrict__=              \
+             __launch_bounds__(x,y)=    \
+             __H__=                     \
+             __HD__=                    \
+             __D__=                     \
+             __UNUSED=                  \
+             __CUDACC__=1               \
              MIRHEO_MEMBER_VARS(...)=
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"

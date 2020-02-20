@@ -28,9 +28,11 @@ template <class PairwiseKernel>
 class PairwiseInteraction : public BasePairwiseInteraction
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // bug in breathe
     /// The parameters corresponding to the interaction kernel.
     using KernelParams = typename PairwiseKernel::ParamsType;
-
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+    
     /** \brief Construct a \c PairwiseInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction

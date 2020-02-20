@@ -22,6 +22,11 @@ See below for the requirements on the kernels.
    :project: mirheo
    :members:
 
+A specific class can be used to compute addtionally the stresses of a given interaction.
+
+.. doxygenclass:: mirheo::PairwiseInteractionWithStress
+   :project: mirheo
+   :members:
 
 Kernels
 -------
