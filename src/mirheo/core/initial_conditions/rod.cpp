@@ -138,9 +138,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
         real3 com = entry.r;
         const auto q = Quaternion<real>::createFromComponents(entry.q).normalized();
 
-        if (domain.globalStart.x <= com.x && com.x < domain.globalStart.x + domain.localSize.x &&
-            domain.globalStart.y <= com.y && com.y < domain.globalStart.y + domain.localSize.y &&
-            domain.globalStart.z <= com.z && com.z < domain.globalStart.z + domain.localSize.z)
+        if (domain.inSubDomain(com))
         {
             com = domain.global2local(com);
             int oldSize = rv->local()->size();
