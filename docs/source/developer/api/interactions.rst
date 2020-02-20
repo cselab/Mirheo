@@ -8,4 +8,5 @@ Interactions
    :caption: Interactions
    
    interactions/interface
+   interactions/membrane
    interactions/pairwise

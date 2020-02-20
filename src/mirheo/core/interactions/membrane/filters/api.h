@@ -8,6 +8,7 @@
 namespace mirheo
 {
 
+/// variant that contains all possible filters
 using VarMembraneFilter = mpark::variant<FilterKeepAll,
                                          FilterKeepByTypeId>;
 
