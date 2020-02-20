@@ -23,7 +23,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions/interface.h \
 	../src/mirheo/core/interactions/pairwise/base_pairwise.h \
 	../src/mirheo/core/interactions/pairwise/pairwise.h \
-	../src/mirheo/core/interactions/pairwise/pairwise_with_stress.h
+	../src/mirheo/core/interactions/pairwise/pairwise_with_stress.h \
+	../src/mirheo/core/interactions/pairwise/kernels/accumulators
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

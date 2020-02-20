@@ -51,6 +51,8 @@ Local Particle Vectors
    :project: mirheo
    :members:
 
+.. _dev-pv-views:
+
 Views
 -----
 

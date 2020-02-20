@@ -28,6 +28,9 @@ A specific class can be used to compute addtionally the stresses of a given inte
    :project: mirheo
    :members:
 
+
+.. _dev-interactions-pairwise-kernels:
+
 Kernels
 -------
 
@@ -65,7 +68,7 @@ The interface of the functor must follow the following requirements:
       
       __D__ <OutputType> operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const;
 
-5. Accumulator initializer (on GPU)
+5. :ref:`Accumulator <dev-interactions-pairwise-accumulators>` initializer (on GPU)
 
    .. code-block:: c++
 
@@ -94,3 +97,56 @@ The interface of the functor must follow the following requirements:
 
       __D__ real3 getPosition(const ParticleType& p) const;
 
+.. _dev-interactions-pairwise-accumulators:
+
+Accumulators
+------------
+
+Every :ref:`interaction kernel <dev-interactions-pairwise-kernels>` must initialize an accumulator that is used to add its output quantity.
+Depending on the kernel, that quantity may be of different type, and may behave in a different way (e.g. forces and stresses are different).
+
+It must satisfy the following interface requirements (in the following, we denote the type of the local variable as :code:`LType`
+and the :ref:`view type<dev-pv-views>` as :code:`ViewType`):
+
+1. A default constructor which initializes the internal local variable
+2. Atomic accumulator from local value to destination view:
+
+   .. code-block:: c++
+
+      __D__ void atomicAddToDst(LType, ViewType&, int id) const;
+
+3. Atomic accumulator from local value to source view:
+
+   .. code-block:: c++
+
+      __D__ inline void atomicAddToSrc(LType, ViewType&, int id) const;
+
+4. Accessor of accumulated value:
+
+   .. code-block:: c++
+
+      __D__ inline LType get() const;
+
+5. Function to add a value to the accumulator (from output of pairwise kernel):
+
+   .. code-block:: c++
+
+      __D__ inline void add(LType);
+
+The following accumulators are currently implemented:
+
+.. doxygenclass:: mirheo::DensityAccumulator
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForceAccumulator
+   :project: mirheo
+   :members:
+
+.. doxygenstruct:: mirheo::ForceStress
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForceStressAccumulator
+   :project: mirheo
+   :members:

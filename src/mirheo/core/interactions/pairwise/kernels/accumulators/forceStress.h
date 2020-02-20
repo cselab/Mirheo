@@ -10,37 +10,53 @@
 namespace mirheo
 {
 
+/// Holds force and stress together
 struct ForceStress
 {
-    real3 force;
-    Stress stress;
+    real3 force; ///< force value
+    Stress stress; ///< stress value
 };
 
+/** \brief Accumulate ForceStress structure on device
+    \tparam BasicView The view type without stress, to enforce the use of the stress view wrapper
+ */
 template <typename BasicView>
 class ForceStressAccumulator
 {
 public:
-
-    __D__ inline ForceStressAccumulator() :
+    /// \brief Initialize the ForceStressAccumulator
+    __D__ ForceStressAccumulator() :
         frcStress_({{0._r, 0._r, 0._r},
                     {0._r, 0._r, 0._r, 0._r, 0._r, 0._r}})
     {}
     
-    __D__ inline void atomicAddToDst(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
+    /** \brief Atomically add the force and stress \p fs to the destination \p view at id \p id. 
+        \param [in] fs The force, directed from src to dst, and the corresponding stress
+        \param [out] view The destination container
+        \param [in] id destination index in \p view
+     */
+    __D__ void atomicAddToDst(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
     {
         atomicAdd(      view.forces   + id, fs.force );
         atomicAddStress(view.stresses + id, fs.stress);
     }
 
-    __D__ inline void atomicAddToSrc(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
+    /** \brief Atomically add the force and stress \p fs to the source \p view at id \p id. 
+        \param [in] fs The force, directed from src to dst, and the corresponding stress
+        \param [out] view The destination container
+        \param [in] id destination index in \p view
+     */
+    __D__ void atomicAddToSrc(const ForceStress& fs, PVviewWithStresses<BasicView>& view, int id) const
     {
         atomicAdd(      view.forces   + id, -fs.force );
         atomicAddStress(view.stresses + id,  fs.stress);
     }
 
-    __D__ inline ForceStress get() const {return frcStress_;}
+    /// \return the internal accumulated force and stress
+    __D__ ForceStress get() const {return frcStress_;}
 
-    __D__ inline void add(const ForceStress& fs)
+    /// add \p fs to the internal force
+    __D__ void add(const ForceStress& fs)
     {
         frcStress_.force += fs.force;
         frcStress_.stress.xx += fs.stress.xx;
@@ -52,9 +68,10 @@ public:
     }
     
 private:
-    ForceStress frcStress_;
+    ForceStress frcStress_; ///< internal accumulated force and stress
 
-    __D__ inline void atomicAddStress(Stress *dst, const Stress& s) const
+    /// addition wrapper for stresses; uses \c atomicAdd().
+    __D__ void atomicAddStress(Stress *dst, const Stress& s) const
     {
         atomicAdd(&dst->xx, s.xx);
         atomicAdd(&dst->xy, s.xy);

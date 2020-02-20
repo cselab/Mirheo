@@ -5,30 +5,43 @@
 
 namespace mirheo
 {
-
+/// \brief Accumulate densities on device
 class DensityAccumulator
 {
 public:
-
-    __D__ inline DensityAccumulator() :
+    /// \brief Initialize the DensityAccumulator
+    __D__ DensityAccumulator() :
         den_(0._r)
     {}
-    
-    __D__ inline void atomicAddToDst(real d, PVviewWithDensities& view, int id) const
+
+    /** \brief Atomically add density \p d to the destination \p view at id \p id. 
+        \param [in] d The value to add
+        \param [out] view The destination container 
+        \param [in] id destination index in \p view
+     */
+    __D__ void atomicAddToDst(real d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline void atomicAddToSrc(real d, PVviewWithDensities& view, int id) const
+    /** \brief Atomically add density \p d to the source \p view at id \p id. 
+        \param [in] d The value to add
+        \param [out] view The destination container 
+        \param [in] id destination index in \p view
+     */
+    __D__ void atomicAddToSrc(real d, PVviewWithDensities& view, int id) const
     {
         atomicAdd(view.densities + id, d);
     }
 
-    __D__ inline real get() const {return den_;}
-    __D__ inline void add(real d) {den_ += d;}
+    /// \return the internal accumulated density 
+    __D__ real get() const {return den_;}
+
+    /// add \p d to the internal density
+    __D__ void add(real d) {den_ += d;}
     
 private:
-    real den_;
+    real den_; ///< internal accumulated density
 };
 
 } // namespace mirheo
