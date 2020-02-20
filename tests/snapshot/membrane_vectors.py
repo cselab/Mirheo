@@ -11,7 +11,7 @@ import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ranks", type=int, nargs=3, required=True)
+parser.add_argument('--ranks', type=int, nargs=3, required=True)
 parser.add_argument('--save-to', type=str, required=True)
 parser.add_argument('--load-from', type=str)
 args = parser.parse_args()

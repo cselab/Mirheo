@@ -19,6 +19,10 @@ public:
         \param [in] forcingTerm Additional force added to the particles.
     */
     IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm);
+
+    /// Load the integrator from a snapshot.
+    IntegratorVV(const MirState *state, Loader& loader, const ConfigObject& object);
+
     ~IntegratorVV();
 
     /** \brief Create a ConfigObject describing the integrator state and register it in the saver.

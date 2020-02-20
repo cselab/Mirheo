@@ -96,7 +96,7 @@ static void loadPlugins(Mirheo *mir, Loader& loader)
         const ConfigObject* configSim =
                 i >= 0 ? infosSim.at(parseNameFromRefString(refsSim[i])) : nullptr;
         const ConfigObject* configPost =
-                j >= 0 ? infosPost.at(parseNameFromRefString(refsPost[i])) : nullptr;
+                j >= 0 ? infosPost.at(parseNameFromRefString(refsPost[j])) : nullptr;
 
         const auto &factories = PluginFactoryContainer::get().getFactories();
         for (const auto& factory : factories) {
@@ -122,7 +122,7 @@ static void loadPlugins(Mirheo *mir, Loader& loader)
     // way to preserve the order between two As, between As and CS, and between
     // Bs and Cs. The order between As and Bs is not necessarily preserved.
     int i = 0, j = 0;
-    while (i < (int)refsSim.size()) {
+    while (i < (int)refsSim.size() && j < (int)refsPost.size()) {
         // Look for a postprocess plugin with a matching name.
         std::string nameSim = parseNameFromRefString(refsSim[i]);
         auto it = infosPost.find(nameSim);
@@ -142,7 +142,9 @@ static void loadPlugins(Mirheo *mir, Loader& loader)
             ++j;
         }
     }
-    // Load remaining postprocess plugins.
+    // Load remaining simulation and postprocess plugins.
+    for (; i < (int)refsSim.size(); ++i)
+        loadPlugin(i, -1);
     for (; j < (int)refsPost.size(); ++j)
         loadPlugin(-1, j);
 }

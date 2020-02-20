@@ -20,6 +20,13 @@ IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, const std::string
 {}
 
 template<class ForcingTerm>
+IntegratorVV<ForcingTerm>::IntegratorVV(const MirState *state, Loader& loader,
+                                        const ConfigObject& object) :
+    IntegratorVV(state, (const std::string&)object["name"],
+                 loader.load<ForcingTerm>(object["forcingTerm"]))
+{}
+
+template<class ForcingTerm>
 IntegratorVV<ForcingTerm>::~IntegratorVV() = default;
 
 template<class ForcingTerm>
