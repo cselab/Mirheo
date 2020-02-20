@@ -26,13 +26,14 @@ if not args.load_from:
     mesh2 = mir.ParticleVectors.MembraneMesh('mesh_dummy2.off')
     ov1 = mir.ParticleVectors.MembraneVector('ov1', mesh=mesh1, mass=1)
     ov2 = mir.ParticleVectors.MembraneVector('ov2', mesh=mesh2, mass=1)
-    ic = mir.InitialConditions.Membrane([])
+    ic = mir.InitialConditions.Membrane([[1.0, 2.0, 3.0,  1.0, 0.0, 0.0 ,0.0]])
     u.registerParticleVector(ov1, ic)
     u.registerParticleVector(ov2, ic)
     u.saveSnapshot(args.save_to)
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
+    u.run(1)  # Test that it does not crash.
 
 # TODO: Add h5diff once particles (membranes) are added. h5diff does not work
 # for empty data sets for some reason.
@@ -40,8 +41,8 @@ else:
 # TEST: snapshot.membrane_vectors
 # cd snapshot
 # rm -rf snapshot1/ snapshot2/ snapshot.out.txt
-# mir.run --runargs "-n 4" ./membrane_vectors.py --ranks 2 1 1 --save-to snapshot1/
-# mir.run --runargs "-n 4" ./membrane_vectors.py --ranks 2 1 1 --save-to snapshot2/ --load-from snapshot1/
+# mir.run --runargs "-n 2" ./membrane_vectors.py --ranks 1 1 1 --save-to snapshot1/
+# mir.run --runargs "-n 2" ./membrane_vectors.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
 # git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
 # git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
 # git --no-pager diff --no-index snapshot1/mesh_0.off snapshot2/mesh_0.off

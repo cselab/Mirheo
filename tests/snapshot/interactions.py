@@ -28,6 +28,7 @@ if not args.load_from:
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
+    u.run(1)  # Test that it does not crash.
 
 # NOTE: The development docs include this test case as a JSON sample.
 #       Currently it assumes it contains only the two JSON objects.

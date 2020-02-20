@@ -107,6 +107,8 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
 MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :
     Mesh(loader, config)
 {
+    findAdjacent();
+    // Replacement for _computeInitialQuantities(stressFreeMesh.vertexCoordinates).
     std::string fileName = joinPaths(loader.getContext().getPath(), config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "r");
     readReals(f.get(), &initialLengths);
