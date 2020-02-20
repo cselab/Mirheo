@@ -1,10 +1,15 @@
 #include <mirheo/core/logger.h>
+#include <mirheo/core/version.h>
 #include "bindings.h"
 #include <mpi.h>
 
 PYBIND11_MODULE(libmirheo, m)
 {
     using namespace mirheo;
+
+    // Is there an equivalent of cls.def_readonly_static(...) for modules?
+    // https://github.com/pybind/pybind11/issues/1869
+    m.attr("version") = Version::mir_version;  // This is not const!
 
     exportVectorTypes(m);
     exportConfigValue(m);
