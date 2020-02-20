@@ -22,7 +22,7 @@ class ParticleVector;
 class VelocityFieldRotate
 {
 public:
-    /** Construct a \c VelocityFieldRotate object
+    /** Construct a VelocityFieldRotate object
         \param [in] omega The angular velocity
         \param [in] center Center of rotation in global coordinates
     */

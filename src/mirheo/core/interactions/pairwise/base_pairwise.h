@@ -28,19 +28,19 @@ public:
     BasePairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BasePairwiseInteraction();
 
-    /** \brief Convenience function that avoids having one \c BasePairwiseInteraction per pair of \c ParticleVector.
-        \param [in] pv1name Name of one interacting \c ParticleVector
-        \param [in] pv2name Name of the other interacting \c ParticleVector
+    /** \brief Convenience function that avoids having one BasePairwiseInteraction per pair of ParticleVector.
+        \param [in] pv1name Name of one interacting ParticleVector
+        \param [in] pv2name Name of the other interacting ParticleVector
         \param [in] mapParams Contains the parameters to modify.
 
         The order of pv1name and pv2name is not important.
         This method copies the parameters given in the constructor and of the object, modify only the values specified in mapParams,
-        and store the new set of parameters for the pair of \c ParticleVector.
-        These new parameters will be used when computing the forces for that pair of \c ParticleVector.
+        and store the new set of parameters for the pair of ParticleVector.
+        These new parameters will be used when computing the forces for that pair of ParticleVector.
      */
     virtual void setSpecificPair(const std::string& pv1name, const std::string& pv2name, const ParametersWrap::MapParams& mapParams) = 0;
 
-    /// return the cut-off radius of the pairwise interaction.
+    /// \return the cut-off radius of the pairwise interaction.
     real getCutoffRadius() const override;
 
 protected:

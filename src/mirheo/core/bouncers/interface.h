@@ -19,7 +19,7 @@ enum class ParticleVectorLocality;
 
     Interface class for Bouncers.
     Bouncers are responsible to reflect particles on the surface of the attached object.
-    Each \c Bouncer class needs to attach exactly one \c ObjectVector before performing the bounce.
+    Each \c Bouncer class needs to attach exactly one ObjectVector before performing the bounce.
  */
 class Bouncer : public MirSimulationObject
 {
@@ -32,35 +32,35 @@ public:
     virtual ~Bouncer();
 
     /** \brief Second initialization stage
-        \param [in] ov The \c ObjectVector to attach to that \c Bouncer.
+        \param [in] ov The ObjectVector to attach to that \c Bouncer.
 
         This method must be called before calling any other method of this class.
      */
     virtual void setup(ObjectVector *ov);
 
     /**
-       \return The attached \c ObjectVector
+       \return The attached ObjectVector
      */
     ObjectVector* getObjectVector();
     
-    /** \brief Setup prerequisites to a given \c ParticleVector
-        \param [in,out] pv The \c ParticleVector that will be bounced
+    /** \brief Setup prerequisites to a given ParticleVector
+        \param [in,out] pv The ParticleVector that will be bounced
 
-        Add additional properties to a \c ParticleVector to make it compatible with the exec() method.
+        Add additional properties to a ParticleVector to make it compatible with the exec() method.
         The default implementation does not add any properties.
      */
     virtual void setPrerequisites(ParticleVector *pv);
 
     /** \brief Perform the reflection of local particles onto the **local** attached objects surface.
-        \param [in,out] pv The \c ParticleVector that will be bounced
-        \param [in] cl The \c CellList attached to \p pv
+        \param [in,out] pv The ParticleVector that will be bounced
+        \param [in] cl The CellList attached to \p pv
         \param [in] stream The cuda stream used for execution
      */
     void bounceLocal(ParticleVector *pv, CellList *cl, cudaStream_t stream);
 
     /** \brief Perform the reflection of local particles onto the **halo** attached objects surface.
-        \param [in,out] pv The \c ParticleVector that will be bounced
-        \param [in] cl The \c CellList attached to \p pv
+        \param [in,out] pv The ParticleVector that will be bounced
+        \param [in] cl The CellList attached to \p pv
         \param [in] stream The cuda stream used for execution
      */
     void bounceHalo (ParticleVector *pv, CellList *cl, cudaStream_t stream);
@@ -76,11 +76,11 @@ public:
     virtual std::vector<std::string> getChannelsToBeSentBack() const;
 
 protected:
-    ObjectVector *ov_;  ///< Attached \c ObjectVector. The particles will be bounced against its surface
+    ObjectVector *ov_;  ///< Attached ObjectVector. The particles will be bounced against its surface
 
     /** \brief Driver to execute bouncing
-        \param [in,out] pv The \c ParticleVector whose particles will be bounced from \ref ov_.
-        \param [in] cl The \c CellList associated to \p pv.
+        \param [in,out] pv The ParticleVector whose particles will be bounced from \ref ov_.
+        \param [in] cl The CellList associated to \p pv.
         \param [in] locality State if the bouncing is performed against **local** or **halo** objects.
         \param stream The cuda stream used for execution.
 

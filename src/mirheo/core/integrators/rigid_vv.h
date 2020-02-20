@@ -5,10 +5,10 @@
 namespace mirheo
 {
 
-/** \brief Integrate \c RigidObjectVector objects given torque and force.
+/** \brief Integrate RigidObjectVector objects given torque and force.
     
     \rst
-    Advance the RigidMotion and the frozen particles of the \c RigidObjectVector objects.
+    Advance the RigidMotion and the frozen particles of the RigidObjectVector objects.
     The particles of each object are given the velocities corresponding to the rigid object motion.
     \endrst
  */

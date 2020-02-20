@@ -16,7 +16,7 @@ class ParticleVector;
 class ForcingTermConstDP
 {
 public:
-    /**\brief Construct a \c ForcingTermConstDP object
+    /**\brief Construct a ForcingTermConstDP object
        \param [in] extraForce The force to add to every particle
     */
     ForcingTermConstDP(real3 extraForce) :
@@ -24,7 +24,7 @@ public:
     {}
 
     /**\brief Initialize internal state
-       \param [in] pv the \c ParticleVector that will be updated
+       \param [in] pv the ParticleVector that will be updated
        \param [in] t Current simulation time
 
        This method must be called at every time step.

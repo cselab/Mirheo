@@ -7,7 +7,7 @@ namespace mirheo
 
 /** \brief Base class to manage rod interactions
 
-    Rod interactions must be used with a \c RodVector.
+    Rod interactions must be used with a RodVector.
     They are internal forces, meaning that halo() does not compute anything.
  */
 class BaseRodInteraction : public Interaction

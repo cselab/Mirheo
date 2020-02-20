@@ -5,14 +5,14 @@
 namespace mirheo
 {
 
-/** \brief Rotate \c ParticleVector objects with a constant angular velocity.
+/** \brief Rotate ParticleVector objects with a constant angular velocity.
 
     The center of rotation is defined in the global coordinate system.
  */
 class IntegratorConstOmega : public Integrator
 {
 public:
-    /** \brief Construct a \c IntegratorConstOmega object.
+    /** \brief Construct a IntegratorConstOmega object.
         \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
         \param [in] name The name of the integrator.
         \param [in] center The center of rotation, in global coordinates system.

@@ -18,7 +18,7 @@ template<class InsideWallChecker>
 class SimpleStationaryWall : public SDFBasedWall
 {
 public:
-    /** \brief Construct a \c SimpleStationaryWall object.
+    /** \brief Construct a SimpleStationaryWall object.
         \param [in] state The simulation state.
         \param [in] name The wall name.
         \param [in] insideWallChecker A functor that represents the wall surface (see stationary_walls/).

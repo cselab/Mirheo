@@ -16,7 +16,7 @@ class ForcingTermNone
 {
 public:
     /**\brief Initialize internal state
-       \param [in] pv the \c ParticleVector that will be updated
+       \param [in] pv the ParticleVector that will be updated
        \param [in] t Current simulation time
 
        This method must be called at every time step

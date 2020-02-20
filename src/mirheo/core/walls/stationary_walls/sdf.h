@@ -10,7 +10,7 @@ namespace mirheo
 class StationaryWallSDF
 {
 public:
-    /** \brief Construct a \c StationaryWallSDF from a file.
+    /** \brief Construct a StationaryWallSDF from a file.
         \param [in] state Simulation state
         \param [in] sdfFileName The input file name
         \param [in] sdfH The grid spacing

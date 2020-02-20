@@ -4,7 +4,7 @@
 
 namespace mirheo
 {
-/// \brief Check in/out status of particles against an \c ObjectVector with a triangle mesh.
+/// \brief Check in/out status of particles against an ObjectVector with a triangle mesh.
 class MeshBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:

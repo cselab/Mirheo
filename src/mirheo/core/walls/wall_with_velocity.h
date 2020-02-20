@@ -18,7 +18,7 @@ template<class InsideWallChecker, class VelocityField>
 class WallWithVelocity : public SimpleStationaryWall<InsideWallChecker>
 {
 public:
-    /** \brief Construct a \c WallWithVelocity object.
+    /** \brief Construct a WallWithVelocity object.
         \param [in] state The simulation state.
         \param [in] name The wall name.
         \param [in] insideWallChecker A functor that represents the wall surface (see stationary_walls/).

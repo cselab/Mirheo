@@ -4,8 +4,8 @@
 
 namespace mirheo
 {
-/** \brief Check in/out status of particles against a \c RigidShapedObjectVector.
-    \tparam Shape The \c AnalyticShape that represent the shape of the objects.
+/** \brief Check in/out status of particles against a RigidShapedObjectVector.
+    \tparam Shape The AnalyticShape that represent the shape of the objects.
  */
 template <class Shape>
 class ShapeBelongingChecker : public ObjectVectorBelongingChecker

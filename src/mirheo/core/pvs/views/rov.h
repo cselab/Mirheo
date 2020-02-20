@@ -15,8 +15,8 @@ class LocalRigidObjectVector;
 struct ROVview : public OVview
 {
     /** \brief Construct a \c ROVview 
-        \param [in] rov The \c RigidObjectVector that the view represents
-        \param [in] lrov The \c LocalRigidObjectVector that the view represents
+        \param [in] rov The RigidObjectVector that the view represents
+        \param [in] lrov The LocalRigidObjectVector that the view represents
     */
     ROVview(RigidObjectVector *rov, LocalRigidObjectVector *lrov);
     
@@ -30,8 +30,8 @@ struct ROVview : public OVview
 struct ROVviewWithOldMotion : public ROVview
 {
     /** \brief Construct a \c ROVview 
-        \param [in] rov The \c RigidObjectVector that the view represents
-        \param [in] lrov The \c LocalRigidObjectVector that the view represents
+        \param [in] rov The RigidObjectVector that the view represents
+        \param [in] lrov The LocalRigidObjectVector that the view represents
 
         \rst
         .. warning::

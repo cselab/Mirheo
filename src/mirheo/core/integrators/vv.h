@@ -21,10 +21,10 @@ public:
     IntegratorVV(const MirState *state, const std::string& name, ForcingTerm forcingTerm);
     ~IntegratorVV();
 
-    /** \brief Create a \c ConfigObject describing the integrator state and register it in the saver.
+    /** \brief Create a ConfigObject describing the integrator state and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c IntegratorVV<ForcingTerm>.
+        Checks that the object type is exactly IntegratorVV<ForcingTerm>.
       */
     void saveSnapshotAndRegister(Saver& saver);
 

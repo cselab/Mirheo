@@ -16,12 +16,12 @@ namespace mirheo
 class FromArrayIC : public InitialConditions
 {
 public:
-    /** \brief Construct a \c FromArrayIC object
+    /** \brief Construct a FromArrayIC object
         \param [in] pos list of initial positions in global coordinates. 
-        The size will determine the maximum number of particles.
-        Positions outside the domain are filtered out.
+                    The size will determine the maximum number of particles.
+                    Positions outside the domain are filtered out.
         \param [in] vel list of initial velocities.
-        Must have the same size as \p pos.
+                    Must have the same size as \p pos.
      */
     FromArrayIC(const std::vector<real3>& pos, const std::vector<real3>& vel);
 

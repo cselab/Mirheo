@@ -13,8 +13,8 @@ template <class Shape>
 struct RSOVview : public ROVview
 {
     /** \brief Construct a \c RSOVview 
-        \param [in] rsov The \c RigidShapedObjectVector that the view represents
-        \param [in] lrov The \c LocalRigidObjectVector that the view represents
+        \param [in] rsov The RigidShapedObjectVector that the view represents
+        \param [in] lrov The LocalRigidObjectVector that the view represents
     */
     RSOVview(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         ROVview(rsov, lrov),
@@ -31,8 +31,8 @@ template <class Shape>
 struct RSOVviewWithOldMotion : public RSOVview<Shape>
 {
     /** \brief Construct a \c RSOVview 
-        \param [in] rsov The \c RigidShapedObjectVector that the view represents
-        \param [in] lrov The \c LocalRigidObjectVector that the view represents
+        \param [in] rsov The RigidShapedObjectVector that the view represents
+        \param [in] lrov The LocalRigidObjectVector that the view represents
 
         \rst
         .. warning::

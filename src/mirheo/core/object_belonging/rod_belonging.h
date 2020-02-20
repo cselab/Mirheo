@@ -5,11 +5,11 @@
 namespace mirheo
 {
 
-/// \brief Check in/out status of particles against a \c RodObjectVector.
+/// \brief Check in/out status of particles against a RodObjectVector.
 class RodBelongingChecker : public ObjectVectorBelongingChecker
 {
 public:
-    /** \brief Construct a \c RodBelongingChecker object.
+    /** \brief Construct a RodBelongingChecker object.
         \param [in] state Simulation state.
         \param [in] name Name of the bouncer.
         \param [in] radius The radius of the rod. Must be positive.

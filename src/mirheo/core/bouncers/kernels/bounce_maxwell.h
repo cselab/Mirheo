@@ -20,7 +20,7 @@ namespace mirheo
 class BounceMaxwell
 {
 public:
-    /** \brief Construct a \c BounceMaxwell object
+    /** \brief Construct a BounceMaxwell object
         \param [in] kBT The temperature used to sample the velocity
      */
     BounceMaxwell(real kBT) :

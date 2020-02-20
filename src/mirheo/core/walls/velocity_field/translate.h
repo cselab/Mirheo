@@ -15,7 +15,7 @@ class ParticleVector;
 class VelocityFieldTranslate
 {
 public:
-    /** Construct a \c VelocityFieldTranslate
+    /** Construct a VelocityFieldTranslate
         \param [in] vel The constant velocity
     */
     VelocityFieldTranslate(real3 vel) :

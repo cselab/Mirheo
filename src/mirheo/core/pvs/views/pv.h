@@ -16,8 +16,8 @@ class LocalParticleVector;
 struct PVview
 {
     /** \brief Construct a \c PVview 
-        \param [in] pv The \c ParticleVector that the view represents
-        \param [in] lpv The \c LocalParticleVector that the view represents
+        \param [in] pv The ParticleVector that the view represents
+        \param [in] lpv The LocalParticleVector that the view represents
      */
     PVview(ParticleVector *pv, LocalParticleVector *lpv);
 
@@ -99,9 +99,9 @@ struct PVview
  */
 struct PVviewWithOldParticles : public PVview
 {
-    /** \brief Construct a \c PVviewWithOldParticles 
-        \param [in] pv The \c ParticleVector that the view represents
-        \param [in] lpv The \c LocalParticleVector that the view represents
+    /** \brief Construct a PVviewWithOldParticles 
+        \param [in] pv The ParticleVector that the view represents
+        \param [in] lpv The LocalParticleVector that the view represents
 
         \rst
         .. note::
@@ -124,9 +124,9 @@ struct PVviewWithOldParticles : public PVview
  */
 struct PVviewWithDensities : public PVview
 {
-    /** \brief Construct a \c PVviewWithOldParticles 
-        \param [in] pv The \c ParticleVector that the view represents
-        \param [in] lpv The \c LocalParticleVector that the view represents
+    /** \brief Construct a PVviewWithOldParticles 
+        \param [in] pv The ParticleVector that the view represents
+        \param [in] lpv The LocalParticleVector that the view represents
 
         \rst
         .. warning::

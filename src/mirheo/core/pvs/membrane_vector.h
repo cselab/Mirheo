@@ -15,7 +15,7 @@ namespace mirheo
 class MembraneVector: public ObjectVector
 {
 public:
-    /** Construct a \c MembraneVector
+    /** Construct a MembraneVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
@@ -33,10 +33,10 @@ public:
 
     ~MembraneVector();
 
-    /** \brief Dump the membrane vector state, create a \c ConfigObject with its metadata and register it in the saver.
+    /** \brief Dump the membrane vector state, create a ConfigObject with its metadata and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c MembraneVector.
+        Checks that the object type is exactly MembraneVector.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 };

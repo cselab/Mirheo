@@ -15,7 +15,7 @@ class ParticleVector;
 class StationaryWallPlane
 {
 public:
-    /** \brief Construct a \c StationaryWallPlane
+    /** \brief Construct a StationaryWallPlane
         \param [in] normal Normal of the wall, pointing inside the walls.
         \param [in] pointThrough One point inside the plane, in global coordinates.
      */

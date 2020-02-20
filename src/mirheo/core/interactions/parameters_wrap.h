@@ -24,7 +24,7 @@ public:
     /// Represents the map from parameter names to parameter values
     using MapParams = std::map<std::string, VarParam>;
 
-    /// \brief Construct a \c ParametersWrap object from a \c MapParams
+    /// \brief Construct a ParametersWrap object from a MapParams
     ParametersWrap(const MapParams& params);
 
     /** \brief Check if a parameter of a given type and name exists in the map

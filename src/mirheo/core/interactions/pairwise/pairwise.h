@@ -33,7 +33,7 @@ public:
     using KernelParams = typename PairwiseKernel::ParamsType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
     
-    /** \brief Construct a \c PairwiseInteraction object
+    /** \brief Construct a PairwiseInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
         \param [in] rc The cut-off radius of the interaction
@@ -47,7 +47,7 @@ public:
         _pairParams{pairParams}        
     {}
     
-    /** \brief Constructs a \c PairwiseInteraction object from a snapshot.
+    /** \brief Constructs a PairwiseInteraction object from a snapshot.
         \param [in] state The global state of the system
         \param [in] loader The \c Loader object. Provides load context and unserialization functions.
         \param [in] config The parameters of the interaction.

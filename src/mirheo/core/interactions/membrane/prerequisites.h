@@ -10,10 +10,10 @@ namespace mirheo
 {
 class MembraneVector;
 
-/** \brief Set prerequisites on a \c MembraneVector for a given energy term.
+/** \brief Set prerequisites on a MembraneVector for a given energy term.
     \tparam EnergyParams The energy term type
     \param [in] params energy parameters
-    \param [in,out] mv The \c MembraneVector that will get prerequisites.
+    \param [in,out] mv The MembraneVector that will get prerequisites.
  */
 template <class EnergyParams>
 void setPrerequisitesPerEnergy(__UNUSED const EnergyParams& params,
@@ -24,10 +24,10 @@ void setPrerequisitesPerEnergy(__UNUSED const EnergyParams& params,
 void setPrerequisitesPerEnergy(const JuelicherBendingParameters& params, MembraneVector *mv);
 
 
-/** \brief Compute prerequired quantities needed by a specific interaction for a \c MembraneVector
+/** \brief Compute prerequired quantities needed by a specific interaction for a MembraneVector
     \tparam EnergyParams The energy term type
     \param [in] params energy parameters
-    \param [in,out] mv The \c MembraneVector that will store the precomputed quantities.
+    \param [in,out] mv The MembraneVector that will store the precomputed quantities.
  */
 template <class EnergyParams>
 void precomputeQuantitiesPerEnergy(__UNUSED const EnergyParams&,

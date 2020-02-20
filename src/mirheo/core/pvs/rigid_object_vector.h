@@ -8,18 +8,18 @@ namespace mirheo
 
 /** \brief Rigid objects container. 
 
-    This is used to represent local or halo objects in \c RigidObjectVector.
+    This is used to represent local or halo objects in RigidObjectVector.
     A rigid object is composed of frozen particles inside a volume that is represented by a triangle mesh.
     There is then two sets of particles: mesh vertices and frozen particles.
     The frozen particles are stored in the particle data manager, while the mesh particles are stored in additional buffers.
 
-    Additionally, each rigid object has a \c RigidMotion datum associated that fully describes its state.
+    Additionally, each rigid object has a RigidMotion datum associated that fully describes its state.
 */
 class LocalRigidObjectVector : public LocalObjectVector
 {
 public:
-    /** \brief Construct a \c LocalRigidObjectVector.
-        \param [in] pv Parent \c RigidObjectVector
+    /** \brief Construct a LocalRigidObjectVector.
+        \param [in] pv Parent RigidObjectVector
         \param [in] objSize Number of frozen particles per object
         \param [in] nObjects Number of objects
     */
@@ -40,12 +40,12 @@ private:
 
 /** \brief Rigid objects container.
 
-    Holds two \c LocalRigidObjectVector: local and halo.
+    Holds two LocalRigidObjectVector: local and halo.
  */
 class RigidObjectVector : public ObjectVector
 {
 public:
-    /** Construct a \c RigidObjectVector
+    /** Construct a RigidObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] partMass Mass of one frozen particle
@@ -59,11 +59,11 @@ public:
 
     virtual ~RigidObjectVector();
 
-    /// get local \c LocalRigidObjectVector
+    /// get local LocalRigidObjectVector
     LocalRigidObjectVector* local() { return static_cast<LocalRigidObjectVector*>(ParticleVector::local()); }
-    /// get halo \c LocalRigidObjectVector
+    /// get halo LocalRigidObjectVector
     LocalRigidObjectVector* halo()  { return static_cast<LocalRigidObjectVector*>(ParticleVector::halo());  }
-    /// get \c LocalRigidObjectVector from locality
+    /// get LocalRigidObjectVector from locality
     LocalRigidObjectVector* get(ParticleVectorLocality locality)
     {
         return (locality == ParticleVectorLocality::Local) ? local() : halo();

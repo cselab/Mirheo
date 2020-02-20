@@ -14,33 +14,33 @@ class ParticleVector;
 class ObjectVector;
 class CellList;
 
-/** \brief Mark or split particles which are inside of a given \c ObjectVector.
+/** \brief Mark or split particles which are inside of a given ObjectVector.
     
     The user must call setup() exactly once before any call of checkInner() or splitByBelonging(). 
  */
 class ObjectBelongingChecker : public MirSimulationObject
 {
 public:
-    /** \brief Construct a \c ObjectBelongingChecker object.
+    /** \brief Construct a ObjectBelongingChecker object.
         \param [in] state Simulation state.
         \param [in] name Name of the bouncer.
      */
     ObjectBelongingChecker(const MirState *state, const std::string& name);
     virtual ~ObjectBelongingChecker();
 
-    /** \brief Split a \c ParticleVector into inside and outside particles.
+    /** \brief Split a ParticleVector into inside and outside particles.
         \param [in] src The particles to split.
         \param [in,out] pvIn Buffer that will contain the inside particles.
         \param [in,out] pvOut Buffer that will contain the outside particles.
         \param [in] stream Stream used for the execution.
+        
+        The \p pvIn and \p pvOut ParticleVector can be set to \c nullptr, in which case they will be ignored.
+        If \p pvIn and \p src point to the same object, \p pvIn will contain only inside particles of \p src in the end.
+        Otherwise, \p pvIn will contain its original particles additionally to the inside particles of \p src.
+        If \p pvOut and \p src point to the same object, \p pvOut will contain only outside particles of \p src in the end.
+        Otherwise, \p pvOut will contain its original particles additionally to the outside particles of \p src.
 
-        The `pvIn` and `pvOut` \c ParticleVector can be set to `nullptr`, in which case they will be ignored.
-        If `pvIn` and `src` point to the same object, `pvIn` will contain only inside particles of `src` in the end.
-        Otherwise, `pvIn` will contain its original particles additionally to the inside particles of `src`.
-        If `pvOut` and `src` point to the same object, `pvOut` will contain only outside particles of `src` in the end.
-        Otherwise, `pvOut` will contain its original particles additionally to the outside particles of `src`.
-
-        This method will die if the type of `pvIn`, `pvOut` and `src` have a different type.
+        This method will die if the type of \p pvIn, \p pvOut and \p src have a different type.
 
         Must be called after setup().
      */
@@ -57,16 +57,16 @@ public:
      */
     virtual void checkInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 
-    /** \brief Register the \c ObjectVector that defines inside and outside.
-        \param [in] ov The \c ObjectVector to register.
+    /** \brief Register the ObjectVector that defines inside and outside.
+        \param [in] ov The ObjectVector to register.
     */
     virtual void setup(ObjectVector *ov) = 0;
 
 
-    /// \brief Return the channels of the registered \c ObjectVector to be exchanged before splitting.
+    /// \brief Return the channels of the registered ObjectVector to be exchanged before splitting.
     virtual std::vector<std::string> getChannelsToBeExchanged() const;
 
-    /// \brief Return the registered \c ObjectVector.
+    /// \brief Return the registered ObjectVector.
     virtual ObjectVector* getObjectVector() = 0;
 };
 

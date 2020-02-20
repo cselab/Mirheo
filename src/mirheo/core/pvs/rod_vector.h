@@ -7,17 +7,17 @@ namespace mirheo
 
 /** \brief Rod container. 
 
-    This is used to represent local or halo rods in \c RodVector.
+    This is used to represent local or halo rods in RodVector.
     A rod is a chunk of particles connected implicitly in segments with additional 4 particles per edge.
     The number of particles per rod is then 5*n + 1 if n is the number of segments.
-    Each object (called a rod) within a \c LocalRodVector has the same number of particles.
+    Each object (called a rod) within a LocalRodVector has the same number of particles.
     Additionally to particle and object, data can be attached to each bisegment.
 */
 class LocalRodVector : public LocalObjectVector
 {
 public:
-    /** \brief Construct a \c LocalRodVector.
-        \param [in] pv Parent \c RodVector
+    /** \brief Construct a LocalRodVector.
+        \param [in] pv Parent RodVector
         \param [in] objSize Number of particles per object
         \param [in] nObjects Number of objects
     */
@@ -37,12 +37,12 @@ public:
 
 /** \brief Rod objects container.
 
-    Holds two \c LocalRodVector: local and halo.
+    Holds two LocalRodVector: local and halo.
  */
 class RodVector: public ObjectVector
 {
 public:
-    /** Construct a \c ObjectVector
+    /** Construct a ObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
@@ -52,11 +52,11 @@ public:
     RodVector(const MirState *state, const std::string& name, real mass, int nSegments, int nObjects = 0);
     ~RodVector();
 
-    /// get local \c LocalRodVector
+    /// get local LocalRodVector
     LocalRodVector* local() { return static_cast<LocalRodVector*>(ParticleVector::local()); }
-    /// get halo \c LocalRodVector
+    /// get halo LocalRodVector
     LocalRodVector* halo()  { return static_cast<LocalRodVector*>(ParticleVector::halo());  }
-    /// get \c LocalRodVector from locality
+    /// get LocalRodVector from locality
     LocalRodVector* get(ParticleVectorLocality locality)
     {
         return (locality == ParticleVectorLocality::Local) ? local() : halo();

@@ -13,9 +13,9 @@ namespace mirheo
 template <typename BasicView> 
 struct PVviewWithStresses : public BasicView
 {
-    /** \brief Construct a \c PVviewWithStresses
-        \param [in] pv The \c ParticleVector that the view represents
-        \param [in] lpv The \c LocalParticleVector that the view represents
+    /** \brief Construct a PVviewWithStresses
+        \param [in] pv The ParticleVector that the view represents
+        \param [in] lpv The LocalParticleVector that the view represents
 
         \rst
         .. warning::

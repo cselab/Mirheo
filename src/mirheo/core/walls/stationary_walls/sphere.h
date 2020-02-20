@@ -15,10 +15,10 @@ class ParticleVector;
 class StationaryWallSphere
 {
 public:
-    /** \brief Construct a \c StationaryWallSphere.
+    /** \brief Construct a StationaryWallSphere.
         \param [in] center Center of the sphere in global coordinates
         \param [in] radius Radius of the sphere
-        \param [in] inside Domain is inside the box if set to true.
+        \param [in] inside Domain is inside the box if set to \c true.
      */
     StationaryWallSphere(real3 center, real radius, bool inside) :
         center_(center),

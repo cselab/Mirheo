@@ -15,8 +15,8 @@ class LocalObjectVector;
 struct OVview : public PVview
 {
     /** \brief Construct a \c OVview 
-        \param [in] ov The \c ObjectVector that the view represents
-        \param [in] lov The \c LocalObjectVector that the view represents
+        \param [in] ov The ObjectVector that the view represents
+        \param [in] lov The LocalObjectVector that the view represents
     */
     OVview(ObjectVector *ov, LocalObjectVector *lov);
 
@@ -32,9 +32,9 @@ struct OVview : public PVview
 /// \brief A \c OVview with additionally area and volume information
 struct OVviewWithAreaVolume : public OVview
 {
-    /** \brief Construct a \c OVviewWithAreaVolume
-        \param [in] ov The \c ObjectVector that the view represents
-        \param [in] lov The \c LocalObjectVector that the view represents
+    /** \brief Construct a OVviewWithAreaVolume
+        \param [in] ov The ObjectVector that the view represents
+        \param [in] lov The LocalObjectVector that the view represents
 
         \rst
         .. warning::
@@ -49,9 +49,9 @@ struct OVviewWithAreaVolume : public OVview
 /// \brief A \c OVviewWithAreaVolume with additional curvature related quantities
 struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 {
-    /** \brief Construct a \c OVviewWithJuelicherQuants 
-        \param [in] ov The \c ObjectVector that the view represents
-        \param [in] lov The \c LocalObjectVector that the view represents
+    /** \brief Construct a OVviewWithJuelicherQuants 
+        \param [in] ov The ObjectVector that the view represents
+        \param [in] lov The LocalObjectVector that the view represents
 
         \rst
         .. warning::
@@ -69,9 +69,9 @@ struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 /// \brief A \c OVview with additionally vertices information
 struct OVviewWithNewOldVertices : public OVview
 {
-    /** \brief Construct a \c OVviewWithNewOldVertices
-        \param [in] ov The \c ObjectVector that the view represents
-        \param [in] lov The \c LocalObjectVector that the view represents
+    /** \brief Construct a OVviewWithNewOldVertices
+        \param [in] ov The ObjectVector that the view represents
+        \param [in] lov The LocalObjectVector that the view represents
         \param [in] stream Stream used to create mesh vertices if not already present
     */
     OVviewWithNewOldVertices(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream);

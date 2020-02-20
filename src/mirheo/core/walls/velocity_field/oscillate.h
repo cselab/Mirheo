@@ -23,7 +23,7 @@ class ParticleVector;
 class VelocityFieldOscillate
 {
 public:
-    /** \brief Construct a \c VelocityFieldOscillate object.
+    /** \brief Construct a VelocityFieldOscillate object.
         \param [in] vel The maximum velocity vector
         \param [in] period Oscillating period in simulation time. Fails if negative.
     */

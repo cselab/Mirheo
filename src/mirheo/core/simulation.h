@@ -43,7 +43,7 @@ public:
     void restart(const std::string& folder);
     void checkpoint();
 
-    /** \brief Dump all simulation data, create a \c ConfigObject describing the simulation state and register it in the saver.
+    /** \brief Dump all simulation data, create a ConfigObject describing the simulation state and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
         Checks that the object type is exactly \c Simulation.

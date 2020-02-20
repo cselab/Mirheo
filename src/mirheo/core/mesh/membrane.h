@@ -32,10 +32,10 @@ public:
     MembraneMesh& operator=(MembraneMesh&&);
     ~MembraneMesh();
 
-    /** \brief Dump the initial and the stress-free mesh in an .off file, create a \c ConfigObject with the mesh name and register it in the saver.
+    /** \brief Dump the initial and the stress-free mesh in an .off file, create a ConfigObject with the mesh name and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c MembraneMesh.
+        Checks that the object type is exactly MembraneMesh.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 

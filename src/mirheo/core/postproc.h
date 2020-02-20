@@ -22,10 +22,10 @@ public:
     void restart   (const std::string& folder);
     void checkpoint(int checkpointId);
 
-    /** \brief Dump all postprocess data, create a \c ConfigObject describing the postprocess state and register it in the saver.
+    /** \brief Dump all postprocess data, create a ConfigObject describing the postprocess state and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c Postprocess.
+        Checks that the object type is exactly Postprocess.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 

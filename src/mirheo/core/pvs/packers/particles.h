@@ -27,18 +27,18 @@ struct ParticlePackerHandler
     }
 };
 
-/// \brief Helper class to construct a \c ParticlePackerHandler.
+/// \brief Helper class to construct a ParticlePackerHandler.
 class ParticlePacker
 {
 public:
-    /** \brief Construct a \c ParticlePacker
+    /** \brief Construct a ParticlePacker
         \param [in] predicate The channel filter that will be used to select the channels to be registered.
      */
     ParticlePacker(PackPredicate predicate);
     ~ParticlePacker();
 
-    /** \brief Register the channels of a \c LocalParticleVector that meet the predicate requirements.
-        \param [in] lpv The \c LocalParticleVector that holds the channels to be registered.
+    /** \brief Register the channels of a LocalParticleVector that meet the predicate requirements.
+        \param [in] lpv The LocalParticleVector that holds the channels to be registered.
         \param [in] stream The stream used to transfer the channels information to the device.
      */
     virtual void update(LocalParticleVector *lpv, cudaStream_t stream);

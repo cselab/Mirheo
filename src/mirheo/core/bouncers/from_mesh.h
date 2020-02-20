@@ -15,11 +15,11 @@ class RigidObjectVector;
 
 /** \brief Bounce particles against a triangle mesh.
 
-    - if the attached object is a \c RigidObjectVector, the bounced particles will
+    - if the attached object is a RigidObjectVector, the bounced particles will
       transfer (atomically) their change of momentum into the force and torque of the 
       rigid object.
 
-    - if the attached object is a not \c RigidObjectVector, the bounced particles will
+    - if the attached object is a not RigidObjectVector, the bounced particles will
       transfer (atomically) their change of momentum into the force of the three vertices
       which form the colliding triangle.
 
@@ -29,7 +29,7 @@ class BounceFromMesh : public Bouncer
 {
 public:
 
-    /** \brief Construct a \c BounceFromMesh object
+    /** \brief Construct a BounceFromMesh object
         \param [in] state Simulation state
         \param [in] name Name of the bouncer
         \param [in] varBounceKernel How are the particles bounced

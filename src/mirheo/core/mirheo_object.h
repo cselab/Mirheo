@@ -18,7 +18,7 @@ namespace mirheo
 class MirObject : public AutoObjectSnapshotTag
 {
 public:
-    /** \brief Construct a \c MirObject object.
+    /** \brief Construct a MirObject object.
         \param [in] name Name of the object.
      */
     MirObject(const std::string& name);
@@ -92,7 +92,7 @@ private:
 class MirSimulationObject : public MirObject
 {
 public:
-    /** \brief Construct a \c MirSimulationObject object.
+    /** \brief Construct a MirSimulationObject object.
         \param [in] name Name of the object.
         \param [in] state State of the simulation.
      */

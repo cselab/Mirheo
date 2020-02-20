@@ -5,14 +5,14 @@
 namespace mirheo
 {
 
-/** \brief \c RigidObjectVector with analytic shape instead of triangle mesh.
+/** \brief RigidObjectVector with analytic shape instead of triangle mesh.
     \tparam Shape The analytic shape that represents the object surface in its frame of reference
  */
 template <class Shape>
 class RigidShapedObjectVector : public RigidObjectVector
 {
 public:
-    /** Construct a \c RigidShapedObjectVector
+    /** Construct a RigidShapedObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one frozen particle
@@ -23,7 +23,7 @@ public:
     RigidShapedObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                             Shape shape, int nObjects = 0);
     
-    /** Construct a \c RigidShapedObjectVector
+    /** Construct a RigidShapedObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one frozen particle

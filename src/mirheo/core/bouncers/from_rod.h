@@ -15,13 +15,13 @@ class RodVector;
 /** \brief Bounce particles against rods.
 
     The particles are reflacted against the set of capsules around each segment forming the rod.
-    This class will fail if the attached object is not a \c RodObjectVector
+    This class will fail if the attached object is not a RodObjectVector
  */
 class BounceFromRod : public Bouncer
 {
 public:
 
-    /** \brief Construct a \c BounceFromRod object
+    /** \brief Construct a BounceFromRod object
         \param [in] state Simulation state
         \param [in] name Name of the bouncer
         \param [in] radius The radius of the capsules attached to each segment 
@@ -32,7 +32,7 @@ public:
 
     /** 
         Ask \p ov to keep its old motions accross persistently. 
-        This method will die if \p ov is not of type \c RodObjectVector.
+        This method will die if \p ov is not of type RodObjectVector.
     */
     void setup(ObjectVector *ov) override;
 

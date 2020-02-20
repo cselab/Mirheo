@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-/** \brief Restrict \c ParticleVector velocities to a sine wave.
+/** \brief Restrict ParticleVector velocities to a sine wave.
     
     \rst
     Set velocities to follow a sine wave:

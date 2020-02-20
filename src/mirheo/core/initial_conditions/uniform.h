@@ -9,14 +9,14 @@ namespace mirheo
 /** \brief Fill the domain with uniform number density
     
     Initialize particles uniformly with the given number density on the whole domain.
-    The domain considered is that of the \c ParticleVector.
-    \c ObjectVector objects are not supported.
+    The domain considered is that of the ParticleVector.
+    ObjectVector objects are not supported.
  */
 class UniformIC : public InitialConditions
 {
 public:
 
-    /** \brief Construct a \c UniformIC object
+    /** \brief Construct a UniformIC object
         \param [in] numDensity Number density of the particles to initialize
      */
     UniformIC(real numDensity);

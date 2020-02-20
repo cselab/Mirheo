@@ -16,22 +16,22 @@
 namespace mirheo
 {
 
-/// a variant that points to a \c PinnedBuffer of one of the supported types (see <mirheo/core/types/type_list.h>)
+/// a variant that points to a PinnedBuffer of one of the supported types (see <mirheo/core/types/type_list.h>)
 using VarPinnedBufferPtr = mpark::variant<
 #define MAKE_WRAPPER(a) PinnedBuffer<a>*
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
     >;
 
-/// transform a \c VarPinnedBufferPtr into a cuda variant, usable in device code.
+/// transform a VarPinnedBufferPtr into a cuda variant, usable in device code.
 CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf);
 
 /** \brief Container for multiple channels on device and host.
 
-    Used by \c ParticleVector and \c ObjectVector to hold data per particle and per object correspondingly.
-    All channels are stored as \c PinnedBuffer, which allows to easily transfer the data between host and device.
-    Channels can hold data of types listed in \c VarPinnedBufferPtr variant.
-    See \c ChannelDescription for the description of one channel.
+    Used by ParticleVector and ObjectVector to hold data per particle and per object correspondingly.
+    All channels are stored as PinnedBuffer, which allows to easily transfer the data between host and device.
+    Channels can hold data of types listed in VarPinnedBufferPtr variant.
+    See ChannelDescription for the description of one channel.
  */
 class DataManager
 {
@@ -60,7 +60,7 @@ public:
      */
     struct ChannelDescription 
     {
-        std::unique_ptr<GPUcontainer> container; ///< The data stored in the channel. Internally stored as a \c PinnedBuffer
+        std::unique_ptr<GPUcontainer> container; ///< The data stored in the channel. Internally stored as a PinnedBuffer
         VarPinnedBufferPtr varDataPtr; ///< Pointer to container that holds the correct type.
         
         PersistenceMode persistence {PersistenceMode::None}; ///< The persistence mode of the channel
@@ -86,17 +86,17 @@ public:
     /// \}
     ~DataManager() = default;
 
-    /// swap two \c DataManager
+    /// swap two DataManager
     friend void swap(DataManager& a, DataManager& b);
 
-    /// Copy channel names and their types from a given \c DataManager.
+    /// Copy channel names and their types from a given DataManager.
     /// Does not copy data or resize buffers. New buffers are empty.
     void copyChannelMap(const DataManager &);
     
     /** \brief Allocate a new channel
-        \tparam T datatype of the buffer element. \c sizeof(T) should be compatible with \c VarPinnedBufferPtr
+        \tparam T datatype of the buffer element. \c sizeof(T) should be compatible with VarPinnedBufferPtr
         \param [in] name buffer name
-        \param [in] size resize buffer to \c size elements
+        \param [in] size resize buffer to \p size elements
 
         This method will die if a channel with different type but same name already exists.
         If a channel with the same name and same type exists, this method will not allocate a new channel.
@@ -168,8 +168,8 @@ public:
     
     /** \brief Get buffer by name
         \param [in] name buffer name
-        \tparam T type of the element of the \c PinnedBuffer
-        \return pointer to \c PinnedBuffer<T> corresponding to the given name
+        \tparam T type of the element of the PinnedBuffer
+        \return pointer to PinnedBuffer<T> corresponding to the given name
 
         This method will die if the required name does not exist or if T is of the wrong type.
      */
@@ -188,7 +188,7 @@ public:
 
     /** \brief Get device buffer pointer regardless of its type
         \param [in] name buffer name
-        \return pointer to device data held by the corresponding \c PinnedBuffer
+        \return pointer to device data held by the corresponding PinnedBuffer
 
         This method will die if the required name does not exist.
      */

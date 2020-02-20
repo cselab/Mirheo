@@ -15,10 +15,10 @@ class ParticleVector;
 class StationaryWallBox
 {
 public:
-    /** \brief Construct a \c StationaryWallBox.
+    /** \brief Construct a StationaryWallBox.
         \param [in] lo Lower bounds of the box (in global coordinates).
         \param [in] hi Upper bounds of the box (in global coordinates).
-        \param [in] inside Domain is inside the box if set to true.
+        \param [in] inside Domain is inside the box if set to \c true.
      */
     StationaryWallBox(real3 lo, real3 hi, bool inside) :
         lo_(lo),

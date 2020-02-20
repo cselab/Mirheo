@@ -11,22 +11,22 @@ namespace mirheo
 
 /** \brief Objects container. 
 
-    This is used to represent local or halo objects in \c ObjectVector.
-    An object is a chunk of particles, each chunk with the same number of particles within an \c ObjectVector.
+    This is used to represent local or halo objects in ObjectVector.
+    An object is a chunk of particles, each chunk with the same number of particles within an ObjectVector.
     Additionally, data can be attached to each of those chunks.
 */
 class LocalObjectVector: public LocalParticleVector
 {
 public:
-    /** \brief Construct a \c LocalParticleVector.
-        \param [in] pv Parent \c ObjectVector
+    /** \brief Construct a LocalParticleVector.
+        \param [in] pv Parent ObjectVector
         \param [in] objSize Number of particles per object
         \param [in] nObjects Number of objects
     */
     LocalObjectVector(ParticleVector *pv, int objSize, int nObjects = 0);
     virtual ~LocalObjectVector();
 
-    /// swap two \c LocalObjectVector
+    /// swap two LocalObjectVector
     friend void swap(LocalObjectVector &, LocalObjectVector &);
     template <typename T>
     friend void swap(LocalObjectVector &, T &) = delete;  // Disallow implicit upcasts.
@@ -62,12 +62,12 @@ private:
 
 /** \brief Base objects container.
 
-    Holds two \c LocalObjectVector: local and halo.
+    Holds two LocalObjectVector: local and halo.
  */
 class ObjectVector : public ParticleVector
 {
 public:
-    /** Construct a \c ObjectVector
+    /** Construct a ObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
@@ -77,17 +77,17 @@ public:
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
     
-    /** \brief Compute Extents and center of mass of each object in the given \c LocalObjectVector
+    /** \brief Compute Extents and center of mass of each object in the given LocalObjectVector
         \param [in] stream The stream to execute the kernel on.
-        \param [in] locality Specify which \c LocalObjectVector to compute the data
+        \param [in] locality Specify which LocalObjectVector to compute the data
     */
     void findExtentAndCOM(cudaStream_t stream, ParticleVectorLocality locality);
 
-    /// get local \c LocalObjectVector
+    /// get local LocalObjectVector
     LocalObjectVector* local() { return static_cast<LocalObjectVector*>(ParticleVector::local()); }
-    /// get halo \c LocalObjectVector
+    /// get halo LocalObjectVector
     LocalObjectVector* halo()  { return static_cast<LocalObjectVector*>(ParticleVector::halo());  }
-    /// get \c LocalObjectVector from locality
+    /// get LocalObjectVector from locality
     LocalObjectVector* get(ParticleVectorLocality locality)
     {
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
@@ -97,10 +97,10 @@ public:
     void checkpoint (MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart    (MPI_Comm comm, const std::string& path) override;
 
-    /** \brief Dump the OV h5 files, create a \c ConfigObject with OV metadata and register it in the saver.
+    /** \brief Dump the OV h5 files, create a ConfigObject with OV metadata and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c ObjectVector.
+        Checks that the object type is exactly ObjectVector.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 
@@ -122,13 +122,13 @@ public:
     int getObjectSize() const;
     
 protected:
-    /** Construct a \c ObjectVector
+    /** Construct a ObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
         \param [in] objSize Number of particles per object
-        \param [in] local Local \c LocalObjectVector
-        \param [in] halo Halo \c LocalObjectVector
+        \param [in] local Local LocalObjectVector
+        \param [in] halo Halo LocalObjectVector
     */
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                  std::unique_ptr<LocalParticleVector>&& local,

@@ -22,26 +22,26 @@ enum class ParticleVectorLocality
     Halo
 };
 
-/** Transform a \c ParticleVectorLocality into a string.
+/** Transform a ParticleVectorLocality into a string.
     \param [in] locality Data locality
     \return a string that describes the locality
 */
 std::string getParticleVectorLocalityStr(ParticleVectorLocality locality);
 
 /** \brief Particles container. 
-    This is used to represent local or halo particles in \c ParticleVector.
+    This is used to represent local or halo particles in ParticleVector.
 */
 class LocalParticleVector
 {
 public:
-    /** Construct a \c LocalParticleVector.
-        \param [in] pv Pointer to the parent \c ParticleVector.
+    /** Construct a LocalParticleVector.
+        \param [in] pv Pointer to the parent ParticleVector.
         \param [in] np Number of particles.
      */
     LocalParticleVector(ParticleVector *pv, int np = 0);
     virtual ~LocalParticleVector();
 
-    /// swap two \c LocalParticleVector
+    /// swap two LocalParticleVector
     friend void swap(LocalParticleVector &, LocalParticleVector &);
     template <typename T>
     friend void swap(LocalParticleVector &, T &) = delete;  // Disallow implicit upcasts.
@@ -75,22 +75,22 @@ public:
      */
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
 
-    /// get parent \c ParticleVector
+    /// get parent ParticleVector
     ParticleVector* parent() {return pv_;}
-    /// get parent \c ParticleVector
+    /// get parent ParticleVector
     const ParticleVector* parent() const {return pv_;}
     
 public:
     DataManager dataPerParticle; ///< Contains all particle channels
 
 private:
-    ParticleVector *pv_; ///< parent \c ParticleVector
+    ParticleVector *pv_; ///< parent ParticleVector
     int np_; ///< number of particles
 };
 
 /** \brief Base particles container.
 
-    Holds two \c LocalParticleVector: local and halo.
+    Holds two LocalParticleVector: local and halo.
     The local one contains the data present in the current subdomain.
     The halo one is used to exchange particle data with the neighboring ranks.
 
@@ -99,7 +99,7 @@ private:
 class ParticleVector : public MirSimulationObject
 {
 public:
-    /** Construct a \c ParticleVector
+    /** Construct a ParticleVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
@@ -116,12 +116,12 @@ public:
 
     ~ParticleVector() override;
 
-    /// get the local \c LocalParticleVector 
+    /// get the local LocalParticleVector 
     LocalParticleVector* local() { return local_.get(); }
-    /// get the halo \c LocalParticleVector 
+    /// get the halo LocalParticleVector 
     LocalParticleVector* halo()  { return halo_.get();  }
 
-    /** get the \c LocalParticleVector corresponding to a given locality
+    /** get the LocalParticleVector corresponding to a given locality
         \param [in] locality local or halo
      */ 
     LocalParticleVector* get(ParticleVectorLocality locality)
@@ -129,18 +129,18 @@ public:
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
     }
 
-    /// get the local \c LocalParticleVector 
+    /// get the local LocalParticleVector 
     const LocalParticleVector* local() const { return local_.get(); }
-    /// get the halo \c LocalParticleVector 
+    /// get the halo LocalParticleVector 
     const LocalParticleVector* halo()  const { return  halo_.get(); }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
 
-    /** \brief Dump the PV h5 files, create a \c ConfigObject with PV metadata and register it in the saver.
+    /** \brief Dump the PV h5 files, create a ConfigObject with PV metadata and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c ParticleVector.
+        Checks that the object type is exactly ParticleVector.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
     
@@ -176,7 +176,7 @@ public:
     real getMassPerParticle() const;
     
 protected:
-    /** Construct a \c ParticleVector
+    /** Construct a ParticleVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
         \param [in] mass Mass of one particle
@@ -220,7 +220,7 @@ protected:
         \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Source folder that contains the file
         \param [in] chunkSize Every chunk of this number of particles will always stay together. 
-                              This is useful for \c ObjectVector.
+                              This is useful for ObjectVector.
         \return Exchange map that is used to redistribute the chunks of data across ranks.
      */
     virtual ExchMapSize _restartParticleData(MPI_Comm comm, const std::string& path, int chunkSize);

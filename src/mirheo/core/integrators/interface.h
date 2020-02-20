@@ -10,13 +10,13 @@ namespace mirheo
 
 class ParticleVector;
 
-/** \brief Advance \c ParticleVector objects in time.
+/** \brief Advance ParticleVector objects in time.
 
-    \c Integrator objects are responsible to advance the state of \c ParticleVector 
+    \c Integrator objects are responsible to advance the state of ParticleVector 
     objects on the device.
-    After executed, the \c CellList of the \c ParticleVector object might be outdated;
+    After executed, the CellList of the ParticleVector object might be outdated;
     in that case, the \c Integrator is invalidates the current cell-lists, halo and 
-    redistribution status on the \c ParticleVector. 
+    redistribution status on the ParticleVector. 
  */
 class Integrator : public MirSimulationObject
 {
@@ -29,8 +29,8 @@ public:
     Integrator(const MirState *state, const std::string& name);
     virtual ~Integrator();
 
-    /** \brief Setup conditions on the \c ParticledVector.
-        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+    /** \brief Setup conditions on the ParticledVector.
+        \param [in,out] pv The ParticleVector that will be advanced in time.
         
         Set specific properties to pv that will be modified during execute().
         Default: ask nothing.
@@ -39,15 +39,15 @@ public:
     virtual void setPrerequisites(ParticleVector *pv);
 
 
-    /** \brief Advance the \c ParticledVector for one time step.
-        \param [in,out] pv The \c ParticleVector that will be advanced in time.
+    /** \brief Advance the ParticledVector for one time step.
+        \param [in,out] pv The ParticleVector that will be advanced in time.
         \param [in] stream The stream used for execution.
      */
     virtual void execute(ParticleVector *pv, cudaStream_t stream) = 0;
 
 protected:
-    /** \brief Invalidate \c ParticledVector cell-lists, halo and redistributed statuses.
-        \param [in,out] pv The \c ParticleVector that must be invalidated.
+    /** \brief Invalidate ParticledVector cell-lists, halo and redistributed statuses.
+        \param [in,out] pv The ParticleVector that must be invalidated.
      */
     void invalidatePV_(ParticleVector *pv);
     

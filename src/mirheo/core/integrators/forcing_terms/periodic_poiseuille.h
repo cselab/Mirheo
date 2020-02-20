@@ -33,7 +33,7 @@ public:
      */
     enum class Direction {x, y, z};
 
-    /** \brief Construct a \c ForcingTermPeriodicPoiseuille object
+    /** \brief Construct a ForcingTermPeriodicPoiseuille object
         \param magnitude force magnitude to be applied.
         \param dir The force will be applied parallel to the specified axis.
      */
@@ -43,7 +43,7 @@ public:
     {}
 
     /**\brief Initialize internal state
-       \param [in] pv the \c ParticleVector that will be updated
+       \param [in] pv the ParticleVector that will be updated
        \param [in] t Current simulation time
 
        This method must be called at every time step.

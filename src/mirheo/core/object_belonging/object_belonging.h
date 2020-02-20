@@ -13,11 +13,11 @@ enum class BelongingTags
     Inside  = 1  ///< The particle is inside.
 };
 
-/// \brief \c ObjectBelongingChecker base implementation.
+/// \brief ObjectBelongingChecker base implementation.
 class ObjectVectorBelongingChecker : public ObjectBelongingChecker
 {
 public:
-    /** \brief Construct a \c ObjectVectorBelongingChecker object.
+    /** \brief Construct a ObjectVectorBelongingChecker object.
         \param [in] state Simulation state.
         \param [in] name Name of the bouncer.
      */
@@ -32,7 +32,7 @@ public:
     ObjectVector* getObjectVector() override;
 
 protected:
-    /** \brief Compute the in/out status of particles against the registered \c ObjectVector.
+    /** \brief Compute the in/out status of particles against the registered ObjectVector.
         \param [in] pv Particles to be tagged.
         \param [in] cl Cell lists of pv.
         \param [in] stream Stream on which to execute.
@@ -42,11 +42,11 @@ protected:
     virtual void _tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 
 protected:
-    ObjectVector *ov_; ///< The registered \c ObjectVector.
+    ObjectVector *ov_; ///< The registered ObjectVector.
 
     DeviceBuffer<BelongingTags> tags_; ///< Work space to store the in/out status of each input particle.
-    PinnedBuffer<int> nInside_{1};  ///< Number of particles inside the registered \c ObjectVector.
-    PinnedBuffer<int> nOutside_{1}; ///< Number of particles outside the registered \c ObjectVector.
+    PinnedBuffer<int> nInside_{1};  ///< Number of particles inside the registered ObjectVector.
+    PinnedBuffer<int> nOutside_{1}; ///< Number of particles outside the registered ObjectVector.
 };
 
 } // namespace mirheo

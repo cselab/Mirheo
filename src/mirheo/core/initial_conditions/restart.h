@@ -7,14 +7,14 @@
 namespace mirheo
 {
 
-/** \brief Initialize a \c ParticleVector from a checkpoint file
+/** \brief Initialize a ParticleVector from a checkpoint file
     
-    Will call the restart() member function of the given \c ParticleVector.
+    Will call the restart() member function of the given ParticleVector.
  */
 class RestartIC : public InitialConditions
 {
 public:
-    /** \brief Construct a \c RestartIC object
+    /** \brief Construct a RestartIC object
         \param [in] path The directory containing the restart files.
      */
     RestartIC(const std::string& path);

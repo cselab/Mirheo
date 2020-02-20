@@ -45,18 +45,18 @@ public:
     virtual void attachFrozen(ParticleVector *pv) = 0;
 
     /** \brief Remove particles inside the walls.
-        \param [in,out] pv \c ParticleVector to remove the particles from.
+        \param [in,out] pv ParticleVector to remove the particles from.
         
-        If pv is an \c ObjectVector, any object with at least one particle will be removed by this operation.
+        If pv is an ObjectVector, any object with at least one particle will be removed by this operation.
     */ 
     virtual void removeInner(ParticleVector *pv) = 0;
 
-    /** \brief Register a \c ParticleVector that needs to be bounced from the wall.
+    /** \brief Register a ParticleVector that needs to be bounced from the wall.
         \param [in] pv The particles to be bounced. Will be ignored if it is the same as the frozen particles.
         \param [in] cl Cell lists corresponding to pv.
         \param [in] maximumPartTravel The estimated maximum distance traveled by one particle over a single time step.
         
-        Multiple \c ParticleVector can be registered by calling this method several times.
+        Multiple ParticleVector can be registered by calling this method several times.
         The parameter maximumPartTravel is used for performance, lower leading to higher performances.
         Note that if it is too low, some particles may be ignored and not bounced and end up inside the walls (see bounce()).
      */

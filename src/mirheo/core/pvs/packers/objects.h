@@ -103,10 +103,10 @@ struct ObjectPackerHandler : public ParticlePackerHandler
     }
 
     /** \brief Copy the particle data of a full object from registered channels into the 
-               registered channels of a \c ParticlePackerHandler
-        \param [out] dst The destination \c ParticlePackerHandler
+               registered channels of a ParticlePackerHandler
+        \param [out] dst The destination ParticlePackerHandler
         \param [in] srcObjId The index of the object to fetch from the registered channels
-        \param [in] dstPartIdOffset The index of the first particle in the destination \c ParticlePackerHandler
+        \param [in] dstPartIdOffset The index of the first particle in the destination ParticlePackerHandler
         
         This method must be called by one CUDA block per object.
      */
@@ -122,10 +122,10 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         }
     }
 
-    /** \brief Copy a full object from registered channels into the registered channels of a \c ObjectPackerHandler
-        \param [out] dst The destination \c ObjectPackerHandler
+    /** \brief Copy a full object from registered channels into the registered channels of a ObjectPackerHandler
+        \param [out] dst The destination ObjectPackerHandler
         \param [in] srcObjId The index of the object to fetch from the registered channels
-        \param [in] dstObjId The index of the object to store in the destination \c ObjectPackerHandler
+        \param [in] dstObjId The index of the object to store in the destination ObjectPackerHandler
         
         This method must be called by one CUDA block per object.
      */
@@ -241,11 +241,11 @@ protected:
 #endif // __CUDACC__
 };
 
-/// \brief Helper class to construct a \c ObjectPackerHandler.
+/// \brief Helper class to construct a ObjectPackerHandler.
 class ObjectPacker : public ParticlePacker
 {
 public:
-    /** \brief Construct a \c ObjectPacker
+    /** \brief Construct a ObjectPacker
         \param [in] predicate The channel filter that will be used to select the channels to be registered.
      */
     ObjectPacker(PackPredicate predicate);

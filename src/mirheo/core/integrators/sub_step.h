@@ -12,7 +12,7 @@ namespace mirheo
 
 class Interaction;
 
-/** \brief Advance one \c ObjectVector associated with internal forces with smaller time step.
+/** \brief Advance one ObjectVector associated with internal forces with smaller time step.
 
     We distinguish slow forces, which are computed outside of this class, from fast forces, 
     computed only inside this class.
@@ -32,7 +32,7 @@ class Interaction;
 class IntegratorSubStep : public Integrator
 {
 public:
-    /** \brief construct a \c IntegratorSubStep object.
+    /** \brief construct a IntegratorSubStep object.
         \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
         \param [in] name The name of the integrator.
         \param [in] substeps Number of sub steps
@@ -43,7 +43,7 @@ public:
     IntegratorSubStep(const MirState *state, const std::string& name, int substeps,
                       const std::vector<Interaction*>& fastForces);
 
-    /** \brief Construct an \c IntegratorSubStep from a snapshot.
+    /** \brief Construct an IntegratorSubStep from a snapshot.
         \param [in] state The global state of the system.
         \param [in] loader The \c Loader object. Provides load context and unserialization functions.
         \param [in] config The parameters of the integrator.
@@ -52,10 +52,10 @@ public:
 
     ~IntegratorSubStep();
 
-    /** \brief Create a \c ConfigObject describing the integrator state and register it in the saver.
+    /** \brief Create a ConfigObject describing the integrator state and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
 
-        Checks that the object type is exactly \c IntegratorSubStep.
+        Checks that the object type is exactly IntegratorSubStep.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 

@@ -22,7 +22,7 @@ class ParticleVector;
 class MembraneIC : public InitialConditions
 {
 public:
-    /** \brief Construct a \c MembraneIC object
+    /** \brief Construct a MembraneIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
         The size of the list is the number of membrane objects that will be initialized.
         \param [in] globalScale scale the membranes by this scale when placing the initial vertices.

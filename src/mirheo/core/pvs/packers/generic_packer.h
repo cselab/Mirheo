@@ -110,8 +110,8 @@ struct GenericPackerHandler
         return _unpack(t, srcId, dstId, srcBuffer, numElements);
     }
 
-    /** \brief Copy one datum from the registered channels to the registered channels of another \c GenericPackerHandler.
-        \param [in] dst The other \c GenericPackerHandler that will receive the new datum.
+    /** \brief Copy one datum from the registered channels to the registered channels of another GenericPackerHandler.
+        \param [in] dst The other GenericPackerHandler that will receive the new datum.
         \param [in] srcId Index of the datum to fetch from the registered channels (in number of elements).
         \param [in] dstId Index of the datum to store into the dst registered channels (in number of elements).
      */
@@ -233,11 +233,11 @@ protected:
     bool *needShift_            {nullptr}; ///< flag per channel: true if data needs to be shifted
 };
 
-/// \brief This class is used to construct \c GenericPackerHandler, to be passed to the device.
+/// \brief This class is used to construct GenericPackerHandler, to be passed to the device.
 class GenericPacker : private GenericPackerHandler
 {
 public:
-    /** \brief Register all channels of a \c DataManager satisfying a predicate.
+    /** \brief Register all channels of a DataManager satisfying a predicate.
         \param [in] dataManager The object that contains the channels to register
         \param [in] predicate The filter (white list) that is used to select the channels to register, 
                               based on their description and names

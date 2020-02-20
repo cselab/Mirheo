@@ -123,11 +123,11 @@ protected:
 #endif // __CUDACC__
 };
 
-/// \brief Helper class to construct a \c RodPackerHandler.
+/// \brief Helper class to construct a RodPackerHandler.
 class RodPacker : public ObjectPacker
 {
 public:
-    /** \brief Construct a \c RodPacker
+    /** \brief Construct a RodPacker
         \param [in] predicate The channel filter that will be used to select the channels to be registered.
      */
     RodPacker(PackPredicate predicate);

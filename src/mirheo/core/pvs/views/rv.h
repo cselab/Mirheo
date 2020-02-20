@@ -12,8 +12,8 @@ class LocalRodVector;
 struct RVview : public OVview
 {
     /** \brief Construct a \c RVview 
-        \param [in] rv The \c RodVector that the view represents
-        \param [in] lrv The \c LocalRodVector that the view represents
+        \param [in] rv The RodVector that the view represents
+        \param [in] lrv The LocalRodVector that the view represents
     */
     RVview(RodVector *rv, LocalRodVector *lrv);
     
@@ -26,8 +26,8 @@ struct RVview : public OVview
 struct RVviewWithOldParticles : public RVview
 {
     /** \brief Construct a \c RVview 
-        \param [in] rv The \c RodVector that the view represents
-        \param [in] lrv The \c LocalRodVector that the view represents
+        \param [in] rv The RodVector that the view represents
+        \param [in] lrv The LocalRodVector that the view represents
     */
     RVviewWithOldParticles(RodVector *rv, LocalRodVector *lrv);
     
