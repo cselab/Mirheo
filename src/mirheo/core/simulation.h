@@ -80,6 +80,7 @@ public:
 
     ParticleVector* getPVbyName     (const std::string& name) const;
     ParticleVector* getPVbyNameOrDie(const std::string& name) const;
+    ObjectVector*   getOVbyName     (const std::string& name) const;
     ObjectVector*   getOVbyNameOrDie(const std::string& name) const;
     
     /// Assume co-ownership

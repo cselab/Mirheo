@@ -143,5 +143,11 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
         bool computeTask, const MirState *state, Loader& loader,
         const ConfigObject *sim = nullptr, const ConfigObject* post = nullptr);
 
+/// Helper type for registering `loadPlugins` to the core.
+struct PluginRegistrant
+{
+    PluginRegistrant();
+};
+
 } // namespace PluginFactory
 } // namespace mirheo

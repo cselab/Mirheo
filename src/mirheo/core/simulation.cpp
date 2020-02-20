@@ -173,24 +173,28 @@ ParticleVector* Simulation::getPVbyNameOrDie(const std::string& name) const
 {
     auto pv = getPVbyName(name);
     if (pv == nullptr)
-        die("No such particle vector: %s", getCName());
+        die("No such particle vector: %s", name.c_str());
     return pv;
 }
 
-ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
+ObjectVector* Simulation::getOVbyName(const std::string& name) const
 {
     if (auto pv = getPVbyName(name))
     {
         if (auto ov = dynamic_cast<ObjectVector*>(pv))
             return ov;
         else
-            die("'%s' is not an object vector", getCName());
-    }
-    else
-    {
-        die("No such object vector: %s", getCName());
+            die("'%s' is not an object vector", name.c_str());
     }
     return nullptr;
+}
+
+ObjectVector* Simulation::getOVbyNameOrDie(const std::string& name) const
+{
+    auto ov = getOVbyName(name);
+    if (ov == nullptr)
+        die("No such object vector: %s", name.c_str());
+    return ov;
 }
 
 Wall* Simulation::getWallByNameOrDie(const std::string& name) const

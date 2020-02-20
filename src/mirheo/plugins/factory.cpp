@@ -437,17 +437,16 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
     return {false, nullptr, nullptr};
 }
 
-namespace
+static bool pluginsRegistered_ = false;
+static PluginRegistrant registrant_;
+
+PluginRegistrant::PluginRegistrant()
 {
-    /// Register `loadPlugin` factory at startup.
-    struct RegisterPluginFactory
-    {
-        RegisterPluginFactory()
-        {
-            PluginFactoryContainer::get().registerPluginFactory(loadPlugins);
-        }
-    } registerPluginFactory_;
-} // anonymous namespace
+    if (!pluginsRegistered_) {
+        PluginFactoryContainer::get().registerPluginFactory(loadPlugins);
+        pluginsRegistered_ = true;
+    }
+}
 
 } // namespace PluginFactory
 } // namespace mirheo
