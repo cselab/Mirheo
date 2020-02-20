@@ -12,19 +12,30 @@
 namespace mirheo
 {
 
+/** \brief Compute shear energy on a given triangle with the Lim model.
+    \tparam stressFreeState States if there is a stress free mesh associated with the interaction
+ */
 template <StressFreeState stressFreeState>
 class TriangleWLCForce
 {
-public:    
+public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // skip breathe anoying warnings
+
     struct LengthArea
     {
-        mReal l; // eq. edge length
-        mReal a; // eq. triangle area
+        mReal l; ///< eq. edge length
+        mReal a; ///< eq. triangle area
     };
 
     using EquilibriumTriangleDesc = LengthArea;
     using ParametersType          = WLCParameters;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
     
+    /** \brief Construct the functor 
+        \param [in] p The parameters of the model
+        \param [in] mesh Triangle mesh information
+        \param [in] lscale Scaling length factor, applied to all parameters
+    */
     TriangleWLCForce(ParametersType p, const Mesh *mesh, mReal lscale) :
         lscale_(lscale)
     {
@@ -38,7 +49,13 @@ public:
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
     }
 
-    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, int i1) const
+    /** \brief Get the reference triangle information
+        \param [in] mesh Mesh view that contains the reference mesh. Only used when stressFreeState is Active.
+        \param [in] i0 Index (in the adjacent vertex ids space, see \c Mesh) of the first adjacent vertex
+        \param [in] i1 Index (in the adjacent vertex ids space, see \c Mesh) of the second adjacent vertex
+        \return The reference triangle information.
+     */
+    __D__ inline EquilibriumTriangleDesc getEquilibriumDesc(const MembraneMeshView& mesh, int i0, __UNUSED int i1) const
     {
         LengthArea eq;
         if (stressFreeState == StressFreeState::Active)
@@ -54,6 +71,13 @@ public:
         return eq;
     }
 
+    /** \brief Compute the triangle force on \p v1. See Developer docs for more details.
+        \param [in] v1 vertex 1
+        \param [in] v2 vertex 2
+        \param [in] v3 vertex 3
+        \param [in] eq The reference triangle information
+        \return The triangle force acting on \p v1
+     */
     __D__ inline mReal3 operator()(mReal3 v1, mReal3 v2, mReal3 v3, EquilibriumTriangleDesc eq) const
     {
         return _areaForce(v1, v2, v3, eq.a) + _bondForce(v1, v2, eq.l);
@@ -109,7 +133,9 @@ private:
     mReal lscale_;
 };
 
+/// set type name
 MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Active>, "TriangleWCLForce<Active>");
+/// set type name
 MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Inactive>, "TriangleWCLForce<Inactive>");
 
 } // namespace mirheo

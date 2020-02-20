@@ -27,7 +27,29 @@ See :ref:`dev-interactions-membrane-trikernels`, :ref:`dev-interactions-membrane
 Triangle Kernels
 ----------------
 
-TODO
+Each thread is mapped to one vertex `v1` and loops over all adjacent triangles labeled as follows:
+
+.. graphviz::
+   
+    graph triangle {
+    node [shape=plaintext]
+    {rank = same; v2; v1}
+    v3 -- v2
+    v3 -- v1
+    v2 -- v1
+    }
+
+The output of the kernel is the forces of a given dihedral on `v1`.
+The forces on `v2` and `v3` from the same dihedral are computed by the thread mapped on `v2` and `v3`, respectively.
+
+.. doxygenclass:: mirheo::TriangleLimForce
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::TriangleWLCForce
+   :project: mirheo
+   :members:
+
 
 .. _dev-interactions-membrane-dihkernels:
 
