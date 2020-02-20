@@ -385,7 +385,7 @@ static void add_edge(pugi::xml_node& graph, int sourceId, int targetId)
     edge.append_attribute("target") = std::to_string(targetId).c_str();
 }
 
-void TaskScheduler::saveDependencyGraph_GraphML(std::string fname) const
+void TaskScheduler::dumpGraphToGraphML(const std::string& fname) const
 {
     pugi::xml_document doc;
     auto root = doc.append_child("graphml");

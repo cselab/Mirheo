@@ -102,7 +102,7 @@ public:
 
     real getMaxEffectiveCutoff() const;
     
-    void saveDependencyGraph_GraphML(const std::string& fname, bool current) const;
+    void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
 
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.

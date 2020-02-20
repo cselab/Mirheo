@@ -1396,13 +1396,13 @@ ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string &typeName
     return config;
 }
 
-void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool current) const
+void Simulation::dumpDependencyGraphToGraphML(const std::string& fname, bool current) const
 {
     if (rank_ != 0) return;
 
     if (current)
     {
-        scheduler_->saveDependencyGraph_GraphML(fname);
+        scheduler_->dumpGraphToGraphML(fname);
     }
     else
     {
@@ -1412,7 +1412,7 @@ void Simulation::saveDependencyGraph_GraphML(const std::string& fname, bool curr
         createTasksDummy(&s, &t);
         buildDependencies(&s, &t);
 
-        s.saveDependencyGraph_GraphML(fname);
+        s.dumpGraphToGraphML(fname);
     }
 }
 

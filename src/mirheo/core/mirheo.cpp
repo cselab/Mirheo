@@ -648,10 +648,10 @@ bool Mirheo::isPostprocessMasterTask() const
     return rank_ == 0 && !isComputeTask();
 }
 
-void Mirheo::saveDependencyGraph_GraphML(std::string fname, bool current) const
+void Mirheo::dumpDependencyGraphToGraphML(const std::string& fname, bool current) const
 {
-    if (isComputeTask())
-        sim_->saveDependencyGraph_GraphML(fname, current);
+    if (isMasterTask())
+        sim_->dumpDependencyGraphToGraphML(fname, current);
 }
 
 void Mirheo::startProfiler()

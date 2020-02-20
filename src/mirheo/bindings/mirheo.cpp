@@ -352,7 +352,7 @@ Args:
         .def("isMasterTask",  &Mirheo::isMasterTask,  "Returns ``True`` if the current rank is the root")
         .def("start_profiler", &Mirheo::startProfiler, "Tells nvprof to start recording timeline")
         .def("stop_profiler",  &Mirheo::stopProfiler,  "Tells nvprof to stop recording timeline")
-        .def("save_dependency_graph_graphml",  &Mirheo::saveDependencyGraph_GraphML,
+        .def("save_dependency_graph_graphml",  &Mirheo::dumpDependencyGraphToGraphML,
              "fname"_a, "current"_a = true, R"(
              Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
              
