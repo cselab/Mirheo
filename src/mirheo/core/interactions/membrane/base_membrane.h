@@ -16,8 +16,17 @@ class MembraneVector;
 class BaseMembraneInteraction : public Interaction
 {
 public:
-
+    /** \brief Construct a BaseMembraneInteraction object
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+    */
     BaseMembraneInteraction(const MirState *state, const std::string& name);
+
+    /** \brief Construct the object from a snapshot
+        \param [in] state The global state of the system
+        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
+        \param [in] config The parameters of the interaction.
+    */
     BaseMembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BaseMembraneInteraction();
 

@@ -72,6 +72,18 @@ class MembraneInteraction : public BaseMembraneInteraction
 {
 public:
 
+    /** \brief Construct a MembraneInteraction object
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+        \param [in] parameters The common parameters from all kernel forces
+        \param [in] triangleParams Parameters that contain the parameters of the triangle forces kernel
+        \param [in] dihedralParams Parameters that contain the parameters of the dihedral forces kernel
+        \param [in] growUntil The membrane will grow from half its size to its full size in this amount of time
+        \param [in] filter Describes which membranes to apply the interactions 
+        \param [in] seed Random seed for rng
+
+        More information can be found on \p growUntil in _scaleFromTime().
+    */
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters parameters,
                         typename TriangleInteraction::ParametersType triangleParams,
                         typename DihedralInteraction::ParametersType dihedralParams,
@@ -182,11 +194,13 @@ public:
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
+    /// get the name of the type
     static std::string getTypeName()
     {
         return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
                 "MembraneInteraction");
     }
+    
     void saveSnapshotAndRegister(Saver& saver) override
     {
         saver.registerObject<MembraneInteraction>(this, _saveSnapshot(saver, getTypeName()));
@@ -218,6 +232,14 @@ private:
         precomputeQuantitiesPerEnergy(triangleParams_, mv, stream);
     }
 
+    /** Get a scaling factor for transforming the length scale of all the parameters
+        (see also rescaleParameters())
+        \param [in] t The simulation time (must be positive)
+        \return scaling factor for length
+
+        Will grow linearly from 1/2 to 1 during the first growUntil_ time interval. 
+        Otherwise this returns 1.
+     */
     real _scaleFromTime(real t) const
     {
         return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil_));
@@ -225,12 +247,12 @@ private:
 
 private:
 
-    real growUntil_;
-    CommonMembraneParameters parameters_;
-    typename DihedralInteraction::ParametersType dihedralParams_;
-    typename TriangleInteraction::ParametersType triangleParams_;
-    Filter filter_;
-    StepRandomGen stepGen_;
+    real growUntil_; ///< See _scaleFromTime()
+    CommonMembraneParameters parameters_; ///< parameters common to all variants of this object
+    typename DihedralInteraction::ParametersType dihedralParams_; ///< dihedral forces parameters
+    typename TriangleInteraction::ParametersType triangleParams_; ///< traingle forces parameters
+    Filter filter_; ///< describes the cells to apply the forces to
+    StepRandomGen stepGen_; ///< RNG
 };
 
 } // namespace mirheo

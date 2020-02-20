@@ -8,17 +8,18 @@ Base class
 
 This is the visible class that is output of the factory function.
 
-..
-   .. doxygenclass:: mirheo::BaseMembraneInteraction
-      :project: mirheo
-      :members:
+.. doxygenclass:: mirheo::BaseMembraneInteraction
+   :project: mirheo
+   :members:
 
 Implementation
 --------------
 
 The factory instantiates one of this templated class.
 
-TODO
+.. doxygenclass:: mirheo::MembraneInteraction
+   :project: mirheo
+   :members:
 
 .. _dev-interactions-membrane-filter:
 

@@ -25,7 +25,9 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions/pairwise/pairwise.h \
 	../src/mirheo/core/interactions/pairwise/pairwise_with_stress.h \
 	../src/mirheo/core/interactions/pairwise/kernels/accumulators \
-	../src/mirheo/core/interactions/membrane/filters
+	../src/mirheo/core/interactions/membrane/filters \
+	../src/mirheo/core/interactions/membrane/base_membrane.h \
+	../src/mirheo/core/interactions/membrane/membrane.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
