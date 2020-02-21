@@ -98,3 +98,21 @@ Furthermore, reducing the numper of :any:`mirheo::ParticleVector` is beneficial 
 .. doxygenclass:: mirheo::FilterKeepByTypeId
    :project: mirheo
    :members:
+
+.. _dev-interactions-membrane-fetchers:
+
+Fetchers
+--------
+
+Fetchers are used to load generic data that is needed for kernel computation.
+In most cases, only vertex coordinates are sufficient (see :any:`mirheo::VertexFetcher`).
+Additional data attached to each vertex may be needed, such as mean curvature in e.g. :any:`mirheo::DihedralJuelicher` (see :any:`mirheo::VertexFetcherWithMeanCurvatures`).
+
+.. doxygenclass:: mirheo::VertexFetcher
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VertexFetcherWithMeanCurvatures
+   :project: mirheo
+   :members:
+
