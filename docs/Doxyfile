@@ -31,7 +31,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions/membrane/force_kernels/dihedral \
 	../src/mirheo/core/interactions/membrane/force_kernels/triangle \
 	../src/mirheo/core/interactions/membrane/force_kernels/real.h \
-	../src/mirheo/core/interactions/membrane/force_kernels/fetchers.h
+	../src/mirheo/core/interactions/membrane/force_kernels/fetchers.h \
+	../src/mirheo/core/interactions/membrane/force_kernels/parameters.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
