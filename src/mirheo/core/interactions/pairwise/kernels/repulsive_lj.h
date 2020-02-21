@@ -12,27 +12,40 @@
 namespace mirheo
 {
 
+/** A GPU compatible functor that describes a filter for repulsive LJ interactions.
+    This particular class allows interactions between all particles.
+ */
 class LJAwarenessNone
 {
 public:
-    using ParamsType = LJAwarenessParamsNone;
+    using ParamsType = LJAwarenessParamsNone; ///< Corresponding parameters type
     
     LJAwarenessNone() = default;
+    /// Generic constructor
     LJAwarenessNone(__UNUSED const ParamsType& params) {}
-    
+
+    /// Setup internal state
     void setup(__UNUSED LocalParticleVector *lpv1, __UNUSED LocalParticleVector *lpv2) {}
+
+    /// \return \c true if particles with ids \p srcId and \p dstId should interact, \c false otherwise
     __D__ inline bool interact(__UNUSED int srcId, __UNUSED int dstId) const {return true;}
 };
+/// set type name
 MIRHEO_TYPE_NAME(LJAwarenessNone, "LJAwarenessNone");
 
+/** A GPU compatible functor that describes a filter for repulsive LJ interactions.
+    This particular class allows interactions only between particles of a different object.
+ */
 class LJAwarenessObject
 {
 public:
-    using ParamsType = LJAwarenessParamsObject;
+    using ParamsType = LJAwarenessParamsObject;  ///< Corresponding parameters type
     
     LJAwarenessObject() = default;
+    /// Generic constructor
     LJAwarenessObject(__UNUSED const ParamsType& params) {}
     
+    /// Setup internal state
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
         auto ov1 = dynamic_cast<ObjectVector*>(lpv1->parent());
@@ -46,6 +59,7 @@ public:
         }
     }
 
+    /// \return \c true if particles with ids \p srcId and \p dstId should interact, \c false otherwise
     __D__ inline bool interact(int srcId, int dstId) const
     {
         if (self_)
@@ -63,21 +77,30 @@ private:
     bool self_ {false};
     int objSize_ {0};
 };
+/// set type name
 MIRHEO_TYPE_NAME(LJAwarenessObject, "LJAwarenessObject");
 
+/** A GPU compatible functor that describes a filter for repulsive LJ interactions.
+    This particular class allows interactions only between particles of a different rod 
+    or particles within the same rod separated by a minimum number of segments.
+    This is useful to avoid self crossing in rods.
+ */
 class LJAwarenessRod
 {
 public:
-    using ParamsType = LJAwarenessParamsRod;
-    
+    using ParamsType = LJAwarenessParamsRod;  ///< Corresponding parameters type
+
+    /// Constructor
     LJAwarenessRod(int minSegmentsDist) :
         minSegmentsDist_(minSegmentsDist)
     {}
 
+    /// Generic constructor
     LJAwarenessRod(const ParamsType& params) :
         LJAwarenessRod(params.minSegmentsDist)
     {}
 
+    /// Setup internal state
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
         auto rv1 = dynamic_cast<RodVector*>(lpv1->parent());
@@ -91,6 +114,7 @@ public:
         }
     }
 
+    /// \return \c true if particles with ids \p srcId and \p dstId should interact, \c false otherwise
     __D__ inline bool interact(int srcId, int dstId) const
     {
         if (self_)
@@ -115,18 +139,26 @@ private:
     int objSize_ {0};
     int minSegmentsDist_{0};
 };
+
+/// set type name
 MIRHEO_TYPE_NAME(LJAwarenessRod, "LJAwarenessRod");
 
+
+/** \brief Compute repulsive Lennard-Jones forces on the device
+    \tparam Awareness A functor that describes which particles pairs interact
+ */
 template <class Awareness>
 class PairwiseRepulsiveLJ : public PairwiseKernel, public ParticleFetcher
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
+    using ViewType     = PVview;    ///< Compatible view type
+    using ParticleType = Particle;  ///< Compatible particle type
+    using HandlerType  = PairwiseRepulsiveLJ; ///< Corresponding handler
+    using ParamsType   = LJParams;  ///< Corresponding parameters type
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
-    using ViewType     = PVview;
-    using ParticleType = Particle;
-    using HandlerType  = PairwiseRepulsiveLJ;
-    using ParamsType   = LJParams;
-    
+    /// Constructor
     PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
         ParticleFetcher(rc),
         sigma2_(sigma*sigma),
@@ -145,6 +177,7 @@ public:
         }
     }
 
+    /// Generic constructor
     PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
         PairwiseRepulsiveLJ{rc,
                             p.epsilon,
@@ -153,6 +186,7 @@ public:
                             mpark::get<typename Awareness::ParamsType>(p.varLJAwarenessParams)}
     {}
 
+    /// Evaluate the force
     __D__ inline real3 operator()(ParticleType dst, int dstId, ParticleType src, int srcId) const
     {
         constexpr real tolerance = 1e-6_r;
@@ -175,8 +209,10 @@ public:
         return dr * math::min(math::max(IfI, 0.0_r), maxForce_);
     }
 
+    /// initialize accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return (const HandlerType&) (*this);
@@ -188,13 +224,13 @@ public:
         awareness_.setup(lpv1, lpv2);
     }
 
+    /// \return type name string
     static std::string getTypeName()
     {
         return constructTypeName<Awareness>("PairwiseRepulsiveLJ");
     }
 
 private:
-
     real sigma2_, maxForce_;
     real epsx24_sigma2_;
 

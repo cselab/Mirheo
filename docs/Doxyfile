@@ -25,6 +25,17 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions/pairwise/pairwise.h \
 	../src/mirheo/core/interactions/pairwise/pairwise_with_stress.h \
 	../src/mirheo/core/interactions/pairwise/kernels/accumulators \
+	../src/mirheo/core/interactions/pairwise/kernels/dpd.h \
+	../src/mirheo/core/interactions/pairwise/kernels/interface.h \
+	../src/mirheo/core/interactions/pairwise/kernels/density.h \
+	../src/mirheo/core/interactions/pairwise/kernels/density_kernels.h \
+	../src/mirheo/core/interactions/pairwise/kernels/mdpd.h \
+	../src/mirheo/core/interactions/pairwise/kernels/norandom_dpd.h \
+	../src/mirheo/core/interactions/pairwise/kernels/parameters.h \
+	../src/mirheo/core/interactions/pairwise/kernels/pressure_EOS.h \
+	../src/mirheo/core/interactions/pairwise/kernels/repulsive_lj.h \
+	../src/mirheo/core/interactions/pairwise/kernels/sdpd.h \
+	../src/mirheo/core/interactions/pairwise/kernels/stress_wrapper.h \
 	../src/mirheo/core/interactions/membrane
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu

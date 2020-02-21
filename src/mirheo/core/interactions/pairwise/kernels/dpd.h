@@ -17,13 +17,15 @@ namespace mirheo
 class CellList;
 class LocalParticleVector;
 
+/// a GPU compatible functor that computes DPD interactions
 class PairwiseDPDHandler : public ParticleFetcherWithVelocity
 {
 public:
 
-    using ViewType     = PVview;
-    using ParticleType = Particle;
-    
+    using ViewType     = PVview;   ///< compatible view type
+    using ParticleType = Particle; ///< compatible particle type
+
+    /// constructor
     PairwiseDPDHandler(real rc, real a, real gamma, real sigma, real power) :
         ParticleFetcherWithVelocity(rc),
         a_(a),
@@ -32,7 +34,8 @@ public:
         power_(power),
         invrc_(1.0 / rc)
     {}
-    
+
+    /// evaluate the force
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;
@@ -57,32 +60,41 @@ public:
         return dr_r * strength;
     }
 
+
+    /// initialize accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 
 protected:
-    real a_, gamma_, sigma_, power_;
-    real invrc_;
-    real seed_ {0};
+    real a_; ///< conservative force magnitude
+    real gamma_; ///< viscous force coefficient
+    real sigma_; ///< random force coefficient
+    real power_; ///< viscous kernel envelope power
+    real invrc_; ///< 1 / rc
+    real seed_ {0}; ///< random seed, must be updated at every time step
 };
 
+/// Helper class that constructs PairwiseDPDHandler
 class PairwiseDPD : public PairwiseKernel, public PairwiseDPDHandler
 {
 public:
 
-    using HandlerType = PairwiseDPDHandler;
-    using ParamsType = DPDParams;
-    
+    using HandlerType = PairwiseDPDHandler; ///< handler type corresponding to this object
+    using ParamsType = DPDParams; ///< parameters that are used to create this object
+
+    /// Constructor
     PairwiseDPD(real rc, real a, real gamma, real kBT, real dt, real power, long seed=42424242) :
         PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
         stepGen_(seed),
         kBT_(kBT)
     {}
 
+    /// Generic constructor
     PairwiseDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
         PairwiseDPD(rc, p.a, p.gamma, p.kBT, dt, p.power, seed)
     {}
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return (const HandlerType&)(*this);
@@ -107,14 +119,14 @@ public:
     {
         return TextIO::readFromStream(fin, stepGen_);
     }
-    
+
+    /// \return type name string
     static std::string getTypeName()
     {
         return "PairwiseDPD";
     }
 
 private:
-
     static real computeSigma(real gamma, real kBT, real dt)
     {
         return math::sqrt(2.0 * gamma * kBT / dt);

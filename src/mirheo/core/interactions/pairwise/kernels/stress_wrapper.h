@@ -14,19 +14,25 @@ namespace mirheo
 class LocalParticleVector;
 class CellList;
 
+/** \brief Compute force and stress from a pairwise force kernel
+    \tparam BasicPairwiseForceHandler The underlying pairwise interaction handler (must output a force)
+ */
 template<typename BasicPairwiseForceHandler>
 class PairwiseStressWrapperHandler : public BasicPairwiseForceHandler
 {
 public:
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using BasicViewType = typename BasicPairwiseForceHandler::ViewType;
     using ViewType      = PVviewWithStresses<BasicViewType>;
     using ParticleType  = typename BasicPairwiseForceHandler::ParticleType;
-    
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+    /// Constructor    
     PairwiseStressWrapperHandler(BasicPairwiseForceHandler basicForceHandler) :
         BasicPairwiseForceHandler(basicForceHandler)
     {}
-    
+
+    /// Evaluate the force and the stress
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {        
         const real3 dr = getPosition(dst) - getPosition(src);
@@ -43,43 +49,52 @@ public:
         return {f, s};
     }
 
+    /// Initialize the accumulator
     __D__ inline ForceStressAccumulator<BasicViewType> getZeroedAccumulator() const {return ForceStressAccumulator<BasicViewType>();}
 };
 
+/** \brief Create PairwiseStressWrapperHandler from host
+    \tparam BasicPairwiseForceHandler The underlying pairwise interaction (must output a force)
+ */
 template<typename BasicPairwiseForce>
 class PairwiseStressWrapper : public BasicPairwiseForce
 {
 public:
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using BasicHandlerType = typename BasicPairwiseForce::HandlerType;
     using HandlerType  = PairwiseStressWrapperHandler< BasicHandlerType >;
 
     using ViewType     = typename HandlerType::ViewType;
     using ParticleType = typename HandlerType::ParticleType;
     using ParamsType   = typename BasicPairwiseForce::ParamsType;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
+    /// Constructor
     PairwiseStressWrapper(BasicPairwiseForce basicForce) :
         BasicPairwiseForce(basicForce),
         basicForceWrapperHandler_(basicForce.handler())
     {}
 
+    /// Generic constructor
     PairwiseStressWrapper(real rc, const ParamsType& p, real dt, long seed=42424242) :
         BasicPairwiseForce(rc, p, dt, seed),
         basicForceWrapperHandler_ {HandlerType{BasicPairwiseForce::handler()}}
     {}
 
+    /// setup internal state
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2, CellList *cl1, CellList *cl2, const MirState *state) override
     {
         BasicPairwiseForce::setup(lpv1, lpv2, cl1, cl2, state);
         basicForceWrapperHandler_ = HandlerType(BasicPairwiseForce::handler());
     }
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return basicForceWrapperHandler_;
     }
     
-protected:
+private:
     HandlerType basicForceWrapperHandler_;
 };
 

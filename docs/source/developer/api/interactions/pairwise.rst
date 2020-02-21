@@ -34,6 +34,9 @@ A specific class can be used to compute addtionally the stresses of a given inte
 Kernels
 -------
 
+Interface
+^^^^^^^^^
+
 The :any:`mirheo::PairwiseInteraction` takes a functor that describes a pairwise interaction.
 This functor may be splitted into two parts:
 
@@ -42,40 +45,48 @@ This functor may be splitted into two parts:
 
 The interface of the functor must follow the following requirements:
 
-1. Define a view type to be passed (e.g. :any:`mirheo::PVview`) as well as a particle type to be fetched
+#. Define a view type to be passed (e.g. :any:`mirheo::PVview`) as well as a particle type to be fetched and the parameter struct used for initialization:
 
    .. code-block:: c++
 
       using ViewType = <particle vector view type>
       using ParticleType = <particle type>
       using HandlerType = <type passed to GPU>
+      using ParamsType = <struct that contains the parameters of this functor>
 
-2. Setup function (on Host, for manager only)
+#. A generic constructor from the ``ParamsType`` parameters:
+   
+   .. code-block:: c++
+
+      PairwiseKernelType(real rc, const ParamsType& p, real dt, long seed=42424242);
+
+
+#. Setup function (on Host, for manager only)
 
    .. code-block:: c++
 
       void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const MirState *state);
 	
-3. Handler function (on Host, for manager only)
+#. Handler function (on Host, for manager only)
 
    .. code-block:: c++
 
       const HandlerType& handler() const;
 
-4. Interaction function (output must match with accumulator, see below) (on GPU)
+#. Interaction function (output must match with accumulator, see below) (on GPU)
 
    .. code-block:: c++
       
       __D__ <OutputType> operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const;
 
-5. :ref:`Accumulator <dev-interactions-pairwise-accumulators>` initializer (on GPU)
+#. :ref:`Accumulator <dev-interactions-pairwise-accumulators>` initializer (on GPU)
 
    .. code-block:: c++
 
       __D__ <Accumulator> getZeroedAccumulator() const;
 
 
-6. Fetch functions (see in `fetchers.h`):
+#. Fetch functions (see in `fetchers.h` or see the :ref:`docs <dev-interactions-pairwise-kernels-fetchers>`):
 
    .. code-block:: c++
 
@@ -85,17 +96,83 @@ The interface of the functor must follow the following requirements:
       __D__ void readCoordinates(ParticleType& p, const ViewType& view, int id) const;
       __D__ void readExtraData(ParticleType& p, const ViewType& view, int id) const;
       
-7. Interacting checker to discard pairs not within cutoff:
+#. Interacting checker to discard pairs not within cutoff:
 
    .. code-block:: c++
 
       __D__ bool withinCutoff(const ParticleType& src, const ParticleType& dst) const;
 	
-8. Position getter from generic particle type:
+#. Position getter from generic particle type:
 
    .. code-block:: c++
 
       __D__ real3 getPosition(const ParticleType& p) const;
+
+
+This is the interface for the host calls:
+
+.. doxygenclass:: mirheo::PairwiseKernel
+   :project: mirheo
+   :members:
+
+The rest is directly implemented in the kernels, as no virtual functions are allowed on the device.
+
+Implemented kernels
+^^^^^^^^^^^^^^^^^^^
+.. doxygenclass:: mirheo::PairwiseDensity
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseDPD
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseMDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseMDPD
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseNorandomDPD
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseRepulsiveLJ
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseSDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseSDPD
+   :project: mirheo
+   :members:
+
+
+The above kernels that output a force can be wrapped by the stress wrapper:
+
+.. doxygenclass:: mirheo::PairwiseStressWrapperHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseStressWrapper
+   :project: mirheo
+   :members:
+
+
+.. _dev-interactions-pairwise-kernels-fetchers:
+
+Fetchers
+^^^^^^^^
+
+TODO
 
 .. _dev-interactions-pairwise-accumulators:
 

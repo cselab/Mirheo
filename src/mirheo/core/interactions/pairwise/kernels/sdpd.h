@@ -19,14 +19,20 @@ namespace mirheo
 class CellList;
 class LocalParticleVector;
 
+/** \brief Compute smooth dissipative particle dynamics forces on the device
+    \tparam PressureEos The equation of state
+    \tparam DensityJKernel The kernel used to compute the density
+ */
 template <typename PressureEOS, typename DensityKernel>
 class PairwiseSDPDHandler : public ParticleFetcherWithVelocityDensityAndMass
 {
 public:
-    
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using ViewType     = PVviewWithDensities;
     using ParticleType = ParticleWithDensityAndMass;
-    
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+    /// Constructor
     PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real fRfact) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
         invrc_(1.0 / rc),
@@ -36,6 +42,7 @@ public:
         fDfact_(viscosity * zeta_)
     {}
 
+    /// evaluate the force
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         constexpr real eps = 1e-6_r;
@@ -76,27 +83,35 @@ public:
         return (fC + fD + fR) * er;
     }
 
+    /// initialize the accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 protected:
 
-    static constexpr real zeta_ = 3 + 2;
+    static constexpr real zeta_ = 3 + 2; ///< 3: number of dimensions
 
-    real invrc_;
-    real seed_ {0._r};
-    PressureEOS pressure_;
-    DensityKernel densityKernel_;
-    real fDfact_, fRfact_;
+    real invrc_;        ///< 1 / rc
+    real seed_ {0._r};  ///< random seed; must be updated every time step
+    PressureEOS pressure_;        ///< pressure functor
+    DensityKernel densityKernel_; ///< density functor; must define derivative()
+    real fDfact_; ///< dissipative force factor (precomputed from parameters)
+    real fRfact_; ///< random force factor (precomputed from parameters)
 };
 
+/** Helper class to create PairwiseSDPDHandler from host
+    \tparam PressureEos The equation of state
+    \tparam DensityJKernel The kernel used to compute the density
+ */
 template <typename PressureEOS, typename DensityKernel>
 class PairwiseSDPD : public PairwiseKernel, public PairwiseSDPDHandler<PressureEOS, DensityKernel>
 {
 public:
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using HandlerType = PairwiseSDPDHandler<PressureEOS, DensityKernel>;
     using ParamsType  = SDPDParams;
-    
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+    /// Constructor
     PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, real dt, long seed = 42424242) :
         PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
         stepGen_(seed),
@@ -104,6 +119,7 @@ public:
         kBT_(kBT)
     {}
 
+    /// Generic constructor
     PairwiseSDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
         PairwiseSDPD{rc,
                      mpark::get<typename PressureEOS::ParamsType>(p.varEOSParams),
@@ -114,6 +130,7 @@ public:
                      seed}
     {}
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return (const HandlerType&) (*this);
@@ -137,14 +154,14 @@ public:
     {
         return TextIO::readFromStream(fin, stepGen_);
     }
-    
+
+    /// \return type name string
     static std::string getTypeName()
     {
         return constructTypeName<PressureEOS, DensityKernel>("PairwiseSDPD");
     }
     
-protected:
-
+private:
     static real computeFRfact(real viscosity, real kBT, real dt)
     {
         return math::sqrt(2 * HandlerType::zeta_ * viscosity * kBT / dt);

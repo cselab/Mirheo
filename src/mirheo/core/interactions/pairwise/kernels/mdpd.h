@@ -18,14 +18,15 @@ namespace mirheo
 class CellList;
 class LocalParticleVector;
 
-
+/// a GPU compatible functor that computes MDPD interactions
 class PairwiseMDPDHandler : public ParticleFetcherWithVelocityAndDensity
 {
 public:
 
-    using ViewType     = PVviewWithDensities;
-    using ParticleType = ParticleWithDensity;
+    using ViewType     = PVviewWithDensities; ///< compatible view type
+    using ParticleType = ParticleWithDensity; ///< compatible particle type
     
+    /// constructor
     PairwiseMDPDHandler(real rc, real rd, real a, real b, real gamma, real sigma, real power) :
         ParticleFetcherWithVelocityAndDensity(rc),
         a_(a), b_(b),
@@ -37,6 +38,7 @@ public:
         invrd_(1.0 / rd) 
     {}
 
+    /// evaluate the force
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.p.r - src.p.r;
@@ -65,37 +67,47 @@ public:
         return dr_r * strength;
     }
 
+    /// initialize accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
 protected:
-
-    real a_, b_, gamma_, sigma_, power_, rd_;
-    real invrc_, invrd_;
-    real seed_ {0._r};
+    real a_; ///< conservative force magnitude (repulsive part)
+    real b_; ///< conservative force magnitude (attractive part)
+    real gamma_; ///< viscous force coefficient    
+    real sigma_; ///< random force coefficient     
+    real power_; ///< viscous kernel envelope power
+    real rd_; ///< density cut-off radius
+    real invrc_; ///< 1 / rc
+    real invrd_; ///< 1 / rd
+    real seed_ {0._r}; ///< random seed, must be updated at every time step
 };
 
+/// Helper class that constructs PairwiseMDPDHandler
 class PairwiseMDPD : public PairwiseKernel, public PairwiseMDPDHandler
 {
 public:
 
-    using HandlerType = PairwiseMDPDHandler;
-    using ParamsType  = MDPDParams;
-    
+    using HandlerType = PairwiseMDPDHandler; ///< handler type corresponding to this object
+    using ParamsType  = MDPDParams; ///< parameters that are used to create this object
+
+    /// Constructor    
     PairwiseMDPD(real rc, real rd, real a, real b, real gamma, real kBT, real dt, real power, long seed = 42424242) :
         PairwiseMDPDHandler(rc, rd, a, b, gamma, computeSigma(gamma, kBT, dt), power),
         stepGen_(seed),
         kBT_(kBT)
     {}
 
+    /// Generic constructor
     PairwiseMDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
         PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, dt, p.power, seed)
     {}
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return (const HandlerType&) (*this);
     }
-    
+
     void setup(__UNUSED LocalParticleVector *lpv1,
                __UNUSED LocalParticleVector *lpv2,
                __UNUSED CellList *cl1,
@@ -116,13 +128,13 @@ public:
         return TextIO::readFromStream(fin, stepGen_);
     }
 
+    /// \return type name string
     static std::string getTypeName()
     {
         return "PairwiseMDPD";
     }
 
 private:
-
     static real computeSigma(real gamma, real kBT, real dt)
     {
         return math::sqrt(2.0 * gamma * kBT / dt);

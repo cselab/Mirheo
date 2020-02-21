@@ -15,16 +15,18 @@ namespace mirheo
 class LocalParticleVector;
 class CellList;
 
-
+/// a GPU compatible functor that computes DPD interactions without fluctuations.
+/// Used in unit tests
 class PairwiseNorandomDPD : public PairwiseKernel, public ParticleFetcherWithVelocity
 {
 public:
 
-    using ViewType     = PVview;
-    using ParticleType = Particle;
-    using HandlerType  = PairwiseNorandomDPD;
-    using ParamsType   = NoRandomDPDParams;
+    using ViewType     = PVview;   ///< compatible view type
+    using ParticleType = Particle; ///< compatible particle type
+    using HandlerType  = PairwiseNorandomDPD;  ///< handler type corresponding to this object
+    using ParamsType   = NoRandomDPDParams; ///< parameters that are used to create this object
     
+    /// constructor
     PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real dt, real power) :
         ParticleFetcherWithVelocity(rc),
         a_(a),
@@ -34,10 +36,12 @@ public:
         invrc_(1.0 / rc)
     {}
 
+    /// Generic constructor
     PairwiseNorandomDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
         PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, dt, p.power)
     {}
 
+    /// evaluate the force
     __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;
@@ -60,22 +64,27 @@ public:
         return dr_r * strength;
     }
 
+    /// initialize accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
+    /// get the handler that can be used on device
     const HandlerType& handler() const
     {
         return (const HandlerType&) (*this);
     }
 
+    /// \return type name string
     static std::string getTypeName()
     {
         return "PairwiseNorandomDPD";
     }
     
 protected:
-
-    real a_, gamma_, sigma_, power_;
-    real invrc_;
+    real a_; ///< conservative force magnitude
+    real gamma_; ///< viscous force coefficient
+    real sigma_; ///< random force coefficient
+    real power_; ///< viscous kernel envelope power
+    real invrc_; ///< 1 / rc
 };
 
 
