@@ -12,11 +12,24 @@
 namespace mirheo
 {
 
+/** Compute triangle area
+    \param [in] v0 Vertex coordinates 
+    \param [in] v1 Vertex coordinates 
+    \param [in] v2 Vertex coordinates 
+    \return The triangle area 
+ */
 __D__ inline mReal triangleArea(mReal3 v0, mReal3 v1, mReal3 v2)
 {
     return 0.5_mr * length(cross(v1 - v0, v2 - v0));
 }
 
+/** Compute the volume of the tetrahedron spanned by the origin and the three input coordinates.
+    The result is negative if the normal of the triangle points inside the tetrahedron.
+    \param [in] v0 Vertex coordinates 
+    \param [in] v1 Vertex coordinates 
+    \param [in] v2 Vertex coordinates 
+    \return The signed volume of the tetrahedron 
+ */
 __D__ inline mReal triangleSignedVolume(mReal3 v0, mReal3 v1, mReal3 v2)
 {
     return 0.1666666667_mr *
@@ -24,6 +37,14 @@ __D__ inline mReal triangleSignedVolume(mReal3 v0, mReal3 v1, mReal3 v2)
          - v0.x*v1.z*v2.y - v0.y*v1.x*v2.z + v0.x*v1.y*v2.z);
 }
 
+/** Compute the angle between two adjacent triangles.
+    It is the positive angle between the two normals.
+    \param [in] v0 Vertex coordinates
+    \param [in] v1 Vertex coordinates
+    \param [in] v2 Vertex coordinates
+    \param [in] v3 Vertex coordinates
+    \return The supplementary dihedral angle
+ */
 __D__ inline mReal supplementaryDihedralAngle(mReal3 v0, mReal3 v1, mReal3 v2, mReal3 v3)
 {
     /*

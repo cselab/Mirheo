@@ -8,14 +8,19 @@ namespace mirheo
 namespace MembraneForcesKernels
 {
 
+/// Device compatible structure that holds the parameters common to all membrane interactions
 struct GPU_CommonMembraneParameters
 {
-    mReal gammaC, gammaT;
-    mReal totArea0, totVolume0;
-    mReal ka0, kv0;
+    mReal gammaC; ///< viscous coefficient, central
+    mReal gammaT; ///< viscous coefficient, tangential
+    mReal totArea0;   ///< total area at equilibrium
+    mReal totVolume0; ///< total volume at equilibrium
+    mReal ka0; ///< energy magnitude for total area constraint
+    mReal kv0; ///< energy magnitude for total volume constraint
 
-    bool fluctuationForces;
-    mReal seed, sigma_rnd;
+    bool fluctuationForces; ///< \c true if fluctuation sis enabled, \c false otherwise
+    mReal seed;      ///< seed that is used for rng; must be changed at every time interation
+    mReal sigma_rnd; ///< random force coefficient
 };
 
 __device__ inline mReal3 _fconstrainArea(mReal3 v1, mReal3 v2, mReal3 v3, mReal totArea,

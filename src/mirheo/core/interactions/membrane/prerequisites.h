@@ -28,10 +28,11 @@ void setPrerequisitesPerEnergy(const JuelicherBendingParameters& params, Membran
     \tparam EnergyParams The energy term type
     \param [in] params energy parameters
     \param [in,out] mv The MembraneVector that will store the precomputed quantities.
+    \param [in] stream Execution stream
  */
 template <class EnergyParams>
-void precomputeQuantitiesPerEnergy(__UNUSED const EnergyParams&,
-                                   __UNUSED MembraneVector *mv1,
+void precomputeQuantitiesPerEnergy(__UNUSED const EnergyParams& params,
+                                   __UNUSED MembraneVector *mv,
                                    __UNUSED cudaStream_t stream)
 {}
 
