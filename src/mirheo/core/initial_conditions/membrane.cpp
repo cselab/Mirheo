@@ -37,7 +37,10 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
     {
         const int srcId = map[objId];
         const real3 com = domain.global2local(comQ_[srcId].r);
-        const auto q = Quaternion<real>::createFromComponents(normalize(comQ_[srcId].q));
+        const real4 q4 = comQ_[srcId].q;
+        if (dot(q4, q4) == 0.0)
+            die("Quaternion must be non-zero.");
+        const auto q = Quaternion<real>::createFromComponents(normalize(q4));
 
         for (int i = 0; i < nVerticesPerObject; ++i)
         {
