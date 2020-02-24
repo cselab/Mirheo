@@ -102,7 +102,7 @@ inline namespace unit_literals {
 struct ParticleRReal
 {
     rReal3 r; ///< position
-    mReal3 u; ///< velocity
+    rReal3 u; ///< velocity
 };
 
 /// read position in required precision from a view 
