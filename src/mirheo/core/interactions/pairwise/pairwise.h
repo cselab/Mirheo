@@ -250,7 +250,7 @@ private:
         SAFE_KERNEL_LAUNCH(                                                         \
                 computeExternalInteractions_##TPP##tpp<P1 COMMA P2 COMMA P3>,       \
                 getNblocks(TPP*dstView.size, nth), nth, 0, stream,                  \
-                dstView, cl2->cellInfo(), srcView, rc_*rc_, INTERACTION_FUNCTION); } while (0)
+                dstView, cl2->cellInfo(), srcView, INTERACTION_FUNCTION); } while (0)
 
     #define CHOOSE_EXTERNAL(P1, P2, P3, INTERACTION_FUNCTION)                                        \
         do{  if (dstView.size < 1000  ) { DISPATCH_EXTERNAL(P1, P2, P3, 27, INTERACTION_FUNCTION); } \
@@ -286,7 +286,7 @@ private:
             SAFE_KERNEL_LAUNCH(
                  computeSelfInteractions,
                  getNblocks(np, nth), nth, 0, stream,
-                 cinfo, view, rc_*rc_, pair.handler());
+                 cinfo, view, pair.handler());
         }
         else /*  External interaction */
         {

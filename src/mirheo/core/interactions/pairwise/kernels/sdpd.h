@@ -93,14 +93,14 @@ protected:
     real invrc_;        ///< 1 / rc
     real seed_ {0._r};  ///< random seed; must be updated every time step
     PressureEOS pressure_;        ///< pressure functor
-    DensityKernel densityKernel_; ///< density functor; must define derivative()
+    DensityKernel densityKernel_; ///< number density functor; must define derivative()
     real fDfact_; ///< dissipative force factor (precomputed from parameters)
     real fRfact_; ///< random force factor (precomputed from parameters)
 };
 
 /** Helper class to create PairwiseSDPDHandler from host
     \tparam PressureEos The equation of state
-    \tparam DensityJKernel The kernel used to compute the density
+    \tparam DensityJKernel The kernel used to compute the number density
  */
 template <typename PressureEOS, typename DensityKernel>
 class PairwiseSDPD : public PairwiseKernel, public PairwiseSDPDHandler<PressureEOS, DensityKernel>

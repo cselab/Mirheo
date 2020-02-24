@@ -12,8 +12,8 @@ namespace mirheo
 class CellList;
 class LocalParticleVector;
 
-/** \brief Compute density from pairwise kernel
-    \tparam DensityKernel The kernel used to evaluate the density
+/** \brief Compute number density from pairwise kernel
+    \tparam DensityKernel The kernel used to evaluate the number density
 */
 template <typename DensityKernel>
 class PairwiseDensity : public PairwiseKernel, public ParticleFetcher
@@ -40,7 +40,7 @@ public:
                         mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams)}
     {}
 
-    /// evaluate the density contribution of this pair
+    /// evaluate the number density contribution of this pair
     __D__ inline real operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;

@@ -108,6 +108,14 @@ The interface of the functor must follow the following requirements:
 
       __D__ real3 getPosition(const ParticleType& p) const;
 
+.. note::
+
+   To implement a new kernel, the following must be done:
+   - satisfy the above interface
+   - add a corresponding parameter in parameters.h
+   - add it to the variant in parameters.h
+   - if necessary, add type traits specialization in type_traits.h
+
 
 This is the interface for the host calls:
 

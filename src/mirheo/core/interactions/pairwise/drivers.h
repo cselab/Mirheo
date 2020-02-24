@@ -12,55 +12,49 @@
 namespace mirheo
 {
 
+/// Used as template parameter to differentiate self interaction (src and dst are the same pvs)
+/// from extrenal interactions (src and dst are different pvs)
 enum class InteractionWith
 {
     Self, Other
 };
 
+/// Used as template parameter to state if the interaction must return acceleration or not
 enum class InteractionOut
 {
     NeedAcc, NoAcc
 };
 
+/// Template parameter that controls how the particles are fetched
+/// (performance related)
 enum class InteractionMode
 {
-    RowWise, Dilute
+    RowWise, ///< fetched cell-row by cell-row (better for e.g. densely mixed particles)
+    Dilute   ///< fetched cell by cell (better for e.g. halo interactions)
 };
 
-/**
- * Compute interactions between one destination particle and
- * all source particles in a given cell, defined by range of ids:
- *
- * Also update forces for the source particles in process.
- *
- * Source particles may be from the same ParticleVector or from
- * different ones.
- *
- * @param pstart lower bound of id range of the particles to be worked on
- * @param pend  upper bound of id range
- * @param dstP destination particle
- * @param dstId destination particle local id, may be used to fetch extra
- *        properties associated with the given particle
- * @param dstFrc target force
- * @param cinfo cell-list data for source particles
- * @param rc2 squared interaction cut-off distance
- * @param interaction interaction implementation, see computeSelfInteractions()
- *
- * @tparam NeedDstAcc whether to update \p dstFrc or not. One out of
- * \p NeedDstAcc or \p NeedSrcAcc should be true.
- * @tparam NeedSrcAcc whether to update forces for source particles.
- * One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
- * @tparam Self true if we're computing self interactions, meaning
- * that destination particle is one of the source particles.
- * In that case only half of the interactions contribute to the
- * forces, such that either p1 \<-\> p2 or p2 \<-\> p1 is ignored
- * based on particle ids
+/**  Compute interactions between one destination particle and
+     all source particles in a given cell, defined by range of ids [pstart, pend).
+
+     \tparam NeedDstAcc if Set to NeedAcc, the force/density/stress of the dst pv will be updated
+     \tparam NeedSrcAcc if Set to NeedAcc, the force/density/stress of the src pv will be updated
+     \tparam InteractWith states if it is a self interaction or not
+     \tparam Interaction The pairwise kernel
+     \tparam Accumulator Used to accumulate the output of the kernel
+
+     \param [in] pstart lower bound of id range of the particles to be worked on (inclusive)
+     \param [in] pend  upper bound of id range (exclusive)
+     \param [in] dstP destination particle
+     \param [in] dstId destination particle local index
+     \param [in,out] srcView The view of the src particle vector
+     \param [in] interaction The pairwise interaction kernel
+     \param [in,out] accumulator Manages the accumulated output on the dst particle
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionWith InteractWith,
          typename Interaction, typename Accumulator>
 __device__ inline void computeCell(
         int pstart, int pend,
-        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView, real rc2,
+        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView,
         Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
@@ -71,13 +65,14 @@ __device__ inline void computeCell(
         bool interacting = interaction.withinCutoff(srcP, dstP);
 
         if (InteractWith == InteractionWith::Self)
-            if (dstId <= srcId) interacting = false;
+            if (dstId <= srcId)
+                interacting = false;
 
         if (interacting)
         {
             interaction.readExtraData(srcP, srcView, srcId);
 
-            auto val = interaction(dstP, dstId, srcP, srcId);
+            const auto val = interaction(dstP, dstId, srcP, srcId);
 
             if (NeedDstAcc == InteractionOut::NeedAcc)
                 accumulator.add(val);
@@ -88,28 +83,21 @@ __device__ inline void computeCell(
     }
 }
 
-/**
- * Compute interactions within a single ParticleVector.
- *
- * Mapping is one thread per particle. The thread will traverse half
- * of the neighbouring cells and compute all the interactions between
- * original destination particle and all the particles in the cells.
- *
- * @param np number of particles
- * @param cinfo cell-list data
- * @param rc2 squared cut-off distance
- * @param interaction is a \c \_\_device\_\_ callable that computes
- *        the force between two particles. It has to have the following
- *        signature:
- *        \code real3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
- *        The return value is the force acting on the first particle.
- *        The second one experiences the opposite force.
+/** \brief Compute interactions within a single ParticleVector.
+    \tparam Interaction The pairwise interaction kernel
+
+    \param [in] cinfo cell-list data
+    \param [in,out] view The view that contains the particle data
+    \param [in] interaction The pairwise interaction kernel 
+
+    Mapping is one thread per particle. The thread will traverse half
+    of the neighbouring cells and compute all the interactions between
+    the destination particle and all the particles in the cells.
  */
 template<typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
-        CellListInfo cinfo, typename Interaction::ViewType view,
-        const real rc2, Interaction interaction)
+        CellListInfo cinfo, typename Interaction::ViewType view, Interaction interaction)
 {
     const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
     if (dstId >= view.size) return;
@@ -138,10 +126,10 @@ __global__ void computeSelfInteractions(
             
             if (cellY == cell0.y && cellZ == cell0.z)
                 computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Self>
-                    (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
+                    (pstart, pend, dstP, dstId, view, interaction, accumulator);
             else
                 computeCell<InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionWith::Other>
-                    (pstart, pend, dstP, dstId, view, rc2, interaction, accumulator);
+                    (pstart, pend, dstP, dstId, view, interaction, accumulator);
         }
     }
 
@@ -152,39 +140,26 @@ __global__ void computeSelfInteractions(
 }
 
 
-/**
- * Compute interactions between particle of two different ParticleVector.
- *
- * Mapping is one thread per particle. The thread will traverse all
- * of the neighbouring cells and compute all the interactions between
- * original destination particle and all the particles of the second
- * kind residing in the cells.
- *
- * @param dstView view of the destination particles. They are accessed
- *        by the threads in a completely coalesced manner, no cell-list
- *        is needed for them.
- * @param srcCinfo cell-list data for the source particles
- * @param rc2 squared cut-off distance
- * @param interaction is a \c \_\_device\_\_ callable that computes
- *        the force between two particles. It has to have the following
- *        signature:
- *        \code real3 interaction(const Particle dst, int dstId, const Particle src, int srcId) \endcode
- *        The return value is the force acting on the first particle.
- *        The second one experiences the opposite force.
- *
- * @tparam NeedDstAcc if true, compute forces for destination particles.
- *         One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
- * @tparam NeedSrcAcc if true, compute forces for source particles.
- *         One out of \p NeedDstAcc or \p NeedSrcAcc should be true.
- * @tparam Variant performance related parameter. \e true is better for
- * densely mixed stuff, \e false is better for halo
+/** \brief Compute the interactions between particle of two different ParticleVector.
+    \tparam NeedDstAcc States if the dstination particles must be modified
+    \tparam NeedSrcAcc States if the source particles must be modified
+    \tparam Variant Performance parameter; controls how to traverse the src particles
+    \tparam Interaction The pairwise interaction kernel
+
+    \param [in,out] dstView Destination particles data
+    \param [in] srcCinfo Cell-lists info of the source particles
+    \param [in,out] srcView Source particles data
+    \param [in] interaction Instance of the pairwise kernel functor
+
+    Mapping is one thread per destination particle. 
+    The thread will traverse all of the neighbouring cells and compute the interactions between
+    the destination particle and all the particles of the \p srcView in those cells.
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_1tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
-        typename Interaction::ViewType srcView,
-        const real rc2, Interaction interaction)
+        typename Interaction::ViewType srcView, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -214,7 +189,7 @@ __global__ void computeExternalInteractions_1tpp(
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
                 computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+                    (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
             }
             else
             {
@@ -227,7 +202,7 @@ __global__ void computeExternalInteractions_1tpp(
                     const int pend   = srcCinfo.cellStarts[cid+1];
 
                     computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-                        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+                        (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
                 }
             }
 
@@ -235,18 +210,15 @@ __global__ void computeExternalInteractions_1tpp(
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
-/**
- * Compute interactions between particle of two different ParticleVector.
- *
- * Mapping is three threads per particle. The rest is similar to
- * computeExternalInteractions_1tpp()
+/** Same as computeExternalInteractions_1tpp()
+    With a mapping of 3 threads per destination particle (one per adjacent cell plane).
+    Used to increase parallelization when the number of particles is lower.
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_3tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
-        typename Interaction::ViewType srcView,
-        const real rc2, Interaction interaction)
+        typename Interaction::ViewType srcView, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -267,6 +239,7 @@ __global__ void computeExternalInteractions_3tpp(
     int cellZ = cell0.z + dircode;
 
     for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
+    {
         if (Variant == InteractionMode::RowWise)
         {
             if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y && cellZ >= 0 && cellZ < srcCinfo.ncells.z) ) continue;
@@ -281,7 +254,7 @@ __global__ void computeExternalInteractions_3tpp(
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
             computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+                (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
         }
         else
         {
@@ -294,26 +267,24 @@ __global__ void computeExternalInteractions_3tpp(
                 const int pend   = srcCinfo.cellStarts[cid+1];
 
                 computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-                    (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+                    (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
             }
         }
-
+    }
+    
     if (NeedDstAcc == InteractionOut::NeedAcc)
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
-/**
- * Compute interactions between particle of two different ParticleVector.
- *
- * Mapping is nine threads per particle. The rest is similar to
- * computeExternalInteractions_1tpp()
+/** Same as computeExternalInteractions_1tpp()
+    With a mapping of 9 threads per destination particle (one per adjacent cell row).
+    Used to increase parallelization when the number of particles is lower.
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_9tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
-        typename Interaction::ViewType srcView,
-        const real rc2, Interaction interaction)
+        typename Interaction::ViewType srcView, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -331,8 +302,8 @@ __global__ void computeExternalInteractions_9tpp(
 
     const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::NoClamp>(interaction.getPosition(dstP));
 
-    int cellZ = cell0.z + dircode / 3 - 1;
-    int cellY = cell0.y + dircode % 3 - 1;
+    const int cellZ = cell0.z + dircode / 3 - 1;
+    const int cellY = cell0.y + dircode % 3 - 1;
 
     if (Variant == InteractionMode::RowWise)
     {
@@ -348,7 +319,7 @@ __global__ void computeExternalInteractions_9tpp(
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
         computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-            (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+            (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
     }
     else
     {
@@ -361,7 +332,7 @@ __global__ void computeExternalInteractions_9tpp(
             const int pend   = srcCinfo.cellStarts[cid+1];
 
             computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-                (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+                (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
         }
     }
 
@@ -369,18 +340,15 @@ __global__ void computeExternalInteractions_9tpp(
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
-/**
- * Compute interactions between particle of two different ParticleVector.
- *
- * Mapping is 27 threads per particle. The rest is similar to
- * computeExternalInteractions_1tpp()
+/** Same as computeExternalInteractions_1tpp()
+    With a mapping of 27 threads per destination particle (one per adjacent cell).
+    Used to increase parallelization when the number of particles is lower.
  */
 template<InteractionOut NeedDstAcc, InteractionOut NeedSrcAcc, InteractionMode Variant, typename Interaction>
 __launch_bounds__(128, 16)
 __global__ void computeExternalInteractions_27tpp(
         typename Interaction::ViewType dstView, CellListInfo srcCinfo,
-        typename Interaction::ViewType srcView,
-        const real rc2, Interaction interaction)
+        typename Interaction::ViewType srcView, Interaction interaction)
 {
     static_assert(NeedDstAcc == InteractionOut::NeedAcc || NeedSrcAcc == InteractionOut::NeedAcc,
                   "External interactions should return at least some accelerations");
@@ -411,7 +379,7 @@ __global__ void computeExternalInteractions_27tpp(
     const int pend   = srcCinfo.cellStarts[cid+1];
 
     computeCell<NeedDstAcc, NeedSrcAcc, InteractionWith::Other>
-        (pstart, pend, dstP, dstId, srcView, rc2, interaction, accumulator);
+        (pstart, pend, dstP, dstId, srcView, interaction, accumulator);
 
     if (NeedDstAcc == InteractionOut::NeedAcc)
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
