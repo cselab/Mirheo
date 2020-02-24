@@ -13,10 +13,25 @@ namespace FactoryHelper
 {
 constexpr auto defaultReal = std::numeric_limits<real>::infinity();
 
+/// Helper to read parameters from a ParametersWrap object.
+/// Two read modes can be used (see \c Mode)
 struct ParamsReader
 {
-    enum Mode {FailIfNotFound, DefaultIfNotFound};
-    
+    /// The available read modes
+    enum Mode
+    {
+        FailIfNotFound,   ///< Will fail if the required parameter is not found (default).
+        DefaultIfNotFound ///< Will return a default parameter (infinit value) if required parameter is not found.
+    };
+
+    /** \brief Read a parameter from \p desc with key \p key
+        \tparam The parameter type
+        \param [in,out] desc The set of available parameters
+        \param [in] key Name of the parameter to read
+        \return The parameter value.
+
+        This method will fail if the key and type do not match the parameters in \p desc in FailIfNotFound mode.
+     */
     template <typename T>
     T read(ParametersWrap& desc, const std::string& key) const
     {
@@ -33,8 +48,9 @@ struct ParamsReader
         }
     }
 
-    Mode mode {Mode::FailIfNotFound};
+    Mode mode {Mode::FailIfNotFound}; ///< read mode
 
+    /// create a default value for a given type
     template <class T> T makeDefault() const;
 };
 
