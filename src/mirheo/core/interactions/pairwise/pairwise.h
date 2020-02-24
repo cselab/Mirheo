@@ -299,7 +299,7 @@ private:
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::RowWise, pair.handler());
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::RowWise, pair.handler());
         }
     }
 
@@ -322,9 +322,9 @@ private:
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOut::NoAcc,   InteractionOut::NeedAcc, InteractionMode::Dilute, pair.handler() );
+                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,   InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair.handler() );
             else
-                CHOOSE_EXTERNAL(InteractionOut::NeedAcc, InteractionOut::NeedAcc, InteractionMode::Dilute, pair.handler() );
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair.handler() );
     }
 
     PairwiseKernel& _getPairwiseKernel(const std::string& pv1name, const std::string& pv2name)
