@@ -23,8 +23,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions/interface.h \
 	../src/mirheo/core/interactions/pairwise \
 	../src/mirheo/core/interactions/membrane \
-	../src/mirheo/core/interactions/utils \
-	../src/mirheo/core/interactions/parameters_wrap.h
+	../src/mirheo/core/interactions/utils
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

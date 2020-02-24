@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mirheo/core/interactions/interface.h>
-#include <mirheo/core/interactions/parameters_wrap.h>
+#include <mirheo/core/interactions/utils/parameters_wrap.h>
 
 namespace mirheo
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "parameters_wrap.h"
+#include "utils/parameters_wrap.h"
 
 #include <mirheo/core/mirheo_state.h>
 
