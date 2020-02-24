@@ -43,7 +43,7 @@ void exportUtils(py::module& m)
     Args:
         key: the option name.
 
-    Available names can be found from the :any:`listCompileOptions` command.
+    Available names can be found from the :any:`getAllCompileOptions` command.
     )");
 
     m.def("getAllCompileOptions", getAllCompileOptions, R"(

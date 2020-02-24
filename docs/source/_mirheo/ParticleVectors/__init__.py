@@ -948,3 +948,30 @@ Overloaded function.
         pass
 
 
+# Functions
+
+def getReservedBisegmentChannels():
+    r"""getReservedBisegmentChannels() -> List[str]
+
+Return the list of reserved channel names per bisegment fields
+
+    """
+    pass
+
+def getReservedObjectChannels():
+    r"""getReservedObjectChannels() -> List[str]
+
+Return the list of reserved channel names for object fields
+
+    """
+    pass
+
+def getReservedParticleChannels():
+    r"""getReservedParticleChannels() -> List[str]
+
+Return the list of reserved channel names for particle fields
+
+    """
+    pass
+
+

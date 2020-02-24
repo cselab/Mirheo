@@ -59,7 +59,7 @@ def genmodule(name, fname, needfuncs):
 
                 
     if needfuncs:
-        funcs = inspect.getmembers(sys.modules[name], inspect.isfunction)
+        funcs = inspect.getmembers(sys.modules[name], inspect.isroutine)
         
         if len(funcs) > 0:
             print('\n# Functions\n', file=fout)

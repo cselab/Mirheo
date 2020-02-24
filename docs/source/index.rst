@@ -42,6 +42,7 @@ as well as exposing code internals for the developers wishing to contribute to t
    user/bouncers
    user/walls
    user/plugins
+   user/utils
 
 
 .. toctree::

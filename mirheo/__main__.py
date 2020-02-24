@@ -23,11 +23,11 @@ def run(args):
 
 def compile_opt(args):
     if args.name == "all":
-        options = mirheo.getAllCompileOptions()
+        options = mirheo.Utils.getAllCompileOptions()
         for key in options:
             print("{} : {}".format(key, options[key]))
     else:
-        print(mirheo.getCompileOption(args.name))
+        print(mirheo.Utils.getCompileOption(args.name))
 
 def main(argv):
     parser = argparse.ArgumentParser()

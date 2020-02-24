@@ -13,7 +13,7 @@ PYBIND11_MODULE(libmirheo, m)
 
     exportVectorTypes(m);
     exportConfigValue(m);
-    exportUtils(m);
+    
     exportMirheo(m);
     
     auto ic = m.def_submodule("InitialConditions");
@@ -36,6 +36,9 @@ PYBIND11_MODULE(libmirheo, m)
     
     auto walls = m.def_submodule("Walls");
     exportWalls(walls);
+
+    auto utils = m.def_submodule("Utils");
+    exportUtils(utils);
     
     auto plugins = m.def_submodule("Plugins");
     exportPlugins(plugins);
