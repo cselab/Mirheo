@@ -20,11 +20,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/object_belonging \
 	../src/mirheo/core/walls \
 	../src/mirheo/core/pvs \
-	../src/mirheo/core/interactions/interface.h \
-	../src/mirheo/core/interactions/pairwise \
-	../src/mirheo/core/interactions/membrane \
-	../src/mirheo/core/interactions/utils \
-	../src/mirheo/core/interactions/rod
+	../src/mirheo/core/interactions
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

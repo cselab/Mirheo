@@ -8,9 +8,18 @@ namespace mirheo
 class RigidObjectVector;
 class RodVector;
 
+/** Compute elastic interaction used to attach a rod to a RigidObjectVector entity.
+ */
 class ObjectRodBindingInteraction : public Interaction
 {
 public:
+    /** Construct an ObjectRodBindingInteraction interaction
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+        \param [in] torque Torque applied from the rigid objet to the rod
+        \param [in] relAnchor position of attachement with respect to the rigid object
+        \param [in] kBound The elastic constant for the binding
+     */
     ObjectRodBindingInteraction(const MirState *state, std::string name,
                                 real torque, real3 relAnchor, real kBound);
 
