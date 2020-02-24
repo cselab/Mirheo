@@ -10,3 +10,4 @@ Interactions
    interactions/interface
    interactions/membrane
    interactions/pairwise
+   interactions/utils
