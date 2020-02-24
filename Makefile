@@ -1,3 +1,4 @@
+CMAKE ?= cmake
 PIP ?= python -m pip
 CMAKE_FLAGS ?= ""
 
@@ -5,7 +6,7 @@ CMAKE_FLAGS ?= ""
 
 build:
 	mkdir -p build
-	(cd build && cmake ${CMAKE_FLAGS} -DBUILD_TESTS=OFF ../)
+	(cd build && ${CMAKE} ${CMAKE_FLAGS} -DBUILD_TESTS=OFF ../)
 	(cd build && $(MAKE))
 
 # https://stackoverflow.com/questions/1871549/determine-if-python-is-running-inside-virtualenv
@@ -34,7 +35,7 @@ test: install
 
 units:
 	mkdir -p build
-	(cd build && cmake ${CMAKE_FLAGS} -DBUILD_TESTS=ON ../)
+	(cd build && ${CMAKE} ${CMAKE_FLAGS} -DBUILD_TESTS=ON ../)
 	(cd build && $(MAKE))
 	(cd build && $(MAKE) test)
 
