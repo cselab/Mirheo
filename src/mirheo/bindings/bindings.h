@@ -18,5 +18,6 @@ void exportObjectBelongingCheckers(py::module& m);
 void exportBouncers(py::module& m);
 void exportWalls(py::module& m);
 void exportPlugins(py::module& m);
+void exportUtils(py::module& m);
 
 } // namespace mirheo

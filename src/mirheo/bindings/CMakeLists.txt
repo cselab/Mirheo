@@ -9,6 +9,7 @@ set(sources_cpp
   particle_vectors.cpp
   plugins.cpp
   vector_types.cpp
+  utils.cpp
   walls.cpp
   )
 

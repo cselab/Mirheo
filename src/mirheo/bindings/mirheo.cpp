@@ -21,7 +21,7 @@ namespace mirheo
 
 using namespace pybind11::literals;
 
-CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
+static CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
 {
     if (mode == "PingPong")
         return CheckpointIdAdvanceMode::PingPong;

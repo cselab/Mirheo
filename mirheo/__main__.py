@@ -36,13 +36,20 @@ def main(argv):
                            help="Name of the attribute to read the number of timesteps from.")
     runparser.add_argument('snapshot', type=str, metavar="snapshot_path",
                            help="Run the snapshot at the given path.")
+
+    compile_opt_parser = subparsers.add_parser('compile_opt', help="Get the current compile time option from its name.")
+    compile_opt_parser.add_argument('name', type=str, help="The option name")
+
     args = parser.parse_args()
 
     if args.version:
         print(mirheo.version)
         return
 
-    if args.command == 'run':
+    if args.command == 'compile_opt':
+        print(mirheo.getCompileOption(args.name))
+    
+    elif args.command == 'run':
         run(args)
 
 
