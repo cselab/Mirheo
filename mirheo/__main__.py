@@ -21,6 +21,14 @@ def run(args):
     u.run(num_timesteps)
 
 
+def compile_opt(args):
+    if args.name == "all":
+        options = mirheo.getAllCompileOptions()
+        for key in options:
+            print("{} : {}".format(key, options[key]))
+    else:
+        print(mirheo.getCompileOption(args.name))
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--version', action='store_true', default=False)
@@ -38,7 +46,8 @@ def main(argv):
                            help="Run the snapshot at the given path.")
 
     compile_opt_parser = subparsers.add_parser('compile_opt', help="Get the current compile time option from its name.")
-    compile_opt_parser.add_argument('name', type=str, help="The option name")
+    compile_opt_parser.add_argument('name', type=str,
+                                    help="The option name. The special value 'all' will list all possible options and their current values.")
 
     args = parser.parse_args()
 
@@ -47,8 +56,7 @@ def main(argv):
         return
 
     if args.command == 'compile_opt':
-        print(mirheo.getCompileOption(args.name))
-    
+        compile_opt(args)
     elif args.command == 'run':
         run(args)
 
