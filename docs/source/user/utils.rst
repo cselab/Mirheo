@@ -3,13 +3,12 @@
 Utils
 #####
 
-Utility functions that
-
+Utility functions that do not need any mirheo coordinator.
 Most of these functions are wrapped by the ``__main__.py`` file and can be called directly from the command line:
 
-.. code-block:: sh
+.. code-block:: console
 
-   python -m mirheo compile_opt all
+   python -m mirheo --help
 
 
 Summary

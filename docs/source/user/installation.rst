@@ -121,7 +121,15 @@ Additional compile options are provided through ``cmake``:
    .. code-block:: console
    
       CMAKE_FLAGS="-DDOUBLE_PRECISION=ON" mir.make
+
+.. note::
+
+   The compile options of the current installation can be viewd by typing in a terminal:
    
+   .. code-block:: console
+   
+      python -m mirheo compile_opt all
+
 
 
 Tools
