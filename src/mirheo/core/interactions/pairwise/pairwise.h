@@ -304,6 +304,10 @@ private:
     }
 
     /** \brief Compute halo forces
+        
+        Note: for ObjectVector objects, the forces will be computed even for halos.
+        For pure ParticleVector objects, the halo forces are computed only locally (we rely on the pairwise force
+        symetry for the neighbouring ranks). This avoids extra communications.
      */
     void _computeHalo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
