@@ -13,6 +13,7 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/snapshot.h>
+#include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/folders.h>
@@ -679,45 +680,11 @@ void Mirheo::run(int nsteps)
 
 void Mirheo::logCompileOptions() const
 {
-    const std::string useNvtxOption = 
-#ifdef USE_NVTX
-        "ON"
-#else
-        "OFF"
-#endif
-        ;
-
-    const std::string useDoubleOption = 
-#ifdef MIRHEO_DOUBLE_PRECISION
-        "ON"
-#else
-        "OFF"
-#endif
-        ;
-
-    
-    const std::string membraneDoubleOption = 
-#ifdef MEMBRANE_FORCES_DOUBLE
-        "ON"
-#else
-        "OFF"
-#endif
-        ;
-    
-    const std::string rodDoubleOption = 
-#ifdef ROD_FORCES_DOUBLE
-        "ON"
-#else
-        "OFF"
-#endif
-        ;
-    
-    
     info("compile time options:");
-    info("USE_NVTX        : %s", useNvtxOption       .c_str());
-    info("MIRHEO_DOUBLE   : %s", useDoubleOption     .c_str());
-    info("MEMBRANE_DOUBLE : %s", membraneDoubleOption.c_str());
-    info("ROD_DOUBLE      : %s", rodDoubleOption     .c_str());
+    info("USE_NVTX        : %s", CompileOptions::useNvtx       .c_str());
+    info("MIRHEO_DOUBLE   : %s", CompileOptions::useDouble     .c_str());
+    info("MEMBRANE_DOUBLE : %s", CompileOptions::membraneDouble.c_str());
+    info("ROD_DOUBLE      : %s", CompileOptions::rodDouble     .c_str());
 }
 
 static void storeToFile(const std::string& content, const std::string& filename)
