@@ -15,6 +15,7 @@
 namespace mirheo
 {
 
+/// extract bounds parameters usable on the device from the rod parameters structure
 static auto getBoundParams(const RodParameters& p)
 {
     GPU_RodBoundsParameters dp;
@@ -27,6 +28,7 @@ static auto getBoundParams(const RodParameters& p)
     return dp;
 }
 
+/// extract bisegment parameters usable on the device from the rod parameters structure
 template <int Nstates>
 static auto getBiSegmentParams(const RodParameters& p)
 {
@@ -43,10 +45,23 @@ static auto getBiSegmentParams(const RodParameters& p)
     return dp;
 }
 
+
+/** \brief Generic implementation of rod forces.
+    \tparam Nstates Number of polymorphic states
+    \tparam StateParameters parameters associated to the polymorphic state model
+ */
 template <int Nstates, class StateParameters>
 class RodInteraction : public BaseRodInteraction
 {
 public:
+    /** \brief Construct a RodInteraction object
+        \param [in] state The global state of the system
+        \param [in] name The name of the interaction
+        \param [in] parameters The common parameters from all kernel forces
+        \param [in] stateParameters Parameters related to polymorphic states transition
+        \param [in] saveEnergies \c true if the user wants to also compute the energies. 
+                    In this case, energies will be saved in the \c ChannelNames::energies bisegment channel.
+    */
     RodInteraction(const MirState *state, const std::string& name, RodParameters parameters,
                    StateParameters stateParameters, bool saveEnergies) :
         BaseRodInteraction(state, name),

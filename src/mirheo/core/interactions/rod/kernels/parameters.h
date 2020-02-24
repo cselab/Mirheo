@@ -6,6 +6,7 @@
 namespace mirheo
 {
 
+/// parameters for computing rod forces
 struct RodParameters
 {
     real3 kBending; ///< bending force magnitude in that order: (Bxx, Bxy, Byy) (symmetric matrix)
@@ -22,23 +23,26 @@ struct RodParameters
     real ksFrame;   ///< spring force magnitude for material frame
 };
 
+/// Parameters used when no polymorphic states are considered
 struct StatesParametersNone {};
 
+/// Parameters used when polymorphic states transitions are modeled with smoothing energy
 struct StatesSmoothingParameters
 {
-    real kSmoothing;
+    real kSmoothing; ///< smoothing potential coefficient
 };
 
+/// Parameters used when polymorphic states transitions are modeled with Ising kind of model
 struct StatesSpinParameters
 {
-    int nsteps;
-    real kBT;
-    real J;
+    int nsteps; ///< Number of MC steps
+    real kBT;   ///< temeperature in energy units
+    real J;     ///< Ising energy coupling
 
+    /// \return a random seed
     inline auto generate() {return udistr_(gen_);}
     
 private:
-
     std::mt19937 gen_;
     std::uniform_real_distribution<real> udistr_;
 };

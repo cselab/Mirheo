@@ -12,9 +12,13 @@
 namespace mirheo
 {
 
+/// device-compatible structure for the ising model of polymorphic states transition
 struct GPU_SpinParameters
 {
-    real J, kBT, beta, seed;
+    real J;    ///< Ising energy coupling
+    real kBT;  ///< temperature in energy units
+    real beta; ///< 1/kBT
+    real seed; ///< random seed
 };
 
 namespace RodStatesKernels

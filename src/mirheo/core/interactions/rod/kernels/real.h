@@ -7,16 +7,16 @@ namespace mirheo
 {
 
 #ifdef ROD_FORCES_DOUBLE
-using rReal  = double;
+using rReal  = double; ///< double precision switch
 #else
-using rReal  = float;
+using rReal  = float; ///< single precision switch
 #endif // ROD_FORCES_DOUBLE
 
-using rReal2 = VecTraits::Vec<rReal, 2>::Type;
-using rReal3 = VecTraits::Vec<rReal, 3>::Type;
-using rReal4 = VecTraits::Vec<rReal, 4>::Type;
+using rReal2 = VecTraits::Vec<rReal, 2>::Type; ///< real2
+using rReal3 = VecTraits::Vec<rReal, 3>::Type; ///< real3
+using rReal4 = VecTraits::Vec<rReal, 4>::Type; ///< real4
 
-
+/// create real2 from vector
 template<typename T2>
 __D__ inline rReal2 make_rReal2(T2 v)
 {
@@ -24,18 +24,21 @@ __D__ inline rReal2 make_rReal2(T2 v)
             static_cast<rReal>(v.y)};
 }
 
+/// create real2 from scalar
 __D__ constexpr inline rReal2 make_rReal2(float a)
 {
     return {static_cast<rReal>(a),
             static_cast<rReal>(a)};
 }
 
+/// create real2 from scalar
 __D__ constexpr inline rReal2 make_rReal2(double a)
 {
     return {static_cast<rReal>(a),
             static_cast<rReal>(a)};
 }
 
+/// create real3 from vector
 template<typename T3>
 __D__ inline rReal3 make_rReal3(T3 v)
 {
@@ -44,6 +47,7 @@ __D__ inline rReal3 make_rReal3(T3 v)
             static_cast<rReal>(v.z)};
 }
 
+/// create real3 from scalar
 __D__ constexpr inline rReal3 make_rReal3(float a)
 {
     return {static_cast<rReal>(a),
@@ -51,6 +55,7 @@ __D__ constexpr inline rReal3 make_rReal3(float a)
             static_cast<rReal>(a)};
 }
 
+/// create real3 from scalar
 __D__ constexpr inline rReal3 make_rReal3(double a)
 {
     return {static_cast<rReal>(a),
@@ -58,6 +63,7 @@ __D__ constexpr inline rReal3 make_rReal3(double a)
             static_cast<rReal>(a)};
 }
 
+/// create real4 from vector
 template<typename T4>
 __D__ inline rReal4 make_rReal4(T4 v)
 {
@@ -67,6 +73,7 @@ __D__ inline rReal4 make_rReal4(T4 v)
             static_cast<rReal>(v.w)};
 }
 
+/// create real4 from scalar
 __D__ constexpr inline rReal4 make_rReal4(float a)
 {
     return {static_cast<rReal>(a),
@@ -75,6 +82,7 @@ __D__ constexpr inline rReal4 make_rReal4(float a)
             static_cast<rReal>(a)};
 }
 
+/// create real4 from scalar
 __D__ constexpr inline rReal4 make_rReal4(double a)
 {
     return {static_cast<rReal>(a),
@@ -90,11 +98,14 @@ inline namespace unit_literals {
     }
 } // namespace unit_literals
 
+/// particle structure in required precision
 struct ParticleRReal
 {
-    rReal3 r, u;
+    rReal3 r; ///< position
+    mReal3 u; ///< velocity
 };
 
+/// read position in required precision from a view 
 template <typename View>
 __D__ inline rReal3 fetchPosition(View view, int i)
 {
@@ -102,6 +113,7 @@ __D__ inline rReal3 fetchPosition(View view, int i)
     return make_rReal3(ri.v);
 }
 
+/// read position and velocity in required precision from a view 
 template <typename View>
 __D__ inline ParticleRReal fetchParticle(View view, int i)
 {

@@ -12,10 +12,15 @@
 namespace mirheo
 {
 
+/// Device compatible structure that holds energy constraints parameters
 struct GPU_RodBoundsParameters
 {
-    real lcenter, lcross, ldiag, lring;
-    real ksCenter, ksFrame;
+    real lcenter; ///< equilibrium length between neighbouring particles on the center line
+    real lcross; ///< equilibrium length between 2 opposite particles on the material frame
+    real ldiag;  ///< equilibrium length between particles of the material frame and of th ceter lines
+    real lring;  ///< equilibrium length between neighbouring particles on material frame
+    real ksCenter; ///< energy constraint coefficient along the centerline
+    real ksFrame;  ///< energy constraint coefficient within the material frame
 };
 
 namespace RodForcesKernels
