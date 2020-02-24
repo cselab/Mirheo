@@ -180,7 +180,24 @@ The above kernels that output a force can be wrapped by the stress wrapper:
 Fetchers
 ^^^^^^^^
 
-TODO
+Fetchers are used to load the correct data needed by the pairwise kernels (e.g. the :any:`mirheo::PairwiseRepulsiveLJ` kernel needs only the positions while the :any:`mirheo::PairwiseSDPD` kernel needs also velocities and number densities).
+
+.. doxygenclass:: mirheo::ParticleFetcher
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithVelocity
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithVelocityAndDensity
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithVelocityDensityAndMass
+   :project: mirheo
+   :members:
+
 
 .. _dev-interactions-pairwise-accumulators:
 
