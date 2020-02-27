@@ -10,7 +10,14 @@ namespace mirheo
 {
 
 class ParticleVector;
+class RigidObjectVector;
 
+/** \brief This \c Plugin has only a debug purpose.
+    It is designed to check the validity of the ParticleVector states:
+    - check the positions are within reasonable bounds
+    - check the velocities are within reasonable bounds
+    - check for nan or inf forces
+ */
 class ParticleCheckerPlugin : public SimulationPlugin
 {
 public:
@@ -25,25 +32,39 @@ public:
     bool needPostproc() override { return false; }
 
     enum class Info {Ok, Out, Nan};
-    enum {GoodTag, BadTag};
     
-    struct __align__(16) ParticleStatus
+    struct __align__(16) Status
     {
-        int tag, id;
+        int id;
         Info info;
     };
 
 private:
-    void dieIfBadStatus(cudaStream_t stream, const std::string& identifier);
+    void _dieIfBadStatus(cudaStream_t stream, const std::string& identifier);
     
 private:
-    int checkEvery_;
-    
-    PinnedBuffer<ParticleStatus> statuses_;
-    std::vector<ParticleVector*> pvs_;
-    std::vector<int> rovStatusIds_;
+    int checkEvery_; ///< Particles will be checked every this amount of time steps
 
-    static constexpr int NotRov_ = -1;
+    static constexpr int maxNumReports = 256;  ///< maximum number of failed particles info
+    
+    /// Contains info related to a given ParticleVector that needs to be checked
+    template <class PVType>
+    struct CheckData
+    {
+        PVType *pv;        ///< the ParticleVector to check
+        int *numFailedDev; ///< number of failed particles, ptr to device
+        int *numFailedHst; ///< number of failed particles, ptr to host
+        /// failed particles information
+        PinnedBuffer<Status> statuses {maxNumReports};
+    };
+
+    using PVCheckData = CheckData<ParticleVector>;
+    using ROVCheckData = CheckData<RigidObjectVector>;
+    
+    std::vector<PVCheckData> pvCheckData_;
+    std::vector<ROVCheckData> rovCheckData_;
+
+    PinnedBuffer<int> numFailed_;
 };
 
 } // namespace mirheo

@@ -32,18 +32,21 @@ __device__ static inline bool withinBounds(R3 v, real3 bounds)
         (math::abs(v.z) < bounds.z);
 }
 
-__device__ static inline void setBadStatus(int pid, ParticleCheckerPlugin::Info info, ParticleCheckerPlugin::ParticleStatus *status)
+template <int maxNumReports>
+__device__ static inline void setBadStatus(int pid, ParticleCheckerPlugin::Info info,
+                                           int *numFailed, ParticleCheckerPlugin::Status *statuses)
 {
-    const auto tag = atomicExch(&status->tag, ParticleCheckerPlugin::BadTag);
+    const int failedId = atomicAdd(numFailed, 1);
 
-    if (tag == ParticleCheckerPlugin::GoodTag)
+    if (failedId < maxNumReports)
     {
-        status->id   = pid;
-        status->info = info;
+        statuses[failedId].id   = pid;
+        statuses[failedId].info = info;
     }
 }
 
-__global__ void checkForces(PVview view, ParticleCheckerPlugin::ParticleStatus *status)
+template <int maxNumReports>
+__global__ void checkForces(PVview view, int *numFailed, ParticleCheckerPlugin::Status *statuses)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -52,10 +55,11 @@ __global__ void checkForces(PVview view, ParticleCheckerPlugin::ParticleStatus *
     const auto force = make_real3(view.forces[pid]);
 
     if (!isFinite(force))
-        setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
+        setBadStatus<maxNumReports>(pid, ParticleCheckerPlugin::Info::Nan, numFailed, statuses);
 }
 
-__global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
+template <int maxNumReports>
+__global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, int *numFailed, ParticleCheckerPlugin::Status *statuses)
 {
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -66,7 +70,7 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!isFinite(pos) || !isFinite(vel))
     {
-        setBadStatus(pid, ParticleCheckerPlugin::Info::Nan, status);
+        setBadStatus<maxNumReports>(pid, ParticleCheckerPlugin::Info::Nan, numFailed, statuses);
         return;
     }
 
@@ -75,12 +79,13 @@ __global__ void checkParticles(PVview view, DomainInfo domain, real dtInv, Parti
 
     if (!withinBounds(pos, boundsPos) || !withinBounds(vel, boundsVel))
     {
-        setBadStatus(pid, ParticleCheckerPlugin::Info::Out, status);
+        setBadStatus<maxNumReports>(pid, ParticleCheckerPlugin::Info::Out, numFailed, statuses);
         return;
     }
 }
 
-__global__ void checkRigidForces(ROVview view, ParticleCheckerPlugin::ParticleStatus *status)
+template <int maxNumReports>
+__global__ void checkRigidForces(ROVview view, int *numFailed, ParticleCheckerPlugin::Status *statuses)
 {
     const int objId = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -89,10 +94,11 @@ __global__ void checkRigidForces(ROVview view, ParticleCheckerPlugin::ParticleSt
     const auto m = view.motions[objId];
 
     if (!isFinite(m.force) || !isFinite(m.torque))
-        setBadStatus(objId, ParticleCheckerPlugin::Info::Nan, status);
+        setBadStatus<maxNumReports>(objId, ParticleCheckerPlugin::Info::Nan, numFailed, statuses);
 }
 
-__global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, ParticleCheckerPlugin::ParticleStatus *status)
+template <int maxNumReports>
+__global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, int *numFailed, ParticleCheckerPlugin::Status *statuses)
 {
     const int objId = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -102,7 +108,7 @@ __global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, P
 
     if (!isFinite(m.r) || !isFinite(m.vel) || !isFinite(m.omega))
     {
-        setBadStatus(objId, ParticleCheckerPlugin::Info::Nan, status);
+        setBadStatus<maxNumReports>(objId, ParticleCheckerPlugin::Info::Nan, numFailed, statuses);
         return;
     }
 
@@ -112,14 +118,14 @@ __global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, P
 
     if (!withinBounds(m.r, boundsPos) || !withinBounds(m.vel, boundsVel), !withinBounds(m.omega, boundsOmega))
     {
-        setBadStatus(objId, ParticleCheckerPlugin::Info::Out, status);
+        setBadStatus<maxNumReports>(objId, ParticleCheckerPlugin::Info::Out, numFailed, statuses);
         return;
     }
 }
 
 } // namespace ParticleCheckerKernels
 
-constexpr int ParticleCheckerPlugin::NotRov_;
+constexpr int ParticleCheckerPlugin::maxNumReports;
 
 ParticleCheckerPlugin::ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery) :
     SimulationPlugin(state, name),
@@ -131,25 +137,32 @@ ParticleCheckerPlugin::~ParticleCheckerPlugin() = default;
 void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    pvs_ = simulation->getParticleVectors();
-    rovStatusIds_.clear();
+
+    auto pvs = simulation->getParticleVectors();
     
-    int numRovs {0};
-    for (auto pv : pvs_)
+    numFailed_.resize_anew(pvs.size() * 2); // 2 * pvs.size >= that number of pvs + number of rovs
+    numFailed_.clear(defaultStream);
+    
+    int *numFailedDevPtr = numFailed_.devPtr();
+    int *numFailedHstPtr = numFailed_.hostPtr();
+
+    for (auto pv : pvs)
     {
-        int id = NotRov_;
-        if (dynamic_cast<RigidObjectVector*>(pv))
+        PVCheckData pvCd;
+        pvCd.pv = pv;
+        pvCd.numFailedDev = numFailedDevPtr++; 
+        pvCd.numFailedHst = numFailedHstPtr++;
+        pvCheckData_.push_back(std::move(pvCd));
+
+        if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
         {
-            id = pvs_.size() + numRovs++;
+            ROVCheckData rovCd;
+            rovCd.pv = rov;
+            rovCd.numFailedDev = numFailedDevPtr++; 
+            rovCd.numFailedHst = numFailedHstPtr++;
+            rovCheckData_.push_back(std::move(rovCd));
         }
-        rovStatusIds_.push_back(id);
     }
-
-    statuses_.resize_anew(pvs_.size() + numRovs);
-
-    for (auto& s : statuses_)
-        s = {GoodTag, 0, Info::Ok};
-    statuses_.uploadToDevice(defaultStream);
 }
 
 void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
@@ -158,28 +171,29 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
 
     constexpr int nthreads = 128;
     
-    for (size_t i = 0; i < pvs_.size(); ++i)
+    for (auto& pvCd : pvCheckData_)
     {
-        auto pv = pvs_[i];
+        auto pv = pvCd.pv;
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkForces,
+            ParticleCheckerKernels::checkForces<maxNumReports>,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, statuses_.devPtr() + i );
-
-        if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
-        {
-            ROVview rovView(rov, rov->local());
-
-            SAFE_KERNEL_LAUNCH(
-                ParticleCheckerKernels::checkRigidForces,
-                getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
-                rovView, statuses_.devPtr() + rovStatusIds_[i] );
-        }
+            view, pvCd.numFailedDev, pvCd.statuses.devPtr() );
     }
 
-    dieIfBadStatus(stream, "force");
+    for (auto& rovCd : rovCheckData_)
+    {
+        auto rov = rovCd.pv;
+        ROVview rovView(rov, rov->local());
+        
+        SAFE_KERNEL_LAUNCH(
+            ParticleCheckerKernels::checkRigidForces<maxNumReports>,
+            getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
+            rovView, rovCd.numFailedDev, rovCd.statuses.devPtr() );
+    }
+
+    _dieIfBadStatus(stream, "force");
 }
 
 void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
@@ -192,28 +206,29 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
     const auto domain = getState()->domain;
     
-    for (size_t i = 0; i < pvs_.size(); ++i)
+    for (auto& pvCd : pvCheckData_)
     {
-        auto pv = pvs_[i];
+        auto pv = pvCd.pv;
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkParticles,
+            ParticleCheckerKernels::checkParticles<maxNumReports>,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, domain, dtInv, statuses_.devPtr() + i );
-
-        if (auto rov = dynamic_cast<RigidObjectVector*>(pv))
-        {
-            ROVview rovView(rov, rov->local());
-
-            SAFE_KERNEL_LAUNCH(
-                ParticleCheckerKernels::checkRigidMotions,
-                getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
-                rovView, domain, dtInv, statuses_.devPtr() + rovStatusIds_[i] );
-        }
+            view, domain, dtInv, pvCd.numFailedDev, pvCd.statuses.devPtr() );
     }
 
-    dieIfBadStatus(stream, "particle");
+    for (auto& rovCd : rovCheckData_)
+    {
+        auto rov = rovCd.pv;
+        ROVview rovView(rov, rov->local());
+
+        SAFE_KERNEL_LAUNCH(
+            ParticleCheckerKernels::checkRigidMotions<maxNumReports>,
+            getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
+            rovView, domain, dtInv, rovCd.numFailedDev, rovCd.statuses.devPtr() );
+    }
+
+    _dieIfBadStatus(stream, "particle");
 }
 
 static inline void downloadAllFields(cudaStream_t stream, const DataManager& manager)
@@ -259,68 +274,76 @@ static inline std::string infoToStr(ParticleCheckerPlugin::Info info)
     return "no error detected";
 }
 
-void ParticleCheckerPlugin::dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
+void ParticleCheckerPlugin::_dieIfBadStatus(cudaStream_t stream, const std::string& identifier)
 {
-    statuses_.downloadFromDevice(stream, ContainersSynch::Synch);
+    numFailed_.downloadFromDevice(stream, ContainersSynch::Synch);
     const auto domain = getState()->domain;
 
     bool failing {false};
     std::string allErrors;
 
-    for (size_t i = 0; i < pvs_.size(); ++i)
+    for (auto& pvCd : pvCheckData_)
     {
-        const auto& partStatus = statuses_[i];
-        if (partStatus.tag == GoodTag) continue;
+        const int numFailed = *pvCd.numFailedHst;
+        if (numFailed == 0) continue;
 
-        const int partId = partStatus.id;
+        // from now we know we will fail; download data and print error
+        pvCd.statuses.downloadFromDevice(stream, ContainersSynch::Asynch); // async because downloadAllFields will sync that stream
 
-        // from now we know we will fail; download particles and print error
-        auto pv = pvs_[i];
+        auto pv = pvCd.pv;
         auto lpv = pv->local();
 
         downloadAllFields(stream, lpv->dataPerParticle);
 
-        const auto p = Particle(lpv->positions ()[partId],
-                                lpv->velocities()[partId]);
+        for (int i = 0; i < std::min(numFailed, maxNumReports); ++i)
+        {
+            const auto s = pvCd.statuses[i];
+            const int partId = s.id;
+            const auto p = Particle(lpv->positions ()[partId],
+                                    lpv->velocities()[partId]);
 
-        const auto infoStr = infoToStr(partStatus.info);
+            const auto infoStr = infoToStr(s.info);
 
-        const real3 lr = p.r;
-        const real3 gr = domain.local2global(lr);
+            const real3 lr = p.r;
+            const real3 gr = domain.local2global(lr);
 
-        allErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
-                               identifier.c_str(),
-                               pv->getCName(), p.getId(),
-                               lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
-                               p.u.x, p.u.y, p.u.z, infoStr.c_str());
+            allErrors += strprintf("\n\tBad %s in '%s' with id %ld, local position %g %g %g, global position %g %g %g, velocity %g %g %g : %s\n",
+                                   identifier.c_str(),
+                                   pv->getCName(), p.getId(),
+                                   lr.x, lr.y, lr.z, gr.x, gr.y, gr.z,
+                                   p.u.x, p.u.y, p.u.z, infoStr.c_str());
 
-        allErrors += listOtherFieldValues(lpv->dataPerParticle, partId);
+            allErrors += listOtherFieldValues(lpv->dataPerParticle, partId);
+        }
         
         failing = true;
     }
 
-    for (size_t i = 0; i < pvs_.size(); ++i)
+    for (auto& rovCd : rovCheckData_)
     {
-        const int rovSId = rovStatusIds_[i];
-        if (rovSId == NotRov_) continue;
-        
-        const auto& rovStatus = statuses_[rovSId];
-        if (rovStatus.tag == GoodTag) continue;
+        const int numFailed = *rovCd.numFailedHst;
+        if (numFailed == 0) continue;
 
-        const int rovId = rovStatus.id;
+        // from now we know we will fail; download data and print error
 
-        // from now we know we will fail; download particles and print error
-        auto rov = dynamic_cast<RigidObjectVector*>(pvs_[i]);
+        rovCd.statuses.downloadFromDevice(stream, ContainersSynch::Asynch); // async because downloadAllFields will sync that stream
+
+        auto rov = rovCd.pv;
         auto lrov = rov->local();
 
         downloadAllFields(stream, lrov->dataPerObject);
 
-        const auto infoStr = infoToStr(rovStatus.info);
+        for (int i = 0; i < std::min(numFailed, maxNumReports); ++i)
+        {
+            const auto s = rovCd.statuses[i];
+            const int rovId = s.id;
+            const auto infoStr = infoToStr(s.info);
         
-        allErrors += strprintf("\n\tBad %s in rov '%s' : %s\n",
-                               identifier.c_str(), rov->getCName(), infoStr.c_str());
+            allErrors += strprintf("\n\tBad %s in rov '%s' : %s\n",
+                                   identifier.c_str(), rov->getCName(), infoStr.c_str());
 
-        allErrors += listOtherFieldValues(lrov->dataPerObject, rovId);
+            allErrors += listOtherFieldValues(lrov->dataPerObject, rovId);
+        }
         
         failing = true;
     }
