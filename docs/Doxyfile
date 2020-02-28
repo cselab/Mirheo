@@ -23,7 +23,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/interactions \
 	../src/mirheo/core/celllist.h \
 	../src/mirheo/core/field \
-	../src/mirheo/core/task_scheduler.h
+	../src/mirheo/core/task_scheduler.h \
+	../src/mirheo/core/logger.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

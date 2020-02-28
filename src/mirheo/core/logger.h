@@ -8,10 +8,9 @@
 #include <string>
 
 #ifndef COMPILE_DEBUG_LVL
-/**
- * Caps the maximum debug level of Logger at compile-time.
- * Typically overhead of NOT executed (due to low priority) logger calls
- * is small, and there is no need to remove debug output at compile time.
+/** Caps the maximum debug level of Logger at compile-time.
+    Typically overhead of NOT executed (due to low priority) logger calls
+    is small, and there is no need to remove debug output at compile time.
  */
 #define COMPILE_DEBUG_LVL 10
 #endif
@@ -19,129 +18,110 @@
 namespace mirheo
 {
 
-/**
- * Class providing logging functionality with MPI support.
- *
- * Each MPI process writes to its own file, prefixing messages with time stamps
- * so that later the information may be combined and sorted.
- * Filenames have the following pattern, NNNNN is the MPI rank with leading zeros:
- * \c \<common_name\>_NNNNN.log
- *
- * Debug level governs which messages to log will be printed, the higher the level
- * the more stuff will be dumped.
- *
- * Every logging call has an importance level associated with it, which is compared
- * against the governing debug level, e.g. debug() importance is 4 and error()
- * importance is 1
- *
- * \code
- * Logger logger;
- * \endcode
- * has to be defined in one the objective file (typically main). Prior to any logging
- * a method init() must be called
+/** \brief logging functionality with MPI support.
+
+    Each MPI process writes to its own file, prefixing messages with time stamps
+    so that later the information may be combined and sorted.
+    Filenames have the following pattern, NNNNN is the MPI rank with leading zeros:
+    \c \<common_name\>_NNNNN.log
+
+    Debug level governs which messages to log will be printed (a higher level will
+    dump more log messages).
+
+    Every logging call has an importance level associated with it, which is compared
+    against the governing debug level, e.g. debug() importance is 4 and error()
+    importance is 1.
+
+    \code
+    Logger logger;
+    \endcode
+    has to be defined in one the objective file (typically the one that contains main()). 
+    Prior to any logging the method init() must be called.
  */
 class Logger
 {
 public:
 
-    /**
-     * Set logger to write to files
-     *
-     * @param comm  relevant MPI communicator, typically \e MPI_COMM_WORLD
-     * @param filename log files will be prefixed with \e filename: e.g. \e fname_<rank_with_leading_zeros>.log
-     * @param debugLvl debug level
+    /** \brief Setup the logger object
+        \param [in] comm MPI communicator that contains all ranks that will use the logger
+        \param [in] filename log files will be prefixed with \e filename: e.g. \e filename_<rank_with_leading_zeros>.log
+        \param [in] debugLvl debug level
+
+        Must be called before any logging method.
      */
     void init(MPI_Comm comm, const std::string& filename, int debugLvl = 3);
 
-    /**
-     * Set logger to write to a certain, already opened file.
-     *
-     * @param comm relevant MPI communicator, typically \e MPI_COMM_WORLD
-     * @param fout file handler, must be opened, typically \e stdout or \e stderr
-     * @param debugLvl debug level
+    /** \brief Setup the logger object to write to a given file.
+        \param [in] comm  MPI communicator that contains all ranks that will use the logger
+        \param [in] fout file handler, must be open, typically \e stdout or \e stderr
+        \param [in] debugLvl debug level
      */
     void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
 
+    /// return The current debug level
     int getDebugLvl() const noexcept
     {
         return runtimeDebugLvl_;
     }
-    
+
+    /** \brief set the debug level
+        \param [in] debugLvl debug level
+    */
     void setDebugLvl(int debugLvl);
 
-    /**
-     * Main logging function.
-     *
-     * Construct a logger entry with time prefix, importance string,
-     * filename and line number, and the message itself.
-     *
-     * And finally print the output to the file.
-     *
-     * This function is not supposed to be called directly, use appropriate
-     * macros instead, e.g. #say(), #error(), #debug(), etc.
-     *
-     * \rst
-     * .. attention::
-     *    When the debug level is higher or equal to the _flushThreshold_ member
-     *    variable (default 8), every message is flushed to disk immediately. This may
-     *    increase the runtime SIGNIFICANTLY and only recommended to debug crashes
-     * \endrst
-     *
-     * @param filename name of the current source file
-     * @param line     line number of the source file
-     * @param pattern  message pattern to be passed to \e printf
-     * @param args     other relevant arguments to \e printf
+    /** \brief Main logging function.
+
+        Construct and dump a log entry with time prefix, importance string,
+        filename and line number, and the message itself.
+
+        This function is not supposed to be called directly, use appropriate
+        macros instead, e.g. say(), error(), debug().
+
+        \rst
+        .. warning::
+            When the debug level is higher or equal to the \c `flushThreshold_` member
+            variable (default 8), every message is flushed to disk immediately. This may
+            increase the runtime significantly and only recommended to debug crashes.
+        \endrst
+
+        \param [in] key The importance string, e.g. LOG or WARN
+        \param [in] filename name of the current source file
+        \param [in] line     line number in the current source file
+        \param [in] pattern  message pattern to be passed to \e printf
      */
     void log [[gnu::format(printf, 5, 6)]] (
             const char *key, const char *filename, int line, const char *pattern, ...) const;
     
-    /**
-     * Special wrapper around log() that kills the application on
-     * a fatal error
-     * Print stack trace, error message, close the file and abort
-     *
-     * @param args forwarded to log()
+    /** \brief Calls log() and kills the application on a fatal error
+        
+        Print stack trace, error message, close the file and abort.
+        See log() for parameters.
      */
     void _die [[gnu::format(printf, 4, 5)]] [[noreturn]] (
             const char *filename, int line, const char *fmt, ...) const;
 
-    /**
-     * Wrapper around _die() that prints the current CUDA error.
-     *
-     * @param filename name of the current source file
-     * @param line  line number of the source file
-     * @param code  error code (returned by a CUDA call)
+    /** \brief Calls _die() with the error message corresponding to the given CUDA error code.
+        \param [in] filename name of the current source file
+        \param [in] line line number in the current source file
+        \param [in] code CUDA error code (returned by a CUDA call)
      */
     void _CUDA_die [[noreturn]] (const char *filename, int line, cudaError_t code) const;
 
-    /**
-     * Wrapper around _die() that prints the current MPI error.
-     *
-     * @param filename name of the current source file
-     * @param line  line number of the source file
-     * @param code  error code (returned by an MPI call)
+    /** \brief Calls _die() with the error message corresponding to the given MPI error code.
+        \param [in] filename name of the current source file
+        \param [in] line line number in the current source file
+        \param [in] code MPI error code (returned by an MPI call)
      */
     void _MPI_die [[noreturn]] (const char *filename, int line, int code) const;
 
-    /**
-     * @param filename name of the current source file
-     * @param line  line number of the source file
-     * @param code  error code (returned by a CUDA call)
-     */
+    /// check a CUDA error call and call _CUDA_die() in case of error
     inline void _CUDA_Check(const char *filename, const int line, cudaError_t code) const
     {
         if (code != cudaSuccess)
             _CUDA_die(filename, line, code);
     }
 
-    /**
-     * Check the return code of an MPI function. Default error checking of MPI
-     * should be turned off
-     *
-     * @param filename name of the current source file
-     * @param line  line number of the source file
-     * @param code  error code (returned by an MPI call)
-     */
+    /// check an MPI error call and call _MPI_die() in case of error
     inline void _MPI_Check(const char *filename, const int line, const int code) const
     {
         if (code != MPI_SUCCESS)
@@ -231,10 +211,10 @@ private:
 #define debug4(...)  do { } while(0)
 #endif
 
-/// Check an MPI call, call #die() if it fails
+/// Check an MPI call, call Logger::_die() if it fails
 #define MIRHEO_MPI_CHECK(command)  ::mirheo::logger._MPI_Check (__FILE__, __LINE__, command)
 
-/// Check a CUDA call, call #die() if it fails
+/// Check a CUDA call, call Logger::_die() if it fails
 #define MIRHEO_CUDA_CHECK(command) ::mirheo::logger._CUDA_Check(__FILE__, __LINE__, command)
 
 /// Shorthands for the macros above.
@@ -242,9 +222,8 @@ private:
 #define MPI_Check   MIRHEO_MPI_CHECK
 #define CUDA_Check  MIRHEO_CUDA_CHECK
 
-/**
- * A common `Logger` object for all Mirheo and all potential extension files.
- * The instance is defined in `logger.cpp`.
+/**  The common `Logger` object for all Mirheo and all potential extension files.
+     The instance is defined in `logger.cpp`.
  */
 extern Logger logger;
 

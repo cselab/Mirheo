@@ -5,16 +5,17 @@ Library API
    :maxdepth: 1
    :caption: Library API
 
-   api/mir_object
-   api/celllist
-   api/field
-   api/packers
-   api/pvs
    api/analytical_shapes
    api/bouncers
+   api/celllist
+   api/field
    api/ics
    api/integrators
    api/interactions
+   api/logger
+   api/mir_object
    api/object_belonging
+   api/packers
+   api/pvs
    api/task_scheduler
    api/walls
