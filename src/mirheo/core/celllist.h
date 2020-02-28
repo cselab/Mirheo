@@ -208,7 +208,7 @@ public:
     template <typename ViewType>
     ViewType getView() const
     {
-        return ViewType(pv_, localPV);
+        return ViewType(pv_, localPV_);
     }
 
     /** \brief Add an extra channel to the cell-list.
@@ -218,7 +218,7 @@ public:
     template <typename T>
     void requireExtraDataPerParticle(const std::string& name)
     {
-        particlesDataContainer->dataPerParticle.createData<T>(name);
+        particlesDataContainer_->dataPerParticle.createData<T>(name);
     }
 
     /// \return The LocalParticleVector that contains the data in the cell-list
@@ -262,15 +262,15 @@ protected:
     virtual std::string _makeName() const;
 
 protected:
-    int changedStamp{-1}; ///< Helper to keep track of the validity of the cell-list
+    int changedStamp_{-1}; ///< Helper to keep track of the validity of the cell-list
 
     DeviceBuffer<char> scanBuffer; ///< work space to perform the prefix sum
     DeviceBuffer<int> cellStarts; ///< Container of the cell starts
     DeviceBuffer<int> cellSizes; ///< Container of the cell sizes
     DeviceBuffer<int> order; ///< container of the reorder map
 
-    std::unique_ptr<LocalParticleVector> particlesDataContainer; ///< local data that holds reordered copy of the attached particle data
-    LocalParticleVector *localPV; ///< will point to particlesDataContainer or pv->local() if Primary
+    std::unique_ptr<LocalParticleVector> particlesDataContainer_; ///< local data that holds reordered copy of the attached particle data
+    LocalParticleVector *localPV_; ///< will point to particlesDataContainer or pv->local() if Primary
     
     ParticleVector *pv_; ///< The attached ParticleVector
 };

@@ -125,7 +125,7 @@ CellListInfo::CellListInfo(real3 h_, real3 localDomainSize_) :
 CellList::CellList(ParticleVector *pv, real rc_, real3 localDomainSize_) :
     CellListInfo(rc_, localDomainSize_),
     pv_(pv),
-    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
+    particlesDataContainer_(std::make_unique<LocalParticleVector>(nullptr))
 {
     _initialize();
 }
@@ -133,14 +133,14 @@ CellList::CellList(ParticleVector *pv, real rc_, real3 localDomainSize_) :
 CellList::CellList(ParticleVector *pv, int3 resolution, real3 localDomainSize_) :
     CellListInfo(localDomainSize_ / make_real3(resolution), localDomainSize_),
     pv_(pv),
-    particlesDataContainer(std::make_unique<LocalParticleVector>(nullptr))
+    particlesDataContainer_(std::make_unique<LocalParticleVector>(nullptr))
 {
     _initialize();
 }
 
 void CellList::_initialize()
 {
-    localPV = particlesDataContainer.get();
+    localPV_ = particlesDataContainer_.get();
     
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
@@ -156,7 +156,7 @@ CellList::~CellList() = default;
 
 bool CellList::_checkNeedBuild() const
 {
-    if (changedStamp == pv_->cellListStamp)
+    if (changedStamp_ == pv_->cellListStamp)
     {
         debug2("%s is already up-to-date, building skipped", _makeName().c_str());
         return false;
@@ -174,7 +174,7 @@ bool CellList::_checkNeedBuild() const
 void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
 {
     auto& pvManager        = pv_->local()->dataPerParticle;
-    auto& containerManager = particlesDataContainer->dataPerParticle;
+    auto& containerManager = particlesDataContainer_->dataPerParticle;
     const int np = pv_->local()->size();
 
     for (const auto& namedChannel : pvManager.getSortedChannels())
@@ -230,22 +230,22 @@ void CellList::_reorderPositionsAndCreateMap(cudaStream_t stream)
     PVview view(pv_, pv_->local());
 
     order.resize_anew(view.size);
-    particlesDataContainer->resize_anew(view.size);
+    particlesDataContainer_->resize_anew(view.size);
     cellSizes.clear(stream);
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
         CellListKernels::reorderPositionsAndCreateMap,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
-        view, cellInfo(), particlesDataContainer->positions().devPtr() );
+        view, cellInfo(), particlesDataContainer_->positions().devPtr() );
 }
 
 void CellList::_reorderExtraDataEntry(const std::string& channelName,
                                       const DataManager::ChannelDescription *channelDesc,
                                       cudaStream_t stream)
 {
-    const auto& dstDesc = particlesDataContainer->dataPerParticle.getChannelDescOrDie(channelName);
-    int np = pv_->local()->size();
+    const auto& dstDesc = particlesDataContainer_->dataPerParticle.getChannelDescOrDie(channelName);
+    const int np = pv_->local()->size();
 
     debug2("%s: reordering extra data '%s'", _makeName().c_str(), channelName.c_str());
     
@@ -284,7 +284,7 @@ void CellList::_build(cudaStream_t stream)
     _reorderPositionsAndCreateMap(stream);
     _reorderPersistentData(stream);
     
-    changedStamp = pv_->cellListStamp;
+    changedStamp_ = pv_->cellListStamp;
 }
 
 CellListInfo CellList::cellInfo()
@@ -333,10 +333,10 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
 
 void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
 {
-    int n = pv_->local()->size();    
+    const int n = pv_->local()->size();    
 
     const auto& pvManager   = pv_->local()->dataPerParticle;
-    const auto& contManager = localPV->dataPerParticle;
+    const auto& contManager = localPV_->dataPerParticle;
 
     const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
     const auto& contDesc = contManager.getChannelDescOrDie(channelName);
@@ -363,7 +363,7 @@ void CellList::gatherChannels(const std::vector<std::string>& channelNames, cuda
     {
         debug("%s : gathering channel '%s'", _makeName().c_str(), channelName.c_str());
         
-        auto& desc = localPV->dataPerParticle.getChannelDescOrDie(channelName);
+        auto& desc = localPV_->dataPerParticle.getChannelDescOrDie(channelName);
         _reorderExtraDataEntry(channelName, &desc, stream);
 
         // invalidate particle vector halo if any entry is active
@@ -376,11 +376,11 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
     for (const auto& channelName : channelNames)
     {
         debug2("%s : clearing channel '%s'", _makeName().c_str(), channelName.c_str());
-        localPV->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
+        localPV_->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
 
-LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
+LocalParticleVector* CellList::getLocalParticleVector() {return localPV_;}
 
 std::string CellList::_makeName() const
 {
@@ -395,7 +395,7 @@ std::string CellList::_makeName() const
 PrimaryCellList::PrimaryCellList(ParticleVector *pv, real rc_, real3 localDomainSize_) :
         CellList(pv, rc_, localDomainSize_)
 {
-    localPV = pv_->local();
+    localPV_ = pv_->local();
 
     if (dynamic_cast<ObjectVector*>(pv_) != nullptr)
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
@@ -404,7 +404,7 @@ PrimaryCellList::PrimaryCellList(ParticleVector *pv, real rc_, real3 localDomain
 PrimaryCellList::PrimaryCellList(ParticleVector *pv, int3 resolution, real3 localDomainSize_) :
         CellList(pv, resolution, localDomainSize_)
 {
-    localPV = pv_->local();
+    localPV_ = pv_->local();
 
     if (dynamic_cast<ObjectVector*>(pv_) != nullptr)
         error("Using primary cell-lists with objects is STRONGLY discouraged. This will very likely result in an error");
@@ -433,7 +433,7 @@ void PrimaryCellList::build(cudaStream_t stream)
     debug2("%s : reordering completed, new size of %s particle vector is %d",
            _makeName().c_str(), pv_->getCName(), newSize);
 
-    particlesDataContainer->resize(newSize, stream);
+    particlesDataContainer_->resize(newSize, stream);
 
     _swapPersistentExtraData();
     
@@ -461,7 +461,7 @@ static void swap(const std::string& channelName, DataManager& pvManager, DataMan
 void PrimaryCellList::_swapPersistentExtraData()
 {
     auto& pvManager        = pv_->local()->dataPerParticle;
-    auto& containerManager = particlesDataContainer->dataPerParticle;
+    auto& containerManager = particlesDataContainer_->dataPerParticle;
     
     for (const auto& namedChannel : pvManager.getSortedChannels())
     {
