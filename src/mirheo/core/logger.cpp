@@ -61,11 +61,11 @@ void Logger::setDebugLvl(int debugLvl)
 void Logger::log(const char *key, const char *filename, int line, const char *fmt, ...) const {
     va_list args;
     va_start(args, fmt);
-    logImpl(key, filename, line, fmt, args);
+    _logImpl(key, filename, line, fmt, args);
     va_end(args);
 }
 
-void Logger::logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
+void Logger::_logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
     if (!fout_.get())
     {
         int world_rank;
@@ -125,10 +125,10 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
 {
     va_list args;
     va_start(args, fmt);
-    logImpl("", filename, line, fmt, args);
+    _logImpl("", filename, line, fmt, args);
     va_end(args);
 
-    printStacktrace();
+    _printStacktrace();
     fout_.close();
 
     // http://stackoverflow.com/a/26221725  (modified)
@@ -157,7 +157,7 @@ void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) con
     _die(filename, line, "MPI Error on rank %d: %s", rank_, buf);
 }
 
-void Logger::printStacktrace() const
+void Logger::_printStacktrace() const
 {
     std::ostringstream strace;
     pretty_stacktrace(strace);

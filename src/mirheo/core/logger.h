@@ -94,9 +94,6 @@ public:
      */
     void log [[gnu::format(printf, 5, 6)]] (
             const char *key, const char *filename, int line, const char *pattern, ...) const;
-    void logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
-
-    void printStacktrace() const;
     
     /**
      * Special wrapper around log() that kills the application on
@@ -150,6 +147,10 @@ public:
         if (code != MPI_SUCCESS)
             _MPI_die(filename, line, code);
     }
+
+private:
+    void _logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
+    void _printStacktrace() const;
 
 private:
     int runtimeDebugLvl_ {0};  ///< debug level defined at runtime through setDebugLvl
