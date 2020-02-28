@@ -16,4 +16,5 @@ Library API
    api/integrators
    api/interactions
    api/object_belonging
+   api/task_scheduler
    api/walls

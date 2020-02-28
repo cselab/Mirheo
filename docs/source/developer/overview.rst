@@ -1,6 +1,8 @@
 Overview
 ========
 
+.. _dev-tasks:
+
 Task Dependency Graph
 ---------------------
 
