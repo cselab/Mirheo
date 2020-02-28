@@ -328,7 +328,7 @@ void FieldFromFile::setup(const MPI_Comm& comm)
             fieldRawData.devPtr(), resolution_, make_float3(h_),
             sdfPiece.offset, lenScalingFactor );
 
-    setupArrayTexture(fieldRawData.devPtr());
+    _setupArrayTexture(fieldRawData.devPtr());
 }
 
 } // namespace mirheo

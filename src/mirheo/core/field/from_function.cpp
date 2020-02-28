@@ -58,7 +58,7 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
 
     fieldRawData.uploadToDevice(defaultStream);
     
-    setupArrayTexture(fieldRawData.devPtr());
+    _setupArrayTexture(fieldRawData.devPtr());
 }
 
 } // namespace mirheo

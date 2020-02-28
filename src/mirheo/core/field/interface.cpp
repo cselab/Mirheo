@@ -33,7 +33,7 @@ const FieldDeviceHandler& Field::handler() const
     return *(FieldDeviceHandler*)this;
 }
 
-void Field::setupArrayTexture(const float *fieldDevPtr)
+void Field::_setupArrayTexture(const float *fieldDevPtr)
 {
     debug("setting up cuda array and texture object for field '%s'", getCName());
     

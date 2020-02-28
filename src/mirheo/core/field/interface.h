@@ -13,6 +13,7 @@ namespace mirheo
 {
 
 #ifndef __NVCC__
+/// default tex3D so that things compile on the host; does nothing
 template<typename T>
 T tex3D(__UNUSED cudaTextureObject_t t,
         __UNUSED real x, __UNUSED real y, __UNUSED real z)
@@ -21,9 +22,21 @@ T tex3D(__UNUSED cudaTextureObject_t t,
 }
 #endif
 
+/** \brief a device-compatible structure that represents a scalar field
+ */
 class FieldDeviceHandler
 {
 public:
+    /** \brief Evaluate the field at a given position
+        \param [in] x The position, in local coordinates
+        \return The scalar value at \p x
+
+        \rst 
+        .. warning::
+           The position must be inside the subdomain enlarged with a given margin (see \c Field)
+
+        \endrst
+     */
     __D__ inline real operator()(real3 x) const
     {
         //https://en.wikipedia.org/wiki/Trilinear_interpolation
@@ -66,33 +79,49 @@ public:
     }
 
 protected:
-
-    cudaTextureObject_t fieldTex_;
-    real3 h_, invh_, extendedDomainSize_;
+    cudaTextureObject_t fieldTex_; ///< Texture object that points to the uniform grid field data
+    real3 h_;    ///< grid spacing
+    real3 invh_; ///< 1 / h
+    real3 extendedDomainSize_; ///< subdomain size extended with a margin
 };
 
-
+/** \brief Driver class used to create a FieldDeviceHandler.
+ */
 class Field : public FieldDeviceHandler, public MirSimulationObject
 {
-public:    
+public:
+    /** \brief Construct a \c Field object
+        \param [in] state The global state of the system
+        \param [in] name The name of the field object
+        \param [in] h the grid size
+     */
     Field(const MirState *state, std::string name, real3 h);
     virtual ~Field();
 
+    /// move constructor
     Field(Field&&);
-    
+
+    /// \return The handler that can be used on the device
     const FieldDeviceHandler& handler() const;
 
+    /** Prepare the internal state of the \c Field.
+        Must be called before handler().
+        \param [in] comm The cartesian communicator of the domain.
+     */
     virtual void setup(const MPI_Comm& comm) = 0;
     
 protected:
+    int3 resolution_;       ///< number of grid points along each dimension
+    cudaArray *fieldArray_; ///< contains the field data
 
-    int3 resolution_;
-    
-    cudaArray *fieldArray_;
-    
+    /// Additional distance along each direction in which to store the field data around the local subdomain.
+    /// This is used e.g. to avoid communicating "ghost walls" when ObjectVector objects interact with the walls.
     const real3 margin3_{5, 5, 5};
 
-    void setupArrayTexture(const float *fieldDevPtr);
+    /** \brief copy the given grid data to the internal buffer and create the associated texture object
+        \param [in] fieldDevPtr The scalar values at each grid point (x is the fast index)
+    */
+    void _setupArrayTexture(const float *fieldDevPtr);
 };
 
 } // namespace mirheo

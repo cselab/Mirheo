@@ -7,6 +7,7 @@ Library API
 
    api/mir_object
    api/celllist
+   api/field
    api/packers
    api/pvs
    api/analytical_shapes
