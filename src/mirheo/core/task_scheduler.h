@@ -82,13 +82,13 @@ private:
 
     std::unordered_map<std::string, TaskID> label2taskId_;
 
-    void checkTaskExistsOrDie(TaskID id) const;
-    Node* getNode     (TaskID id);
-    Node* getNodeOrDie(TaskID id);
+    void _checkTaskExistsOrDie(TaskID id) const;
+    Node* _getNode     (TaskID id);
+    Node* _getNodeOrDie(TaskID id);
 
-    void createNodes();
-    void removeEmptyNodes();
-    void logDepsGraph();
+    void _createNodes();
+    void _removeEmptyNodes();
+    void _logDepsGraph();
 
 };
 

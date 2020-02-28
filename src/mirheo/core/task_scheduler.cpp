@@ -66,13 +66,13 @@ TaskScheduler::TaskID TaskScheduler::getTaskIdOrDie(const std::string& label)
     return id;
 }
 
-void TaskScheduler::checkTaskExistsOrDie(TaskID id) const
+void TaskScheduler::_checkTaskExistsOrDie(TaskID id) const
 {
     if (id >= static_cast<TaskID>(tasks_.size()) || id < 0)
         die("No such task with id %d", id);
 }
 
-TaskScheduler::Node* TaskScheduler::getNode(TaskID id)
+TaskScheduler::Node* TaskScheduler::_getNode(TaskID id)
 {
     for (auto& n : nodes_)
         if (n->id == id) return n.get();
@@ -80,9 +80,9 @@ TaskScheduler::Node* TaskScheduler::getNode(TaskID id)
     return nullptr;
 }
 
-TaskScheduler::Node* TaskScheduler::getNodeOrDie(TaskID id)
+TaskScheduler::Node* TaskScheduler::_getNodeOrDie(TaskID id)
 {
-    auto node = getNode(id);
+    auto node = _getNode(id);
     if (node == nullptr)
         die("No such task with id %d", id);
 
@@ -92,7 +92,7 @@ TaskScheduler::Node* TaskScheduler::getNodeOrDie(TaskID id)
 
 void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
 {
-    checkTaskExistsOrDie(id);
+    _checkTaskExistsOrDie(id);
 
     if (every <= 0)
         die("'every' must be non negative: got %d???", every);
@@ -103,20 +103,20 @@ void TaskScheduler::addTask(TaskID id, TaskScheduler::Function task, int every)
 
 void TaskScheduler::addDependency(TaskID id, std::vector<TaskID> before, std::vector<TaskID> after)
 {
-    checkTaskExistsOrDie(id);
+    _checkTaskExistsOrDie(id);
     tasks_[id].before.insert(tasks_[id].before.end(), before.begin(), before.end());
     tasks_[id].after .insert(tasks_[id].after .end(), after .begin(), after .end());
 }
 
 void TaskScheduler::setHighPriority(TaskID id)
 {
-    checkTaskExistsOrDie(id);
+    _checkTaskExistsOrDie(id);
     tasks_[id].priority = cudaPriorityHigh_;
 }
 
 void TaskScheduler::forceExec(TaskID id, cudaStream_t stream)
 {
-    checkTaskExistsOrDie(id);
+    _checkTaskExistsOrDie(id);
     debug("Forced execution of group %s", tasks_[id].label.c_str());
 
     for (auto& func_every : tasks_[id].funcs)
@@ -124,7 +124,7 @@ void TaskScheduler::forceExec(TaskID id, cudaStream_t stream)
 }
 
 
-void TaskScheduler::createNodes()
+void TaskScheduler::_createNodes()
 {
     nodes_.clear();
 
@@ -147,7 +147,7 @@ void TaskScheduler::createNodes()
         // Set dependencies
         for (auto dep : tasks_[n->id].before)
         {
-            Node* depPtr = getNode(dep);
+            Node* depPtr = _getNode(dep);
 
             if (depPtr == nullptr)
             {
@@ -161,7 +161,7 @@ void TaskScheduler::createNodes()
 
         for (auto dep : tasks_[n->id].after)
         {
-            Node* depPtr = getNode(dep);
+            Node* depPtr = _getNode(dep);
 
             if (depPtr == nullptr)
             {
@@ -176,7 +176,7 @@ void TaskScheduler::createNodes()
 }
 
 
-void TaskScheduler::removeEmptyNodes()
+void TaskScheduler::_removeEmptyNodes()
 {
     for (auto it = nodes_.begin(); it != nodes_.end(); )
     {
@@ -226,7 +226,7 @@ void TaskScheduler::removeEmptyNodes()
     }
 }
 
-void TaskScheduler::logDepsGraph()
+void TaskScheduler::_logDepsGraph()
 {
     debug("Task graph consists of total %zu tasks:", nodes_.size());
 
@@ -257,10 +257,9 @@ void TaskScheduler::logDepsGraph()
 
 void TaskScheduler::compile()
 {
-    createNodes();
-    removeEmptyNodes();
-
-    logDepsGraph();
+    _createNodes();
+    _removeEmptyNodes();
+    _logDepsGraph();
 }
 
 
