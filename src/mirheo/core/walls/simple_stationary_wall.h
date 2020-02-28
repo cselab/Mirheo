@@ -39,7 +39,7 @@ public:
     void sdfPerParticle(LocalParticleVector *pv,
                         GPUcontainer *sdfs, GPUcontainer *gradients,
                         real gradientThreshold, cudaStream_t stream) override;
-    void sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream) override;
+    void sdfPerPosition(GPUcontainer *positions, GPUcontainer *sdfs, cudaStream_t stream) override;
     void sdfOnGrid(real3 gridH, GPUcontainer *sdfs, cudaStream_t stream) override;
 
     /// get a reference of the wall surfae representation.

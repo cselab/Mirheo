@@ -194,26 +194,32 @@ __global__ void checkInside(PVview view, int *nInside, const InsideWallChecker c
 template<typename InsideWallChecker>
 __global__ void computeSdfPerParticle(PVview view, real gradientThreshold, real *sdfs, real3 *gradients, InsideWallChecker checker)
 {
-    const real h = 0.25_r;
-    const real zeroTolerance = 1e-10_r;
+    constexpr real h = 0.25_r;
+    constexpr real zeroTolerance = 1e-6_r;
 
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Particle p;
-    view.readPosition(p, pid);
+    const auto r = make_real3(view.readPosition(pid));
 
-    real sdf = checker(p.r);
+    const real sdf = checker(r);
     sdfs[pid] = sdf;
 
-    if (gradients != nullptr && sdf > -gradientThreshold)
+    if (gradients != nullptr)
     {
-        real3 grad = computeGradient(checker, p.r, h);
-
-        if (dot(grad, grad) < zeroTolerance)
-            gradients[pid] = make_real3(0, 0, 0);
+        if (sdf > -gradientThreshold)
+        {
+            const real3 grad = computeGradient(checker, r, h);
+            
+            if (dot(grad, grad) < zeroTolerance)
+                gradients[pid] = make_real3(0, 0, 0);
+            else
+                gradients[pid] = normalize(grad);
+        }
         else
-            gradients[pid] = normalize(grad);
+        {
+            gradients[pid] = make_real3(0, 0, 0);
+        }
     }
 }
 
@@ -489,8 +495,8 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
 }
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector* lpv,
-        GPUcontainer *sdfs, GPUcontainer* gradients, real gradientThreshold, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector *lpv,
+        GPUcontainer *sdfs, GPUcontainer *gradients, real gradientThreshold, cudaStream_t stream)
 {
     const int nthreads = 128;
     const int np = lpv->size();
@@ -499,7 +505,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %zu (working with PV '%s')",
             sdfs->datatype_size(), pv->getCName());
-    sdfs->resize_anew( np*sizeof(real) / sdfs->datatype_size());
+    sdfs->resize_anew( np * sizeof(real) / sdfs->datatype_size());
 
     
     if (gradients != nullptr)
@@ -507,7 +513,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
         if (sizeof(real3) % gradients->datatype_size() != 0)
             die("Incompatible datatype size of container for SDF gradients: %zu (working with PV '%s')",
                 gradients->datatype_size(), pv->getCName());
-        gradients->resize_anew( np*sizeof(real3) / gradients->datatype_size());
+        gradients->resize_anew( np * sizeof(real3) / gradients->datatype_size());
     }
 
     PVview view(pv, lpv);
@@ -520,7 +526,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer* sdfs, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer *sdfs, cudaStream_t stream)
 {
     const int n = positions->size();
     
@@ -541,7 +547,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *posit
 
 
 template<class InsideWallChecker>
-void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer* sdfs, cudaStream_t stream)
+void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer *sdfs, cudaStream_t stream)
 {
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %zu (sampling sdf on a grid)",

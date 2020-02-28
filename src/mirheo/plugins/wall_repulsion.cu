@@ -76,9 +76,9 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            WallRepulsionPluginKernels::forceFromSDF,
-            getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, sdfs->devPtr(), gradients->devPtr(), C_, h_, maxForce_ );
+         WallRepulsionPluginKernels::forceFromSDF,
+         getNblocks(view.size, nthreads), nthreads, 0, stream,
+         view, sdfs->devPtr(), gradients->devPtr(), C_, h_, maxForce_ );
 }
 
 } // namespace mirheo
