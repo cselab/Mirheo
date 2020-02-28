@@ -158,13 +158,13 @@ bool CellList::_checkNeedBuild() const
 {
     if (changedStamp == pv_->cellListStamp)
     {
-        debug2("%s is already up-to-date, building skipped", makeName().c_str());
+        debug2("%s is already up-to-date, building skipped", _makeName().c_str());
         return false;
     }
 
     if (pv_->local()->size() == 0)
     {
-        debug2("%s consists of no particles, building skipped", makeName().c_str());
+        debug2("%s consists of no particles, building skipped", _makeName().c_str());
         return false;
     }
 
@@ -175,7 +175,7 @@ void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
 {
     auto& pvManager        = pv_->local()->dataPerParticle;
     auto& containerManager = particlesDataContainer->dataPerParticle;
-    int np = pv_->local()->size();
+    const int np = pv_->local()->size();
 
     for (const auto& namedChannel : pvManager.getSortedChannels())
     {
@@ -196,7 +196,7 @@ void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
 
 void CellList::_computeCellSizes(cudaStream_t stream)
 {
-    debug2("%s : Computing cell sizes for %d particles", makeName().c_str(), pv_->local()->size());
+    debug2("%s : Computing cell sizes for %d particles", _makeName().c_str(), pv_->local()->size());
     cellSizes.clear(stream);
 
     PVview view(pv_, pv_->local());
@@ -247,7 +247,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
     const auto& dstDesc = particlesDataContainer->dataPerParticle.getChannelDescOrDie(channelName);
     int np = pv_->local()->size();
 
-    debug2("%s: reordering extra data '%s'", makeName().c_str(), channelName.c_str());
+    debug2("%s: reordering extra data '%s'", _makeName().c_str(), channelName.c_str());
     
     mpark::visit([&](auto srcPinnedBuff)
     {
@@ -302,7 +302,7 @@ void CellList::build(cudaStream_t stream)
         
     if (!_checkNeedBuild()) return;
     
-    debug("building %s", makeName().c_str());
+    debug("building %s", _makeName().c_str());
     
     _build(stream);
 }
@@ -352,7 +352,7 @@ void CellList::accumulateChannels(const std::vector<std::string>& channelNames, 
 {
     for (const auto& channelName : channelNames)
     {
-        debug2("%s : accumulating channel '%s'", makeName().c_str(), channelName.c_str());
+        debug2("%s : accumulating channel '%s'", _makeName().c_str(), channelName.c_str());
         _accumulateExtraData(channelName, stream);
     }
 }
@@ -361,7 +361,7 @@ void CellList::gatherChannels(const std::vector<std::string>& channelNames, cuda
 {
     for (auto& channelName : channelNames)
     {
-        debug("%s : gathering channel '%s'", makeName().c_str(), channelName.c_str());
+        debug("%s : gathering channel '%s'", _makeName().c_str(), channelName.c_str());
         
         auto& desc = localPV->dataPerParticle.getChannelDescOrDie(channelName);
         _reorderExtraDataEntry(channelName, &desc, stream);
@@ -375,14 +375,14 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
 {
     for (const auto& channelName : channelNames)
     {
-        debug2("%s : clearing channel '%s'", makeName().c_str(), channelName.c_str());
+        debug2("%s : clearing channel '%s'", _makeName().c_str(), channelName.c_str());
         localPV->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
     }
 }
 
 LocalParticleVector* CellList::getLocalParticleVector() {return localPV;}
 
-std::string CellList::makeName() const
+std::string CellList::_makeName() const
 {
     return "Cell List '" + pv_->getName() + "' (rc " + std::to_string(rc) + ")";
 }
@@ -431,7 +431,7 @@ void PrimaryCellList::build(cudaStream_t stream)
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     debug2("%s : reordering completed, new size of %s particle vector is %d",
-           makeName().c_str(), pv_->getCName(), newSize);
+           _makeName().c_str(), pv_->getCName(), newSize);
 
     particlesDataContainer->resize(newSize, stream);
 
@@ -480,9 +480,9 @@ void PrimaryCellList::_swapPersistentExtraData()
     }
 }
 
-std::string PrimaryCellList::makeName() const
+std::string PrimaryCellList::_makeName() const
 {
-    return "Primary " + CellList::makeName();
+    return "Primary " + CellList::_makeName();
 }
 
 } // namespace mirheo

@@ -6,6 +6,7 @@ Library API
    :caption: Library API
 
    api/mir_object
+   api/celllist
    api/packers
    api/pvs
    api/analytical_shapes
