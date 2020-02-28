@@ -6,6 +6,13 @@
 namespace mirheo
 {
 
+/** \brief compute the gradient of a scalar field using finite differences on the device
+    \tparam FieldHandler Type of device handler describing the field. Must contain parenthesis operator
+    \param [in] field The functor that describes the continuous scalar field
+    \param [in] x The position at which to compute the gradient
+    \param [in] h The step size used to compute the gradient
+    \return The approximation of the gradient of \p field at \p x
+ */
 template <typename FieldHandler>
 inline __D__ real3 computeGradient(const FieldHandler& field, real3 x, real h)
 {

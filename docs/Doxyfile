@@ -22,7 +22,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/pvs \
 	../src/mirheo/core/interactions \
 	../src/mirheo/core/celllist.h \
-	../src/mirheo/core/field/interface.h
+	../src/mirheo/core/field
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
