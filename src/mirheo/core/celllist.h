@@ -70,19 +70,22 @@ public:
     }
 
     template<CellListsProjection Projection = CellListsProjection::Clamp, typename T>
-    __device__ __host__ inline int getCellId(const T coo) const
+    __device__ __host__ inline int getCellId(const T x) const
     {
-        const int3 id = getCellIdAlongAxes<CellListsProjection::Clamp>(make_real3(coo));
+        const int3 cid3 = getCellIdAlongAxes<Projection>(make_real3(x));
 
         if (Projection == CellListsProjection::NoClamp)
         {
-            if (id.x < 0 || id.x >= ncells.x  ||  id.y < 0 || id.y >= ncells.y  ||  id.z < 0 || id.z >= ncells.z)
+            if (cid3.x < 0 || cid3.x >= ncells.x ||
+                cid3.y < 0 || cid3.y >= ncells.y ||
+                cid3.z < 0 || cid3.z >= ncells.z)
                 return -1;
         }
 
-        return encode(id.x, id.y, id.z);
+        return encode(cid3);
     }
 #endif
+
 };
 
 class CellList : public CellListInfo
