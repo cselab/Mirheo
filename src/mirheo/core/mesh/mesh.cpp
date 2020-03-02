@@ -33,22 +33,22 @@ Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
     nvertices_ (static_cast<int>(vertices.size())),
     ntriangles_(static_cast<int>(faces   .size()))
 {
-    vertexCoordinates.resize_anew(nvertices_);
-    triangles.resize_anew(ntriangles_);
+    vertices_.resize_anew(nvertices_);
+    faces_   .resize_anew(ntriangles_);
 
     for (int i = 0; i < ntriangles_; ++i)
-        triangles[i] = faces[i];
+        faces_[i] = faces[i];
 
     for (int i = 0; i < nvertices_; ++i)
     {
         const real3 v = vertices[i];
-        vertexCoordinates[i] = make_real4(v.x, v.y, v.z, 0.0_r);
+        vertices_[i] = make_real4(v.x, v.y, v.z, 0.0_r);
     }
 
     _check();
     
-    vertexCoordinates.uploadToDevice(defaultStream);
-    triangles.uploadToDevice(defaultStream);
+    vertices_.uploadToDevice(defaultStream);
+    faces_   .uploadToDevice(defaultStream);
 
     _computeMaxDegree();
 }
@@ -68,16 +68,17 @@ const int& Mesh::getMaxDegree() const {
     return maxDegree_;
 }
 
-const PinnedBuffer<real4>& Mesh::getVertices() const {return vertexCoordinates;}
-const PinnedBuffer<int3>& Mesh::getFaces() const {return triangles;}
+const PinnedBuffer<real4>& Mesh::getVertices() const {return vertices_;}
+const PinnedBuffer<int3>& Mesh::getFaces() const {return faces_;}
 
 PyTypes::VectorOfReal3 Mesh::getPyVertices()
 {
-    vertexCoordinates.downloadFromDevice(defaultStream, ContainersSynch::Synch);
+    vertices_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfReal3 ret(getNvertices());
 
-    for (int i = 0; i < getNvertices(); ++i) {
-        auto r = vertexCoordinates[i];
+    for (int i = 0; i < getNvertices(); ++i)
+    {
+        auto r = vertices_[i];
         ret[i][0] = r.x;
         ret[i][1] = r.y;
         ret[i][2] = r.z;
@@ -87,11 +88,12 @@ PyTypes::VectorOfReal3 Mesh::getPyVertices()
 
 PyTypes::VectorOfInt3 Mesh::getPyFaces()
 {
-    triangles.downloadFromDevice(defaultStream, ContainersSynch::Synch);
+    faces_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfInt3 ret(getNtriangles());
 
-    for (int i = 0; i < getNtriangles(); ++i) {
-        auto t = triangles[i];
+    for (int i = 0; i < getNtriangles(); ++i)
+    {
+        auto t = faces_[i];
         ret[i][0] = t.x;
         ret[i][1] = t.y;
         ret[i][2] = t.z;
@@ -113,12 +115,12 @@ ConfigObject Mesh::_saveSnapshot(Saver& saver, const std::string& typeName)
     if (saver.getContext().isGroupMasterTask()) {
         // Dump the mesh to a file.
         std::string fileName = joinPaths(saver.getContext().path, name + ".off");
-        std::vector<int3> tmpTriangles(triangles.begin(), triangles.end());
-        std::vector<real3> tmpVertices(vertexCoordinates.size());
+        std::vector<int3> tmpTriangles(faces_.begin(), faces_.end());
+        std::vector<real3> tmpVertices(vertices_.size());
         for (size_t i = 0; i < tmpVertices.size(); ++i) {
-            tmpVertices[i].x = vertexCoordinates[i].x;
-            tmpVertices[i].y = vertexCoordinates[i].y;
-            tmpVertices[i].z = vertexCoordinates[i].z;
+            tmpVertices[i].x = vertices_[i].x;
+            tmpVertices[i].y = vertices_[i].y;
+            tmpVertices[i].z = vertices_[i].z;
         }
         writeOff(tmpVertices, tmpTriangles, fileName);
     }
@@ -135,7 +137,7 @@ void Mesh::_computeMaxDegree()
 {
     std::vector<int> degrees(nvertices_);
 
-    for (auto t : triangles)
+    for (auto t : faces_)
     {
         degrees[t.x] ++;
         degrees[t.y] ++;
@@ -156,16 +158,16 @@ void Mesh::_check() const
 
     for (int i = 0; i < getNtriangles(); ++i)
     {
-        check(triangles[i].x);
-        check(triangles[i].y);
-        check(triangles[i].z);
+        check(faces_[i].x);
+        check(faces_[i].y);
+        check(faces_[i].z);
     }
 }
 
 MeshView::MeshView(const Mesh *m) :
     nvertices  (m->getNvertices()),
     ntriangles (m->getNtriangles()),
-    triangles  (m->triangles.devPtr())   
+    triangles  (m->getFaces().devPtr())   
 {}
 
 } // namespace mirheo

@@ -81,7 +81,7 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     /// compute the adjacent vertices lists of all vertices
-    void findAdjacent();
+    void _findAdjacent();
 
     /// compute the stress free information from the given vertices
     void _computeInitialQuantities(const PinnedBuffer<real4>& vertices);

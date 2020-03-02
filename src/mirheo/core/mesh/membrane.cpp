@@ -43,8 +43,8 @@ MembraneMesh::MembraneMesh()
 MembraneMesh::MembraneMesh(const std::string& initialMesh) :
     Mesh(initialMesh)
 {
-    findAdjacent();
-    _computeInitialQuantities(vertexCoordinates);
+    _findAdjacent();
+    _computeInitialQuantities(vertices_);
 }
 
 
@@ -73,13 +73,13 @@ MembraneMesh::MembraneMesh(const std::string& initialMesh, const std::string& st
 {
     Mesh stressFree(stressFreeMesh);
 
-    if (!sameFaces(triangles, stressFree.getFaces()))
+    if (!sameFaces(this->getFaces(), stressFree.getFaces()))
         die("Must pass meshes with same connectivity for initial positions and stressFree vertices");
     
-    if (vertexCoordinates.size() != stressFree.getVertices().size())
+    if (this->getNvertices() != stressFree.getNvertices())
         die("Must pass same number of vertices for initial positions and stressFree vertices");
     
-    findAdjacent();
+    _findAdjacent();
     _computeInitialQuantities(stressFree.getVertices());
 }
 
@@ -87,8 +87,8 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
                            const std::vector<int3>& faces) :
     Mesh(vertices, faces)
 {
-    findAdjacent();
-    _computeInitialQuantities(vertexCoordinates);
+    _findAdjacent();
+    _computeInitialQuantities(vertices_);
 }
 
 MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
@@ -100,14 +100,14 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
         die("Must pass same number of vertices for initial positions and stressFree vertices");
     
     Mesh stressFreeMesh(stressFreeVertices, faces);
-    findAdjacent();
+    _findAdjacent();
     _computeInitialQuantities(stressFreeMesh.getVertices());
 }
 
 MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :
     Mesh(loader, config)
 {
-    findAdjacent();
+    _findAdjacent();
     // Replacement for _computeInitialQuantities(stressFreeMesh.vertexCoordinates).
     std::string fileName = joinPaths(loader.getContext().getPath(), config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "r");
@@ -177,7 +177,7 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
     }
 }
 
-void MembraneMesh::findAdjacent()
+void MembraneMesh::_findAdjacent()
 {
     /*
      For every vertex: map from neigbouring vertex to a neigbour of both of vertices
@@ -192,7 +192,7 @@ void MembraneMesh::findAdjacent()
     */
     EdgeMapPerVertex adjacentPairs(getNvertices());
 
-    for (const auto& t : triangles)
+    for (const auto& t : faces_)
     {
         adjacentPairs [t.x][t.y] = t.z;
         adjacentPairs [t.y][t.z] = t.x;

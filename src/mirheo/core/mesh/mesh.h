@@ -18,8 +18,6 @@ namespace mirheo
 class Mesh : public AutoObjectSnapshotTag
 {
 public:
-    friend class MeshView;
-    
     /// Default constructor. no vertex and faces.
     Mesh();
 
@@ -75,8 +73,8 @@ protected:
     void _check() const;
 
 protected:
-    PinnedBuffer<int3> triangles; ///< The list of faces
-    PinnedBuffer<real4> vertexCoordinates; ///< coordinates of all vertices (float4 to reduce number of load instructions)
+    PinnedBuffer<int3> faces_; ///< The list of faces
+    PinnedBuffer<real4> vertices_; ///< coordinates of all vertices (float4 to reduce number of load instructions)
 
 private:
     int nvertices_{0};  ///< number of vertices
