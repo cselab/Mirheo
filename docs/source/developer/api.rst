@@ -8,6 +8,7 @@ Library API
    api/analytical_shapes
    api/bouncers
    api/celllist
+   api/containers
    api/field
    api/ics
    api/integrators

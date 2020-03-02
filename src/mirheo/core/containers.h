@@ -15,14 +15,14 @@ namespace mirheo
 // Some forward declarations
 template<typename T> class PinnedBuffer;
 
+/// Used to control the synchronicity of given operations in containers
 enum class ContainersSynch
 {
-    Synch,
-    Asynch
+    Synch, ///< synchronous
+    Asynch ///< asynchronous
 };
 
-/**
- * Interface of containers of device (GPU) data
+/** Interface of containers of device (GPU) data
  */
 class GPUcontainer
 {
@@ -34,62 +34,78 @@ public:
     GPUcontainer& operator=(GPUcontainer&&) = delete;
     virtual ~GPUcontainer() = default;
     
-    virtual size_t size() const = 0;                                ///< @return number of stored elements
-    virtual size_t datatype_size() const = 0;                       ///< @return sizeof( element )
+    virtual size_t size() const = 0;                                ///< \return number of stored elements
+    virtual size_t datatype_size() const = 0;                       ///< \return the size (in bytes) of a single element
 
-    virtual void* genericDevPtr() const = 0;                        ///< @return device pointer to the data
+    virtual void* genericDevPtr() const = 0;                        ///< \return pointer to device data
 
-    virtual void resize_anew(size_t n) = 0;                         ///< Resize container, don't care about the data. @param n new size, must be >= 0
-    virtual void resize     (size_t n, cudaStream_t stream) = 0;    ///< Resize container, keep stored data
-                                                                    ///< @param n new size, must be >= 0
-                                                                    ///< @param stream data will be copied on that CUDA stream
+    /** \brief resize the internal array. No guarantee to keep the current data.
+        \param n New size (in number of elements). Must be non negative.
+     */
+    virtual void resize_anew(size_t n) = 0;
 
+    /** \brief resize the internal array. Keeps the current data.
+        \param n New size (in number of elements). Must be non negative.
+        \param stream Used to copy the data internally
+     */
+    virtual void resize(size_t n, cudaStream_t stream) = 0;
+
+    /** \brief Call cudaMemset on the array.
+        \param stream Execution stream
+     */
     virtual void clearDevice(cudaStream_t stream) = 0;
-    
-    virtual GPUcontainer* produce() const = 0;                      ///< Create a new instance of the concrete container implementation
+
+    /// Create a new instance of the concrete container implementation
+    virtual GPUcontainer* produce() const = 0;
 };
 
 //==================================================================================================================
 // Device Buffer
 //==================================================================================================================
 
-/**
- * This container keeps data only on the device (GPU)
- *
- * Never releases any memory, keeps a buffer big enough to
- * store maximum number of elements it ever held
+/** \brief Data only on the device (GPU)
+    
+    Never releases any memory, keeps a buffer big enough to
+    store maximum number of elements it ever held (except in the destructor).
+
+    \tparam T The type of a single element to store.
  */
 template<typename T>
 class DeviceBuffer : public GPUcontainer
 {
 public:
-
+    /// alias for T. Consistent with std::vector
     using value_type = T;
-    
+
+    /** Construct a DeviceBuffer of given size.
+        \param n The initial number of elements
+     */
     DeviceBuffer(size_t n = 0)
     {
         resize_anew(n);
     }
 
+    /// Copy constructor
     DeviceBuffer(const DeviceBuffer& b) :
         GPUcontainer{}
     {
         this->copy(b);
     }
-    
+
+    /// Assignment operator
     DeviceBuffer& operator=(const DeviceBuffer& b)
     {
         this->copy(b);
         return *this;
     }
     
-    /// To enable \c std::swap()
-    DeviceBuffer (DeviceBuffer&& b)
+    /// Move constructor; To enable \c std::swap()
+    DeviceBuffer(DeviceBuffer&& b)
     {
         *this = std::move(b);
     }
 
-    /// To enable \c std::swap()
+    /// Move assignment; To enable \c std::swap()
     DeviceBuffer& operator=(DeviceBuffer&& b)
     {
         if (this != &b)
@@ -109,7 +125,6 @@ public:
         return *this;
     }
 
-    /// Release resources and report if debug level is high enough
     ~DeviceBuffer()
     {
         debug4("Destroying DeviceBuffer<%s> of capacity %zu X %zu",
@@ -130,23 +145,26 @@ public:
 
     inline GPUcontainer* produce() const final { return new DeviceBuffer<T>(); }
 
-    /// @return typed device pointer to data
+    /// \return device pointer to data
     inline T* devPtr() const { return devPtr_; }
 
-    /// Set all the bytes to 0
     inline void clearDevice(cudaStream_t stream) override
     {
         if (size_ > 0)
             CUDA_Check( cudaMemsetAsync(devPtr_, 0, sizeof(T) * size_, stream) );
     }
-    
+
+    /// clear the device data
     inline void clear(cudaStream_t stream) {
         clearDevice(stream);
     }
 
-    /**
-     * Copy data from another container of the same template type
-     * Only can copy from another DeviceBuffer of HostBuffer, but not PinnedBuffer
+    /** \brief Copy data from another container of the same template type.
+        Can only copy from another DeviceBuffer of HostBuffer, but not PinnedBuffer.
+
+        \tparam Cont The source container type. Must have the same data type than the current instance.
+        \param [in] cont The source container
+        \param [in] stream Execution stream
      */
     template<typename Cont>
     auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
@@ -157,6 +175,7 @@ public:
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
 
+    /// \brief copy from host to device.
     template<typename Cont>
     auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.hostPtr()), void())
     {
@@ -166,7 +185,7 @@ public:
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.hostPtr(), sizeof(T) * size_, cudaMemcpyHostToDevice, stream) );
     }
 
-    // synchronous copy
+    /// synchronous copy
     auto copy(const DeviceBuffer<T>& cont)
     {
         resize_anew(cont.size());
@@ -174,15 +193,26 @@ public:
             CUDA_Check( cudaMemcpy(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice) );
     }
     
-    /**
-     * Copy data from PinnedBuffer of the same template type
-     * Need to specify if we copy from host or device side
+    /** \brief Copy the device data of a PinnedBuffer to the internal buffer.
+        \param [in] cont the source container
+        \param [in] stream The stream used to copy the data.
+
+        \note The copy is performed asynchronously. 
+        The user must manually synchronize with the stream if needed.
      */
     void copyFromDevice(const PinnedBuffer<T>& cont, cudaStream_t stream)
     {
         resize_anew(cont.size());
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
+
+    /** \brief Copy the host data of a PinnedBuffer to the internal buffer.
+        \param [in] cont the source container
+        \param [in] stream The stream used to copy the data.
+
+        \note The copy is performed asynchronously. 
+        The user must manually synchronize with the stream if needed.
+     */
     void copyFromHost(const PinnedBuffer<T>& cont, cudaStream_t stream)
     {
         resize_anew(cont.size());
@@ -194,15 +224,10 @@ private:
     size_t size_      {0}; ///< Number of elements stored now
     T *devPtr_  {nullptr}; ///< Device pointer to data
 
-    /**
-     * Set #size_ = \p n. If n > #capacity, allocate more memory
-     * and copy the old data on CUDA stream \p stream (only if \c copy is true)
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param stream data will be copied on that CUDA stream
-     * @param copy if we need to copy old data
+    /** \brief Implementation of resize methods.
+        \param n new size, must be >= 0
+        \param stream data will be copied on that CUDA stream
+        \param copy if we need to copy old data to the new allocated buffer
      */
     void _resize(size_t n, cudaStream_t stream, bool copy)
     {
@@ -235,38 +260,45 @@ private:
 // Host Buffer
 //==================================================================================================================
 
-/**
- * This container keeps data only on the host (CPU)
- *
- * Allocates pinned memory on host, to speed up host-device data migration
- *
- * Never releases any memory, keeps a buffer big enough to
- * store maximum number of elements it ever held
+/** \brief Data only on the host.
+
+    The data is allocated as pinned memory using the CUDA utilities. 
+    This allows to transfer asynchronously data from the device (e.g. DeviceBuffer).
+
+    Never releases any memory, keeps a buffer big enough to
+    store maximum number of elements it ever held (except in the destructor).
+
+    \tparam T The type of a single element to store.
  */
 template<typename T>
 class HostBuffer
 {
 public:
+    /** \brief construct a HostBuffer with a given size
+        \param [in] n The initial number of elements
+    */
     HostBuffer(size_t n = 0) { resize_anew(n); }
 
-    HostBuffer           (const HostBuffer& b)
+    /// copy constructor.
+    HostBuffer(const HostBuffer& b)
     {
         this->copy(b);
     }
-    
+
+    /// Assignment operator.
     HostBuffer& operator=(const HostBuffer& b)
     {
         this->copy(b);
         return *this;
     }
 
-    /// To enable \c std::swap()
+    /// Move constructor; To enable \c std::swap()
     HostBuffer(HostBuffer&& b)
     {
         *this = std::move(b);
     }
 
-    /// To enable \c std::swap()
+    /// Move assignment; To enable \c std::swap()
     HostBuffer& operator=(HostBuffer&& b)
     {
         if (this != &b)
@@ -286,7 +318,6 @@ public:
         return *this;
     }
 
-    /// Release resources and report if debug level is high enough
     ~HostBuffer()
     {
         debug4("Destroying HostBuffer<%s> of capacity %zu X %zu",
@@ -294,23 +325,30 @@ public:
         CUDA_Check(cudaFreeHost(hostPtr_));
     }
 
-    inline size_t datatype_size() const { return sizeof(T); }
-    inline size_t size()          const { return size_; }
+    size_t datatype_size() const { return sizeof(T); } ///< \return the size of a single element (in bytes)
+    size_t size()          const { return size_; }     ///< \return the number of elements
 
-    inline T* hostPtr() const { return hostPtr_; }
-    inline T* data()    const { return hostPtr_; } /// For uniformity with std::vector
+    T* hostPtr() const { return hostPtr_; } ///< \return pointer to host memory 
+    T* data()    const { return hostPtr_; } ///< For uniformity with std::vector
 
-    inline       T& operator[](size_t i)       { return hostPtr_[i]; }
-    inline const T& operator[](size_t i) const { return hostPtr_[i]; }
+          T& operator[](size_t i)       { return hostPtr_[i]; } ///< \return element with given index
+    const T& operator[](size_t i) const { return hostPtr_[i]; } ///< \return element with given index
 
-    inline void resize     (size_t n) { _resize(n, true);  }
-    inline void resize_anew(size_t n) { _resize(n, false); }
+    /** \brief resize the internal array. Keeps the current data.
+        \param n New size (in number of elements). Must be non negative.
+     */
+    void resize(size_t n) { _resize(n, true);  }
 
-    inline       T* begin()       { return hostPtr_; }          /// To support range-based loops
-    inline       T* end()         { return hostPtr_ + size_; }  /// To support range-based loops
+    /** \brief resize the internal array. No guarantee to keep the current data.
+        \param n New size (in number of elements). Must be non negative.
+     */
+    void resize_anew(size_t n) { _resize(n, false); }
+
+    T* begin() { return hostPtr_; }          ///< To support range-based loops
+    T* end()   { return hostPtr_ + size_; }  ///< To support range-based loops
     
-    inline const T* begin() const { return hostPtr_; }          /// To support range-based loops
-    inline const T* end()   const { return hostPtr_ + size_; }  /// To support range-based loops
+    const T* begin() const { return hostPtr_; }          ///< To support range-based loops
+    const T* end()   const { return hostPtr_ + size_; }  ///< To support range-based loops
 
     /// Set all the bytes to 0
     void clear()
@@ -341,9 +379,12 @@ public:
     }
     
     
-    /// Copy data from an arbitrary GPUcontainer, no need to know the type.
-    /// Note the type sizes must be compatible (equal or multiple of each other)
-    void genericCopy(const GPUcontainer* cont, cudaStream_t stream)
+    /** \brief Copy data from an arbitrary \c GPUcontainer.
+        \param [in] cont a pointer to the source container.
+        \param [in] stream Stream used to copy the data.
+        \note the type sizes must be compatible (equal or multiple of each other)
+    */
+    void genericCopy(const GPUcontainer *cont, cudaStream_t stream)
     {
         if (cont->datatype_size() % sizeof(T) != 0)
             die("Incompatible underlying datatype sizes when copying: %zu %% %zu != 0",
@@ -360,14 +401,9 @@ private:
     size_t size_      {0}; ///< Number of elements stored now
     T* hostPtr_ {nullptr}; ///< Host pointer to data
 
-    /**
-     * Set #size_ = \e n. If \e n > #capacity_, allocate more memory
-     * and copy the old data (only if \e copy is true)
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param copy if we need to copy old data
+    /** \brief Implementation of resize methods.
+        \param n new size, must be >= 0
+        \param copyOldData if we need to copy old data to the new allocated buffer
      */
     void _resize(size_t n, bool copyOldData)
     {
@@ -398,52 +434,58 @@ private:
 // Pinned Buffer
 //==================================================================================================================
 
+/** \brief Device data with mirror host data. Useful to transfer arrays between host and device memory.
 
-/**
- * This container keeps data on the device (GPU) and on the host (CPU)
- *
- * Allocates pinned memory on host, to speed up host-device data migration
- *
- * \rst
- * .. note::
- *    Host and device data are not automatically synchronized!
- *    Use downloadFromDevice() and uploadToDevice() MANUALLY to sync
- * \endrst
- *
- * Never releases any memory, keeps a buffer big enough to
- * store maximum number of elements it ever held
+    The host data is allocated as pinned memory using the CUDA utilities. 
+    This allows to transfer asynchronously data from the device.
+
+    Never releases any memory, keeps a buffer big enough to
+    store maximum number of elements it ever held (except in the destructor).
+
+    \rst
+    .. note::
+        Host and device data are not automatically synchronized!
+        Use downloadFromDevice() and uploadToDevice() MANUALLY to sync
+    \endrst
+    
+    \tparam T The type of a single element to store.
  */
 template<typename T>
 class PinnedBuffer : public GPUcontainer
 {
 public:
-
+    /// alias for T. Consistent with std::vector
     using value_type = T;
-    
+
+    /** Construct a PinnedBuffer with given number of elements
+        \param [in] n initial number of elements. Must be non negative.
+     */
     PinnedBuffer(size_t n = 0)
     {
         resize_anew(n);
     }
 
+    /// Copy constructor
     PinnedBuffer(const PinnedBuffer& b) :
         GPUcontainer{}
     {
         this->copy(b);
     }
 
+    /// assignment operator
     PinnedBuffer& operator=(const PinnedBuffer& b)
     {
         this->copy(b);
         return *this;
     }
 
-    /// To enable \c std::swap()
+    /// Move constructor; To enable \c std::swap()
     PinnedBuffer (PinnedBuffer&& b)
     {
         *this = std::move(b);
     }
 
-    /// To enable \c std::swap()
+    /// Move assignment; To enable \c std::swap()
     PinnedBuffer& operator=(PinnedBuffer&& b)
     {
         if (this!=&b)
@@ -462,7 +504,6 @@ public:
         return *this;
     }
 
-    /// Release resources and report if debug level is high enough
     ~PinnedBuffer()
     {
         debug4("Destroying PinnedBuffer<%s> of capacity %zu X %zu",
@@ -474,36 +515,34 @@ public:
         }
     }
 
-    inline size_t datatype_size() const final { return sizeof(T); }
-    inline size_t size()          const final { return size_; }
+    size_t datatype_size() const final { return sizeof(T); }
+    size_t size()          const final { return size_; }
 
-    inline void* genericDevPtr() const final { return (void*) devPtr(); }
+    void* genericDevPtr() const final { return (void*) devPtr(); }
 
-    inline void resize     (size_t n, cudaStream_t stream) final { _resize(n, stream, true);  }
-    inline void resize_anew(size_t n)                      final { _resize(n, 0,      false); }
+    void resize     (size_t n, cudaStream_t stream) final { _resize(n, stream, true);  }
+    void resize_anew(size_t n)                      final { _resize(n, 0,      false); }
 
-    inline GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
+    GPUcontainer* produce() const final { return new PinnedBuffer<T>(); }
 
-    inline T* hostPtr() const { return hostPtr_; }  ///< @return typed host pointer to data
-    inline T* data()    const { return hostPtr_; }  /// For uniformity with std::vector
-    inline T* devPtr()  const { return devPtr_; }   ///< @return typed device pointer to data
+    T* hostPtr() const { return hostPtr_; }  ///< \return pointer to host data
+    T* data()    const { return hostPtr_; }  ///< For uniformity with std::vector
+    T* devPtr()  const { return devPtr_; }   ///< \return pointer to device data
 
     inline       T& operator[](size_t i)       { return hostPtr_[i]; }  ///< allow array-like bracketed access to HOST data
-    inline const T& operator[](size_t i) const { return hostPtr_[i]; }
+    inline const T& operator[](size_t i) const { return hostPtr_[i]; }  ///< allow array-like bracketed access to HOST data
 
+    T* begin() { return hostPtr_; }          ///< To support range-based loops
+    T* end()   { return hostPtr_ + size_; }  ///< To support range-based loops
     
-    inline       T* begin()       { return hostPtr_; }          /// To support range-based loops
-    inline       T* end()         { return hostPtr_ + size_; }  /// To support range-based loops
-    
-    inline const T* begin() const { return hostPtr_; }          /// To support range-based loops
-    inline const T* end()   const { return hostPtr_ + size_; }  /// To support range-based loops
-    /**
-     * Copy data from device to host
-     *
-     * @param synchronize if false, the call is fully asynchronous.
-     * if true, host data will be readily available on the call return.
+    const T* begin() const { return hostPtr_; }          ///< To support range-based loops
+    const T* end()   const { return hostPtr_ + size_; }  ///< To support range-based loops
+
+    /** \brief Copy internal data from device to host.
+        \param stream The stream used to perform the copy
+        \param synch Synchronicity of the operation. If synchronous, the call will block until the operation is done.
      */
-    inline void downloadFromDevice(cudaStream_t stream, ContainersSynch synch = ContainersSynch::Synch)
+    void downloadFromDevice(cudaStream_t stream, ContainersSynch synch = ContainersSynch::Synch)
     {
         // TODO: check if we really need to do that
         // maybe everything is already downloaded
@@ -514,8 +553,10 @@ public:
         if (synch == ContainersSynch::Synch) CUDA_Check( cudaStreamSynchronize(stream) );
     }
 
-    /// Copy data from host to device
-    inline void uploadToDevice(cudaStream_t stream)
+    /** \brief Copy the internal data from host to device.
+        \param stream The stream used to perform the copy
+     */
+    void uploadToDevice(cudaStream_t stream)
     {
         debug4("CPU -> GPU (H2D) transfer of PinnedBuffer<%s>, size %zu x %zu",
                typeid(T).name(), size_, datatype_size());
@@ -524,14 +565,14 @@ public:
     }
 
     /// Set all the bytes to 0 on both host and device
-    inline void clear(cudaStream_t stream)
+    void clear(cudaStream_t stream)
     {
         clearDevice(stream);
         clearHost();
     }
 
     /// Set all the bytes to 0 on device only
-    inline void clearDevice(cudaStream_t stream) override
+    void clearDevice(cudaStream_t stream) override
     {
         debug4("Clearing device memory of PinnedBuffer<%s>, size %zu x %zu",
                typeid(T).name(), size_, datatype_size());
@@ -540,7 +581,7 @@ public:
     }
 
     /// Set all the bytes to 0 on host only
-    inline void clearHost()
+    void clearHost()
     {
         debug4("Clearing host memory of PinnedBuffer<%s>, size %zu x %zu",
                typeid(T).name(), size_, datatype_size());
@@ -601,16 +642,10 @@ private:
     T* hostPtr_ {nullptr}; ///< Host pointer to data
     T* devPtr_  {nullptr}; ///< Device pointer to data
 
-    /**
-     * Set #size_ = \p n. If n > #capacity_, allocate more memory
-     * and copy the old data on CUDA stream \p stream (only if \p copy is true)
-     * Copy both host and device data if \p copy is true
-     *
-     * If debug level is high enough, will report cases when the buffer had to grow
-     *
-     * @param n new size, must be >= 0
-     * @param stream data will be copied on that CUDA stream
-     * @param copy if we need to copy old data
+    /** \brief Implementation of resize methods.
+        \param n new size, must be >= 0
+        \param stream data will be copied on that CUDA stream
+        \param copy if we need to copy old data to the new allocated buffer
      */
     void _resize(size_t n, cudaStream_t stream, bool copy)
     {
