@@ -79,10 +79,10 @@ void Postprocess::run()
         requests.push_back(pl->waitData());
 
     const int stoppingReqIndex = static_cast<int>(requests.size());
-    requests.push_back( listenSimulation(stoppingTag, &endMsg) );
+    requests.push_back( _listenSimulation(stoppingTag, &endMsg) );
 
     const int checkpointReqIndex = static_cast<int>(requests.size());
-    requests.push_back( listenSimulation(checkpointTag, &checkpointId) );
+    requests.push_back( _listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());
     
@@ -108,7 +108,7 @@ void Postprocess::run()
             {
                 debug2("Postprocess got a request for checkpoint, executing now");
                 checkpoint(checkpointId);
-                requests[index] = listenSimulation(checkpointTag, &checkpointId);
+                requests[index] = _listenSimulation(checkpointTag, &checkpointId);
             }
             else
             {
@@ -121,7 +121,7 @@ void Postprocess::run()
     }
 }
 
-MPI_Request Postprocess::listenSimulation(int tag, int *msg) const
+MPI_Request Postprocess::_listenSimulation(int tag, int *msg) const
 {
     int rank;
     MPI_Request req;

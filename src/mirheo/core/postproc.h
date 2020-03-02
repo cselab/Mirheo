@@ -37,7 +37,7 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
-    MPI_Request listenSimulation(int tag, int *msg) const;
+    MPI_Request _listenSimulation(int tag, int *msg) const;
     
     using MirObject::restart;
     using MirObject::checkpoint;
