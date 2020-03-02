@@ -25,9 +25,10 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
+    void _copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
+
+private:
     std::unique_ptr<Exchanger> exchanger_;
-    
-    void copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
 };
 
 } // namespace mirheo

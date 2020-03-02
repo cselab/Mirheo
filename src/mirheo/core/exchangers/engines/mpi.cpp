@@ -54,7 +54,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     
     // Post irecv for sizes
     for (size_t i = 0; i < numExchangeEntities; ++i)
-        if (exchanger_->needExchange(i)) postRecvSize(exchanger_->getExchangeEntity(i));
+        if (exchanger_->needExchange(i)) _postRecvSize(exchanger_->getExchangeEntity(i));
 
     // Derived class determines what to send
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -64,7 +64,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     // Send sizes
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
-            sendSizes(exchanger_->getExchangeEntity(i));
+            _sendSizes(exchanger_->getExchangeEntity(i));
 
     // Derived class determines what to send
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -74,7 +74,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     // Post big data irecv (after prepereData cause it waits for the sizes)
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
-            postRecv(exchanger_->getExchangeEntity(i));
+            _postRecv(exchanger_->getExchangeEntity(i));
 
     // CUDA-aware MPI will work in a separate stream, need to synchro
     if (gpuAwareMPI_)
@@ -83,7 +83,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     // Send
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
-            send(exchanger_->getExchangeEntity(i), stream);
+            _send(exchanger_->getExchangeEntity(i), stream);
 }
 
 void MPIExchangeEngine::finalize(cudaStream_t stream)
@@ -93,7 +93,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
     // Wait for the irecvs to finish
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
-            wait(exchanger_->getExchangeEntity(i), stream);
+            _wait(exchanger_->getExchangeEntity(i), stream);
 
     // Wait for completion of the previous sends
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -113,7 +113,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
             exchanger_->combineAndUploadData(i, stream);
 }
 
-void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)
+void MPIExchangeEngine::_postRecvSize(ExchangeHelper *helper)
 {
     std::string pvName = helper->getName();
 
@@ -140,7 +140,7 @@ void MPIExchangeEngine::postRecvSize(ExchangeHelper *helper)
 /**
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  */
-void MPIExchangeEngine::sendSizes(ExchangeHelper *helper)
+void MPIExchangeEngine::_sendSizes(ExchangeHelper *helper)
 {
     std::string pvName = helper->getName();
 
@@ -178,7 +178,7 @@ static void safeWaitAll(int count, MPI_Request array_of_requests[])
     }
 }
 
-void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
+void MPIExchangeEngine::_postRecv(ExchangeHelper *helper)
 {
     std::string pvName = helper->getName();
 
@@ -232,7 +232,7 @@ void MPIExchangeEngine::postRecv(ExchangeHelper *helper)
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
  */
-void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
+void MPIExchangeEngine::_wait(ExchangeHelper *helper, cudaStream_t stream)
 {
     std::string pvName = helper->getName();
 
@@ -283,7 +283,7 @@ void MPIExchangeEngine::wait(ExchangeHelper *helper, cudaStream_t stream)
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  * helper->sendBuf data is ON DEVICE
  */
-void MPIExchangeEngine::send(ExchangeHelper *helper, cudaStream_t stream)
+void MPIExchangeEngine::_send(ExchangeHelper *helper, cudaStream_t stream)
 {
     std::string pvName = helper->getName();
 

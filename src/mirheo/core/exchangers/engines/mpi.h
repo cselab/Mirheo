@@ -38,6 +38,13 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
+    void _postRecvSize(ExchangeHelper *helper);
+    void _sendSizes   (ExchangeHelper *helper);
+    void _postRecv    (ExchangeHelper *helper);
+    void _wait        (ExchangeHelper *helper, cudaStream_t stream);
+    void _send        (ExchangeHelper *helper, cudaStream_t stream);
+
+private:
     std::unique_ptr<Exchanger> exchanger_;
     
     std::vector<int> dir2rank_;
@@ -48,12 +55,6 @@ private:
     
     MPI_Comm haloComm_;
     static constexpr int singleCopyThreshold_ = 4000000;
-
-    void postRecvSize(ExchangeHelper *helper);
-    void sendSizes   (ExchangeHelper *helper);
-    void postRecv    (ExchangeHelper *helper);
-    void wait        (ExchangeHelper *helper, cudaStream_t stream);
-    void send        (ExchangeHelper *helper, cudaStream_t stream);
 };
 
 } // namespace mirheo

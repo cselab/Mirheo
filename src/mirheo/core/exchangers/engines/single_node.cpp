@@ -40,7 +40,7 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
     
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
-            copySend2Recv(exchanger_->getExchangeEntity(i), stream);
+            _copySend2Recv(exchanger_->getExchangeEntity(i), stream);
         
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
@@ -48,7 +48,7 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
 }
 
 
-void SingleNodeEngine::copySend2Recv(ExchangeHelper *helper, cudaStream_t stream)
+void SingleNodeEngine::_copySend2Recv(ExchangeHelper *helper, cudaStream_t stream)
 {
     const auto bulkId = helper->bulkId;
     
