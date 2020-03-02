@@ -39,9 +39,6 @@ public:
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 
-    PinnedBuffer<int> adjacent, degrees;
-    PinnedBuffer<real> initialLengths, initialAreas, initialDotProducts;
-
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
@@ -55,6 +52,10 @@ protected:
     void _computeInitialLengths(const PinnedBuffer<real4>& vertices);
     void _computeInitialAreas(const PinnedBuffer<real4>& vertices);
     void _computeInitialDotProducts(const PinnedBuffer<real4>& vertices); /// used in Lim to determine if cos(phi) < 0
+
+private:
+    PinnedBuffer<int> adjacent_, degrees_;
+    PinnedBuffer<real> initialLengths_, initialAreas_, initialDotProducts_;
 };
 
 struct MembraneMeshView : public MeshView

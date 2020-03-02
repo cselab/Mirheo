@@ -111,9 +111,9 @@ MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :
     // Replacement for _computeInitialQuantities(stressFreeMesh.vertexCoordinates).
     std::string fileName = joinPaths(loader.getContext().getPath(), config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "r");
-    readReals(f.get(), &initialLengths);
-    readReals(f.get(), &initialAreas);
-    readReals(f.get(), &initialDotProducts);
+    readReals(f.get(), &initialLengths_);
+    readReals(f.get(), &initialAreas_);
+    readReals(f.get(), &initialDotProducts_);
 }
 
 
@@ -133,9 +133,9 @@ ConfigObject MembraneMesh::_saveSnapshot(Saver& saver, const std::string& typeNa
 
     std::string fileName = joinPaths(saver.getContext().path, config["name"] + ".stressFree.dat");
     FileWrapper f(fileName, "w");
-    writeReals(f.get(), initialLengths);
-    writeReals(f.get(), initialAreas);
-    writeReals(f.get(), initialDotProducts);
+    writeReals(f.get(), initialLengths_);
+    writeReals(f.get(), initialAreas_);
+    writeReals(f.get(), initialDotProducts_);
     return config;
 }
 
@@ -199,11 +199,11 @@ void MembraneMesh::findAdjacent()
         adjacentPairs [t.z][t.x] = t.y;
     }
 
-    findDegrees(adjacentPairs, degrees);
-    findNearestNeighbours(adjacentPairs, getMaxDegree(), adjacent);
+    findDegrees(adjacentPairs, degrees_);
+    findNearestNeighbours(adjacentPairs, getMaxDegree(), adjacent_);
     
-    adjacent.uploadToDevice(defaultStream);
-    degrees.uploadToDevice(defaultStream);
+    adjacent_.uploadToDevice(defaultStream);
+    degrees_.uploadToDevice(defaultStream);
 }
 
 void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<real4>& vertices)
@@ -215,15 +215,15 @@ void MembraneMesh::_computeInitialQuantities(const PinnedBuffer<real4>& vertices
 
 void MembraneMesh::_computeInitialLengths(const PinnedBuffer<real4>& vertices)
 {
-    initialLengths.resize_anew(getNvertices() * getMaxDegree());
+    initialLengths_.resize_anew(getNvertices() * getMaxDegree());
 
     for (int i = 0; i < getNvertices() * getMaxDegree(); i++)
     {
-        if (adjacent[i] != invalidId)
-            initialLengths[i] = length(vertices[i / getMaxDegree()] - vertices[adjacent[i]]);
+        if (adjacent_[i] != invalidId)
+            initialLengths_[i] = length(vertices[i / getMaxDegree()] - vertices[adjacent_[i]]);
     }
 
-    initialLengths.uploadToDevice(defaultStream);
+    initialLengths_.uploadToDevice(defaultStream);
 }
 
 static real computeArea(real3 v0, real3 v1, real3 v2)
@@ -233,67 +233,68 @@ static real computeArea(real3 v0, real3 v1, real3 v2)
 
 void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
 {
-    initialAreas.resize_anew(getNvertices() * getMaxDegree());
+    initialAreas_.resize_anew(getNvertices() * getMaxDegree());
 
     real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < getNvertices(); ++id0)
     {
-        const int degree = degrees[id0];
+        const int degree = degrees_
+            [id0];
         const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j)
         {
-            const int id1 = adjacent[startId + j];
-            const int id2 = adjacent[startId + (j + 1) % degree];
+            const int id1 = adjacent_[startId + j];
+            const int id2 = adjacent_[startId + (j + 1) % degree];
 
             v1 = make_real3(vertices[id1]);
             v2 = make_real3(vertices[id2]);
 
-            initialAreas[startId + j] = computeArea(v0, v1, v2);
+            initialAreas_[startId + j] = computeArea(v0, v1, v2);
         }
     }
 
-    initialAreas.uploadToDevice(defaultStream);
+    initialAreas_.uploadToDevice(defaultStream);
 }
 
 void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<real4>& vertices)
 {
-    initialDotProducts.resize_anew(getNvertices() * getMaxDegree());
+    initialDotProducts_.resize_anew(getNvertices() * getMaxDegree());
 
     real3 v0, v1, v2;
 
     for (int id0 = 0; id0 < getNvertices(); ++id0)
     {
-        const int degree = degrees[id0];
+        const int degree = degrees_[id0];
         const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
         
         for (int j = 0; j < degree; ++j)
         {
-            const int id1 = adjacent[startId + j];
-            const int id2 = adjacent[startId + (j + 1) % degree];
+            const int id1 = adjacent_[startId + j];
+            const int id2 = adjacent_[startId + (j + 1) % degree];
 
             v1 = make_real3(vertices[id1]);
             v2 = make_real3(vertices[id2]);
 
-            initialDotProducts[startId + j] = dot(v1 - v0, v2 - v0);
+            initialDotProducts_[startId + j] = dot(v1 - v0, v2 - v0);
         }
     }
 
-    initialDotProducts.uploadToDevice(defaultStream);
+    initialDotProducts_.uploadToDevice(defaultStream);
 }
 
 
 MembraneMeshView::MembraneMeshView(const MembraneMesh *m) :
     MeshView(m),
     maxDegree          (m->getMaxDegree()),
-    adjacent           (m->adjacent.devPtr()),
-    degrees            (m->degrees.devPtr()),
-    initialLengths     (m->initialLengths.devPtr()),
-    initialAreas       (m->initialAreas.devPtr()),
-    initialDotProducts (m->initialDotProducts.devPtr())
+    adjacent           (m->adjacent_.devPtr()),
+    degrees            (m->degrees_.devPtr()),
+    initialLengths     (m->initialLengths_.devPtr()),
+    initialAreas       (m->initialAreas_.devPtr()),
+    initialDotProducts (m->initialDotProducts_.devPtr())
 {}
 
 } // namespace mirheo
