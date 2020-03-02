@@ -80,6 +80,7 @@ protected:
       */
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
+private:
     /// compute the adjacent vertices lists of all vertices
     void _findAdjacent();
 

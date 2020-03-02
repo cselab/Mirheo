@@ -30,8 +30,8 @@ Overloaded function.
         """
         pass
 
-    def getTriangles():
-        r"""getTriangles(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+    def getFaces():
+        r"""getFaces(self: ParticleVectors.Mesh) -> List[List[int[3]]]
 
 
         returns the vertex indices for each triangle of the mesh.
@@ -199,8 +199,8 @@ Overloaded function.
         """
         pass
 
-    def getTriangles():
-        r"""getTriangles(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+    def getFaces():
+        r"""getFaces(self: ParticleVectors.Mesh) -> List[List[int[3]]]
 
 
         returns the vertex indices for each triangle of the mesh.
