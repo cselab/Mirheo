@@ -1,5 +1,5 @@
 #include "exchange_helpers.h"
-#include "exchanger_interfaces.h"
+#include "interface.h"
 
 namespace mirheo
 {

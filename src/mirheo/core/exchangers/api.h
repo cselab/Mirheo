@@ -1,6 +1,6 @@
 #pragma once
 
-#include "exchanger_interfaces.h"
+#include "interface.h"
 #include "engines/interface.h"
 
 #include "engines/mpi.h"

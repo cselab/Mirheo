@@ -1,6 +1,6 @@
 #include "interface.h"
 
-#include <mirheo/core/exchangers/exchanger_interfaces.h>
+#include <mirheo/core/exchangers/interface.h>
 
 namespace mirheo
 {

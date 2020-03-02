@@ -1,7 +1,7 @@
 #include "single_node.h"
 #include "../exchange_helpers.h"
 
-#include <mirheo/core/exchangers/exchanger_interfaces.h>
+#include <mirheo/core/exchangers/interface.h>
 #include <mirheo/core/logger.h>
 
 #include <algorithm>

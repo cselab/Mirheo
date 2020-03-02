@@ -5,7 +5,7 @@ set(sources_cpp
   exchangers/engines/interface.cpp
   exchangers/engines/mpi.cpp
   exchangers/engines/single_node.cpp
-  exchangers/exchanger_interfaces.cpp
+  exchangers/interface.cpp
   field/from_function.cpp
   field/interface.cpp
   initial_conditions/from_array.cpp

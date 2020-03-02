@@ -2,7 +2,7 @@
 
 #include <mirheo/core/containers.h>
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/exchangers/exchanger_interfaces.h>
+#include <mirheo/core/exchangers/interface.h>
 #include <mirheo/core/mirheo_object.h>
 
 #include <functional>
