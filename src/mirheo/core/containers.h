@@ -74,8 +74,10 @@ template<typename T>
 class DeviceBuffer : public GPUcontainer
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // breathe warnings
     /// alias for T. Consistent with std::vector
     using value_type = T;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /** Construct a DeviceBuffer of given size.
         \param n The initial number of elements
@@ -167,7 +169,7 @@ public:
         \param [in] stream Execution stream
      */
     template<typename Cont>
-    auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void())
+    auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.devPtr()), void()) // use SFINAE here because no forward declaration
     {
         static_assert(std::is_same<decltype(devPtr_), decltype(cont.devPtr())>::value, "can't copy buffers of different types");
 
@@ -175,15 +177,17 @@ public:
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.devPtr(), sizeof(T) * size_, cudaMemcpyDeviceToDevice, stream) );
     }
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // breathe warnings
     /// \brief copy from host to device.
     template<typename Cont>
-    auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.hostPtr()), void())
+    auto copy(const Cont& cont, cudaStream_t stream) -> decltype((void)(cont.hostPtr()), void()) // use SFINAE here because no forward declaration
     {
         static_assert(std::is_same<decltype(devPtr_), decltype(cont.hostPtr())>::value, "can't copy buffers of different types");
 
         resize_anew(cont.size());
         if (size_ > 0) CUDA_Check( cudaMemcpyAsync(devPtr_, cont.hostPtr(), sizeof(T) * size_, cudaMemcpyHostToDevice, stream) );
     }
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// synchronous copy
     auto copy(const DeviceBuffer<T>& cont)
@@ -454,8 +458,10 @@ template<typename T>
 class PinnedBuffer : public GPUcontainer
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // breathe warnings
     /// alias for T. Consistent with std::vector
     using value_type = T;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /** Construct a PinnedBuffer with given number of elements
         \param [in] n initial number of elements. Must be non negative.
