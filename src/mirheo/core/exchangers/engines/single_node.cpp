@@ -1,5 +1,5 @@
 #include "single_node.h"
-#include "../exchange_helpers.h"
+#include "../exchange_entity.h"
 
 #include <mirheo/core/exchangers/interface.h>
 #include <mirheo/core/logger.h>
@@ -50,7 +50,7 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
 }
 
 
-void SingleNodeEngine::_copySend2Recv(ExchangeHelper *helper, cudaStream_t stream)
+void SingleNodeEngine::_copySend2Recv(ExchangeEntity *helper, cudaStream_t stream)
 {
     const auto bulkId = helper->bulkId;
     

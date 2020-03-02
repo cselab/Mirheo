@@ -1,4 +1,4 @@
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 
 #include <mirheo/core/pvs/packers/rods.h>
 #include <mirheo/core/utils/cuda_common.h>
@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-namespace ExchangeHelpersKernels
+namespace ExchangeEntitysKernels
 {
 // must be executed with only one warp
 template <class Packer>
@@ -35,7 +35,7 @@ __global__ void computeOffsetsSizeBytes(BufferOffsetsSizesWrap wrapData, size_t 
     }
 }
 
-} // namespace ExchangeHelpersKernels
+} // namespace ExchangeEntitysKernels
 
 
 template <class Packer>
@@ -48,7 +48,7 @@ inline void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
     constexpr int nblocks  = 1;
     
     SAFE_KERNEL_LAUNCH(
-        ExchangeHelpersKernels::computeOffsetsSizeBytes,
+        ExchangeEntitysKernels::computeOffsetsSizeBytes,
         nblocks, nthreads, 0, stream,
         wrapData, sizeBytes.devPtr(), packer);
 }
@@ -114,7 +114,7 @@ char* BufferInfos::getBufferDevPtr(int bufId)
     return buffer.devPtr() + offsetsBytes[bufId];
 }
 
-ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer) :
+ExchangeEntity::ExchangeEntity(std::string name, int uniqueId, ParticlePacker *packer) :
     name_(name),
     uniqueId_(uniqueId),
     packer_(packer)
@@ -123,23 +123,23 @@ ExchangeHelper::ExchangeHelper(std::string name, int uniqueId, ParticlePacker *p
     send.resizeInfos(nBuffers);
 }
 
-ExchangeHelper::~ExchangeHelper() = default;
+ExchangeEntity::~ExchangeEntity() = default;
 
-void ExchangeHelper::computeRecvOffsets()
+void ExchangeEntity::computeRecvOffsets()
 {
     prefixSum(recv.sizes, recv.offsets);
     computeSizesBytes(packer_, recv.sizes, recv.sizesBytes);
     prefixSum(recv.sizesBytes, recv.offsetsBytes);
 }
 
-void ExchangeHelper::computeSendOffsets()
+void ExchangeEntity::computeSendOffsets()
 {
     prefixSum(send.sizes, send.offsets);
     computeSizesBytes(packer_, send.sizes, send.sizesBytes);
     prefixSum(send.sizesBytes, send.offsetsBytes);
 }
 
-void ExchangeHelper::computeSendOffsets_Dev2Dev(cudaStream_t stream)
+void ExchangeEntity::computeSendOffsets_Dev2Dev(cudaStream_t stream)
 {
     computeOffsetsSizeBytesDev(wrapSendData(), send.sizesBytes, packer_, stream);
     
@@ -149,38 +149,38 @@ void ExchangeHelper::computeSendOffsets_Dev2Dev(cudaStream_t stream)
     send.offsetsBytes.downloadFromDevice(stream, ContainersSynch::Synch);
 }
 
-void ExchangeHelper::resizeSendBuf()
+void ExchangeEntity::resizeSendBuf()
 {
     auto size = send.offsetsBytes[nBuffers];
     send.buffer.resize_anew(size);
 }
 
-void ExchangeHelper::resizeRecvBuf()
+void ExchangeEntity::resizeRecvBuf()
 {
     auto size = recv.offsetsBytes[nBuffers];
     recv.buffer.resize_anew(size);
 }
 
-int ExchangeHelper::getUniqueId() const
+int ExchangeEntity::getUniqueId() const
 {
     return uniqueId_;
 }
 
-BufferOffsetsSizesWrap ExchangeHelper::wrapSendData()
+BufferOffsetsSizesWrap ExchangeEntity::wrapSendData()
 {
     return {nBuffers, send.buffer.devPtr(),
             send.offsets.devPtr(), send.sizes.devPtr(),
             send.offsetsBytes.devPtr()};
 }
 
-BufferOffsetsSizesWrap ExchangeHelper::wrapRecvData()
+BufferOffsetsSizesWrap ExchangeEntity::wrapRecvData()
 {
     return {nBuffers, recv.buffer.devPtr(),
             recv.offsets.devPtr(), recv.sizes.devPtr(),
             recv.offsetsBytes.devPtr()};
 }
 
-const std::string& ExchangeHelper::getName() const {return name_;}
-const char* ExchangeHelper::getCName() const {return name_.c_str();}
+const std::string& ExchangeEntity::getName() const {return name_;}
+const char* ExchangeEntity::getCName() const {return name_.c_str();}
 
 } // namespace mirheo

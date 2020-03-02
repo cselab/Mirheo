@@ -1,4 +1,4 @@
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "interface.h"
 
 namespace mirheo
@@ -6,17 +6,17 @@ namespace mirheo
 
 Exchanger::~Exchanger() = default;
 
-void Exchanger::addExchangeEntity(std::unique_ptr<ExchangeHelper>&& e)
+void Exchanger::addExchangeEntity(std::unique_ptr<ExchangeEntity>&& e)
 {
     helpers_.push_back(std::move(e));
 }
 
-ExchangeHelper* Exchanger::getExchangeEntity(size_t id)
+ExchangeEntity* Exchanger::getExchangeEntity(size_t id)
 {
     return helpers_[id].get();
 }
 
-const ExchangeHelper* Exchanger::getExchangeEntity(size_t id) const
+const ExchangeEntity* Exchanger::getExchangeEntity(size_t id) const
 {
     return helpers_[id].get();
 }

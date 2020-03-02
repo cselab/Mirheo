@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-class ExchangeHelper;
+class ExchangeEntity;
 
 /**
  * Interface for classes preparing and packing particles for exchange
@@ -18,10 +18,10 @@ class ExchangeHelper;
  * of data to be exchanged
  *
  * The virtual method prepareData() fills the corresponding
- * ExchangeHelper buffers with the data to exchange
+ * ExchangeEntity buffers with the data to exchange
  *
  * The virtual combineAndUploadData() takes care
- * of storing data from the ExchangeHelper to where is has to be
+ * of storing data from the ExchangeEntity to where is has to be
  */
 class Exchanger
 {
@@ -29,10 +29,10 @@ public:
 
     virtual ~Exchanger();
 
-    void addExchangeEntity(std::unique_ptr<ExchangeHelper>&& e);
+    void addExchangeEntity(std::unique_ptr<ExchangeEntity>&& e);
 
-    ExchangeHelper*       getExchangeEntity(size_t id);
-    const ExchangeHelper* getExchangeEntity(size_t id) const;
+    ExchangeEntity*       getExchangeEntity(size_t id);
+    const ExchangeEntity* getExchangeEntity(size_t id) const;
 
     size_t getNumExchangeEntities() const;
     
@@ -73,7 +73,7 @@ public:
      * If the ParticleVector didn't change since the last similar MPI
      * exchange, there is no need to run the exchange again. This function
      * controls such behaviour
-     * @param id of the ParticleVector and associated ExchangeHelper
+     * @param id of the ParticleVector and associated ExchangeEntity
      * @return true if exchange is required, false - if not
      */
     virtual bool needExchange(size_t id) = 0;
@@ -81,9 +81,9 @@ public:
 private:
     /**
      * Vector of helpers, that have buffers for data exchange
-     * and other required information, see :any:`ExchangeHelper`
+     * and other required information, see :any:`ExchangeEntity`
      */ 
-    std::vector<std::unique_ptr<ExchangeHelper>> helpers_;
+    std::vector<std::unique_ptr<ExchangeEntity>> helpers_;
 };
 
 } // namespace mirheo

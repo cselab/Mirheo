@@ -1,5 +1,5 @@
 #include "mpi.h"
-#include "../exchange_helpers.h"
+#include "../exchange_entity.h"
 #include "../utils/fragments_mapping.h"
 
 #include <mirheo/core/exchangers/interface.h>
@@ -115,7 +115,7 @@ void MPIExchangeEngine::finalize(cudaStream_t stream)
             exchanger_->combineAndUploadData(i, stream);
 }
 
-void MPIExchangeEngine::_postRecvSize(ExchangeHelper *helper)
+void MPIExchangeEngine::_postRecvSize(ExchangeEntity *helper)
 {
     std::string pvName = helper->getName();
 
@@ -142,7 +142,7 @@ void MPIExchangeEngine::_postRecvSize(ExchangeHelper *helper)
 /**
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  */
-void MPIExchangeEngine::_sendSizes(ExchangeHelper *helper)
+void MPIExchangeEngine::_sendSizes(ExchangeEntity *helper)
 {
     std::string pvName = helper->getName();
 
@@ -180,7 +180,7 @@ static void safeWaitAll(int count, MPI_Request array_of_requests[])
     }
 }
 
-void MPIExchangeEngine::_postRecv(ExchangeHelper *helper)
+void MPIExchangeEngine::_postRecv(ExchangeEntity *helper)
 {
     std::string pvName = helper->getName();
 
@@ -234,7 +234,7 @@ void MPIExchangeEngine::_postRecv(ExchangeHelper *helper)
 /**
  * helper->recvBuf will contain all the data, ON DEVICE already
  */
-void MPIExchangeEngine::_wait(ExchangeHelper *helper, cudaStream_t stream)
+void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
 {
     std::string pvName = helper->getName();
 
@@ -285,7 +285,7 @@ void MPIExchangeEngine::_wait(ExchangeHelper *helper, cudaStream_t stream)
  * Expects helper->sendSizes and helper->sendOffsets to be ON HOST
  * helper->sendBuf data is ON DEVICE
  */
-void MPIExchangeEngine::_send(ExchangeHelper *helper, cudaStream_t stream)
+void MPIExchangeEngine::_send(ExchangeEntity *helper, cudaStream_t stream)
 {
     std::string pvName = helper->getName();
 

@@ -1,6 +1,6 @@
 #include "particle_redistributor.h"
 
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "utils/common.h"
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
@@ -150,7 +150,7 @@ void ParticleRedistributor::attach(ParticleVector *pv, CellList *cl)
     };
 
     auto packer = std::make_unique<ParticlePacker>(predicate);
-    auto helper = std::make_unique<ExchangeHelper>(pv->getName(), id, packer.get());
+    auto helper = std::make_unique<ExchangeEntity>(pv->getName(), id, packer.get());
 
     packers_.push_back(std::move(packer));
     this->addExchangeEntity(std::move(helper));

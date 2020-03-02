@@ -48,13 +48,12 @@ class ParticlePacker;
 /**
  * Class that keeps communication data per ParticleVector.
  */
-class ExchangeHelper
+class ExchangeEntity
 {
 public:
     
-    ExchangeHelper(std::string name, int uniqueId, ParticlePacker *packer);
-
-    ~ExchangeHelper();
+    ExchangeEntity(std::string name, int uniqueId, ParticlePacker *packer);
+    ~ExchangeEntity();
 
     /**
      * Compute #recvOffsets from #recvSizes by explicit scan.

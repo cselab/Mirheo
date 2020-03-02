@@ -88,7 +88,7 @@ set(sources_cu
   bouncers/from_rod.cu
   bouncers/from_shape.cu
   celllist.cu
-  exchangers/exchange_helpers.cu
+  exchangers/exchange_entity.cu
   exchangers/object_halo_exchanger.cu
   exchangers/object_halo_extra_exchanger.cu
   exchangers/object_redistributor.cu

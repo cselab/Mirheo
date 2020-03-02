@@ -1,6 +1,6 @@
 #include "particle_halo_exchanger.h"
 
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "utils/common.h"
 #include "utils/face_dispatch.h"
 #include "utils/fragments_mapping.h"
@@ -157,7 +157,7 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     
     auto   packer = std::make_unique<ParticlePacker> (predicate);
     auto unpacker = std::make_unique<ParticlePacker> (predicate);
-    auto   helper = std::make_unique<ExchangeHelper> (pv->getName(), id, packer.get());
+    auto   helper = std::make_unique<ExchangeEntity> (pv->getName(), id, packer.get());
     
     this->addExchangeEntity(std::move(  helper));
     packers_  .push_back(std::move(  packer));

@@ -1,6 +1,6 @@
 #include "object_reverse_exchanger.h"
 #include "object_halo_exchanger.h"
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "utils/common.h"
 
 #include <mirheo/core/logger.h>
@@ -97,7 +97,7 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
         unpacker = std::make_unique<RodPacker>(predicate);
     }
     
-    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
+    auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
     
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));

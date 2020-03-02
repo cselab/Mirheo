@@ -8,7 +8,7 @@
 namespace mirheo
 {
 
-class ExchangeHelper;
+class ExchangeEntity;
 
 /**
  * Engine used when there is only one node
@@ -25,7 +25,7 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
-    void _copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
+    void _copySend2Recv(ExchangeEntity *helper, cudaStream_t stream);
 };
 
 } // namespace mirheo

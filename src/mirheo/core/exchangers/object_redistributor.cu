@@ -1,6 +1,6 @@
 #include "object_redistributor.h"
 
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "utils/common.h"
 #include "utils/fragments_mapping.h"
 
@@ -97,7 +97,7 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     if (auto rv = dynamic_cast<RodVector*>(ov)) packer = std::make_unique<RodPacker>   (predicate);
     else                                        packer = std::make_unique<ObjectPacker>(predicate);
     
-    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
+    auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
     
     packers_.push_back(std::move(packer));
     this->addExchangeEntity(std::move(helper));

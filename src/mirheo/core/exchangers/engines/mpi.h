@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-class ExchangeHelper;
+class ExchangeEntity;
 
 /**
  * Engine implementing MPI exchange logic.
@@ -19,15 +19,15 @@ class ExchangeHelper;
  *   - calls base method postRecvSize() that issues MPI_Irecv() calls
  *     for sizes of data that has to be received
  *   - calls exchanger method prepareData() that fills the corresponding
- *     ExchangeHelper buffers with the data to exchange
+ *     ExchangeEntity buffers with the data to exchange
  * - base method finalize() runs the communication (it could
  *   be split into send/recv pair, maybe this will be done later):
- *   - calls base method send() that sends the data from ExchangeHelper
+ *   - calls base method send() that sends the data from ExchangeEntity
  *     buffers to the relevant MPI processes
  *   - calls base method recv() that blocks until the sizes of the
- *     data and data themselves are received and stored in the ExchangeHelper
+ *     data and data themselves are received and stored in the ExchangeEntity
  *   - calls exchanger combineAndUploadData() that takes care
- *     of storing data from the ExchangeHelper to where is has to be
+ *     of storing data from the ExchangeEntity to where is has to be
  */
 class MPIExchangeEngine : public ExchangeEngine
 {
@@ -39,11 +39,11 @@ public:
     void finalize(cudaStream_t stream) override;
 
 private:
-    void _postRecvSize(ExchangeHelper *helper);
-    void _sendSizes   (ExchangeHelper *helper);
-    void _postRecv    (ExchangeHelper *helper);
-    void _wait        (ExchangeHelper *helper, cudaStream_t stream);
-    void _send        (ExchangeHelper *helper, cudaStream_t stream);
+    void _postRecvSize(ExchangeEntity *helper);
+    void _sendSizes   (ExchangeEntity *helper);
+    void _postRecv    (ExchangeEntity *helper);
+    void _wait        (ExchangeEntity *helper, cudaStream_t stream);
+    void _send        (ExchangeEntity *helper, cudaStream_t stream);
 
 private:
     std::vector<int> dir2rank_;

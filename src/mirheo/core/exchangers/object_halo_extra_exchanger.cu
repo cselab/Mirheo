@@ -1,6 +1,6 @@
 #include "object_halo_extra_exchanger.h"
 #include "object_halo_exchanger.h"
-#include "exchange_helpers.h"
+#include "exchange_entity.h"
 #include "utils/common.h"
 #include "utils/fragments_mapping.h"
 
@@ -102,7 +102,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
         unpacker = std::make_unique<RodPacker>(predicate);
     }
 
-    auto helper = std::make_unique<ExchangeHelper>(ov->getName(), id, packer.get());
+    auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
     
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
