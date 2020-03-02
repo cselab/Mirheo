@@ -1,9 +1,10 @@
 #pragma once
 
-#include "../exchanger_interfaces.h"
+#include "interface.h"
 
 #include <mpi.h>
 #include <string>
+#include <vector>
 
 namespace mirheo
 {
@@ -31,7 +32,7 @@ class ExchangeHelper;
 class MPIExchangeEngine : public ExchangeEngine
 {
 public:
-    MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger, MPI_Comm comm, bool gpuAwareMPI);
+    MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger, MPI_Comm comm, bool gpuAwareMPI);
     ~MPIExchangeEngine();
     
     void init(cudaStream_t stream)     override;
@@ -45,8 +46,6 @@ private:
     void _send        (ExchangeHelper *helper, cudaStream_t stream);
 
 private:
-    std::unique_ptr<Exchanger> exchanger_;
-    
     std::vector<int> dir2rank_;
     std::vector<int> dir2sendTag_;
     std::vector<int> dir2recvTag_;    

@@ -1,14 +1,16 @@
 #include "single_node.h"
 #include "../exchange_helpers.h"
 
+#include <mirheo/core/exchangers/exchanger_interfaces.h>
 #include <mirheo/core/logger.h>
+
 #include <algorithm>
 
 namespace mirheo
 {
 
-SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger> exchanger) :
-    exchanger_(std::move(exchanger))
+SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger>&& exchanger) :
+    ExchangeEngine(std::move(exchanger))
 {}
 
 SingleNodeEngine::~SingleNodeEngine() = default;

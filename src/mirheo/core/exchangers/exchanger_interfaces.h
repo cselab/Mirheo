@@ -86,14 +86,4 @@ private:
     std::vector<std::unique_ptr<ExchangeHelper>> helpers_;
 };
 
-
-
-class ExchangeEngine
-{
-public:
-    virtual void init(cudaStream_t stream)     = 0;
-    virtual void finalize(cudaStream_t stream) = 0;
-    virtual ~ExchangeEngine();
-};
-
 } // namespace mirheo

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../exchanger_interfaces.h"
+#include "interface.h"
 
 #include <mpi.h>
 #include <string>
@@ -18,7 +18,7 @@ class ExchangeHelper;
 class SingleNodeEngine : public ExchangeEngine
 {
 public:
-    SingleNodeEngine(std::unique_ptr<Exchanger> exchanger);
+    SingleNodeEngine(std::unique_ptr<Exchanger>&& exchanger);
     ~SingleNodeEngine();
     
     void init    (cudaStream_t stream) override;
@@ -26,9 +26,6 @@ public:
 
 private:
     void _copySend2Recv(ExchangeHelper *helper, cudaStream_t stream);
-
-private:
-    std::unique_ptr<Exchanger> exchanger_;
 };
 
 } // namespace mirheo

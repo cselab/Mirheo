@@ -2,6 +2,7 @@ set(sources_cpp
   analytical_shapes/api.cpp
   bouncers/interface.cpp
   domain.cpp
+  exchangers/engines/interface.cpp
   exchangers/engines/mpi.cpp
   exchangers/engines/single_node.cpp
   exchangers/exchanger_interfaces.cpp

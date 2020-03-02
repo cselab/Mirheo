@@ -30,6 +30,7 @@ class Bouncer;
 class ObjectBelongingChecker;
 class SimulationPlugin;
 struct SimulationTasks;
+class ExchangeEngine;
 
 class Simulation : protected MirObject
 {

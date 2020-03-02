@@ -2,16 +2,18 @@
 #include "../exchange_helpers.h"
 #include "../utils/fragments_mapping.h"
 
-#include <mirheo/core/utils/timer.h>
+#include <mirheo/core/exchangers/exchanger_interfaces.h>
 #include <mirheo/core/logger.h>
+#include <mirheo/core/utils/timer.h>
+
 #include <algorithm>
 
 namespace mirheo
 {
 
-MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger> exchanger,
+MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
-    exchanger_(std::move(exchanger)),
+    ExchangeEngine(std::move(exchanger)),
     dir2rank_   (FragmentMapping::numFragments),
     dir2sendTag_(FragmentMapping::numFragments),
     dir2recvTag_(FragmentMapping::numFragments),

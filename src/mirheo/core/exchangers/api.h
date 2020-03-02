@@ -1,6 +1,8 @@
 #pragma once
 
 #include "exchanger_interfaces.h"
+#include "engines/interface.h"
+
 #include "engines/mpi.h"
 #include "engines/single_node.h"
 

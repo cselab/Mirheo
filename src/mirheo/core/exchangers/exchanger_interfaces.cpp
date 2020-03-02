@@ -26,7 +26,4 @@ size_t Exchanger::getNumExchangeEntities() const
     return helpers_.size();
 }
 
-
-ExchangeEngine::~ExchangeEngine() = default;
-
 } // namespace mirheo
