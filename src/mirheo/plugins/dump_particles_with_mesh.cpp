@@ -29,7 +29,7 @@ void ParticleWithMeshSenderPlugin::handshake()
 
     waitPrevSend();
     debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", getCName(), mesh->getNtriangles(), mesh->getNvertices());
-    SimpleSerializer::serialize(sendBuffer_, mesh->getNvertices(), mesh->triangles);
+    SimpleSerializer::serialize(sendBuffer_, mesh->getNvertices(), mesh->getFaces());
     send(sendBuffer_);
 }
 

@@ -73,14 +73,14 @@ MembraneMesh::MembraneMesh(const std::string& initialMesh, const std::string& st
 {
     Mesh stressFree(stressFreeMesh);
 
-    if (!sameFaces(triangles, stressFree.triangles))
+    if (!sameFaces(triangles, stressFree.getFaces()))
         die("Must pass meshes with same connectivity for initial positions and stressFree vertices");
     
-    if (vertexCoordinates.size() != stressFree.vertexCoordinates.size())
+    if (vertexCoordinates.size() != stressFree.getVertices().size())
         die("Must pass same number of vertices for initial positions and stressFree vertices");
     
     findAdjacent();
-    _computeInitialQuantities(stressFree.vertexCoordinates);
+    _computeInitialQuantities(stressFree.getVertices());
 }
 
 MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
@@ -101,7 +101,7 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
     
     Mesh stressFreeMesh(stressFreeVertices, faces);
     findAdjacent();
-    _computeInitialQuantities(stressFreeMesh.vertexCoordinates);
+    _computeInitialQuantities(stressFreeMesh.getVertices());
 }
 
 MembraneMesh::MembraneMesh(Loader& loader, const ConfigObject& config) :

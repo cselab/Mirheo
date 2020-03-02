@@ -44,7 +44,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
 
         for (int i = 0; i < nVerticesPerObject; ++i)
         {
-            const real3 dr0 = make_real3( ov->mesh->vertexCoordinates[i] * globalScale_);
+            const real3 dr0 = make_real3( ov->mesh->getVertices()[i] * globalScale_);
             const real3 r = com + q.rotate(dr0);
             const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 

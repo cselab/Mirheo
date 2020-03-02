@@ -31,7 +31,7 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
     fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshVertices_.devPtr();
 
-    RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
+    RigidOperations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
     return &meshVertices_;
@@ -51,7 +51,7 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
     fakeView.positions = meshOldVertices_.devPtr();
     fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
 
-    RigidOperations::applyRigidMotion(fakeView, ov->mesh->vertexCoordinates,
+    RigidOperations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
                                       RigidOperations::ApplyTo::PositionsOnly, stream);
 
     return &meshOldVertices_;

@@ -68,7 +68,10 @@ const int& Mesh::getMaxDegree() const {
     return maxDegree_;
 }
 
-PyTypes::VectorOfReal3 Mesh::getVertices()
+const PinnedBuffer<real4>& Mesh::getVertices() const {return vertexCoordinates;}
+const PinnedBuffer<int3>& Mesh::getFaces() const {return triangles;}
+
+PyTypes::VectorOfReal3 Mesh::getPyVertices()
 {
     vertexCoordinates.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfReal3 ret(getNvertices());
@@ -82,7 +85,7 @@ PyTypes::VectorOfReal3 Mesh::getVertices()
     return ret;
 }
 
-PyTypes::VectorOfInt3 Mesh::getTriangles()
+PyTypes::VectorOfInt3 Mesh::getPyFaces()
 {
     triangles.downloadFromDevice(defaultStream, ContainersSynch::Synch);
     PyTypes::VectorOfInt3 ret(getNtriangles());

@@ -89,10 +89,10 @@ void exportParticleVectors(py::module& m)
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         
     )")
-        .def("getVertices", &Mesh::getVertices, R"(
+        .def("getVertices", &Mesh::getPyVertices, R"(
         returns the vertex coordinates of the mesh.
     )")
-        .def("getTriangles", &Mesh::getTriangles, R"(
+        .def("getFaces", &Mesh::getPyFaces, R"(
         returns the vertex indices for each triangle of the mesh.
     )");
 

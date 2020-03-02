@@ -18,10 +18,9 @@ namespace mirheo
 class Mesh : public AutoObjectSnapshotTag
 {
 public:
-    PinnedBuffer<int3> triangles; ///< The list of faces
-    PinnedBuffer<real4> vertexCoordinates; ///< coordinates of all vertices (float4 to reduce number of load instructions)
-
-    /// CDefault constructor. no vertex and faces.
+    friend class MeshView;
+    
+    /// Default constructor. no vertex and faces.
     Mesh();
 
     /** Construct a \c Mesh from a off file
@@ -48,8 +47,12 @@ public:
     const int& getNvertices() const;  ///< \return the number of vertices
     const int& getMaxDegree() const;  ///< \return the maximum valence of all vertices
 
-    PyTypes::VectorOfReal3 getVertices();  ///< \return the list of vertices
-    PyTypes::VectorOfInt3  getTriangles(); ///< \return the list of faces
+
+    const PinnedBuffer<real4>& getVertices() const; ///< \return the list of vertices
+    const PinnedBuffer<int3>& getFaces() const;     ///< \return the list of faces
+
+    PyTypes::VectorOfReal3 getPyVertices();  ///< \return the list of vertices (python compatible)
+    PyTypes::VectorOfInt3  getPyFaces();     ///< \return the list of faces (python compatible)
 
     /** \brief Dump the mesh in an .off file, create a ConfigObject with the mesh name and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
@@ -70,6 +73,10 @@ protected:
 
     /// Check if all faces contain valid indices; dies otherwise 
     void _check() const;
+
+protected:
+    PinnedBuffer<int3> triangles; ///< The list of faces
+    PinnedBuffer<real4> vertexCoordinates; ///< coordinates of all vertices (float4 to reduce number of load instructions)
 
 private:
     int nvertices_{0};  ///< number of vertices
