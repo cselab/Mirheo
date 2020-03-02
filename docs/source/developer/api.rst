@@ -15,6 +15,7 @@ Library API
    api/interactions
    api/logger
    api/marching_cubes
+   api/mesh
    api/mir_object
    api/object_belonging
    api/packers
