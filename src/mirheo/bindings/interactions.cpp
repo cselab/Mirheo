@@ -42,12 +42,12 @@ castToMap(const py::kwargs& kwargs, const std::string& intName)
 static std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc, std::string filterDesc,
-                          bool stressFree, real growUntil, py::kwargs kwargs)
+                          bool stressFree, real initLengthFraction, real growUntil, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
     
     return InteractionFactory::createInteractionMembrane
-        (state, name, shearDesc, bendingDesc, filterDesc, parameters, stressFree, growUntil);
+        (state, name, shearDesc, bendingDesc, filterDesc, parameters, stressFree, initLengthFraction, growUntil);
 }
 
 static std::shared_ptr<BaseRodInteraction>
@@ -359,15 +359,17 @@ void exportInteractions(py::module& m)
     pyMembraneForces.def(py::init(&createInteractionMembrane),
                          "state"_a, "name"_a,
                          "shear_desc"_a, "bending_desc"_a, "filter_desc"_a = "keep_all",
-                         "stress_free"_a=false, "grow_until"_a=0._r, R"( 
+                         "stress_free"_a=false, "initial_length_fraction"_a=0.5_r, "grow_until"_a=0._r, R"( 
              Args:
                  name: name of the interaction
                  shear_desc: a string describing what shear force is used
                  bending_desc: a string describing what bending force is used
                  filter_desc: a string describing which membranes are concerned
                  stress_free: if True, stress Free shape is used for the shear parameters
-                 grow_until: the size increases linearly in time from half of the provided mesh 
-                             to its full size after that time; the parameters are scaled accordingly with time
+                 initial_length_fraction: the size increases linearly in time from this fraction of the provided mesh 
+                     to its full size after that grow_until time; the parameters are scaled accordingly with time
+                 grow_until: the size increases linearly in time from a fraction of the provided mesh 
+                     to its full size after that time; the parameters are scaled accordingly with time
 
              kwargs:
 

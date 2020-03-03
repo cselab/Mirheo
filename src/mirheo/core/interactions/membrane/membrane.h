@@ -78,7 +78,8 @@ public:
         \param [in] parameters The common parameters from all kernel forces
         \param [in] triangleParams Parameters that contain the parameters of the triangle forces kernel
         \param [in] dihedralParams Parameters that contain the parameters of the dihedral forces kernel
-        \param [in] growUntil The membrane will grow from half its size to its full size in this amount of time
+        \param [in] initLengthFraction The membrane will grow from this fraction of its size to its full size in \p growUntil time
+        \param [in] growUntil The membrane will grow from \p initLengthFraction fraction of its size to its full size in this amount of time
         \param [in] filter Describes which membranes to apply the interactions 
         \param [in] seed Random seed for rng
 
@@ -87,9 +88,10 @@ public:
     MembraneInteraction(const MirState *state, std::string name, CommonMembraneParameters parameters,
                         typename TriangleInteraction::ParametersType triangleParams,
                         typename DihedralInteraction::ParametersType dihedralParams,
-                        real growUntil, Filter filter, long seed = 42424242) :
+                        real initLengthFraction, real growUntil, Filter filter, long seed = 42424242) :
         BaseMembraneInteraction(state, name),
         parameters_(parameters),
+        initLengthFraction_(initLengthFraction),
         growUntil_(growUntil),
         dihedralParams_(dihedralParams),
         triangleParams_(triangleParams),
@@ -104,6 +106,7 @@ public:
     */
     MembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
         BaseMembraneInteraction(state, loader, config),
+        initLengthFraction_{config["initLengthFraction"]},
         growUntil_{config["growUntil"]},
         parameters_{loader.load<CommonMembraneParameters>(config["parameters"])},
         dihedralParams_{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
@@ -214,6 +217,7 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
         ConfigObject config = BaseMembraneInteraction::_saveSnapshot(saver, typeName);
+        config.emplace("initLengthFraction",       saver(initLengthFraction_));
         config.emplace("growUntil",      saver(growUntil_));
         config.emplace("parameters",     saver(parameters_));
         config.emplace("dihedralParams", saver(dihedralParams_));
@@ -237,17 +241,18 @@ private:
         \param [in] t The simulation time (must be positive)
         \return scaling factor for length
 
-        Will grow linearly from 1/2 to 1 during the first growUntil_ time interval. 
+        Will grow linearly from initLengthFraction_ to 1 during the first growUntil_ time interval. 
         Otherwise this returns 1.
      */
     real _scaleFromTime(real t) const
     {
-        return math::min(1.0_r, 0.5_r + 0.5_r * (t / growUntil_));
+        return math::min(1.0_r, initLengthFraction_ + (1.0_r - initLengthFraction_) * (t / growUntil_));
     }
 
 private:
 
-    real growUntil_; ///< See _scaleFromTime()
+    real initLengthFraction_; ///< Initial length scale (fraction); See _scaleFromTime()
+    real growUntil_;          ///< Time required o recover the full size; See _scaleFromTime()
     CommonMembraneParameters parameters_; ///< parameters common to all variants of this object
     typename DihedralInteraction::ParametersType dihedralParams_; ///< dihedral forces parameters
     typename TriangleInteraction::ParametersType triangleParams_; ///< traingle forces parameters

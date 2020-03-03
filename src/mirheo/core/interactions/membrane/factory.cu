@@ -17,7 +17,7 @@ std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, const std::string& name,
                           CommonMembraneParameters commonParams,
                           VarBendingParams varBendingParams, VarShearParams varShearParams,
-                          bool stressFree, real growUntil, VarMembraneFilter varFilter)
+                          bool stressFree, real initLengthFraction, real growUntil, VarMembraneFilter varFilter)
 {
     std::shared_ptr<BaseMembraneInteraction> impl;
 
@@ -31,14 +31,14 @@ createInteractionMembrane(const MirState *state, const std::string& name,
             using TriangleForce = typename decltype(shearParams)::TriangleForce <StressFreeState::Active>;
             
             impl = std::make_shared<MembraneInteraction<TriangleForce, DihedralForce, FilterType>>
-                (state, name, commonParams, shearParams, bendingParams, growUntil, filter);
+                (state, name, commonParams, shearParams, bendingParams, initLengthFraction, growUntil, filter);
         }
         else
         {
             using TriangleForce = typename decltype(shearParams)::TriangleForce <StressFreeState::Inactive>;
             
             impl = std::make_shared<MembraneInteraction<TriangleForce, DihedralForce, FilterType>>
-                (state, name, commonParams, shearParams, bendingParams, growUntil, filter);
+                (state, name, commonParams, shearParams, bendingParams, initLengthFraction, growUntil, filter);
         }
     }, varBendingParams, varShearParams, varFilter);
 

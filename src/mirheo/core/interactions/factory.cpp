@@ -98,7 +98,7 @@ std::shared_ptr<BaseMembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               std::string filterDesc, const MapParams& parameters,
-                                              bool stressFree, real growUntil)
+                                              bool stressFree, real initLengthFraction, real growUntil)
 {
     VarBendingParams varBendingParams;
     VarShearParams varShearParams;
@@ -122,7 +122,7 @@ InteractionFactory::createInteractionMembrane(const MirState *state, std::string
     desc.checkAllRead();
     return createInteractionMembrane(
         state, name, commonPrms, varBendingParams, varShearParams, stressFree,
-        growUntil, varFilter);
+        initLengthFraction, growUntil, varFilter);
 }
 
 static RodParameters readRodParameters(ParametersWrap& desc)
