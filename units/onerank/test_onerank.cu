@@ -255,11 +255,11 @@ void execute(real3 length, int niters, double& l2, double& linf)
 
     auto haloExchanger = std::make_unique<ParticleHaloExchanger>();
     haloExchanger->attach(&pv, &cells, {});
-    SingleNodeEngine haloEngine(std::move(haloExchanger));
+    SingleNodeExchangeEngine haloEngine(std::move(haloExchanger));
 
     auto redistributor = std::make_unique<ParticleRedistributor>();
     redistributor->attach(&pv, &cells);
-    SingleNodeEngine redistEngine(std::move(redistributor));
+    SingleNodeExchangeEngine redistEngine(std::move(redistributor));
 
     const DPDParams dpdParams{adpd, gammadpd, kBT, powerdpd};
     auto dpd = createInteractionPairwise(&state, "dpd", rc, dpdParams, StressNoneParams{});

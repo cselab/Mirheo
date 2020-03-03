@@ -146,7 +146,7 @@ TEST (PACKERS_EXCHANGE, particles)
     auto exch = std::make_unique<ParticleHaloExchanger>();
     exch->attach(pv.get(), cl.get(), {});
 
-    auto engine = std::make_unique<SingleNodeEngine>(std::move(exch));
+    auto engine = std::make_unique<SingleNodeExchangeEngine>(std::move(exch));
 
     engine->init(defaultStream);
     engine->finalize(defaultStream);
@@ -323,7 +323,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
 
     exchanger->attach(rev.get(), rc, extraExchangeChannels);
         
-    auto engineExchange = std::make_unique<SingleNodeEngine>(std::move(exchanger));
+    auto engineExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
 
     clearForces(lforces);
     applyFieldUnbounded(lpos, lforces);
@@ -376,8 +376,8 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     exchanger       ->attach(rev.get(), rc, extraExchangeChannels);
     reverseExchanger->attach(rev.get(),   reverseExchangeChannels);
         
-    auto engineExchange        = std::make_unique<SingleNodeEngine>(std::move(exchanger));
-    auto engineReverseExchange = std::make_unique<SingleNodeEngine>(std::move(reverseExchanger));
+    auto engineExchange        = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
+    auto engineReverseExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(reverseExchanger));
 
     engineExchange->init(defaultStream);
     engineExchange->finalize(defaultStream);
@@ -451,8 +451,8 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     exchanger     ->attach(rev.get(), rc, exchangeChannels);
     extraExchanger->attach(rev.get(), extraExchangeChannels);
         
-    auto engineExchange      = std::make_unique<SingleNodeEngine>(std::move(exchanger));
-    auto engineExtraExchange = std::make_unique<SingleNodeEngine>(std::move(extraExchanger));
+    auto engineExchange      = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
+    auto engineExtraExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(extraExchanger));
 
     engineExchange->init(defaultStream);
     engineExchange->finalize(defaultStream);

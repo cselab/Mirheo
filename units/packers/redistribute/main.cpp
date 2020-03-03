@@ -332,7 +332,7 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     auto redistr = std::make_unique<ParticleRedistributor>();
     redistr->attach(pv.get(), cl.get());
 
-    auto engine = std::make_unique<SingleNodeEngine>(std::move(redistr));
+    auto engine = std::make_unique<SingleNodeExchangeEngine>(std::move(redistr));
 
     engine->init(defaultStream);
     engine->finalize(defaultStream);
@@ -372,7 +372,7 @@ TEST (PACKERS_REDISTRIBUTE, objects)
     auto redistr = std::make_unique<ObjectRedistributor>();
     redistr->attach(rev.get());
 
-    auto engine = std::make_unique<SingleNodeEngine>(std::move(redistr));
+    auto engine = std::make_unique<SingleNodeExchangeEngine>(std::move(redistr));
 
     engine->init(defaultStream);
     engine->finalize(defaultStream);
@@ -418,7 +418,7 @@ TEST (PACKERS_REDISTRIBUTE, rods)
     auto redistr = std::make_unique<ObjectRedistributor>();
     redistr->attach(rv.get());
 
-    auto engine = std::make_unique<SingleNodeEngine>(std::move(redistr));
+    auto engine = std::make_unique<SingleNodeExchangeEngine>(std::move(redistr));
 
     engine->init(defaultStream);
     engine->finalize(defaultStream);
