@@ -14,15 +14,28 @@ class ObjectVector;
 class ObjectHaloExchanger;
 class ObjectPacker;
 
+/** \brief Pack and unpack data from ghost particles back to the original bulk data.
+
+    The ghost particles data must come from a ObjectHaloExchanger object.
+    The attached ObjectVector objects must be the same as the ones in the external ObjectHaloExchanger 
+    (and in the same order).
+ */
 class ObjectReverseExchanger : public Exchanger
 {
 public:
+    /** \brief Construct a ObjectReverseExchanger
+        \param entangledHaloExchanger The object that will create the ghost particles.
+     */
     ObjectReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger);
     virtual ~ObjectReverseExchanger();
     
+    /** \brief Add an ObjectVector for reverse halo exchange. 
+        \param ov The ObjectVector to attach
+        \param channelNames The list of channels to send back
+     */
     void attach(ObjectVector *ov, std::vector<std::string> channelNames);
 
-protected:
+private:
     std::vector<ObjectVector*> objects_;    
     ObjectHaloExchanger *entangledHaloExchanger_;
     std::vector<std::unique_ptr<ObjectPacker>> packers_, unpackers_;        

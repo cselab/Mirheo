@@ -7,6 +7,7 @@
 namespace mirheo
 {
 
+/// generic object packer
 using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
 
 namespace ExchangersCommon

@@ -11,78 +11,71 @@ namespace mirheo
 
 class ExchangeEntity;
 
-/**
- * Interface for classes preparing and packing particles for exchange
- * 
- * The virtual method prepareSizes() determines the size
- * of data to be exchanged
- *
- * The virtual method prepareData() fills the corresponding
- * ExchangeEntity buffers with the data to exchange
- *
- * The virtual combineAndUploadData() takes care
- * of storing data from the ExchangeEntity to where is has to be
+/** \brief Pack and unpack \c ParticleVector objects for exchange.
+
+    The user should register one (or more) ExchangeEntity objects that represent
+    the data to exchange.
+    The functions interface functions can then be called in the correct order to pack and unpack the data.
+    
+    Designed to be used with an ExchangeEngine.
  */
 class Exchanger
 {
 public:
-
     virtual ~Exchanger();
 
+    /** \brief register an ExchangeEntity in this exchanger.
+        \param [in] e The ExchangeEntity object to register. Will pass ownership.
+     */
     void addExchangeEntity(std::unique_ptr<ExchangeEntity>&& e);
 
+    /// \return ExchangeEntity with the given id (0 <= id < getNumExchangeEntities()).
     ExchangeEntity*       getExchangeEntity(size_t id);
-    const ExchangeEntity* getExchangeEntity(size_t id) const;
+    const ExchangeEntity* getExchangeEntity(size_t id) const; ///< see getExchangeEntity()
 
+    /// \return The number of registered ExchangeEntity.
     size_t getNumExchangeEntities() const;
     
-    /**
-     * This function has to provide sizes of the data to be communicated in
-     * `helpers[id].`. It has to set `helpers[id].sendSizes` and
-     * `helpers[id].sendOffsets` on the CPU
-     *
-     * @param id helper id that will be filled with data
+    /** \brief Compute the sizes of the data to be communicated in the given ExchangeEntity.
+        \param id The index of the concerned ExchangeEntity
+        \param stream Execution stream
+
+        After this call, the `send.sizes`, `send.sizeBytes`, `send.offsets` and `send.offsetsBytes` 
+        of the ExchangeEntity are available on the CPU.
      */
     virtual void prepareSizes(size_t id, cudaStream_t stream) = 0;
 
-    /**
-     * This function has to provide data that has to be communicated in
-     * `helpers[id]`. It has to set `helpers[id].sendSizes` and
-     * `helpers[id].sendOffsets` on the CPU, but the bulk data of
-     * `helpers[id].sendBuf` must be only set on GPU. The reason is because
-     * in most cases offsets and sizes are anyways needed on CPU side
-     * to resize stuff, but bulk data are not; and it would be possible
-     * to change the MPI backend to CUDA-aware calls.
-     *
-     * @param id helper id that will be filled with data
+    /** \brief Pack the data managed by the given ExchangeEntity
+        \param id The index of the concerned ExchangeEntity
+        \param stream Execution stream
+        \note Must be executed after prepareSizes()
      */
     virtual void prepareData (size_t id, cudaStream_t stream) = 0;
 
-    /**
-     * This function has to unpack the received data. Similarly to
-     * prepareData() function, when it is called `helpers[id].recvSizes`
-     * and `helpers[id].recvOffsets` are set according to the
-     * received data on the CPU only. However, `helpers[id].recvBuf`
-     * will contain already GPU data
-     *
-     * @param id helper id that is filled with the received data
+    /** \brief Unpack the received data. 
+        \param id The index of the concerned ExchangeEntity
+        \param stream Execution stream
+
+        After this call, the `recv.sizes`, `recv.sizeBytes`, `recv.offsets` and `recv.offsetsBytes` 
+        of the ExchangeEntity must be available on the CPU and GPU before this call.
+        Furthermore, the recv buffers must already be on the device memory.
+        
+        \note Must be executed after prepareData()
      */
     virtual void combineAndUploadData(size_t id, cudaStream_t stream) = 0;
 
-    /**
-     * If the ParticleVector didn't change since the last similar MPI
-     * exchange, there is no need to run the exchange again. This function
-     * controls such behaviour
-     * @param id of the ParticleVector and associated ExchangeEntity
-     * @return true if exchange is required, false - if not
+    /** \brief Stats if the data of an ExchangeEntity needs to be exchanged.
+        \param id The index of the concerned ExchangeEntity
+        \return \c true if exchange is required, \c false otherwise
+
+        If the ParticleVector didn't change since the last exchange, 
+        there is no need to run the exchange again. 
+        This function controls such behaviour.
      */
     virtual bool needExchange(size_t id) = 0;
 
 private:
-    /**
-     * Vector of helpers, that have buffers for data exchange
-     * and other required information, see :any:`ExchangeEntity`
-     */ 
+    /// list of ExchangeEntity that manages the data to exchange.
     std::vector<std::unique_ptr<ExchangeEntity>> helpers_;
 };
 

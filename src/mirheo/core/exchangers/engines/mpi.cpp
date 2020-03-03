@@ -241,7 +241,7 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
 
     const auto rSizesBytes   = helper->recv.sizesBytes.  hostPtr();
     const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
-    bool singleCopy = helper->recv.offsetsBytes[FragmentMapping::numFragments] < singleCopyThreshold_;
+    const bool singleCopy = helper->recv.offsetsBytes[FragmentMapping::numFragments] < singleCopyThreshold_;
     
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI_ ? "on" : "off");
@@ -254,7 +254,6 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
     if (singleCopy || gpuAwareMPI_)
     {
         tm.start();
-        // MPI_Check( MPI_Waitall(helper->recvRequests.size(), helper->recvRequests.data(), MPI_STATUSES_IGNORE) );
         safeWaitAll((int) helper->recv.requests.size(), helper->recv.requests.data());
         waitTime = tm.elapsed();
         if (!gpuAwareMPI_)
@@ -270,7 +269,7 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
             MPI_Check( MPI_Waitany((int) helper->recv.requests.size(), helper->recv.requests.data(), &idx, MPI_STATUS_IGNORE) );
             waitTime += tm.elapsedAndReset();
 
-            int from = helper->recvRequestIdxs[idx];
+            const int from = helper->recvRequestIdxs[idx];
 
             CUDA_Check( cudaMemcpyAsync(helper->recv.buffer.devPtr()  + rOffsetsBytes[from],
                                         helper->recv.buffer.hostPtr() + rOffsetsBytes[from],
@@ -278,7 +277,6 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
         }
     }
 
-    // And report!
     debug("Completed receive for '%s', waiting took %f ms", helper->getCName(), waitTime);
 }
 
