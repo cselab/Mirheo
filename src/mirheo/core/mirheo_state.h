@@ -21,7 +21,7 @@ public:
     /** \brief Construct a MirState object
         \param [in] domain The DomainInfo of the simulation
         \param [in] dt Simulation time step
-        \param [in] state If not \nullptr, will set the current time info from snapshot info
+        \param [in] state If not \c nullptr, will set the current time info from snapshot info
     */
     MirState(DomainInfo domain, real dt, const ConfigValue *state = nullptr);
 
@@ -55,9 +55,11 @@ public:
     StepType currentStep; ///< Current simulation step
 };
 
+/// template specialization struct to implement snapshot save
 template <>
 struct TypeLoadSave<MirState>
 {
+    /// save a MirState object to snapshot object
     static ConfigValue save(Saver&, MirState& state);
 };
 

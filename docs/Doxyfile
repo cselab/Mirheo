@@ -28,7 +28,10 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/marching_cubes.h \
 	../src/mirheo/core/containers.h \
 	../src/mirheo/core/mesh/ \
-	../src/mirheo/core/exchangers/
+	../src/mirheo/core/exchangers/ \
+	../src/mirheo/core/domain.h \
+	../src/mirheo/core/mirheo_state.h
+	
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

@@ -9,6 +9,7 @@ Library API
    api/bouncers
    api/celllist
    api/containers
+   api/domain
    api/exchangers
    api/field
    api/ics
@@ -18,6 +19,7 @@ Library API
    api/marching_cubes
    api/mesh
    api/mir_object
+   api/mir_state
    api/object_belonging
    api/packers
    api/pvs
