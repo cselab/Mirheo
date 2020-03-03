@@ -118,7 +118,7 @@ set(sources_cu
   walls/wall_with_velocity.cu
   )
 
-add_library(${LIB_MIR_CORE} STATIC ${sources_cpp} ${sources_cu})
+add_library(${LIB_MIR_CORE} STATIC ${sources_cu} ${sources_cpp})
 
 
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR} )
