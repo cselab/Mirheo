@@ -29,7 +29,7 @@ std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
                           std::string shearDesc, std::string bendingDesc,
                           std::string filterDesc, const MapParams& parameters,
-                          bool stressFree, real initLengthFraction, real growUntil);
+                          bool stressFree);
 
 std::shared_ptr<BaseRodInteraction>
 createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,

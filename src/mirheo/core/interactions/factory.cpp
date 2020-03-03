@@ -98,12 +98,16 @@ std::shared_ptr<BaseMembraneInteraction>
 InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               std::string filterDesc, const MapParams& parameters,
-                                              bool stressFree, real initLengthFraction, real growUntil)
+                                              bool stressFree)
 {
     VarBendingParams varBendingParams;
     VarShearParams varShearParams;
     VarMembraneFilter varFilter;
     ParametersWrap desc {parameters};    
+
+    // those are default parameters
+    real initLengthFraction {1.0_r};
+    real growUntil          {0.0_r};
     
     auto commonPrms = readCommonParameters(desc);
 
@@ -118,6 +122,12 @@ InteractionFactory::createInteractionMembrane(const MirState *state, std::string
     if      (filterDesc == "keep_all")   varFilter = FilterKeepAll{};
     else if (filterDesc == "by_type_id") varFilter = readFilterKeepByTypeId(desc);
     else                                 die("No such filter parameters: '%s'", filterDesc.c_str());
+
+    if (desc.exists<real>("grow_until") || desc.exists<real>("init_length_fraction"))
+    {
+        growUntil          = desc.read<real>("grow_until");
+        initLengthFraction = desc.read<real>("init_length_fraction");
+    }
     
     desc.checkAllRead();
     return createInteractionMembrane(

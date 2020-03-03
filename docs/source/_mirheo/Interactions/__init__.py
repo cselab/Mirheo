@@ -79,7 +79,7 @@ class MembraneForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str = 'keep_all', stress_free: bool = False, grow_until: float = 0.0, **kwargs) -> None
+        r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str = 'keep_all', stress_free: bool = False, **kwargs) -> None
 
  
              Args:
@@ -88,18 +88,18 @@ class MembraneForces(Interaction):
                  bending_desc: a string describing what bending force is used
                  filter_desc: a string describing which membranes are concerned
                  stress_free: if True, stress Free shape is used for the shear parameters
-                 grow_until: the size increases linearly in time from half of the provided mesh 
-                             to its full size after that time; the parameters are scaled accordingly with time
-
+      
              kwargs:
 
-                 * **tot_area**:   total area of the membrane at equilibrium
-                 * **tot_volume**: total volume of the membrane at equilibrium
-                 * **ka_tot**:     constraint energy for total area
-                 * **kv_tot**:     constraint energy for total volume
-                 * **kBT**:        fluctuation temperature (set to zero will switch off fluctuation forces)
-                 * **gammaC**:     central component of dissipative forces
-                 * **gammaT**:     tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
+                 * **tot_area**:                total area of the membrane at equilibrium
+                 * **tot_volume**:              total volume of the membrane at equilibrium
+                 * **ka_tot**:                  constraint energy for total area
+                 * **kv_tot**:                  constraint energy for total volume
+                 * **kBT**:                     fluctuation temperature (set to zero will switch off fluctuation forces)
+                 * **gammaC**:                  central component of dissipative forces
+                 * **gammaT**:                  tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
+                 * **initial_length_fraction**: the size of the membrane increases linearly in time from this fraction of the provided mesh to its full size after grow_until time; the parameters are scaled accordingly with time. If this is set, **grow_until** must also be provided. Default value: 1.
+                 * **grow_until**:              the size increases linearly in time from a fraction of the provided mesh to its full size after that time; the parameters are scaled accordingly with time. If this is set, **initial_length_fraction** must also be provided. Default value: 0
 
              Shear Parameters, warm like chain model (set **shear_desc** = 'wlc'):
 
