@@ -56,7 +56,8 @@ void MPIExchangeEngine::init(cudaStream_t stream)
     
     // Post irecv for sizes
     for (size_t i = 0; i < numExchangeEntities; ++i)
-        if (exchanger_->needExchange(i)) _postRecvSize(exchanger_->getExchangeEntity(i));
+        if (exchanger_->needExchange(i))
+            _postRecvSize(exchanger_->getExchangeEntity(i));
 
     // Derived class determines what to send
     for (size_t i = 0; i < numExchangeEntities; ++i)
@@ -78,7 +79,7 @@ void MPIExchangeEngine::init(cudaStream_t stream)
         if (exchanger_->needExchange(i))
             _postRecv(exchanger_->getExchangeEntity(i));
 
-    // CUDA-aware MPI will work in a separate stream, need to synchro
+    // CUDA-aware MPI will work in a separate stream, need to synchronize
     if (gpuAwareMPI_)
         cudaStreamSynchronize(stream);
 

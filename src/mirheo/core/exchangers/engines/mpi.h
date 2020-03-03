@@ -11,27 +11,21 @@ namespace mirheo
 
 class ExchangeEntity;
 
-/**
- * Engine implementing MPI exchange logic.
- *
- * The pipeline is as follows:
- * - base method init() sets up the communication:
- *   - calls base method postRecvSize() that issues MPI_Irecv() calls
- *     for sizes of data that has to be received
- *   - calls exchanger method prepareData() that fills the corresponding
- *     ExchangeEntity buffers with the data to exchange
- * - base method finalize() runs the communication (it could
- *   be split into send/recv pair, maybe this will be done later):
- *   - calls base method send() that sends the data from ExchangeEntity
- *     buffers to the relevant MPI processes
- *   - calls base method recv() that blocks until the sizes of the
- *     data and data themselves are received and stored in the ExchangeEntity
- *   - calls exchanger combineAndUploadData() that takes care
- *     of storing data from the ExchangeEntity to where is has to be
+/** \brief Engine implementing asynchronous MPI communication.
+ 
+    The pipeline is as follows:
+    - init() prepares the data into buffers, exchange the sizes, allocate recv buffers and post 
+      the asynchronous communication calls.
+    - finalize() waits for the communication to finish and unpacks the data.
  */
 class MPIExchangeEngine : public ExchangeEngine
 {
 public:
+    /** \brief Construct a MPIExchangeEngine.
+        \param exchanger The class responsible to pack and unpack the data.
+        \param comm The cartesian communicator that represents the simulation domain.
+        \param gpuAwareMPI \c true to enable RDMA implementation. Only works if the MPI library has this feature implemented.
+     */
     MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger, MPI_Comm comm, bool gpuAwareMPI);
     ~MPIExchangeEngine();
     

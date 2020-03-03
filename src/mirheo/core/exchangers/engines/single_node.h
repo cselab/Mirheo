@@ -10,16 +10,18 @@ namespace mirheo
 
 class ExchangeEntity;
 
-/**
- * Engine used when there is only one node
- *
- * Simply swap senfBuf and recvBuf
+/** \brief Special engine optimized for single node simulations.
+
+    Instead of communicating thedata through MPI, the send and recv buffers are simply swapped.
  */
-class SingleNodeEngine : public ExchangeEngine
+class SingleNodeExchangeEngine : public ExchangeEngine
 {
 public:
-    SingleNodeEngine(std::unique_ptr<Exchanger>&& exchanger);
-    ~SingleNodeEngine();
+    /** \brief Construct a SingleNodeExchangeEngine.
+        \param exchanger The class responsible to pack and unpack the data.
+     */
+    SingleNodeExchangeEngine(std::unique_ptr<Exchanger>&& exchanger);
+    ~SingleNodeExchangeEngine();
     
     void init    (cudaStream_t stream) override;
     void finalize(cudaStream_t stream) override;

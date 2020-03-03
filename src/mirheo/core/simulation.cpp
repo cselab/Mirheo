@@ -787,7 +787,7 @@ void Simulation::prepareEngines()
     // otherwise use MPI
     if (nranks3D_.x * nranks3D_.y * nranks3D_.z == 1)
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
-            return std::make_unique<SingleNodeEngine> (std::move(exch));
+            return std::make_unique<SingleNodeExchangeEngine> (std::move(exch));
         };
     else
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {

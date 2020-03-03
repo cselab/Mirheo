@@ -9,13 +9,13 @@
 namespace mirheo
 {
 
-SingleNodeEngine::SingleNodeEngine(std::unique_ptr<Exchanger>&& exchanger) :
+SingleNodeExchangeEngine::SingleNodeExchangeEngine(std::unique_ptr<Exchanger>&& exchanger) :
     ExchangeEngine(std::move(exchanger))
 {}
 
-SingleNodeEngine::~SingleNodeEngine() = default;
+SingleNodeExchangeEngine::~SingleNodeExchangeEngine() = default;
 
-void SingleNodeEngine::init(cudaStream_t stream)
+void SingleNodeExchangeEngine::init(cudaStream_t stream)
 {
     const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
     
@@ -36,7 +36,7 @@ void SingleNodeEngine::init(cudaStream_t stream)
             exchanger_->prepareData(i, stream);
 }
 
-void SingleNodeEngine::finalize(cudaStream_t stream)
+void SingleNodeExchangeEngine::finalize(cudaStream_t stream)
 {
     const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
     
@@ -50,7 +50,7 @@ void SingleNodeEngine::finalize(cudaStream_t stream)
 }
 
 
-void SingleNodeEngine::_copySend2Recv(ExchangeEntity *helper, cudaStream_t stream)
+void SingleNodeExchangeEngine::_copySend2Recv(ExchangeEntity *helper, cudaStream_t stream)
 {
     const auto bulkId = helper->bulkId;
     
