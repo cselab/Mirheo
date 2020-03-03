@@ -17,6 +17,68 @@ __all__ = ["version", "tools", "_libmirheo_file"]
 # cleanup of the simulation
 __coordinator = None
 
+# Global unit converter. Applied to all values passed to Mirheo constructors.
+__unit_converter = None
+
+class PintUnitsConverter:
+    """Converts given values to the given unit system."""
+    UNIT_SYSTEM_NAME = '__mirheo'
+
+    def __init__(self, ureg, mirL='mirL', mirT='mirT', mirM='mirM'):
+        # A pint definitions file can be provided as a list of strings.
+        definitions = [
+            '@system ' + self.UNIT_SYSTEM_NAME,
+            '    ' + mirL,
+            '    ' + mirT,
+            '    ' + mirM,
+            '@end',
+        ]
+        ureg.load_definitions(definitions)
+        self.ureg = ureg
+
+    def __call__(self, value):
+        """Strip of all units using the Mirheo unit system as a reference.
+
+        All unrecognized data types will be returned as is.
+        """
+        # Just in case, we use `is` instead of `isinstance`, to avoid
+        # accidentally casting to base classes (e.g. OrderedDict -> dict).
+        cls = value.__class__
+        ureg = self.ureg
+        if cls is ureg.Quantity:
+            # The complicated (and quite expensive) procedure of changing an
+            # arbitrary quantity to the given unit system... We cannot use
+            # .m_as() as we don't know the exact quantity of the value.
+            old = ureg.default_system
+            try:
+                ureg.default_system = self.UNIT_SYSTEM_NAME
+                return value.to_base_units().magnitude
+            finally:
+                ureg.default_system = old
+        if cls is tuple:
+            return tuple(self(x) for x in value)
+        if cls is list:
+            return [self(x) for x in value]
+        if cls is dict:
+            return {k: self(v) for k, v in value.items()}
+        return value
+
+
+def set_unit_registry(ureg, mirL='mirL', mirT='mirT', mirM='mirM'):
+    """Register a pint UnitRegistry.
+
+    The unit registry will be used to convert any values with units to the
+    given Mirheo unit system before passing them to the mirheo C++ functions.
+
+    Arguments:
+        ureg: a ``pint.UnitRegistry`` object
+        mirL: name of the Mirheo length unit, defaults to ``mirL``
+        mirT: name of the Mirheo time unit, defaults to ``mirT``
+        mirM: name of the Mirheo mass unit, defaults to ``mirM``
+    """
+    global __unit_converter
+    __unit_converter = PintUnitsConverter(ureg, mirL, mirT, mirM)
+
 
 # Wrap the __init__ or __new__ method of all the simulation handlers and particle vectors
 # If we are not a compute task, just return None
@@ -24,10 +86,13 @@ __coordinator = None
 def decorate_object(f, needState = True):
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
-        global __coordinator
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
-        
+
+        if __unit_converter:
+            args   = __unit_converter(args)
+            kwargs = __unit_converter(kwargs)
+
         if __coordinator().isComputeTask():
             if needState:
                 return f(self, __coordinator().getState(), *args, **kwargs)
@@ -43,8 +108,11 @@ def decorate_coordinator(f):
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         global __coordinator
-        f(self, *args, **kwargs)
-        
+        if __unit_converter:
+            f(self, *__unit_converter(args), **__unit_converter(kwargs))
+        else:
+            f(self, *args, **kwargs)
+
         if __coordinator is not None and  __coordinator() is not None:
            raise Exception('There can only be one coordinator at a time!')
        

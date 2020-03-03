@@ -1,0 +1,3 @@
+domainGlobalSize = [20, 30, 40]
+dt = 492
+kBT = 2.25

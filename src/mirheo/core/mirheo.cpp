@@ -730,6 +730,7 @@ void Mirheo::saveSnapshot(std::string path)
         std::string jsonName = isComputeTask() ? "config.compute.json" : "config.post.json";
         storeToFile(content, joinPaths(path, jsonName));
     }
+    MPI_Barrier(comm_);
 }
 
 void Mirheo::setAttribute(const std::string& name, ConfigValue value)
