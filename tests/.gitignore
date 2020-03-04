@@ -74,6 +74,9 @@ h5
 /plugins/pos.ic.txt
 /plugins/stats/
 /plugins/vel.ic.txt
+/python/log_00000.log
+/python/log_00001.log
+/python/snapshot/
 /restart/initial.txt
 /restart/log_00000.log
 /restart/log_00001.log

@@ -7,7 +7,6 @@ Currently without any actual particles. Only the XMF structure is tested.
 """
 
 import mirheo as mir
-import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()

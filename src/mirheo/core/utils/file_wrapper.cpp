@@ -12,10 +12,11 @@ FileWrapper::FileWrapper(const std::string& fname, const std::string& mode,
                          bool forceFlushOnClose) :
     forceFlushOnClose_(forceFlushOnClose)
 {
-    if (open(fname, mode) != FileWrapper::Status::Success) {
+    if (open(fname, mode) != Status::Success) {
         die("Could not open the file \"%s\" in mode \"%s\".",
             fname.c_str(), mode.c_str());
     }
+    needClose_ = true;
 }
 
 FileWrapper::~FileWrapper()
