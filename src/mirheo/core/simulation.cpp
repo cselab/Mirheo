@@ -508,7 +508,7 @@ static void removeDuplicatedElements(std::vector<real>& v, real tolerance)
     v.resize( std::distance(v.begin(), it) );    
 }
 
-void Simulation::prepareCellLists()
+void Simulation::_prepareCellLists()
 {
     info("Preparing cell-lists");
 
@@ -581,7 +581,7 @@ static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLis
     return best;
 }
 
-void Simulation::prepareInteractions()
+void Simulation::_prepareInteractions()
 {
     info("Preparing interactions");
 
@@ -610,7 +610,7 @@ void Simulation::prepareInteractions()
     }
 }
 
-void Simulation::prepareBouncers()
+void Simulation::_prepareBouncers()
 {
     info("Preparing object bouncers");
 
@@ -639,7 +639,7 @@ void Simulation::prepareBouncers()
     }
 }
 
-void Simulation::prepareWalls()
+void Simulation::_prepareWalls()
 {
     info("Preparing walls");
 
@@ -669,7 +669,7 @@ void Simulation::prepareWalls()
     }
 }
 
-void Simulation::preparePlugins()
+void Simulation::_preparePlugins()
 {
     info("Preparing plugins");
     for (auto& pl : plugins) {
@@ -681,7 +681,7 @@ void Simulation::preparePlugins()
 }
 
 
-std::vector<std::string> Simulation::getExtraDataToExchange(ObjectVector *ov)
+std::vector<std::string> Simulation::_getExtraDataToExchange(ObjectVector *ov)
 {
     std::set<std::string> channels;
     
@@ -708,7 +708,7 @@ std::vector<std::string> Simulation::getExtraDataToExchange(ObjectVector *ov)
     return {channels.begin(), channels.end()};
 }
 
-std::vector<std::string> Simulation::getDataToSendBack(const std::vector<std::string>& extraOut,
+std::vector<std::string> Simulation::_getDataToSendBack(const std::vector<std::string>& extraOut,
                                                        ObjectVector *ov)
 {
     std::set<std::string> channels;
@@ -729,7 +729,7 @@ std::vector<std::string> Simulation::getDataToSendBack(const std::vector<std::st
     return {channels.begin(), channels.end()};
 }
 
-void Simulation::prepareEngines()
+void Simulation::_prepareEngines()
 {
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
     auto partHaloFinalImp               = std::make_unique<ParticleHaloExchanger>();
@@ -760,8 +760,8 @@ void Simulation::prepareEngines()
         {
             objRedistImp->attach(ov);
 
-            auto extraToExchange = getExtraDataToExchange(ov);
-            auto reverseExchange = getDataToSendBack(extraInt, ov);
+            auto extraToExchange = _getExtraDataToExchange(ov);
+            auto reverseExchange = _getDataToSendBack(extraInt, ov);
 
             objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
             objHaloReverseFinalImp->attach(ov, extraOut);
@@ -804,7 +804,7 @@ void Simulation::prepareEngines()
     objHaloReverseFinal_          = makeEngine(std::move(objHaloReverseFinalImp));
 }
 
-void Simulation::execSplitters()
+void Simulation::_execSplitters()
 {
     info("Splitting particle vectors with respect to object belonging");
 
@@ -819,7 +819,7 @@ void Simulation::execSplitters()
     }
 }
 
-void Simulation::createTasks()
+void Simulation::_createTasks()
 {
 #define INIT(NAME, DESC) tasks_ -> NAME = scheduler_->createTask(DESC);
     TASK_LIST(INIT);
@@ -1195,22 +1195,22 @@ void Simulation::init()
 {
     info("Simulation initiated");
 
-    prepareCellLists();
+    _prepareCellLists();
 
-    prepareInteractions();
-    prepareBouncers();
-    prepareWalls();
+    _prepareInteractions();
+    _prepareBouncers();
+    _prepareWalls();
 
     interactionsIntermediate_->checkCompatibleWith(*interactionsFinal_);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
-    preparePlugins();
-    prepareEngines();
+    _preparePlugins();
+    _prepareEngines();
 
     info("Time-step is set to %f", getCurrentDt());
     
-    createTasks();
+    _createTasks();
     buildDependencies(scheduler_.get(), tasks_.get());
 }
 
@@ -1221,7 +1221,7 @@ void Simulation::run(int nsteps)
     scheduler_->forceExec( tasks_->objHaloFinalFinalize, defaultStream );
     scheduler_->forceExec( tasks_->objClearHaloForces,   defaultStream );
     scheduler_->forceExec( tasks_->objClearLocalForces,  defaultStream );
-    execSplitters();
+    _execSplitters();
 
     MirState::StepType begin = state_->currentStep, end = state_->currentStep + nsteps;
 
@@ -1259,14 +1259,14 @@ void Simulation::notifyPostProcess(int tag, int msg) const
     }
 }
 
-void Simulation::restartState(const std::string& folder)
+void Simulation::_restartState(const std::string& folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
     auto good = TextIO::read(filename, state_->currentTime, state_->currentStep, checkpointId_);
     if (!good) die("failed to read '%s'\n", filename.c_str());    
 }
 
-void Simulation::checkpointState()
+void Simulation::_checkpointState()
 {
     auto filename = createCheckpointNameWithId(checkpointInfo_.folder, "state", "txt", checkpointId_);
 
@@ -1286,7 +1286,7 @@ static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
 
 void Simulation::restart(const std::string& folder)
 {
-    this->restartState(folder);
+    this->_restartState(folder);
 
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -1321,7 +1321,7 @@ void Simulation::restart(const std::string& folder)
 
 void Simulation::checkpoint()
 {
-    this->checkpointState();
+    this->_checkpointState();
     
     CUDA_Check( cudaDeviceSynchronize() );
     

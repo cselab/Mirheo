@@ -231,29 +231,27 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
-
-    std::vector<std::string> getExtraDataToExchange(ObjectVector *ov);
-    std::vector<std::string> getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
+    std::vector<std::string> _getExtraDataToExchange(ObjectVector *ov);
+    std::vector<std::string> _getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov);
     
-    void prepareCellLists();
-    void prepareInteractions();
-    void prepareBouncers();
-    void prepareWalls();
-    void preparePlugins();
-    void prepareEngines();
+    void _prepareCellLists();
+    void _prepareInteractions();
+    void _prepareBouncers();
+    void _prepareWalls();
+    void _preparePlugins();
+    void _prepareEngines();
     
-    void execSplitters();
+    void _execSplitters();
 
-    void createTasks();
+    void _createTasks();
 
     using MirObject::restart;
     using MirObject::checkpoint;
 
-    void restartState(const std::string& folder);
-    void checkpointState();
+    void _restartState(const std::string& folder);
+    void _checkpointState();
 
 private:
-    
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 
     template <class T>
