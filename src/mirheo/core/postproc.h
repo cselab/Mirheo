@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-/** \brief Manage post processing tasks (see \c Plugins) related to a \c Simulation. 
+/** \brief Manage post processing tasks (see \c Plugin) related to a \c Simulation. 
 
     There must be exactly one \c Postprocess rank per \c Simulation rank or no \c Postprocess rank at all.
     All \c Plugin objects must be registered and set before calling init() and run().

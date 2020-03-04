@@ -54,6 +54,12 @@ SimulationPlugin::SimulationPlugin(const MirState *state, const std::string& nam
 
 SimulationPlugin::~SimulationPlugin() = default;
 
+void SimulationPlugin::setup(__UNUSED Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+{
+    debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
+    _setup(comm, interComm);
+}
+
 void SimulationPlugin::beforeCellLists            (__UNUSED cudaStream_t stream) {}
 void SimulationPlugin::beforeForces               (__UNUSED cudaStream_t stream) {}
 void SimulationPlugin::beforeIntegration          (__UNUSED cudaStream_t stream) {}
@@ -62,12 +68,6 @@ void SimulationPlugin::beforeParticleDistribution (__UNUSED cudaStream_t stream)
 
 void SimulationPlugin::serializeAndSend (__UNUSED cudaStream_t stream) {}
 
-
-void SimulationPlugin::setup(__UNUSED Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
-{
-    debug("Setting up simulation plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
-    _setup(comm, interComm);
-}
 
 void SimulationPlugin::finalize()
 {
@@ -115,11 +115,10 @@ PostprocessPlugin::PostprocessPlugin(const std::string& name) :
 
 PostprocessPlugin::~PostprocessPlugin() = default;
 
-MPI_Request PostprocessPlugin::waitData()
+void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    MPI_Request req;
-    MPI_Check( MPI_Irecv(&size_, 1, MPI_INT, rank_, _sizeTag(), interComm_, &req) );
-    return req;
+    debug("Setting up postproc plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
+    _setup(comm, interComm);
 }
 
 void PostprocessPlugin::recv()
@@ -137,13 +136,14 @@ void PostprocessPlugin::recv()
     debug3("Plugin '%s' has received the data (%d bytes)", getCName(), count);
 }
 
-void PostprocessPlugin::deserialize() {}
-
-void PostprocessPlugin::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
+MPI_Request PostprocessPlugin::waitData()
 {
-    debug("Setting up postproc plugin '%s', MPI tags are (%d, %d)", getCName(), _sizeTag(), _dataTag());
-    _setup(comm, interComm);
+    MPI_Request req;
+    MPI_Check( MPI_Irecv(&size_, 1, MPI_INT, rank_, _sizeTag(), interComm_, &req) );
+    return req;
 }
+
+void PostprocessPlugin::deserialize() {}
 
 ConfigObject PostprocessPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
