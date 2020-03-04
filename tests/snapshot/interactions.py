@@ -30,14 +30,13 @@ else:
     u.run(1)  # Test that it does not crash.
 
 # NOTE: The development docs include this test case as a JSON sample.
-#       Currently it assumes it contains only the two JSON objects.
+#       If updating this test case, check if the docs has to be updated.
 
 # TEST: snapshot.interactions
 # cd snapshot
 # rm -rf snapshot1/ snapshot2/
 # mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot1/
 # mir.run --runargs "-n 2" ./interactions.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
-# git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
-# git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
+# git --no-pager diff --no-index snapshot1/config.json snapshot2/config.json
 # mir.post h5diff snapshot1/pv.PV.h5 snapshot2/pv.PV.h5
-# cat snapshot1/config.compute.json snapshot1/config.post.json > snapshot.out.txt
+# cp snapshot1/config.json snapshot.out.txt

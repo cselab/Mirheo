@@ -164,8 +164,9 @@ public:
     const String& getString() const;
     const Array& getArray() const;
     Array& getArray();
-    const Object& getObject() const;
-    Object& getObject();
+    const Object& getObject() const &;
+    Object& getObject() &;
+    Object getObject() &&;
 
     /// Check if the key exists. Terminates if not an object.
     bool contains(const std::string &key) const { return getObject().contains(key); }
@@ -254,7 +255,8 @@ public:
     ~Saver();
 
     SaverContext& getContext() noexcept { return *context_; }
-    const ConfigValue& getConfig() const noexcept { return config_; }
+    ConfigObject& getConfig() & noexcept { return config_; }
+    ConfigObject getConfig() && { return std::move(config_); }
 
     /// Save snapshot and prepare a config.
     template <typename T>
@@ -302,7 +304,7 @@ public:
 private:
     const ConfigRefString& _registerObject(const void *, ConfigValue newItem);
 
-    ConfigValue config_;
+    ConfigObject config_;
     std::map<const void*, ConfigRefString> refStrings_;
     SaverContext *context_;
 };

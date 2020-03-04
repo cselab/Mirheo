@@ -47,7 +47,7 @@ u.setInteraction(dpd, pv, pv)
 u.saveSnapshot('snapshot/')
 
 if u.isComputeTask():
-    with open('snapshot/config.compute.json') as f:
+    with open('snapshot/config.json') as f:
         config = json.loads(f.read())
 
     print("domainGlobalSize =", config["Mirheo"][0]["state"]["domainGlobalSize"])

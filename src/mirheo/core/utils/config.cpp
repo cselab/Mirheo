@@ -352,17 +352,24 @@ ConfigValue::Array& ConfigValue::getArray()
     die("getArray on a non-array object:\n%s", toJSONString().c_str());
 }
 
-const ConfigValue::Object& ConfigValue::getObject() const
+const ConfigValue::Object& ConfigValue::getObject() const &
 {
     if (auto *obj = get_if<Object>())
         return *obj;
     die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-ConfigValue::Object& ConfigValue::getObject()
+ConfigValue::Object& ConfigValue::getObject() &
 {
     if (auto *obj = get_if<Object>())
         return *obj;
+    die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
+}
+
+ConfigValue::Object ConfigValue::getObject() &&
+{
+    if (auto *obj = get_if<Object>())
+        return std::move(*obj);
     die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
@@ -373,8 +380,7 @@ ConfigValue& ConfigArray::_outOfBound [[noreturn]] (size_t index, size_t size) c
 }
 
 
-Saver::Saver(SaverContext *context) :
-    config_{ConfigValue::Object{}}, context_{context}
+Saver::Saver(SaverContext *context) : config_{ConfigObject{}}, context_{context}
 {}
 
 Saver::~Saver() = default;
@@ -411,10 +417,9 @@ const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
     newObject->erase(itCategory);
 
     // Find the category in the master object. Add an empty array if not found.
-    auto& obj = config_.getObject();
-    auto it = obj.find(category);
-    if (it == obj.end())
-        it = obj.emplace(category, ConfigValue::Array{}).first;
+    auto it = config_.find(category);
+    if (it == config_.end())
+        it = config_.emplace(category, ConfigValue::Array{}).first;
 
     // Get the object name, if it exists.
     auto itName = newObject->find("name");

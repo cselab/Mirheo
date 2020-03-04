@@ -14,16 +14,16 @@ Snapshot format
 
 The current implementation saves the whole simulation state as a single folder containing the following:
 
-- two JSON files describing the simulation setup, one for simulation side, one for postprocessing side of Mirheo,
+- a JSON file ``config.json`` describing the setup of both the compute and postprocess sides,
 - HDF5 files for particle and object vector data,
 - .off files for meshes,
-- other .dat files and similar.
+- other .dat files etc.
 
-The JSON files store the metadata of all particle vectors, interactions, integrators, plugins and other special objects like meshes or the ``Mirheo`` class instance.
+The JSON file stores the metadata of all particle vectors, interactions, integrators, plugins and other special objects like meshes or the ``Mirheo`` class instance.
 The Mirheo setup and interdependency of objects can be represented as a graph.
 To transform it into a tree-like JSON structure, we group objects by their categories (``Mesh``, ``ParticleVector``, ``Interaction``...), and use *reference strings* to link one object to another (e.g. ``ConfigRefString ref = "<TYPE with name=NAME>"``, where ``ConfigRefString`` is an alias of ``std::string``).
 
-The following is a preview of the two JSON objects (simulation and postprocess) from the interactions test case:
+The following is a preview of the JSON object from the interactions test case:
 
 .. NOTE: If replacing this test case with another, don't forget to update comments in the corresponding .py files!
 

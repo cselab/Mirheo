@@ -14,6 +14,18 @@
             "mesh": "<MembraneMesh with name=mesh_0>"
         }
     ],
+    "PostprocessPlugin": [
+        {
+            "__type": "PostprocessStats",
+            "name": "stats",
+            "filename": "stats.txt"
+        },
+        {
+            "__type": "MeshDumper",
+            "name": "rbcs",
+            "path": "ply/"
+        }
+    ],
     "SimulationPlugin": [
         {
             "__type": "SimulationStats",
@@ -30,6 +42,17 @@
             "__type": "MembraneExtraForcePlugin",
             "name": "extraForce",
             "pvName": "ov"
+        }
+    ],
+    "Postprocess": [
+        {
+            "__type": "Postprocess",
+            "name": "postprocess",
+            "checkpointFolder": "restart/",
+            "plugins": [
+                "<PostprocessStats with name=stats>",
+                "<MeshDumper with name=rbcs>"
+            ]
         }
     ],
     "Simulation": [
@@ -84,39 +107,7 @@
                 "dt": 0.10000000000000001,
                 "currentTime": 0,
                 "currentStep": 0
-            },
-            "simulation": "<Simulation with name=simulation>"
-        }
-    ]
-}
-{
-    "PostprocessPlugin": [
-        {
-            "__type": "PostprocessStats",
-            "name": "stats",
-            "filename": "stats.txt"
-        },
-        {
-            "__type": "MeshDumper",
-            "name": "rbcs",
-            "path": "ply/"
-        }
-    ],
-    "Postprocess": [
-        {
-            "__type": "Postprocess",
-            "name": "postprocess",
-            "checkpointFolder": "restart/",
-            "plugins": [
-                "<PostprocessStats with name=stats>",
-                "<MeshDumper with name=rbcs>"
-            ]
-        }
-    ],
-    "Mirheo": [
-        {
-            "__type": "Mirheo",
-            "postprocess": "<Postprocess with name=postprocess>"
+            }
         }
     ]
 }

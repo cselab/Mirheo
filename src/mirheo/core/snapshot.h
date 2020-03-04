@@ -34,12 +34,8 @@ public:
 class LoaderContext {
 public:
     LoaderContext(std::string snapshotPath);
-    LoaderContext(ConfigValue compute, ConfigValue postprocess,
-                  std::string snapshotPath = "snapshot/");
+    LoaderContext(ConfigValue config, std::string snapshotPath = "snapshot/");
     ~LoaderContext();
-
-    const ConfigObject& getCompObjectConfig(const std::string& category,
-                                            const std::string& name);
 
     template <typename T, typename ContainerT = T>
     std::shared_ptr<T> get(const ConfigRefString& ref)
@@ -60,8 +56,7 @@ public:
     }
 
     const std::string& getPath() const { return path_; }
-    const ConfigObject& getComp() const { return compConfig_.getObject(); }
-    const ConfigObject& getPost() const { return postConfig_.getObject(); }
+    const ConfigObject& getConfig() const { return config_.getObject(); }
 
 private:
     template <typename T, typename Factory>
@@ -73,8 +68,7 @@ private:
         std::map<std::string, std::shared_ptr<Interaction>>,
         std::map<std::string, std::shared_ptr<Integrator>>> objects_;
     std::string path_;
-    ConfigValue compConfig_;
-    ConfigValue postConfig_;
+    ConfigValue config_;
 };
 
 /** This is a mechanism for avoiding undefined symbols during the linking phase

@@ -42,10 +42,9 @@ else:
 # rm -rf snapshot1/ snapshot2/ snapshot.out.txt
 # mir.run --runargs "-n 2" ./membrane_vectors.py --ranks 1 1 1 --save-to snapshot1/
 # mir.run --runargs "-n 2" ./membrane_vectors.py --ranks 1 1 1 --save-to snapshot2/ --load-from snapshot1/
-# git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
-# git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
+# git --no-pager diff --no-index snapshot1/config.json snapshot2/config.json
 # git --no-pager diff --no-index snapshot1/mesh_0.off snapshot2/mesh_0.off
 # git --no-pager diff --no-index snapshot1/mesh_1.off snapshot2/mesh_1.off
 # git --no-pager diff --no-index snapshot1/mesh_0.stressFree.dat snapshot2/mesh_0.stressFree.dat
 # git --no-pager diff --no-index snapshot1/mesh_1.stressFree.dat snapshot2/mesh_1.stressFree.dat
-# cat snapshot1/config.compute.json snapshot1/config.post.json snapshot1/mesh_?.off snapshot1/ov?.PV.xmf snapshot1/ov?.OV.xmf > snapshot.out.txt
+# cat snapshot1/config.json snapshot1/mesh_?.off snapshot1/ov?.PV.xmf snapshot1/ov?.OV.xmf > snapshot.out.txt

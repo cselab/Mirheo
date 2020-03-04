@@ -158,7 +158,7 @@ void roundTrip(const T &value) {
     Saver saver{&context};
     ConfigValue saved = saver(value);
 
-    LoaderContext loaderContext{ConfigObject{}, ConfigObject{}};
+    LoaderContext loaderContext{ConfigObject{}};
     Loader loader{&loaderContext};
     auto recovered = loader.load<T>(saved);
 
@@ -196,7 +196,7 @@ TEST(Snapshot, DumpUndumpInteractions)
         saver(pairwise);
         ConfigValue config = saver.getConfig()["Interaction"][0];
 
-        LoaderContext loaderContext{config, ConfigObject{}};
+        LoaderContext loaderContext{config};
         Loader loader{&loaderContext};
         auto pairwise2 = InteractionFactory::loadInteraction(
                 mirheo.getState(), loader, config.getObject());

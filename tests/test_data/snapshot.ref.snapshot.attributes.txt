@@ -1,4 +1,12 @@
 {
+    "Postprocess": [
+        {
+            "__type": "Postprocess",
+            "name": "postprocess",
+            "checkpointFolder": "restart/",
+            "plugins": []
+        }
+    ],
     "Simulation": [
         {
             "__type": "Simulation",
@@ -50,29 +58,7 @@
                 "dt": 0.10000000149011612,
                 "currentTime": 0,
                 "currentStep": 0
-            },
-            "simulation": "<Simulation with name=simulation>"
-        }
-    ]
-}
-{
-    "Postprocess": [
-        {
-            "__type": "Postprocess",
-            "name": "postprocess",
-            "checkpointFolder": "restart/",
-            "plugins": []
-        }
-    ],
-    "Mirheo": [
-        {
-            "__type": "Mirheo",
-            "attributes": {
-                "attrInt": 123,
-                "attrFloat": 123.25,
-                "attrString": "hello"
-            },
-            "postprocess": "<Postprocess with name=postprocess>"
+            }
         }
     ]
 }

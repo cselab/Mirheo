@@ -122,6 +122,12 @@ public:
         c_.emplace_back(std::move(key), std::move(t));
     }
 
+    /// Insert without checking if the key exists or not.
+    void unsafe_insert(const_iterator it, Key key, T t)
+    {
+        c_.emplace(it, std::move(key), std::move(t));
+    }
+
     void erase(const_iterator it) { c_.erase(it); }
     void erase(const Key& key)
     {

@@ -27,6 +27,5 @@ else:
 # rm -rf snapshot1/ snapshot2/
 # mir.run --runargs "-n 4" ./attributes.py --ranks 2 1 1 --save-to snapshot1/
 # mir.run --runargs "-n 4" ./attributes.py --ranks 2 1 1 --save-to snapshot2/ --load-from snapshot1/
-# git --no-pager diff --no-index snapshot1/config.compute.json snapshot2/config.compute.json
-# git --no-pager diff --no-index snapshot1/config.post.json snapshot2/config.post.json
-# cat snapshot1/config.compute.json snapshot1/config.post.json > snapshot.out.txt
+# git --no-pager diff --no-index snapshot1/config.json snapshot2/config.json
+# cp snapshot1/config.json snapshot.out.txt

@@ -33,28 +33,17 @@ bool SaverContext::isGroupMasterTask() const
 
 
 LoaderContext::LoaderContext(std::string path) :
-    LoaderContext{configFromJSONFile(joinPaths(path, "config.compute.json")),
-                  configFromJSONFile(joinPaths(path, "config.post.json")),
+    LoaderContext{configFromJSONFile(joinPaths(path, "config.json")),
                   std::move(path)}
 {}
 
-LoaderContext::LoaderContext(ConfigValue compute, ConfigValue postprocess,
-                             std::string snapshotPath) :
+LoaderContext::LoaderContext(ConfigValue config, std::string snapshotPath) :
     path_{std::move(snapshotPath)},
-    compConfig_{std::move(compute)},
-    postConfig_{std::move(postprocess)}
+    config_{std::move(config)}
 {}
 
 LoaderContext::~LoaderContext() = default;
 
-const ConfigObject& LoaderContext::getCompObjectConfig(
-        const std::string& category, const std::string& name)
-{
-    for (const ConfigValue& obj : getComp()[category].getArray())
-        if (obj.getObject()["name"].getString() == name)
-            return obj.getObject();
-    die("Object category=\"%s\" name=\"%s\" not found.", category.c_str(), name.c_str());
-}
 
 template <typename T, typename Factory>
 const std::shared_ptr<T>& loadObject(Mirheo *mir, Loader& loader,
@@ -72,20 +61,17 @@ const std::shared_ptr<T>& loadObject(Mirheo *mir, Loader& loader,
 static void loadPlugins(Mirheo *mir, Loader& loader)
 {
     auto& context = loader.getContext();
-    const ConfigValue *_refsSim  = context.getComp()["Simulation"][0].get("plugins");
-    const ConfigValue *_refsPost = context.getPost()["Postprocess"][0].get("plugins");
-
-    const ConfigArray empty;
-    const ConfigArray& refsSim  = _refsSim ? _refsSim->getArray() : empty;
-    const ConfigArray& refsPost = _refsPost ? _refsPost->getArray() : empty;
+    const ConfigObject& config = context.getConfig();
+    const ConfigArray& refsSim  = config["Simulation"][0]["plugins"].getArray();
+    const ConfigArray& refsPost = config["Postprocess"][0]["plugins"].getArray();
 
     // Map from plugin name to the corresponding ConfigObject.
     std::map<std::string, const ConfigObject*> infosSim;
     std::map<std::string, const ConfigObject*> infosPost;
-    if (auto *infos = context.getComp().get("SimulationPlugin"))
+    if (auto *infos = config.get("SimulationPlugin"))
         for (const ConfigValue& info : infos->getArray())
             infosSim.emplace(info["name"], &info.getObject());
-    if (auto *infos = context.getPost().get("PostprocessPlugin"))
+    if (auto *infos = config.get("PostprocessPlugin"))
         for (const ConfigValue& info : infos->getArray())
             infosPost.emplace(info["name"], &info.getObject());
 
@@ -164,21 +150,19 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
 {
     LoaderContext& context = loader.getContext();
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
-
-    const ConfigObject& localConfig =
-        mir->isComputeTask() ? context.getComp() : context.getPost();
-    const ConfigObject& mirConfig = localConfig["Mirheo"][0].getObject();
+    const ConfigObject& config = context.getConfig();
+    const ConfigObject& mirConfig = config["Mirheo"][0].getObject();
     if (auto* attrs = mirConfig.get("attributes")) {
         for (const auto& pair : attrs->getObject())
             mir->setAttribute(pair.first, pair.second);
     }
 
-    if (auto *infos = context.getComp().get("Mesh")) {
+    if (auto *infos = config.get("Mesh")) {
         for (const auto& info : infos->getArray())
             loadObject<Mesh>(mir, loader, info, loadMesh);
     }
 
-    if (auto *infos = context.getComp().get("ParticleVector")) {
+    if (auto *infos = config.get("ParticleVector")) {
         for (const auto& info : infos->getArray()) {
             const auto &pv = loadObject<ParticleVector>(
                     mir, loader, info, ParticleVectorFactory::loadParticleVector);
@@ -187,7 +171,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
     }
 
     if (mir->isComputeTask()) {
-        if (auto *infos = context.getComp().get("Interaction")) {
+        if (auto *infos = config.get("Interaction")) {
             for (const auto& info : infos->getArray()) {
                 const auto& interaction = loadObject<Interaction>(
                         mir, loader, info, InteractionFactory::loadInteraction);
@@ -195,7 +179,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
             }
         }
 
-        if (auto *infos = context.getComp().get("Integrator")) {
+        if (auto *infos = config.get("Integrator")) {
             for (const auto& info : infos->getArray()) {
                 const auto& integrator = loadObject<Integrator>(
                         mir, loader, info, IntegratorFactory::loadIntegrator);
@@ -203,7 +187,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
             }
         }
 
-        const ConfigObject& sim = context.getComp()["Simulation"][0].getObject();
+        const ConfigObject& sim = config["Simulation"][0].getObject();
         if (auto *infos = sim.get("interactionPrototypes")) {
             for (const auto& info : infos->getArray()) {
                 const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
