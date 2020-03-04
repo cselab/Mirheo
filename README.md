@@ -25,6 +25,8 @@ make install
 * renamed most private variables: now should have a trailing `_`
 * enabled -Wshadow
 * particle checker plugin dumps all particle fields when triggered
+* **interface changes** 
+  * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
 * **bug fix**: avoid avoid division by zero and nan in several places:
   * SDPD kernel
   * root finder (concerns bounce back)
