@@ -27,10 +27,10 @@ void ParticleWithMeshSenderPlugin::handshake()
 
     auto& mesh = static_cast<ObjectVector*>(pv_)->mesh;
 
-    waitPrevSend();
+    _waitPrevSend();
     debug("handshake for plugin '%s': sending %d triangles for a %d vertices mesh", getCName(), mesh->getNtriangles(), mesh->getNvertices());
     SimpleSerializer::serialize(sendBuffer_, mesh->getNvertices(), mesh->getFaces());
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 

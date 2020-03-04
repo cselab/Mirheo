@@ -165,9 +165,9 @@ void DensityControlPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, getState()->currentStep, densities_, forces_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 

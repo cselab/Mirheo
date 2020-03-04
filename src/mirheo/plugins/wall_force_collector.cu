@@ -89,9 +89,9 @@ void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump_)
     {
-        waitPrevSend();
+        _waitPrevSend();
         SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, nsamples_, totalForce_);
-        send(sendBuffer_);
+        _send(sendBuffer_);
         needToDump_ = false;
         nsamples_   = 0;
         totalForce_ = make_double3(0, 0, 0);

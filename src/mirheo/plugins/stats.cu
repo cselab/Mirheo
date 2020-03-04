@@ -101,9 +101,9 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     if (needToDump_)
     {
         const real tm = timer_.elapsedAndReset() / (getState()->currentStep < fetchEvery_ ? 1.0_r : fetchEvery_);
-        waitPrevSend();
+        _waitPrevSend();
         SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime, getState()->currentStep, nparticles_, momentum_, energy_, maxvel_);
-        send(sendBuffer_);
+        _send(sendBuffer_);
         needToDump_ = false;
     }
 }

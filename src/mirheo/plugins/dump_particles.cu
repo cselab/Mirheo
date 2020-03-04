@@ -108,9 +108,9 @@ void ParticleSenderPlugin::handshake()
         }
     }
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, channelNames_, dataForms, numberTypes, typeDescriptorsStr);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 static inline void copyData(ParticleVector *pv, const std::string& channelName, HostBuffer<char>& dst, cudaStream_t stream)
@@ -228,9 +228,9 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     
     debug2("Plugin %s is packing now data consisting of %zu particles",
            getCName(), positions_.size());
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, getState()->currentTime, positions_, velocities_, channelData_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 

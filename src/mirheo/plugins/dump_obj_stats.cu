@@ -76,7 +76,7 @@ void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const M
 void ObjStatsPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer_, ovName_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
@@ -127,9 +127,9 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     debug2("Plugin %s is sending now data", getCName());
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, savedTime_, getState()->domain, isRov_, ids_, coms_, motions_, hasTypeIds_, typeIds_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
     
     needToSend_=false;
 }

@@ -152,9 +152,9 @@ void SimulationVelocityControl::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), dumpEvery_)) return;
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, getState()->currentStep, currentVel_, force_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)

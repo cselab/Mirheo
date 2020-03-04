@@ -57,12 +57,12 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, ov_->getName(),
                                 mesh->getNvertices(), mesh->getNtriangles(), mesh->getFaces(),
                                 vertices_);
 
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void MeshPlugin::saveSnapshotAndRegister(Saver& saver)

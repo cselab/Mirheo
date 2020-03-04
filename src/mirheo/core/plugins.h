@@ -112,12 +112,12 @@ public:
 
 protected:
     /// wait for the previous send request to complete
-    void waitPrevSend();
+    void _waitPrevSend();
 
     /// post an asynchronous send for the given data to the postprocess rank
-    void send(const std::vector<char>& data);
+    void _send(const std::vector<char>& data);
     /// see send()
-    void send(const void *data, size_t sizeInBytes);
+    void _send(const void *data, size_t sizeInBytes);
 
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.

@@ -63,7 +63,7 @@ void VirialPressurePlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 void VirialPressurePlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer_, pvName_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
@@ -95,9 +95,9 @@ void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     debug2("Plugin %s is sending now data", getCName());
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, savedTime_, localVirialPressure_[0]);
-    send(sendBuffer_);
+    _send(sendBuffer_);
     
     needToSend_ = false;
 }

@@ -256,9 +256,9 @@ void Average3D::serializeAndSend(cudaStream_t stream)
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_) - 1;  // -1 to start from 0
     
     debug2("Plugin '%s' is now packing the data", getCName());
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void Average3D::handshake()
@@ -269,7 +269,7 @@ void Average3D::handshake()
         sizes.push_back(getNcomponents(t));
     
     SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes, channelsInfo_.names, numberDensityChannelName_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 const std::string Average3D::numberDensityChannelName_ = "number_densities";

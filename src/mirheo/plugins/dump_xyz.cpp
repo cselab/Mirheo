@@ -47,9 +47,9 @@ void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
     
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, pv_->getName(), positions_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 //=================================================================================

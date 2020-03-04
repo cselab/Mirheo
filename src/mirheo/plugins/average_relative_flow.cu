@@ -239,9 +239,9 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_) - 1; // -1 to start from 0
 
     debug2("Plugin '%s' is now packing the data", getCName());
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, localNumberDensity_, localChannels_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 } // namespace mirheo

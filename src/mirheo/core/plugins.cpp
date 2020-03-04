@@ -72,10 +72,10 @@ void SimulationPlugin::serializeAndSend (__UNUSED cudaStream_t stream) {}
 void SimulationPlugin::finalize()
 {
     debug3("Plugin %s is finishing all the communications", getCName());
-    waitPrevSend();
+    _waitPrevSend();
 }
 
-void SimulationPlugin::waitPrevSend()
+void SimulationPlugin::_waitPrevSend()
 {
     MPI_Check( MPI_Wait(&sizeReq_, MPI_STATUS_IGNORE) );
     MPI_Check( MPI_Wait(&dataReq_, MPI_STATUS_IGNORE) );
@@ -83,18 +83,18 @@ void SimulationPlugin::waitPrevSend()
     dataReq_ = MPI_REQUEST_NULL;
 }
 
-void SimulationPlugin::send(const std::vector<char>& data)
+void SimulationPlugin::_send(const std::vector<char>& data)
 {
-    send(data.data(), data.size());
+    _send(data.data(), data.size());
 }
 
-void SimulationPlugin::send(const void *data, size_t sizeInBytes)
+void SimulationPlugin::_send(const void *data, size_t sizeInBytes)
 {
     // So that async Isend of the size works on
     // valid address
     localSendSize_ = static_cast<int>(sizeInBytes);
 
-    waitPrevSend();
+    _waitPrevSend();
         
     debug2("Plugin '%s' is sending the data (%zu bytes)", getCName(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize_, 1, MPI_INT,  rank_, _sizeTag(), interComm_, &sizeReq_) );

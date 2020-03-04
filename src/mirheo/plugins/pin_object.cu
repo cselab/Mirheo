@@ -170,7 +170,7 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 void PinObjectPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer_, ovName_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
@@ -215,9 +215,9 @@ void PinObjectPlugin::serializeAndSend(cudaStream_t stream)
     if (rov_ != nullptr)
         torques_.downloadFromDevice(stream);
 
-    waitPrevSend();
+    _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, reportEvery_, forces_, torques_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 
     forces_.clearDevice(stream);
     torques_.clearDevice(stream);

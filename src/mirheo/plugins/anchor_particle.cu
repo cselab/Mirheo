@@ -112,7 +112,7 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 void AnchorParticlesPlugin::handshake()
 {
     SimpleSerializer::serialize(sendBuffer_, pvName_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 }
 
 void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
@@ -121,10 +121,10 @@ void AnchorParticlesPlugin::serializeAndSend(cudaStream_t stream)
 
     forces_.downloadFromDevice(stream);
 
-    waitPrevSend();
+    _waitPrevSend();
 
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, nsamples_, forces_);
-    send(sendBuffer_);
+    _send(sendBuffer_);
 
     nsamples_ = 0;
     forces_.clearDevice(stream);
