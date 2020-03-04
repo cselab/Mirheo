@@ -9,17 +9,46 @@
 namespace mirheo
 {
 
+/** \brief Manage post processing tasks (see \c Plugins) related to a \c Simulation. 
+
+    There must be exactly one \c Postprocess rank per \c Simulation rank or no \c Postprocess rank at all.
+    All \c Plugin objects must be registered and set before calling init() and run().
+    This can be instantiated on ranks that have no access to GPUs.
+
+    The run() method consists in waiting for messages incoming from the simulation ranks and execute the
+    registered plugins functions with that data.
+ */
 class Postprocess : MirObject
 {
 public:
+    /** \brief Construct a \c Postprocess object
+        \param comm a communicator that holds all postprocessing ranks.
+        \param interComm An inter communicator to communicate with the \c Simulation ranks.
+        \param checkpointFolder The folder name used to dump the checkpoint state.
+     */
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder);
     ~Postprocess();
 
+    /** \brief Register a plugin to this object. 
+        \param plugin The plugin to register
+        \param tag a tag that is unique for each registered plugin 
+        \note The SimulationPlugin counterpart of the registered PostprocessPlugin must be registered on the simulation side.
+     */
     void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);
-    void run();
-    void init();
 
-    void restart   (const std::string& folder);
+    /// Setup all registered plugins. Must be called before run()
+    void init();
+    /// Start the postprocess. Will run until a termination notification is sent by the simulation. 
+    void run();
+
+    /** \brief Restore the state from checkpoint information.
+        \param folder The path containing the checkpoint files
+     */
+    void restart(const std::string& folder);
+
+    /** \brief Dump the state of all postprocess plugins to the checkpoint folder
+        \param checkpointId The index of the dump, used to name the files.
+     */
     void checkpoint(int checkpointId);
 
     /** \brief Dump all postprocess data, create a ConfigObject describing the postprocess state and register it in the saver.

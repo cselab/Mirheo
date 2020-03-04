@@ -21,6 +21,7 @@ Library API
    api/mir_object
    api/mir_state
    api/object_belonging
+   api/postproc
    api/packers
    api/pvs
    api/simulation
