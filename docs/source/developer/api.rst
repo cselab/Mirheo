@@ -23,5 +23,6 @@ Library API
    api/object_belonging
    api/packers
    api/pvs
+   api/simulation
    api/task_scheduler
    api/walls

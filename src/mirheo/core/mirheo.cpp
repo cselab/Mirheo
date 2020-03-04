@@ -449,7 +449,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     MirState stateCpy = *getState();
     
-    Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState());
+    Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
 
     const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
@@ -517,7 +517,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     MirState stateCpy = *getState();
 
     {
-        Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState());
+        Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
     
         eqsim.registerParticleVector(pv, ic);
 
@@ -533,7 +533,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
         eqsim.run(nsteps);
     }
 
-    Simulation freezesim(sim_->getCartComm(), MPI_COMM_NULL, getState());
+    Simulation freezesim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
 
     freezesim.registerParticleVector(pv, nullptr);
     freezesim.registerParticleVector(shape, icShape);
