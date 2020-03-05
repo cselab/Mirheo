@@ -1,6 +1,6 @@
 mirheo_double=$(shell python -m mirheo compile_opt useDouble)
 
-ifeq (,$(findstring ON,$(mirheo_double)))
+ifeq ($(mirheo_double),0)
     atest_args=ATEST_DIR=test_data
 else
     atest_args=ATEST_DIR=test_data_double

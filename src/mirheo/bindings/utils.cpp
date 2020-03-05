@@ -15,7 +15,7 @@ static std::string getCompileOption(const std::string& key)
 {
 #define check_and_return(opt_name)                                      \
     if (key == #opt_name)                                               \
-        return CompileOptions::opt_name;
+        return CompileOptions::opt_name ? "1" : "0";
     
     MIRHEO_COMPILE_OPT_TABLE(check_and_return);
     
@@ -29,7 +29,7 @@ static std::map<std::string, std::string> getAllCompileOptions()
 {
     std::map<std::string, std::string> dict;
     
-#define add_option(opt_name) dict[#opt_name] = CompileOptions::opt_name;
+#define add_option(opt_name) dict[#opt_name] = CompileOptions::opt_name ? "1" : "0";
     MIRHEO_COMPILE_OPT_TABLE(add_option);
 #undef add_option
 

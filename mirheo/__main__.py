@@ -59,6 +59,8 @@ def main(argv):
         compile_opt(args)
     elif args.command == 'run':
         run(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == '__main__':

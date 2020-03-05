@@ -65,7 +65,6 @@ set(sources_cpp
   types/str.cpp
   types/variant_type_wrapper.cpp
   utils/common.cpp
-  utils/compile_options.cpp
   utils/config.cpp
   utils/file_wrapper.cpp
   utils/folders.cpp
