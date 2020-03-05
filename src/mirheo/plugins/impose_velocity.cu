@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace ImposeVelocityKernels
+namespace impose_velocity_kernels
 {
 __global__ void addVelocity(PVview view, DomainInfo domain, real3 low, real3 high, real3 extraVel)
 {
@@ -62,7 +62,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3
         atomicAdd(&totVel->z, (double)u.z);
     }
 }
-} // namespace ImposeVelocityKernels
+} // namespace impose_velocity_kernels
 
 ImposeVelocityPlugin::ImposeVelocityPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                            real3 low, real3 high, real3 targetVel, int every) :
@@ -94,7 +94,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
         for (auto& pv : pvs_)
         {
             SAFE_KERNEL_LAUNCH(
-                    ImposeVelocityKernels::averageVelocity,
+                    impose_velocity_kernels::averageVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
                     PVview(pv, pv->local()), getState()->domain, low_, high_, totVel_.devPtr(), nSamples_.devPtr() );
         }
@@ -109,7 +109,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 
         for (auto& pv : pvs_)
             SAFE_KERNEL_LAUNCH(
-                    ImposeVelocityKernels::addVelocity,
+                    impose_velocity_kernels::addVelocity,
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
                     PVview(pv, pv->local()), getState()->domain, low_, high_, targetVel_ - avgVel);
     }

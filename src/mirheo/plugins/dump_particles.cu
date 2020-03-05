@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-namespace DumpParticlesKernels
+namespace dump_particles_kernels
 {
 
 template <typename T>
@@ -42,7 +42,7 @@ __global__ void copyRodDataToParticles(int numBiSegmentsPerObject, int objSize, 
         particleData[pid] = rodData[bid];
 }
 
-} // namespace DumpParticlesKernels
+} // namespace dump_particles_kernels
 
 
 ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
@@ -139,7 +139,7 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
         workSpace.resize_anew(nParts * sizeof(T));
     
         SAFE_KERNEL_LAUNCH(
-            DumpParticlesKernels::copyObjectDataToParticles,
+            dump_particles_kernels::copyObjectDataToParticles,
             nblocks, nthreads, 0, stream,
             objSize, nObjects, srcBufferPtr->devPtr(),
             reinterpret_cast<T*>(workSpace.devPtr()));
@@ -169,7 +169,7 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
         workSpace.resize_anew(nParts * sizeof(T));
     
         SAFE_KERNEL_LAUNCH(
-            DumpParticlesKernels::copyRodDataToParticles,
+            dump_particles_kernels::copyRodDataToParticles,
             nblocks, nthreads, 0, stream,
             numBiSegmentsPerObject, objSize, nObjects, srcBufferPtr->devPtr(),
             reinterpret_cast<T*>(workSpace.devPtr()));

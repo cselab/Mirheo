@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace MagneticOrientationPluginKernels
+namespace magnetic_orientation_plugin_kernels
 {
 __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
 {
@@ -27,7 +27,7 @@ __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
     atomicAdd(&view.motions[gid].torque.y, static_cast<RigidReal>(T.y));
     atomicAdd(&view.motions[gid].torque.z, static_cast<RigidReal>(T.z));
 }
-} // namespace MagneticOrientationPluginKernels
+} // namespace magnetic_orientation_plugin_kernels
 
 MagneticOrientationPlugin::MagneticOrientationPlugin(const MirState *state, std::string name, std::string rovName,
                                                      real3 moment, UniformMagneticFunc magneticFunction) :
@@ -56,7 +56,7 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
     const auto B = magneticFunction_(t);
     
     SAFE_KERNEL_LAUNCH(
-            MagneticOrientationPluginKernels::applyMagneticField,
+            magnetic_orientation_plugin_kernels::applyMagneticField,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, B, moment_);
 }

@@ -17,7 +17,7 @@
 namespace mirheo
 {
 
-namespace DensityControlPluginKernels
+namespace density_control_plugin_kernels
 {
 
 enum {INVALID_LEVEL=-1};
@@ -97,7 +97,7 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
     atomicAdd(view.forces + i, force);
 }
 
-} // namespace DensityControlPluginKernels
+} // namespace density_control_plugin_kernels
 
 DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string name,
                                            std::vector<std::string> pvNames, real targetDensity,
@@ -184,7 +184,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     localVolumes.clearDevice(stream);
     
     SAFE_KERNEL_LAUNCH(
-        DensityControlPluginKernels::countInsideRegions,
+        density_control_plugin_kernels::countInsideRegions,
         getNblocks(MCnSamples, nthreads), nthreads, 0, stream,
         MCnSamples, domain, spaceDecompositionField_->handler(),
         levelBounds_, seed, nInsides_.devPtr());
@@ -193,7 +193,7 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
     const double subdomainVolume = L.x * L.y * L.z;
 
     SAFE_KERNEL_LAUNCH(
-        DensityControlPluginKernels::computeVolumes,
+        density_control_plugin_kernels::computeVolumes,
         getNblocks(localVolumes.size(), nthreads), nthreads, 0, stream,
         localVolumes.size(), MCnSamples, nInsides_.devPtr(),
         subdomainVolume, localVolumes.devPtr());
@@ -216,7 +216,7 @@ void DensityControlPlugin::sample(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            DensityControlPluginKernels::collectSamples,
+            density_control_plugin_kernels::collectSamples,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, spaceDecompositionField_->handler(),
             levelBounds_, nInsides_.devPtr());        
@@ -262,7 +262,7 @@ void DensityControlPlugin::applyForces(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            DensityControlPluginKernels::applyForces,
+            density_control_plugin_kernels::applyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, spaceDecompositionField_->handler(),
             levelBounds_, forces_.devPtr());        

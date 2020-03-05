@@ -11,7 +11,7 @@ namespace mirheo
 
 class ParticleVector;
 
-namespace Stats
+namespace stats_plugin
 {
 using ReductionType = double;
 using CountType = unsigned long long;
@@ -56,8 +56,8 @@ private:
     int fetchEvery_;
     bool needToDump_{false};
 
-    Stats::CountType nparticles_;
-    PinnedBuffer<Stats::ReductionType> momentum_{3}, energy_{1};
+    stats_plugin::CountType nparticles_;
+    PinnedBuffer<stats_plugin::ReductionType> momentum_{3}, energy_{1};
     PinnedBuffer<real> maxvel_{1};
     std::vector<char> sendBuffer_;
 

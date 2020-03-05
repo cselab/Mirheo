@@ -15,7 +15,7 @@ namespace mirheo
 
 using AccumulatedIntType = unsigned long long int;
 
-namespace OutletPluginKernels
+namespace outlet_plugin_kernels
 {
 
 /// Erase all particles that satisfy `isInsideFunc(p.r)` with probability given
@@ -43,7 +43,7 @@ static __global__ void killParticles(PVview view, IsInsideFunc isInsideFunc, rea
     view.writeParticle(i, p);
 }
 
-} // namespace OutletPluginKernels
+} // namespace outlet_plugin_kernels
 
 
 OutletPlugin::OutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames) :
@@ -86,14 +86,14 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
         };
         auto killProbability = [] __device__ () { return 1.0_r; };
         SAFE_KERNEL_LAUNCH(
-            OutletPluginKernels::killParticles,
+            outlet_plugin_kernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, isInsideFunc, seed, killProbability);
     }
 }
 
 
-namespace RegionOutletPluginKernels
+namespace region_outlet_plugin_kernels
 {
 
 static __device__ inline bool isInsideRegion(const FieldDeviceHandler& field, const real3& r)
@@ -145,7 +145,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
         atomicAdd(nInside, countInside);
 }
 
-} // namespace RegionOutletPluginKernels
+} // namespace region_outlet_plugin_kernels
 
 
 RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
@@ -179,7 +179,7 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) cons
     const int nblocks = math::min(getNblocks(nSamples, nthreads), 1024);
     
     SAFE_KERNEL_LAUNCH(
-        RegionOutletPluginKernels::countInsideRegion,
+        region_outlet_plugin_kernels::countInsideRegion,
         nblocks, nthreads, 0, defaultStream,
         nSamples, domain, outletRegion_->handler(),
         seed, nInside.devPtr());
@@ -200,7 +200,7 @@ void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            RegionOutletPluginKernels::countParticlesInside,
+            region_outlet_plugin_kernels::countParticlesInside,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, outletRegion_->handler(), nParticlesInside_.devPtr());        
     }    
@@ -230,7 +230,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
 
         auto isInsideFunc = [field = outletRegion_->handler()] __device__ (const real3& r)
         {
-            return RegionOutletPluginKernels::isInsideRegion(field, r);
+            return region_outlet_plugin_kernels::isInsideRegion(field, r);
         };
 
         auto killProbability = [rhoTimesVolume, nInside = nParticlesInside_.devPtr()] __device__ ()
@@ -240,7 +240,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
         };
 
         SAFE_KERNEL_LAUNCH(
-            OutletPluginKernels::killParticles,
+            outlet_plugin_kernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, isInsideFunc, seed, killProbability);
     }
@@ -271,7 +271,7 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
 
         auto isInsideFunc = [field = outletRegion_->handler()] __device__ (const real3& r)
         {
-            return RegionOutletPluginKernels::isInsideRegion(field, r);
+            return region_outlet_plugin_kernels::isInsideRegion(field, r);
         };
 
         auto killProbability = [QTimesdt, nInside = nParticlesInside_.devPtr()] __device__ ()
@@ -281,7 +281,7 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
         };
 
         SAFE_KERNEL_LAUNCH(
-            OutletPluginKernels::killParticles,
+            outlet_plugin_kernels::killParticles,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, isInsideFunc, seed, killProbability);
     }

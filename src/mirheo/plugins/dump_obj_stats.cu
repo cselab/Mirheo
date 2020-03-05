@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-namespace ObjStatsPluginKernels
+namespace obj_stats_plugin_kernels
 {
 
 __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
@@ -58,7 +58,7 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
     }
 }
 
-} // namespace ObjStatsPluginKernels
+} // namespace obj_stats_plugin_kernels
 
 ObjStatsPlugin::ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery) :
     SimulationPlugin(state, name),
@@ -103,7 +103,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
         motionStats_.clear(stream);
 
         SAFE_KERNEL_LAUNCH(
-            ObjStatsPluginKernels::collectObjStats,
+            obj_stats_plugin_kernels::collectObjStats,
             view.nObjects, nthreads, 0, stream,
             view, motionStats_.devPtr());
 

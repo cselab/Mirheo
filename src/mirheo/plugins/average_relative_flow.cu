@@ -15,7 +15,7 @@
 namespace mirheo
 {
 
-namespace AverageRelativeFlowKernels
+namespace average_relative_flow_kernels
 {
 __global__ void sampleRelative(
         PVview pvView, CellListInfo cinfo,
@@ -35,9 +35,9 @@ __global__ void sampleRelative(
 
     atomicAdd(avgDensity + cid, 1);
 
-    SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
+    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
 }
-} // namespace AverageRelativeFlowKernels
+} // namespace average_relative_flow_kernels
 
 AverageRelative3D::AverageRelative3D(
        const MirState *state, std::string name, std::vector<std::string> pvNames,
@@ -100,7 +100,7 @@ void AverageRelative3D::sampleOnePv(real3 relativeParam, ParticleVector *pv, cud
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (AverageRelativeFlowKernels::sampleRelative,
+        (average_relative_flow_kernels::sampleRelative,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, cinfo, numberDensity_.devPtr(), gpuInfo, relativeParam);
 }
@@ -213,7 +213,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
             const int numVec3 = data.size() / 3;
             
             SAFE_KERNEL_LAUNCH
-                (SamplingHelpersKernels::correctVelocity,
+                (sampling_helpers_kernels::correctVelocity,
                  getNblocks(numVec3, nthreads), nthreads, 0, stream,
                  numVec3, reinterpret_cast<double3*> (data.devPtr()),
                  accumulatedNumberDensity_.devPtr(), averageRelativeVelocity_ / static_cast<real>(nSamples_));

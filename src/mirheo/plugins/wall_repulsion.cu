@@ -12,13 +12,13 @@
 namespace mirheo
 {
 
-namespace ChannelNames
+namespace channel_names
 {
 static const std::string      sdf =      "sdf";
 static const std::string grad_sdf = "grad_sdf";
-} // namespace ChannelNames
+} // namespace channel_names
 
-namespace WallRepulsionPluginKernels
+namespace wall_repulsion_plugin_kernels
 {
 __global__ void forceFromSDF(PVview view, const real *sdfs, const real3 *gradients, real C, real h, real maxForce)
 {
@@ -33,7 +33,7 @@ __global__ void forceFromSDF(PVview view, const real *sdfs, const real3 *gradien
         atomicAdd(view.forces + pid, f);
     }
 }
-} // WallRepulsionPluginKernels
+} // wall_repulsion_plugin_kernels
 
 WallRepulsionPlugin::WallRepulsionPlugin(const MirState *state, std::string name,
                                          std::string pvName, std::string wallName,
@@ -59,8 +59,8 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
     pv_ = simulation->getPVbyNameOrDie(pvName_);
     wall_ = dynamic_cast<SDFBasedWall*>(simulation->getWallByNameOrDie(wallName_));
     
-    pv_->requireDataPerParticle<real>(ChannelNames::sdf, DataManager::PersistenceMode::None);
-    pv_->requireDataPerParticle<real3>(ChannelNames::grad_sdf, DataManager::PersistenceMode::None);
+    pv_->requireDataPerParticle<real>(channel_names::sdf, DataManager::PersistenceMode::None);
+    pv_->requireDataPerParticle<real3>(channel_names::grad_sdf, DataManager::PersistenceMode::None);
 
     if (wall_ == nullptr)
         die("Wall repulsion plugin '%s' can only work with SDF-based walls, but got wall '%s'",
@@ -74,8 +74,8 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv_, pv_->local());
     
-    auto sdfs      = pv_->local()->dataPerParticle.getData<real>(ChannelNames::sdf);
-    auto gradients = pv_->local()->dataPerParticle.getData<real3>(ChannelNames::grad_sdf);
+    auto sdfs      = pv_->local()->dataPerParticle.getData<real>(channel_names::sdf);
+    auto gradients = pv_->local()->dataPerParticle.getData<real3>(channel_names::grad_sdf);
 
     const real gradientThreshold = h_ + 0.1_r;
     
@@ -83,7 +83,7 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-         WallRepulsionPluginKernels::forceFromSDF,
+         wall_repulsion_plugin_kernels::forceFromSDF,
          getNblocks(view.size, nthreads), nthreads, 0, stream,
          view, sdfs->devPtr(), gradients->devPtr(), C_, h_, maxForce_ );
 }

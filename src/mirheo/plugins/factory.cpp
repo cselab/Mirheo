@@ -35,7 +35,7 @@
 
 namespace mirheo
 {
-namespace PluginFactory
+namespace plugin_factory
 {
 
 static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
@@ -449,5 +449,5 @@ PluginRegistrant::PluginRegistrant()
     }
 }
 
-} // namespace PluginFactory
+} // namespace plugin_factory
 } // namespace mirheo

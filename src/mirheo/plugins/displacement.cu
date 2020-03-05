@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace ParticleDisplacementPluginKernels
+namespace particle_displacement_plugin_kernels
 {
 
 __global__ void extractPositions(PVview view, real4 *positions)
@@ -31,7 +31,7 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, real4 *positio
     positions[i] = pos.toReal4();
 }
 
-} // namespace DisplacementKernels
+} // namespace particle_displacement_plugin_kernels
 
 const std::string ParticleDisplacementPlugin::displacementChannelName_ = "displacements";
 const std::string ParticleDisplacementPlugin::savedPositionChannelName_ = "saved_positions_displacements";
@@ -72,7 +72,7 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
     displacements->clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH(
-            ParticleDisplacementPluginKernels::extractPositions,
+            particle_displacement_plugin_kernels::extractPositions,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
             view, positions->devPtr());
 }
@@ -90,7 +90,7 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            ParticleDisplacementPluginKernels::computeDisplacementsAndSavePositions,
+            particle_displacement_plugin_kernels::computeDisplacementsAndSavePositions,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, positions->devPtr(), displacements->devPtr());    
 }

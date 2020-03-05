@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-namespace VelocityControlKernels
+namespace velocity_control_kernels
 {
 
 inline __device__ bool is_inside(real3 r, real3 low, real3 high)
@@ -62,7 +62,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, real3 low, real3 hig
         atomicAdd(totVel, u);
 }
 
-} // namespace VelocityControlKernels
+} // namespace velocity_control_kernels
 
 SimulationVelocityControl::SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                                      real3 low, real3 high,
@@ -99,7 +99,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
         const int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH
-            (VelocityControlKernels::addForce,
+            (velocity_control_kernels::addForce,
              getNblocks(view.size, nthreads), nthreads, 0, stream,
              view, getState()->domain, low_, high_, force_ );
     }
@@ -110,7 +110,7 @@ void SimulationVelocityControl::_sampleOnePv(ParticleVector *pv, cudaStream_t st
     const int nthreads = 128;
  
     SAFE_KERNEL_LAUNCH
-        (VelocityControlKernels::sumVelocity,
+        (velocity_control_kernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, getState()->domain, low_, high_, totVel_.devPtr(), nSamples_.devPtr());
 }

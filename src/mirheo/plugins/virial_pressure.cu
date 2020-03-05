@@ -15,13 +15,13 @@
 namespace mirheo
 {
 
-namespace VirialPressureKernels
+namespace virial_pressure_kernels
 {
-__global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, VirialPressure::ReductionType *pressure)
+__global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, virial_pressure_plugin::ReductionType *pressure)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    VirialPressure::ReductionType P = 0;
+    virial_pressure_plugin::ReductionType P = 0;
     Particle p;
 
     if (tid < view.size) {
@@ -32,12 +32,12 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
             P = (s.xx + s.yy + s.zz) / 3.0;
     }
     
-    P = warpReduce(P, [](VirialPressure::ReductionType a, VirialPressure::ReductionType b) { return a+b; });
+    P = warpReduce(P, [](virial_pressure_plugin::ReductionType a, virial_pressure_plugin::ReductionType b) { return a+b; });
 
     if (laneId() == 0)
         atomicAdd(pressure, P);
 }
-} // namespace VirialPressureKernels
+} // namespace virial_pressure_kernels
 
 VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
                                            FieldFunction func, real3 h, int dumpEvery) :
@@ -79,7 +79,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     const int nblocks = getNblocks(view.size, nthreads);
     
     SAFE_KERNEL_LAUNCH(
-        VirialPressureKernels::totalPressure,
+        virial_pressure_kernels::totalPressure,
         nblocks, nthreads, 0, stream,
         view, stress, region_.handler(), localVirialPressure_.devPtr() );
 
@@ -137,13 +137,13 @@ void VirialPressureDumper::handshake()
 void VirialPressureDumper::deserialize()
 {
     MirState::TimeType curTime;
-    VirialPressure::ReductionType localPressure, totalPressure;
+    virial_pressure_plugin::ReductionType localPressure, totalPressure;
 
     SimpleSerializer::deserialize(data_, curTime, localPressure);
 
     if (!activated_) return;
 
-    const auto dataType = getMPIFloatType<VirialPressure::ReductionType>();
+    const auto dataType = getMPIFloatType<virial_pressure_plugin::ReductionType>();
     MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm_) );
 
     fprintf(fdump_.get(), "%g %.6e\n", curTime, totalPressure);

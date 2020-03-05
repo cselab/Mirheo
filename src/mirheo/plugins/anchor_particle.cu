@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-namespace AnchorParticlesKernels
+namespace anchor_particles_kernels
 {
 
 __global__ void anchorParticles(PVview view, int n, const int *pids, const real3 *poss, const real3 *vels, double3 *forces)
@@ -31,7 +31,7 @@ __global__ void anchorParticles(PVview view, int n, const int *pids, const real3
     forces[i] += make_double3(f.x, f.y, f.z);
 }
 
-} // namespace AnchorParticleKernels
+} // namespace anchor_particles_kernels
 
 AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string name, std::string pvName,
                                              FuncTime3D positions, FuncTime3D velocities,
@@ -102,7 +102,7 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
     velBuffer_.uploadToDevice(stream);
     
     SAFE_KERNEL_LAUNCH(
-            AnchorParticlesKernels::anchorParticles,
+            anchor_particles_kernels::anchorParticles,
             nblocks, nthreads, 0, stream,
             view, n, pids_.devPtr(), posBuffer_.devPtr(), velBuffer_.devPtr(), forces_.devPtr() );
 

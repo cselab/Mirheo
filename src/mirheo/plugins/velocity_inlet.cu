@@ -15,7 +15,7 @@ enum {
     MAX_NEW_PARTICLE_PER_TRIANGLE = 5
 };
 
-namespace velocityInletKernels
+namespace velocity_inlet_kernels
 {
 
 __global__ void initCumulativeFluxes(real seed, int n, real *cumulativeFluxes)
@@ -126,7 +126,7 @@ __global__ void generateParticles(real seed, real kBT, int nNewParticles, int ol
     view.writeParticle(dstId, p);
 }
 
-} // namespace velocityInletKernels
+} // namespace velocity_inlet_kernels
 
 
 VelocityInletPlugin::VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
@@ -184,12 +184,12 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     const int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
-        velocityInletKernels::initCumulativeFluxes,
+        velocity_inlet_kernels::initCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
         seed, nTriangles, cumulativeFluxes_.devPtr() );
 
     SAFE_KERNEL_LAUNCH(
-        velocityInletKernels::initLocalFluxes,
+        velocity_inlet_kernels::initLocalFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
         nTriangles,
         surfaceTriangles_.devPtr(),
@@ -208,7 +208,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
     constexpr int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
-        velocityInletKernels::countFromCumulativeFluxes,
+        velocity_inlet_kernels::countFromCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, stream,
         nTriangles, getState()->dt, numberDensity_, localFluxes_.devPtr(),
         cumulativeFluxes_.devPtr(), nNewParticles_.devPtr(), workQueue_.devPtr());
@@ -226,7 +226,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
     const real seed = dist_(gen_);
     
     SAFE_KERNEL_LAUNCH(
-        velocityInletKernels::generateParticles,
+        velocity_inlet_kernels::generateParticles,
         getNblocks(nNewParticles_[0], nthreads), nthreads, 0, stream,
         seed, kBT_, nNewParticles_[0], oldSize, view,
         workQueue_.devPtr(),

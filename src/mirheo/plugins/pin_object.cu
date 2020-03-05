@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-namespace PinObjectKernels
+namespace pin_object_kernels
 {
 
 __global__ void restrictVelocities(OVview view, real3 targetVelocity, real4 *totForces)
@@ -125,7 +125,7 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
     view.motions[objId] = motion;
 }
 
-} // namespace PinObjectKernels::
+} // namespace pin_object_kernels::
 
 PinObjectPlugin::PinObjectPlugin(const MirState *state, std::string name, std::string ovName, real3 translation, real3 rotation, int reportEvery) :
     SimulationPlugin(state, name),
@@ -183,7 +183,7 @@ void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
         const int nthreads = 128;
         OVview view(ov_, ov_->local());
         SAFE_KERNEL_LAUNCH(
-                PinObjectKernels::restrictVelocities,
+                pin_object_kernels::restrictVelocities,
                 view.nObjects, nthreads, 0, stream,
                 view, translation_, forces_.devPtr() );
     }
@@ -199,7 +199,7 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
         const int nthreads = 32;
         ROVviewWithOldMotion view(rov_, rov_->local());
         SAFE_KERNEL_LAUNCH(
-                PinObjectKernels::restrictRigidMotion,
+                pin_object_kernels::restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
                 view, translation_, rotation_, getState()->dt,
                 forces_.devPtr(), torques_.devPtr() );

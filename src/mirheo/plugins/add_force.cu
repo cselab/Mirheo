@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace AddForceKernels
+namespace add_force_kernels
 {
 
 __global__ void addForce(PVview view, real3 force)
@@ -20,7 +20,7 @@ __global__ void addForce(PVview view, real3 force)
     view.forces[gid] += make_real4(force, 0.0_r);
 }
 
-} // namespace AddForceKernels
+} // namespace add_force_kernels
 
 AddForcePlugin::AddForcePlugin(const MirState *state, const std::string& name, const std::string& pvName, real3 force) :
     SimulationPlugin(state, name),
@@ -41,7 +41,7 @@ void AddForcePlugin::beforeForces(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            AddForceKernels::addForce,
+            add_force_kernels::addForce,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, force_ );
 }

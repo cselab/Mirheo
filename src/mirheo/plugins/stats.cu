@@ -14,9 +14,9 @@
 namespace mirheo
 {
 
-namespace StatsKernels
+namespace stats_plugin_kernels
 {
-using Stats::ReductionType;
+using stats_plugin::ReductionType;
 
 __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, real* maxvel)
 {
@@ -48,7 +48,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
         atomicMax((int*)maxvel, __float_as_int(myMaxIvelI));
     }
 }
-} // namespace StatsKernels
+} // namespace stats_plugin_kernels
     
 SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
@@ -82,7 +82,7 @@ void SimulationStats::afterIntegration(cudaStream_t stream)
         constexpr int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH(
-                StatsKernels::totalMomentumEnergy,
+                stats_plugin_kernels::totalMomentumEnergy,
                 getNblocks(view.size, nthreads), nthreads, 0, stream,
                 view, momentum_.devPtr(), energy_.devPtr(), maxvel_.devPtr() );
 
@@ -142,19 +142,19 @@ void PostprocessStats::deserialize()
     MirState::TimeType currentTime;
     MirState::StepType currentTimeStep;
     real realTime;
-    Stats::CountType nparticles, maxNparticles, minNparticles;
+    stats_plugin::CountType nparticles, maxNparticles, minNparticles;
 
-    std::vector<Stats::ReductionType> momentum, energy;
+    std::vector<stats_plugin::ReductionType> momentum, energy;
     std::vector<real> maxvel;
 
     SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
 
-    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MIN, 0, comm_) );
-    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<Stats::CountType>(), MPI_MAX, 0, comm_) );
+    MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MIN, 0, comm_) );
+    MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MAX, 0, comm_) );
     
-    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, getMPIIntType<Stats::CountType>(),       MPI_SUM, 0, comm_) );
-    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm_) );
-    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, getMPIFloatType<Stats::ReductionType>(), MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, getMPIIntType<stats_plugin::CountType>(),       MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, getMPIFloatType<stats_plugin::ReductionType>(), MPI_SUM, 0, comm_) );
+    MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, getMPIFloatType<stats_plugin::ReductionType>(), MPI_SUM, 0, comm_) );
 
     MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : maxvel.data(),   maxvel.data(),   1, getMPIFloatType<real>(), MPI_MAX, 0, comm_) );
 
@@ -166,7 +166,7 @@ void PostprocessStats::deserialize()
         momentum[0] *= invNparticles;
         momentum[1] *= invNparticles;
         momentum[2] *= invNparticles;
-        const Stats::ReductionType temperature = energy[0] * invNparticles * (2.0/3.0);
+        const stats_plugin::ReductionType temperature = energy[0] * invNparticles * (2.0/3.0);
 
         printf("Stats at timestep %lld (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);

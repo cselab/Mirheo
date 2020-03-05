@@ -23,7 +23,7 @@ void exportPlugins(py::module& m)
     )");
     
     
-    m.def("__createAddForce", &PluginFactory::createAddForcePlugin,
+    m.def("__createAddForce", &plugin_factory::createAddForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
         Is is advised to only use it with rigid objects, since Velocity-Verlet integrator with constant pressure can do the same without any performance penalty.
@@ -34,7 +34,7 @@ void exportPlugins(py::module& m)
             force: extra force
     )");
 
-    m.def("__createAddTorque", &PluginFactory::createAddTorquePlugin, 
+    m.def("__createAddTorque", &plugin_factory::createAddTorquePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "torque"_a, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
 
@@ -44,7 +44,7 @@ void exportPlugins(py::module& m)
             torque: extra torque (per object)
     )");
 
-    m.def("__createAnchorParticles", &PluginFactory::createAnchorParticlesPlugin, 
+    m.def("__createAnchorParticles", &plugin_factory::createAnchorParticlesPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "positions"_a, "velocities"_a, "pids"_a,
           "report_every"_a, "path"_a, R"(
         This plugin will set a given particle at a given position and velocity.
@@ -59,7 +59,7 @@ void exportPlugins(py::module& m)
             path: folder where to dump the stats
     )");
 
-    m.def("__createDensityControl", &PluginFactory::createDensityControlPlugin, 
+    m.def("__createDensityControl", &plugin_factory::createDensityControlPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "file_name"_a, "pvs"_a, "target_density"_a,
           "region"_a, "resolution"_a, "level_lo"_a, "level_hi"_a, "level_space"_a,
           "Kp"_a, "Ki"_a, "Kd"_a, "tune_every"_a, "dump_every"_a, "sample_every"_a, R"(
@@ -82,7 +82,7 @@ void exportPlugins(py::module& m)
             sample_every: sample to average densities every this amount of time steps
     )");
 
-    m.def("__createDensityOutlet", &PluginFactory::createDensityOutletPlugin, 
+    m.def("__createDensityOutlet", &plugin_factory::createDensityOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "number_density"_a,
           "region"_a, "resolution"_a, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
@@ -96,7 +96,7 @@ void exportPlugins(py::module& m)
         
     )");
 
-    m.def("__createPlaneOutlet", &PluginFactory::createPlaneOutletPlugin,
+    m.def("__createPlaneOutlet", &plugin_factory::createPlaneOutletPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "plane"_a, R"(
         This plugin removes all particles from a set of :any:`ParticleVector` that are on the non-negative side of a given plane.
 
@@ -106,7 +106,7 @@ void exportPlugins(py::module& m)
             plane: Tuple (a, b, c, d). Particles are removed if `ax + by + cz + d >= 0`.
     )");
 
-    m.def("__createRateOutlet", &PluginFactory::createRateOutletPlugin, 
+    m.def("__createRateOutlet", &plugin_factory::createRateOutletPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "mass_rate"_a,
           "region"_a, "resolution"_a, R"(
         This plugin removes particles from a set of :any:`ParticleVector` in a given region at a given mass rate.
@@ -120,7 +120,7 @@ void exportPlugins(py::module& m)
         
     )");
     
-    m.def("__createDumpAverage", &PluginFactory::createDumpAveragePlugin, 
+    m.def("__createDumpAverage", &plugin_factory::createDumpAveragePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "sample_every"_a, "dump_every"_a,
           "bin_size"_a = real3{1.0, 1.0, 1.0}, "channels"_a, "path"_a = "xdmf/", R"(
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
@@ -145,7 +145,7 @@ void exportPlugins(py::module& m)
             channels: list of channel names. See :ref:`user-pv-reserved`.
     )");
 
-    m.def("__createDumpAverageRelative", &PluginFactory::createDumpAverageRelativePlugin, 
+    m.def("__createDumpAverageRelative", &plugin_factory::createDumpAverageRelativePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
           "relative_to_ov"_a, "relative_to_id"_a,
           "sample_every"_a, "dump_every"_a,
@@ -176,7 +176,7 @@ void exportPlugins(py::module& m)
             relative_to_id: take an object governing the frame of reference with the specific ID
     )");
 
-    m.def("__createDumpMesh", &PluginFactory::createDumpMeshPlugin, 
+    m.def("__createDumpMesh", &plugin_factory::createDumpMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         This plugin will write the meshes of all the object of the specified Object Vector in a `PLY format <https://en.wikipedia.org/wiki/PLY_(file_format)>`_.
    
@@ -190,7 +190,7 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.ply
     )");
 
-    m.def("__createDumpObjectStats", &PluginFactory::createDumpObjStats, 
+    m.def("__createDumpObjectStats", &plugin_factory::createDumpObjStats, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
@@ -214,7 +214,7 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<ov_name>_NNNNN.txt
     )");
 
-    m.def("__createDumpParticles", &PluginFactory::createDumpParticlesPlugin, 
+    m.def("__createDumpParticles", &plugin_factory::createDumpParticlesPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "dump_every"_a,
           "channel_names"_a, "path"_a, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
@@ -229,7 +229,7 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     )");
 
-    m.def("__createDumpParticlesWithMesh", &PluginFactory::createDumpParticlesWithMeshPlugin, 
+    m.def("__createDumpParticlesWithMesh", &plugin_factory::createDumpParticlesWithMeshPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a,
           "channel_names"_a, "path"_a, R"(
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Object Vector, as well as connectivity information.
@@ -243,7 +243,7 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     )");
     
-    m.def("__createDumpXYZ", &PluginFactory::createDumpXYZPlugin, 
+    m.def("__createDumpXYZ", &plugin_factory::createDumpXYZPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
    
@@ -257,7 +257,7 @@ void exportPlugins(py::module& m)
             path: the files will look like this: <path>/<pv_name>_NNNNN.xyz
     )");
 
-    m.def("__createExchangePVSFluxPlane", &PluginFactory::createExchangePVSFluxPlanePlugin,
+    m.def("__createExchangePVSFluxPlane", &plugin_factory::createExchangePVSFluxPlanePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv1"_a, "pv2"_a, "plane"_a, R"(
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
         A particle with position x, y, z has crossed the plane if ax + by + cz + d >= 0, where a, b, c and d are the coefficient 
@@ -270,7 +270,7 @@ void exportPlugins(py::module& m)
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 
-    m.def("__createForceSaver", &PluginFactory::createForceSaverPlugin, 
+    m.def("__createForceSaver", &plugin_factory::createForceSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
         It copies the total forces at each time step and make it accessible by other plugins.
@@ -281,7 +281,7 @@ void exportPlugins(py::module& m)
             pv: :any:`ParticleVector` that we'll work with
     )");
 
-    m.def("__createImposeProfile", &PluginFactory::createImposeProfilePlugin, 
+    m.def("__createImposeProfile", &plugin_factory::createImposeProfilePlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "low"_a, "high"_a, "velocity"_a, "kBT"_a, R"(
         This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term 
         drawn from Maxwell distribution of the given temperature. 
@@ -295,7 +295,7 @@ void exportPlugins(py::module& m)
             kBT: temperature in the domain (appropriate Maxwell distribution will be used)
     )");
 
-    m.def("__createImposeVelocity", &PluginFactory::createImposeVelocityPlugin,
+    m.def("__createImposeVelocity", &plugin_factory::createImposeVelocityPlugin,
         "compute_task"_a, "state"_a, "name"_a, "pvs"_a, "every"_a, "low"_a, "high"_a, "velocity"_a, R"(
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
         
@@ -308,7 +308,7 @@ void exportPlugins(py::module& m)
             velocity: target velocity
     )");
 
-    m.def("__createMagneticOrientation", &PluginFactory::createMagneticOrientationPlugin,
+    m.def("__createMagneticOrientation", &plugin_factory::createMagneticOrientationPlugin,
           "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
         This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
         It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
@@ -327,7 +327,7 @@ void exportPlugins(py::module& m)
             magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
     )");
 
-    m.def("__createMembraneExtraForce", &PluginFactory::createMembraneExtraForcePlugin,
+    m.def("__createMembraneExtraForce", &plugin_factory::createMembraneExtraForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "forces"_a, R"(
         This plugin adds a given external force to a given membrane. 
         The force is defined vertex wise and does not depend on position.
@@ -339,7 +339,7 @@ void exportPlugins(py::module& m)
             forces: array of forces, one force (3 reals) per vertex in a single mesh
     )");
 
-    m.def("__createParticleChannelSaver", &PluginFactory::createParticleChannelSaverPlugin, 
+    m.def("__createParticleChannelSaver", &plugin_factory::createParticleChannelSaverPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
         It copies the content of an extra channel of pv at each time step and make it accessible by other plugins.
@@ -351,7 +351,7 @@ void exportPlugins(py::module& m)
             savedName: name of the extra channel
     )");
 
-    m.def("__createParticleChecker", &PluginFactory::createParticleCheckerPlugin, 
+    m.def("__createParticleChecker", &plugin_factory::createParticleCheckerPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "check_every"_a, R"(
         This plugin will check the positions and velocities of all particles in the simulation every given time steps.
         To be used for debugging purpose.
@@ -361,7 +361,7 @@ void exportPlugins(py::module& m)
             check_every: check every this amount of time steps
     )");
 
-    m.def("__createParticleDisplacement", &PluginFactory::createParticleDisplacementPlugin, 
+    m.def("__createParticleDisplacement", &plugin_factory::createParticleDisplacementPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "update_every"_a, R"(
         This plugin computes and save the displacement of the particles within a given particle vector.
         The result is stored inside the extra channel "displacements" as an array of real3.
@@ -372,7 +372,7 @@ void exportPlugins(py::module& m)
             update_every: displacements are computed between positions separated by this amount of timesteps
     )");
 
-    m.def("__createParticleDrag", &PluginFactory::createParticleDragPlugin, 
+    m.def("__createParticleDrag", &plugin_factory::createParticleDragPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "drag"_a, R"(
         This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
 
@@ -382,14 +382,14 @@ void exportPlugins(py::module& m)
             drag: drag coefficient
     )");
 
-    py::handlers_class<PluginFactory::PinObjectMock>(m, "PinObject", pysim, R"(
+    py::handlers_class<plugin_factory::PinObjectMock>(m, "PinObject", pysim, R"(
         Contains the special value `Unrestricted` for unrestricted axes in :any:`createPinObject`.
     )")
-        .def_property_readonly_static("Unrestricted", [](py::object) { return PluginFactory::PinObjectMock::Unrestricted; }, R"(
+        .def_property_readonly_static("Unrestricted", [](py::object) { return plugin_factory::PinObjectMock::Unrestricted; }, R"(
         Unrestricted
     )");
 
-    m.def("__createPinObject", &PluginFactory::createPinObjPlugin, 
+    m.def("__createPinObject", &plugin_factory::createPinObjPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, "velocity"_a, "angular_velocity"_a, R"(
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
         If the objects are rigid bodies, rotation may be restricted with this plugin as well.
@@ -411,7 +411,7 @@ void exportPlugins(py::module& m)
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
     )");
 
-    m.def("__createPinRodExtremity", &PluginFactory::createPinRodExtremityPlugin, 
+    m.def("__createPinRodExtremity", &plugin_factory::createPinRodExtremityPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "rv"_a, "segment_id"_a, "f_magn"_a, "target_direction"_a, R"(
         This plugin adds a force on a given segment of all the rods in a :any:`RodVector`.
         The force has the form deriving from the potential
@@ -431,7 +431,7 @@ void exportPlugins(py::module& m)
             target_direction: the direction in which the material frame tends to align
     )");
 
-    m.def("__createStats", &PluginFactory::createStatsPlugin,
+    m.def("__createStats", &plugin_factory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
@@ -446,7 +446,7 @@ void exportPlugins(py::module& m)
             every: report to standard output every that many time-steps
     )");
 
-    m.def("__createTemperaturize", &PluginFactory::createTemperaturizePlugin,
+    m.def("__createTemperaturize", &plugin_factory::createTemperaturizePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "kBT"_a, "keepVelocity"_a, R"(
         This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
         It can operate under two modes: `keepVelocity = True`, in which case it adds a term drawn from a Maxwell distribution to the current velocity;
@@ -459,7 +459,7 @@ void exportPlugins(py::module& m)
             keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     )");
 
-    m.def("__createVelocityControl", &PluginFactory::createVelocityControlPlugin,
+    m.def("__createVelocityControl", &plugin_factory::createVelocityControlPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
           "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
@@ -477,7 +477,7 @@ void exportPlugins(py::module& m)
             Kp, Ki, Kd: PID controller coefficients
     )");
 
-    m.def("__createVelocityInlet", &PluginFactory::createVelocityInletPlugin,
+    m.def("__createVelocityInlet", &plugin_factory::createVelocityInletPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a,
           "implicit_surface_func"_a, "velocity_field"_a, "resolution"_a, "number_density"_a, "kBT"_a, R"(
         This plugin inserts particles in a given :any:`ParticleVector`.
@@ -494,7 +494,7 @@ void exportPlugins(py::module& m)
             kBT: temperature of the inserted solvent
     )");
 
-    m.def("__createVirialPressurePlugin", &PluginFactory::createVirialPressurePlugin,
+    m.def("__createVirialPressurePlugin", &plugin_factory::createVirialPressurePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
         This plugin compute the virial pressure from a given :any:`ParticleVector`.
         Note that the stress computation must be enabled with the corresponding stressName.
@@ -510,7 +510,7 @@ void exportPlugins(py::module& m)
             path: the folder name in which the file will be dumped
     )");
 
-    m.def("__createWallRepulsion", &PluginFactory::createWallRepulsionPlugin, 
+    m.def("__createWallRepulsion", &plugin_factory::createWallRepulsionPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "wall"_a, "C"_a, "h"_a, "max_force"_a, R"(
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.
         The particles of regular PVs are prevented from penetrating into the walls by Wall Bouncers.
@@ -538,7 +538,7 @@ void exportPlugins(py::module& m)
             max_force: :math:`F_{max}`  
     )");
 
-    m.def("__createWallForceCollector", &PluginFactory::createWallForceCollectorPlugin, 
+    m.def("__createWallForceCollector", &plugin_factory::createWallForceCollectorPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, R"(
         This plugin collects and average the total force exerted on a given wall.
         The result has 2 components:

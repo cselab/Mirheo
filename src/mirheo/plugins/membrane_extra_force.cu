@@ -13,7 +13,7 @@
 namespace mirheo
 {
 
-namespace MembraneExtraForcesKernels
+namespace membrane_extra_forces_kernels
 {
 __global__ void addForce(OVview view, const Force *forces)
 {
@@ -24,7 +24,7 @@ __global__ void addForce(OVview view, const Force *forces)
 
     view.forces[gid] += forces[locId].toReal4();
 }
-} // namespace MembraneExtraForcesKernels
+} // namespace membrane_extra_forces_kernels
 
 /// Read forces from the file written by `writeForces`.
 static std::vector<real3> readForces(const std::string& filename)
@@ -91,7 +91,7 @@ void MembraneExtraForcePlugin::beforeForces(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-        MembraneExtraForcesKernels::addForce,
+        membrane_extra_forces_kernels::addForce,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, forces_.devPtr() );
 }

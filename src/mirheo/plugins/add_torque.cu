@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace AddTorqueKernels
+namespace add_torque_kernels
 {
 
 __global__ void addTorque(ROVview view, real3 torque)
@@ -20,7 +20,7 @@ __global__ void addTorque(ROVview view, real3 torque)
     view.motions[gid].torque += torque;
 }
 
-} // namespace AddTorqueKernels
+} // namespace add_torque_kernels
 
 AddTorquePlugin::AddTorquePlugin(const MirState *state, const std::string& name, const std::string& rovName, real3 torque) :
     SimulationPlugin(state, name),
@@ -47,7 +47,7 @@ void AddTorquePlugin::beforeForces(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            AddTorqueKernels::addTorque,
+            add_torque_kernels::addTorque,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, torque_ );
 }

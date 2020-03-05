@@ -11,7 +11,7 @@ namespace mirheo
 
 const std::string ForceSaverPlugin::fieldName_ = "forces";
 
-namespace ForceSaverKernels
+namespace force_saver_kernels
 {
 
 __global__ void copyForces(PVview view, real3 *savedForces)
@@ -23,7 +23,7 @@ __global__ void copyForces(PVview view, real3 *savedForces)
     savedForces[pid] = f;
 }
 
-} // namespace ForceSaverKernels
+} // namespace force_saver_kernels
 
 ForceSaverPlugin::ForceSaverPlugin(const MirState *state, std::string name, std::string pvName) :
     SimulationPlugin(state, name),
@@ -54,7 +54,7 @@ void ForceSaverPlugin::beforeIntegration(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            ForceSaverKernels::copyForces,
+            force_saver_kernels::copyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, savedForces->devPtr() );
 }

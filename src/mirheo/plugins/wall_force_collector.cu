@@ -13,7 +13,7 @@
 namespace mirheo
 {
 
-namespace WallForceCollector
+namespace wall_force_collector_kernels
 {
 __global__ void totalForce(PVview view, double3 *totalForce)
 {
@@ -29,7 +29,7 @@ __global__ void totalForce(PVview view, double3 *totalForce)
     if (laneId() == 0)
         atomicAdd(totalForce, make_double3(f));
 }
-} //namespace WallForceCollector
+} //namespace wall_force_collector_kernels
 
 
 WallForceCollectorPlugin::WallForceCollectorPlugin(const MirState *state, std::string name,
@@ -69,7 +69,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
         const int nthreads = 128;
 
         SAFE_KERNEL_LAUNCH(
-            WallForceCollector::totalForce,
+            wall_force_collector_kernels::totalForce,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, pvForceBuffer_.devPtr() );
 

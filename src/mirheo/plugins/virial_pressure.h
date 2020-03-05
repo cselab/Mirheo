@@ -10,10 +10,10 @@ namespace mirheo
 
 class ParticleVector;
 
-namespace VirialPressure
+namespace virial_pressure_plugin
 {
 using ReductionType = double;
-}
+} // namespace virial_pressure_plugin
 
 class VirialPressurePlugin : public SimulationPlugin
 {
@@ -38,7 +38,7 @@ private:
 
     FieldFromFunction region_;
     
-    PinnedBuffer<VirialPressure::ReductionType> localVirialPressure_ {1};
+    PinnedBuffer<virial_pressure_plugin::ReductionType> localVirialPressure_ {1};
     MirState::TimeType savedTime_ = 0;
 
     std::vector<char> sendBuffer_;

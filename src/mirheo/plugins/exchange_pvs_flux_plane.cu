@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace ExchangePvsFluxPlaneKernels
+namespace exchange_pvs_flux_plane_kernels
 {
 
 __device__ inline bool sidePlane(real4 plane, real3 r)
@@ -68,7 +68,7 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
     }
 }
 
-} // namespace ExchangePvsFluxPlaneKernels
+} // namespace exchange_pvs_flux_plane_kernels
 
 
 ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, real4 plane) :
@@ -116,7 +116,7 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     numberCrossedParticles_.clear(stream);
     
     SAFE_KERNEL_LAUNCH(
-            ExchangePvsFluxPlaneKernels::countParticles,
+            exchange_pvs_flux_plane_kernels::countParticles,
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
             domain, view1, plane_, numberCrossedParticles_.devPtr() );
 
@@ -135,7 +135,7 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     extra2_->update(pv2_->local(), stream);
 
     SAFE_KERNEL_LAUNCH(
-        ExchangePvsFluxPlaneKernels::moveParticles,
+        exchange_pvs_flux_plane_kernels::moveParticles,
         getNblocks(view1.size, nthreads), nthreads, 0, stream,
         domain, view1, view2, plane_, old_size2, numberCrossedParticles_.devPtr(),
         extra1_->handler(), extra2_->handler() );

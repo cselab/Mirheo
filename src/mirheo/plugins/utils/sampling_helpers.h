@@ -52,7 +52,7 @@ struct ChannelsInfo
 };
 
 
-namespace SamplingHelpersKernels
+namespace sampling_helpers_kernels
 {
 
 __device__ inline void sampleChannels(int pid, int cid, ChannelsInfo channelsInfo)
@@ -116,6 +116,6 @@ __global__ static void accumulate(int n, int fieldComponents, const real *src, d
         dst[id] += src[id];
 }
 
-} // namespace SamplingHelpersKernels
+} // namespace sampling_helpers_kernels
 
 } // namespace mirheo

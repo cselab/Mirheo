@@ -15,7 +15,7 @@
 namespace mirheo
 {
 
-namespace ParticleCheckerKernels
+namespace particle_checker_kernels
 {
 template<typename R3>
 __device__ static inline bool isFinite(R3 v)
@@ -123,7 +123,7 @@ __global__ void checkRigidMotions(ROVview view, DomainInfo domain, real dtInv, i
     }
 }
 
-} // namespace ParticleCheckerKernels
+} // namespace particle_checker_kernels
 
 constexpr int ParticleCheckerPlugin::maxNumReports;
 
@@ -177,7 +177,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkForces<maxNumReports>,
+            particle_checker_kernels::checkForces<maxNumReports>,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, pvCd.numFailedDev, pvCd.statuses.devPtr() );
     }
@@ -188,7 +188,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
         ROVview rovView(rov, rov->local());
         
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkRigidForces<maxNumReports>,
+            particle_checker_kernels::checkRigidForces<maxNumReports>,
             getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
             rovView, rovCd.numFailedDev, rovCd.statuses.devPtr() );
     }
@@ -212,7 +212,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkParticles<maxNumReports>,
+            particle_checker_kernels::checkParticles<maxNumReports>,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, domain, dtInv, pvCd.numFailedDev, pvCd.statuses.devPtr() );
     }
@@ -223,7 +223,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
         ROVview rovView(rov, rov->local());
 
         SAFE_KERNEL_LAUNCH(
-            ParticleCheckerKernels::checkRigidMotions<maxNumReports>,
+            particle_checker_kernels::checkRigidMotions<maxNumReports>,
             getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
             rovView, domain, dtInv, rovCd.numFailedDev, rovCd.statuses.devPtr() );
     }

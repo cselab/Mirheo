@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-namespace AverageFlowKernels
+namespace average_flow_kernels
 {
 
 __global__ void sample(PVview pvView, CellListInfo cinfo,
@@ -29,10 +29,10 @@ __global__ void sample(PVview pvView, CellListInfo cinfo,
 
     atomicAdd(avgDensity + cid, 1.0_r);
 
-    SamplingHelpersKernels::sampleChannels(pid, cid, channelsInfo);
+    sampling_helpers_kernels::sampleChannels(pid, cid, channelsInfo);
 }
 
-} // namespace AverageFlowKernels
+} // namespace average_flow_kernels
 
 int Average3D::getNcomponents(Average3D::ChannelType type) const
 {
@@ -64,7 +64,7 @@ Average3D::Average3D(const MirState *state, std::string name,
     channelsInfo_.names = std::move(channelNames);
 }
 
-namespace average3DDetails
+namespace average_3D_details
 {
 template <typename T>
 static Average3D::ChannelType getChannelType(T) {return Average3D::ChannelType::None;}
@@ -73,14 +73,14 @@ static Average3D::ChannelType getChannelType(real3)  {return Average3D::ChannelT
 static Average3D::ChannelType getChannelType(real4)  {return Average3D::ChannelType::Vector_real4;}
 static Average3D::ChannelType getChannelType(Force)  {return Average3D::ChannelType::Vector_real4;}
 static Average3D::ChannelType getChannelType(Stress) {return Average3D::ChannelType::Tensor6;}
-} // average3DDetails
+} // average_3D_details
 
 static Average3D::ChannelType getChannelTypeFromChannelDesc(const std::string& name, const DataManager::ChannelDescription& desc)
 {
     auto type = mpark::visit([](auto *pinnedBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
-        return average3DDetails::getChannelType(T());
+        return average_3D_details::getChannelType(T());
     }, desc.varDataPtr);
 
     if (type == Average3D::ChannelType::None)
@@ -165,7 +165,7 @@ void Average3D::sampleOnePv(ParticleVector *pv, cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (AverageFlowKernels::sample,
+        (average_flow_kernels::sample,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
          pvView, cinfo, numberDensity_.devPtr(), gpuInfo);
 }
@@ -174,7 +174,7 @@ static void accumulateOneArray(int n, int components, const real *src, double *d
 {
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH
-        (SamplingHelpersKernels::accumulate,
+        (sampling_helpers_kernels::accumulate,
          getNblocks(n * components, nthreads), nthreads, 0, stream,
          n, components, src, dst);
 }
@@ -227,7 +227,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
         const int components = getNcomponents(channelsInfo_.types[i]);
 
         SAFE_KERNEL_LAUNCH
-            (SamplingHelpersKernels::scaleVec,
+            (sampling_helpers_kernels::scaleVec,
              getNblocks(ncells, nthreads), nthreads, 0, stream,
              ncells, components, data.devPtr(), accumulatedNumberDensity_.devPtr() );
 
@@ -236,7 +236,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
     }
 
     SAFE_KERNEL_LAUNCH(
-        SamplingHelpersKernels::scaleDensity,
+        sampling_helpers_kernels::scaleDensity,
         getNblocks(ncells, nthreads), nthreads, 0, stream,
         ncells, accumulatedNumberDensity_.devPtr(), 1.0 / (nSamples_ * binSize_.x*binSize_.y*binSize_.z) );
 

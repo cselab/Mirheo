@@ -16,7 +16,7 @@
 namespace mirheo
 {
 
-namespace PluginFactory
+namespace plugin_factory
 {
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
@@ -149,5 +149,5 @@ struct PluginRegistrant
     PluginRegistrant();
 };
 
-} // namespace PluginFactory
+} // namespace plugin_factory
 } // namespace mirheo

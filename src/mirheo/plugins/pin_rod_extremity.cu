@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace PinRodExtremityKernels
+namespace pin_rod_extremity_kernels
 {
 
 __device__ inline real3 fetchPosition(const RVview& view, int i)
@@ -51,7 +51,7 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, real k, real3 tar
     atomicAdd(&view.forces[start+2], -fu0);
 }
 
-} // namespace PinRodExtremityKernels
+} // namespace pin_rod_extremity_kernels
 
 PinRodExtremityPlugin::PinRodExtremityPlugin(const MirState *state, std::string name, std::string rvName,
                                              int segmentId, real fmagn, real3 targetDirection) :
@@ -85,7 +85,7 @@ void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
     const int nthreads = 32;
     const int nblocks = getNblocks(view.nObjects, nthreads);
     
-    SAFE_KERNEL_LAUNCH(PinRodExtremityKernels::alignMaterialFrame,
+    SAFE_KERNEL_LAUNCH(pin_rod_extremity_kernels::alignMaterialFrame,
                        nblocks, nthreads, 0, stream,
                        view, segmentId_, fmagn_, targetDirection_ );
 }

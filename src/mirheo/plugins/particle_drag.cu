@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace ParticleDragPluginKernels
+namespace particle_drag_plugin_kernels
 {
 
 __global__ void applyDrag(PVview view, real drag)
@@ -22,7 +22,7 @@ __global__ void applyDrag(PVview view, real drag)
     view.forces[gid] += make_real4(force, 0.0_r);
 }
 
-} // namespace ParticleDragPluginKernels
+} // namespace particle_drag_plugin_kernels
 
 ParticleDragPlugin::ParticleDragPlugin(const MirState *state, std::string name, std::string pvName, real drag) :
     SimulationPlugin(state, name),
@@ -43,7 +43,7 @@ void ParticleDragPlugin::beforeForces(cudaStream_t stream)
     const int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-            ParticleDragPluginKernels::applyDrag,
+            particle_drag_plugin_kernels::applyDrag,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, drag_ );
 }
