@@ -687,20 +687,12 @@ void Mirheo::logCompileOptions() const
     info("ROD_DOUBLE      : %s", CompileOptions::rodDouble     .c_str());
 }
 
-static void storeToFile(const std::string& content, const std::string& filename)
-{
-    FileWrapper f;
-    if (f.open(filename, "w") != FileWrapper::Status::Success)
-        throw std::runtime_error("Error opening \"" + filename + "\", aborting.");
-    fwrite(content.data(), 1, content.size(), f.get());
-}
-
 void Mirheo::saveSnapshot(std::string path)
 {
     // Abort if no-postprocess, not supported, mostly because loading assumes
     // both Simulation and Postprocess objects are always available.
     if (noPostprocess_)
-        throw std::runtime_error("saveSnapshot not implemented for no-postprocess runs.");
+        die("saveSnapshot not implemented for no-postprocess runs.");
 
     // Prepare context and the saver.
     SaverContext context;
@@ -761,9 +753,10 @@ void Mirheo::saveSnapshot(std::string path)
         all.unsafe_insert(all.find("Simulation"),
                           "Postprocess", std::move(post["Postprocess"]));
 
-        // Store the file.
+        // Save the config.json.
         std::string content = ConfigValue(std::move(all)).toJSONString() + '\n';
-        storeToFile(content, joinPaths(path, "config.json"));
+        FileWrapper f(joinPaths(path, "config.json"), "w");
+        fwrite(content.data(), 1, content.size(), f.get());
     }
     MPI_Barrier(comm_);
 }

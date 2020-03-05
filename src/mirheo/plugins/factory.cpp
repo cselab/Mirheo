@@ -430,6 +430,7 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
     MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
     MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
     MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
+    MIR_LOAD_SIM_PLUGIN(WallRepulsionPlugin);
 
 #undef MIR_LOAD_SIM_PLUGIN
 #undef MIR_LOAD_PLUGIN_PAIR

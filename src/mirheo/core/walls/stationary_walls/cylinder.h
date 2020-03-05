@@ -5,6 +5,7 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -67,6 +68,8 @@ public:
     }
 
 private:
+    friend MemberVars<StationaryWallCylinder>;
+
     real2 center_;
     real radius_;
     Direction dir_;
@@ -74,5 +77,7 @@ private:
 
     DomainInfo domain_;
 };
+
+MIRHEO_MEMBER_VARS(StationaryWallCylinder, center_, radius_, dir_, inside_);
 
 } // namespace mirheo

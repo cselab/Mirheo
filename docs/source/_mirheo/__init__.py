@@ -412,6 +412,11 @@ Register Plugins
 
             Save a snapshot of the simulation setup and state to the given folder.
 
+            .. warning::
+                Experimental and only partially implemented!
+                The function will raise an exception if it encounters any plugin or other component which does not yet implement saving the snapshot.
+                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`_mirheo.Mirheo.run`.
+
             Args:
                 path: Target folder.
         

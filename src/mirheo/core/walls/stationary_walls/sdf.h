@@ -1,6 +1,8 @@
 #pragma once
 
 #include <mirheo/core/field/from_file.h>
+#include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/reflection.h>
 #include <memory>
 
 namespace mirheo
@@ -31,5 +33,10 @@ public:
 private:
     std::unique_ptr<FieldFromFile> impl_;
 };
+
+MIRHEO_TYPE_NAME_AUTO(StationaryWallSDF);
+
+template <>
+struct TypeLoadSave<StationaryWallSDF> : TypeLoadSaveNotImplemented<StationaryWallSDF> { };
 
 } // namespace mirheo

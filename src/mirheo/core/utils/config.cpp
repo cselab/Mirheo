@@ -66,6 +66,12 @@ void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *clas
         thisTypeName, classTypeName);
 }
 
+void _typeLoadSaveNotImplemented [[noreturn]] (const char *func, const char *typeName)
+{
+    die("Type %s does not support loading or saving. Invoked function: %s",
+        typeName, func);
+}
+
 static std::string doubleToString(double x)
 {
     char str[32];
@@ -373,10 +379,10 @@ ConfigValue::Object ConfigValue::getObject() &&
     die("getObject on a non-dictionary object:\n%s", toJSONString().c_str());
 }
 
-ConfigValue& ConfigArray::_outOfBound [[noreturn]] (size_t index, size_t size) const
+ConfigValue& ConfigArray::_outOfBound [[noreturn]] (size_t index) const
 {
     die("Index %zu out of range (size=%zu):\n%s",
-        index, size, ConfigValue{*this}.toJSONString().c_str());
+        index, size(), ConfigValue{*this}.toJSONString().c_str());
 }
 
 
@@ -441,6 +447,17 @@ const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
     return refStrings_.emplace(ptr, std::move(ref)).first->second;
 }
 
+ConfigValue TypeLoadSave<float2>::save(Saver&, float2 v)
+{
+    return ConfigValue::Array{(double)v.x, (double)v.y};
+}
+float2 TypeLoadSave<float2>::parse(const ConfigValue &config)
+{
+    const auto& array = config.getArray();
+    if (array.size() != 2)
+        die("Expected 2 elements, got %zu.", array.size());
+    return float2{(float)array[0], (float)array[1]};
+}
 
 ConfigValue TypeLoadSave<float3>::save(Saver&, float3 v)
 {
@@ -452,6 +469,18 @@ float3 TypeLoadSave<float3>::parse(const ConfigValue &config)
     if (array.size() != 3)
         die("Expected 3 elements, got %zu.", array.size());
     return float3{(float)array[0], (float)array[1], (float)array[2]};
+}
+
+ConfigValue TypeLoadSave<double2>::save(Saver&, double2 v)
+{
+    return ConfigValue::Array{v.x, v.y};
+}
+double2 TypeLoadSave<double2>::parse(const ConfigValue &config)
+{
+    const auto& array = config.getArray();
+    if (array.size() != 2)
+        die("Expected 2 elements, got %zu.", array.size());
+    return double2{(double)array[0], (double)array[1]};
 }
 
 ConfigValue TypeLoadSave<double3>::save(Saver&, double3 v)

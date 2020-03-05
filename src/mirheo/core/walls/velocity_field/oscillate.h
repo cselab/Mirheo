@@ -41,7 +41,7 @@ public:
      */
     void setup(real t, __UNUSED DomainInfo domain)
     {
-        cosOmega_ = math::cos(2*M_PI * t / period_);
+        cosOmega_ = (real)math::cos(2*M_PI * t / period_);
     }
 
     /// get a handler that can be used on the device.

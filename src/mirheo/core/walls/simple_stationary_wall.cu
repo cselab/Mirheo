@@ -15,6 +15,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
+#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/root_finder.h>
@@ -261,6 +262,13 @@ SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(const MirState *st
 {
     bounceForce_.clear(defaultStream);
 }
+
+template<class InsideWallChecker>
+SimpleStationaryWall<InsideWallChecker>::SimpleStationaryWall(
+        const MirState *state, Loader& loader, const ConfigObject& config) :
+    SimpleStationaryWall(state, config["name"],
+                         loader.load<InsideWallChecker>(config["checker"]))
+{}
 
 template<class InsideWallChecker>
 SimpleStationaryWall<InsideWallChecker>::~SimpleStationaryWall() = default;
@@ -567,6 +575,42 @@ template<class InsideWallChecker>
 PinnedBuffer<double3>* SimpleStationaryWall<InsideWallChecker>::getCurrentBounceForce()
 {
     return &bounceForce_;
+}
+
+template<class InsideWallChecker>
+void SimpleStationaryWall<InsideWallChecker>::saveSnapshotAndRegister(Saver& saver)
+{
+    saver.registerObject(this, _saveSnapshot(
+                saver, constructTypeName<InsideWallChecker>("SimpleStationaryWall")));
+}
+
+template<class InsideWallChecker>
+ConfigObject SimpleStationaryWall<InsideWallChecker>::_saveSnapshot(Saver& saver, const std::string& typeName)
+{
+    ConfigObject config = SDFBasedWall::_saveSnapshot(saver, typeName);
+    // Particle vectors are stored in the Simulation object? Anyway, test before enabling.
+    if (frozen_ != nullptr || !particleVectors_.empty())
+        throw std::runtime_error("Wall dumping not implemented.");
+    config.emplace("checker",         saver(insideWallChecker_));
+    return config;
+}
+
+std::shared_ptr<Wall>
+loadSimpleStationaryWall(const MirState *state, Loader& loader, const ConfigObject& config)
+{
+    const std::string& type = config["__type"];
+#define MIR_LOAD_WALL(WALL) \
+    do { \
+        if (type == constructTypeName<WALL>("SimpleStationaryWall")) \
+            return std::make_shared<SimpleStationaryWall<WALL>>(state, loader, config); \
+    } while (0)
+    MIR_LOAD_WALL(StationaryWallSphere);
+    MIR_LOAD_WALL(StationaryWallCylinder);
+    MIR_LOAD_WALL(StationaryWallSDF);
+    MIR_LOAD_WALL(StationaryWallPlane);
+    MIR_LOAD_WALL(StationaryWallBox);
+#undef MIR_LOAD_WALL
+    die("Unrecognized simple stationary wall type \"%s\".", type.c_str());
 }
 
 template class SimpleStationaryWall<StationaryWallSphere>;

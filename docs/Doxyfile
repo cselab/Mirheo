@@ -53,7 +53,9 @@ PREDEFINED  += DOXYGEN_SHOULD_SKIP_THIS \
              __D__=                     \
              __UNUSED=                  \
              __CUDACC__=1               \
-             MIRHEO_MEMBER_VARS(...)=
+             MIRHEO_MEMBER_VARS(...)=   \
+             MIRHEO_TYPE_NAME(T,N)=     \
+             MIRHEO_TYPE_NAME_AUTO(T)=
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
 ALIASES += "endrst=\endverbatim"

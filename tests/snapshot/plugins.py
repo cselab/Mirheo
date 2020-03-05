@@ -17,12 +17,17 @@ if not args.load_from:
     ic = mir.InitialConditions.Membrane([])
     u.registerParticleVector(ov, ic)
 
+    wall = mir.Walls.Plane('plane', (0, -1, 0), (1.0, 2.0, 3.0))
+    u.registerWall(wall, check_every=123)
+
     u.registerPlugins(mir.Plugins.createStats('stats', every=10, filename='stats.txt'))
     u.registerPlugins(mir.Plugins.createDumpMesh('rbcs', ov, dump_every=15, path='ply'))
 
     # Stores extraForce.dat. We do not check the content of the file, only that it is correctly reloaded.
     forces = [[0.01 * k, 0.02 * k, 0.03 * k] for k in range(6)]
     u.registerPlugins(mir.Plugins.createMembraneExtraForce('extraForce', ov, forces))
+    u.registerPlugins(mir.Plugins.createWallRepulsion(
+                "wallRepulsion", ov, wall, C=75, h=0.125, max_force=750))
 
     u.saveSnapshot(args.save_to)
 else:

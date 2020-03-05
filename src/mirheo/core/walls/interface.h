@@ -28,7 +28,6 @@ public:
         \param [in] name The name of the wall.
      */
     Wall(const MirState *state, const std::string& name);
-    virtual ~Wall();
 
     /** \brief Initialize the wall internal state.
         \param [in] comm The MPI Cartesian communicator of the simulation.
@@ -83,6 +82,10 @@ public:
         The particles that are counted must be previously attached to the walls by calling attach().
      */
     virtual void check(cudaStream_t stream) = 0;
+
+protected:
+    /// Base snapshot function for interactions, sets the category to "Wall".
+    ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 
 /** \brief \c Wall with surface represented via a signed distance function (SDF).
@@ -94,7 +97,6 @@ class SDFBasedWall : public Wall
 {
 public:
     using Wall::Wall;
-    ~SDFBasedWall();
 
     /** \brief Compute the wall SDF at particles positions.
         \param [in] lpv Input particles.

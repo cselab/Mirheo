@@ -14,6 +14,24 @@
             "mesh": "<MembraneMesh with name=mesh_0>"
         }
     ],
+    "Wall": [
+        {
+            "__type": "SimpleStationaryWall<StationaryWallPlane>",
+            "name": "plane",
+            "checker": {
+                "normal_": [
+                    0,
+                    -1,
+                    0
+                ],
+                "pointThrough_": [
+                    1,
+                    2,
+                    3
+                ]
+            }
+        }
+    ],
     "PostprocessPlugin": [
         {
             "__type": "PostprocessStats",
@@ -42,6 +60,15 @@
             "__type": "MembraneExtraForcePlugin",
             "name": "extraForce",
             "pvName": "ov"
+        },
+        {
+            "__type": "WallRepulsionPlugin",
+            "name": "wallRepulsion",
+            "pvName": "ov",
+            "wallName": "plane",
+            "C": 75,
+            "h": 0.125,
+            "maxForce": 750
         }
     ],
     "Postprocess": [
@@ -72,17 +99,25 @@
             "bouncerMap": {},
             "integratorMap": {},
             "interactionMap": {},
-            "wallMap": {},
+            "wallMap": {
+                "plane": "<SimpleStationaryWall<StationaryWallPlane> with name=plane>"
+            },
             "belongingCheckerMap": {},
             "plugins": [
                 "<SimulationStats with name=stats>",
                 "<MeshPlugin with name=rbcs>",
-                "<MembraneExtraForcePlugin with name=extraForce>"
+                "<MembraneExtraForcePlugin with name=extraForce>",
+                "<WallRepulsionPlugin with name=wallRepulsion>"
             ],
             "integratorPrototypes": [],
             "interactionPrototypes": [],
             "wallPrototypes": [],
-            "checkWallPrototypes": [],
+            "checkWallPrototypes": [
+                {
+                    "wall": "<SimpleStationaryWall<StationaryWallPlane> with name=plane>",
+                    "every": 123
+                }
+            ],
             "bouncerPrototypes": [],
             "belongingCorrectionPrototypes": [],
             "splitterPrototypes": [],

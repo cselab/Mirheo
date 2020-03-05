@@ -113,6 +113,7 @@ set(sources_cu
   object_belonging/shape_belonging.cu
   pvs/utils/compute_com_extents.cu
   rigid/operations.cu
+  walls/factory.cpp
   walls/simple_stationary_wall.cu
   walls/wall_helpers.cu
   walls/wall_with_velocity.cu

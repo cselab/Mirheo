@@ -12,11 +12,12 @@ namespace mirheo
 class Integrator;
 class Interaction;
 class Mesh;
-class Mirheo;
 class MirState;
+class Mirheo;
 class ParticleVector;
 class PostprocessPlugin;
 class SimulationPlugin;
+class Wall;
 
 void _unknownRefStringError [[noreturn]] (const std::string &ref);
 void _dynamicCastError [[noreturn]] (const char *from, const char *to);
@@ -66,7 +67,8 @@ private:
         std::map<std::string, std::shared_ptr<Mesh>>,
         std::map<std::string, std::shared_ptr<ParticleVector>>,
         std::map<std::string, std::shared_ptr<Interaction>>,
-        std::map<std::string, std::shared_ptr<Integrator>>> objects_;
+        std::map<std::string, std::shared_ptr<Integrator>>,
+        std::map<std::string, std::shared_ptr<Wall>>> objects_;
     std::string path_;
     ConfigValue config_;
 };

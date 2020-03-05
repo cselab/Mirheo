@@ -5,6 +5,7 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
+#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -62,10 +63,14 @@ public:
     }
 
 private:
+    friend MemberVars<StationaryWallBox>;
+
     real3 lo_;
     real3 hi_;
     bool inside_;
     DomainInfo domain_;
 };
+
+MIRHEO_MEMBER_VARS(StationaryWallBox, lo_, hi_, inside_);
 
 } // namespace mirheo

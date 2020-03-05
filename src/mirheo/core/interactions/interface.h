@@ -127,10 +127,7 @@ public:
     static const ActivePredicate alwaysActive;
     
 protected:
-    /** \brief Base snapshot function for interactions, sets the category to "Interaction".
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
+    /// Base snapshot function for interactions, sets the category to "Interaction".
     ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 

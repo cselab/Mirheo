@@ -13,11 +13,14 @@ struct TypeName
     static constexpr const char *name = "UnknownTypeName";
 };
 
+/// Set given type's diagnostics/snapshotting name.
 #define MIRHEO_TYPE_NAME(TYPE, NAME)              \
     template <>                                   \
     struct TypeName<TYPE> {                       \
         static constexpr const char* name = NAME; \
-    };
+    }
+
+/// Set given type's diagnostics/snapshotting name to the C++ type name itself.
 #define MIRHEO_TYPE_NAME_AUTO(TYPE)               \
     MIRHEO_TYPE_NAME(TYPE, #TYPE)
 

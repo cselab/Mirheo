@@ -31,6 +31,9 @@ void writeToFile(const std::string& filename, const std::string& content);
 /// Print the error about mismatched type and throw an exception.
 void _typeMismatchError [[noreturn]] (const char *thisTypeName, const char *classTypeName);
 
+/// Print an error that the given operation is not implemented.
+void _typeLoadSaveNotImplemented [[noreturn]] (const char *func, const char *typeName);
+
 /// Throw an exception if object's dynamic type is not `T`.
 template <typename T>
 void assertType(T *thisPtr)
@@ -71,14 +74,14 @@ public:
     const ConfigValue& operator[](size_t i) const { return at(i); }
 
     ConfigValue& at(size_t i) {
-        return i < size() ? Base::operator[](i) : _outOfBound(i, size());
+        return i < size() ? Base::operator[](i) : _outOfBound(i);
     }
     const ConfigValue& at(size_t i) const {
-        return i < size() ? Base::operator[](i) : (const ConfigValue&)_outOfBound(i, size());
+        return i < size() ? Base::operator[](i) : (const ConfigValue&)_outOfBound(i);
     }
 
 private:
-    ConfigValue& _outOfBound [[noreturn]] (size_t index, size_t size) const;
+    ConfigValue& _outOfBound [[noreturn]] (size_t index) const;
 };
 
 class ConfigObject : public FlatOrderedDict<std::string, ConfigValue>
@@ -399,6 +402,21 @@ MIRHEO_DUMPER_PRIMITIVE(float,              Float);
 MIRHEO_DUMPER_PRIMITIVE(double,             Float);
 #undef MIRHEO_DUMPER_PRIMITIVE
 
+/// Convenience implementation of TypeLoadSave<> for types whose save and load
+/// functions are not yet implemented. Throws a runtime exception if invoked.
+template <typename T>
+struct TypeLoadSaveNotImplemented
+{
+    static ConfigValue save [[noreturn]] (Saver&, T& /*value*/)
+    {
+        _typeLoadSaveNotImplemented("save", TypeName<T>::name);
+    }
+    static T load [[noreturn]] (Loader&, const ConfigValue&)
+    {
+        _typeLoadSaveNotImplemented("load", TypeName<T>::name);
+    }
+};
+
 template <>
 struct TypeLoadSave<const char*>
 {
@@ -428,11 +446,33 @@ struct TypeLoadSave<std::string>
 };
 
 template <>
+struct TypeLoadSave<float2>
+{
+    static ConfigValue save(Saver&, float2 v);
+    static float2 parse(const ConfigValue &config);
+    static float2 load(Loader&, const ConfigValue &config)
+    {
+        return parse(config);
+    }
+};
+
+template <>
 struct TypeLoadSave<float3>
 {
     static ConfigValue save(Saver&, float3 v);
     static float3 parse(const ConfigValue &config);
     static float3 load(Loader&, const ConfigValue &config)
+    {
+        return parse(config);
+    }
+};
+
+template <>
+struct TypeLoadSave<double2>
+{
+    static ConfigValue save(Saver&, double2 v);
+    static double2 parse(const ConfigValue &config);
+    static double2 load(Loader&, const ConfigValue &config)
     {
         return parse(config);
     }
@@ -477,6 +517,10 @@ struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<T>::value>>
         ConfigObject object;
         MemberVars<T>::foreach(detail::DumpHandler{&object, &saver}, &t);
         return std::move(object);
+    }
+    static T parse(const ConfigValue&)
+    {
+        static_assert(always_false<T>::value, "Use `load` instead of `parse`.");
     }
     static T load(Loader& loader, const ConfigValue& config)
     {

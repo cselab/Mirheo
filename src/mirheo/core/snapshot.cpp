@@ -4,6 +4,7 @@
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/mesh/factory.h>
+#include <mirheo/core/walls/factory.h>
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/pvs/factory.h>
 #include <mirheo/core/utils/config.h>
@@ -171,6 +172,10 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
     }
 
     if (mir->isComputeTask()) {
+        if (auto *infos = config.get("Wall"))
+            for (const auto& info : infos->getArray())
+                loadObject<Wall>(mir, loader, info, WallFactory::loadWall);
+
         if (auto *infos = config.get("Interaction")) {
             for (const auto& info : infos->getArray()) {
                 const auto& interaction = loadObject<Interaction>(
@@ -206,6 +211,13 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
                 const auto& pv = context.get<ParticleVector>(info["pv"]);
                 const auto& integrator = context.get<Integrator>(info["integrator"]);
                 mir->setIntegrator(integrator.get(), pv.get());
+            }
+        }
+
+        if (auto *infos = sim.get("checkWallPrototypes")) {
+            for (const auto& info : infos->getArray()) {
+                const auto& wall = context.get<Wall>(info["wall"]);
+                mir->registerWall(wall, info["every"]);
             }
         }
     }
