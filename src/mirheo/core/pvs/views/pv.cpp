@@ -20,13 +20,13 @@ PVviewWithOldParticles::PVviewWithOldParticles(ParticleVector *pv, LocalParticle
     PVview(pv, lpv)
 {
     if (lpv != nullptr)
-        oldPositions = lpv->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->devPtr();
+        oldPositions = lpv->dataPerParticle.getData<real4>(channel_names::oldPositions)->devPtr();
 }
 
 PVviewWithDensities::PVviewWithDensities(ParticleVector *pv, LocalParticleVector *lpv) :
     PVview(pv, lpv)
 {
-    densities = lpv->dataPerParticle.getData<real>(ChannelNames::densities)->devPtr();
+    densities = lpv->dataPerParticle.getData<real>(channel_names::densities)->devPtr();
 }
 
 } // namespace mirheo

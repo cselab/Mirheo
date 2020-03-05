@@ -56,7 +56,7 @@ void MirState::checkpoint(MPI_Comm comm, std::string folder)
     gst = domain.globalStart;
     lsz = domain.localSize;
 
-    TextIO::write(folder + fname,
+    text_IO::write(folder + fname,
                   gsz.x, gsz.y, gsz.z,
                   gst.x, gst.y, gst.z,
                   lsz.x, lsz.y, lsz.z,
@@ -70,7 +70,7 @@ void MirState::restart(MPI_Comm comm, std::string folder)
     
     real3 gsz, gst, lsz;
     auto filename = folder + fname;
-    auto good = TextIO::read(filename,
+    auto good = text_IO::read(filename,
                              gsz.x, gsz.y, gsz.z,
                              gst.x, gst.y, gst.z,
                              lsz.x, lsz.y, lsz.z,

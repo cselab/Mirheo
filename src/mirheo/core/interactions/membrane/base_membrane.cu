@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace BaseMembraneInteractionKernels
+namespace base_membrane_interaction_kernels
 {
 __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
 {
@@ -35,7 +35,7 @@ __global__ void computeAreaAndVolume(OVviewWithAreaVolume view, MeshView mesh)
     if (laneId() == 0)
         atomicAdd(&view.area_volumes[objId], a_v);
 }
-} // namespace BaseMembraneInteractionKernels
+} // namespace base_membrane_interaction_kernels
 
 
 BaseMembraneInteraction::BaseMembraneInteraction(const MirState *state, const std::string& name) :
@@ -57,7 +57,7 @@ void BaseMembraneInteraction::setPrerequisites(ParticleVector *pv1, ParticleVect
 
     if (auto mv = dynamic_cast<MembraneVector*>(pv1))
     {
-        mv->requireDataPerObject<real2>(ChannelNames::areaVolumes, DataManager::PersistenceMode::None);
+        mv->requireDataPerObject<real2>(channel_names::areaVolumes, DataManager::PersistenceMode::None);
     }
     else
     {
@@ -94,13 +94,13 @@ void BaseMembraneInteraction::_precomputeQuantities(MembraneVector *mv, cudaStre
     MembraneMeshView mesh(static_cast<MembraneMesh*>(mv->mesh.get()));
 
     mv->local()
-        ->dataPerObject.getData<real2>(ChannelNames::areaVolumes)
+        ->dataPerObject.getData<real2>(channel_names::areaVolumes)
         ->clearDevice(stream);
     
     constexpr int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
-        BaseMembraneInteractionKernels::computeAreaAndVolume,
+        base_membrane_interaction_kernels::computeAreaAndVolume,
         view.nObjects, nthreads, 0, stream,
         view, mesh);
 }

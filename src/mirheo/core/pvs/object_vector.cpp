@@ -64,7 +64,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
             "got rankStart = '%ld' while objectSize is '%d'",
             parent()->getCName(), rankStart, objSize_);
 
-    auto& ids = *dataPerObject.getData<int64_t>(ChannelNames::globalIds);
+    auto& ids = *dataPerObject.getData<int64_t>(channel_names::globalIds);
     int64_t id = (int64_t) (rankStart / objSize_);
     
     for (auto& i : ids)
@@ -80,7 +80,7 @@ PinnedBuffer<real4>* LocalObjectVector::getMeshVertices(__UNUSED cudaStream_t st
 
 PinnedBuffer<real4>* LocalObjectVector::getOldMeshVertices(__UNUSED cudaStream_t stream)
 {
-    return dataPerParticle.getData<real4>(ChannelNames::oldPositions);
+    return dataPerParticle.getData<real4>(channel_names::oldPositions);
 }
 
 PinnedBuffer<Force>* LocalObjectVector::getMeshForces(__UNUSED cudaStream_t stream)
@@ -121,10 +121,10 @@ ObjectVector::ObjectVector(const MirState *state, const std::string& name, real 
 {
     // center of mass and extents are not to be sent around
     // it's cheaper to compute them on site
-    requireDataPerObject<COMandExtent>(ChannelNames::comExtents, DataManager::PersistenceMode::None);
+    requireDataPerObject<COMandExtent>(channel_names::comExtents, DataManager::PersistenceMode::None);
 
     // object ids must always follow objects
-    requireDataPerObject<int64_t>(ChannelNames::globalIds, DataManager::PersistenceMode::Active);
+    requireDataPerObject<int64_t>(channel_names::globalIds, DataManager::PersistenceMode::Active);
 }
 
 ObjectVector::~ObjectVector() = default;
@@ -161,7 +161,7 @@ void ObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& filenam
     info("Checkpoint for object vector '%s', writing to file %s",
          getCName(), filename.c_str());
 
-    auto coms_extents = local()->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents);
+    auto coms_extents = local()->dataPerObject.getData<COMandExtent>(channel_names::comExtents);
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
@@ -169,7 +169,7 @@ void ObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& filenam
 
     XDMF::VertexGrid grid(positions, comm);
 
-    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
+    auto channels = checkpoint_helpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerObject);
     
     XDMF::write(filename, &grid, channels, comm);
@@ -194,18 +194,18 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
     auto filename = createCheckpointName(path, RestartOVIdentifier, "xmf");
     info("Restarting object vector %s from file %s", getCName(), filename.c_str());
 
-    auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
+    auto listData = restart_helpers::readData(filename, comm, objChunkSize);
 
     // remove positions from the read data (artificial for non rov)
-    RestartHelpers::extractChannel<real3> (ChannelNames::XDMF::position, listData);
+    restart_helpers::extractChannel<real3> (channel_names::XDMF::position, listData);
     
-    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
-    RestartHelpers::requireExtraDataPerObject(listData, this);
+    restart_helpers::exchangeListData(comm, ms.map, listData, objChunkSize);
+    restart_helpers::requireExtraDataPerObject(listData, this);
 
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
 
-    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
+    restart_helpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
     info("Successfully read object infos of '%s'", getCName());
 }

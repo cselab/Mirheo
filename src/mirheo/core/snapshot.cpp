@@ -180,7 +180,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
     if (auto *infos = config.get("ParticleVector")) {
         for (const auto& info : infos->getArray()) {
             const auto &pv = loadObject<ParticleVector>(
-                    mir, loader, info, ParticleVectorFactory::loadParticleVector);
+                    mir, loader, info, particle_vector_factory::loadParticleVector);
             mir->registerParticleVector(pv, ic);
         }
     }
@@ -188,12 +188,12 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
     if (mir->isComputeTask()) {
         if (auto *infos = config.get("Wall"))
             for (const auto& info : infos->getArray())
-                loadObject<Wall>(mir, loader, info, WallFactory::loadWall);
+                loadObject<Wall>(mir, loader, info, wall_factory::loadWall);
 
         if (auto *infos = config.get("Interaction")) {
             for (const auto& info : infos->getArray()) {
                 const auto& interaction = loadObject<Interaction>(
-                        mir, loader, info, InteractionFactory::loadInteraction);
+                        mir, loader, info, interaction_factory::loadInteraction);
                 mir->registerInteraction(interaction);
             }
         }
@@ -201,7 +201,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
         if (auto *infos = config.get("Integrator")) {
             for (const auto& info : infos->getArray()) {
                 const auto& integrator = loadObject<Integrator>(
-                        mir, loader, info, IntegratorFactory::loadIntegrator);
+                        mir, loader, info, integrator_factory::loadIntegrator);
                 mir->registerIntegrator(integrator);
             }
         }

@@ -7,7 +7,7 @@ namespace mirheo
 
 // inspired from https://github.com/nsf/mc
 
-namespace MarchingCubes
+namespace marching_cubes
 {
 
 static constexpr uint64_t marchingCubeTris[256] =
@@ -185,6 +185,6 @@ void computeTriangles(DomainInfo domain, real3 resolution,
     }
 }
 
-} // namespace MarchingCubes
+} // namespace marching_cubes
 
 } // namespace mirheo

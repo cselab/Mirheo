@@ -188,7 +188,7 @@ TEST(Snapshot, DumpUndumpInteractions)
     Saver saver{&context};
 
     Mirheo mirheo{MPI_COMM_WORLD, {1, 1, 1}, {10.0_r, 10.0_r, 10.0_r}, 0.1_r, {"log", 3, true}, {}, false};
-    auto pairwise = InteractionFactory::createPairwiseInteraction(
+    auto pairwise = interaction_factory::createPairwiseInteraction(
             mirheo.getState(), "interaction", 1.0, "DPD",
             {{"a", 10.0_r}, {"gamma", 10.0_r}, {"kBT", 1.0_r}, {"power", 0.5_r}});
 
@@ -198,7 +198,7 @@ TEST(Snapshot, DumpUndumpInteractions)
 
         LoaderContext loaderContext{config};
         Loader loader{&loaderContext};
-        auto pairwise2 = InteractionFactory::loadInteraction(
+        auto pairwise2 = interaction_factory::loadInteraction(
                 mirheo.getState(), loader, config.getObject());
         saver(pairwise2);
         ConfigValue config2 = saver.getConfig()["Interaction"][1];

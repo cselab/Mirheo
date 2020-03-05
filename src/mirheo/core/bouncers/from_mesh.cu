@@ -35,31 +35,31 @@ void BounceFromMesh::setup(ObjectVector *ov)
     // old motions HAVE to be there and communicated and shifted
 
     if (rov_ == nullptr)
-        ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+        ov->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
     else
-        ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+        ov->requireDataPerObject<RigidMotion> (channel_names::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void BounceFromMesh::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeExchanged() const
 {
     if (rov_)
-        return {ChannelNames::motions, ChannelNames::oldMotions};
+        return {channel_names::motions, channel_names::oldMotions};
     else
-        return {ChannelNames::oldPositions};
+        return {channel_names::oldPositions};
 }
 
 std::vector<std::string> BounceFromMesh::getChannelsToBeSentBack() const
 {
     if (rov_)
-        return {ChannelNames::motions};
+        return {channel_names::motions};
     else
-        // return {ChannelNames::forces};
+        // return {channel_names::forces};
         return {};
 }
 
@@ -81,16 +81,16 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
     const int maxCoarseCollisions = static_cast<int>(coarseCollisionsPerTri_ * static_cast<real>(totalTriangles));
     coarseTable_.collisionTable.resize_anew(maxCoarseCollisions);
     coarseTable_.nCollisions.clear(stream);
-    MeshBounceKernels::TriangleTable devCoarseTable { maxCoarseCollisions,
-                                                      coarseTable_.nCollisions.devPtr(),
-                                                      coarseTable_.collisionTable.devPtr() };
+    mesh_bounce_kernels::TriangleTable devCoarseTable { maxCoarseCollisions,
+                                                        coarseTable_.nCollisions.devPtr(),
+                                                        coarseTable_.collisionTable.devPtr() };
     
     const int maxFineCollisions = static_cast<int>(fineCollisionsPerTri_ * static_cast<real>(totalTriangles));
     fineTable_.collisionTable.resize_anew(maxFineCollisions);
     fineTable_.nCollisions.clear(stream);
-    MeshBounceKernels::TriangleTable devFineTable { maxFineCollisions,
-                                                    fineTable_.nCollisions.devPtr(),
-                                                    fineTable_.collisionTable.devPtr() };
+    mesh_bounce_kernels::TriangleTable devFineTable { maxFineCollisions,
+                                                      fineTable_.nCollisions.devPtr(),
+                                                      fineTable_.collisionTable.devPtr() };
 
     // Setup collision times array. For speed and simplicity initial time will be 0,
     // and after the collisions detected its i-th element will be t_i-1.0_r, where 0 <= t_i <= 1
@@ -115,7 +115,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
-            MeshBounceKernels::findBouncesInMesh,
+            mesh_bounce_kernels::findBouncesInMesh,
             getNblocks(totalTriangles, nthreads), nthreads, 0, stream,
             vertexView, pvView, ov_->mesh.get(), cl->cellInfo(), devCoarseTable );
 
@@ -129,7 +129,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
 
     // Step 2, filter the candidates
     SAFE_KERNEL_LAUNCH(
-            MeshBounceKernels::refineCollisions,
+            mesh_bounce_kernels::refineCollisions,
             getNblocks(coarseTable_.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov_->mesh.get(),
             coarseTable_.nCollisions[0], devCoarseTable.indices,
@@ -149,7 +149,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
         bounceKernel.update(rng_);
         
         SAFE_KERNEL_LAUNCH(
-            MeshBounceKernels::performBouncingTriangle,
+            mesh_bounce_kernels::performBouncingTriangle,
             getNblocks(fineTable_.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov_->mesh.get(),
             fineTable_.nCollisions[0], devFineTable.indices, collisionTimes_.devPtr(),
@@ -166,7 +166,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
         view.positions = vertexView.vertices;
         view.forces    = vertexView.vertexForces;
 
-        RigidOperations::collectRigidForces(view, stream);
+        rigid_operations::collectRigidForces(view, stream);
     }
 }
 

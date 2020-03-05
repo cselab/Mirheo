@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-namespace MeshBounceKernels
+namespace mesh_bounce_kernels
 {
 
 /**
@@ -179,9 +179,9 @@ __device__ static inline bool isInside(Triangle tr, real3 p)
 }
 
 
-__device__ static inline void sort3(RootFinder::RootInfo v[3])
+__device__ static inline void sort3(root_finder::RootInfo v[3])
 {
-    auto swap = [] (RootFinder::RootInfo& a, RootFinder::RootInfo& b)
+    auto swap = [] (root_finder::RootInfo& a, root_finder::RootInfo& b)
     {
         const auto tmp = a;
         a = b;
@@ -269,11 +269,11 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         return isInside(info.triangle, info.point);
     };
 
-    RootFinder::RootInfo roots[3];
-    roots[0] = RootFinder::newton(F, F_prime, leftLimit);
-    roots[2] = RootFinder::newton(F, F_prime, rightLimit);
+    root_finder::RootInfo roots[3];
+    roots[0] = root_finder::newton(F, F_prime, leftLimit);
+    roots[2] = root_finder::newton(F, F_prime, rightLimit);
 
-    auto validRoot = [](RootFinder::RootInfo root)
+    auto validRoot = [](root_finder::RootInfo root)
     {
         return root.x >= leftLimit
             && root.x <= rightLimit
@@ -298,12 +298,12 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     }
     else  // Maybe two roots
     {
-        RootFinder::RootInfo newtonRoot {RootFinder::invalidRoot};
+        root_finder::RootInfo newtonRoot {root_finder::invalidRoot};
 
         if (validRoot(roots[0])) newtonRoot = roots[0];
         if (validRoot(roots[2])) newtonRoot = roots[2];
 
-        if (newtonRoot == RootFinder::invalidRoot)
+        if (newtonRoot == root_finder::invalidRoot)
         {
             left  = leftLimit;
             right = rightLimit;
@@ -320,7 +320,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
         }
     }
 
-    roots[1] = RootFinder::linearSearchVerbose(F, RootFinder::Bounds{left, right});
+    roots[1] = root_finder::linearSearchVerbose(F, root_finder::Bounds{left, right});
 
     sort3(roots);
 
@@ -521,5 +521,5 @@ __global__ void performBouncingTriangle(OVviewWithNewOldVertices objView,
     atomicAdd(objView.vertexForces + mesh.nvertices*objId + triangle.z, f2);
 }
 
-} // namespace MeshBounceKernels
+} // namespace mesh_bounce_kernels
 } // namespace mirheo

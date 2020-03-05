@@ -13,23 +13,23 @@ OVview::OVview(ObjectVector *ov, LocalObjectVector *lov) :
     objMass  = static_cast<real>(objSize) * mass;
     invObjMass = 1.0_r / objMass;
 
-    comAndExtents = lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents)->devPtr();
-    ids           = lov->dataPerObject.getData<int64_t>(ChannelNames::globalIds)->devPtr();
+    comAndExtents = lov->dataPerObject.getData<COMandExtent>(channel_names::comExtents)->devPtr();
+    ids           = lov->dataPerObject.getData<int64_t>(channel_names::globalIds)->devPtr();
 }
 
 OVviewWithAreaVolume::OVviewWithAreaVolume(ObjectVector *ov, LocalObjectVector *lov) :
     OVview(ov, lov)
 {
-    area_volumes = lov->dataPerObject.getData<real2>(ChannelNames::areaVolumes)->devPtr();
+    area_volumes = lov->dataPerObject.getData<real2>(channel_names::areaVolumes)->devPtr();
 }
 
 OVviewWithJuelicherQuants::OVviewWithJuelicherQuants(ObjectVector *ov, LocalObjectVector *lov) :
     OVviewWithAreaVolume(ov, lov)
 {
-    vertexAreas          = lov->dataPerParticle.getData<real>(ChannelNames::areas)->devPtr();
-    vertexMeanCurvatures = lov->dataPerParticle.getData<real>(ChannelNames::meanCurvatures)->devPtr();
+    vertexAreas          = lov->dataPerParticle.getData<real>(channel_names::areas)->devPtr();
+    vertexMeanCurvatures = lov->dataPerParticle.getData<real>(channel_names::meanCurvatures)->devPtr();
 
-    lenThetaTot = lov->dataPerObject.getData<real>(ChannelNames::lenThetaTot)->devPtr();
+    lenThetaTot = lov->dataPerObject.getData<real>(channel_names::lenThetaTot)->devPtr();
 }
 
 OVviewWithNewOldVertices::OVviewWithNewOldVertices(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream) :

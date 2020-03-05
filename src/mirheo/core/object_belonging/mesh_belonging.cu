@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace MeshBelongingKernels
+namespace mesh_belonging_kernels
 {
 
 const real tolerance = 1e-6_r;
@@ -146,7 +146,7 @@ __global__ void insideMesh(const OVview ovView, const MeshView mesh, const real4
     }
 }
 
-} // namespace MeshBelongingKernels
+} // namespace mesh_belonging_kernels
 
 void MeshBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
 {
@@ -170,7 +170,7 @@ void MeshBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStrea
         constexpr int warpsPerObject = 1024;
         
         SAFE_KERNEL_LAUNCH(
-            MeshBelongingKernels::insideMesh<warpsPerObject>,
+            mesh_belonging_kernels::insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
             view, meshView, reinterpret_cast<real4*>(vertices->devPtr()),
             cl->cellInfo(), cl->getView<PVview>(), tags_.devPtr());

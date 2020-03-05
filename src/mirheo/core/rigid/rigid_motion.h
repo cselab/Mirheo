@@ -14,8 +14,8 @@ using RigidReal = double; ///< precision used for rigid states
 using RigidReal = float;  ///< precision used for rigid states
 #endif
 
-using RigidReal3 = VecTraits::Vec<RigidReal, 3>::Type; ///< real3
-using RigidReal4 = VecTraits::Vec<RigidReal, 4>::Type; ///< real4
+using RigidReal3 = vec_traits::Vec<RigidReal, 3>::Type; ///< real3
+using RigidReal4 = vec_traits::Vec<RigidReal, 4>::Type; ///< real4
 using RigiQuaternion = Quaternion<RigidReal>; ///< quaternion
 
 /** \brief Holds the state of a rigid object
@@ -28,7 +28,7 @@ template <class RealType>
 struct __align__(16) TemplRigidMotion
 {
     /// real3
-    using R3 = typename VecTraits::Vec<RealType, 3>::Type;
+    using R3 = typename vec_traits::Vec<RealType, 3>::Type;
     
     R3 r;                   ///< position of the center of mass
     Quaternion<RealType> q; ///< orientation

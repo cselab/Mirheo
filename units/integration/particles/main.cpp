@@ -131,7 +131,7 @@ static void testVelocityVerlet(real dt, real mass, int nparticles, int nsteps, d
     DomainInfo domain; // dummy domain
     MirState state(domain, dt);
     
-    auto vv = IntegratorFactory::createVV(&state, "vv");
+    auto vv = integrator_factory::createVV(&state, "vv");
     ParticleVector pv(&state, "pv", mass, nparticles);
 
     std::vector<real4> hostPositions, hostVelocities;

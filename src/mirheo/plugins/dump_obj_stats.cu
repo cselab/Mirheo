@@ -85,12 +85,12 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 
     auto lov = ov_->local();
     
-    ids_ .copy( *lov->dataPerObject.getData<int64_t>     (ChannelNames::globalIds),  stream );
-    coms_.copy( *lov->dataPerObject.getData<COMandExtent>(ChannelNames::comExtents), stream );
+    ids_ .copy( *lov->dataPerObject.getData<int64_t>     (channel_names::globalIds),  stream );
+    coms_.copy( *lov->dataPerObject.getData<COMandExtent>(channel_names::comExtents), stream );
 
     if (auto rov = dynamic_cast<RigidObjectVector*>(ov_))
     {
-        auto& oldMotions = *rov->local()->dataPerObject.getData<RigidMotion> (ChannelNames::oldMotions);
+        auto& oldMotions = *rov->local()->dataPerObject.getData<RigidMotion> (channel_names::oldMotions);
         motions_.copy(oldMotions, stream);
         isRov_ = true;
     }
@@ -111,9 +111,9 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
         isRov_ = false;
     }
 
-    if (lov->dataPerObject.checkChannelExists(ChannelNames::membraneTypeId))
+    if (lov->dataPerObject.checkChannelExists(channel_names::membraneTypeId))
     {
-        typeIds_.copy( *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId), stream);
+        typeIds_.copy( *lov->dataPerObject.getData<int>(channel_names::membraneTypeId), stream);
         hasTypeIds_ = true;
     }
     

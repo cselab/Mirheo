@@ -13,7 +13,7 @@ namespace mirheo
 class SDFBasedWall;
 class ParticleVector;
 
-namespace WallHelpers
+namespace wall_helpers
 {
 
 void freezeParticlesInWall(SDFBasedWall *wall, ParticleVector *pv, real minVal, real maxVal);
@@ -23,6 +23,6 @@ void dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, DomainInfo do
 
 double volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank);
 
-} // namespace WallHelpers
+} // namespace wall_helpers
 
 } // namespace mirheo

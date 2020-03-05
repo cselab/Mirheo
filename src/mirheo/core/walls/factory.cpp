@@ -11,7 +11,7 @@ static bool startsWith(const std::string &text, const char *tmp)
 }
 
 std::shared_ptr<Wall>
-WallFactory::loadWall(const MirState *state, Loader& loader, const ConfigObject& config)
+wall_factory::loadWall(const MirState *state, Loader& loader, const ConfigObject& config)
 {
     const std::string& type = config["__type"];
     if (startsWith(type, "SimpleStationaryWall<"))

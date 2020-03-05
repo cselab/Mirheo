@@ -8,7 +8,7 @@ namespace mirheo
 ROVview::ROVview(RigidObjectVector *rov, LocalRigidObjectVector *lrov) :
     OVview(rov, lrov)
 {
-    motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions)->devPtr();
+    motions = lrov->dataPerObject.getData<RigidMotion>(channel_names::motions)->devPtr();
 
     J   = rov->getInertialTensor();
     J_1 = 1.0 / J;
@@ -17,7 +17,7 @@ ROVview::ROVview(RigidObjectVector *rov, LocalRigidObjectVector *lrov) :
 ROVviewWithOldMotion::ROVviewWithOldMotion(RigidObjectVector* rov, LocalRigidObjectVector* lrov) :
     ROVview(rov, lrov)
 {
-    old_motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
+    old_motions = lrov->dataPerObject.getData<RigidMotion>(channel_names::oldMotions)->devPtr();
 }
 
 } // namespace mirheo

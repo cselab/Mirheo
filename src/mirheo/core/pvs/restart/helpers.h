@@ -14,7 +14,7 @@ namespace mirheo
 class ParticleVector;
 class ObjectVector;
 
-namespace RestartHelpers
+namespace restart_helpers
 {
 constexpr int InvalidProc = -1;
 constexpr int tag = 4243;
@@ -179,7 +179,7 @@ template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
 {
     auto shift = domain.global2local({0._r, 0._r, 0._r});
-    for (auto& d : data) TypeShift::apply(d, shift);    
+    for (auto& d : data) type_shift::apply(d, shift);    
 }
 
 void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv);
@@ -189,6 +189,6 @@ void copyAndShiftListData(const DomainInfo domain,
                           const ListData& listData,
                           DataManager& dataManager);
 
-} // namespace RestartHelpers
+} // namespace restart_helpers
 
 } // namespace mirheo

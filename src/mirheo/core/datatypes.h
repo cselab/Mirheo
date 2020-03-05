@@ -21,9 +21,9 @@ using integer = int32_t;
 #define MIRHEO_PRIgREAL "g"   ///< printf format for real
 #endif
 
-using real2 = VecTraits::Vec<real, 2>::Type;
-using real3 = VecTraits::Vec<real, 3>::Type;
-using real4 = VecTraits::Vec<real, 4>::Type;
+using real2 = vec_traits::Vec<real, 2>::Type;
+using real3 = vec_traits::Vec<real, 3>::Type;
+using real4 = vec_traits::Vec<real, 4>::Type;
 
 inline namespace unit_literals {
     __HD__ constexpr inline real operator "" _r (const long double a)

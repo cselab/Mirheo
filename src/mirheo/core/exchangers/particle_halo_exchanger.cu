@@ -24,7 +24,7 @@ enum class PackMode
     Query, Pack
 };
 
-namespace ParticleHaloExchangersKernels
+namespace particle_halo_exchangers_kernels
 {
 
 template <PackMode packMode>
@@ -50,8 +50,8 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
     int current = 0;
 
     // Total number of elements written to halos by this block
-    __shared__ int blockSum[FragmentMapping::numFragments];
-    if (tid < FragmentMapping::numFragments) blockSum[tid] = 0;
+    __shared__ int blockSum[fragment_mapping::numFragments];
+    if (tid < fragment_mapping::numFragments) blockSum[tid] = 0;
 
     __syncthreads();
 
@@ -61,7 +61,7 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
             {
                 if (ix == 0 && iy == 0 && iz == 0) continue;
 
-                const int bufId = FragmentMapping::getId(ix, iy, iz);
+                const int bufId = fragment_mapping::getId(ix, iy, iz);
                 validHalos[current] = bufId;
                 haloOffset[current] = atomicAdd(blockSum + bufId, pend-pstart);
                 current++;
@@ -69,7 +69,7 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
 
     __syncthreads();
 
-    if (tid < FragmentMapping::numFragments && blockSum[tid] > 0)
+    if (tid < fragment_mapping::numFragments && blockSum[tid] > 0)
         blockSum[tid] = atomicAdd(dataWrap.sizes + tid, blockSum[tid]);
 
     if (packMode == PackMode::Query)
@@ -86,8 +86,8 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
             const int bufId = validHalos[j];
             const int myId  = blockSum[bufId] + haloOffset[j];
 
-            auto dir = FragmentMapping::getDir(bufId);
-            auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+            auto dir = fragment_mapping::getDir(bufId);
+            auto shift = exchangers_common::getShift(domain.localSize, dir);
 
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
             auto buffer = dataWrap.getBuffer(bufId);
@@ -130,7 +130,7 @@ __global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerH
     packer.particles.unpack(srcPid, dstPid, buffer, numElements);
 }
 
-} //namespace ParticleHaloExchangersKernels
+} //namespace particle_halo_exchangers_kernels
 
 
 //===============================================================================================
@@ -147,8 +147,8 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     cellLists_.push_back(cl);
 
     auto channels = extraChannelNames;
-    channels.push_back(ChannelNames::positions);
-    channels.push_back(ChannelNames::velocities);
+    channels.push_back(channel_names::positions);
+    channels.push_back(channel_names::velocities);
 
     PackPredicate predicate = [channels](const DataManager::NamedChannelDesc& namedDesc)
     {
@@ -192,7 +192,7 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), nfaces, 1);
 
         SAFE_KERNEL_LAUNCH(
-            ParticleHaloExchangersKernels::getHalo<PackMode::Query>,
+            particle_halo_exchangers_kernels::getHalo<PackMode::Query>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), pv->getState()->domain,
             packer->handler(), helper->wrapSendData() );
@@ -225,7 +225,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
         helper->send.sizes.clearDevice(stream);
         
         SAFE_KERNEL_LAUNCH(
-            ParticleHaloExchangersKernels::getHalo<PackMode::Pack>,
+            particle_halo_exchangers_kernels::getHalo<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), pv->getState()->domain,
             packer->handler(), helper->wrapSendData() );
@@ -254,7 +254,7 @@ void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
     
     SAFE_KERNEL_LAUNCH(
-        ParticleHaloExchangersKernels::unpackParticles,
+        particle_halo_exchangers_kernels::unpackParticles,
         nblocks, nthreads, shMemSize, stream,
         helper->wrapRecvData(), unpacker->handler());
     

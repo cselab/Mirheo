@@ -79,7 +79,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
     // Relative stuff
     relativeOV_ = simulation->getOVbyNameOrDie(relativeOVname_);
 
-    if ( !relativeOV_->local()->dataPerObject.checkChannelExists(ChannelNames::motions) )
+    if ( !relativeOV_->local()->dataPerObject.checkChannelExists(channel_names::motions) )
         die("Only rigid objects are supported for relative flow, but got OV '%s'", relativeOV_->getCName());
 
     const int locsize = relativeOV_->local()->getNumObjects();
@@ -120,8 +120,8 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
     MPI_Request req;
     MPI_Check( MPI_Irecv(relativeParams, NCOMPONENTS, getMPIFloatType<real>(), MPI_ANY_SOURCE, TAG, comm_, &req) );
 
-    auto ids     = relativeOV_->local()->dataPerObject.getData<int64_t>(ChannelNames::globalIds);
-    auto motions = relativeOV_->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto ids     = relativeOV_->local()->dataPerObject.getData<int64_t>(channel_names::globalIds);
+    auto motions = relativeOV_->local()->dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     ids    ->downloadFromDevice(stream, ContainersSynch::Asynch);
     motions->downloadFromDevice(stream, ContainersSynch::Synch);
@@ -207,7 +207,7 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
     {
         auto& data = accumulatedAverage_[i];
 
-        if (channelsInfo_.names[i] == ChannelNames::velocities)
+        if (channelsInfo_.names[i] == channel_names::velocities)
         {
             constexpr int nthreads = 128;
             const int numVec3 = data.size() / 3;

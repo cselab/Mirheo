@@ -220,7 +220,7 @@ TEST (PACKERS_SIMPLE, objects)
 
     auto& pos = lrev->positions();
     auto& vel = lrev->velocities();
-    auto  mot = lrev->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto  mot = lrev->dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     pos .downloadFromDevice(defaultStream);
     vel .downloadFromDevice(defaultStream);

@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace RigidOperationsKernels
+namespace rigid_operations_kernels
 {
 
 /**
@@ -53,7 +53,7 @@ __global__ void collectRigidForces(ROVview ovView)
  * Rotates and translates the initial positions according to new position and orientation
  * compute also velocity if template parameter set to corresponding value
  */
-template <RigidOperations::ApplyTo action>
+template <rigid_operations::ApplyTo action>
 __global__ void applyRigidMotion(ROVview ovView, const real4 *initialPositions)
 {
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -69,7 +69,7 @@ __global__ void applyRigidMotion(ROVview ovView, const real4 *initialPositions)
 
     p.r = motion.r + motion.q.rotate( make_real3(initialPositions[locId]) );
 
-    if (action == RigidOperations::ApplyTo::PositionsAndVelocities)
+    if (action == rigid_operations::ApplyTo::PositionsAndVelocities)
     {
         ovView.readVelocity(p, pid);
         p.u = motion.vel + cross(motion.omega, p.r - motion.r);
@@ -90,9 +90,9 @@ __global__ void clearRigidForcesFromMotions(ROVview ovView)
     ovView.motions[objId].torque = {0,0,0};
 }
 
-} // namespace RigidOperationsKernels
+} // namespace rigid_operations_kernels
 
-namespace RigidOperations
+namespace rigid_operations
 {
 
 void collectRigidForces(const ROVview& view, cudaStream_t stream)
@@ -101,7 +101,7 @@ void collectRigidForces(const ROVview& view, cudaStream_t stream)
     const int nblocks = view.nObjects;
 
     SAFE_KERNEL_LAUNCH(
-        RigidOperationsKernels::collectRigidForces,
+        rigid_operations_kernels::collectRigidForces,
         nblocks, nthreads, 0, stream,
         view );
 }
@@ -116,13 +116,13 @@ void applyRigidMotion(const ROVview& view, const PinnedBuffer<real4>& initialPos
     {
     case ApplyTo::PositionsOnly:
         SAFE_KERNEL_LAUNCH(
-            RigidOperationsKernels::applyRigidMotion<ApplyTo::PositionsOnly>,
+            rigid_operations_kernels::applyRigidMotion<ApplyTo::PositionsOnly>,
             nblocks, nthreads, 0, stream,
             view, initialPositions.devPtr() );
         break;
     case ApplyTo::PositionsAndVelocities:
         SAFE_KERNEL_LAUNCH(
-            RigidOperationsKernels::applyRigidMotion<ApplyTo::PositionsAndVelocities>,
+            rigid_operations_kernels::applyRigidMotion<ApplyTo::PositionsAndVelocities>,
             nblocks, nthreads, 0, stream,
             view, initialPositions.devPtr() );
         break;
@@ -138,11 +138,11 @@ void clearRigidForcesFromMotions(const ROVview& view, cudaStream_t stream)
     const int nblocks = getNblocks(view.nObjects, nthreads);
 
     SAFE_KERNEL_LAUNCH(
-        RigidOperationsKernels::clearRigidForcesFromMotions,
+        rigid_operations_kernels::clearRigidForcesFromMotions,
         nblocks, nthreads, 0, stream,
         view );
 }
 
-} // namespace RigidOperations
+} // namespace rigid_operations
 
 } // namespace mirheo

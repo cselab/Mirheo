@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace ShapeBounceKernels
+namespace shape_bounce_kernels
 {
 
 template <class Shape>
@@ -98,8 +98,8 @@ __device__ static inline void bounceCellArray(
         else
         {
             // This is intersection point
-            constexpr RootFinder::Bounds limits {0._r, 1._r};
-            const real alpha = RootFinder::linearSearch( [=] (const real lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
+            constexpr root_finder::Bounds limits {0._r, 1._r};
+            const real alpha = root_finder::linearSearch( [=] (const real lambda) { return shape.inOutFunction(oldCoo + dr*lambda);}, limits );
             newCoo = oldCoo + dr*max(alpha, limits.lo);
 
             // Push out a little bit
@@ -231,5 +231,5 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt, bounceKernel);
 }
 
-} // namespace EllipsoidBounceKernels
+} // namespace shape_bounce_kernels
 } // namespace mirheo

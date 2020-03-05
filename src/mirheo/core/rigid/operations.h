@@ -7,7 +7,7 @@ namespace mirheo
 {
 
 /// a set of operations applied to \c ROVview objects
-namespace RigidOperations
+namespace rigid_operations
 {
 /// controls to what quantities to apply the 
 enum class ApplyTo { PositionsOnly, PositionsAndVelocities };
@@ -28,6 +28,6 @@ void applyRigidMotion(const ROVview& view, const PinnedBuffer<real4>& initialPos
 /// set the force and torques of the RigidMotion objects to zero
 void clearRigidForcesFromMotions(const ROVview& view, cudaStream_t stream);
 
-} // namespace RigidOperations
+} // namespace rigid_operations
 
 } // namespace mirheo

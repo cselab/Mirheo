@@ -149,9 +149,9 @@ public:
     */
     /// \{
     std::vector<int64_t> getIndices_vector();
-    PyTypes::VectorOfReal3 getCoordinates_vector();
-    PyTypes::VectorOfReal3 getVelocities_vector();
-    PyTypes::VectorOfReal3 getForces_vector();
+    py_types::VectorOfReal3 getCoordinates_vector();
+    py_types::VectorOfReal3 getVelocities_vector();
+    py_types::VectorOfReal3 getForces_vector();
     
     void setCoordinates_vector(const std::vector<real3>& coordinates);
     void setVelocities_vector(const std::vector<real3>& velocities);

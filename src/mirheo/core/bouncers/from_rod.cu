@@ -29,23 +29,23 @@ void BounceFromRod::setup(ObjectVector *ov)
     if (rv_ == nullptr)
         die("bounce from rod must be used with a rod vector");
 
-    ov->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    ov->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void BounceFromRod::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 std::vector<std::string> BounceFromRod::getChannelsToBeExchanged() const
 {
-    return {ChannelNames::oldPositions};
+    return {channel_names::oldPositions};
 }
 
 std::vector<std::string> BounceFromRod::getChannelsToBeSentBack() const
 {
-    return {ChannelNames::forces};
+    return {channel_names::forces};
 }
 
 void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream)
@@ -66,7 +66,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
     const int maxCollisions = static_cast<int>(collisionsPerSeg_ * static_cast<real>(totalSegments));
     table_.collisionTable.resize_anew(maxCollisions);
     table_.nCollisions.clear(stream);
-    RodBounceKernels::SegmentTable devCollisionTable { maxCollisions,
+    rod_bounce_kernels::SegmentTable devCollisionTable { maxCollisions,
                                                        table_.nCollisions.devPtr(),
                                                        table_.collisionTable.devPtr() };
 
@@ -86,7 +86,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
 
     // Step 1, find all the candidate collisions
     SAFE_KERNEL_LAUNCH(
-            RodBounceKernels::findBounces,
+            rod_bounce_kernels::findBounces,
             getNblocks(totalSegments, nthreads), nthreads, 0, stream,
             rvView, radius_, pvView, cl->cellInfo(), devCollisionTable, collisionTimes.devPtr() );
 
@@ -104,7 +104,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
         bounceKernel.update(rng_);
     
         SAFE_KERNEL_LAUNCH(
-            RodBounceKernels::performBouncing,
+            rod_bounce_kernels::performBouncing,
             getNblocks(nCollisions, nthreads), nthreads, 0, stream,
             rvView, radius_, pvView, nCollisions, devCollisionTable.indices, collisionTimes.devPtr(),
             getState()->dt, bounceKernel);

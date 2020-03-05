@@ -6,7 +6,7 @@
 namespace mirheo
 {
 
-namespace FragmentMapping
+namespace fragment_mapping
 {
 
 inline __HD__ int getDirx(int id) { return (id     + 2) % 3 - 1; }
@@ -33,5 +33,5 @@ inline __HD__ int getId(int3 dir)
 constexpr int numFragments = 27;
 constexpr int bulkId       = 26;
 
-} // namespace FragmentMapping
+} // namespace fragment_mapping
 } // namespace mirheo

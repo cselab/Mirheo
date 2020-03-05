@@ -18,7 +18,7 @@
 namespace mirheo
 {
 
-namespace CellListKernels
+namespace cell_list_kernels
 {
 
 enum {INVALID = -1};
@@ -88,7 +88,7 @@ __global__ void accumulateKernel(int n, T *dst, CellListInfo cinfo, const T *src
     dst[pid] += src[srcId];
 }
 
-} // namespace CellListKernels
+} // namespace cell_list_kernels
 
 //=================================================================================
 // Info
@@ -203,7 +203,7 @@ void CellList::_computeCellSizes(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-            CellListKernels::computeCellSizes,
+            cell_list_kernels::computeCellSizes,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, cellInfo() );
 }
@@ -235,7 +235,7 @@ void CellList::_reorderPositionsAndCreateMap(cudaStream_t stream)
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        CellListKernels::reorderPositionsAndCreateMap,
+        cell_list_kernels::reorderPositionsAndCreateMap,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, cellInfo(), particlesDataContainer_->positions().devPtr() );
 }
@@ -256,7 +256,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
         constexpr int nthreads = 128;
         
         SAFE_KERNEL_LAUNCH(
-           CellListKernels::reorderExtraDataPerParticle,
+           cell_list_kernels::reorderExtraDataPerParticle,
            getNblocks(np, nthreads), nthreads, 0, stream,
            np, srcPinnedBuff->devPtr(), this->cellInfo(), dstPinnedBuff->devPtr() );
     }, channelDesc->varDataPtr);
@@ -271,7 +271,7 @@ void CellList::_reorderPersistentData(cudaStream_t stream)
         const auto& name = namedChannel.first;
         const auto& desc = namedChannel.second;
         if (desc->persistence != DataManager::PersistenceMode::Active
-            || name == ChannelNames::positions) // positions were already reordered manually
+            || name == channel_names::positions) // positions were already reordered manually
             continue;
         _reorderExtraDataEntry(name, desc, stream);
     }
@@ -326,7 +326,7 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
     const int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
-        CellListKernels::accumulateKernel,
+        cell_list_kernels::accumulateKernel,
         getNblocks(n, nthreads), nthreads, 0, stream,
         n, dst->devPtr(), cinfo, src->devPtr() );
 }

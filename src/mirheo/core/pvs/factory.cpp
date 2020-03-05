@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-namespace ParticleVectorFactory
+namespace particle_vector_factory
 {
 
 std::shared_ptr<ParticleVector> loadParticleVector(
@@ -21,5 +21,5 @@ std::shared_ptr<ParticleVector> loadParticleVector(
     die("Unrecognized or unimplemented particle vector type \"%s\".", type.c_str());
 }
 
-} // namespace ParticleVectorFactory
+} // namespace particle_vector_factory
 } // namespace mirheo

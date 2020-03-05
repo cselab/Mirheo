@@ -12,9 +12,9 @@ using rReal  = double; ///< double precision switch
 using rReal  = float; ///< single precision switch
 #endif // ROD_FORCES_DOUBLE
 
-using rReal2 = VecTraits::Vec<rReal, 2>::Type; ///< real2
-using rReal3 = VecTraits::Vec<rReal, 3>::Type; ///< real3
-using rReal4 = VecTraits::Vec<rReal, 4>::Type; ///< real4
+using rReal2 = vec_traits::Vec<rReal, 2>::Type; ///< real2
+using rReal3 = vec_traits::Vec<rReal, 3>::Type; ///< real3
+using rReal4 = vec_traits::Vec<rReal, 4>::Type; ///< real4
 
 /// create real2 from vector
 template<typename T2>

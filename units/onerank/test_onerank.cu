@@ -264,7 +264,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     const DPDParams dpdParams{adpd, gammadpd, kBT, powerdpd};
     auto dpd = createInteractionPairwise(&state, "dpd", rc, dpdParams, StressNoneParams{});
 
-    auto integrator = IntegratorFactory::createVV(&state, "vv");
+    auto integrator = integrator_factory::createVV(&state, "vv");
     
     CUDA_Check( cudaStreamSynchronize(defStream) );
 

@@ -163,7 +163,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     rv->local()->positions() .uploadToDevice(stream);
     rv->local()->velocities().uploadToDevice(stream);
     rv->local()->computeGlobalIds(comm, stream);
-    rv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(rv->local()->positions(), stream);
+    rv->local()->dataPerParticle.getData<real4>(channel_names::oldPositions)->copy(rv->local()->positions(), stream);
 
     info("Initialized %d '%s' rods", nObjs, rv->getCName());
 }

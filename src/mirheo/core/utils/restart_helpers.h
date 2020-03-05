@@ -21,7 +21,7 @@ inline std::ifstream& operator>>(std::ifstream& s, real3& v)
 }
 
 
-namespace TextIO
+namespace text_IO
 {
 template<typename Arg>
 void writeToStream(std::ofstream& fout, const Arg& arg)
@@ -64,6 +64,6 @@ bool read(std::string fname, Args&... args)
     return fin.good() && readFromStream(fin, args...);
 }
 
-} // namespace TextIO
+} // namespace text_IO
 
 } // namespace mirheo

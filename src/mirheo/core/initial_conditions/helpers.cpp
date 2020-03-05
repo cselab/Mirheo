@@ -106,7 +106,7 @@ void setUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     pv->local()->positions() .uploadToDevice(stream);
     pv->local()->velocities().uploadToDevice(stream);
     pv->local()->computeGlobalIds(comm, stream);
-    pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(pv->local()->positions(), stream);
+    pv->local()->dataPerParticle.getData<real4>(channel_names::oldPositions)->copy(pv->local()->positions(), stream);
 
     debug2("Generated %d %s particles", pv->local()->size(), pv->getCName());
 }

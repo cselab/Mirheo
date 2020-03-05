@@ -8,7 +8,7 @@
 namespace mirheo
 {
 
-namespace TypeShift
+namespace type_shift
 {
 template <typename T>
 __HD__ inline void _add(T& v, real3 s)
@@ -35,6 +35,6 @@ __HD__ inline void apply(COMandExtent& var, real3 shift)
     _add(var.high, shift);
 }
 
-} // namespace TypeShift
+} // namespace type_shift
 
 } // namespace mirheo

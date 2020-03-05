@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace IntegrationKernels
+namespace integration_kernels
 {
 
 /**
@@ -39,7 +39,7 @@ __global__ void integrate(PVviewWithOldParticles pvView, const real dt, Transfor
     writeNoCache(pvView.velocities + pid, p.u2Real4());
 }
 
-} // namespace IntegrationKernels
+} // namespace integration_kernels
 
 
 template<typename Transform>
@@ -48,11 +48,11 @@ static void integrate(ParticleVector *pv, real dt, Transform transform, cudaStre
     constexpr int nthreads = 128;
 
     // New particles now become old
-    std::swap(pv->local()->positions(), *pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions));
+    std::swap(pv->local()->positions(), *pv->local()->dataPerParticle.getData<real4>(channel_names::oldPositions));
     PVviewWithOldParticles pvView(pv, pv->local());
 
     SAFE_KERNEL_LAUNCH(
-        IntegrationKernels::integrate,
+        integration_kernels::integrate,
         getNblocks(pvView.size, nthreads), nthreads, 0, stream,
         pvView, dt, transform );
 }

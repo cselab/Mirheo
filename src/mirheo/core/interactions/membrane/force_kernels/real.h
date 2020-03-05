@@ -12,8 +12,8 @@ using mReal  = double; ///< precision switch for double precision membrane inter
 using mReal  = float; ///< precision switch for single precision membrane interactions
 #endif // MEMBRANE_FORCES_DOUBLE
 
-using mReal2 = VecTraits::Vec<mReal, 2>::Type; ///< real2 in mReal precision
-using mReal3 = VecTraits::Vec<mReal, 3>::Type; ///< real3 in mReal precision
+using mReal2 = vec_traits::Vec<mReal, 2>::Type; ///< real2 in mReal precision
+using mReal3 = vec_traits::Vec<mReal, 3>::Type; ///< real3 in mReal precision
 
 /// create a mReal3 from vector
 template<typename T3>

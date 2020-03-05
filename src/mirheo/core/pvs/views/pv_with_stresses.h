@@ -25,7 +25,7 @@ struct PVviewWithStresses : public BasicView
     PVviewWithStresses(ParticleVector *pv, LocalParticleVector *lpv) :
         BasicView(pv, lpv)
     {
-        stresses = lpv->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();            
+        stresses = lpv->dataPerParticle.getData<Stress>(channel_names::stresses)->devPtr();            
     }
 
     Stress *stresses {nullptr}; ///< stresses per particle

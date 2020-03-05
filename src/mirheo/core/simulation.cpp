@@ -1262,7 +1262,7 @@ void Simulation::notifyPostProcess(int tag, int msg) const
 void Simulation::_restartState(const std::string& folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
-    auto good = TextIO::read(filename, state_->currentTime, state_->currentStep, checkpointId_);
+    auto good = text_IO::read(filename, state_->currentTime, state_->currentStep, checkpointId_);
     if (!good) die("failed to read '%s'\n", filename.c_str());    
 }
 
@@ -1271,7 +1271,7 @@ void Simulation::_checkpointState()
     auto filename = createCheckpointNameWithId(checkpointInfo_.folder, "state", "txt", checkpointId_);
 
     if (rank_ == 0)
-        TextIO::write(filename, state_->currentTime, state_->currentStep, checkpointId_);
+        text_IO::write(filename, state_->currentTime, state_->currentStep, checkpointId_);
 
     createCheckpointSymlink(cartComm_, checkpointInfo_.folder, "state", "txt", checkpointId_);
 }

@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace ObjRodBindingKernels
+namespace obj_rod_binding_kernels
 {
 
 struct BindingParams
@@ -106,7 +106,7 @@ __global__ void computeBindingForces(DomainInfo domain, ROVview objs, OVview rod
         applyBindingForce(domain, i, objs, rodLocs[j], rods, params);
 }
 
-} // namespace ObjRodBindingKernels
+} // namespace obj_rod_binding_kernels
 
 
 ObjectRodBindingInteraction::ObjectRodBindingInteraction(const MirState *state, std::string name,
@@ -166,10 +166,10 @@ void ObjectRodBindingInteraction::_local(RigidObjectVector *rov, RodVector *rv, 
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
     
-    ObjRodBindingKernels::BindingParams params {relAnchor_, torque_, kBound_};
+    obj_rod_binding_kernels::BindingParams params {relAnchor_, torque_, kBound_};
     
     SAFE_KERNEL_LAUNCH(
-        ObjRodBindingKernels::computeBindingForces,
+        obj_rod_binding_kernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,
         getState()->domain, objs, rods, params);
 }
@@ -183,10 +183,10 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
     
-    ObjRodBindingKernels::BindingParams params {relAnchor_, torque_, kBound_};
+    obj_rod_binding_kernels::BindingParams params {relAnchor_, torque_, kBound_};
     
     SAFE_KERNEL_LAUNCH(
-        ObjRodBindingKernels::computeBindingForces,
+        obj_rod_binding_kernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,
         getState()->domain, objs, rods, params);
 }

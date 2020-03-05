@@ -80,11 +80,11 @@ public:
         if (outputsDensity <PairwiseKernel>::value ||
             requiresDensity<PairwiseKernel>::value   )
         {
-            pv1->requireDataPerParticle<real>(ChannelNames::densities, DataManager::PersistenceMode::None);
-            pv2->requireDataPerParticle<real>(ChannelNames::densities, DataManager::PersistenceMode::None);
+            pv1->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
+            pv2->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
             
-            cl1->requireExtraDataPerParticle<real>(ChannelNames::densities);
-            cl2->requireExtraDataPerParticle<real>(ChannelNames::densities);
+            cl1->requireExtraDataPerParticle<real>(channel_names::densities);
+            cl2->requireExtraDataPerParticle<real>(channel_names::densities);
         }
     }
     
@@ -138,7 +138,7 @@ public:
         std::vector<InteractionChannel> channels;
         
         if (requiresDensity<PairwiseKernel>::value)
-            channels.push_back({ChannelNames::densities, Interaction::alwaysActive});
+            channels.push_back({channel_names::densities, Interaction::alwaysActive});
 
         return channels;
     }
@@ -148,10 +148,10 @@ public:
         std::vector<InteractionChannel> channels;
         
         if (outputsDensity<PairwiseKernel>::value)
-            channels.push_back({ChannelNames::densities, Interaction::alwaysActive});
+            channels.push_back({channel_names::densities, Interaction::alwaysActive});
 
         if (outputsForce<PairwiseKernel>::value)
-            channels.push_back({ChannelNames::forces, Interaction::alwaysActive});
+            channels.push_back({channel_names::forces, Interaction::alwaysActive});
 
         return channels;
     }
@@ -160,7 +160,7 @@ public:
     {
         ParametersWrap desc(mapParams);
         auto params = _pairParams;
-        FactoryHelper::readSpecificParams(params, desc);
+        factory_helper::readSpecificParams(params, desc);
         PairwiseKernel kernel {rc_, params, getState()->dt};
         _setSpecificPair(pv1name, pv2name, kernel, params);
     }

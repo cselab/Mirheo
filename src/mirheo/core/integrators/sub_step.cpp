@@ -113,7 +113,7 @@ void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
     }
     
     // restore previous positions into old_particles channel
-    pv->local()->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->copy(previousPositions_, stream);
+    pv->local()->dataPerParticle.getData<real4>(channel_names::oldPositions)->copy(previousPositions_, stream);
 
     // restore state of fastForces
     for (auto& ff : fastForces_)

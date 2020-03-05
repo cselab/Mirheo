@@ -22,7 +22,7 @@ enum class PackMode
     Query, Pack
 };
 
-namespace ParticleRedistributorKernels
+namespace particle_redistributor_kernels
 {
 inline __device__ int encodeCellId1d(int cid, int ncells)
 {
@@ -78,7 +78,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
         
         if (hasToLeave(dir))
         {
-            const int bufId = FragmentMapping::getId(dir);
+            const int bufId = fragment_mapping::getId(dir);
 
             int myId = atomicAdd(dataWrap.sizes + bufId, 1);
 
@@ -88,7 +88,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
             }
             else
             {
-                auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+                auto shift = exchangers_common::getShift(domain.localSize, dir);
 
                 const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
@@ -121,7 +121,7 @@ __global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
     }
 }
 
-} // namespace ParticleRedistributorKernels
+} // namespace particle_redistributor_kernels
 
 //===============================================================================================
 // Member functions
@@ -179,7 +179,7 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
 
         SAFE_KERNEL_LAUNCH(
-            ParticleRedistributorKernels::getExitingParticles<PackMode::Query>,
+            particle_redistributor_kernels::getExitingParticles<PackMode::Query>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(),
             pv->getState()->domain, packer->handler(),
@@ -210,7 +210,7 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
         helper->send.sizes.clearDevice(stream);
         
         SAFE_KERNEL_LAUNCH(
-            ParticleRedistributorKernels::getExitingParticles<PackMode::Pack>,
+            particle_redistributor_kernels::getExitingParticles<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
             cl->cellInfo(), cl->getView<PVview>(),
             pv->getState()->domain, packer->handler(),
@@ -237,7 +237,7 @@ void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
         packer->update(lpv, stream);
         
         SAFE_KERNEL_LAUNCH(
-            ParticleRedistributorKernels::unpackParticles,
+            particle_redistributor_kernels::unpackParticles,
             nblocks, nthreads, 0, stream,
             oldSize, helper->wrapRecvData(), packer->handler());
 

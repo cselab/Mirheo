@@ -14,7 +14,7 @@
 namespace mirheo
 {
 
-namespace ObjectReverseExchangerKernels
+namespace object_reverse_exchanger_kernels
 {
 
 template <class PackerHandler>
@@ -60,7 +60,7 @@ __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
     packer.blockUnpackAddNonZero(numElements, buffer, srcObjId, dstObjId, eps);
 }
 
-} // namespace ObjectReverseExchangerKernels
+} // namespace object_reverse_exchanger_kernels
 
 
 ObjectReverseExchanger::ObjectReverseExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
@@ -151,10 +151,10 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjectReverseExchangerKernels::reversePack,
+            object_reverse_exchanger_kernels::reversePack,
             nblocks, nthreads, shMemSize, stream,
             helper->wrapSendData(), packerHandler );
-    }, ExchangersCommon::getHandler(packer));
+    }, exchangers_common::getHandler(packer));
     
     debug2("Will send back data for %d objects", nSendObj);
 }
@@ -178,11 +178,11 @@ void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream
     mpark::visit([&](auto unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjectReverseExchangerKernels::reverseUnpackAndAdd,
+            object_reverse_exchanger_kernels::reverseUnpackAndAdd,
             static_cast<int>(map.size()), nthreads, 0, stream,
             unpackerHandler, map.devPtr(),
             helper->wrapRecvData());
-    }, ExchangersCommon::getHandler(unpacker));
+    }, exchangers_common::getHandler(unpacker));
 }
 
 } // namespace mirheo

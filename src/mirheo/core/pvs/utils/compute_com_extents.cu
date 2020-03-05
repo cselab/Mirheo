@@ -9,7 +9,7 @@
 
 namespace mirheo
 {
-namespace ComputeComExtentsKernels
+namespace compute_com_extents_kernels
 {
 
 __global__ void minMaxCom(OVview ovView)
@@ -43,7 +43,7 @@ __global__ void minMaxCom(OVview ovView)
         ovView.comAndExtents[objId] = {mycom / ovView.objSize, mymin, mymax};
 }
 
-} // namespace ComputeComExtentsKernels
+} // namespace compute_com_extents_kernels
 
 void computeComExtents(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream)
 {
@@ -54,7 +54,7 @@ void computeComExtents(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t st
     const int nblocks = getNblocks(view.nObjects * warpSize, nthreads);
     
     SAFE_KERNEL_LAUNCH(
-        ComputeComExtentsKernels::minMaxCom,
+        compute_com_extents_kernels::minMaxCom,
         nblocks, nthreads, 0, stream,
         view );
 }

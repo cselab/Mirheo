@@ -16,7 +16,7 @@ class BaseRodInteraction;
 class BasePairwiseInteraction;
 class ObjectRodBindingInteraction;
 
-namespace InteractionFactory
+namespace interaction_factory
 {
 using VarParam = ParametersWrap::VarParam;
 using MapParams = ParametersWrap::MapParams;
@@ -47,6 +47,6 @@ createInteractionObjRodBinding(const MirState *state, std::string name,
 std::shared_ptr<Interaction>
 loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
 
-} // namespace InteractionFactory
+} // namespace interaction_factory
 
 } // namespace mirheo

@@ -15,7 +15,7 @@
 namespace mirheo
 {
 
-namespace ObjectHaloExtraExchangerKernels
+namespace object_halo_extra_exchanger_kernels
 {
 template <class PackerHandler>
 __global__ void pack(DomainInfo domain, PackerHandler packer, const MapEntry *map,
@@ -31,8 +31,8 @@ __global__ void pack(DomainInfo domain, PackerHandler packer, const MapEntry *ma
     const int dstObjId = objId - dataWrap.offsets[bufId];
     
     auto buffer = dataWrap.getBuffer(bufId);
-    auto dir   = FragmentMapping::getDir(bufId);
-    auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+    auto dir   = fragment_mapping::getDir(bufId);
+    auto shift = exchangers_common::getShift(domain.localSize, dir);
 
     packer.blockPackShift(numElements, buffer, srcObjId, dstObjId, shift);
 }
@@ -60,7 +60,7 @@ __global__ void unpack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 
     packer.blockUnpack(numElements, buffer, srcObjId, dstObjId);
 }
-} // namespace ObjectHaloExtraExchangerKernels
+} // namespace object_halo_extra_exchanger_kernels
 
 
 ObjectExtraExchanger::ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExchanger) :
@@ -141,11 +141,11 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjectHaloExtraExchangerKernels::pack,
+            object_halo_extra_exchanger_kernels::pack,
             nblocks, nthreads, 0, stream,
             ov->getState()->domain, packerHandler, map.devPtr(),
             helper->wrapSendData() );
-    }, ExchangersCommon::getHandler(packer));
+    }, exchangers_common::getHandler(packer));
 }
 
 void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
@@ -169,10 +169,10 @@ void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     mpark::visit([&](auto unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjectHaloExtraExchangerKernels::unpack,
+            object_halo_extra_exchanger_kernels::unpack,
             nblocks, nthreads, shMemSize, stream,
             helper->wrapRecvData(), unpackerHandler );
-    }, ExchangersCommon::getHandler(unpacker));
+    }, exchangers_common::getHandler(unpacker));
 }
 
 } // namespace mirheo

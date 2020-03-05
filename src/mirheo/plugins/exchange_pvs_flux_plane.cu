@@ -84,8 +84,8 @@ ExchangePVSFluxPlanePlugin::ExchangePVSFluxPlanePlugin(const MirState *state, st
         auto channelName = namedDesc.first;
         auto channelDesc = namedDesc.second;
         return
-            (channelName != ChannelNames::positions) &&
-            (channelName != ChannelNames::velocities) &&
+            (channelName != channel_names::positions) &&
+            (channelName != channel_names::velocities) &&
             (channelDesc->persistence == DataManager::PersistenceMode::Active);
     };
 
@@ -102,8 +102,8 @@ void ExchangePVSFluxPlanePlugin::setup(Simulation* simulation, const MPI_Comm& c
     pv1_ = simulation->getPVbyNameOrDie(pv1Name_);
     pv2_ = simulation->getPVbyNameOrDie(pv2Name_);
 
-    pv1_->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
-    pv2_->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv1_->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    pv2_->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)

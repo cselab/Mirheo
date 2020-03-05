@@ -95,7 +95,7 @@ static FilterKeepByTypeId readFilterKeepByTypeId(ParametersWrap& desc)
 }
 
 std::shared_ptr<BaseMembraneInteraction>
-InteractionFactory::createInteractionMembrane(const MirState *state, std::string name,
+interaction_factory::createInteractionMembrane(const MirState *state, std::string name,
                                               std::string shearDesc, std::string bendingDesc,
                                               std::string filterDesc, const MapParams& parameters,
                                               bool stressFree)
@@ -197,7 +197,7 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 
 
 std::shared_ptr<BaseRodInteraction>
-InteractionFactory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
+interaction_factory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
                                          bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
@@ -219,32 +219,32 @@ InteractionFactory::createInteractionRod(const MirState *state, std::string name
 }
 
 std::shared_ptr<BasePairwiseInteraction>
-InteractionFactory::createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
+interaction_factory::createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     VarPairwiseParams varParams;
     
     if (type == "DPD")
-        varParams = FactoryHelper::readDPDParams(desc);
+        varParams = factory_helper::readDPDParams(desc);
     else if (type == "MDPD")
-        varParams = FactoryHelper::readMDPDParams(desc);
+        varParams = factory_helper::readMDPDParams(desc);
     else if (type == "SDPD")
-        varParams = FactoryHelper::readSDPDParams(desc);
+        varParams = factory_helper::readSDPDParams(desc);
     else if (type == "RepulsiveLJ")
-        varParams = FactoryHelper::readLJParams(desc);
+        varParams = factory_helper::readLJParams(desc);
     else if (type == "Density")
-        varParams = FactoryHelper::readDensityParams(desc);
+        varParams = factory_helper::readDensityParams(desc);
     else
         die("Unrecognized pairwise interaction type '%s'", type.c_str());
 
-    const auto varStressParams = FactoryHelper::readStressParams(desc);
+    const auto varStressParams = factory_helper::readStressParams(desc);
 
     desc.checkAllRead();
     return createInteractionPairwise(state, name, rc, varParams, varStressParams);
 }
 
 std::shared_ptr<ObjectRodBindingInteraction>
-InteractionFactory::createInteractionObjRodBinding(const MirState *state, std::string name,
+interaction_factory::createInteractionObjRodBinding(const MirState *state, std::string name,
                                                    real torque, real3 relAnchor, real kBound)
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
@@ -256,7 +256,7 @@ static bool startsWith(const std::string &text, const char *tmp)
 }
 
 std::shared_ptr<Interaction>
-InteractionFactory::loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config)
+interaction_factory::loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config)
 {
     const std::string& type = config["__type"];
     if (startsWith(type, "PairwiseInteraction<"))

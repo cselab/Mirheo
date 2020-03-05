@@ -20,13 +20,13 @@ using namespace pybind11::literals;
 
 void exportParticleVectors(py::module& m)
 {
-    m.def("getReservedParticleChannels", []() {return ChannelNames::reservedParticleFields;},
+    m.def("getReservedParticleChannels", []() {return channel_names::reservedParticleFields;},
           "Return the list of reserved channel names for particle fields");
 
-    m.def("getReservedObjectChannels", []() {return ChannelNames::reservedObjectFields;},
+    m.def("getReservedObjectChannels", []() {return channel_names::reservedObjectFields;},
           "Return the list of reserved channel names for object fields");
 
-    m.def("getReservedBisegmentChannels", []() {return ChannelNames::reservedBisegmentFields;},
+    m.def("getReservedBisegmentChannels", []() {return channel_names::reservedBisegmentFields;},
           "Return the list of reserved channel names per bisegment fields");
     
     py::handlers_class<ParticleVector> pypv(m, "ParticleVector", R"(
@@ -176,7 +176,7 @@ void exportParticleVectors(py::module& m)
         :any:`RigidObjectVector` specialized for capsule shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init(&ParticleVectorFactory::createCapsuleROV),
+        .def(py::init(&particle_vector_factory::createCapsuleROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, R"(
             Args:
                 name: name of the created PV
@@ -187,7 +187,7 @@ void exportParticleVectors(py::module& m)
 
 
         )")
-        .def(py::init(&ParticleVectorFactory::createCapsuleROVWithMesh),
+        .def(py::init(&particle_vector_factory::createCapsuleROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV
@@ -203,7 +203,7 @@ void exportParticleVectors(py::module& m)
         :any:`RigidObjectVector` specialized for cylindrical shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init(&ParticleVectorFactory::createCylinderROV),
+        .def(py::init(&particle_vector_factory::createCylinderROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, R"(
             Args:
                 name: name of the created PV
@@ -213,7 +213,7 @@ void exportParticleVectors(py::module& m)
                 length: length of the cylinder
 
         )")
-        .def(py::init(&ParticleVectorFactory::createCylinderROVWithMesh),
+        .def(py::init(&particle_vector_factory::createCylinderROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "radius"_a, "length"_a, "mesh"_a, R"(
             Args:
                 name: name of the created PV
@@ -228,7 +228,7 @@ void exportParticleVectors(py::module& m)
         :any:`RigidObjectVector` specialized for ellipsoidal shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.
     )")
-        .def(py::init(&ParticleVectorFactory::createEllipsoidROV),
+        .def(py::init(&particle_vector_factory::createEllipsoidROV),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, R"(
 
             Args:
@@ -237,7 +237,7 @@ void exportParticleVectors(py::module& m)
                 object_size: number of frozen particles per object
                 semi_axes: ellipsoid principal semi-axes
         )")
-        .def(py::init(&ParticleVectorFactory::createEllipsoidROVWithMesh),
+        .def(py::init(&particle_vector_factory::createEllipsoidROVWithMesh),
              "state"_a, "name"_a, "mass"_a, "object_size"_a, "semi_axes"_a, "mesh"_a, R"(
 
             Args:

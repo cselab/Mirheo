@@ -96,8 +96,8 @@ public:
     const char* getCName() const;       ///< \return the name of the attached ParticleVector in c-style string
     
 public:
-    const int nBuffers = FragmentMapping::numFragments; ///< equal to number of neighbours + 1 (for bulk)
-    const int bulkId   = FragmentMapping::bulkId;       ///< The index of the bulk buffer
+    const int nBuffers = fragment_mapping::numFragments; ///< equal to number of neighbours + 1 (for bulk)
+    const int bulkId   = fragment_mapping::bulkId;       ///< The index of the bulk buffer
     
     BufferInfos send; ///< buffers for the send data
     BufferInfos recv; ///< buffers for the recv data

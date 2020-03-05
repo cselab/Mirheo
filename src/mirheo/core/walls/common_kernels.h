@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace BounceKernels
+namespace bounce_kernels
 {
 
 template <typename InsideWallChecker>
@@ -62,8 +62,8 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
             const auto rOld = view.readOldPosition(pid);
             const real3 dr = p.r - rOld;
 
-            constexpr RootFinder::Bounds limits {0._r, 1._r};
-            const real alpha = RootFinder::linearSearch([=] (real lambda)
+            constexpr root_finder::Bounds limits {0._r, 1._r};
+            const real alpha = root_finder::linearSearch([=] (real lambda)
             {
                 return checker(rOld + dr*lambda) + insideTolerance;
             }, limits);
@@ -90,6 +90,6 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 
 }
 
-} // namespace BounceKernels
+} // namespace bounce_kernels
 
 } // namespace mirheo

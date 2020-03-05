@@ -317,7 +317,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
 
     // will send the forces computed from periodic field
     // and then compare to what it should be
-    std::vector<std::string> extraExchangeChannels = {ChannelNames::forces};
+    std::vector<std::string> extraExchangeChannels = {channel_names::forces};
 
     auto exchanger = std::make_unique<ObjectHaloExchanger>();
 
@@ -368,7 +368,7 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     std::vector<Force> refForces(lforces.begin(), lforces.end());
 
     std::vector<std::string>   extraExchangeChannels = {};
-    std::vector<std::string> reverseExchangeChannels = {ChannelNames::forces};
+    std::vector<std::string> reverseExchangeChannels = {channel_names::forces};
 
     auto exchanger        = std::make_unique<ObjectHaloExchanger>();
     auto reverseExchanger = std::make_unique<ObjectReverseExchanger>(exchanger.get());
@@ -434,7 +434,7 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
 
     auto fieldTransform = [](Force f){return length(f.f);};
     
-    std::vector<std::string> exchangeChannels = {ChannelNames::forces};
+    std::vector<std::string> exchangeChannels = {channel_names::forces};
     std::vector<std::string> extraExchangeChannels = {extraChannelName};
 
     lpos.downloadFromDevice(defaultStream);

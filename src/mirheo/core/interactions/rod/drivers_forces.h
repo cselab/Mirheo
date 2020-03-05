@@ -23,7 +23,7 @@ struct GPU_RodBoundsParameters
     real ksFrame;  ///< energy constraint coefficient within the material frame
 };
 
-namespace RodForcesKernels
+namespace rod_forces_kernels
 {
 
 // elastic force exerted from p1 to p0
@@ -235,6 +235,6 @@ __global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
 }
 
 
-} // namespace RodForcesKernels
+} // namespace rod_forces_kernels
 
 } // namespace mirheo

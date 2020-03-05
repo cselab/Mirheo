@@ -21,7 +21,7 @@ enum class PackMode
     Query, Pack
 };
 
-namespace ObjecRedistributorKernels
+namespace objec_redistributor_kernels
 {
 
 template <PackMode packMode, class PackerHandler>
@@ -33,9 +33,9 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     
     // Find to which buffer this object should go
     auto prop = view.comAndExtents[objId];
-    auto dir  = ExchangersCommon::getDirection(prop.com, domain.localSize);
+    auto dir  = exchangers_common::getDirection(prop.com, domain.localSize);
 
-    const int bufId = FragmentMapping::getId(dir);
+    const int bufId = fragment_mapping::getId(dir);
 
     __shared__ int shDstObjId;
 
@@ -52,7 +52,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     {
         __syncthreads();
         
-        auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+        auto shift = exchangers_common::getShift(domain.localSize, dir);
 
         auto buffer = dataWrap.getBuffer(bufId);
         int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
@@ -73,7 +73,7 @@ __global__ void unpackObjects(const char *buffer, int startDstObjId, PackerHandl
     packer.blockUnpack(numElements, buffer, srcObjId, dstObjId);
 }
 
-} // namespace ObjecRedistributorKernels
+} // namespace objec_redistributor_kernels
 
 ObjectRedistributor::ObjectRedistributor() = default;
 ObjectRedistributor::~ObjectRedistributor() = default;
@@ -132,10 +132,10 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
         mpark::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
-                ObjecRedistributorKernels::getExitingObjects<PackMode::Query>,
+                objec_redistributor_kernels::getExitingObjects<PackMode::Query>,
                 nblocks, nthreads, 0, stream,
                 ov->getState()->domain, ovView, packerHandler, helper->wrapSendData() );
-        }, ExchangersCommon::getHandler(packer));
+        }, exchangers_common::getHandler(packer));
 
         helper->computeSendOffsets_Dev2Dev(stream);
     }
@@ -186,10 +186,10 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjecRedistributorKernels::getExitingObjects<PackMode::Pack>,
+            objec_redistributor_kernels::getExitingObjects<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
             ov->getState()->domain, ovView, packerHandler, helper->wrapSendData() );
-    }, ExchangersCommon::getHandler(packer));
+    }, exchangers_common::getHandler(packer));
 
     // Unpack the central buffer into the object vector itself
     lov->resize_anew(nObjsBulk * ov->getObjectSize());
@@ -198,10 +198,10 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-             ObjecRedistributorKernels::unpackObjects,
+             objec_redistributor_kernels::unpackObjects,
              nObjsBulk, nthreads, 0, stream,
              helper->send.getBufferDevPtr(bulkId), 0, packerHandler);
-    }, ExchangersCommon::getHandler(packer));
+    }, exchangers_common::getHandler(packer));
     
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
@@ -235,11 +235,11 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
         mpark::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
-                ObjecRedistributorKernels::unpackObjects,
+                objec_redistributor_kernels::unpackObjects,
                 nObjs, nthreads, 0, stream,
                 helper->recv.getBufferDevPtr(bufId),
                 oldNObjs + helper->recv.offsets[bufId], packerHandler );
-        }, ExchangersCommon::getHandler(packer));
+        }, exchangers_common::getHandler(packer));
     }
 
     ov->redistValid = true;

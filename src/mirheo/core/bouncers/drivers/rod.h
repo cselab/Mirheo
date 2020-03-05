@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace RodBounceKernels
+namespace rod_bounce_kernels
 {
 
 /**
@@ -89,12 +89,12 @@ real collision(const real radius,
         return dsq - radius*radius;
     };
 
-    constexpr RootFinder::Bounds limits {0._r, 1._r};
+    constexpr root_finder::Bounds limits {0._r, 1._r};
     
     if (F(limits.up) > 0._r) return NoCollision;
 
     constexpr real tol = 1e-6_r;
-    const real alpha = RootFinder::linearSearch(F, limits, tol);
+    const real alpha = root_finder::linearSearch(F, limits, tol);
 
     if (alpha >= limits.lo && alpha <= limits.up)
         return alpha;
@@ -330,5 +330,5 @@ __global__ void performBouncing(RVviewWithOldParticles rvView, real radius,
     atomicAdd(faddr + 5, segF.fr1);
 }
 
-} // namespace RodBounceKernels
+} // namespace rod_bounce_kernels
 } // namespace mirheo

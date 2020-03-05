@@ -16,10 +16,10 @@ namespace mirheo
 
 using namespace pybind11::literals;
 
-static std::map<std::string, InteractionFactory::VarParam>
+static std::map<std::string, interaction_factory::VarParam>
 castToMap(const py::kwargs& kwargs, const std::string& intName)
 {
-    std::map<std::string, InteractionFactory::VarParam> parameters;
+    std::map<std::string, interaction_factory::VarParam> parameters;
     
     for (const auto& item : kwargs) {
         std::string key;
@@ -30,7 +30,7 @@ castToMap(const py::kwargs& kwargs, const std::string& intName)
             die("Could not cast one of the arguments in interaction '%s' to string", intName.c_str());
         }
         try {
-            parameters[key] = py::cast<InteractionFactory::VarParam>(item.second);
+            parameters[key] = py::cast<interaction_factory::VarParam>(item.second);
         }
         catch (const py::cast_error& e) {
             die("Could not cast argument '%s' in interaction '%s': wrong type", key.c_str(), intName.c_str());
@@ -46,7 +46,7 @@ createInteractionMembrane(const MirState *state, std::string name,
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionMembrane
+    return interaction_factory::createInteractionMembrane
         (state, name, shearDesc, bendingDesc, filterDesc, parameters, stressFree);
 }
 
@@ -55,7 +55,7 @@ createInteractionRod(const MirState *state, std::string name, std::string stateU
 {
     auto parameters = castToMap(kwargs, name);
     
-    return InteractionFactory::createInteractionRod(state, name, stateUpdateDesc, dumpEnergies, parameters);
+    return interaction_factory::createInteractionRod(state, name, stateUpdateDesc, dumpEnergies, parameters);
 }
 
 static std::shared_ptr<BasePairwiseInteraction>
@@ -63,7 +63,7 @@ createPairwiseInteraction(const MirState *state, const std::string& name,
                           real rc, const std::string& kind, py::kwargs kwargs)
 {
     auto parameters = castToMap(kwargs, name);
-    return InteractionFactory::createPairwiseInteraction(state, name, rc, kind, parameters);
+    return interaction_factory::createPairwiseInteraction(state, name, rc, kind, parameters);
 }
 
 void exportInteractions(py::module& m)
@@ -423,7 +423,7 @@ void exportInteractions(py::module& m)
         Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.
     )");
 
-    pyObjRodBinding.def(py::init(&InteractionFactory::createInteractionObjRodBinding),
+    pyObjRodBinding.def(py::init(&interaction_factory::createInteractionObjRodBinding),
                         "state"_a, "name"_a, "torque"_a, "rel_anchor"_a, "k_bound"_a, R"(
             Args:
                 name: name of the interaction

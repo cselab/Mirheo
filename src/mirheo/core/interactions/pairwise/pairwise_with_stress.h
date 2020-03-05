@@ -50,11 +50,11 @@ public:
     {
         interactionWithoutStress_.setPrerequisites(pv1, pv2, cl1, cl2);
         
-        pv1->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
-        pv2->requireDataPerParticle <Stress> (ChannelNames::stresses, DataManager::PersistenceMode::None);
+        pv1->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
+        pv2->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
 
-        cl1->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
-        cl2->requireExtraDataPerParticle <Stress> (ChannelNames::stresses);
+        cl1->requireExtraDataPerParticle <Stress> (channel_names::stresses);
+        cl2->requireExtraDataPerParticle <Stress> (channel_names::stresses);
     }
 
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
@@ -112,7 +112,7 @@ public:
             return (lastStressTime_+stressPeriod_ <= t) || (lastStressTime_ == t);
         };
 
-        channels.push_back({ChannelNames::stresses, activePredicateStress});
+        channels.push_back({channel_names::stresses, activePredicateStress});
 
         return channels;
     }

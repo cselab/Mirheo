@@ -17,7 +17,7 @@
 namespace mirheo
 {
 
-namespace IntegratorFactory
+namespace integrator_factory
 {
 inline std::shared_ptr<IntegratorVV<ForcingTermNone>>
 createVV(const MirState *state, const std::string& name)
@@ -85,6 +85,6 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
 std::shared_ptr<Integrator>
 loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config);
 
-} // namespace IntegratorFactory
+} // namespace integrator_factory
 
 } // namespace mirheo

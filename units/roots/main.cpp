@@ -35,7 +35,7 @@ TEST (ROOTS, Newton_sqrt)
         auto f      = [&](float x) {return x*x - a;};
         auto fprime = [&](float x) {return 2*x;};
         
-        const auto root = RootFinder::newton(f, fprime, a);
+        const auto root = root_finder::newton(f, fprime, a);
         return root.x;
     };
                                
@@ -48,9 +48,9 @@ TEST (ROOTS, LinearSearch_sqrt)
     {
         auto f = [&](float x) {return x*x - a;};
 
-        const RootFinder::Bounds limits{0.f, a};
+        const root_finder::Bounds limits{0.f, a};
         
-        const auto root = RootFinder::linearSearchVerbose(f, limits);
+        const auto root = root_finder::linearSearchVerbose(f, limits);
         return root.x;
     };
                                

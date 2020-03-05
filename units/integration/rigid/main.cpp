@@ -63,7 +63,7 @@ static inline std::unique_ptr<RigidObjectVector> makeRigidVector(const MirState 
     auto rov = std::make_unique<RigidObjectVector>(state, "rigid_body", partMass, J, objSize, std::make_shared<Mesh>(), nObjects);
 
     auto lrov = rov->local();
-    auto& motions = *lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto& motions = *lrov->dataPerObject.getData<RigidMotion>(channel_names::motions);
     
     for (auto& m : motions)
         m = initMotion(omega);
@@ -101,7 +101,7 @@ static inline RigidMotion advanceGPU(const Params& p)
         gpuIntegrator.execute(rov.get(), defaultStream);
     }
 
-    auto& motions = *rov->local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto& motions = *rov->local()->dataPerObject.getData<RigidMotion>(channel_names::motions);
     motions.downloadFromDevice(defaultStream);
     
     return motions[0];

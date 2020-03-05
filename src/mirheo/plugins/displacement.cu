@@ -52,8 +52,8 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    ChannelNames::failIfReserved(displacementChannelName_,  ChannelNames::reservedParticleFields);
-    ChannelNames::failIfReserved(savedPositionChannelName_, ChannelNames::reservedParticleFields);
+    channel_names::failIfReserved(displacementChannelName_,  channel_names::reservedParticleFields);
+    channel_names::failIfReserved(savedPositionChannelName_, channel_names::reservedParticleFields);
 
     pv_->requireDataPerParticle<real3>(displacementChannelName_,
                                       DataManager::PersistenceMode::Active);

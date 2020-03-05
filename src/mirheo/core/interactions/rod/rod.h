@@ -60,7 +60,7 @@ public:
         \param [in] parameters The common parameters from all kernel forces
         \param [in] stateParameters Parameters related to polymorphic states transition
         \param [in] saveEnergies \c true if the user wants to also compute the energies. 
-                    In this case, energies will be saved in the \c ChannelNames::energies bisegment channel.
+                    In this case, energies will be saved in the \c channel_names::energies bisegment channel.
     */
     RodInteraction(const MirState *state, const std::string& name, RodParameters parameters,
                    StateParameters stateParameters, bool saveEnergies) :
@@ -80,13 +80,13 @@ public:
         if (auto rv = dynamic_cast<RodVector*>(pv1))
         {
             if (saveEnergies_)
-                rv->requireDataPerBisegment<real>(ChannelNames::energies,   DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<real>(channel_names::energies,   DataManager::PersistenceMode::None);
 
             if (Nstates > 1)
             {
-                rv->requireDataPerBisegment<int>    (ChannelNames::polyStates, DataManager::PersistenceMode::None);
-                rv->requireDataPerBisegment<real4>  (ChannelNames::rodKappa,   DataManager::PersistenceMode::None);
-                rv->requireDataPerBisegment<real2>  (ChannelNames::rodTau_l,   DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<int>    (channel_names::polyStates, DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<real4>  (channel_names::rodKappa,   DataManager::PersistenceMode::None);
+                rv->requireDataPerBisegment<real2>  (channel_names::rodTau_l,   DataManager::PersistenceMode::None);
             }
         }
         else
@@ -121,7 +121,7 @@ private:
         
         auto devParams = getBoundParams(parameters_);
         
-        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBoundForces,
+        SAFE_KERNEL_LAUNCH(rod_forces_kernels::computeRodBoundForces,
                            nblocks, nthreads, 0, stream,
                            view, devParams);
     }
@@ -133,13 +133,13 @@ private:
             RVview view(rv, rv->local());
             auto devParams = getBiSegmentParams<Nstates>(parameters_);
 
-            auto kappa = rv->local()->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
-            auto tau_l = rv->local()->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
+            auto kappa = rv->local()->dataPerBisegment.getData<real4>(channel_names::rodKappa)->devPtr();
+            auto tau_l = rv->local()->dataPerBisegment.getData<real2>(channel_names::rodTau_l)->devPtr();
 
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
                 
-            SAFE_KERNEL_LAUNCH(RodStatesKernels::computeBisegmentData,
+            SAFE_KERNEL_LAUNCH(rod_states_kernels::computeBisegmentData,
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
 
@@ -155,7 +155,7 @@ private:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
 
-        SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodBiSegmentForces<Nstates>,
+        SAFE_KERNEL_LAUNCH(rod_forces_kernels::computeRodBiSegmentForces<Nstates>,
                            nblocks, nthreads, 0, stream,
                            view, devParams, saveEnergies_);
     }

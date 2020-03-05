@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace ObjectBelongingKernels
+namespace object_belonging_kernels
 {
 
 __global__ void countInOut(int n, const BelongingTags *tags, int *nIn, int *nOut)
@@ -58,7 +58,7 @@ __global__ void unpackParticles(int n, int dstOffset, const char *inputBuffer, P
     packer.particles.unpack(srcPid, dstPid, inputBuffer, maxParticles);
 }
 
-} // namespace ObjectBelongingKernels
+} // namespace object_belonging_kernels
 
 ObjectVectorBelongingChecker::ObjectVectorBelongingChecker(const MirState *state, const std::string& name) :
     ObjectBelongingChecker(state, name)
@@ -82,7 +82,7 @@ static void copyToLpv(int start, int n, const char *buffer, LocalParticleVector 
     packer.update(lpv, stream);
     
     SAFE_KERNEL_LAUNCH(
-         ObjectBelongingKernels::unpackParticles,
+         object_belonging_kernels::unpackParticles,
          getNblocks(n, nthreads), nthreads, 0, stream,
          n, start, buffer, packer.handler(), n);
 }
@@ -123,7 +123,7 @@ void ObjectVectorBelongingChecker::splitByBelonging(ParticleVector *src, Particl
     constexpr int nthreads = 128;
 
     SAFE_KERNEL_LAUNCH(
-        ObjectBelongingKernels::packToInOut,
+        object_belonging_kernels::packToInOut,
         getNblocks(srcSize, nthreads), nthreads, 0, stream,
         srcSize, tags_.devPtr(), packer.handler(), insideBuffer.devPtr(), outsideBuffer.devPtr(),
         nInside_.devPtr(), nOutside_.devPtr(), nInside_[0], nOutside_[0] );
@@ -165,7 +165,7 @@ void ObjectVectorBelongingChecker::checkInner(ParticleVector *pv, CellList *cl, 
     constexpr int nthreads = 128;
     
     SAFE_KERNEL_LAUNCH(
-        ObjectBelongingKernels::countInOut,
+        object_belonging_kernels::countInOut,
         getNblocks(np, nthreads), nthreads, 0, stream,
         np, tags_.devPtr(), nInside_.devPtr(), nOutside_.devPtr() );
 
@@ -183,7 +183,7 @@ void ObjectVectorBelongingChecker::setup(ObjectVector *ov)
 
 std::vector<std::string> ObjectVectorBelongingChecker::getChannelsToBeExchanged() const
 {
-    return {ChannelNames::motions};
+    return {channel_names::motions};
 }
 
 ObjectVector* ObjectVectorBelongingChecker::getObjectVector()

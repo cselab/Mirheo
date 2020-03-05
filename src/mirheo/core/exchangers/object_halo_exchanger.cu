@@ -22,7 +22,7 @@ enum class PackMode
     Query, Pack
 };
 
-namespace ObjectHaloExchangeKernels
+namespace object_halo_exchange_kernels
 {
 
 template <PackMode packMode, class PackerHandler>
@@ -55,7 +55,7 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
                 for (int iz = math::min(dz, 0); iz <= math::max(dz, 0); ++iz)
                 {
                     if (ix == 0 && iy == 0 && iz == 0) continue;
-                    const int bufId = FragmentMapping::getId(ix, iy, iz);
+                    const int bufId = fragment_mapping::getId(ix, iy, iz);
                     validHalos[nHalos] = bufId;
                     nHalos++;
                 }
@@ -81,8 +81,8 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
         {
             __syncthreads();
 
-            const int3 dir = FragmentMapping::getDir(bufId);
-            const auto shift = ExchangersCommon::getShift(domain.localSize, dir);
+            const int3 dir = fragment_mapping::getDir(bufId);
+            const auto shift = exchangers_common::getShift(domain.localSize, dir);
 
             auto buffer = dataWrap.getBuffer(bufId);
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
@@ -122,7 +122,7 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler pac
     packer.blockUnpack(numElements, buffer, srcObjId, dstObjId);
 }
 
-} // namespace ObjectHaloExchangeKernels
+} // namespace object_halo_exchange_kernels
 
 
 bool ObjectHaloExchanger::needExchange(size_t id)
@@ -140,8 +140,8 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
     rcs_.push_back(rc);
 
     auto channels = extraChannelNames;
-    channels.push_back(ChannelNames::positions);
-    channels.push_back(ChannelNames::velocities);
+    channels.push_back(channel_names::positions);
+    channels.push_back(channel_names::velocities);
 
     PackPredicate predicate = [channels](const DataManager::NamedChannelDesc& namedDesc)
     {
@@ -199,11 +199,11 @@ void ObjectHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
         mpark::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
-                ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Query>,
+                object_halo_exchange_kernels::getObjectHaloAndMap<PackMode::Query>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->getState()->domain, ovView, nullptr, rc,
                 packerHandler, helper->wrapSendData() );
-        }, ExchangersCommon::getHandler(packer));
+        }, exchangers_common::getHandler(packer));
     }
 
     helper->computeSendOffsets_Dev2Dev(stream);
@@ -233,11 +233,11 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
         mpark::visit([&](const auto& packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
-                ObjectHaloExchangeKernels::getObjectHaloAndMap<PackMode::Pack>,
+                object_halo_exchange_kernels::getObjectHaloAndMap<PackMode::Pack>,
                 ovView.nObjects, nthreads, 0, stream,
                 ov->getState()->domain, ovView, map.devPtr(), rc,
                 packerHandler, helper->wrapSendData());
-        }, ExchangersCommon::getHandler(packer));
+        }, exchangers_common::getHandler(packer));
     }
 }
 
@@ -261,10 +261,10 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     mpark::visit([&](const auto& unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
-            ObjectHaloExchangeKernels::unpackObjects,
+            object_halo_exchange_kernels::unpackObjects,
             nblocks, nthreads, shMemSize, stream,
             helper->wrapRecvData(), unpackerHandler );
-    }, ExchangersCommon::getHandler(unpacker));
+    }, exchangers_common::getHandler(unpacker));
 }
 
 PinnedBuffer<int>& ObjectHaloExchanger::getSendOffsets(size_t id)

@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-namespace VecTraits
+namespace vec_traits
 {
 
 #define IMPLEMENT_VEC_N(type, N)                                        \
@@ -26,6 +26,6 @@ IMPLEMENT_VEC(int)
 #undef IMPLEMENT_VEC
 #undef IMPLEMENT_VEC_N
 
-} // namespace VecTraits
+} // namespace vec_traits
 
 } // namespace mirheo

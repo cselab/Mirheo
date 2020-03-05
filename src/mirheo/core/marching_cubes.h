@@ -8,7 +8,7 @@
 namespace mirheo
 {
 
-namespace MarchingCubes
+namespace marching_cubes
 {
 /// Represents a surface implicitly with a scalar field
 /// The zero level set represents the surface
@@ -33,6 +33,6 @@ void computeTriangles(DomainInfo domain, real3 resolution,
                       const ImplicitSurfaceFunction& surface,
                       std::vector<Triangle>& triangles);
 
-} // namespace MarchingCubes
+} // namespace marching_cubes
 
 } // namespace mirheo

@@ -23,10 +23,10 @@ void MembraneWithTypeIdsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
     const auto map = createMap(domain);
     const int nObjsLocal = static_cast<int>(map.size());
 
-    ov->requireDataPerObject<int>(ChannelNames::membraneTypeId, DataManager::PersistenceMode::Active);
+    ov->requireDataPerObject<int>(channel_names::membraneTypeId, DataManager::PersistenceMode::Active);
     LocalObjectVector *lov = ov->local();
 
-    auto& typeIdsBuff = *lov->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
+    auto& typeIdsBuff = *lov->dataPerObject.getData<int>(channel_names::membraneTypeId);
 
     for (int objId = 0; objId < nObjsLocal; ++objId)
     {

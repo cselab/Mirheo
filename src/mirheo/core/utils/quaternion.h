@@ -15,8 +15,8 @@ template<class Real>
 class __align__(16) Quaternion
 {
  public:
-    using Real3 = typename VecTraits::Vec<Real, 3>::Type;
-    using Real4 = typename VecTraits::Vec<Real, 4>::Type;
+    using Real3 = typename vec_traits::Vec<Real, 3>::Type;
+    using Real4 = typename vec_traits::Vec<Real, 4>::Type;
 
     __HD__ static inline Quaternion createFromComponents(Real w, Real x, Real y, Real z)
     {

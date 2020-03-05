@@ -7,7 +7,7 @@
 
 using namespace mirheo;
 
-inline void dump_off(const std::vector<MarchingCubes::Triangle>& triangles)
+inline void dump_off(const std::vector<marching_cubes::Triangle>& triangles)
 {
     FILE *f = fopen("mesh.off", "w");
 
@@ -49,12 +49,12 @@ TEST (MARCHING_CUBES, Sphere)
         return math::sqrt(dot(r, r)) - R;
     };
 
-    std::vector<MarchingCubes::Triangle> triangles;
+    std::vector<marching_cubes::Triangle> triangles;
 
     real h = 0.1;
     real3 resolution {h, h, h};
     
-    MarchingCubes::computeTriangles(domain, resolution, sphereSurface, triangles);
+    marching_cubes::computeTriangles(domain, resolution, sphereSurface, triangles);
 
     real maxVal  = 0.0;
     real meanVal = 0.0;

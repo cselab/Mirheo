@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-namespace TypeAtomicAdd
+namespace type_atomic_add
 {
 
 namespace details
@@ -60,6 +60,6 @@ __D__ inline void apply(RigidMotion *addr, RigidMotion s, real eps = 0._r)
     details::_addVect3(&addr->torque, s.torque, eps);
 }
 
-} // namespace TypeAtomicAdd
+} // namespace type_atomic_add
 
 } // namespace mirheo

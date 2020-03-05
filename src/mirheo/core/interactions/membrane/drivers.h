@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-namespace MembraneForcesKernels
+namespace membrane_forces_kernels
 {
 
 /// Device compatible structure that holds the parameters common to all membrane interactions
@@ -194,5 +194,5 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     atomicAdd(view.forces + pid, make_real3(f));
 }
 
-} // namespace MembraneInteractionKernels
+} // namespace membrane_forces_kernels
 } // namespace mirheo

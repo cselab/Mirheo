@@ -28,20 +28,20 @@ static void updateStatesAndApplyForces(RodVector *rv,
 {
     RVview view(rv, rv->local());
 
-    auto kappa = rv->local()->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
-    auto tau_l = rv->local()->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
+    auto kappa = rv->local()->dataPerBisegment.getData<real4>(channel_names::rodKappa)->devPtr();
+    auto tau_l = rv->local()->dataPerBisegment.getData<real2>(channel_names::rodTau_l)->devPtr();
 
     int nthreads = 128;
     int nblocks = view.nObjects;
 
-    SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
+    SAFE_KERNEL_LAUNCH(rod_states_kernels::findPolymorphicStates<Nstates>,
                        nblocks, nthreads, 0, stream,
                        view, devParams, kappa, tau_l);
 
     nthreads = 128;
     nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
     
-    SAFE_KERNEL_LAUNCH(RodForcesKernels::computeRodCurvatureSmoothing,
+    SAFE_KERNEL_LAUNCH(rod_forces_kernels::computeRodCurvatureSmoothing,
                        nblocks, nthreads, 0, stream,
                        view, stateParams.kSmoothing, kappa, tau_l);    
 }
@@ -64,10 +64,10 @@ static void updateStatesAndApplyForces(RodVector *rv,
     auto lrv = rv->local();
     RVview view(rv, lrv);
 
-    auto kappa = lrv->dataPerBisegment.getData<real4>(ChannelNames::rodKappa)->devPtr();
-    auto tau_l = lrv->dataPerBisegment.getData<real2>(ChannelNames::rodTau_l)->devPtr();
+    auto kappa = lrv->dataPerBisegment.getData<real4>(channel_names::rodKappa)->devPtr();
+    auto tau_l = lrv->dataPerBisegment.getData<real2>(channel_names::rodTau_l)->devPtr();
 
-    auto& states = *lrv->dataPerBisegment.getData<int>(ChannelNames::polyStates);
+    auto& states = *lrv->dataPerBisegment.getData<int>(channel_names::polyStates);
     states.clear(stream);
 
     // initialize to ground energies without spin interactions
@@ -75,7 +75,7 @@ static void updateStatesAndApplyForces(RodVector *rv,
         const int nthreads = 128;
         const int nblocks = view.nObjects;
         
-        SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStates<Nstates>,
+        SAFE_KERNEL_LAUNCH(rod_states_kernels::findPolymorphicStates<Nstates>,
                            nblocks, nthreads, 0, stream,
                            view, devParams, kappa, tau_l);
     }
@@ -90,7 +90,7 @@ static void updateStatesAndApplyForces(RodVector *rv,
     {
         auto devSpinParams = getGPUParams(stateParams);
         
-        SAFE_KERNEL_LAUNCH(RodStatesKernels::findPolymorphicStatesMCStep<Nstates>,
+        SAFE_KERNEL_LAUNCH(rod_states_kernels::findPolymorphicStatesMCStep<Nstates>,
                            nblocks, nthreads, shMemSize, stream,
                            view, devParams, devSpinParams, kappa, tau_l);
     }

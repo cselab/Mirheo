@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace InterpolateKernels
+namespace interpolate_kernels
 {
 __device__ inline float cubicInterpolate1D(float y[4], float mu)
 {
@@ -134,7 +134,7 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 
     out[ (iz*outDims.y + iy) * outDims.x + ix ] = scalingFactor * nominator / denominator;
 }
-} // InterpolateKernels
+} // interpolate_kernels
 
 
 struct HeaderInfo
@@ -322,7 +322,7 @@ void FieldFromFile::setup(const MPI_Comm& comm)
 
     sdfPiece.data.uploadToDevice(defaultStream);
     SAFE_KERNEL_LAUNCH(
-            InterpolateKernels::cubicInterpolate3D,
+            interpolate_kernels::cubicInterpolate3D,
             blocks, threads, 0, defaultStream,
             sdfPiece.data.devPtr(), sdfPiece.resolution, initialSdfH,
             fieldRawData.devPtr(), resolution_, make_float3(h_),

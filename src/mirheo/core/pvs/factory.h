@@ -10,7 +10,7 @@
 namespace mirheo
 {
 
-namespace ParticleVectorFactory
+namespace particle_vector_factory
 {
 
 inline std::shared_ptr<RigidShapedObjectVector<Capsule>>
@@ -73,6 +73,6 @@ createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real 
 std::shared_ptr<ParticleVector> loadParticleVector(
         const MirState *state, Loader& loader, const ConfigObject& config);
 
-} // namespace ParticleVectorFactory
+} // namespace particle_vector_factory
 
 } // namespace mirheo

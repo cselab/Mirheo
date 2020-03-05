@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace RestartHelpers
+namespace restart_helpers
 {
 
 namespace details
@@ -49,7 +49,7 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     auto vertexData = XDMF::readVertexData(filename, comm, chunkSize);
     const size_t n = vertexData.positions.size();
 
-    ListData listData {{ChannelNames::XDMF::position, vertexData.positions, true}};
+    ListData listData {{channel_names::XDMF::position, vertexData.positions, true}};
 
     for (const auto& desc : vertexData.descriptions)
     {
@@ -255,7 +255,7 @@ void copyAndShiftListData(const DomainInfo domain,
 
             std::copy(srcData.begin(), srcData.end(), dstData.begin());
             if (channelDesc->needShift())
-                RestartHelpers::shiftElementsGlobal2Local(dstData, domain);
+                restart_helpers::shiftElementsGlobal2Local(dstData, domain);
             
             dstData.uploadToDevice(defaultStream);
             
@@ -263,6 +263,6 @@ void copyAndShiftListData(const DomainInfo domain,
     }
 }
 
-} // namespace RestartHelpers
+} // namespace restart_helpers
 
 } // namespace mirheo

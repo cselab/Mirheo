@@ -4,7 +4,7 @@
 namespace mirheo
 {
 
-namespace IntegratorFactory
+namespace integrator_factory
 {
 
 std::shared_ptr<Integrator>
@@ -18,5 +18,5 @@ loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config
     die("Unrecognized or unimplemented integrator: %s", type.c_str());
 }
 
-} // namespace IntegratorFactory
+} // namespace integrator_factory
 } // namespace mirheo

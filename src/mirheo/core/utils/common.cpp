@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace ChannelNames
+namespace channel_names
 {
 
 const std::string globalIds   = "ids";
@@ -57,7 +57,7 @@ bool isReserved(const std::string& name, const std::vector<std::string>& reserve
 
 void failIfReserved(const std::string& name, const std::vector<std::string>& reservedNames)
 {
-    if (ChannelNames::isReserved(name, reservedNames))
+    if (channel_names::isReserved(name, reservedNames))
         die("Channel '%s' is reserved. Please choose another name", name.c_str());
 }
 
@@ -66,18 +66,18 @@ namespace XDMF
 const std::string position = "positions";
 const std::string velocity = "velocities";
 const std::string ids      = "ids";
-namespace Motions
+namespace motions
 {
 const std::string quaternion = "quaternions";
 const std::string velocity   = "velocities";
 const std::string omega      = "omegas";
 const std::string force      = "forces";
 const std::string torque     = "torques";
-} // namespace Motions
+} // namespace motions
 } // namespace XDMF
 
 
-} // namespace ChannelNames
+} // namespace channel_names
 
 CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
                                CheckpointIdAdvanceMode mode_) :

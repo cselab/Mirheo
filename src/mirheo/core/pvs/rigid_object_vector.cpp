@@ -31,8 +31,8 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getMeshVertices(cudaStream_t stream
     fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshVertices_.devPtr();
 
-    RigidOperations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
-                                      RigidOperations::ApplyTo::PositionsOnly, stream);
+    rigid_operations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
+                                      rigid_operations::ApplyTo::PositionsOnly, stream);
 
     return &meshVertices_;
 }
@@ -49,10 +49,10 @@ PinnedBuffer<real4>* LocalRigidObjectVector::getOldMeshVertices(cudaStream_t str
     fakeView.objSize   = mesh->getNvertices();
     fakeView.size      = mesh->getNvertices() * getNumObjects();
     fakeView.positions = meshOldVertices_.devPtr();
-    fakeView.motions   = dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
+    fakeView.motions   = dataPerObject.getData<RigidMotion>(channel_names::oldMotions)->devPtr();
 
-    RigidOperations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
-                                      RigidOperations::ApplyTo::PositionsOnly, stream);
+    rigid_operations::applyRigidMotion(fakeView, ov->mesh->getVertices(),
+                                      rigid_operations::ApplyTo::PositionsOnly, stream);
 
     return &meshOldVertices_;
 }
@@ -67,7 +67,7 @@ PinnedBuffer<Force>* LocalRigidObjectVector::getMeshForces(__UNUSED cudaStream_t
 void LocalRigidObjectVector::clearRigidForces(cudaStream_t stream)
 {
     ROVview view(static_cast<RigidObjectVector*>(parent()), this);
-    RigidOperations::clearRigidForcesFromMotions(view, stream);
+    rigid_operations::clearRigidForcesFromMotions(view, stream);
 }
 
 
@@ -91,11 +91,11 @@ RigidObjectVector::RigidObjectVector(const MirState *state, const std::string& n
 
 
     // rigid motion must be exchanged and shifted
-    requireDataPerObject<RigidMotion>(ChannelNames::motions,
+    requireDataPerObject<RigidMotion>(channel_names::motions,
                                       DataManager::PersistenceMode::Active,
                                       DataManager::ShiftMode::Active);
 
-    requireDataPerObject<RigidMotion>(ChannelNames::oldMotions,
+    requireDataPerObject<RigidMotion>(channel_names::oldMotions,
                                       DataManager::PersistenceMode::None);
 }
 
@@ -143,7 +143,7 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     info("Checkpoint for rigid object vector '%s', writing to file %s",
          getCName(), xdmfFilename.c_str());
 
-    auto motions = local()->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto motions = local()->dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
     
@@ -152,39 +152,39 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     std::vector<RigidReal3> vel, omega, force, torque;
     
     std::tie(*positions, quaternion, vel, omega, force, torque)
-        = CheckpointHelpers::splitAndShiftMotions(getState()->domain, *motions);
+        = checkpoint_helpers::splitAndShiftMotions(getState()->domain, *motions);
 
     XDMF::VertexGrid grid(positions, comm);    
 
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
-    const std::set<std::string> blackList {ChannelNames::motions};
+    const std::set<std::string> blackList {channel_names::motions};
     
-    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
-                                                                  local()->dataPerObject,
-                                                                  blackList);
+    auto channels = checkpoint_helpers::extractShiftPersistentData(getState()->domain,
+                                                                   local()->dataPerObject,
+                                                                   blackList);
 
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::Motions::quaternion, quaternion .data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::motions::quaternion, quaternion .data(),
                                          XDMF::Channel::DataForm::Quaternion,
                                          rigidType, DataTypeWrapper<RigidReal4>(),
                                          XDMF::Channel::NeedShift::False});
     
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::Motions::velocity,   vel.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::motions::velocity,   vel.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
 
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::Motions::omega,      omega.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::motions::omega,      omega.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
     
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::Motions::force,      force.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::motions::force,      force.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
     
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::Motions::torque,     torque.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::motions::torque,     torque.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
@@ -234,30 +234,30 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     auto filename = createCheckpointName(path, RestartROVIdentifier, "xmf");
     info("Restarting rigid object vector %s from file %s", getCName(), filename.c_str());
 
-    auto listData = RestartHelpers::readData(filename, comm, objChunkSize);
+    auto listData = restart_helpers::readData(filename, comm, objChunkSize);
 
-    namespace ChNames = ChannelNames::XDMF;
-    auto pos        = RestartHelpers::extractChannel<real3>      (ChNames::position,            listData);
-    auto quaternion = RestartHelpers::extractChannel<RigidReal4> (ChNames::Motions::quaternion, listData);
-    auto vel        = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::velocity,   listData);
-    auto omega      = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::omega,      listData);
-    auto force      = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::force,      listData);
-    auto torque     = RestartHelpers::extractChannel<RigidReal3> (ChNames::Motions::torque,     listData);
+    namespace ChNames = channel_names::XDMF;
+    auto pos        = restart_helpers::extractChannel<real3>      (ChNames::position,            listData);
+    auto quaternion = restart_helpers::extractChannel<RigidReal4> (ChNames::motions::quaternion, listData);
+    auto vel        = restart_helpers::extractChannel<RigidReal3> (ChNames::motions::velocity,   listData);
+    auto omega      = restart_helpers::extractChannel<RigidReal3> (ChNames::motions::omega,      listData);
+    auto force      = restart_helpers::extractChannel<RigidReal3> (ChNames::motions::force,      listData);
+    auto torque     = restart_helpers::extractChannel<RigidReal3> (ChNames::motions::torque,     listData);
 
-    auto motions = RestartHelpers::combineMotions(pos, quaternion, vel, omega, force, torque);
+    auto motions = restart_helpers::combineMotions(pos, quaternion, vel, omega, force, torque);
     
-    RestartHelpers::exchangeData    (comm, ms.map, motions,  objChunkSize);
-    RestartHelpers::exchangeListData(comm, ms.map, listData, objChunkSize);
+    restart_helpers::exchangeData    (comm, ms.map, motions,  objChunkSize);
+    restart_helpers::exchangeListData(comm, ms.map, listData, objChunkSize);
 
     requireExtraDataPerObject(listData, this);
 
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
-    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
+    restart_helpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
     
-    RestartHelpers::shiftElementsGlobal2Local(motions, getState()->domain);
+    restart_helpers::shiftElementsGlobal2Local(motions, getState()->domain);
 
-    auto& dstMotions = *dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto& dstMotions = *dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     std::copy(motions.begin(), motions.end(), dstMotions.begin());
     dstMotions.uploadToDevice(defaultStream);

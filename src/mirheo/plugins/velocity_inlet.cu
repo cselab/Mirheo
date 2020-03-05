@@ -149,8 +149,8 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
 
     pv_ = simulation->getPVbyNameOrDie(pvName_);
 
-    std::vector<MarchingCubes::Triangle> triangles;
-    MarchingCubes::computeTriangles(getState()->domain, resolution_, implicitSurface_, triangles);
+    std::vector<marching_cubes::Triangle> triangles;
+    marching_cubes::computeTriangles(getState()->domain, resolution_, implicitSurface_, triangles);
 
     const int nTriangles = triangles.size();
     

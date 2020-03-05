@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-namespace ShapeBelongingKernels
+namespace shape_belonging_kernels
 {
 
 template <class Shape>
@@ -54,7 +54,7 @@ __global__ void computeTags(RSOVview<Shape> rsView, CellListInfo cinfo, PVview p
     }
 }
 
-} // namespace ShapeBelongingKernels
+} // namespace shape_belonging_kernels
 
 template <class Shape>
 void ShapeBelongingChecker<Shape>::_tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream)
@@ -81,7 +81,7 @@ void ShapeBelongingChecker<Shape>::_tagInner(ParticleVector *pv, CellList *cl, c
         constexpr int nthreads = 512;
 
         SAFE_KERNEL_LAUNCH(
-            ShapeBelongingKernels::computeTags,
+            shape_belonging_kernels::computeTags,
             rsovView.nObjects, nthreads, 0, stream,
             rsovView, cl->cellInfo(), pvView, tags_.devPtr());
     };        

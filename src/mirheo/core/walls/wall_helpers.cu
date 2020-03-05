@@ -16,7 +16,7 @@
 namespace mirheo
 {
 
-namespace WallHelpersKernels
+namespace wall_helpers_kernels
 {
 __global__ void init_sdf(int n, real *sdfs, real val)
 {
@@ -82,7 +82,7 @@ __global__ void countInside(int n, const real *sdf, int *nInside, real threshold
     if (laneId() == 0)
         atomicAdd(nInside, myval);
 }
-} // namespace WallHelpersKernels
+} // namespace wall_helpers_kernels
 
 static void extract_particles(ParticleVector *pv, const real *sdfs, real minVal, real maxVal)
 {
@@ -95,7 +95,7 @@ static void extract_particles(ParticleVector *pv, const real *sdfs, real minVal,
     nFrozen.clear(defaultStream);
 
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::collectFrozen<true>,
+        wall_helpers_kernels::collectFrozen<true>,
         nblocks, nthreads, 0, defaultStream,
         view, sdfs, minVal, maxVal, nullptr, nullptr, nFrozen.devPtr());
 
@@ -109,7 +109,7 @@ static void extract_particles(ParticleVector *pv, const real *sdfs, real minVal,
     nFrozen.clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::collectFrozen<false>,
+        wall_helpers_kernels::collectFrozen<false>,
         nblocks, nthreads, 0, defaultStream,
         view, sdfs, minVal, maxVal, frozenPos.devPtr(), frozenVel.devPtr(), nFrozen.devPtr());
 
@@ -118,7 +118,7 @@ static void extract_particles(ParticleVector *pv, const real *sdfs, real minVal,
     std::swap(frozenVel, pv->local()->velocities());
 }
 
-void WallHelpers::freezeParticlesInWall(SDFBasedWall *wall, ParticleVector *pv, real minVal, real maxVal)
+void wall_helpers::freezeParticlesInWall(SDFBasedWall *wall, ParticleVector *pv, real minVal, real maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -130,7 +130,7 @@ void WallHelpers::freezeParticlesInWall(SDFBasedWall *wall, ParticleVector *pv, 
 }
 
 
-void WallHelpers::freezeParticlesInWalls(std::vector<SDFBasedWall*> walls, ParticleVector *pv, real minVal, real maxVal)
+void wall_helpers::freezeParticlesInWalls(std::vector<SDFBasedWall*> walls, ParticleVector *pv, real minVal, real maxVal)
 {
     CUDA_Check( cudaDeviceSynchronize() );
 
@@ -142,7 +142,7 @@ void WallHelpers::freezeParticlesInWalls(std::vector<SDFBasedWall*> walls, Parti
     const real safety = 1._r;
 
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::init_sdf,
+        wall_helpers_kernels::init_sdf,
         nblocks, nthreads, 0, defaultStream,
         n, sdfs_merged.devPtr(), minVal - safety);
     
@@ -151,7 +151,7 @@ void WallHelpers::freezeParticlesInWalls(std::vector<SDFBasedWall*> walls, Parti
         wall->sdfPerParticle(pv->local(), &sdfs, nullptr, 0, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
-            WallHelpersKernels::merge_sdfs,
+            wall_helpers_kernels::merge_sdfs,
             nblocks, nthreads, 0, defaultStream,
             n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
@@ -160,7 +160,7 @@ void WallHelpers::freezeParticlesInWalls(std::vector<SDFBasedWall*> walls, Parti
 }
 
 
-void WallHelpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
+void wall_helpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, DomainInfo domain, std::string filename, MPI_Comm cartComm)
 {
     CUDA_Check( cudaDeviceSynchronize() );
     CellListInfo gridInfo(gridH, domain.localSize);
@@ -174,7 +174,7 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, 
     const real initial = -1e5;
 
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::init_sdf,
+        wall_helpers_kernels::init_sdf,
         nblocks, nthreads, 0, defaultStream,
         n, sdfs_merged.devPtr(), initial);
     
@@ -183,7 +183,7 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, 
         wall->sdfOnGrid(gridH, &sdfs, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
-            WallHelpersKernels::merge_sdfs,
+            wall_helpers_kernels::merge_sdfs,
             nblocks, nthreads, 0, defaultStream,
             n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
@@ -204,7 +204,7 @@ void WallHelpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH, 
 }
 
 
-double WallHelpers::volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
+double wall_helpers::volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainInfo domain, MPI_Comm comm, long nSamplesPerRank)
 {
     long n = nSamplesPerRank;
     DeviceBuffer<real3> positions(n);
@@ -216,12 +216,12 @@ double WallHelpers::volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainIn
     const real initial = -1e5;
 
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::initRandomPositions,
+        wall_helpers_kernels::initRandomPositions,
         nblocks, nthreads, 0, defaultStream,
         n, positions.devPtr(), 424242, domain.localSize);
 
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::init_sdf,
+        wall_helpers_kernels::init_sdf,
         nblocks, nthreads, 0, defaultStream,
         n, sdfs_merged.devPtr(), initial);
         
@@ -229,7 +229,7 @@ double WallHelpers::volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainIn
         wall->sdfPerPosition(&positions, &sdfs, defaultStream);
 
         SAFE_KERNEL_LAUNCH(
-            WallHelpersKernels::merge_sdfs,
+            wall_helpers_kernels::merge_sdfs,
             nblocks, nthreads, 0, defaultStream,
             n, sdfs.devPtr(), sdfs_merged.devPtr());
     }
@@ -237,7 +237,7 @@ double WallHelpers::volumeInsideWalls(std::vector<SDFBasedWall*> walls, DomainIn
     nInside.clear(defaultStream);
     
     SAFE_KERNEL_LAUNCH(
-        WallHelpersKernels::countInside,
+        wall_helpers_kernels::countInside,
         nblocks, nthreads, 0, defaultStream,
         n, sdfs_merged.devPtr(), nInside.devPtr());
 

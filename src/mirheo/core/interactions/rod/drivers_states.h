@@ -21,7 +21,7 @@ struct GPU_SpinParameters
     real seed; ///< random seed
 };
 
-namespace RodStatesKernels
+namespace rod_states_kernels
 {
 
 __device__ inline void writeBisegmentData(int i, real4 *kappa, real2 *tau_l,
@@ -196,6 +196,6 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
     }
 }
 
-} // namespace RodStatesKernels
+} // namespace rod_states_kernels
 
 } // namespace mirheo

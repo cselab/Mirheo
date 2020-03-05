@@ -49,8 +49,8 @@ public:
     const PinnedBuffer<real4>& getVertices() const; ///< \return the list of vertices
     const PinnedBuffer<int3>& getFaces() const;     ///< \return the list of faces
 
-    PyTypes::VectorOfReal3 getPyVertices();  ///< \return the list of vertices (python compatible)
-    PyTypes::VectorOfInt3  getPyFaces();     ///< \return the list of faces (python compatible)
+    py_types::VectorOfReal3 getPyVertices();  ///< \return the list of vertices (python compatible)
+    py_types::VectorOfInt3  getPyFaces();     ///< \return the list of faces (python compatible)
 
     /** \brief Dump the mesh in an .off file, create a ConfigObject with the mesh name and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.

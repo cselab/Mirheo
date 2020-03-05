@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace FactoryHelper
+namespace factory_helper
 {
 constexpr auto defaultReal = std::numeric_limits<real>::infinity();
 
@@ -70,7 +70,7 @@ VarStressParams readStressParams  (ParametersWrap& desc);
 template <class Params>
 void readSpecificParams(Params& p, ParametersWrap& desc)
 {
-    using namespace FactoryHelper;
+    using namespace factory_helper;
     readParams(p, desc, {ParamsReader::Mode::DefaultIfNotFound});
 }
 
@@ -78,6 +78,6 @@ void readSpecificParams(LJParams&      p, ParametersWrap& desc);
 void readSpecificParams(DensityParams& p, ParametersWrap& desc);
 void readSpecificParams(SDPDParams&    p, ParametersWrap& desc);
 
-} // FactoryHelper
+} // factory_helper
 
 } // namespace mirheo

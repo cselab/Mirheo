@@ -42,7 +42,7 @@ struct RSOVviewWithOldMotion : public RSOVview<Shape>
     RSOVviewWithOldMotion(RigidShapedObjectVector<Shape> *rsov, LocalRigidObjectVector *lrov) :
         RSOVview<Shape>(rsov, lrov)
     {
-        old_motions = lrov->dataPerObject.getData<RigidMotion>(ChannelNames::oldMotions)->devPtr();
+        old_motions = lrov->dataPerObject.getData<RigidMotion>(channel_names::oldMotions)->devPtr();
     }
 
     RigidMotion *old_motions {nullptr}; ///< rigid object states at previous time step

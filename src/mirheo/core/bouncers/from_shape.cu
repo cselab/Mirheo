@@ -28,26 +28,26 @@ void BounceFromRigidShape<Shape>::setup(ObjectVector *ov)
 {
     Bouncer::setup(ov);
 
-    ov->requireDataPerObject<RigidMotion> (ChannelNames::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
+    ov->requireDataPerObject<RigidMotion> (channel_names::oldMotions, DataManager::PersistenceMode::Active, DataManager::ShiftMode::Active);
 }
 
 template <class Shape>
 void BounceFromRigidShape<Shape>::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 template <class Shape>
 std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeExchanged() const
 {
-    return {ChannelNames::motions, ChannelNames::oldMotions};
+    return {channel_names::motions, channel_names::oldMotions};
 }
 
 template <class Shape>
 std::vector<std::string> BounceFromRigidShape<Shape>::getChannelsToBeSentBack() const
 {
-    return {ChannelNames::motions}; // return forces and torque from remote bounce
+    return {channel_names::motions}; // return forces and torque from remote bounce
 }
 
 template <class Shape>
@@ -78,7 +78,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
         bounceKernel.update(rng_);
     
         SAFE_KERNEL_LAUNCH(
-            ShapeBounceKernels::bounce,
+            shape_bounce_kernels::bounce,
             nblocks, nthreads, smem, stream,
             ovView, pvView, cl->cellInfo(), getState()->dt,
             bounceKernel);

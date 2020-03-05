@@ -11,14 +11,14 @@ namespace mirheo
 
 void setPrerequisitesPerEnergy(const JuelicherBendingParameters&, MembraneVector *mv)
 {
-    mv->requireDataPerObject<real>(ChannelNames::lenThetaTot, DataManager::PersistenceMode::None);
+    mv->requireDataPerObject<real>(channel_names::lenThetaTot, DataManager::PersistenceMode::None);
     
-    mv->requireDataPerParticle<real>(ChannelNames::areas, DataManager::PersistenceMode::None);
-    mv->requireDataPerParticle<real>(ChannelNames::meanCurvatures, DataManager::PersistenceMode::None);
+    mv->requireDataPerParticle<real>(channel_names::areas, DataManager::PersistenceMode::None);
+    mv->requireDataPerParticle<real>(channel_names::meanCurvatures, DataManager::PersistenceMode::None);
 }
 
 
-namespace InteractionMembraneJuelicherKernels
+namespace interaction_membrane_juelicher_kernels
 {
 __device__ inline mReal compute_lenTheta(mReal3 v0, mReal3 v1, mReal3 v2, mReal3 v3)
 {
@@ -71,7 +71,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
     if (laneId() == 0)
         atomicAdd(&view.lenThetaTot[rbcId], (real) lenTheta);
 }
-} // namespace InteractionMembraneJuelicherKernels
+} // namespace interaction_membrane_juelicher_kernels
 
 
 void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, MembraneVector *mv, cudaStream_t stream)
@@ -79,7 +79,7 @@ void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, MembraneVe
     debug("Computing vertex areas and curvatures for %d cells of '%s'",
           mv->local()->getNumObjects(), mv->getCName());
 
-    mv->local()->dataPerObject.getData<real>(ChannelNames::lenThetaTot)->clear(stream);
+    mv->local()->dataPerObject.getData<real>(channel_names::lenThetaTot)->clear(stream);
 
     OVviewWithJuelicherQuants view(mv, mv->local());
 
@@ -91,7 +91,7 @@ void precomputeQuantitiesPerEnergy(const JuelicherBendingParameters&, MembraneVe
     const dim3 blocks(getNblocks(mesh.nvertices, nthreads), view.nObjects);
         
     SAFE_KERNEL_LAUNCH(
-        InteractionMembraneJuelicherKernels::computeAreasAndCurvatures,
+        interaction_membrane_juelicher_kernels::computeAreasAndCurvatures,
         blocks, threads, 0, stream,
         view, mesh );
 }

@@ -6,10 +6,10 @@ Marching Cubes
 API
 ---
 
-.. doxygenstruct:: mirheo::MarchingCubes::Triangle
+.. doxygenstruct:: mirheo::marching_cubes::Triangle
    :project: mirheo
    :members:
 
 
-.. doxygenfunction:: mirheo::MarchingCubes::computeTriangles
+.. doxygenfunction:: mirheo::marching_cubes::computeTriangles
    :project: mirheo

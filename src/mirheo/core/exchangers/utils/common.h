@@ -10,7 +10,7 @@ namespace mirheo
 /// generic object packer
 using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
 
-namespace ExchangersCommon
+namespace exchangers_common
 {
 
 __device__ static inline int3 getDirection(real3 pos, real3 L)
@@ -42,6 +42,6 @@ inline VarPackHandler getHandler(ObjectPacker *packer)
     return packer->handler();
 }
 
-} // namespace ExchangersCommon
+} // namespace exchangers_common
 
 } // namespace mirheo

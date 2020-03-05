@@ -25,7 +25,7 @@ public:
     */
     void setPrerequisites(MembraneVector *mv) const
     {
-        mv->requireDataPerObject<int>(ChannelNames::membraneTypeId,
+        mv->requireDataPerObject<int>(channel_names::membraneTypeId,
                                       DataManager::PersistenceMode::Active,
                                       DataManager::ShiftMode::None);
     }
@@ -38,7 +38,7 @@ public:
     void setup(MembraneVector *mv)
     {
         LocalObjectVector *lmv = mv->local();
-        auto typeIdsBuff = lmv->dataPerObject.getData<int>(ChannelNames::membraneTypeId);
+        auto typeIdsBuff = lmv->dataPerObject.getData<int>(channel_names::membraneTypeId);
         typeIds_ = typeIdsBuff->devPtr();
     }
 

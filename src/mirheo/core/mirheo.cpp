@@ -389,7 +389,7 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, c
         sim_->getWallByNameOrDie(wall->getName());
     }
     
-    WallHelpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->getCartComm());
+    wall_helpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->getCartComm());
 }
 
 double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls, long nSamplesPerRank)
@@ -411,7 +411,7 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
         sim_->getWallByNameOrDie(wall->getName());
     }
 
-    return WallHelpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->getCartComm(), nSamplesPerRank);
+    return wall_helpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->getCartComm(), nSamplesPerRank);
 }
 
 std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvName,
@@ -477,7 +477,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     info("wall thickness is set to %g", wallThickness);
     
-    WallHelpers::freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, wallLevelSet + wallThickness);
+    wall_helpers::freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, wallLevelSet + wallThickness);
     info("\n");
 
     sim_->registerParticleVector(pv, nullptr);

@@ -14,9 +14,9 @@ namespace mirheo
 MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger,
                                      MPI_Comm comm, bool gpuAwareMPI) :
     ExchangeEngine(std::move(exchanger)),
-    dir2rank_   (FragmentMapping::numFragments),
-    dir2sendTag_(FragmentMapping::numFragments),
-    dir2recvTag_(FragmentMapping::numFragments),
+    dir2rank_   (fragment_mapping::numFragments),
+    dir2sendTag_(fragment_mapping::numFragments),
+    dir2recvTag_(fragment_mapping::numFragments),
     gpuAwareMPI_(gpuAwareMPI)
 {
     MPI_Check( MPI_Comm_dup(comm, &haloComm_) );
@@ -24,11 +24,11 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger,
     int dims[3], periods[3], coords[3];
     MPI_Check( MPI_Cart_get (haloComm_, 3, dims, periods, coords) );
 
-    for (int i = 0; i < FragmentMapping::numFragments; ++i)
+    for (int i = 0; i < fragment_mapping::numFragments; ++i)
     {
-        int d[3] = { FragmentMapping::getDirx(i),
-                     FragmentMapping::getDiry(i),
-                     FragmentMapping::getDirz(i) };
+        int d[3] = { fragment_mapping::getDirx(i),
+                     fragment_mapping::getDiry(i),
+                     fragment_mapping::getDirz(i) };
 
         int coordsNeigh[3];
         for(int c = 0; c < 3; ++c)
@@ -37,7 +37,7 @@ MPIExchangeEngine::MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger,
         MPI_Check( MPI_Cart_rank(haloComm_, coordsNeigh, &dir2rank_[i]) );
 
         dir2sendTag_[i] = i;
-        dir2recvTag_[i] = FragmentMapping::getId(-d[0], -d[1], -d[2]);
+        dir2recvTag_[i] = fragment_mapping::getId(-d[0], -d[1], -d[2]);
     }
 }
 
@@ -241,7 +241,7 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
 
     const auto rSizesBytes   = helper->recv.sizesBytes.  hostPtr();
     const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
-    const bool singleCopy = helper->recv.offsetsBytes[FragmentMapping::numFragments] < singleCopyThreshold_;
+    const bool singleCopy = helper->recv.offsetsBytes[fragment_mapping::numFragments] < singleCopyThreshold_;
     
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI_ ? "on" : "off");
@@ -311,7 +311,7 @@ void MPIExchangeEngine::_send(ExchangeEntity *helper, cudaStream_t stream)
         if (i == bulkId) continue;
             
         debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
-               pvName.c_str(), dir2rank_[i], i, FragmentMapping::getDirx(i), FragmentMapping::getDiry(i), FragmentMapping::getDirz(i), sSizes[i]);
+               pvName.c_str(), dir2rank_[i], i, fragment_mapping::getDirx(i), fragment_mapping::getDiry(i), fragment_mapping::getDirz(i), sSizes[i]);
 
         const int tag = nBuffers * helper->getUniqueId() + dir2sendTag_[i];
 

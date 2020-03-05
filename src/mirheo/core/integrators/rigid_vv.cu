@@ -11,7 +11,7 @@
 namespace mirheo
 {
 
-namespace RigidVVKernels
+namespace rigidVV_kernels
 {
 
 // http://lab.pdebuyl.be/rmpcdmd/algorithms/quaternions.html
@@ -85,7 +85,7 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion view, real dt)
     view.motions[objId] = motion;
 }
 
-} // namespace RigidVVKernels
+} // namespace rigidVV_kernels
 
 IntegratorVVRigid::IntegratorVVRigid(const MirState *state, const std::string& name) :
     Integrator(state, name)
@@ -103,7 +103,7 @@ void IntegratorVVRigid::setPrerequisites(ParticleVector *pv)
     if (ov == nullptr)
         die("Rigid integration only works with rigid objects, can't work with %s", pv->getCName());
 
-    ov->requireDataPerObject<RigidMotion>(ChannelNames::oldMotions, DataManager::PersistenceMode::None);
+    ov->requireDataPerObject<RigidMotion>(channel_names::oldMotions, DataManager::PersistenceMode::None);
     // warn("Only objects with diagonal inertia tensors are supported now for rigid integration");
 }
 
@@ -113,7 +113,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cud
     const int nblocks = getNblocks(view.nObjects, nthreads);
     
     SAFE_KERNEL_LAUNCH(
-        RigidVVKernels::integrateRigidMotion,
+        rigidVV_kernels::integrateRigidMotion,
         nblocks, nthreads, 0, stream,
         view, dt );
 }
@@ -128,12 +128,12 @@ void IntegratorVVRigid::execute(ParticleVector *pv, cudaStream_t stream)
 
     const ROVviewWithOldMotion rovView(rov, rov->local());
 
-    RigidOperations::collectRigidForces(rovView, stream);
+    rigid_operations::collectRigidForces(rovView, stream);
 
     integrateRigidMotions(rovView, dt, stream);
 
-    RigidOperations::applyRigidMotion(rovView, rov->initialPositions,
-                                      RigidOperations::ApplyTo::PositionsAndVelocities, stream);
+    rigid_operations::applyRigidMotion(rovView, rov->initialPositions,
+                                       rigid_operations::ApplyTo::PositionsAndVelocities, stream);
 
     invalidatePV_(pv);
 }

@@ -12,7 +12,7 @@ namespace mirheo
 
 // Tuple initializations
 
-namespace PyTypes
+namespace py_types
 {
 
 using real2 = std::tuple<real, real>;
@@ -67,5 +67,5 @@ inline ::int3 make_int3(int3 t3)
     return {std::get<0>(t3), std::get<1>(t3), std::get<2>(t3)};
 }
 
-} // namespace PyTypes
+} // namespace py_types
 } // namespace mirheo

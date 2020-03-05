@@ -33,7 +33,8 @@ enum class QueryMode {
    Collect    
 };
 
-namespace StationaryWallsKernels {
+namespace stationary_walls_kernels
+{
 
 //===============================================================================================
 // Removing kernels
@@ -249,7 +250,7 @@ __global__ void computeSdfOnGrid(CellListInfo gridInfo, real *sdfs, InsideWallCh
     sdfs[nid] = checker(r);
 }
 
-} // namespace StationaryWallsKernels
+} // namespace stationary_walls_kernels
 
 //===============================================================================================
 // Member functions
@@ -289,7 +290,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::setPrerequisites(ParticleVector *pv)
 {
     // do not set it to persistent because bounce happens after integration
-    pv->requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
+    pv->requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::None, DataManager::ShiftMode::Active);
 }
 
 template<class InsideWallChecker>
@@ -324,7 +325,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
     nBoundaryCells.clear(defaultStream);
 
     SAFE_KERNEL_LAUNCH(
-        StationaryWallsKernels::getBoundaryCells<QueryMode::Query>,
+        stationary_walls_kernels::getBoundaryCells<QueryMode::Query>,
         nblocks, nthreads, 0, defaultStream,
         maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
         nullptr, insideWallChecker_.handler() );
@@ -336,7 +337,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
 
     nBoundaryCells.clear(defaultStream);
     SAFE_KERNEL_LAUNCH(
-        StationaryWallsKernels::getBoundaryCells<QueryMode::Collect>,
+        stationary_walls_kernels::getBoundaryCells<QueryMode::Collect>,
         nblocks, nthreads, 0, defaultStream,
         maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
         bc.devPtr(), insideWallChecker_.handler() );
@@ -383,7 +384,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         constexpr int warpSize = 32;
         
         SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::packRemainingObjects,
+            stationary_walls_kernels::packRemainingObjects,
             getNblocks(ovView.nObjects*warpSize, nthreads), nthreads, 0, defaultStream,
             ovView, packer.handler(), tmp.devPtr(), nRemaining.devPtr(),
             insideWallChecker_.handler(), maxNumObj );
@@ -402,7 +403,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             packer.update(ov->local(), defaultStream);
 
             SAFE_KERNEL_LAUNCH(
-                StationaryWallsKernels::unpackRemainingObjects,
+                stationary_walls_kernels::unpackRemainingObjects,
                 ovView.nObjects, nthreads, 0, defaultStream,
                 tmp.devPtr(), ovView, packer.handler(), maxNumObj );
         }
@@ -417,7 +418,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         DeviceBuffer<char> tmpBuffer(packer.getSizeBytes(maxNumParticles));
         
         SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::packRemainingParticles,
+            stationary_walls_kernels::packRemainingParticles,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
             view, packer.handler(), tmpBuffer.devPtr(), nRemaining.devPtr(),
             insideWallChecker_.handler(), maxNumParticles );
@@ -435,7 +436,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             packer.update(pv->local(), defaultStream);
 
             SAFE_KERNEL_LAUNCH(
-                StationaryWallsKernels::unpackRemainingParticles,
+                stationary_walls_kernels::unpackRemainingParticles,
                 getNblocks(newSize, nthreads), nthreads, 0, defaultStream,
                 tmpBuffer.devPtr(), packer.handler(), newSize, maxNumParticles );
         }
@@ -470,7 +471,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
-                BounceKernels::sdfBounce,
+                bounce_kernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(),
                 bc.devPtr(), bc.size(), dt,
@@ -492,7 +493,7 @@ void SimpleStationaryWall<InsideWallChecker>::check(cudaStream_t stream)
         const PVview view(pv, pv->local());
 
         SAFE_KERNEL_LAUNCH(
-            StationaryWallsKernels::checkInside,
+            stationary_walls_kernels::checkInside,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, nInside_.devPtr(), insideWallChecker_.handler() );
 
@@ -526,7 +527,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
 
     PVview view(pv, lpv);
     SAFE_KERNEL_LAUNCH(
-        StationaryWallsKernels::computeSdfPerParticle,
+        stationary_walls_kernels::computeSdfPerParticle,
         getNblocks(view.size, nthreads), nthreads, 0, stream,
         view, gradientThreshold, (real*)sdfs->genericDevPtr(),
         (gradients != nullptr) ? (real3*)gradients->genericDevPtr() : nullptr, insideWallChecker_.handler() );
@@ -548,7 +549,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *posit
     
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        StationaryWallsKernels::computeSdfPerPosition,
+        stationary_walls_kernels::computeSdfPerPosition,
         getNblocks(n, nthreads), nthreads, 0, stream,
         n, (real3*)positions->genericDevPtr(), (real*)sdfs->genericDevPtr(), insideWallChecker_.handler() );
 }
@@ -566,7 +567,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer *s
 
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
-        StationaryWallsKernels::computeSdfOnGrid,
+        stationary_walls_kernels::computeSdfOnGrid,
         getNblocks(gridInfo.totcells, nthreads), nthreads, 0, stream,
         gridInfo, (real*) sdfs->genericDevPtr(), insideWallChecker_.handler() );
 }

@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace CheckpointHelpers
+namespace checkpoint_helpers
 {
 std::tuple<std::vector<real3>,
            std::vector<real3>,
@@ -66,7 +66,7 @@ template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
 {
     auto shift = domain.local2global({0._r, 0._r, 0._r});
-    for (auto& d : data) TypeShift::apply(d, shift);    
+    for (auto& d : data) type_shift::apply(d, shift);    
 }
 
 std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
@@ -111,6 +111,6 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
     return channels;
 }
 
-} // namespace CheckpointHelpers
+} // namespace checkpoint_helpers
 
 } // namespace mirheo

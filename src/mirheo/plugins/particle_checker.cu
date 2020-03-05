@@ -253,8 +253,8 @@ static inline std::string listOtherFieldValues(const DataManager& manager, int i
         const auto& name = entry.first;
         const auto desc = entry.second;
             
-        if (name == ChannelNames::positions ||
-            name == ChannelNames::velocities)
+        if (name == channel_names::positions ||
+            name == channel_names::velocities)
             continue;
             
         mpark::visit([&](auto pinnedBuffPtr)

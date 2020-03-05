@@ -19,7 +19,7 @@ struct TypeLoadSave;
 /**
  * Channel names used in several places of the program
  */
-namespace ChannelNames
+namespace channel_names
 {
 
 // per entity fields (particles or objects)
@@ -65,16 +65,16 @@ namespace XDMF
 extern const std::string position;
 extern const std::string velocity;
 extern const std::string ids;
-namespace Motions
+namespace motions
 {
 extern const std::string quaternion;
 extern const std::string velocity;
 extern const std::string omega;
 extern const std::string force;
 extern const std::string torque;
-} // namespace Motions
+} // namespace motions
 } // namespace XDMF
-} // namespace ChannelNames
+} // namespace channel_names
 
 
 

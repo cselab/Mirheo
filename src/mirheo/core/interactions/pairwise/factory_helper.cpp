@@ -3,7 +3,7 @@
 namespace mirheo
 {
 
-namespace FactoryHelper
+namespace factory_helper
 {
 template <> real ParamsReader::makeDefault<real>() const {return defaultReal;}
 
@@ -305,6 +305,6 @@ void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
 }
 
 
-} // namespace FactoryHelper
+} // namespace factory_helper
 
 } // namespace mirheo

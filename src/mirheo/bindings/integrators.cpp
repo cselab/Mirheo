@@ -19,7 +19,7 @@ void exportIntegrators(py::module& m)
     py::handlers_class<IntegratorConstOmega>(m, "Rotate", pyint, R"(
         Rotate particles around the specified point in space with a constant angular velocity :math:`\mathbf{\Omega}`
     )")
-        .def(py::init(&IntegratorFactory::createConstOmega),
+        .def(py::init(&integrator_factory::createConstOmega),
              "state"_a, "name"_a, "center"_a, "omega"_a, R"(
                 Args:
                     name: name of the integrator
@@ -31,7 +31,7 @@ void exportIntegrators(py::module& m)
         Move particles with the periodically changing velocity
         :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`
     )")
-        .def(py::init(&IntegratorFactory::createOscillating),
+        .def(py::init(&integrator_factory::createOscillating),
              "state"_a, "name"_a, "velocity"_a, "period"_a, R"(
                 Args:
                     name: name of the integrator
@@ -43,7 +43,7 @@ void exportIntegrators(py::module& m)
         Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
         Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidVector`.
     )")
-        .def(py::init(&IntegratorFactory::createRigidVV),
+        .def(py::init(&integrator_factory::createRigidVV),
              "state"_a, "name"_a, R"(
                 Args:
                     name: name of the integrator
@@ -52,7 +52,7 @@ void exportIntegrators(py::module& m)
     py::handlers_class<IntegratorTranslate>(m, "Translate", pyint, R"(
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
     )")
-        .def(py::init(&IntegratorFactory::createTranslate),
+        .def(py::init(&integrator_factory::createTranslate),
              "state"_a, "name"_a, "velocity"_a, R"(
                 Args:
                     name: name of the integrator
@@ -72,7 +72,7 @@ void exportIntegrators(py::module& m)
 
             where bold symbol means a vector, :math:`m` is a particle mass, and superscripts denote the time: :math:`\mathbf{x}^{k} = \mathbf{x}(k \, \Delta t)`
         )")
-        .def(py::init(&IntegratorFactory::createVV),
+        .def(py::init(&integrator_factory::createVV),
              "state"_a, "name"_a, R"(
                 Args:
                     name: name of the integrator
@@ -86,7 +86,7 @@ void exportIntegrators(py::module& m)
 
                 \mathbf{a}^{n} &= \frac{1}{m} \left( \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) + \mathbf{F}_{extra} \right) \\
         )")
-        .def(py::init(&IntegratorFactory::createVV_constDP),
+        .def(py::init(&integrator_factory::createVV_constDP),
              "state"_a, "name"_a, "force"_a, R"(
 
                 Args:
@@ -101,7 +101,7 @@ void exportIntegrators(py::module& m)
             :math:`F_{Poiseuille}` parallel to Oy, Oz or Ox correspondingly, and the particles in another half of the domain are pushed in the same direction
             with force :math:`-F_{Poiseuille}`    
         )")
-        .def(py::init(&IntegratorFactory::createVV_PeriodicPoiseuille),
+        .def(py::init(&integrator_factory::createVV_PeriodicPoiseuille),
              "state"_a, "name"_a, "force"_a, "direction"_a, R"(                
                 Args:
                     name: name of the integrator
@@ -119,7 +119,7 @@ void exportIntegrators(py::module& m)
             The fast forces are updated after each sub step.
             Positions and velocity are updated using an internal velocity verlet integrator.
         )")
-        .def(py::init(&IntegratorFactory::createSubStep),
+        .def(py::init(&integrator_factory::createSubStep),
              "state"_a, "name"_a, "substeps"_a, "fastForces"_a, R"(
                 Args:
                     name: name of the integrator

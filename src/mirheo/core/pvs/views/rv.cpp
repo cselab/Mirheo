@@ -12,17 +12,17 @@ RVview::RVview(RodVector *rv, LocalRodVector *lrv) :
 
     auto& data = lrv->dataPerBisegment;
         
-    if (data.checkChannelExists(ChannelNames::polyStates))
-        states = data.getData<int>(ChannelNames::polyStates)->devPtr();
+    if (data.checkChannelExists(channel_names::polyStates))
+        states = data.getData<int>(channel_names::polyStates)->devPtr();
         
-    if (data.checkChannelExists(ChannelNames::energies))
-        energies = data.getData<real>(ChannelNames::energies)->devPtr();
+    if (data.checkChannelExists(channel_names::energies))
+        energies = data.getData<real>(channel_names::energies)->devPtr();
 }
 
 RVviewWithOldParticles::RVviewWithOldParticles(RodVector *rv, LocalRodVector *lrv) :
     RVview(rv, lrv)
 {
-    oldPositions = lrv->dataPerParticle.getData<real4>(ChannelNames::oldPositions)->devPtr();
+    oldPositions = lrv->dataPerParticle.getData<real4>(channel_names::oldPositions)->devPtr();
 }
 
 } // namespace mirheo

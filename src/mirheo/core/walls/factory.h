@@ -22,7 +22,7 @@ class ParticleVector;
 class CellList;
 
 
-namespace WallFactory
+namespace wall_factory
 {
 inline std::shared_ptr<SimpleStationaryWall<StationaryWallSphere>>
 createSphereWall(const MirState *state, const std::string& name, real3 center, real radius, bool inside)
@@ -122,6 +122,6 @@ createOscillatingPlaneWall(const MirState *state, const std::string& name, real3
 std::shared_ptr<Wall>
 loadWall(const MirState *state, Loader& loader, const ConfigObject& config);
 
-} // namespace WallFactory
+} // namespace wall_factory
 
 } // namespace mirheo

@@ -71,7 +71,7 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
     if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     PVview view(pv_, pv_->local());
-    const Stress *stress = pv_->local()->dataPerParticle.getData<Stress>(ChannelNames::stresses)->devPtr();
+    const Stress *stress = pv_->local()->dataPerParticle.getData<Stress>(channel_names::stresses)->devPtr();
 
     localVirialPressure_.clear(stream);
 

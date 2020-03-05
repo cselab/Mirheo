@@ -102,7 +102,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
 
         const int nthreads = 64;
         SAFE_KERNEL_LAUNCH(
-                BounceKernels::sdfBounce,
+                bounce_kernels::sdfBounce,
                 getNblocks(bc.size(), nthreads), nthreads, 0, stream,
                 view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
                 this->insideWallChecker_.handler(),

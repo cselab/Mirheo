@@ -13,7 +13,7 @@ namespace mirheo
 
 namespace XDMF {struct Channel;}
 
-namespace CheckpointHelpers
+namespace checkpoint_helpers
 {
 
 std::tuple<std::vector<real3>,
@@ -32,6 +32,6 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
                                                       const DataManager& extraData,
                                                       const std::set<std::string>& blackList={});
 
-} // namespace CheckpointHelpers
+} // namespace checkpoint_helpers
 
 } // namespace mirheo

@@ -67,6 +67,11 @@ private member functions have an additional `_` in front:
        void _do_sub_task(); // Not OK
    };
 
+namespaces
+^^^^^^^^^^
+
+Namespaces are written in ``snake_case``.
+This allows to distinguish them from class names easily.
 
 
 Coding practices

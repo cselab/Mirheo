@@ -26,13 +26,13 @@ std::string getParticleVectorLocalityStr(ParticleVectorLocality locality)
 LocalParticleVector::LocalParticleVector(ParticleVector *pv, int numParts) :
     pv_(pv)
 {
-    dataPerParticle.createData<real4>(ChannelNames::positions,  numParts);
-    dataPerParticle.createData<real4>(ChannelNames::velocities, numParts);
-    dataPerParticle.createData<Force>(ChannelNames::forces, numParts);
+    dataPerParticle.createData<real4>(channel_names::positions,  numParts);
+    dataPerParticle.createData<real4>(channel_names::velocities, numParts);
+    dataPerParticle.createData<Force>(channel_names::forces, numParts);
 
-    dataPerParticle.setPersistenceMode(ChannelNames::positions,  DataManager::PersistenceMode::Active);
-    dataPerParticle.setShiftMode      (ChannelNames::positions,  DataManager::ShiftMode::Active);
-    dataPerParticle.setPersistenceMode(ChannelNames::velocities, DataManager::PersistenceMode::Active);
+    dataPerParticle.setPersistenceMode(channel_names::positions,  DataManager::PersistenceMode::Active);
+    dataPerParticle.setShiftMode      (channel_names::positions,  DataManager::ShiftMode::Active);
+    dataPerParticle.setPersistenceMode(channel_names::velocities, DataManager::PersistenceMode::Active);
     resize_anew(numParts);
 }
 
@@ -61,17 +61,17 @@ void LocalParticleVector::resize_anew(int np)
 
 PinnedBuffer<real4>& LocalParticleVector::positions()
 {
-    return * dataPerParticle.getData<real4>(ChannelNames::positions);
+    return * dataPerParticle.getData<real4>(channel_names::positions);
 }
 
 PinnedBuffer<real4>& LocalParticleVector::velocities()
 {
-    return * dataPerParticle.getData<real4>(ChannelNames::velocities);
+    return * dataPerParticle.getData<real4>(channel_names::velocities);
 }
 
 PinnedBuffer<Force>& LocalParticleVector::forces()
 {
-    return * dataPerParticle.getData<Force>(ChannelNames::forces);
+    return * dataPerParticle.getData<Force>(channel_names::forces);
 }
 
 void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
@@ -120,7 +120,7 @@ ParticleVector::ParticleVector(const MirState *state, const std::string& name, r
     halo_(std::move(halo))
 {
     // old positions and velocities don't need to exchanged in general
-    requireDataPerParticle<real4> (ChannelNames::oldPositions, DataManager::PersistenceMode::None);
+    requireDataPerParticle<real4> (channel_names::oldPositions, DataManager::PersistenceMode::None);
 }
 
 ParticleVector::~ParticleVector() = default;
@@ -143,12 +143,12 @@ std::vector<int64_t> ParticleVector::getIndices_vector()
     return res;
 }
 
-PyTypes::VectorOfReal3 ParticleVector::getCoordinates_vector()
+py_types::VectorOfReal3 ParticleVector::getCoordinates_vector()
 {
     auto& pos = local()->positions();
     pos.downloadFromDevice(defaultStream);
     
-    PyTypes::VectorOfReal3 res(pos.size());
+    py_types::VectorOfReal3 res(pos.size());
     for (size_t i = 0; i < pos.size(); i++)
     {
         real3 r = make_real3(pos[i]);
@@ -159,12 +159,12 @@ PyTypes::VectorOfReal3 ParticleVector::getCoordinates_vector()
     return res;
 }
 
-PyTypes::VectorOfReal3 ParticleVector::getVelocities_vector()
+py_types::VectorOfReal3 ParticleVector::getVelocities_vector()
 {
     auto& vel = local()->velocities();
     vel.downloadFromDevice(defaultStream);
     
-    PyTypes::VectorOfReal3 res(vel.size());
+    py_types::VectorOfReal3 res(vel.size());
     for (size_t i = 0; i < vel.size(); i++)
     {
         real3 u = make_real3(vel[i]);
@@ -174,12 +174,12 @@ PyTypes::VectorOfReal3 ParticleVector::getVelocities_vector()
     return res;
 }
 
-PyTypes::VectorOfReal3 ParticleVector::getForces_vector()
+py_types::VectorOfReal3 ParticleVector::getForces_vector()
 {
     HostBuffer<Force> forces;
     forces.copy(local()->forces(), defaultStream);
     
-    PyTypes::VectorOfReal3 res(forces.size());
+    py_types::VectorOfReal3 res(forces.size());
     for (size_t i = 0; i < forces.size(); i++)
     {
         real3 f = forces[i].f;
@@ -270,25 +270,25 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
     std::vector<real3> velocities;
     std::vector<int64_t> ids;
     
-    std::tie(*positions, velocities, ids) = CheckpointHelpers::splitAndShiftPosVel(getState()->domain,
+    std::tie(*positions, velocities, ids) = checkpoint_helpers::splitAndShiftPosVel(getState()->domain,
                                                                                    pos4, vel4);
 
     XDMF::VertexGrid grid(positions, comm);
 
     // do not dump positions and velocities, they are already there
-    const std::set<std::string> blackList {{ChannelNames::positions, ChannelNames::velocities}};
+    const std::set<std::string> blackList {{channel_names::positions, channel_names::velocities}};
 
-    auto channels = CheckpointHelpers::extractShiftPersistentData(getState()->domain,
+    auto channels = checkpoint_helpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerParticle,
                                                                   blackList);
 
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::velocity, velocities.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::velocity, velocities.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          XDMF::getNumberType<real>(),
                                          DataTypeWrapper<real>(),
                                          XDMF::Channel::NeedShift::False});
     
-    channels.push_back(XDMF::Channel{ChannelNames::XDMF::ids, ids.data(),
+    channels.push_back(XDMF::Channel{channel_names::XDMF::ids, ids.data(),
                                          XDMF::Channel::DataForm::Scalar,
                                          XDMF::Channel::NumberType::Int64,
                                          DataTypeWrapper<int64_t>(),
@@ -316,21 +316,21 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     const auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
     info("Restarting particle vector %s data from file %s", getCName(), filename.c_str());
 
-    auto listData = RestartHelpers::readData(filename, comm, chunkSize);
+    auto listData = restart_helpers::readData(filename, comm, chunkSize);
 
-    auto pos = RestartHelpers::extractChannel<real3>  (ChannelNames::XDMF::position, listData);
-    auto vel = RestartHelpers::extractChannel<real3>  (ChannelNames::XDMF::velocity, listData);
-    auto ids = RestartHelpers::extractChannel<int64_t>(ChannelNames::XDMF::ids,      listData);
+    auto pos = restart_helpers::extractChannel<real3>  (channel_names::XDMF::position, listData);
+    auto vel = restart_helpers::extractChannel<real3>  (channel_names::XDMF::velocity, listData);
+    auto ids = restart_helpers::extractChannel<int64_t>(channel_names::XDMF::ids,      listData);
     
     std::vector<real4> pos4, vel4;
-    std::tie(pos4, vel4) = RestartHelpers::combinePosVelIds(pos, vel, ids);
+    std::tie(pos4, vel4) = restart_helpers::combinePosVelIds(pos, vel, ids);
 
-    const auto map = RestartHelpers::getExchangeMap(comm, getState()->domain, chunkSize, pos);
+    const auto map = restart_helpers::getExchangeMap(comm, getState()->domain, chunkSize, pos);
 
-    RestartHelpers::exchangeData(comm, map, pos4, chunkSize);
-    RestartHelpers::exchangeData(comm, map, vel4, chunkSize);
-    RestartHelpers::exchangeListData(comm, map, listData, chunkSize);
-    RestartHelpers::requireExtraDataPerParticle(listData, this);
+    restart_helpers::exchangeData(comm, map, pos4, chunkSize);
+    restart_helpers::exchangeData(comm, map, vel4, chunkSize);
+    restart_helpers::exchangeListData(comm, map, listData, chunkSize);
+    restart_helpers::requireExtraDataPerParticle(listData, this);
     
     const int newSize = static_cast<int>(pos4.size()) / chunkSize;
 
@@ -340,7 +340,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     auto& positions  = local()->positions();
     auto& velocities = local()->velocities();
 
-    RestartHelpers::shiftElementsGlobal2Local(pos4, getState()->domain);
+    restart_helpers::shiftElementsGlobal2Local(pos4, getState()->domain);
     
     std::copy(pos4.begin(), pos4.end(), positions .begin());
     std::copy(vel4.begin(), vel4.end(), velocities.begin());
@@ -348,7 +348,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     positions .uploadToDevice(defaultStream);
     velocities.uploadToDevice(defaultStream);
 
-    RestartHelpers::copyAndShiftListData(getState()->domain, listData, dataPerParticle);
+    restart_helpers::copyAndShiftListData(getState()->domain, listData, dataPerParticle);
 
     return {map, newSize};
 }

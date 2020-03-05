@@ -288,7 +288,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     rv.local()->forces().clear(defaultStream);
     gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(channel_names::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto  cpuEnergies = computeBendingEnergies<EnergyMode::Absolute>
@@ -420,7 +420,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     rv.local()->forces().clear(defaultStream);
     gpuInt->local(&rv, &rv, nullptr, nullptr, defaultStream);
 
-    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(ChannelNames::energies);
+    auto& gpuEnergies = *rv.local()->dataPerBisegment.getData<real>(channel_names::energies);
     gpuEnergies.downloadFromDevice(defaultStream);
 
     auto cpuEnergies = computeTwistEnergies<EnergyMode::Absolute>

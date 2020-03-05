@@ -71,10 +71,10 @@ const int& Mesh::getMaxDegree() const {
 const PinnedBuffer<real4>& Mesh::getVertices() const {return vertices_;}
 const PinnedBuffer<int3>& Mesh::getFaces() const {return faces_;}
 
-PyTypes::VectorOfReal3 Mesh::getPyVertices()
+py_types::VectorOfReal3 Mesh::getPyVertices()
 {
     vertices_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    PyTypes::VectorOfReal3 ret(getNvertices());
+    py_types::VectorOfReal3 ret(getNvertices());
 
     for (int i = 0; i < getNvertices(); ++i)
     {
@@ -86,10 +86,10 @@ PyTypes::VectorOfReal3 Mesh::getPyVertices()
     return ret;
 }
 
-PyTypes::VectorOfInt3 Mesh::getPyFaces()
+py_types::VectorOfInt3 Mesh::getPyFaces()
 {
     faces_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    PyTypes::VectorOfInt3 ret(getNtriangles());
+    py_types::VectorOfInt3 ret(getNtriangles());
 
     for (int i = 0; i < getNtriangles(); ++i)
     {

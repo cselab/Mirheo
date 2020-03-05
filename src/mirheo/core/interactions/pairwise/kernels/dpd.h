@@ -112,12 +112,12 @@ public:
 
     void writeState(std::ofstream& fout) override
     {
-        TextIO::writeToStream(fout, stepGen_);
+        text_IO::writeToStream(fout, stepGen_);
     }
 
     bool readState(std::ifstream& fin) override
     {
-        return TextIO::readFromStream(fin, stepGen_);
+        return text_IO::readFromStream(fin, stepGen_);
     }
 
     /// \return type name string

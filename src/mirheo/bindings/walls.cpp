@@ -23,7 +23,7 @@ void exportWalls(py::module& m)
         Rectangular cuboid wall with edges aligned with the coordinate axes.
 
     )")
-        .def(py::init(&WallFactory::createBoxWall),
+        .def(py::init(&wall_factory::createBoxWall),
              "state"_a, "name"_a, "low"_a, "high"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
@@ -36,7 +36,7 @@ void exportWalls(py::module& m)
         Spherical wall.
 
     )")
-        .def(py::init(&WallFactory::createSphereWall),
+        .def(py::init(&wall_factory::createSphereWall),
             "state"_a, "name"_a, "center"_a, "radius"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
@@ -49,7 +49,7 @@ void exportWalls(py::module& m)
         Planar infinitely stretching wall. Inside is determined by the normal direction .
 
     )")
-        .def(py::init(&WallFactory::createPlaneWall),
+        .def(py::init(&wall_factory::createPlaneWall),
             "state"_a, "name"_a, "normal"_a, "pointThrough"_a, R"(
             Args:
                 name: name of the wall
@@ -60,7 +60,7 @@ void exportWalls(py::module& m)
     py::handlers_class< SimpleStationaryWall<StationaryWallCylinder> >(m, "Cylinder", pywall, R"(
         Cylindrical infinitely stretching wall, the main axis is aligned along OX or OY or OZ
     )")
-        .def(py::init(&WallFactory::createCylinderWall),
+        .def(py::init(&wall_factory::createCylinderWall),
             "state"_a, "name"_a, "center"_a, "radius"_a, "axis"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
@@ -81,7 +81,7 @@ void exportWalls(py::module& m)
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
     )")
-        .def(py::init(&WallFactory::createSDFWall),
+        .def(py::init(&wall_factory::createSDFWall),
             "state"_a, "name"_a, "sdfFilename"_a, "h"_a = real3{0.25, 0.25, 0.25}, R"(
             Args:
                 name: name of the wall
@@ -94,7 +94,7 @@ void exportWalls(py::module& m)
     py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate> >(m, "RotatingCylinder", pywall, R"(
         Cylindrical wall rotating with constant angular velocity along its axis.
     )")
-        .def(py::init(&WallFactory::createMovingCylinderWall),
+        .def(py::init(&wall_factory::createMovingCylinderWall),
             "state"_a, "name"_a, "center"_a, "radius"_a, "axis"_a, "omega"_a, "inside"_a = false, R"(
             Args:
                 name: name of the wall
@@ -110,7 +110,7 @@ void exportWalls(py::module& m)
         Can be used to produce Couette velocity profile in combination with 
         The boundary conditions on such wall are no-through and constant velocity (specified).
     )")
-        .def(py::init(&WallFactory::createMovingPlaneWall),
+        .def(py::init(&wall_factory::createMovingPlaneWall),
             "state"_a, "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, R"(
             Args:
                 name: name of the wall
@@ -125,7 +125,7 @@ void exportWalls(py::module& m)
         .. math::
             \mathbf{u}(t) = cos(2*\pi * t / T); 
     )")
-        .def(py::init(&WallFactory::createOscillatingPlaneWall),
+        .def(py::init(&wall_factory::createOscillatingPlaneWall),
             "state"_a, "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, "period"_a,  R"(
             Args:
                 name: name of the wall

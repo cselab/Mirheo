@@ -170,7 +170,7 @@ private:
         __D__ void operator()(T *addr, T val, int channelId) const
         {
             if (needShift[channelId])
-                TypeShift::apply(val, shift);
+                type_shift::apply(val, shift);
             *addr = val;
         }
 
@@ -183,7 +183,7 @@ private:
         template <typename T>
         __D__ void operator()(T *addr, T val, __UNUSED int channelId) const
         {
-            TypeAtomicAdd::apply(addr, val, eps);
+            type_atomic_add::apply(addr, val, eps);
         }
 
         real eps;

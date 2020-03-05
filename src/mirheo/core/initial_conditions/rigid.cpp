@@ -157,7 +157,7 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
     
     lrov->resize_anew(nObjs * rov->getObjectSize());
 
-    auto& rovMotions = *lrov->dataPerObject.getData<RigidMotion>(ChannelNames::motions);
+    auto& rovMotions = *lrov->dataPerObject.getData<RigidMotion>(channel_names::motions);
     std::copy(motions.begin(), motions.end(), rovMotions.begin());
     rovMotions.uploadToDevice(stream);
 

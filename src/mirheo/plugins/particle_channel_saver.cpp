@@ -17,7 +17,7 @@ ParticleChannelSaverPlugin::ParticleChannelSaverPlugin(const MirState *state, st
     channelName_(channelName),
     savedName_(savedName)
 {
-    ChannelNames::failIfReserved(savedName_, ChannelNames::reservedParticleFields);
+    channel_names::failIfReserved(savedName_, channel_names::reservedParticleFields);
 }
 
 void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)

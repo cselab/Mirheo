@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-namespace ExchangeEntitysKernels
+namespace exchange_entities_kernels
 {
 // must be executed with only one warp
 template <class Packer>
@@ -35,7 +35,7 @@ __global__ void computeOffsetsSizeBytes(BufferOffsetsSizesWrap wrapData, size_t 
     }
 }
 
-} // namespace ExchangeEntitysKernels
+} // namespace exchange_entities_kernels
 
 
 template <class Packer>
@@ -48,7 +48,7 @@ inline void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
     constexpr int nblocks  = 1;
     
     SAFE_KERNEL_LAUNCH(
-        ExchangeEntitysKernels::computeOffsetsSizeBytes,
+        exchange_entities_kernels::computeOffsetsSizeBytes,
         nblocks, nthreads, 0, stream,
         wrapData, sizeBytes.devPtr(), packer);
 }

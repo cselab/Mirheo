@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-namespace RodBelongingKernels
+namespace rod_belonging_kernels
 {
 
 __device__ inline real squaredDistanceToSegment(const real3& r0, const real3& r1, const real3& x)
@@ -83,7 +83,7 @@ __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellLis
 }
 
 
-} // namespace RodBelongingKernels
+} // namespace rod_belonging_kernels
 
 
 RodBelongingChecker::RodBelongingChecker(const MirState *state, const std::string& name, real radius) :
@@ -117,7 +117,7 @@ void RodBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream
         const int nblocks = getNblocks(totNumSegments, nthreads);
 
         SAFE_KERNEL_LAUNCH(
-            RodBelongingKernels::setInsideTags,
+            rod_belonging_kernels::setInsideTags,
             nblocks, nthreads, 0, stream,
             rvView, radius_, pvView, cl->cellInfo(), tags_.devPtr());
     };

@@ -31,7 +31,7 @@ std::vector<Interaction::InteractionChannel> Interaction::getInputChannels() con
 
 std::vector<Interaction::InteractionChannel> Interaction::getOutputChannels() const
 {
-    return {{ChannelNames::forces, alwaysActive}};
+    return {{channel_names::forces, alwaysActive}};
 }
 
 bool Interaction::isSelfObjectInteraction() const

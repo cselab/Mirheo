@@ -23,9 +23,9 @@ namespace mirheo
     \param [in] state Simulation state
     \return parameters to be passed to GPU kernels
  */
-static MembraneForcesKernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const MirState *state)
+static membrane_forces_kernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const MirState *state)
 {
-    MembraneForcesKernels::GPU_CommonMembraneParameters devP;
+    membrane_forces_kernels::GPU_CommonMembraneParameters devP;
 
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
@@ -155,7 +155,7 @@ public:
         filter_.setup(mv);
         
         SAFE_KERNEL_LAUNCH(
-            MembraneForcesKernels::computeMembraneForces,
+            membrane_forces_kernels::computeMembraneForces,
             nblocks, nthreads, 0, stream,
             triangleInteraction,
             dihedralInteraction, dihedralView,
@@ -186,14 +186,14 @@ public:
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         const auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
-        TextIO::write(fname, stepGen_);
+        text_IO::write(fname, stepGen_);
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
     
     void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
-        const bool good = TextIO::read(fname, stepGen_);
+        const bool good = text_IO::read(fname, stepGen_);
         if (!good) die("failed to read '%s'\n", fname.c_str());
     }
 
