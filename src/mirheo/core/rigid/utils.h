@@ -26,12 +26,14 @@ static inline __HD__ RealRigidMotion toRealMotion(const RealRigidMotion& sm)
     return sm;
 }
 
+/// convert a real3 to the precision used in rigid states description
 template<class R3>
 inline __HD__ RigidReal3 make_rigidReal3(R3 a)
 {
     return {RigidReal(a.x), RigidReal(a.y), RigidReal(a.z)};
 }
 
+/// convert a real4 to the precision used in rigid states description
 template<class R4>
 inline __HD__ RigidReal4 make_rigidReal4(R4 a)
 {
