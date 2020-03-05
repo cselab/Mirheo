@@ -45,7 +45,7 @@
             "bouncerMap": {},
             "integratorMap": {},
             "interactionMap": {
-                "dpd": "<PairwiseInteraction<PairwiseDPD> with name=dpd>"
+                "dpd": "<Interaction with name=dpd>"
             },
             "wallMap": {},
             "belongingCheckerMap": {},
@@ -56,7 +56,7 @@
                     "rc": 1,
                     "pv1": "<ParticleVector with name=pv>",
                     "pv2": "<ParticleVector with name=pv>",
-                    "interaction": "<PairwiseInteraction<PairwiseDPD> with name=dpd>"
+                    "interaction": "<Interaction with name=dpd>"
                 }
             ],
             "wallPrototypes": [],

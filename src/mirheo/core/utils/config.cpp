@@ -24,7 +24,7 @@ namespace mirheo
 
 std::string parseNameFromRefString(const ConfigRefString &ref)
 {
-    // Format: "<TYPENAME with name=NAME>".
+    // Format: "<CATEGORY with name=NAME>".
     size_t pos = ref.find("with name=");
     if (pos == std::string::npos)
         die("Unrecognized or unnamed reference format: %s", ref.c_str());
@@ -33,10 +33,10 @@ std::string parseNameFromRefString(const ConfigRefString &ref)
 }
 
 /// Create a string that refers to an object located elsewhere in the JSON file.
-static inline ConfigRefString createRefString(const char *typeName, const char *objectName)
+static inline ConfigRefString createRefString(const char *category, const char *objectName)
 {
-    return objectName ? strprintf("<%s with name=%s>", typeName, objectName)
-                      : strprintf("<%s>", typeName);
+    return objectName ? strprintf("<%s with name=%s>", category, objectName)
+                      : strprintf("<%s>", category);
 }
 
 std::string readWholeFile(const std::string& filename)
@@ -432,16 +432,8 @@ const std::string& Saver::_registerObject(const void *ptr, ConfigValue object)
     const char *name =
         itName != newObject->end() ? itName->second.getString().c_str() : nullptr;
 
-    // Get the object type.
-    auto itType = newObject->find("__type");
-    if (itType == newObject->end()) {
-        die("Key \"%s\" not found in the config:\n%s",
-            "__type", object.toJSONString().c_str());
-    }
-
-    // Genreate the refstring before moving the object, just in case.
-    const char *type = itType->second.getString().c_str();
-    ConfigRefString ref = createRefString(type, name);
+    // Generate the refstring before moving the object, just in case.
+    ConfigRefString ref = createRefString(category.c_str(), name);
     it->second.getArray().emplace_back(std::move(object));
 
     return refStrings_.emplace(ptr, std::move(ref)).first->second;

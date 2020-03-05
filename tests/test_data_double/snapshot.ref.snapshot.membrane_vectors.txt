@@ -15,14 +15,14 @@
             "name": "ov1",
             "mass": 1,
             "objSize": 6,
-            "mesh": "<MembraneMesh with name=mesh_0>"
+            "mesh": "<Mesh with name=mesh_0>"
         },
         {
             "__type": "MembraneVector",
             "name": "ov2",
             "mass": 1,
             "objSize": 6,
-            "mesh": "<MembraneMesh with name=mesh_1>"
+            "mesh": "<Mesh with name=mesh_1>"
         }
     ],
     "Postprocess": [
@@ -45,8 +45,8 @@
                 "mode": 0
             },
             "particleVectors": [
-                "<MembraneVector with name=ov1>",
-                "<MembraneVector with name=ov2>"
+                "<ParticleVector with name=ov1>",
+                "<ParticleVector with name=ov2>"
             ],
             "bouncerMap": {},
             "integratorMap": {},

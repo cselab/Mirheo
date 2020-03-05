@@ -11,7 +11,7 @@
             "name": "ov",
             "mass": 1,
             "objSize": 6,
-            "mesh": "<MembraneMesh with name=mesh_0>"
+            "mesh": "<Mesh with name=mesh_0>"
         }
     ],
     "Wall": [
@@ -77,8 +77,8 @@
             "name": "postprocess",
             "checkpointFolder": "restart/",
             "plugins": [
-                "<PostprocessStats with name=stats>",
-                "<MeshDumper with name=rbcs>"
+                "<PostprocessPlugin with name=stats>",
+                "<PostprocessPlugin with name=rbcs>"
             ]
         }
     ],
@@ -94,27 +94,27 @@
                 "mode": 0
             },
             "particleVectors": [
-                "<MembraneVector with name=ov>"
+                "<ParticleVector with name=ov>"
             ],
             "bouncerMap": {},
             "integratorMap": {},
             "interactionMap": {},
             "wallMap": {
-                "plane": "<SimpleStationaryWall<StationaryWallPlane> with name=plane>"
+                "plane": "<Wall with name=plane>"
             },
             "belongingCheckerMap": {},
             "plugins": [
-                "<SimulationStats with name=stats>",
-                "<MeshPlugin with name=rbcs>",
-                "<MembraneExtraForcePlugin with name=extraForce>",
-                "<WallRepulsionPlugin with name=wallRepulsion>"
+                "<SimulationPlugin with name=stats>",
+                "<SimulationPlugin with name=rbcs>",
+                "<SimulationPlugin with name=extraForce>",
+                "<SimulationPlugin with name=wallRepulsion>"
             ],
             "integratorPrototypes": [],
             "interactionPrototypes": [],
             "wallPrototypes": [],
             "checkWallPrototypes": [
                 {
-                    "wall": "<SimpleStationaryWall<StationaryWallPlane> with name=plane>",
+                    "wall": "<Wall with name=plane>",
                     "every": 123
                 }
             ],
