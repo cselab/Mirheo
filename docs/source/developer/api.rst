@@ -25,6 +25,7 @@ Library API
    api/postproc
    api/packers
    api/pvs
+   api/rigid
    api/simulation
    api/task_scheduler
    api/walls
