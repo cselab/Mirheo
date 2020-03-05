@@ -5,6 +5,14 @@ XDMF
 
 A set of classes and functions to write/read data to/from xdmf + hdf5 files format.
 
+..
+   .. doxygenfunction:: mirheo::XDMF::write(const std::string&, const Grid *, const std::vector<Channel>&, MirState::TimeType, MPI_Comm)
+      :project: mirheo
+
+.. doxygenfunction:: mirheo::XDMF::readVertexData
+   :project: mirheo
+
+
 Grids
 -----
 
@@ -35,4 +43,10 @@ Implementation
 .. doxygenclass:: mirheo::XDMF::TriangleMeshGrid
    :project: mirheo
    :members:
+
+Channel
+-------
+
+.. doxygenfile:: channel.h
+   :project: mirheo
 

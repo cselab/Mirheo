@@ -10,6 +10,9 @@ namespace mirheo
 
 namespace XDMF
 {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
+/// \return The Channel::DataForm from the template parameter
 template <typename T> Channel::DataForm inline getDataForm()
 {
     error("DataForm not implemented");
@@ -32,7 +35,7 @@ template <> Channel::DataForm inline getDataForm<RigidMotion> () {return Channel
 #undef IMPLEMENT_DATAFORM
 
 
-
+/// \return The Channel::NumberType from the template parameter
 template <typename T> Channel::NumberType getNumberType();
 
 template <> Channel::NumberType inline getNumberType<float>  () {return Channel::NumberType::Float;}
@@ -53,6 +56,7 @@ template <> Channel::NumberType inline getNumberType<TemplRigidMotion<float>>  (
 template <> Channel::NumberType inline getNumberType<COMandExtent>             () {return getNumberType<decltype(COMandExtent::com)>();}
 template <> Channel::NumberType inline getNumberType<Force>                    () {return getNumberType<decltype(Force::f)>();}
 
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 } // namespace XDMF
 
 } // namespace mirheo

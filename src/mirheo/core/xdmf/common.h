@@ -8,6 +8,11 @@
 namespace mirheo
 {
 
+/** \brief Serialze an array of element
+    \tparam T The element type, must have << operator overload for std::ostringstream
+    \param v The array of elements
+    \return The string that contains space separated elements.
+ */
 template<typename T>
 std::string to_string(const std::vector<T, std::allocator<T>>& v)
 {
