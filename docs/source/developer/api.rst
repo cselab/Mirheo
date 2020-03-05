@@ -28,3 +28,4 @@ Library API
    api/simulation
    api/task_scheduler
    api/walls
+   api/xdmf

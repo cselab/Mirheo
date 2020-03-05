@@ -1,3 +1,11 @@
+class PintUnitsConverter(object):
+    r"""Converts given values to the given unit system.
+    """
+    def __init__():
+        r"""None
+        """
+        pass
+
 class ComQ:
     r"""None
     """

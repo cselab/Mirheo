@@ -26,6 +26,11 @@ int  GridDims::getDims()     const { return (int) getLocalSize().size();   }
 // Uniform Grid
 //
 
+UniformGrid::UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm) :
+    dims_(localSize, cartComm),
+    spacing_{h.x, h.y, h.z}
+{}
+    
 UniformGrid::UniformGridDims::UniformGridDims(int3 localSize, MPI_Comm cartComm)
 {
     int nranks[3], periods[3], my3Drank[3];
@@ -47,8 +52,8 @@ std::vector<hsize_t> UniformGrid::UniformGridDims::getLocalSize()  const {return
 std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize_;}
 std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets_;}
     
-std::string UniformGrid::getCentering() const                        { return "Cell"; }
-const UniformGrid::UniformGridDims* UniformGrid::getGridDims() const { return &dims_; }
+std::string UniformGrid::getCentering() const { return "Cell"; }
+const GridDims* UniformGrid::getGridDims() const { return &dims_; }
     
 void UniformGrid::writeToHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm) const
 {}
@@ -118,11 +123,6 @@ void UniformGrid::readFromHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm)
     die("not implemented");
 }
         
-UniformGrid::UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm) :
-    dims_(localSize, cartComm),
-    spacing_{h.x, h.y, h.z}
-{}
-    
 //
 // Vertex Grid
 //
@@ -155,8 +155,8 @@ VertexGrid::VertexGrid(std::shared_ptr<std::vector<real3>> positions, MPI_Comm c
     positions_(positions)
 {}
 
-const VertexGrid::VertexGridDims* VertexGrid::getGridDims() const    { return &dims_; }    
-std::string VertexGrid::getCentering() const                         { return "Node"; }    
+const GridDims* VertexGrid::getGridDims() const { return &dims_; }    
+std::string VertexGrid::getCentering() const    { return "Node"; }    
 
 void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
