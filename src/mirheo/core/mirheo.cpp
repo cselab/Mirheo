@@ -687,6 +687,14 @@ void Mirheo::logCompileOptions() const
     info("ROD_DOUBLE      : %d", CompileOptions::rodDouble     );
 }
 
+/// Prepare a ConfigObject listing all compilation options that affect the output format.
+static ConfigObject compileOptionsToConfig(Saver& saver) {
+    // Don't forget to update snapshot.cpp:checkCompilationOptions.
+    ConfigObject out;
+    out.unsafe_insert("useDouble", saver(CompileOptions::useDouble));
+    return out;
+}
+
 void Mirheo::saveSnapshot(std::string path)
 {
     // Abort if no-postprocess, not supported, mostly because loading assumes
@@ -708,7 +716,6 @@ void Mirheo::saveSnapshot(std::string path)
             die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
 
     // Dump the Mirheo object and the whole simulation recursively.
-
     ConfigValue::Object mir;
     mir.emplace("__category", saver("Mirheo"));
     mir.emplace("__type",     saver("Mirheo"));
@@ -720,6 +727,7 @@ void Mirheo::saveSnapshot(std::string path)
         saver(sim_);
     if (post_)
         saver(post_);
+    mir.emplace("compile_options", compileOptionsToConfig(saver));
     saver.registerObject(this, std::move(mir));
     ConfigObject localConfig = std::move(saver).getConfig();
 

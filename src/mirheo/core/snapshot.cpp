@@ -7,6 +7,7 @@
 #include <mirheo/core/walls/factory.h>
 #include <mirheo/core/mirheo.h>
 #include <mirheo/core/pvs/factory.h>
+#include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
 #include <mirheo/plugins/factory.h>
@@ -147,12 +148,25 @@ void PluginFactoryContainer::registerPluginFactory(FactoryType factory)
     factories_.push_back(std::move(factory));
 }
 
+/// Check if the snasphot binary format matches the current compilation options.
+static void checkCompilationOptions(const ConfigObject& options)
+{
+    bool useDouble = options["useDouble"];
+    if (useDouble != CompileOptions::useDouble) {
+        die("Mismatch in the compilation option useDouble: compiled=%d, snapshot=%d",
+            (int)useDouble, (int)CompileOptions::useDouble); \
+    }
+}
+
 void loadSnapshot(Mirheo *mir, Loader& loader)
 {
     LoaderContext& context = loader.getContext();
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
     const ConfigObject& config = context.getConfig();
     const ConfigObject& mirConfig = config["Mirheo"][0].getObject();
+
+    checkCompilationOptions(mirConfig["compile_options"].getObject());
+
     if (auto* attrs = mirConfig.get("attributes")) {
         for (const auto& pair : attrs->getObject())
             mir->setAttribute(pair.first, pair.second);
