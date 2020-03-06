@@ -15,7 +15,7 @@ static std::string getCompileOption(const std::string& key)
 {
 #define check_and_return(opt_name)                                      \
     if (key == #opt_name)                                               \
-        return CompileOptions::opt_name ? "1" : "0";
+        return compile_options.opt_name ? "1" : "0";
     
     MIRHEO_COMPILE_OPT_TABLE(check_and_return);
     
@@ -29,7 +29,7 @@ static std::map<std::string, std::string> getAllCompileOptions()
 {
     std::map<std::string, std::string> dict;
     
-#define add_option(opt_name) dict[#opt_name] = CompileOptions::opt_name ? "1" : "0";
+#define add_option(opt_name) dict[#opt_name] = compile_options.opt_name ? "1" : "0";
     MIRHEO_COMPILE_OPT_TABLE(add_option);
 #undef add_option
 
@@ -38,7 +38,7 @@ static std::map<std::string, std::string> getAllCompileOptions()
 
 void exportUtils(py::module& m)
 {
-    m.def("getCompileOption", getCompileOption, "key"_a, R"(
+    m.def("get_compile_option", getCompileOption, "key"_a, R"(
     Fetch a given compile time option currently in use.
     Args:
         key: the option name.
@@ -46,7 +46,7 @@ void exportUtils(py::module& m)
     Available names can be found from the :any:`getAllCompileOptions` command.
     )");
 
-    m.def("getAllCompileOptions", getAllCompileOptions, R"(
+    m.def("get_all_compile_options", getAllCompileOptions, R"(
     Return all compile time options used in the current installation in the form of a dictionary.
     )");
 }

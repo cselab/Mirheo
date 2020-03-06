@@ -27,11 +27,11 @@ def run(args):
 
 def compile_opt(args):
     if args.name == 'all':
-        options = mirheo.Utils.getAllCompileOptions()
-        for key in options:
-            print("{} : {}".format(key, options[key]))
+        options = mirheo.Utils.get_all_compile_options()
+        for key, value in options.items():
+            print("{} : {}".format(key, value))
     else:
-        print(mirheo.Utils.getCompileOption(args.name))
+        print(mirheo.Utils.get_compile_option(args.name))
 
 
 def main(argv):

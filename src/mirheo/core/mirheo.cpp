@@ -681,17 +681,17 @@ void Mirheo::run(int nsteps)
 void Mirheo::logCompileOptions() const
 {
     info("compile time options:");
-    info("USE_NVTX        : %d", CompileOptions::useNvtx       );
-    info("MIRHEO_DOUBLE   : %d", CompileOptions::useDouble     );
-    info("MEMBRANE_DOUBLE : %d", CompileOptions::membraneDouble);
-    info("ROD_DOUBLE      : %d", CompileOptions::rodDouble     );
+    info("MIRHEO_DOUBLE   : %d", compile_options.useDouble     );
+    info("MEMBRANE_DOUBLE : %d", compile_options.membraneDouble);
+    info("ROD_DOUBLE      : %d", compile_options.rodDouble     );
+    info("USE_NVTX        : %d", compile_options.useNvtx       );
 }
 
 /// Prepare a ConfigObject listing all compilation options that affect the output format.
 static ConfigObject compileOptionsToConfig(Saver& saver) {
     // Don't forget to update snapshot.cpp:checkCompilationOptions.
     ConfigObject out;
-    out.unsafe_insert("useDouble", saver(CompileOptions::useDouble));
+    out.unsafe_insert("useDouble", saver(compile_options.useDouble));
     return out;
 }
 
