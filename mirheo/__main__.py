@@ -17,17 +17,22 @@ def run(args):
         num_timesteps = int(u.getAttribute(args.num_timesteps_attr))
     else:
         num_timesteps = args.num_timesteps
-    print(num_timesteps)
+
     u.run(num_timesteps)
+
+    if args.final_snapshot:
+        u.saveSnapshot(args.final_snapshot)
+
 
 
 def compile_opt(args):
-    if args.name == "all":
+    if args.name == 'all':
         options = mirheo.Utils.getAllCompileOptions()
         for key in options:
             print("{} : {}".format(key, options[key]))
     else:
         print(mirheo.Utils.getCompileOption(args.name))
+
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -42,6 +47,8 @@ def main(argv):
                            help="Number of timesteps.")
     runparser.add_argument('--num-timesteps-attr', type=str, metavar="ATTR_NAME",
                            help="Name of the attribute to read the number of timesteps from.")
+    runparser.add_argument('--final-snapshot', type=str, metavar="PATH",
+                           help="If set, a snapshot of the final state is stored to the given path.")
     runparser.add_argument('snapshot', type=str, metavar="snapshot_path",
                            help="Run the snapshot at the given path.")
 
