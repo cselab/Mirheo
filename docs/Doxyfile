@@ -35,7 +35,8 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/postproc.h \
 	../src/mirheo/core/plugins.h \
 	../src/mirheo/core/xdmf \
-	../src/mirheo/core/rigid
+	../src/mirheo/core/rigid \
+	../src/mirheo/core/datatypes.h
 	
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu

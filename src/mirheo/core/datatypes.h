@@ -10,26 +10,27 @@ namespace mirheo
 {
 
 #ifdef MIRHEO_DOUBLE_PRECISION
-using real    = double;
-using integer = int64_t;
-#define MIRHEO_SCNgREAL "lg"  ///< scanf format for real, see <cinttypes>
+using real    = double;  ///< represents a scalar real number
+using integer = int64_t; ///< represents an integer number
+#define MIRHEO_SCNgREAL "lg"  ///< scanf format for real, see `<cinttypes>`
 #define MIRHEO_PRIgREAL "g"   ///< printf format for real
 #else
-using real    = float;
-using integer = int32_t;
-#define MIRHEO_SCNgREAL "g"   ///< scanf format for real, see <cinttypes>
+using real    = float;   ///< represents a scalar real number
+using integer = int32_t; ///< represents an integer number
+#define MIRHEO_SCNgREAL "g"   ///< scanf format for real, see `<cinttypes>`
 #define MIRHEO_PRIgREAL "g"   ///< printf format for real
 #endif
 
-using real2 = vec_traits::Vec<real, 2>::Type;
-using real3 = vec_traits::Vec<real, 3>::Type;
-using real4 = vec_traits::Vec<real, 4>::Type;
+using real2 = vec_traits::Vec<real, 2>::Type; ///< a pair of real numbers
+using real3 = vec_traits::Vec<real, 3>::Type; ///< three real numbers
+using real4 = vec_traits::Vec<real, 4>::Type; ///< faour real numbers
 
-inline namespace unit_literals {
-    __HD__ constexpr inline real operator "" _r (const long double a)
-    {
-        return static_cast<real>(a);
-    }
+inline namespace unit_literals
+{
+__HD__ constexpr inline real operator "" _r (const long double a)
+{
+    return static_cast<real>(a);
+}
 } // namespace unit_literals
 
 static inline __HD__ real2 make_real2(real x, real y)
@@ -50,48 +51,60 @@ static inline __HD__ real4 make_real4(real x, real y, real z, real w)
 // Basic types
 //==================================================================================================================
 
-/**
- * Helper class for packing/unpacking \e float3 + \e int into \e float4
+/** \brief Helper class for packing/unpacking \e real3 + \e integer into \e real4
  */
 struct __align__(16) Real3_int
 {
-    real3 v;
-    integer i;
+    real3 v;   ///< vector part
+    integer i; ///< integer part
 
-    static constexpr real mark_val = -900._r;
+    /// a special value used to mark particles;
+    /// useful e.g. to mark particles that must leave the domain
+    
+    static constexpr real mark_val = -900._r; 
 
+    /// copy constructor
     __HD__ inline Real3_int(const Real3_int& x)
     {
         *reinterpret_cast<real4*>(this) = *reinterpret_cast<const real4*>(&x);
     }
 
+    /// assignment operator
     __HD__ inline Real3_int& operator=(const Real3_int& x)
     {
         *reinterpret_cast<real4*>(this) = *reinterpret_cast<const real4*>(&x);
         return *this;
     }
 
+    /// defult constructor; NO default values!
     __HD__ inline Real3_int() {}
+
+    /// Constructor from vector and integer
     __HD__ inline Real3_int(real3 vecPart, integer intPart) :
         v(vecPart),
         i(intPart)
     {}
 
+    /// Constructor from 4 components vector; the last one will be reinterpreted to integer (not converted)
     __HD__ inline Real3_int(const real4 r4)
     {
         *reinterpret_cast<real4*>(this) = r4;
     }
 
+    /// \return reinterpreted values packed in a real4 (no conversion)
     __HD__ inline real4 toReal4() const
     {
         return *reinterpret_cast<const real4*>(this);
     }
 
+    /// Mark this object; see isMarked().
+    /// Does not modify the integer part
     __HD__ inline void mark()
     {
         v.x = v.y = v.z = mark_val;
     }
 
+    /// \return \c true if the object has been marked via mark()
     __HD__ inline bool isMarked() const
     {
         return
@@ -101,21 +114,18 @@ struct __align__(16) Real3_int
     }
 };
 
-/**
- * Structure to hold coordinates and velocities of particles.
- * Due to performance reasons it should be aligned to 16 bytes boundary,
- * therefore 8 bytes = 2 integer numbers are extra.
- * The integer fields are used for particle ids
- *
- * For performance reasons instead of an N-element array of Particle
- * an array of 2*N \e real4 elements is used.
+/** \brief Structure that holds position, velocity and global index of one particle.
+ 
+    Due to performance reasons it should be aligned to 16 bytes boundary,
+    therefore 8 bytes = 2 integer numbers are extra.
+    The integer fields are used to store the global index
  */
 struct __align__(16) Particle
 {
-    real3 r;     ///< coordinate
+    real3 r;     ///< position
     integer i1;  ///< lower part of particle id
 
-    real3 u;     ///< velocity
+    real3 u;         ///< velocity
     integer i2 {0};  ///< higher part of particle id
 
     /// Copy constructor uses efficient 16-bytes wide copies
@@ -140,16 +150,16 @@ struct __align__(16) Particle
         return *this;
     }
 
-    /**
-     * Default constructor
-     *
-     * @rst
-     * .. attention::
-     *    Default constructor DOES NOT set any members!
-     * @endrst
+    /** \brief Default constructor
+
+        \rst
+        .. attention::
+            The default constructor DOES NOT initialize any members!
+        \endrst
      */
     __HD__ inline Particle() {};
 
+    /// Set the global index of the particle
     __HD__ inline void setId(int64_t id)
     {
 #ifdef MIRHEO_DOUBLE_PRECISION
@@ -161,6 +171,7 @@ struct __align__(16) Particle
 #endif
     }
 
+    /// \return the global index of the particle
     __HD__ inline int64_t getId() const
     {
 #ifdef MIRHEO_DOUBLE_PRECISION
@@ -170,11 +181,9 @@ struct __align__(16) Particle
 #endif
     }
     
-    /**
-     * Construct a Particle from two real4 entries
-     *
-     * @param r4 first three reals will be coordinates (#r), last one, \e \.w - #i1
-     * @param u4 first three reals will be velocities (#u), last one \e \.w - #i1
+    /** \brief Construct a Particle from two real4 entries
+        \param r4 first three reals will be position (#r), last one \e \.w - #i1 (reinterpreted, not converted)
+        \param u4 first three reals will be velocity (#u), last one \e \.w - #i2 (reinterpreted, not converted)
      */
     __HD__ inline Particle(const real4 r4, const real4 u4)
     {
@@ -185,11 +194,9 @@ struct __align__(16) Particle
         i2 = utmp.i;
     }
 
-    /**
-     * Only read coordinates from the given \e addr
-     *
-     * @param addr must have at least \e pid entries
-     * @param pid  particle id
+    /** \brief read position from array and stores it internally
+        \param addr start of the array with size > \p pid 
+        \param pid  particle index
      */
     __HD__ inline void readCoordinate(const real4 *addr, const int pid)
     {
@@ -198,11 +205,9 @@ struct __align__(16) Particle
         i1 = tmp.i;
     }
 
-    /**
-     * Only read velocities from the given \e addr
-     *
-     * @param addr must have at least \e pid entries
-     * @param pid  particle id
+    /** \brief read velocity from array and stores it internally
+        \param addr pointer to the start of the array. Must be larger than \p pid 
+        \param pid  particle index
      */
     __HD__ inline void readVelocity(const real4 *addr, const int pid)
     {
@@ -211,41 +216,38 @@ struct __align__(16) Particle
         i2 = tmp.i;
     }
 
+    /// \return packed #r and #i1 as \e Real3_int
     __HD__ inline Real3_int r2Real3_int() const
     {
         return Real3_int{r, i1};
     }
     
-    /**
-     * Helps writing particles back to \e real4 array
-     *
-     * @return packed #r and #i1 as \e real4
+    /** \brief Helps writing particles back to \e real4 array
+        \return packed #r and #i1 as \e real4
      */
     __HD__ inline real4 r2Real4() const
     {
         return r2Real3_int().toReal4();
     }
 
+    /// \return packed #u and #i2 as \e Real3_int
     __HD__ inline Real3_int u2Real3_int() const
     {
         return Real3_int{u, i2};
     }
 
-    /**
-     * Helps writing particles back to \e real4 array
-     *
-     * @return packed #u and #i2 as \e real4
+    /** \brief Helps writing particles back to \e real4 array
+        \return packed #u and #i2 as \e real4
      */
     __HD__ inline real4 u2Real4() const
     {
         return u2Real3_int().toReal4();
     }
 
-    /**
-     * Helps writing particles back to \e real4 array
-     *
-     * @param dst must have at least \e 2*pid entries
-     * @param pid particle id
+    /** \brief Helps writing particles back to \e real4 arrays
+        \param pos destination array that contains positions
+        \param vel destination array that contains velocities
+        \param pid particle index
      */
     __HD__ inline void write2Real4(real4 *pos, real4 *vel, int pid) const
     {
@@ -253,6 +255,7 @@ struct __align__(16) Particle
         vel[pid] = u2Real4();
     }
 
+    /// mark the particle; this will erase its position information
     __HD__ inline void mark()
     {
         Real3_int f3i = r2Real3_int();
@@ -260,23 +263,34 @@ struct __align__(16) Particle
         r = f3i.v;
     }
 
+    /// \return \c true if the particle has been marked
     __HD__ inline bool isMarked() const
     {
         return r2Real3_int().isMarked();
     }
 };
 
+/** \brief Structure that holds force as \e real4 (to reduce number of load/store instructions)
+    
+    Due to performance reasons it should be aligned to 16 bytes boundary.
+    The integer field is not reserved for anything at the moment
+ */
 struct __align__(16) Force
 {
-    real3 f;
-    integer i;
+    real3 f;   ///< Force value
+    integer i; ///< extra integer variable (unused)
 
+    /// default constructor, does NOT initialize anything
     __HD__ inline Force() {};
+
+    /// Construct a \c Force from a vector part and an integer part
     __HD__ inline Force(const real3 vecPart, int intPart) :
         f(vecPart),
         i(intPart)
     {};
 
+    /// Construct a force from \c real4.
+    /// The 4th component will be reinterpreted as an integer (not converted) 
     __HD__ inline Force(const real4 f4)
     {
         Real3_int tmp(f4);
@@ -284,12 +298,14 @@ struct __align__(16) Force
         i = tmp.i;
     }
 
+    /// \return packed real part + integer part as \e real4
     __HD__ inline real4 toReal4() const
     {
         return Real3_int{f, i}.toReal4();
     }
 };
 
+/// add b to a (the integer part is ignored)
 __HD__ static inline void operator+=(Force& a, const Force& b)
 {
     a.f.x += b.f.x;
@@ -297,16 +313,25 @@ __HD__ static inline void operator+=(Force& a, const Force& b)
     a.f.z += b.f.z;
 }    
 
+/// \return a + b (the integer part is ignored)
 __HD__ static inline Force operator+(Force a, const Force& b)
 {
     a += b;
     return a;
 }
 
-
+/** \brief Store a symmetric stess tensor in 3 dimensions
+    
+    Since it is symmetric, only 6 components are needed (diagonal and upper part
+ */
 struct Stress
 {
-    real xx, xy, xz, yy, yz, zz;
+    real xx; ///< x diagonal term
+    real xy; ///< xy upper term
+    real xz; ///< xz upper term
+    real yy; ///< y diagonal term
+    real yz; ///< yz upper term
+    real zz; ///< z diagonal term
 };
 
 __HD__ static inline void operator+=(Stress& a, const Stress& b)
@@ -321,15 +346,22 @@ __HD__ static inline Stress operator+(Stress a, const Stress& b)
     return a;
 }
 
+/// Contains the rigid object center of mass and bounding box
+/// Used e.g. to decide which domain the objects belong to and
+/// what particles / cells are close to it 
 struct __align__(16) COMandExtent
 {
-    real3 com, low, high;
+    real3 com;  ///< center of mass
+    real3 low;  ///< lower corner of the bounding box
+    real3 high; ///< upper corner of the bounding box
 };
 
+/// Contains coordinates of the center of mass and orientation of an object
+/// Used to initialize object positions
 struct ComQ
 {
-    real3 r;
-    real4 q;
+    real3 r; ///< object position
+    real4 q; ///< quaternion that represents the orientation
 };
 
 } // namespace mirheo
