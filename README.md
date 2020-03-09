@@ -30,6 +30,9 @@ make install
 * **bug fix**: avoid avoid division by zero and nan in several places:
   * SDPD kernel
   * root finder (concerns bounce back)
+* **bug fixes**: 
+  * file wrapper: move constructor (added corresponding unit test)
+  * file wrapper: flushOnClose was not active for special streams
 
 ### v1.3.3
 
