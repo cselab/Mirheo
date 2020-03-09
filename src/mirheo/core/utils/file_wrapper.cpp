@@ -4,19 +4,15 @@
 namespace mirheo
 {
 
-FileWrapper::FileWrapper(bool forceFlushOnClose) :
-    forceFlushOnClose_(forceFlushOnClose)
-{}
+FileWrapper::FileWrapper() = default;
 
-FileWrapper::FileWrapper(const std::string& fname, const std::string& mode,
-                         bool forceFlushOnClose) :
-    forceFlushOnClose_(forceFlushOnClose)
+FileWrapper::FileWrapper(const std::string& fname, const std::string& mode)
 {
-    if (open(fname, mode) != Status::Success) {
+    if (open(fname, mode) != Status::Success)
+    {
         die("Could not open the file \"%s\" in mode \"%s\".",
             fname.c_str(), mode.c_str());
     }
-    needClose_ = true;
 }
 
 FileWrapper::~FileWrapper()
@@ -24,58 +20,54 @@ FileWrapper::~FileWrapper()
     close();
 }
 
-FileWrapper::FileWrapper(FileWrapper&& f) :
-    FileWrapper(f.forceFlushOnClose_)
+FileWrapper::FileWrapper(FileWrapper&& f)
 {
     std::swap(file_, f.file_);
-    std::swap(needClose_, f.needClose_);
     std::swap(forceFlushOnClose_, f.forceFlushOnClose_);
 }
 
 FileWrapper& FileWrapper::operator=(FileWrapper&& f)
 {
     std::swap(file_, f.file_);
-    std::swap(needClose_, f.needClose_);
     std::swap(forceFlushOnClose_, f.forceFlushOnClose_);
     return *this;
 }
 
 FileWrapper::Status FileWrapper::open(const std::string& fname, const std::string& mode)
 {
-    if (needClose_) close();
-
+    close();
     file_ = fopen(fname.c_str(), mode.c_str());
 
     if (file_ == nullptr)
         return Status::Failed;
 
-    needClose_ = true;
     return Status::Success;
 }
 
-FileWrapper::Status FileWrapper::open(FileWrapper::SpecialStream stream)
+FileWrapper::Status FileWrapper::open(FileWrapper::SpecialStream stream, bool forceFlushOnClose)
 {
-    if (needClose_) close();
-
+    close();
     switch(stream)
     {
     case SpecialStream::Cout: file_ = stdout; break;
     case SpecialStream::Cerr: file_ = stderr; break;
     }
 
-    needClose_ = false;
+    forceFlushOnClose_ = forceFlushOnClose;
+
     return Status::Success;
 }
 
 void FileWrapper::close()
 {
-    if (needClose_)
-    {
-        if (forceFlushOnClose_)
-            fflush(file_);
+    if (forceFlushOnClose_ && (file_ == stdout || file_ == stderr))
+        fflush(file_);
+
+    if (file_ != stdout && file_ != stdout && file_ != nullptr)
         fclose(file_);
-        needClose_ = false;
-    }
+
+    file_ = nullptr;
+    forceFlushOnClose_ = false;
 }
 
 } // namespace mirheo

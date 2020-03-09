@@ -141,7 +141,7 @@ private:
     static constexpr int numLogsBetweenFlushes_ = 32;
     mutable int numLogsSinceLastFlush_ {0};
 
-    mutable FileWrapper fout_ {true};
+    mutable FileWrapper fout_;
     int rank_ {-1};
 };
 

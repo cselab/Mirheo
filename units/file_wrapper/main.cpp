@@ -21,7 +21,7 @@ TEST (FILE_WRAPPER, stdout )
 {
     testing::internal::CaptureStdout();
     FileWrapper stream;
-    stream.open(FileWrapper::SpecialStream::Cout);
+    stream.open(FileWrapper::SpecialStream::Cout, true);
     fprintf(stream.get(), "%s", content.c_str());
     const std::string output = testing::internal::GetCapturedStdout();
     ASSERT_EQ(output, content); 

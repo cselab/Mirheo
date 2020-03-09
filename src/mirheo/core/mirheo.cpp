@@ -167,10 +167,11 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
     if (logInfo.fileName == "stdout" ||
         logInfo.fileName == "stderr")
     {
-        FileWrapper f(true);
+        FileWrapper f;
         f.open(logInfo.fileName == "stdout" ?
                FileWrapper::SpecialStream::Cout :
-               FileWrapper::SpecialStream::Cerr);
+               FileWrapper::SpecialStream::Cerr,
+               true);
         logger.init(comm, std::move(f), logInfo.verbosityLvl);
     }
     else

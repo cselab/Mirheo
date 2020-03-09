@@ -12,9 +12,9 @@ public:
     
     enum class SpecialStream {Cout, Cerr};
     enum class Status {Success, Failed};
-    
-    FileWrapper(const std::string& fname, const std::string& mode, bool forceFlushOnClose = false);
-    explicit FileWrapper(bool forceFlushOnClose = false);
+
+    FileWrapper();
+    FileWrapper(const std::string& fname, const std::string& mode);
     ~FileWrapper();
 
     FileWrapper           (const FileWrapper&) = delete;
@@ -24,17 +24,15 @@ public:
     FileWrapper& operator=(FileWrapper&&);
 
     Status open(const std::string& fname, const std::string& mode);
-    Status open(SpecialStream stream);
+    Status open(SpecialStream stream, bool forceFlushOnClose);
     
     FILE* get() {return file_;}
 
     void close();
     
 private:
-    
     FILE *file_ {nullptr};
-    bool needClose_ {false};
-    bool forceFlushOnClose_;
+    bool forceFlushOnClose_{false};
 };
 
 } // namespace mirheo
