@@ -25,8 +25,14 @@ make install
 * renamed most private variables: now should have a trailing `_`
 * enabled -Wshadow
 * particle checker plugin dumps all particle fields when triggered
+* add experimental and partial support for saving a snapshot of the whole Mirheo state
+* add `__main__.py` commands `run` and `compile_opt`
+* add classical (non-repulsive) 12-6 Lennard-Jones interaction
+* add support for specifying Mirheo's unit system (based on `pint`)
 * **interface changes** 
   * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
+* **internal changes**
+  * rename `LJParams` to `RepulsiveLJParams`, while `LJParams` is now used for the ordinary LJ force
 * **bug fix**: avoid avoid division by zero and nan in several places:
   * SDPD kernel
   * root finder (concerns bounce back)
