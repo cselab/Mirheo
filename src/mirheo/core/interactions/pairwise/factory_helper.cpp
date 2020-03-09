@@ -43,6 +43,15 @@ template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, Param
 
 template <> void readParams<LJParams>(LJParams& p, ParametersWrap& desc, ParamsReader reader)
 {
+    const auto epsilon = reader.read<real>(desc, "epsilon");
+    const auto sigma   = reader.read<real>(desc, "sigma");
+
+    if (epsilon != defaultReal) p.epsilon  = epsilon;
+    if (sigma   != defaultReal) p.sigma    = sigma;
+}
+
+template <> void readParams<RepulsiveLJParams>(RepulsiveLJParams& p, ParametersWrap& desc, ParamsReader reader)
+{
     const auto epsilon  = reader.read<real>(desc, "epsilon");
     const auto sigma    = reader.read<real>(desc, "sigma");
     const auto maxForce = reader.read<real>(desc, "max_force");
@@ -149,6 +158,14 @@ LJParams readLJParams(ParametersWrap& desc)
 {
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     LJParams p;
+    readParams(p, desc, reader);
+    return p;
+}
+
+RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
+{
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
+    RepulsiveLJParams p;
     readParams(p, desc, reader);
     p.varLJAwarenessParams = readLJAwarenessParams(desc, reader);
     return p;
@@ -263,7 +280,7 @@ VarStressParams readStressParams(ParametersWrap& desc)
     }
 }
 
-void readSpecificParams(LJParams& p, ParametersWrap& desc)
+void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
     

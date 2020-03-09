@@ -6,6 +6,7 @@
 #include "kernels/density.h"
 #include "kernels/density_kernels.h"
 #include "kernels/dpd.h"
+#include "kernels/lj.h"
 #include "kernels/mdpd.h"
 #include "kernels/pressure_EOS.h"
 #include "kernels/repulsive_lj.h"
@@ -55,7 +56,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 
 
 static std::shared_ptr<BasePairwiseInteraction>
-createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const LJParams& params, const VarStressParams& varStressParams)
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const RepulsiveLJParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& awareParams)
     {
@@ -143,7 +144,8 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
 {
     static_assert(std::is_same<
             VarPairwiseParams,
-            mpark::variant<DPDParams, LJParams, MDPDParams, DensityParams, SDPDParams>>::value,
+            mpark::variant<DPDParams, LJParams, RepulsiveLJParams,
+                           MDPDParams, DensityParams, SDPDParams>>::value,
             "Load interactions must be updated if th VairPairwiseParams is changed.");
 
     const std::string& typeName = config["__type"].getString();
@@ -159,6 +161,10 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     tryLoadPairwiseNoStress<DPDParams::KernelType>(visitor);
 
     // LJParams.
+    tryLoadPairwiseStress  <LJParams::KernelType>(visitor);
+    tryLoadPairwiseNoStress<LJParams::KernelType>(visitor);
+
+    // RepulsiveLJParams.
     variantForeach<VarLJAwarenessParams>([&visitor](auto type)
             {
                 using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
