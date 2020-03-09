@@ -20,8 +20,10 @@ if not args.load_from:
     u.registerParticleVector(pv, ic)
 
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind='DPD', a=10.0, gamma=10.0, kBT=1.0, power=0.5)
+    lj = mir.Interactions.Pairwise('lj', rc=1.0, kind='LJ', epsilon=1.25, sigma=0.75)
 
     u.registerInteraction(dpd)
+    u.registerInteraction(lj)
     u.setInteraction(dpd, pv, pv)
     u.saveSnapshot(args.save_to)
 else:

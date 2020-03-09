@@ -18,6 +18,16 @@
                 "power": 0.5
             },
             "intMap": []
+        },
+        {
+            "__type": "PairwiseInteraction<PairwiseLJ>",
+            "name": "lj",
+            "rc": 1,
+            "pairParams": {
+                "epsilon": 1.25,
+                "sigma": 0.75
+            },
+            "intMap": []
         }
     ],
     "Postprocess": [
@@ -45,7 +55,8 @@
             "bouncerMap": {},
             "integratorMap": {},
             "interactionMap": {
-                "dpd": "<Interaction with name=dpd>"
+                "dpd": "<Interaction with name=dpd>",
+                "lj": "<Interaction with name=lj>"
             },
             "wallMap": {},
             "belongingCheckerMap": {},

@@ -242,13 +242,21 @@ class Pairwise(Interaction):
                 where :math:`p_0`, :math:`\rho_r` and :math:`\gamma = 7` are parameters to be fitted to the desired fluid.
 
 
-        * **RepulsiveLJ**: 
+        * **LJ**:
             Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_
-            The force however is truncated such that it is *always repulsive*.
-        
+
             .. math::
-            
-                \mathbf{F}_{ij} = \max \left[ 0.0, \frac{24 \epsilon}{r} \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{13} - \left( \frac{\sigma}{r_{ij}} \right)^{7} \right) \right]
+
+                \mathbf{F}_{ij} = 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{12} - \left( \frac{\sigma}{r_{ij}} \right)^{6} \right) \frac{\mathbf{r}}{r^2}
+
+            As opposed to ``RepulsiveLJ``, the force is not bounded from either sides.
+
+        * **RepulsiveLJ**:
+            Pairwise interaction according to the classical `Lennard-Jones potential <https://en.wikipedia.org/wiki/Lennard-Jones_potential>`_, truncated such that it is *always repulsive*.
+
+            .. math::
+
+                \mathbf{F}_{ij} = \max \left[ 0.0, 24 \epsilon \left( 2\left( \frac{\sigma}{r_{ij}} \right)^{12} - \left( \frac{\sigma}{r_{ij}} \right)^{6} \right) \frac{\mathbf{r}}{r^2} \right]
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 

@@ -230,6 +230,8 @@ interaction_factory::createPairwiseInteraction(const MirState *state, std::strin
         varParams = factory_helper::readMDPDParams(desc);
     else if (type == "SDPD")
         varParams = factory_helper::readSDPDParams(desc);
+    else if (type == "LJ")
+        varParams = factory_helper::readLJParams(desc);
     else if (type == "RepulsiveLJ")
         varParams = factory_helper::readRepulsiveLJParams(desc);
     else if (type == "Density")

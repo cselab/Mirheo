@@ -12,6 +12,7 @@ namespace mirheo
 
 class PairwiseDPD;
 class PairwiseNoRandomDPD;
+class PairwiseLJ;
 
 struct LJAwarenessNone;
 struct LJAwarenessObject;
@@ -57,6 +58,15 @@ struct NoRandomDPDParams
     real power; ///< exponent of the envelope of the viscous kernel 
 };
 MIRHEO_MEMBER_VARS(NoRandomDPDParams, a, gamma, kBT, power);
+
+/// Lennard-Jones parameters
+struct LJParams
+{
+    using KernelType = PairwiseLJ; ///< the corresponding kernel
+    real epsilon; ///< force coefficient
+    real sigma;   ///< radius with zero energy in LJ potential
+};
+MIRHEO_MEMBER_VARS(LJParams, epsilon, sigma);
 
 /// Parameters for no awareness in LJ interactions
 struct LJAwarenessParamsNone
@@ -171,6 +181,7 @@ MIRHEO_MEMBER_VARS(SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelPar
 
 /// variant of all possible pairwise interactions
 using VarPairwiseParams = mpark::variant<DPDParams,
+                                         LJParams,
                                          RepulsiveLJParams,
                                          MDPDParams,
                                          DensityParams,

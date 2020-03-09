@@ -58,6 +58,7 @@ struct ParamsReader
 template <class Params> void readParams(Params& p, ParametersWrap& desc, ParamsReader reader);
 
 DPDParams         readDPDParams        (ParametersWrap& desc);
+LJParams          readLJParams         (ParametersWrap& desc);
 RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc);
 MDPDParams        readMDPDParams       (ParametersWrap& desc);
 DensityParams     readDensityParams    (ParametersWrap& desc);
