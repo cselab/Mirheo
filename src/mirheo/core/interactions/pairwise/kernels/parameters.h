@@ -86,14 +86,14 @@ using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
                                             LJAwarenessParamsRod>;
 
 /// Repulsive Lennard-Jones parameters
-struct LJParams
+struct RepulsiveLJParams
 {
     real epsilon;  ///< force coefficient
     real sigma;    ///< radius with zero energy in LJ potential
     real maxForce; ///< cap force
     VarLJAwarenessParams varLJAwarenessParams; ///< awareness
 };
-MIRHEO_MEMBER_VARS(LJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
+MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
 
 /// Multi-body Dissipative Particle Dynamics parameters 
 struct MDPDParams
@@ -171,7 +171,7 @@ MIRHEO_MEMBER_VARS(SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelPar
 
 /// variant of all possible pairwise interactions
 using VarPairwiseParams = mpark::variant<DPDParams,
-                                         LJParams,
+                                         RepulsiveLJParams,
                                          MDPDParams,
                                          DensityParams,
                                          SDPDParams>;

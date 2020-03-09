@@ -152,10 +152,10 @@ class PairwiseRepulsiveLJ : public PairwiseKernel, public ParticleFetcher
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
-    using ViewType     = PVview;    ///< Compatible view type
-    using ParticleType = Particle;  ///< Compatible particle type
+    using ViewType     = PVview;              ///< Compatible view type
+    using ParticleType = Particle;            ///< Compatible particle type
     using HandlerType  = PairwiseRepulsiveLJ; ///< Corresponding handler
-    using ParamsType   = LJParams;  ///< Corresponding parameters type
+    using ParamsType   = RepulsiveLJParams;   ///< Corresponding parameters type
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Constructor

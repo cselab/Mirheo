@@ -57,13 +57,13 @@ struct ParamsReader
 
 template <class Params> void readParams(Params& p, ParametersWrap& desc, ParamsReader reader);
 
-DPDParams       readDPDParams     (ParametersWrap& desc);
-LJParams        readLJParams      (ParametersWrap& desc);
-MDPDParams      readMDPDParams    (ParametersWrap& desc);
-DensityParams   readDensityParams (ParametersWrap& desc);
-SDPDParams      readSDPDParams    (ParametersWrap& desc);
+DPDParams         readDPDParams        (ParametersWrap& desc);
+RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc);
+MDPDParams        readMDPDParams       (ParametersWrap& desc);
+DensityParams     readDensityParams    (ParametersWrap& desc);
+SDPDParams        readSDPDParams       (ParametersWrap& desc);
 
-VarStressParams readStressParams  (ParametersWrap& desc);
+VarStressParams   readStressParams     (ParametersWrap& desc);
 
 
 
@@ -74,9 +74,9 @@ void readSpecificParams(Params& p, ParametersWrap& desc)
     readParams(p, desc, {ParamsReader::Mode::DefaultIfNotFound});
 }
 
-void readSpecificParams(LJParams&      p, ParametersWrap& desc);
-void readSpecificParams(DensityParams& p, ParametersWrap& desc);
-void readSpecificParams(SDPDParams&    p, ParametersWrap& desc);
+void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc);
+void readSpecificParams(DensityParams&     p, ParametersWrap& desc);
+void readSpecificParams(SDPDParams&        p, ParametersWrap& desc);
 
 } // factory_helper
 

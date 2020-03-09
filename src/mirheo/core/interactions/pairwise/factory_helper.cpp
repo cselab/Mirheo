@@ -41,7 +41,7 @@ template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, Param
     if (minSegmentsDist != defaultReal) p.minSegmentsDist = static_cast<int>(minSegmentsDist);
 }
 
-template <> void readParams<LJParams>(LJParams& p, ParametersWrap& desc, ParamsReader reader)
+template <> void readParams<RepulsiveLJParams>(RepulsiveLJParams& p, ParametersWrap& desc, ParamsReader reader)
 {
     const auto epsilon  = reader.read<real>(desc, "epsilon");
     const auto sigma    = reader.read<real>(desc, "sigma");
@@ -145,10 +145,10 @@ static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsRe
     return varP;
 }
 
-LJParams readLJParams(ParametersWrap& desc)
+RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
 {
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
-    LJParams p;
+    RepulsiveLJParams p;
     readParams(p, desc, reader);
     p.varLJAwarenessParams = readLJAwarenessParams(desc, reader);
     return p;
@@ -263,7 +263,7 @@ VarStressParams readStressParams(ParametersWrap& desc)
     }
 }
 
-void readSpecificParams(LJParams& p, ParametersWrap& desc)
+void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
     
