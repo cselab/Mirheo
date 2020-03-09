@@ -7,4 +7,5 @@ Utils
    :maxdepth: 1
    :caption: Utils
    
+   utils/file_wrapper
    utils/quaternion
