@@ -28,7 +28,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'Mirheo'
 copyright = 'ETH Zurich'
-author = 'Dmitry Alexeev, Lucas Amoudruz'
+author = 'Dmitry Alexeev, Lucas Amoudruz, Ivica Kicic'
 
 exclude_patterns = []
 pygments_style = 'sphinx'

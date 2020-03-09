@@ -37,8 +37,8 @@ class CopyLibrary(build_ext):
 setup(
     name='Mirheo',
     version=version.mir_version,
-    author='Dmitry Alexeev, Lucas Amoudruz',
-    author_email='alexeedm@ethz.ch, amlucas@ethz.ch',
+    author='Dmitry Alexeev, Lucas Amoudruz, Ivica Kicic',
+    author_email='alexeedm@ethz.ch, amlucas@ethz.ch, kicici@ethz.ch',
     description='Computational Microfluidics',
     long_description='',
     packages = ['mirheo'],
