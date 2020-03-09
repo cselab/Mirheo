@@ -29,5 +29,6 @@ Library API
    api/rigid
    api/simulation
    api/task_scheduler
+   api/types
    api/walls
    api/xdmf

@@ -1,4 +1,5 @@
 #include "variant_type_wrapper.h"
+
 #include <mirheo/core/logger.h>
 
 namespace mirheo

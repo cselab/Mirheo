@@ -5,7 +5,10 @@
 
 namespace mirheo
 {
+/** \brief xmacro that contains the list of type available for data channels.
 
+    Must contain POd structures that are compatible with device code.
+ */
 #define MIRHEO_TYPE_TABLE__(OP, SEP)            \
     OP(int)          SEP                        \
     OP(int64_t)      SEP                        \

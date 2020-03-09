@@ -7,6 +7,8 @@
 namespace mirheo
 {
 
+/// A device-compatible variant that contains pointer to data that are
+/// in the types available for data channels
 using CudaVarPtr = cuda_variant::variant<
 #define MAKE_WRAPPER(a) a*
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
