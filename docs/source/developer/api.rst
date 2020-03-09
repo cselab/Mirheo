@@ -9,6 +9,7 @@ Library API
    api/bouncers
    api/celllist
    api/containers
+   api/datatypes
    api/domain
    api/exchangers
    api/field
