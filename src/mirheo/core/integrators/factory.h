@@ -4,6 +4,7 @@
 #include "forcing_terms/const_dp.h"
 #include "forcing_terms/none.h"
 #include "forcing_terms/periodic_poiseuille.h"
+#include "minimize.h"
 #include "oscillate.h"
 #include "rigid_vv.h"
 #include "sub_step.h"
@@ -19,6 +20,13 @@ namespace mirheo
 
 namespace integrator_factory
 {
+
+inline std::shared_ptr<IntegratorMinimize>
+createMinimize(const MirState *state, const std::string& name, real maxDisplacement)
+{
+    return std::make_shared<IntegratorMinimize> (state, name, maxDisplacement);
+}
+
 inline std::shared_ptr<IntegratorVV<ForcingTermNone>>
 createVV(const MirState *state, const std::string& name)
 {

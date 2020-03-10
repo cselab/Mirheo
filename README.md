@@ -29,6 +29,7 @@ make install
 * add `__main__.py` commands `run` and `compile_opt`
 * add classical (non-repulsive) 12-6 Lennard-Jones interaction
 * add support for specifying Mirheo's unit system (based on `pint`)
+* add energy minimization integrator (gradient descent)
 * **interface changes** 
   * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
 * **internal changes**

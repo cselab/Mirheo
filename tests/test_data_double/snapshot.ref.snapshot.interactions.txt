@@ -6,6 +6,13 @@
             "mass": 1
         }
     ],
+    "Integrator": [
+        {
+            "__type": "IntegratorMinimize",
+            "name": "minimize",
+            "maxDisplacement": 0.0009765625
+        }
+    ],
     "Interaction": [
         {
             "__type": "PairwiseInteraction<PairwiseDPD>",
@@ -53,7 +60,9 @@
                 "<ParticleVector with name=pv>"
             ],
             "bouncerMap": {},
-            "integratorMap": {},
+            "integratorMap": {
+                "minimize": "<Integrator with name=minimize>"
+            },
             "interactionMap": {
                 "dpd": "<Interaction with name=dpd>",
                 "lj": "<Interaction with name=lj>"

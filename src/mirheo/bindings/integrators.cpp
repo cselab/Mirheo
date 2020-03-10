@@ -26,7 +26,24 @@ void exportIntegrators(py::module& m)
                     center: point around which to rotate
                     omega: angular velocity :math:`\mathbf{\Omega}`
             )");
-        
+
+    py::handlers_class<IntegratorMinimize>
+        (m, "Minimize", pyint, R"(
+            Energy minimization integrator. Updates particle positions according to a gradient-descent policy with respect to the energy potential (force).
+            Does not read or modify particle velocities.
+
+            .. math::
+
+                \mathbf{a}^{n} &= \frac{1}{m} \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) \\
+                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \frac{\Delta t^2}{m} \mathbf{a}^n
+        )")
+        .def(py::init(&integrator_factory::createMinimize),
+             "state"_a, "name"_a, "max_displacement"_a, R"(
+                Args:
+                    name: name of the integrator
+                    max_displacement: maximum displacement per time step
+            )");
+
     py::handlers_class<IntegratorOscillate>(m, "Oscillate", pyint, R"(
         Move particles with the periodically changing velocity
         :math:`\mathbf{u}(t) = \cos(2 \pi \, t / T) \mathbf{u}_0`

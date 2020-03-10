@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""This file tests interactions and integrators."""
+
+# Note: Almost all numbers below are chosen to be exactly representable, to
+# minimize the differences between single and double precision snapshot JSONs.
+
 import mirheo as mir
 import argparse
 
@@ -9,11 +14,10 @@ parser.add_argument('--save-to', type=str, required=True)
 parser.add_argument('--load-from', type=str)
 args = parser.parse_args()
 
-domain = (4, 6, 8)
-dt = 0.1
-
 if not args.load_from:
-    u = mir.Mirheo(args.ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    # Keep dt as 0.1, just to see the difference between float and double.
+    u = mir.Mirheo(args.ranks, domain=(4, 6, 8), dt=0.1,
+                   debug_level=3, log_filename='log', no_splash=True)
 
     pv = mir.ParticleVectors.ParticleVector('pv', mass=1)
     ic = mir.InitialConditions.Uniform(number_density=2)
@@ -25,6 +29,10 @@ if not args.load_from:
     u.registerInteraction(dpd)
     u.registerInteraction(lj)
     u.setInteraction(dpd, pv, pv)
+
+    minimize = mir.Integrators.Minimize('minimize', max_displacement=1. / 1024)
+    u.registerIntegrator(minimize)
+
     u.saveSnapshot(args.save_to)
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)

@@ -11,6 +11,8 @@ std::shared_ptr<Integrator>
 loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config)
 {
     const std::string& type = config["__type"];
+    if (type == "IntegratorMinimize")
+        return std::make_shared<IntegratorMinimize>(state, loader, config);
     if (type == "IntegratorVV<ForcingTermNone>")
         return std::make_shared<IntegratorVV<ForcingTermNone>>(state, loader, config);
     if (type == "IntegratorSubStep")

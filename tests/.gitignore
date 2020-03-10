@@ -49,6 +49,7 @@ h5
 /ic/log_00001.log
 /ic/pos.ic.txt
 /ic/vel.ic.txt
+/md/log_0000?.log
 /mdpd/log_00000.log
 /mdpd/log_00001.log
 /mdpd/vcont.txt

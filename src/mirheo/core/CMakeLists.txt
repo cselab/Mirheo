@@ -97,6 +97,7 @@ set(sources_cu
   exchangers/particle_redistributor.cu
   field/from_file.cu
   integrators/const_omega.cu
+  integrators/minimize.cu
   integrators/oscillate.cu
   integrators/rigid_vv.cu
   integrators/translate.cu
