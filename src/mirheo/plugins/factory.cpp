@@ -427,8 +427,10 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
     static_assert(true, "Semicolon missing")
 
     // List all supported plugins.
-    MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
     MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
+    MIR_LOAD_PLUGIN_PAIR(ParticleSenderPlugin, ParticleDumperPlugin);
+    MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
+    MIR_LOAD_SIM_PLUGIN(ForceSaverPlugin);
     MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
     MIR_LOAD_SIM_PLUGIN(WallRepulsionPlugin);
 

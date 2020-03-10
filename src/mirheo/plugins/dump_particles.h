@@ -21,6 +21,11 @@ public:
     ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                          const std::vector<std::string>& channelNames);
 
+    /// Construct a simulation plugin object from its snapshot.
+    ParticleSenderPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
+
+    ~ParticleSenderPlugin();
+
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
 
@@ -28,8 +33,14 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-    
+
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
 protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
     std::string pvName_;
     ParticleVector *pv_;
 
@@ -50,10 +61,21 @@ class ParticleDumperPlugin : public PostprocessPlugin
 public:
     ParticleDumperPlugin(std::string name, std::string path);
 
+    /// Construct a postprocess plugin object from its snapshot.
+    ParticleDumperPlugin(Loader& loader, const ConfigObject& config);
+
+    ~ParticleDumperPlugin();
+
     void deserialize() override;
     void handshake() override;
 
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
 protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
+
     void _recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp);
 
 protected:

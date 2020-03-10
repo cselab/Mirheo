@@ -42,6 +42,11 @@
             "__type": "MeshDumper",
             "name": "rbcs",
             "path": "ply/"
+        },
+        {
+            "__type": "ParticleDumperPlugin",
+            "name": "dump_particles",
+            "path": "h5/pv-"
         }
     ],
     "SimulationPlugin": [
@@ -55,6 +60,20 @@
             "name": "rbcs",
             "dumpEvery": 15,
             "ovName": "ov"
+        },
+        {
+            "__type": "ForceSaverPlugin",
+            "name": "force_saver",
+            "pvName": "ov"
+        },
+        {
+            "__type": "ParticleSenderPlugin",
+            "name": "dump_particles",
+            "pvName": "ov",
+            "dumpEvery": 20,
+            "channelNames": [
+                "forces"
+            ]
         },
         {
             "__type": "MembraneExtraForcePlugin",
@@ -78,7 +97,8 @@
             "checkpointFolder": "restart/",
             "plugins": [
                 "<PostprocessPlugin with name=stats>",
-                "<PostprocessPlugin with name=rbcs>"
+                "<PostprocessPlugin with name=rbcs>",
+                "<PostprocessPlugin with name=dump_particles>"
             ]
         }
     ],
@@ -106,6 +126,8 @@
             "plugins": [
                 "<SimulationPlugin with name=stats>",
                 "<SimulationPlugin with name=rbcs>",
+                "<SimulationPlugin with name=force_saver>",
+                "<SimulationPlugin with name=dump_particles>",
                 "<SimulationPlugin with name=extraForce>",
                 "<SimulationPlugin with name=wallRepulsion>"
             ],

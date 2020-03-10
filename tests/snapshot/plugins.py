@@ -14,6 +14,7 @@ if not args.load_from:
 
     mesh = mir.ParticleVectors.MembraneMesh('mesh_dummy1.off')
     ov = mir.ParticleVectors.MembraneVector('ov', mesh=mesh, mass=1)
+    pv = ov
     ic = mir.InitialConditions.Membrane([])
     u.registerParticleVector(ov, ic)
 
@@ -22,6 +23,8 @@ if not args.load_from:
 
     u.registerPlugins(mir.Plugins.createStats('stats', every=10, filename='stats.txt'))
     u.registerPlugins(mir.Plugins.createDumpMesh('rbcs', ov, dump_every=15, path='ply'))
+    u.registerPlugins(mir.Plugins.createForceSaver('force_saver', pv))
+    u.registerPlugins(mir.Plugins.createDumpParticles('dump_particles', pv, 20, ['forces'], 'h5/pv-'))
 
     # Stores extraForce.dat. We do not check the content of the file, only that it is correctly reloaded.
     forces = [[0.01 * k, 0.02 * k, 0.03 * k] for k in range(6)]

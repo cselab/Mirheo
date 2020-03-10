@@ -22,11 +22,7 @@ class SimulationStats : public SimulationPlugin
 public:
     SimulationStats(const MirState *state, std::string name, int fetchEvery);
 
-    /** \brief Construct a simulation plugin object from its snapshot.
-        \param [in] state The global state of the system.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the plugin.
-     */
+    /// Construct a simulation plugin object from its snapshot.
     SimulationStats(const MirState *state, Loader& loader, const ConfigObject& config);
 
     ~SimulationStats();
@@ -38,18 +34,11 @@ public:
 
     bool needPostproc() override { return true; }
 
-    /** \brief Create a \c ConfigObject describing the plugin state and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly \c SimulationStats.
-      */
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
     void saveSnapshotAndRegister(Saver& saver) override;
 
 protected:
-    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
@@ -71,26 +60,16 @@ class PostprocessStats : public PostprocessPlugin
 public:
     PostprocessStats(std::string name, std::string filename = "");
 
-    /** \brief Construct a postprocess plugin object from its snapshot.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the plugin.
-     */
+    /// Construct a postprocess plugin object from its snapshot.
     PostprocessStats(Loader& loader, const ConfigObject& config);
 
     void deserialize() override;
 
-    /** \brief Create a \c ConfigObject describing the plugin state and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly \c PostprocessStats.
-      */
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
     void saveSnapshotAndRegister(Saver& saver) override;
 
 protected:
-    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
