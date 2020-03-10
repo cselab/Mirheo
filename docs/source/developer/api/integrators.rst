@@ -19,6 +19,10 @@ Derived classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::IntegratorMinimize
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::IntegratorOscillate
    :project: mirheo
    :members:

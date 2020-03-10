@@ -139,6 +139,10 @@ Implemented kernels
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::PairwiseLJ
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::PairwiseMDPDHandler
    :project: mirheo
    :members:
