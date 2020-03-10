@@ -8,6 +8,29 @@ class Integrator:
         """
         pass
 
+class Minimize(Integrator):
+    r"""
+            Energy minimization integrator. Updates particle positions according to a gradient-descent policy with respect to the energy potential (force).
+            Does not read or modify particle velocities.
+
+            .. math::
+
+                \mathbf{a}^{n} &= \frac{1}{m} \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) \\
+                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \frac{\Delta t^2}{m} \mathbf{a}^n
+        
+    """
+    def __init__():
+        r"""__init__(name: str, max_displacement: float) -> None
+
+
+                Args:
+                    name: name of the integrator
+                    max_displacement: maximum displacement per time step
+            
+
+        """
+        pass
+
 class Oscillate(Integrator):
     r"""
         Move particles with the periodically changing velocity

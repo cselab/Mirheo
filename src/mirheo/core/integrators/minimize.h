@@ -24,7 +24,7 @@ public:
 
     void execute(ParticleVector *pv, cudaStream_t stream) override;
 
-    /// \Create a ConfigObject describing the integrator state and register it in the saver.
+    /// \brief Create a ConfigObject describing the integrator state and register it in the saver.
     void saveSnapshotAndRegister(Saver& saver);
 
 protected:
