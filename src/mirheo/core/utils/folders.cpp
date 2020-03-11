@@ -41,10 +41,13 @@ std::string makePath(std::string path)
 
 std::string parentPath(std::string path)
 {
-    return path.substr(0, path.find_last_of("/"));
+    auto lastSepPos = path.find_last_of("/");
+    if (lastSepPos == std::string::npos)
+        return "";
+    return makePath(path.substr(0, lastSepPos));
 }
 
-std::string relativePath(std::string path)
+std::string getBaseName(std::string path)
 {
     auto pos = path.find_last_of("/");
     if (pos == std::string::npos)

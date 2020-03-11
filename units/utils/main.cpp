@@ -30,6 +30,38 @@ TEST (UTILS, splitByDelim)
         ASSERT_EQ(splitted[i], list[i]);
 }
 
+TEST (UTILS, makePath)
+{
+    ASSERT_EQ(mirheo::makePath("path"), "path/");
+    ASSERT_EQ(mirheo::makePath("path/"), "path/");
+    ASSERT_EQ(mirheo::makePath("this/is/more/complex/path"), "this/is/more/complex/path/");
+    ASSERT_EQ(mirheo::makePath("this/is/more/complex/path/"), "this/is/more/complex/path/");
+}
+
+TEST (UTILS, parentPath)
+{
+    ASSERT_EQ(mirheo::parentPath("path/file.h5"), "path/");
+    ASSERT_EQ(mirheo::parentPath("this/is/more/complex/path/file.h5"), "this/is/more/complex/path/");
+    ASSERT_EQ(mirheo::parentPath("file.h5"), "");
+    ASSERT_EQ(mirheo::parentPath("just/a/path/"), "just/a/path/");
+}
+
+TEST (UTILS, getBaseName)
+{
+    ASSERT_EQ(mirheo::getBaseName("path/file.h5"), "file.h5");
+    ASSERT_EQ(mirheo::getBaseName("more/complex/path/file.h5"), "file.h5");
+    ASSERT_EQ(mirheo::getBaseName("file.h5"), "file.h5");
+}
+
+TEST (UTILS, joinPaths)
+{
+    ASSERT_EQ(mirheo::joinPaths("path/", "file.h5"), "path/file.h5");
+    ASSERT_EQ(mirheo::joinPaths("path", "file.h5"), "path/file.h5");
+    ASSERT_EQ(mirheo::joinPaths("", "file.h5"), "file.h5");
+    ASSERT_EQ(mirheo::joinPaths("path/", ""), "path/");
+    ASSERT_EQ(mirheo::joinPaths("path", ""), "path/");
+}
+
 
 int main(int argc, char **argv)
 {

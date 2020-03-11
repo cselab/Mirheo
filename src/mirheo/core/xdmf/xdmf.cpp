@@ -26,7 +26,7 @@ void write(const std::string& filename, const Grid *grid,
 
     mTimer timer;
     timer.start();
-    XMF::write(xmfFilename, relativePath(h5Filename), comm, grid, channels, time);
+    XMF::write(xmfFilename, getBaseName(h5Filename), comm, grid, channels, time);
     HDF5::write(h5Filename, comm, grid, channels);
     info("Writing took %f ms", timer.elapsed());
 }
@@ -60,7 +60,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
     std::tie(h5filename, vertexData.descriptions) = XMF::read(filename, comm, &grid);
     grid.splitReadAccess(comm, chunkSize);
 
-    h5filename = makePath(parentPath(filename)) + h5filename;
+    h5filename = joinPaths(parentPath(filename), h5filename);
 
     const size_t nElements = getLocalNumElements(grid.getGridDims());
     const size_t  nChannels = vertexData.descriptions.size();
