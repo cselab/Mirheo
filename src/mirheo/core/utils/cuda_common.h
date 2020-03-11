@@ -31,11 +31,17 @@ static const cudaStream_t defaultStream = 0;
 
 #endif
 
+/** \brief compute the number of blocks for a given problem size and block size
+    \param [in] n Problem size
+    \param [in] nthreads Block size
+    \return Number of required blocks
+ */
 inline int getNblocks(const int n, const int nthreads)
 {
     return (n+nthreads-1) / nthreads;
 }
 
+/// \return square of the input value
 template<typename T>
 __HD__ inline  T sqr(T val)
 {
@@ -51,6 +57,14 @@ __HD__ inline  T sqr(T val)
 //****************************************************************************
 // float
 //****************************************************************************
+
+/** \brief Perform a reduction on a full warp
+    \param val The value to reduce
+    \param op The operation to operate between the input data (e.g. addition). Must be associative.
+    \return The reduced value. Only available on laneId == 0
+
+    This function Must be called by all threads in the warp.
+ */
 template<typename Operation>
 __device__ inline  float3 warpReduce(float3 val, Operation op)
 {
@@ -64,6 +78,7 @@ __device__ inline  float3 warpReduce(float3 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  float2 warpReduce(float2 val, Operation op)
 {
@@ -76,6 +91,7 @@ __device__ inline  float2 warpReduce(float2 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  float warpReduce(float val, Operation op)
 {
@@ -91,6 +107,7 @@ __device__ inline  float warpReduce(float val, Operation op)
 // double
 //****************************************************************************
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  double3 warpReduce(double3 val, Operation op)
 {
@@ -104,6 +121,7 @@ __device__ inline  double3 warpReduce(double3 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  double2 warpReduce(double2 val, Operation op)
 {
@@ -116,6 +134,7 @@ __device__ inline  double2 warpReduce(double2 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  double warpReduce(double val, Operation op)
 {
@@ -131,6 +150,7 @@ __device__ inline  double warpReduce(double val, Operation op)
 // int
 //****************************************************************************
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  int3 warpReduce(int3 val, Operation op)
 {
@@ -144,6 +164,7 @@ __device__ inline  int3 warpReduce(int3 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  int2 warpReduce(int2 val, Operation op)
 {
@@ -156,6 +177,7 @@ __device__ inline  int2 warpReduce(int2 val, Operation op)
     return val;
 }
 
+/// See warpReduce()
 template<typename Operation>
 __device__ inline  int warpReduce(int val, Operation op)
 {
@@ -171,6 +193,13 @@ __device__ inline  int warpReduce(int val, Operation op)
 // per warp prefix sum
 //=======================================================================================
 
+
+/** \brief Perform an inclusive prefix sum on a full warp
+    \param val The value to reduce (one per lane index)
+    \return The prefix sum at the given lane index
+
+    This function Must be called by all threads in the warp.
+ */
 template <typename T>
 __device__ inline T warpInclusiveScan(T val) {
     int tid;
@@ -180,6 +209,12 @@ __device__ inline T warpInclusiveScan(T val) {
     return val;
 }
 
+/** \brief Perform an exclusive prefix sum on a full warp
+    \param val The value to reduce (one per lane index)
+    \return The prefix sum at the given lane index
+
+    This function Must be called by all threads in the warp.
+ */
 template <typename T>
 __device__ inline T warpExclusiveScan(T val) {
     return warpInclusiveScan(val) - val;
@@ -191,7 +226,7 @@ __device__ inline T warpExclusiveScan(T val) {
 // Atomic functions
 //=======================================================================================
 
-// For `int64_t` which apparently maps to `long`.
+/// Overload atomicAdd for `int64_t` which apparently maps to `long`.
 __device__ inline long atomicAdd(long *address, long val)
 {
     // Replacing with a supported function:
@@ -211,6 +246,7 @@ __device__ inline long atomicAdd(long *address, long val)
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
+/// Overload atomicAdd for `double` in old cuda versions
 __device__ inline double atomicAdd(double *address, double val)
 {
     unsigned long long int *address_as_ull = (unsigned long long int*)address;
@@ -285,19 +321,22 @@ namespace mirheo
 // Read/write through cache
 //=======================================================================================
 
-__device__ inline float4 readNoCache(const float4* addr)
+/// read a \c float4 value directly from global memory to reduce cache pressure on concurrent kernels
+__device__ inline float4 readNoCache(const float4 *addr)
 {
     float4 res;
     asm("ld.global.cv.v4.f32 {%0, %1, %2, %3}, [%4];" : "=f"(res.x), "=f"(res.y), "=f"(res.z), "=f"(res.w) : "l"(addr));
     return res;
 }
 
-__device__ inline void writeNoCache(float4* addr, const float4 val)
+/// write a \c float4 value directly to global memory to reduce cache pressure on concurrent kernels
+__device__ inline void writeNoCache(float4 *addr, const float4 val)
 {
     asm("st.global.wt.v4.f32 [%0], {%1, %2, %3, %4};" :: "l"(addr), "f"(val.x), "f"(val.y), "f"(val.z), "f"(val.w));
 }
 
-__device__ inline double4 readNoCache(const double4* addr)
+/// write a \c double4 value directly from global memory to reduce cache pressure on concurrent kernels
+__device__ inline double4 readNoCache(const double4 *addr)
 {
     auto addr2 = reinterpret_cast<const double2*>(addr);
     double4 res;
@@ -306,7 +345,8 @@ __device__ inline double4 readNoCache(const double4* addr)
     return res;
 }
 
-__device__ inline void writeNoCache(double4* addr, const double4 val)
+/// write a \c double4 value directly to global memory to reduce cache pressure on concurrent kernels
+__device__ inline void writeNoCache(double4 *addr, const double4 val)
 {
     auto addr2 = reinterpret_cast<double2*>(addr);
     asm("st.global.wt.v2.f64 [%0], {%1, %2};" :: "l"(addr2+0), "d"(val.x), "d"(val.y));
@@ -320,9 +360,25 @@ __device__ inline void writeNoCache(double4* addr, const double4 val)
 // https://stackoverflow.com/questions/28881491/how-can-i-find-out-which-thread-is-getting-executed-on-which-core-of-the-gpu
 //=======================================================================================
 
+/** \brief compute the lane index (index within a warp) of the current thread
+    \return lane index
+
+    \rst
+    .. warning::
+        This is only valid if the block size is in one dimension. See __laneId() in more dimensions.
+    \endrst
+ */
 __device__ inline auto laneId() {return threadIdx.x % warpSize;}
 
-// warning: warp id within one smx
+/** \brief compute the warp index within the current SMX
+    \return warp index
+
+    \rst
+    .. warning::
+        This value will depend on the architecture. 
+        This will not be give unique warp index per warp within one kernel.
+    \endrst
+ */
 __device__ inline uint32_t __warpid()
 {
     uint32_t warpid;
@@ -331,6 +387,12 @@ __device__ inline uint32_t __warpid()
 }
 
 // warning: slower than threadIdx % warpSize
+/** \brief compute the lane index (index within a warp) of the current thread.
+    \return lane index
+
+    This will give the correct lane id even in the multi dimensional block case, unlike laneId().
+    However, it is slower than the latter in the linear (1D) case.
+ */
 __device__ inline uint32_t __laneid()
 {
     uint32_t laneid;
@@ -343,21 +405,25 @@ __device__ inline uint32_t __laneid()
 // https://devblogs.nvidia.com/parallelforall/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
 //=======================================================================================
 
+/// helper function; return the lane Id of the current thread
 template<int DIMS>
 __device__ inline uint getLaneId();
 
+/// helper function; return the lane Id of the current thread when block size is 1D
 template<>
 __device__ inline uint getLaneId<1>()
 {
     return threadIdx.x & (warpSize-1);
 }
 
+/// helper function; return the lane Id of the current thread when block size is 2D
 template<>
 __device__ inline uint getLaneId<2>()
 {
     return ((threadIdx.y * blockDim.x) + threadIdx.x) & (warpSize-1);
 }
 
+/// helper function; return the lane Id of the current thread when block size is 3D
 template<>
 __device__ inline uint getLaneId<3>()
 {
@@ -366,18 +432,25 @@ __device__ inline uint getLaneId<3>()
 
 #if __CUDA_ARCH__ < 700
 
+/** \brief warp aggregated atomics, used to reduce the number of atomic operations on a warp.
+    \param ptr location of the value to increment atomically. Must be the same for all threads that call this function within a warp.
+    \return the incremented value of *ptr that woul be returned by \c atomicAdd(ptr, 1).
+
+    Not all threads within the warp need to call this function.
+    This is equivalent to call \c atomicAdd(ptr, 1) by all the callers of this function.
+ */
 template<int DIMS=1>
-__device__ inline int atomicAggInc(int *ctr)
+__device__ inline int atomicAggInc(int *ptr)
 {
     int lane_id = getLaneId<DIMS>();
-
+    
     int mask = warpBallot(1);
     // select the leader
     int leader = __ffs(mask) - 1;
     // leader does the update
     int res;
     if(lane_id == leader)
-    res = atomicAdd(ctr, __popc(mask));
+        res = atomicAdd(ptr, __popc(mask));
     // broadcast result
     res = warpShfl(res, leader);
     // each thread computes its own value
@@ -409,19 +482,27 @@ __device__ inline int atomicAggInc(int *ptr)
 
 #else
 
-inline float4 readNoCache(const float4* addr)
+/// cpu compatible overload; just to make things compile
+inline float4 readNoCache(const float4 *addr)
 {
     return *addr;
 }
 
-inline double4 readNoCache(const double4* addr)
+/// cpu compatible overload; just to make things compile
+inline double4 readNoCache(const double4 *addr)
 {
     return *addr;
 }
 
 #endif
 
-
+/** \brief Compute |x|**k
+    \param x The value to take the power to
+    \param k The exponent
+    \return |x|**k
+    
+    This function may lead faster performance for k = 1, 0.5, 0.25 than pow.
+ */
 __HD__ inline float fastPower(const float x, const float k)
 {
     constexpr real eps = 1e-6_r;

@@ -36,7 +36,7 @@ extern const std::string oldPositions; ///< positions at previous time step
 extern const std::string motions;     ///< rigid object states
 extern const std::string oldMotions;  ///< rigid object states at previous time step
 extern const std::string comExtents;  ///< center of mass and bounding box
-extern const std::string areaVolumes; /// area and volume of membranes
+extern const std::string areaVolumes; ///< area and volume of membranes
 
 extern const std::string membraneTypeId; ///< Integers to differentiate between groups of membranes
     
@@ -109,11 +109,14 @@ struct CheckpointInfo
     CheckpointIdAdvanceMode mode; ///< The mehod to increment the checkpoint index
 };
 
+/// support for CheckpointInfo snapshot
 template <>
 struct TypeLoadSave<CheckpointInfo>
 {
+     ///< save to snapshot
     static ConfigValue save(Saver&, const CheckpointInfo&);
     static CheckpointInfo parse(const ConfigValue&) = delete; // Context-free not supported
+     ///< load from snapshot
     static CheckpointInfo load(Loader&, const ConfigValue&);
 };
 
