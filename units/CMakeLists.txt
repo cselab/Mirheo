@@ -48,6 +48,7 @@ add_test_executable(serializer 1)
 add_test_executable(snapshot 1)
 add_test_executable(str_types 1)
 add_test_executable(triangle_invariants 1)
+add_test_executable(utils 1)
 add_test_executable(variant 1)
 add_test_executable(warpScan 1)
 
