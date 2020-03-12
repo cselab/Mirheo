@@ -49,7 +49,10 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/utils/macros.h \
 	../src/mirheo/core/utils/mpi_types.h \
 	../src/mirheo/core/utils/nvtx.h \
-	../src/mirheo/core/utils/pytypes.h
+	../src/mirheo/core/utils/pytypes.h \
+	../src/mirheo/core/utils/stacktrace_explicit.h \
+	../src/mirheo/core/utils/strprintf.h \
+	../src/mirheo/core/utils/timer.h
 	
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
