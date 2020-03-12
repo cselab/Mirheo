@@ -10,8 +10,6 @@
 namespace mirheo
 {
 
-// Tuple initializations
-
 namespace py_types
 {
 

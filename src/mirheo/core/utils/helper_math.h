@@ -35,8 +35,8 @@
 namespace mirheo
 {
 
-using uint =  unsigned int;
-using ushort =  unsigned short;
+using uint =  unsigned int; ///< shorthand for unsigned int
+using ushort =  unsigned short; ///< shorthand for unsigned short int
 
 namespace math
 {

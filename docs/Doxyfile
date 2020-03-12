@@ -43,7 +43,13 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/utils/common.h \
 	../src/mirheo/core/utils/compile_options.h \
 	../src/mirheo/core/utils/cuda_common.h \
-	../src/mirheo/core/utils/folders.h
+	../src/mirheo/core/utils/folders.h \
+	../src/mirheo/core/utils/helper_math.h \
+	../src/mirheo/core/utils/kernel_launch.h \
+	../src/mirheo/core/utils/macros.h \
+	../src/mirheo/core/utils/mpi_types.h \
+	../src/mirheo/core/utils/nvtx.h \
+	../src/mirheo/core/utils/pytypes.h
 	
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
@@ -64,7 +70,8 @@ PREDEFINED  += DOXYGEN_SHOULD_SKIP_THIS \
              __CUDACC__=1               \
              MIRHEO_MEMBER_VARS(...)=   \
              MIRHEO_TYPE_NAME(T,N)=     \
-             MIRHEO_TYPE_NAME_AUTO(T)=
+             MIRHEO_TYPE_NAME_AUTO(T)= \
+	     USE_NVTX
 
 ALIASES += "rst=\verbatim embed:rst:leading-asterisk"
 ALIASES += "endrst=\endverbatim"
