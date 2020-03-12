@@ -13,12 +13,12 @@ void registerSignals()
     backward::SignalHandling sh;
 }
 
-void getStacktrace(std::ostream& stream)
+void getStacktrace(std::ostream& stream, size_t traceCntMax)
 {
     using namespace backward;
 
     StackTrace st;
-    st.load_here(100);
+    st.load_here(traceCntMax);
     Printer p;
     p.object = true;
     p.color_mode = ColorMode::automatic;
