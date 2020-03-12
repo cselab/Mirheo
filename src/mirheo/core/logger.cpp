@@ -36,7 +36,7 @@ void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 
     setDebugLvl(debugLvl);
 
-    register_signals();
+    stacktrace::registerSignals();
 }
 
 void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
@@ -160,7 +160,7 @@ void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) con
 void Logger::_printStacktrace() const
 {
     std::ostringstream strace;
-    pretty_stacktrace(strace);
+    stacktrace::getStacktrace(strace);
     fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout_.get());
 }
 

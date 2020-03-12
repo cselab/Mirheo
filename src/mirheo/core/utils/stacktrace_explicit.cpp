@@ -3,10 +3,17 @@
 #define BACKWARD_HAS_BFD 1
 #include <extern/backward-cpp/backward.hpp>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace stacktrace {
 
-void pretty_stacktrace(std::ostream& stream)
+void registerSignals()
+{
+    // This will load most default signals that trigger stack trace
+    // (destroying the object will not unload anything)
+    backward::SignalHandling sh;
+}
+
+void getStacktrace(std::ostream& stream)
 {
     using namespace backward;
 
@@ -19,9 +26,5 @@ void pretty_stacktrace(std::ostream& stream)
     p.print(st, stream);
 }
 
-void register_signals()
-{
-    backward::SignalHandling sh;
-}
-
+} // namespace stacktrace
 } // namespace mirheo

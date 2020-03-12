@@ -2,10 +2,11 @@
 
 #include <iosfwd>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace stacktrace {
 
-void pretty_stacktrace(std::ostream& stream);
-void register_signals();
+void registerSignals();
+void getStacktrace(std::ostream& stream);
 
+} // namespace stacktrace
 } // namespace mirheo
