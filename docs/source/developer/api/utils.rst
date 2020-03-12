@@ -8,4 +8,5 @@ Utils
    :caption: Utils
    
    utils/file_wrapper
+   utils/folders
    utils/quaternion
