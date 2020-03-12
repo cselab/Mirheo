@@ -52,7 +52,11 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/utils/pytypes.h \
 	../src/mirheo/core/utils/stacktrace_explicit.h \
 	../src/mirheo/core/utils/strprintf.h \
-	../src/mirheo/core/utils/timer.h
+	../src/mirheo/core/utils/timer.h \
+	../src/mirheo/core/utils/type_add.h \
+	../src/mirheo/core/utils/type_shift.h \
+	../src/mirheo/core/utils/type_traits.h \
+	../src/mirheo/core/utils/variant_foreach.h
 	
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu

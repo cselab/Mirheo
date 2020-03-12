@@ -5,6 +5,9 @@
 namespace mirheo
 {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+namespace details
+{
 /// Identity meta type. Equivalent to C++20 std::type_identity<T>.
 template <typename T>
 struct type_identity {
@@ -35,17 +38,22 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
                 Visitor, OtherArgs..., Args>(vis), 0)...};
     }
 };
+} // namespace details
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
-
-/** Execute visitor's `eval` template function for each combination of variant types.
+/** \brief Execute visitor's `eval` template function for each combination of variant types.
 
     Visitor is invoked with an instance of an empty wrapper struct, one for each type:
+    \code{.cpp}
         template <typename T>
         struct type_identity {
             using type = T;
         };
+    \endcode
 
     Example:
+
+    \code{.cpp}
         struct A1 { static constexpr int value = 1; };
         struct A2 { static constexpr int value = 2; };
         struct B1 { static constexpr int value = 10; };
@@ -73,17 +81,14 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
                            decltype(c)::type::value);
                 });
         }
-
-    Returns:
-        Forwards back the Visitor object.
-
-    Note:
-        If necessary, this can be generalized to arbitrary variadic templates.
+    \endcode
+    \return Forwards back the Visitor object.
+    \note If necessary, this can be generalized to arbitrary variadic templates.
  */
 template <typename... Variants, typename Visitor>
 Visitor&& variantForeach(Visitor &&vis)
 {
-    VariantForeachHelper<Variants...>::template eval<Visitor>(vis);
+    details::VariantForeachHelper<Variants...>::template eval<Visitor>(vis);
     return static_cast<Visitor&&>(vis); // Forward.
 }
 
