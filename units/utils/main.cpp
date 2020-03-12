@@ -8,9 +8,9 @@
 
 using namespace mirheo;
 
-TEST (UTILS, getStrZeroPadded)
+TEST (UTILS, createStrZeroPadded)
 {
-    ASSERT_EQ(mirheo::getStrZeroPadded(42, 5), "00042");
+    ASSERT_EQ(mirheo::createStrZeroPadded(42, 5), "00042");
 }
 
 TEST (UTILS, splitByDelim)
@@ -38,12 +38,12 @@ TEST (UTILS, makePath)
     ASSERT_EQ(mirheo::makePath("this/is/more/complex/path/"), "this/is/more/complex/path/");
 }
 
-TEST (UTILS, parentPath)
+TEST (UTILS, getParentPath)
 {
-    ASSERT_EQ(mirheo::parentPath("path/file.h5"), "path/");
-    ASSERT_EQ(mirheo::parentPath("this/is/more/complex/path/file.h5"), "this/is/more/complex/path/");
-    ASSERT_EQ(mirheo::parentPath("file.h5"), "");
-    ASSERT_EQ(mirheo::parentPath("just/a/path/"), "just/a/path/");
+    ASSERT_EQ(mirheo::getParentPath("path/file.h5"), "path/");
+    ASSERT_EQ(mirheo::getParentPath("this/is/more/complex/path/file.h5"), "this/is/more/complex/path/");
+    ASSERT_EQ(mirheo::getParentPath("file.h5"), "");
+    ASSERT_EQ(mirheo::getParentPath("just/a/path/"), "just/a/path/");
 }
 
 TEST (UTILS, getBaseName)

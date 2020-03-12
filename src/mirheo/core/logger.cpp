@@ -20,7 +20,7 @@ void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
     MPI_Comm_rank(comm, &rank_);
     constexpr int zeroPadding = 5;
-    const std::string rankStr = getStrZeroPadded(rank_, zeroPadding);
+    const std::string rankStr = createStrZeroPadded(rank_, zeroPadding);
 
     const auto pos   = fname.find_last_of('.');
     const auto start = fname.substr(0, pos);

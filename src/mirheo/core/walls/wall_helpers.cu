@@ -190,7 +190,7 @@ void wall_helpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH,
 
     sdfs_merged.downloadFromDevice(defaultStream);
 
-    auto path = parentPath(filename);
+    auto path = getParentPath(filename);
     if (path != "")
         createFoldersCollective(cartComm, path);
     

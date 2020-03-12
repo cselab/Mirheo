@@ -94,7 +94,7 @@ void ParticleWithMeshDumperPlugin::deserialize()
 
     _prepareConnectivity(totNVertices);
 
-    const std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
+    const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
     
     const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);

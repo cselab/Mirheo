@@ -66,7 +66,7 @@ void UniformCartesianDumper::handshake()
     }
     
     // Create the required folder
-    createFoldersCollective(comm_, parentPath(path_));
+    createFoldersCollective(comm_, getParentPath(path_));
 
     debug2("Plugin %s was set up to dump channels %s. Resolution is %dx%dx%d, path is %s", getCName(),
             allNames.c_str(), resolution.x, resolution.y, resolution.z, path_.c_str());
@@ -99,7 +99,7 @@ void UniformCartesianDumper::deserialize()
         channels_[i+1].data = containers_[i].data();
     }
 
-    const std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
+    const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
     XDMF::write(fname, grid_.get(), channels_, t, cartComm_);
 }
 

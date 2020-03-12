@@ -191,7 +191,7 @@ void MeshDumper::deserialize()
     MirState::StepType timeStamp;
     SimpleSerializer::deserialize(data_, timeStamp, ovName, nvertices, ntriangles, connectivity_, vertices_);
 
-    std::string currentFname = path_ + ovName + "_" + getStrZeroPadded(timeStamp) + ".ply";
+    std::string currentFname = path_ + ovName + "_" + createStrZeroPadded(timeStamp) + ".ply";
 
     if (activated_)
     {

@@ -66,7 +66,7 @@ std::string MirObject::createCheckpointName(const std::string& path, const std::
 std::string MirObject::createCheckpointNameWithId(const std::string& path, const std::string& identifier, const std::string& extension, int checkpointId) const
 {
     auto base = createBaseName(path, getName(), identifier);
-    base += "-" + getStrZeroPadded(checkpointId);
+    base += "-" + createStrZeroPadded(checkpointId);
     appendIfNonEmpty(base, extension);
     return base;
 }

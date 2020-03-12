@@ -60,7 +60,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
     std::tie(h5filename, vertexData.descriptions) = XMF::read(filename, comm, &grid);
     grid.splitReadAccess(comm, chunkSize);
 
-    h5filename = joinPaths(parentPath(filename), h5filename);
+    h5filename = joinPaths(getParentPath(filename), h5filename);
 
     const size_t nElements = getLocalNumElements(grid.getGridDims());
     const size_t  nChannels = vertexData.descriptions.size();

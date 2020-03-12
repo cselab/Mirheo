@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-std::string getStrZeroPadded(long long i, int zeroPadding)
+std::string createStrZeroPadded(long long i, int zeroPadding)
 {
     auto s = std::to_string(i);
     if (zeroPadding < static_cast<int>(s.size()))
@@ -39,7 +39,7 @@ std::string makePath(std::string path)
     return path;
 }
 
-std::string parentPath(std::string path)
+std::string getParentPath(std::string path)
 {
     auto lastSepPos = path.find_last_of("/");
     if (lastSepPos == std::string::npos)

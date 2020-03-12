@@ -308,7 +308,7 @@ void ParticleDumperPlugin::handshake()
     }
     
     // Create the required folder
-    createFoldersCollective(comm_, parentPath(path_));
+    createFoldersCollective(comm_, getParentPath(path_));
 
     debug2("Plugin '%s' was set up to dump channels %s. Path is %s",
            getCName(), allNames.c_str(), path_.c_str());
@@ -353,7 +353,7 @@ void ParticleDumperPlugin::deserialize()
     MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
     
-    std::string fname = path_ + getStrZeroPadded(timeStamp, zeroPadding_);
+    std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
     
     XDMF::VertexGrid grid(positions_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);

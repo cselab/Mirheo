@@ -74,7 +74,7 @@ void XYZDumper::deserialize()
     
     SimpleSerializer::deserialize(data_, timeStamp, pvName, pos_);
 
-    std::string currentFname = path_ + pvName + "_" + getStrZeroPadded(timeStamp) + ".xyz";
+    std::string currentFname = path_ + pvName + "_" + createStrZeroPadded(timeStamp) + ".xyz";
 
     if (activated_)
         writeXYZ(comm_, currentFname, pos_.data(), static_cast<int>(pos_.size()));

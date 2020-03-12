@@ -13,16 +13,16 @@ namespace mirheo
     \return the string representation of \p i with padded zeros 
 
     If \p zeroPadding is too small, this method will die.
-    Example: \c getStrZeroPadded(42, 5) gives "00042"
+    Example: \c createStrZeroPadded(42, 5) gives "00042"
  */
-std::string getStrZeroPadded(long long i, int zeroPadding = 5);
+std::string createStrZeroPadded(long long i, int zeroPadding = 5);
 
 /** \brief Split a string according to a delimiter character
     \param str The input sequence of characters
     \param delim The delimiter
     \return The list of substrings (without the delimiter)
 
-    e.g. splitByDelim("string_to_split", '_') -> {"string", "to", "split"}
+    e.g. \c splitByDelim("string_to_split", '_') -> {"string", "to", "split"}
  */
 std::vector<std::string> splitByDelim(std::string str, char delim = ',');
 
@@ -39,7 +39,7 @@ std::string makePath(std::string path);
     If the input is a path (it ends with a '/'), the output is the same as the input.
     If the input is just a filename with no '/', this function returns an empty string.
  */
-std::string parentPath(std::string path);
+std::string getParentPath(std::string path);
 
 /** \brief remove the path from the given filename.
     \param path The filename with full relative o absolute path
@@ -55,6 +55,14 @@ std::string getBaseName(std::string path);
 */
 std::string joinPaths(const std::string &A, const std::string &B);
 
+/** \brief Create a folder. 
+    \param comm The communicator used to decide which rank creates the folder
+    \param path the folder to create
+    \return \c true if the operation was successful, \c false otherwise
+
+    The operation is collective. This means that all ranks in the \p comm must call it.
+    The returned value is accessible by all ranks.
+ */
 bool createFoldersCollective(const MPI_Comm& comm, std::string path);
 
 } // namespace mirheo
