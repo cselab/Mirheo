@@ -8,12 +8,14 @@
 namespace mirheo
 {
 
+/// overload to serialize a real3
 inline std::ostream& operator<<(std::ostream& s, const real3& v)
 {
     s << v.x << " " << v.y << " " << v.z;
     return s;
 }
 
+/// overload to deserialize a real3
 inline std::ifstream& operator>>(std::ifstream& s, real3& v)
 {
     s >> v.x >> v.y >> v.z;

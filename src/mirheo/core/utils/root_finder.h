@@ -7,26 +7,33 @@
 namespace mirheo
 {
 
+/// utilities to find the roots of 1D functions
 namespace root_finder
 {
+/// basic structure that stores the information of a root
 struct RootInfo
 {
-    real x;
-    real val;
+    real x;   ///< argument of the function
+    real val; ///< value of the function at x
 };
 
+/// represent an interval
 struct Bounds
 {
-    real lo, up;
+    real lo; ///< lower bound
+    real up; ///< upper bound
 };
 
+/// special value to represent an invalid root.
 constexpr RootInfo invalidRoot {-666._r, -666._r};
 
+/// comparison
 __D__ inline bool operator==(RootInfo lhs, RootInfo rhs)
 {
     return lhs.x == rhs.x && lhs.val == rhs.val;
 }
 
+/// divide a by b if |b| < eps, a/eps otherwise
 __D__ static inline real safeDivide(real a, real b)
 {
     constexpr real eps {1e-6_r};
@@ -37,17 +44,16 @@ __D__ static inline real safeDivide(real a, real b)
     return a / b;
 }
 
-/**
- * Find alpha such that F( alpha ) = 0, 0 <= alpha <= 1
+/** \brief Find a root of a given function using bisection method
+    \tparam Equation The equation type
+    \param F the equation to solve 
+    \param limits the interval on which to solve the equation
+    \param tolerance Stop the iterations when F(x) is less that this tolerance 
+    \return RootInfo object. return invalidRoot if it did not converge. 
  */
 template <typename Equation>
 __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, real tolerance = 1e-6_r)
 {
-    // F is one dimensional equation
-    // It returns value signed + or - depending on whether
-    // coordinate is inside at the current time, or outside
-    // Sign mapping to inside/outside is irrelevant
-
     constexpr int maxNIters = 20;
 
     real a {limits.lo};
@@ -85,6 +91,7 @@ __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, real
     return {mid, vmid};
 }
 
+/// Same linearSearchVerbose(). Returns only the root.
 template <typename Equation>
 __D__ inline real linearSearch(Equation F, const Bounds& limits, real tolerance = 1e-6_r)
 {
@@ -92,8 +99,17 @@ __D__ inline real linearSearch(Equation F, const Bounds& limits, real tolerance 
     return ri.x;
 }
 
-template <typename F, typename F_prime>
-__D__ inline RootInfo newton(F f, F_prime f_prime, real x0, real tolerance = 1e-6_r)
+/** \brief Find a root of a given function using Newton method
+    \tparam F The function type
+    \tparam FPrime The function derivative type
+    \param f the function to find the root
+    \param fPrime the derivative of \p f
+    \param x0 the initial guess
+    \param tolerance Stop the iterations when F(x) is less that this tolerance 
+    \return The obtained RootInfo object.
+ */
+template <typename F, typename FPrime>
+__D__ inline RootInfo newton(F f, FPrime fPrime, real x0, real tolerance = 1e-6_r)
 {
     constexpr int maxNIters = 10;
 
@@ -104,7 +120,7 @@ __D__ inline RootInfo newton(F f, F_prime f_prime, real x0, real tolerance = 1e-
         val = f(x);
         if (math::abs(val) < tolerance)
             return {x, val};
-        x = x - safeDivide(val, f_prime(x));
+        x = x - safeDivide(val, fPrime(x));
     }
 
     return {x, val};

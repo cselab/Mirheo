@@ -10,6 +10,8 @@
 
 #include <type_traits>
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 namespace variant
 {
 
@@ -50,3 +52,5 @@ namespace mirheo {
 namespace cuda_variant = variant;
 
 } // namespace mirheo
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
