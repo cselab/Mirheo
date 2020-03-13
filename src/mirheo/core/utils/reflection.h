@@ -6,11 +6,12 @@
 namespace mirheo
 {
 
+/// Compile-time type name trait.
 template <typename T>
 struct TypeName
 {
     static_assert(always_false<T>::value, "TypeName not available.");
-    static constexpr const char *name = "UnknownTypeName";
+    static constexpr const char *name = "UnknownTypeName"; ///< Type name.
 };
 
 /// Set given type's diagnostics/snapshotting name.
@@ -30,19 +31,23 @@ struct TypeName
     C-style variadic argument is used as a compile-time-friendly solution.
 
     Example:
-        std::string name = _constructTypeName("Foo", 3, "A", "Boo", "Cookie");
-        --> "Foo<A, Boo, Cookie>"
+        \code{.cpp}
+        std::string name = constructTypeName("Foo", 3, "A", "Boo", "Cookie");
+        // "Foo<A, Boo, Cookie>"
+        \endcode
  */
 std::string constructTypeName(const char *base, int N, ...);
 
 /** \brief Construct a template instantiation name.
 
     Example:
+        \code{.cpp}
         MIRHEO_TYPE_NAME(A, "A");
         MIRHEO_TYPE_NAME(B, "Boo");
         MIRHEO_TYPE_NAME(C, "Cookie");
         std::string name = constructTypeName<A, B, C>("Foo");
-        --> "Foo<A, Boo, Cookie>"
+        // "Foo<A, Boo, Cookie>"
+        \endcode
  */
 template <typename... Args>
 inline std::string constructTypeName(const char *templateName)
@@ -58,6 +63,7 @@ inline std::string constructTypeName(const char *templateName)
 
     Example implementation:
 
+        \code{.cpp}
         template <>
         struct MemberVars<LogInfo>
         {
@@ -70,13 +76,18 @@ inline std::string constructTypeName(const char *templateName)
                     h("noSplash",     &me->noSplash));
             }
         };
+        \endcode
 
     The `Handler` is a class which implements two functions:
+        \code{.cpp}
          template <typename MemberVar>
          <non-void type> operator()(const char *name, MemberVar *);
+        \endcode
     and
+        \code{.cpp}
          template <typename ...Args>
          <any type> process()(Args &&...);
+        \endcode
     where `Args` are always equal to the non-void type from operator().
 
     Note: The order of evaluation of the function operator() is unspecified!
@@ -85,19 +96,21 @@ inline std::string constructTypeName(const char *templateName)
 template <typename T>
 struct MemberVars
 {
-    static constexpr bool notImplemented_ = true;
+    static constexpr bool notImplemented_ = true; ///< Helper trait.
 };
 
 /// `MemberVarsAvailable<T>` is true if the struct `MemberVars<T>` has been specialized.
 template <typename T, typename Enable = void>
 struct MemberVarsAvailable
 {
-    static constexpr bool value = true;
+    static constexpr bool value = true; ///< True if the member variables trait is available.
 };
 
+/// Implementation details of `MemberVarsAvailable<T>`.
 template <typename T>
 struct MemberVarsAvailable<T, std::enable_if_t<MemberVars<T>::notImplemented_>>
 {
+    /// Member vars are not available for types that didn't specialize MemberVars.
     static constexpr bool value = false;
 };
 
