@@ -26,7 +26,7 @@ def create_capsule(density, R, L, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q, coords)
     belonging_checker = mir.BelongingCheckers.Capsule("checker")
     
-    pv_cap = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
+    pv_cap = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, niter)
     
     if pv_cap:
         frozen_coords = pv_cap.getCoordinates()

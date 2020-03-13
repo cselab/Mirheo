@@ -419,7 +419,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
                                                                std::vector<std::shared_ptr<Wall>> walls,
                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                std::shared_ptr<Integrator> integrator,
-                                                               real numDensity, int nsteps)
+                                                               real numDensity, real mass, int nsteps)
 {
     ensureNotInitialized();
     
@@ -452,7 +452,6 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     
     Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
 
-    const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(numDensity);
     
@@ -498,7 +497,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
                                                                 std::shared_ptr<InitialConditions> icShape,
                                                                 std::vector<std::shared_ptr<Interaction>> interactions,
                                                                 std::shared_ptr<Integrator>   integrator,
-                                                                real numDensity, int nsteps)
+                                                                 real numDensity, real mass, int nsteps)
 {
     ensureNotInitialized();
     
@@ -511,8 +510,6 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     if (shape->local()->getNumObjects() > 1)
         die("expected no more than one object vector; given %d", shape->local()->getNumObjects());
     
-
-    const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->getName(), mass);
     auto ic = std::make_shared<UniformIC>(numDensity);
 

@@ -39,7 +39,7 @@ def create_from_mesh(density, vertices, triangles, inertia, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belonging_checker = mir.BelongingCheckers.Mesh("meshChecker")
     
-    pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, niter)
+    pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, 1.0, niter)
 
     if pvMesh:
         frozen_coords = pvMesh.getCoordinates()

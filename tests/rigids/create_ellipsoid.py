@@ -27,7 +27,7 @@ def create_ellipsoid(density, axes, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belonging_checker = mir.BelongingCheckers.Ellipsoid("ellipsoidChecker")
     
-    pv_ell = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
+    pv_ell = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, niter)
     
     if pv_ell:
         frozen_coords = pv_ell.getCoordinates()

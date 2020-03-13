@@ -215,18 +215,18 @@ public:
         \param interactions List of interactions (not necessarily registered) that will be used to equilibrate the particles
         \param integrator \c Integrator object used to equilibrate the particles
         \param numDensity The number density used to initialize the particles
+        \param mass The mass of one particle
         \param nsteps Number of equilibration steps
         \return The frozen particles
 
         This will run a simulation of "bulk" particles and select the particles that are inside the effective 
         cut-off radius of the given list of interactions.
-        \note For now, the output ParticleVector has mass 1.0
      */
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
                                                             std::vector<std::shared_ptr<Wall>> walls,
                                                             std::vector<std::shared_ptr<Interaction>> interactions,
                                                             std::shared_ptr<Integrator> integrator,
-                                                            real numDensity, int nsteps);
+                                                            real numDensity, real mass, int nsteps);
 
     /** \brief Create frozen particles inside the given objects.
         \param checker The ObjectBelongingChecker to split inside particles
@@ -235,6 +235,7 @@ public:
         \param interactions List of interactions (not necessarily registered) that will be used to equilibrate the particles
         \param integrator \c Integrator object used to equilibrate the particles
         \param numDensity The number density used to initialize the particles
+        \param mass The mass of one particle
         \param nsteps Number of equilibration steps
         \return The frozen particles, with name "inside_" + name of \p shape
 
@@ -246,7 +247,7 @@ public:
                                                              std::shared_ptr<InitialConditions> icShape,
                                                              std::vector<std::shared_ptr<Interaction>> interactions,
                                                              std::shared_ptr<Integrator>   integrator,
-                                                             real numDensity, int nsteps);
+                                                             real numDensity, real mass, int nsteps);
     
     /** \brief Enable a registered ObjectBelongingChecker to split particles of a registered ParticleVector.
         \param checker The ObjectBelongingChecker (will die if it is not registered)

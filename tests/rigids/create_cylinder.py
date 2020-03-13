@@ -26,7 +26,7 @@ def create_cylinder(density, R, L, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q, coords)
     belonging_checker = mir.BelongingCheckers.Cylinder("checker")
     
-    pv_cyl = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, niter)
+    pv_cyl = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, niter)
     
     if pv_cyl:
         frozen_coords = pv_cyl.getCoordinates()

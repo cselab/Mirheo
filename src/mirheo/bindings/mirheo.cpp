@@ -292,7 +292,7 @@ Args:
         )")
         
         .def("makeFrozenWallParticles", &Mirheo::makeFrozenWallParticles,
-             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "nsteps"_a=1000, R"(
+             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
                 
                 .. note::
@@ -305,6 +305,7 @@ Args:
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
+                    mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
@@ -313,7 +314,7 @@ Args:
         )")
 
         .def("makeFrozenRigidParticles", &Mirheo::makeFrozenRigidParticles,
-             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "nsteps"_a=1000, R"(
+             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
                 
                 .. note::
@@ -327,6 +328,7 @@ Args:
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
+                    mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
