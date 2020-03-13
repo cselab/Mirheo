@@ -1,16 +1,17 @@
-PROJECT_NAME      = "mirheo"
-XML_OUTPUT        = xml
-EXTENSION_MAPPING = cu=c++
-GENERATE_LATEX    = NO
-GENERATE_MAN      = NO
-GENERATE_RTF      = NO
-CASE_SENSE_NAMES  = NO
-GENERATE_HTML     = NO
-GENERATE_XML      = YES
-RECURSIVE         = YES
-QUIET             = YES
-JAVADOC_AUTOBRIEF = YES
+PROJECT_NAME         = "mirheo"
+XML_OUTPUT           = xml
+EXTENSION_MAPPING    = cu=c++
+GENERATE_LATEX       = NO
+GENERATE_MAN         = NO
+GENERATE_RTF         = NO
+CASE_SENSE_NAMES     = NO
+GENERATE_HTML        = NO
+GENERATE_XML         = YES
+RECURSIVE            = YES
+QUIET                = YES
+JAVADOC_AUTOBRIEF    = YES
 WARN_IF_UNDOCUMENTED = YES
+BUILTIN_STL_SUPPORT  = YES
 
 INPUT = ../src/mirheo/core/mirheo_object.h \
         ../src/mirheo/core/initial_conditions \
@@ -44,6 +45,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/utils/common.h \
 	../src/mirheo/core/utils/compile_options.h \
 	../src/mirheo/core/utils/cuda_common.h \
+	../src/mirheo/core/utils/cuda_rng.h \
 	../src/mirheo/core/utils/folders.h \
 	../src/mirheo/core/utils/helper_math.h \
 	../src/mirheo/core/utils/kernel_launch.h \
@@ -64,6 +66,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
 
+CITE_BIB_FILES = source/references.bib
 
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES

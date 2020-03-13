@@ -26,7 +26,6 @@ Library API
    api/postproc
    api/packers
    api/pvs
-   api/reflection
    api/rigid
    api/simulation
    api/snapshot

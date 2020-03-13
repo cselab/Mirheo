@@ -3,14 +3,14 @@
 #include <utility>
 #include <vector>
 
-/**
- * Dictionary that stores the insertion order, similar to Python's OrderedDict.
- *
- * Optimized for small dictionaries: the storage is flat and uses O(N) lookup.
- *
- * Note: iterators are NOT permanent! They might be invalided after any
- * addition or removal of elements. Apart from that, the interface tries to
- * follow std::map interface as much as possible.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+/** \brief Dictionary that stores the insertion order, similar to Python's OrderedDict.
+ 
+    Optimized for small dictionaries: the storage is flat and uses O(N) lookup.
+ 
+    Note: iterators are NOT permanent! They might be invalided after any
+    addition or removal of elements. Apart from that, the interface tries to
+    follow std::map interface as much as possible.
  */
 template <typename Key, typename T>
 class FlatOrderedDict
@@ -139,3 +139,5 @@ public:
 private:
     container_type c_;
 };
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
