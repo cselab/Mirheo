@@ -19,7 +19,7 @@ namespace mirheo
 /// Reference string used for null pointers.
 constexpr const char ConfigNullRefString[] = "<nullptr>";
 
-/// Extract the object name from ConfigRefString.
+/// Extract the object name from a `ConfigRefString`.
 std::string parseNameFromRefString(const ConfigRefString &ref);
 
 /// Read and return the content of a file. Terminates if the file is not found.
@@ -45,6 +45,7 @@ void assertType(T *thisPtr)
 class Saver;
 class Loader;
 
+/// Handler for serializing and unserializing a given type.
 template <typename T, typename Enable>
 struct TypeLoadSave
 {
@@ -62,7 +63,7 @@ struct TypeLoadSave
     static T load(Loader&, const ConfigValue&);
 };
 
-/// std::vector<ConfigValue>-like array with bound checks.
+/// `std::vector<ConfigValue>`-like array with bound checks.
 class ConfigArray : public std::vector<ConfigValue>
 {
     using Base = std::vector<ConfigValue>;
@@ -71,19 +72,24 @@ public:
 
     /// Overwrite operator[] with bound checks.
     ConfigValue&       operator[](size_t i)       { return at(i); }
+    /// Overwrite operator[] with bound checks.
     const ConfigValue& operator[](size_t i) const { return at(i); }
 
+    /// Get i-th element, abort if out of bounds.
     ConfigValue& at(size_t i) {
         return i < size() ? Base::operator[](i) : _outOfBound(i);
     }
+    /// Get i-th element, abort if out of bounds.
     const ConfigValue& at(size_t i) const {
         return i < size() ? Base::operator[](i) : (const ConfigValue&)_outOfBound(i);
     }
 
 private:
+    /// Abort with a out-of-bound report.
     ConfigValue& _outOfBound [[noreturn]] (size_t index) const;
 };
 
+/// Ordered dictionary, maps string keys to `ConfigValue` values..
 class ConfigObject : public FlatOrderedDict<std::string, ConfigValue>
 {
     using Base = FlatOrderedDict<std::string, ConfigValue>;
@@ -91,49 +97,77 @@ class ConfigObject : public FlatOrderedDict<std::string, ConfigValue>
 public:
     using Base::Base;
 
-    /// Overwrite operator[] with bound checks.
+    /// operator[] with bound checks. Aborts if key not found.
     ConfigValue&       operator[](const std::string &key)       { return at(key); }
+    /// operator[] with bound checks. Aborts if key not found.
     const ConfigValue& operator[](const std::string &key) const { return at(key); }
+    /// operator[] with bound checks. Aborts if key not found.
     ConfigValue&       operator[](const char *key)              { return at(key); }
+    /// operator[] with bound checks. Aborts if key not found.
     const ConfigValue& operator[](const char *key) const        { return at(key); }
 
+    /// Get a value matching the given key. Aborts if not found.
     ConfigValue&       at(const std::string &key);
+    /// Get a value matching the given key. Aborts if not found.
     const ConfigValue& at(const std::string &key) const;
+    /// Get a value matching the given key. Aborts if not found.
     ConfigValue&       at(const char *key);
+    /// Get a value matching the given key. Aborts if not found.
     const ConfigValue& at(const char *key) const;
 
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
     ConfigValue*       get(const std::string &key) &;
+    /// Get the pointer to the key if it exists, otherwise return a nullptr.
     const ConfigValue* get(const std::string &key) const&;
+    /// Get the pointer to the key if it exists, otherwise return a nullptr.
     ConfigValue*       get(const char *key) &;
+    /// Get the pointer to the key if it exists, otherwise return a nullptr.
     const ConfigValue* get(const char *key) const&;
 };
 
-/** Generic configuration JSON-like value class.
+/** Generic JSON-like variant value class.
 
-    It can represent integers, floats, strings, arrays and objects (dictionaries).
+    It can represent integers, floats, strings, arrays of `ConfigValue` objects
+    and objects (dictionaries from strings keys to `ConfigValue` values).
   */
 class ConfigValue
 {
 public:
+    /// Type for storing intergers.
     using Int     = long long;
+    /// Type for storing floating point numbers.
     using Float   = double;
+    /// Type for storing strings.
     using String  = std::string;
-    using Array    = ConfigArray;
+    /// Type for storing arrays.
+    using Array   = ConfigArray;
+    /// Type for storing objects (dictionaries).
     using Object  = ConfigObject;
+    /// The complete variant object.
     using Variant = mpark::variant<Int, Float, String, Array, Object>;
 
+    /// Construct a ConfigValue from an integer.
     ConfigValue(Int value) : value_{value} {}
+    /// Construct a ConfigValue from a floating point value.
     ConfigValue(Float value) : value_{value} {}
+    /// Construct a ConfigValue from a string.
     ConfigValue(String value) : value_{std::move(value)} {}
+    /// Construct a ConfigValue from an object (dictionary).
     ConfigValue(Object value) : value_{std::move(value)} {}
+    /// Construct a ConfigValue from an array.
     ConfigValue(Array value) : value_{std::move(value)} {}
+    /// Construct a ConfigValue from a string.
     ConfigValue(const char *str) : value_{std::string(str)} {}
+    /// Explicit instantiation of the default copy constructor.
     ConfigValue(const ConfigValue&) = default;
+    /// Explicit instantiation of the default move constructor.
     ConfigValue(ConfigValue&&)      = default;
+    /// Explicit instantiation of the copy-assignment operator.
     ConfigValue& operator=(const ConfigValue&) = default;
+    /// Explicit instantiation of the move-assignment operator.
     ConfigValue& operator=(ConfigValue&&) = default;
 
+    /// Reject at compile-time any implicit conversion.
     template <typename T>
     ConfigValue(const T&)
     {
@@ -160,48 +194,73 @@ public:
      */
     std::string toString() const;
 
-    /// Getter functions. Terminate if the underlying type is different. Int
-    /// and Float variants accept the other type if the conversion is lossless.
-    Int getInt() const;
-    Float getFloat() const;
-    const String& getString() const;
-    const Array& getArray() const;
-    Array& getArray();
-    const Object& getObject() const &;
-    Object& getObject() &;
-    Object getObject() &&;
-
     /// Check if the key exists. Terminates if not an object.
     bool contains(const std::string &key) const { return getObject().contains(key); }
+    /// Check if the key exists. Terminates if not an object.
     bool contains(const char *key)        const { return getObject().contains(key); }
 
-    /// Get the element matching the given key. Terminates if not an object, or
+    /** \defgroup getters Getter functions.
+        Terminate if the underlying type is different. Int
+        and Float variants accept each other if the conversion is lossless.
+
+        @{
+     */
+    /// Read the value as an integer. Abort on a type mismatch.
+    Int getInt() const;
+    /// Read the value as a floating point value. Abort on a type mismatch.
+    Float getFloat() const;
+    /// Read the value as a string. Abort on a type mismatch.
+    const String& getString() const;
+    /// Read the value as an array. Abort on a type mismatch.
+    const Array& getArray() const;
+    /// Read the value as an array. Abort on a type mismatch.
+    Array& getArray();
+    /// Read the value as an object. Abort on a type mismatch.
+    const Object& getObject() const &;
+    /// Read the value as an object. Abort on a type mismatch.
+    Object& getObject() &;
+    /// Read the value as an object. Abort on a type mismatch.
+    Object getObject() &&;
+
+    /// Get the element matching the given key. Abort if not an object, or
     /// if the key was not found.
     ConfigValue&       operator[](const std::string &key)       { return getObject().at(key); }
+    /// Get the element matchin the given key.
     const ConfigValue& operator[](const std::string &key) const { return getObject().at(key); }
+    /// Get the element matchin the given key.
     ConfigValue&       operator[](const char *key)              { return getObject().at(key); }
+    /// Get the element matchin the given key.
     const ConfigValue& operator[](const char *key) const        { return getObject().at(key); }
 
-    /// Get the array element. Terminates if not an array or if out of range.
+    /// Get the array element. Abort if not an array or if out of range.
     ConfigValue&       operator[](size_t i)       { return getArray()[i]; }
+    /// Get the array element. Abort if not an array or if out of range.
     const ConfigValue& operator[](size_t i) const { return getArray()[i]; }
+    /// Get the array element. Abort if not an array or if out of range.
     ConfigValue&       operator[](int i)       { return getArray()[static_cast<size_t>(i)]; }
+    /// Get the array element. Abort if not an array or if out of range.
     const ConfigValue& operator[](int i) const { return getArray()[static_cast<size_t>(i)]; }
 
-    /// Get the element if it exists, or nullptr otherwise. Terminates if not an object.
+    /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
     ConfigValue*       get(const std::string &key) &      { return getObject().get(key); }
+    /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
     const ConfigValue* get(const std::string &key) const& { return getObject().get(key); }
+    /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
     ConfigValue*       get(const char *key) &             { return getObject().get(key); }
+    /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
     const ConfigValue* get(const char *key) const&        { return getObject().get(key); }
 
     /// Implicit cast to simple types. Risky since it implicitly enables weird operator overloads.
     template <typename T>
     operator T() const { return TypeLoadSave<T>::parse(*this); }
 
-    /// Implicit cast to specific types.
+    /// Implicit cast to the config integer type.
     operator ConfigValue::Int() const { return getInt(); }
+    /// Implicit cast to the config float type.
     operator ConfigValue::Float() const { return getFloat(); }
+    /// Implicit cast to a string.
     operator const std::string&() const { return getString(); }
+    /** @} */
 
     /// Comparison operators.
     friend bool operator==(const ConfigValue& a, const char *b) noexcept
@@ -211,7 +270,10 @@ public:
         return false;
     }
 
-    /// String concatenation operator.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    // Doxygen things this is a duplicate of Quaternion+Quaternion.
+
+    /// String concatenation operator. Abort if value not a string.
     friend std::string operator+(const ConfigValue& a, const char *b)
     {
         return a.getString() + b;
@@ -228,18 +290,21 @@ public:
     {
         return a + b.getString();
     }
+#endif
 
-    /// Low-level getter.
+    /// Internal. Return the variant's value as a type T if applicable, otherwise throw.
     template <typename T>
     inline const T& get() const
     {
         return mpark::get<T>(value_);
     }
+    /// Internal. Return the pointer to the type T if applicable, nullptr otherwise.
     template <typename T>
     inline const T* get_if() const noexcept
     {
         return mpark::get_if<T>(&value_);
     }
+    /// Internal. Return the pointer to the type T if applicable, nullptr otherwise.
     template <typename T>
     inline T* get_if() noexcept
     {
@@ -247,36 +312,46 @@ public:
     }
 
 private:
-    Variant value_;
+    Variant value_; ///< Variant value object.
 };
 
 class SaverContext;
+
+/// Snapshot saving handler.
 class Saver
 {
 public:
+    /// Construct a saver from a saving context.
     Saver(SaverContext *context);
+
     ~Saver();
 
+    /// Getter.
     SaverContext& getContext() noexcept { return *context_; }
+    /// Getter.
     ConfigObject& getConfig() & noexcept { return config_; }
+    /// Getter.
     ConfigObject getConfig() && { return std::move(config_); }
 
-    /// Save snapshot and prepare a config.
+    /// Save snapshot of the object T and prepare its config (metadata).
     template <typename T>
     ConfigValue operator()(T& t)
     {
         return TypeLoadSave<T>::save(*this, t);
     }
+    /// Save snapshot of the object T and prepare its config (metadata).
     template <typename T>
     ConfigValue operator()(const T& t)
     {
         return TypeLoadSave<T>::save(*this, t);
     }
+    /// Save snapshot of the object T and prepare its config (metadata).
     template <typename T>
     ConfigValue operator()(T* t)
     {
         return TypeLoadSave<std::remove_const_t<T>*>::save(*this, t);
     }
+    /// Convert a string to a `ConfigValue`.
     ConfigValue operator()(const char* t)
     {
         return std::string(t);
@@ -293,10 +368,20 @@ public:
         return std::move(array);
     }
 
-    /// Object handling.
+    /// Check if an object with given address has been registered.
     bool isObjectRegistered(const void*) const noexcept;
+    /// Get a refstring matching the given object pointer.
     const ConfigRefString& getObjectRefString(const void*) const;
 
+    /** \brief Register an object.
+
+        By comparing the type `T` (coming usually form the `this` pointer of
+        the caller) to the dynamic type of `T`, we guarantee that there are no
+        missing serialization/snapshotting functions.
+
+        \param obj The pointer to the object. Be careful with inheritance and downcasting.
+        \param newItem The config (metadata) of the object.
+     */
     template <typename T>
     const ConfigRefString& registerObject(const T *obj, ConfigValue newItem)
     {
@@ -305,21 +390,27 @@ public:
     }
 
 private:
+    /// Internal. Register the object.
     const ConfigRefString& _registerObject(const void *, ConfigValue newItem);
 
-    ConfigObject config_;
-    std::map<const void*, ConfigRefString> refStrings_;
-    SaverContext *context_;
+    ConfigObject config_;   ///< Current config of the whole simulatoin.
+    std::map<const void*, ConfigRefString> refStrings_; ///< Map of registered objects.
+    SaverContext *context_; ///< Context.
 };
 
 class LoaderContext;
+
+/// Loading handler.
 class Loader
 {
 public:
+    /// Construct a Loader from a loader context.
     Loader(LoaderContext *context) : context_(context) {}
 
+    /// Getter.
     LoaderContext& getContext() noexcept { return *context_; }
 
+    /// Parse the config to the given type `T`. Forwards to TypeLoadSave<T>::load.
     template <typename T>
     T load(const ConfigValue &config)
     {
@@ -327,13 +418,35 @@ public:
     }
 
 private:
-    LoaderContext *context_;
+    LoaderContext *context_; ///< Load context.
 };
+
+
+/// Convenience implementation of TypeLoadSave<> for types whose save and load
+/// functions are not yet implemented. Throws a runtime exception if invoked.
+template <typename T>
+struct TypeLoadSaveNotImplemented
+{
+    /// Abort with a not-implemented diagnostics.
+    static ConfigValue save [[noreturn]] (Saver&, T& /*value*/)
+    {
+        _typeLoadSaveNotImplemented("save", TypeName<T>::name);
+    }
+    /// Abort with a not-implemented diagnostics.
+    static T load [[noreturn]] (Loader&, const ConfigValue&)
+    {
+        _typeLoadSaveNotImplemented("load", TypeName<T>::name);
+    }
+};
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS  // No need to document specializations.
 
 namespace detail
 {
+    /// Helper class for serialization of types that define their `MemberVars`.
     struct DumpHandler
     {
+        /// Process the results of the `operator()`.
         template <typename... Args>
         void process(Args&& ...items)
         {
@@ -345,32 +458,36 @@ namespace detail
             (void)fold_expression{0, (object_->insert(std::forward<Args>(items)), 0)...};
         }
 
+        /// Handle one member variable.
         template <typename T>
         ConfigValue::Object::value_type operator()(std::string name, T *t) const
         {
             return {std::move(name), (*saver_)(*t)};
         }
 
-        ConfigValue::Object *object_;
-        Saver *saver_;
+        ConfigValue::Object *object_; ///< Pointer to the object being dumped.
+        Saver *saver_;                ///< Pointer to the saver object.
     };
 
+    /// Helper class for loading types with their `MemberVars` defined.
     template <typename T>
     struct LoadHandler {
+        /// Construct an object from values of its member variables.
         template <typename... Args>
         T process(Args ...items) const
         {
             return T{std::move(items)...};
         }
 
+        /// Parse one member variable.
         template <typename Item>
         Item operator()(const std::string &name, const Item *) const
         {
             return un_->load<Item>(object_->at(name));
         }
 
-        const ConfigValue::Object *object_;
-        Loader *un_;
+        const ConfigValue::Object *object_; ///< Pointer to the config object.
+        Loader *un_;                        ///< Pointer to the loader object.
     };
 } // namespace detail
 
@@ -401,21 +518,6 @@ MIRHEO_DUMPER_PRIMITIVE(unsigned long long, Int);  // This is risky.
 MIRHEO_DUMPER_PRIMITIVE(float,              Float);
 MIRHEO_DUMPER_PRIMITIVE(double,             Float);
 #undef MIRHEO_DUMPER_PRIMITIVE
-
-/// Convenience implementation of TypeLoadSave<> for types whose save and load
-/// functions are not yet implemented. Throws a runtime exception if invoked.
-template <typename T>
-struct TypeLoadSaveNotImplemented
-{
-    static ConfigValue save [[noreturn]] (Saver&, T& /*value*/)
-    {
-        _typeLoadSaveNotImplemented("save", TypeName<T>::name);
-    }
-    static T load [[noreturn]] (Loader&, const ConfigValue&)
-    {
-        _typeLoadSaveNotImplemented("load", TypeName<T>::name);
-    }
-};
 
 template <>
 struct TypeLoadSave<const char*>
@@ -621,11 +723,13 @@ struct TypeLoadSave<mpark::variant<Ts...>>
         return funcs[index](loader, object.at("value"));
     }
 };
+#endif // !DOXYGEN_SHOULD_SKIP_THIS
 
 /// TypeLoadSave for types tagged with AutoObjectSnapshotTag.
 template <typename T>
 struct TypeLoadSave<T, std::enable_if_t<std::is_base_of<AutoObjectSnapshotTag, T>::value>>
 {
+    /// Register the object if not yet registered. Return the object refstring.
     template <typename TT>  // Const or not.
     static ConfigValue save(Saver& saver, TT& t)
     {

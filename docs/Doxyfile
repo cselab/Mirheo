@@ -44,6 +44,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/utils/file_wrapper.h \
 	../src/mirheo/core/utils/common.h \
 	../src/mirheo/core/utils/compile_options.h \
+	../src/mirheo/core/utils/config.h \
 	../src/mirheo/core/utils/cuda_common.h \
 	../src/mirheo/core/utils/cuda_rng.h \
 	../src/mirheo/core/utils/folders.h \
