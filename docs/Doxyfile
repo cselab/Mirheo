@@ -32,6 +32,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/exchangers/ \
 	../src/mirheo/core/domain.h \
 	../src/mirheo/core/mirheo_state.h \
+	../src/mirheo/core/mirheo.h \
 	../src/mirheo/core/simulation.h \
 	../src/mirheo/core/postproc.h \
 	../src/mirheo/core/plugins.h \

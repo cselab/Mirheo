@@ -419,7 +419,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
                                                                std::vector<std::shared_ptr<Wall>> walls,
                                                                std::vector<std::shared_ptr<Interaction>> interactions,
                                                                std::shared_ptr<Integrator> integrator,
-                                                               real density, int nsteps)
+                                                               real numDensity, int nsteps)
 {
     ensureNotInitialized();
     
@@ -435,12 +435,12 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     std::vector<SDFBasedWall*> sdfWalls;
 
-    for (auto &wall : walls) {
-        auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
-        if (sdfWall == nullptr)
-            die("Only sdf-based walls are supported now!");        
-        else
+    for (auto &wall : walls)
+    {
+        if (auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get()))
             sdfWalls.push_back(sdfWall);
+        else
+            die("Only sdf-based walls are supported now! (%s is not)", wall->getCName());
 
         // Check if the wall is set up
         sim_->getWallByNameOrDie(wall->getName());
@@ -454,7 +454,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
-    auto ic = std::make_shared<UniformIC>(density);
+    auto ic = std::make_shared<UniformIC>(numDensity);
     
     wallsim.registerParticleVector(pv, ic);
     
@@ -462,7 +462,8 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     
     wallsim.setIntegrator (integrator->getName(),  pv->getName());
 
-    for (auto& interaction : interactions) {
+    for (auto& interaction : interactions)
+    {
         wallsim.registerInteraction(interaction);        
         wallsim.setInteraction(interaction->getName(), pv->getName(), pv->getName());
     }
@@ -497,7 +498,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
                                                                 std::shared_ptr<InitialConditions> icShape,
                                                                 std::vector<std::shared_ptr<Interaction>> interactions,
                                                                 std::shared_ptr<Integrator>   integrator,
-                                                                real density, int nsteps)
+                                                                real numDensity, int nsteps)
 {
     ensureNotInitialized();
     
@@ -513,7 +514,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
 
     const real mass = 1.0_r;
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->getName(), mass);
-    auto ic = std::make_shared<UniformIC>(density);
+    auto ic = std::make_shared<UniformIC>(numDensity);
 
     MirState stateCpy = *getState();
 

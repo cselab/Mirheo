@@ -122,7 +122,7 @@ public:
     /** \brief Assign two registered \c Interaction to two registered ParticleVector objects.
         \param interactionName Name of the registered interaction (will die if it does not exist)
         \param pv1Name Name of the first registered ParticleVector (will die if it does not exist)
-        \param pv2Name Name of the first registered ParticleVector (will die if it does not exist)
+        \param pv2Name Name of the second registered ParticleVector (will die if it does not exist)
 
         This was designed to handle PairwiseInteraction, which needs up to two ParticleVector.
         For self interaction cases (such as MembraneInteraction), \p pv1Name and \p pv2Name must be the same.

@@ -21,6 +21,7 @@ Library API
    api/mesh
    api/mir_object
    api/mir_state
+   api/mirheo
    api/object_belonging
    api/plugins
    api/postproc
