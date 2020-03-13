@@ -233,7 +233,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, nsteps: int = 1000) -> mirheo::ParticleVector
+        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float = 1.0, nsteps: int = 1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside object.
@@ -249,6 +249,7 @@ Returns ``True`` if the current rank is the root
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
+                    mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:
@@ -260,7 +261,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, nsteps: int = 1000) -> mirheo::ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float = 1.0, nsteps: int = 1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -275,6 +276,7 @@ Returns ``True`` if the current rank is the root
                     interactions: list of :any:`Interaction` that will be used to construct the equilibrium particles distribution
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
+                    mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
                             
                 Returns:

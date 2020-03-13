@@ -30,6 +30,7 @@ make install
 * add energy minimization integrator (gradient descent)
 * **interface changes** 
   * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
+  * pass particle mass in `mirheo::makeFrozenWallParticles` and `mirheo::makeFrozenRigidParticles`
 * **internal changes**
   * rename `LJParams` to `RepulsiveLJParams`, while `LJParams` is now used for the ordinary LJ force
   * renamed most private variables: now should have a trailing `_`
