@@ -28,6 +28,7 @@ Library API
    api/pvs
    api/rigid
    api/simulation
+   api/snapshot
    api/task_scheduler
    api/types
    api/utils

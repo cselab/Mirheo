@@ -38,6 +38,7 @@ INPUT = ../src/mirheo/core/mirheo_object.h \
 	../src/mirheo/core/rigid \
 	../src/mirheo/core/datatypes.h \
 	../src/mirheo/core/types \
+	../src/mirheo/core/snapshot.h \
 	../src/mirheo/core/utils/quaternion.h \
 	../src/mirheo/core/utils/file_wrapper.h \
 	../src/mirheo/core/utils/common.h \
