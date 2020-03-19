@@ -19,12 +19,12 @@
             "__type": "SimpleStationaryWall<StationaryWallPlane>",
             "name": "plane",
             "checker": {
-                "normal_": [
+                "normal": [
                     0,
                     -1,
                     0
                 ],
-                "pointThrough_": [
+                "pointThrough": [
                     1,
                     2,
                     3

@@ -22,7 +22,7 @@
 namespace mirheo
 {
 
-std::string parseNameFromRefString(const ConfigRefString &ref)
+std::string parseNameFromRefString(const ConfigRefString& ref)
 {
     // Format: "<CATEGORY with name=NAME>".
     size_t pos = ref.find("with name=");
@@ -140,7 +140,7 @@ void ConfigExporter::process(const ConfigValue& element)
         tokens_.push_back(stringToJSON(*s));
     } else if (auto *obj = element.get_if<ConfigValue::Object>()) {
         tokens_.push_back(Tag::StartObject);
-        for (const auto &pair : *obj) {
+        for (const auto& pair : *obj) {
             tokens_.push_back(Tag::StartObjectItem);
             tokens_.push_back(stringToJSON(pair.first));
             process(pair.second);
@@ -235,14 +235,14 @@ std::string ConfigExporter::exportJSON()
     return std::move(stream).str();
 }
 
-ConfigValue& ConfigObject::at(const std::string &key)
+ConfigValue& ConfigObject::at(const std::string& key)
 {
     auto it = find(key);
     if (it == end())
         die("Key \"%s\" not found in %s", key.c_str(), ConfigValue{*this}.toJSONString().c_str());
     return it->second;
 }
-const ConfigValue& ConfigObject::at(const std::string &key) const
+const ConfigValue& ConfigObject::at(const std::string& key) const
 {
     auto it = find(key);
     if (it == end())
@@ -258,12 +258,12 @@ const ConfigValue& ConfigObject::at(const char *key) const
     return at(std::string(key));
 }
 
-ConfigValue* ConfigObject::get(const std::string &key) &
+ConfigValue* ConfigObject::get(const std::string& key) &
 {
     auto it = find(key);
     return it != end() ? &it->second : nullptr;
 }
-const ConfigValue* ConfigObject::get(const std::string &key) const&
+const ConfigValue* ConfigObject::get(const std::string& key) const&
 {
     auto it = find(key);
     return it != end() ? &it->second : nullptr;
@@ -443,7 +443,7 @@ ConfigValue TypeLoadSave<float2>::save(Saver&, float2 v)
 {
     return ConfigValue::Array{(double)v.x, (double)v.y};
 }
-float2 TypeLoadSave<float2>::parse(const ConfigValue &config)
+float2 TypeLoadSave<float2>::parse(const ConfigValue& config)
 {
     const auto& array = config.getArray();
     if (array.size() != 2)
@@ -455,7 +455,7 @@ ConfigValue TypeLoadSave<float3>::save(Saver&, float3 v)
 {
     return ConfigValue::Array{(double)v.x, (double)v.y, (double)v.z};
 }
-float3 TypeLoadSave<float3>::parse(const ConfigValue &config)
+float3 TypeLoadSave<float3>::parse(const ConfigValue& config)
 {
     const auto& array = config.getArray();
     if (array.size() != 3)
@@ -467,7 +467,7 @@ ConfigValue TypeLoadSave<double2>::save(Saver&, double2 v)
 {
     return ConfigValue::Array{v.x, v.y};
 }
-double2 TypeLoadSave<double2>::parse(const ConfigValue &config)
+double2 TypeLoadSave<double2>::parse(const ConfigValue& config)
 {
     const auto& array = config.getArray();
     if (array.size() != 2)
@@ -479,7 +479,7 @@ ConfigValue TypeLoadSave<double3>::save(Saver&, double3 v)
 {
     return ConfigValue::Array{v.x, v.y, v.z};
 }
-double3 TypeLoadSave<double3>::parse(const ConfigValue &config)
+double3 TypeLoadSave<double3>::parse(const ConfigValue& config)
 {
     const auto& array = config.getArray();
     if (array.size() != 3)

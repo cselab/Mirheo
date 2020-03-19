@@ -5,6 +5,7 @@
 #include "reflection.h"
 #include "type_traits.h"
 
+#include <cstring>
 #include <map>
 #include <string>
 #include <typeinfo>
@@ -20,7 +21,7 @@ namespace mirheo
 constexpr const char ConfigNullRefString[] = "<nullptr>";
 
 /// Extract the object name from a `ConfigRefString`.
-std::string parseNameFromRefString(const ConfigRefString &ref);
+std::string parseNameFromRefString(const ConfigRefString& ref);
 
 /// Read and return the content of a file. Terminates if the file is not found.
 std::string readWholeFile(const std::string& filename);
@@ -41,6 +42,16 @@ void assertType(T *thisPtr)
     if (typeid(*thisPtr) != typeid(T))
         _typeMismatchError(typeid(*thisPtr).name(), typeid(T).name());
 }
+
+/// Remove a trailing `_` if there is one.
+inline std::string removeTrailingUnderscore(const char *str)
+{
+    size_t size = strlen(str);
+    if (size > 0 && str[size - 1] == '_')
+        --size;
+    return std::string(str, str + size);
+}
+
 
 class Saver;
 class Loader;
@@ -98,27 +109,27 @@ public:
     using Base::Base;
 
     /// operator[] with bound checks. Aborts if key not found.
-    ConfigValue&       operator[](const std::string &key)       { return at(key); }
+    ConfigValue&       operator[](const std::string& key)       { return at(key); }
     /// operator[] with bound checks. Aborts if key not found.
-    const ConfigValue& operator[](const std::string &key) const { return at(key); }
+    const ConfigValue& operator[](const std::string& key) const { return at(key); }
     /// operator[] with bound checks. Aborts if key not found.
     ConfigValue&       operator[](const char *key)              { return at(key); }
     /// operator[] with bound checks. Aborts if key not found.
     const ConfigValue& operator[](const char *key) const        { return at(key); }
 
     /// Get a value matching the given key. Aborts if not found.
-    ConfigValue&       at(const std::string &key);
+    ConfigValue&       at(const std::string& key);
     /// Get a value matching the given key. Aborts if not found.
-    const ConfigValue& at(const std::string &key) const;
+    const ConfigValue& at(const std::string& key) const;
     /// Get a value matching the given key. Aborts if not found.
     ConfigValue&       at(const char *key);
     /// Get a value matching the given key. Aborts if not found.
     const ConfigValue& at(const char *key) const;
 
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
-    ConfigValue*       get(const std::string &key) &;
+    ConfigValue*       get(const std::string& key) &;
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
-    const ConfigValue* get(const std::string &key) const&;
+    const ConfigValue* get(const std::string& key) const&;
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
     ConfigValue*       get(const char *key) &;
     /// Get the pointer to the key if it exists, otherwise return a nullptr.
@@ -195,7 +206,7 @@ public:
     std::string toString() const;
 
     /// Check if the key exists. Terminates if not an object.
-    bool contains(const std::string &key) const { return getObject().contains(key); }
+    bool contains(const std::string& key) const { return getObject().contains(key); }
     /// Check if the key exists. Terminates if not an object.
     bool contains(const char *key)        const { return getObject().contains(key); }
 
@@ -224,9 +235,9 @@ public:
 
     /// Get the element matching the given key. Abort if not an object, or
     /// if the key was not found.
-    ConfigValue&       operator[](const std::string &key)       { return getObject().at(key); }
+    ConfigValue&       operator[](const std::string& key)       { return getObject().at(key); }
     /// Get the element matchin the given key.
-    const ConfigValue& operator[](const std::string &key) const { return getObject().at(key); }
+    const ConfigValue& operator[](const std::string& key) const { return getObject().at(key); }
     /// Get the element matchin the given key.
     ConfigValue&       operator[](const char *key)              { return getObject().at(key); }
     /// Get the element matchin the given key.
@@ -242,9 +253,9 @@ public:
     const ConfigValue& operator[](int i) const { return getArray()[static_cast<size_t>(i)]; }
 
     /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
-    ConfigValue*       get(const std::string &key) &      { return getObject().get(key); }
+    ConfigValue*       get(const std::string& key) &      { return getObject().get(key); }
     /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
-    const ConfigValue* get(const std::string &key) const& { return getObject().get(key); }
+    const ConfigValue* get(const std::string& key) const& { return getObject().get(key); }
     /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
     ConfigValue*       get(const char *key) &             { return getObject().get(key); }
     /// Get the element if it exists, or nullptr otherwise. Abort if not an object.
@@ -412,7 +423,7 @@ public:
 
     /// Parse the config to the given type `T`. Forwards to TypeLoadSave<T>::load.
     template <typename T>
-    T load(const ConfigValue &config)
+    T load(const ConfigValue& config)
     {
         return TypeLoadSave<T>::load(*this, config);
     }
@@ -460,9 +471,9 @@ namespace detail
 
         /// Handle one member variable.
         template <typename T>
-        ConfigValue::Object::value_type operator()(std::string name, T *t) const
+        ConfigValue::Object::value_type operator()(const char *name, T *t) const
         {
-            return {std::move(name), (*saver_)(*t)};
+            return {removeTrailingUnderscore(name), (*saver_)(*t)};
         }
 
         ConfigValue::Object *object_; ///< Pointer to the object being dumped.
@@ -481,9 +492,9 @@ namespace detail
 
         /// Parse one member variable.
         template <typename Item>
-        Item operator()(const std::string &name, const Item *) const
+        Item operator()(const char *name, const Item *) const
         {
-            return un_->load<Item>(object_->at(name));
+            return un_->load<Item>(object_->at(removeTrailingUnderscore(name)));
         }
 
         const ConfigValue::Object *object_; ///< Pointer to the config object.
@@ -499,11 +510,11 @@ namespace detail
         {                                                                      \
             return static_cast<ConfigValue::ELTYPE>(x);                        \
         }                                                                      \
-        static TYPE parse(const ConfigValue &value)                            \
+        static TYPE parse(const ConfigValue& value)                            \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
-        static TYPE load(Loader&, const ConfigValue &value)                    \
+        static TYPE load(Loader&, const ConfigValue& value)                    \
         {                                                                      \
             return static_cast<TYPE>(value.get##ELTYPE());                     \
         }                                                                      \
@@ -537,11 +548,11 @@ struct TypeLoadSave<std::string>
     {
         return std::move(x);
     }
-    static const std::string& parse(const ConfigValue &config)
+    static const std::string& parse(const ConfigValue& config)
     {
         return config.getString();
     }
-    static const std::string& load(Loader&, const ConfigValue &config)
+    static const std::string& load(Loader&, const ConfigValue& config)
     {
         return config.getString();
     }
@@ -551,8 +562,8 @@ template <>
 struct TypeLoadSave<float2>
 {
     static ConfigValue save(Saver&, float2 v);
-    static float2 parse(const ConfigValue &config);
-    static float2 load(Loader&, const ConfigValue &config)
+    static float2 parse(const ConfigValue& config);
+    static float2 load(Loader&, const ConfigValue& config)
     {
         return parse(config);
     }
@@ -562,8 +573,8 @@ template <>
 struct TypeLoadSave<float3>
 {
     static ConfigValue save(Saver&, float3 v);
-    static float3 parse(const ConfigValue &config);
-    static float3 load(Loader&, const ConfigValue &config)
+    static float3 parse(const ConfigValue& config);
+    static float3 load(Loader&, const ConfigValue& config)
     {
         return parse(config);
     }
@@ -573,8 +584,8 @@ template <>
 struct TypeLoadSave<double2>
 {
     static ConfigValue save(Saver&, double2 v);
-    static double2 parse(const ConfigValue &config);
-    static double2 load(Loader&, const ConfigValue &config)
+    static double2 parse(const ConfigValue& config);
+    static double2 load(Loader&, const ConfigValue& config)
     {
         return parse(config);
     }
@@ -584,8 +595,8 @@ template <>
 struct TypeLoadSave<double3>
 {
     static ConfigValue save(Saver&, double3 v);
-    static double3 parse(const ConfigValue &config);
-    static double3 load(Loader&, const ConfigValue &config)
+    static double3 parse(const ConfigValue& config);
+    static double3 load(Loader&, const ConfigValue& config)
     {
         return parse(config);
     }
@@ -599,17 +610,20 @@ struct TypeLoadSave<T, std::enable_if_t<std::is_enum<T>::value>>
     {
         return static_cast<ConfigValue::Int>(t);
     }
-    static T parse(const ConfigValue &config)
+    static T parse(const ConfigValue& config)
     {
         return static_cast<T>(config.getInt());
     }
-    static T load(Loader&, const ConfigValue &config)
+    static T load(Loader&, const ConfigValue& config)
     {
         return parse(config);
     }
 };
 
-/// TypeLoadSave for structs with reflection information.
+/** \brief TypeLoadSave for structs with reflection information.
+
+    A potential trailing underscore in variable names will be ignored when creating the ConfigValue.
+  */
 template <typename T>
 struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<T>::value>>
 {
