@@ -48,7 +48,7 @@ void exportConfigValue(py::module& m)
         - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
             Otherwise, a potentially approximate representation of the value is returned
         - ``repr(v)`` converts to a JSON string.
-    R)")
+    )")
         .def(py::init<ConfigValue::Int>())
         .def(py::init<ConfigValue::Float>())
         .def(py::init<ConfigValue::String>())
@@ -61,19 +61,35 @@ void exportConfigValue(py::module& m)
     py::implicitly_convertible<ConfigValue::String, ConfigValue>();
 }
 
+void exportUnitConversion(py::module& m)
+{
+    py::class_<UnitConversion>(m, "UnitConversion", R"(
+        Factors for unit conversion between Mirheo and SI units.
+    )")
+        .def(py::init<>(), "Default constructor. Conversion factors not known.")
+        .def(py::init<real, real, real>(), "toMeters"_a, "toSeconds"_a, "toKilograms"_a, R"(
+            Construct from conversion factors from Mirheo units to SI units.
+
+            Args:
+                toMeters: value in meters of 1 Mirheo length unit
+                toSeconds: value in seconds of 1 Mirheo time (duration) unit
+                toKilograms: value in kilograms of 1 Mirheo mass unit
+        )");
+}
+
 void exportMirheo(py::module& m)
 {
     py::handlers_class<MirState>(m, "MirState", R"(
         state of the simulation shared by all simulation objects.
     )");
-    
+
     py::class_<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (int3 nranks, real3 domain, real dt,
                            std::string log, int debuglvl, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long commPtr)
+                           bool cudaMPI, bool noSplash, long commPtr, UnitConversion units)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
                 auto checkpointMode = getCheckpointMode(checkpointModeStr);
@@ -81,18 +97,18 @@ void exportMirheo(py::module& m)
                 
                 if (commPtr == 0) {
                     return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
-                                                           checkpointInfo, cudaMPI);
+                                                           checkpointInfo, cudaMPI, units);
                 } else {
                     // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
                     MPI_Comm comm = *(MPI_Comm *)commPtr;
                     return std::make_unique<Mirheo> (comm, nranks, domain, dt, logInfo,
-                                                           checkpointInfo, cudaMPI);
+                                                           checkpointInfo, cudaMPI, units);
                 }
             } ),
              py::return_value_policy::take_ownership,
              "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
              "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
-             "no_splash"_a=false, "comm_ptr"_a=0, R"(
+             "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
 Create the Mirheo coordinator.
 
 .. warning::
@@ -132,6 +148,7 @@ Args:
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+    units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
         )")
         .def(py::init( [] (int3 nranks, const std::string& snapshotPath, std::string log, int debuglvl,
                            bool cudaMPI, bool noSplash, long commPtr)

@@ -72,7 +72,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 
 void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-                  LoaderContext *load)
+                  UnitConversion units, LoaderContext *load)
 {
     const ConfigValue *stateConfig = load ? &load->getConfig()["Mirheo"][0]["state"] : nullptr;
 
@@ -100,7 +100,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         createCartComm(comm_, nranks3D, &cartComm_);
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, stateConfig);
+                                             dt, units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
                                             checkpointInfo, gpuAwareMPI);
         computeTask_ = 0;
@@ -129,7 +129,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         createCartComm(compComm_, nranks3D, &cartComm_);
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, stateConfig);
+                                             dt, units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
                                             checkpointInfo, gpuAwareMPI);
     }
@@ -146,19 +146,18 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
     MPI_Check( MPI_Comm_free(&splitComm) );
 }
 
-void Mirheo::initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
+void Mirheo::initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
                            LogInfo logInfo, bool gpuAwareMPI)
 {
     LoaderContext context{snapshotPath};
     Loader loader{&context};
 
     const ConfigValue& mirState = context.getConfig()["Mirheo"][0]["state"];
-    real  dt               = mirState["dt"];
-    real3 globalDomainSize = mirState["domainGlobalSize"];
-    auto  checkpointInfo   = loader.load<CheckpointInfo>(
+    auto checkpointInfo = loader.load<CheckpointInfo>(
             context.getConfig()["Simulation"][0]["checkpointInfo"]);
 
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, &context);
+    init(nranks3D, mirState["domainGlobalSize"], mirState["dt"], logInfo,
+         checkpointInfo, gpuAwareMPI, mirState["units"], &context);
     loadSnapshot(this, loader);
 }
 
@@ -181,25 +180,27 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
 }
 
 Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
-               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+               UnitConversion units)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_);
     initializedMpi_ = true;
 
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, units);
 }
 
 Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
-               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI,
+               UnitConversion units)
 {
     MPI_Comm_dup(comm, &comm_);
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, units);
 }
 
-Mirheo::Mirheo(int3 nranks3D, const std::string &snapshotPath,
+Mirheo::Mirheo(int3 nranks3D, const std::string& snapshotPath,
                LogInfo logInfo, bool gpuAwareMPI)
 {
     MPI_Init(nullptr, nullptr);
@@ -210,7 +211,7 @@ Mirheo::Mirheo(int3 nranks3D, const std::string &snapshotPath,
     initFromSnapshot(nranks3D, snapshotPath, logInfo, gpuAwareMPI);
 }
 
-Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, const std::string &snapshotPath,
+Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, const std::string& snapshotPath,
                LogInfo logInfo, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &comm_);

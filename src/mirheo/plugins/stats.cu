@@ -102,7 +102,9 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
     {
         const real tm = timer_.elapsedAndReset() / (getState()->currentStep < fetchEvery_ ? 1.0_r : fetchEvery_);
         _waitPrevSend();
-        SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime, getState()->currentStep, nparticles_, momentum_, energy_, maxvel_);
+        SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime,
+                                    getState()->currentStep, getState()->units,
+                                    nparticles_, momentum_, energy_, maxvel_);
         _send(sendBuffer_);
         needToDump_ = false;
     }
@@ -143,11 +145,13 @@ void PostprocessStats::deserialize()
     MirState::StepType currentTimeStep;
     real realTime;
     stats_plugin::CountType nparticles, maxNparticles, minNparticles;
+    UnitConversion units;
 
     std::vector<stats_plugin::ReductionType> momentum, energy;
     std::vector<real> maxvel;
 
-    SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep, nparticles, momentum, energy, maxvel);
+    SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep,
+                                  units, nparticles, momentum, energy, maxvel);
 
     MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MIN, 0, comm_) );
     MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MAX, 0, comm_) );
@@ -166,19 +170,25 @@ void PostprocessStats::deserialize()
         momentum[0] *= invNparticles;
         momentum[1] *= invNparticles;
         momentum[2] *= invNparticles;
-        const stats_plugin::ReductionType temperature = energy[0] * invNparticles * (2.0/3.0);
+        const stats_plugin::ReductionType kBT = energy[0] * invNparticles * (2.0/3.0);
 
         printf("Stats at timestep %lld (simulation time %f):\n", currentTimeStep, currentTime);
         printf("\tOne timestep takes %.2f ms", realTime);
         printf("\tNumber of particles (total, min/proc, max/proc): %llu,  %llu,  %llu\n", nparticles, minNparticles, maxNparticles);
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
-        printf("\tTemperature: %.4f\n\n", temperature);
+        if (units.isSet()) {
+            real kB = units.joulesToMirheo(1.380649e-23);
+            printf("\tTemperature: %.4f (%.2f K)\n\n", kBT, kBT / kB);
+        } else {
+            printf("\tTemperature: %.4f\n\n", kBT);
+        }
+
 
         if (fdump_.get())
         {
             fprintf(fdump_.get(), "%g %g %g %g %g %g %llu %g\n", currentTime,
-                    temperature, momentum[0], momentum[1], momentum[2],
+                    kBT, momentum[0], momentum[1], momentum[2],
                     maxvel[0], nparticles, realTime);
             fflush(fdump_.get());
         }

@@ -35,6 +35,10 @@ class PintUnitsConverter:
         ]
         ureg.load_definitions(definitions)
         self.ureg = ureg
+        self.unit_conversion = UnitConversion(
+                ureg(mirL).m_as('m'),
+                ureg(mirT).m_as('s'),
+                ureg(mirM).m_as('kg'))
 
     def __call__(self, value):
         """Strip of all units using the Mirheo unit system as a reference.
@@ -109,6 +113,8 @@ def decorate_coordinator(f):
     def wrapper(self, *args, **kwargs):
         global __coordinator
         if __unit_converter:
+            if 'units' not in kwargs:
+                kwargs['units'] = __unit_converter.unit_conversion
             f(self, *__unit_converter(args), **__unit_converter(kwargs))
         else:
             f(self, *args, **kwargs)
@@ -139,6 +145,10 @@ def decorate_plugins(f):
         global __coordinator
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
+
+        if __unit_converter:
+            args   = __unit_converter(args)
+            kwargs = __unit_converter(kwargs)
 
         return f(__coordinator().isComputeTask(),
                  __coordinator().getState(),

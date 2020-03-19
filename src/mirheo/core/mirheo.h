@@ -2,6 +2,7 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/logger.h>
+#include <mirheo/core/mirheo_state.h>
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/config.h>
 
@@ -12,8 +13,6 @@
 
 namespace mirheo
 {
-
-class MirState;
 
 class Simulation;
 class Postprocess;
@@ -64,14 +63,16 @@ public:
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
     Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
+           UnitConversion units = UnitConversion{});
 
     /** \brief Construct a \c Mirheo object using a given communicator.
         \note MPI will be NOT be initialized. 
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
+           UnitConversion units = UnitConversion{});
 
     /** \brief Construct a \c Mirheo object from a snapshot using MPI_COMM_WORLD.
         \param nranks3D Number of ranks along each cartesian direction. 
@@ -83,14 +84,14 @@ public:
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
-    Mirheo(int3 nranks3D, const std::string &snapshotPath,
+    Mirheo(int3 nranks3D, const std::string& snapshotPath,
            LogInfo logInfo, bool gpuAwareMPI=false);
 
     /** \brief Construct a \c Mirheo object from snapshot using a given communicator.
         \note MPI will be NOT be initialized. 
               If this constructor is used, the destructor will NOT finalize MPI.
      */
-    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string &snapshotPath,
+    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string& snapshotPath,
            LogInfo logInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
@@ -311,8 +312,8 @@ private:
 
     void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-              LoaderContext *context = nullptr);
-    void initFromSnapshot(int3 nranks3D, const std::string &snapshotPath,
+              UnitConversion units, LoaderContext *context = nullptr);
+    void initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
                           LogInfo logInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();

@@ -14,10 +14,10 @@ kg = 1e27
 
 m = 1e9 * nm
 s = 1e15 * fs
-kJ = 1e3 * kg * m ** 2 / s ** 2
+J = kg * m ** 2 / s ** 2
 
 # Argon and system properties.
-epsilon = 0.996 * kJ / 6.022e23
+epsilon = 996. * J / 6.022e23
 sigma = 0.340 * nm
 mass = 39.948 * 1.66053906660e-27 * kg
 
@@ -36,9 +36,9 @@ lj = mir.Interactions.Pairwise('lj', rc=1 * nm, kind='LJ', epsilon=epsilon, sigm
 u.registerInteraction(lj)
 u.setInteraction(lj, pv, pv)
 
-vv = mir.Integrators.Minimize('minimize', max_displacement=max_displacement)
-u.registerIntegrator(vv)
-u.setIntegrator(vv, pv)
+integrator = mir.Integrators.Minimize('minimize', max_displacement=max_displacement)
+u.registerIntegrator(integrator)
+u.setIntegrator(integrator, pv)
 
 u.registerPlugins(mir.Plugins.createForceSaver('forceSaver', pv))
 u.registerPlugins(mir.Plugins.createDumpParticles(

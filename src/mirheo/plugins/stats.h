@@ -58,7 +58,13 @@ private:
 class PostprocessStats : public PostprocessPlugin
 {
 public:
-    PostprocessStats(std::string name, std::string filename = "");
+    /** \brief Construct a `PostprocessStats` plugin.
+
+        \param state MirState object
+        \param name Plugin name
+        \param fetchEvery Every how many time steps to print statistics?
+      */
+    PostprocessStats(std::string name, std::string filename = std::string());
 
     /// Construct a postprocess plugin object from its snapshot.
     PostprocessStats(Loader& loader, const ConfigObject& config);

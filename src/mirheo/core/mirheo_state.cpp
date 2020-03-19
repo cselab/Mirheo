@@ -9,34 +9,31 @@ namespace mirheo
 
 static const std::string fname = "state.mirheo";
 
-MirState::MirState(DomainInfo domain_, real dt_, const ConfigValue *state) :
+ConfigValue TypeLoadSave<UnitConversion>::save(Saver& saver, const UnitConversion& units)
+{
+    return ConfigValue::Object{
+        {"toMeters",    saver(units.toMeters_)},
+        {"toSeconds",   saver(units.toSeconds_)},
+        {"toKilograms", saver(units.toKilograms_)},
+    };
+}
+
+UnitConversion TypeLoadSave<UnitConversion>::parse(const ConfigValue& config) {
+    return UnitConversion{config["toMeters"], config["toSeconds"], config["toKilograms"]};
+}
+
+MirState::MirState(DomainInfo domain_, real dt_, UnitConversion units_,
+                   const ConfigValue *state) :
     domain(domain_),
     dt(dt_),
     currentTime(0),
-    currentStep(0)
+    currentStep(0),
+    units(units_)
 {
     if (state) {
         currentTime = (*state)["currentTime"];
         currentStep = (*state)["currentStep"];
     }
-}
-
-MirState::MirState(const MirState&) = default;
-
-MirState& MirState::operator=(MirState other)
-{
-    swap(other);
-    return *this;
-}
-
-MirState::~MirState() = default;
-
-void MirState::swap(MirState& other)
-{
-    std::swap(domain,      other.domain);
-    std::swap(dt,          other.dt);
-    std::swap(currentTime, other.currentTime);
-    std::swap(currentStep, other.currentStep);
 }
 
 static bool isMasterRank(MPI_Comm comm)
@@ -92,6 +89,7 @@ ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
         {"dt",                saver(state.dt)},
         {"currentTime",       saver(state.currentTime)},
         {"currentStep",       saver(state.currentStep)},
+        {"units",             saver(state.units)},
     };
 }
 
