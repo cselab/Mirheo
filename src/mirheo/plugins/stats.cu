@@ -178,7 +178,7 @@ void PostprocessStats::deserialize()
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
         if (units.isSet()) {
-            real kB = units.joulesToMirheo(1.380649e-23);
+            real kB = units.joulesToMirheo(1.380649e-23_r);
             printf("\tTemperature: %.4f (%.2f K)\n\n", kBT, kBT / kB);
         } else {
             printf("\tTemperature: %.4f\n\n", kBT);

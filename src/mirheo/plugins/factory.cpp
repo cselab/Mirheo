@@ -5,6 +5,7 @@
 #include "anchor_particle.h"
 #include "average_flow.h"
 #include "average_relative_flow.h"
+#include "berendsen_thermostat.h"
 #include "channel_dumper.h"
 #include "outlet.h"
 #include "density_control.h"
@@ -38,11 +39,13 @@ namespace mirheo
 namespace plugin_factory
 {
 
-static void extractPVsNames(const std::vector<ParticleVector*>& pvs, std::vector<std::string>& pvNames)
+static std::vector<std::string> extractPVNames(const std::vector<ParticleVector*>& pvs)
 {
+    std::vector<std::string> pvNames;
     pvNames.reserve(pvs.size());
     for (auto &pv : pvs)
         pvNames.push_back(pv->getName());
+    return pvNames;
 }
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
@@ -75,17 +78,30 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
     return { simPl, postPl };
 }
 
+PairPlugin createBerendsenThermostatPlugin(
+        bool computeTask, const MirState *state, std::string name,
+        const std::vector<ParticleVector *> &pvs, real tau, real T, real kBT, bool increaseIfLower)
+{
+    if (kBT == 0 && T == 0)
+        throw std::invalid_argument("At least one of `kBT` and `T` must be set.");
+    if (kBT != 0 && T != 0)
+        throw std::invalid_argument("Cannot set both `kBT` and `T`.");
+    if (computeTask && T != 0)
+        kBT = T * state->units.joulesToMirheo(1.380649e-23_r); // kB
+    return {
+        computeTask ? std::make_shared<BerendsenThermostatPlugin>(
+                state, name, extractPVNames(pvs), kBT, tau, increaseIfLower) : nullptr,
+        nullptr
+    };
+}
+
 PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
                                       real targetDensity, std::function<real(real3)> region, real3 resolution,
                                       real levelLo, real levelHi, real levelSpace, real Kp, real Ki, real Kd,
                                       int tuneEvery, int dumpEvery, int sampleEvery)
 {
-    std::vector<std::string> pvNames;
-
-    if (computeTask) extractPVsNames(pvs, pvNames);
-    
     auto simPl = computeTask ?
-        std::make_shared<DensityControlPlugin> (state, name, pvNames, targetDensity,
+        std::make_shared<DensityControlPlugin> (state, name, extractPVNames(pvs), targetDensity,
                                                 region, resolution, levelLo, levelHi, levelSpace,
                                                 Kp, Ki, Kd, tuneEvery, dumpEvery, sampleEvery) :
         nullptr;
@@ -100,12 +116,9 @@ PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, s
 PairPlugin createDensityOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                      real numberDensity, std::function<real(real3)> region, real3 resolution)
 {
-    std::vector<std::string> pvNames;
-
-    if (computeTask) extractPVsNames(pvs, pvNames);
-    
     auto simPl = computeTask ?
-        std::make_shared<DensityOutletPlugin> (state, name, pvNames, numberDensity, region, resolution)
+        std::make_shared<DensityOutletPlugin> (
+                state, name, extractPVNames(pvs), numberDensity, region, resolution)
         : nullptr;
     return { simPl, nullptr };
 }
@@ -116,21 +129,15 @@ PairPlugin createPlaneOutletPlugin(bool computeTask, const MirState *state, std:
     if (!computeTask)
         return { nullptr, nullptr };
 
-    std::vector<std::string> pvNames;
-    extractPVsNames(pvs, pvNames);
-
-    return { std::make_shared<PlaneOutletPlugin> (state, name, std::move(pvNames), plane), nullptr };
+    return { std::make_shared<PlaneOutletPlugin> (
+            state, name, extractPVNames(pvs), plane), nullptr };
 }
 
 PairPlugin createRateOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                   real rate, std::function<real(real3)> region, real3 resolution)
 {
-    std::vector<std::string> pvNames;
-
-    if (computeTask) extractPVsNames(pvs, pvNames);
-    
     auto simPl = computeTask ?
-        std::make_shared<RateOutletPlugin> (state, name, pvNames, rate, region, resolution)
+        std::make_shared<RateOutletPlugin> (state, name, extractPVNames(pvs), rate, region, resolution)
         : nullptr;
     return { simPl, nullptr };
 }
@@ -139,12 +146,8 @@ PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std:
                                    int sampleEvery, int dumpEvery, real3 binSize,
                                    std::vector<std::string> channelNames, std::string path)
 {
-    std::vector<std::string> pvNames;
-        
-    if (computeTask) extractPVsNames(pvs, pvNames);
-        
     auto simPl  = computeTask ?
-        std::make_shared<Average3D> (state, name, pvNames, channelNames, sampleEvery, dumpEvery, binSize) :
+        std::make_shared<Average3D> (state, name, extractPVNames(pvs), channelNames, sampleEvery, dumpEvery, binSize) :
         nullptr;
 
     auto postPl = computeTask ? nullptr : std::make_shared<UniformCartesianDumper> (name, path);
@@ -157,12 +160,8 @@ PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *sta
                                            int sampleEvery, int dumpEvery, real3 binSize,
                                            std::vector<std::string> channelNames, std::string path)
 {
-    std::vector<std::string> pvNames;
-
-    if (computeTask) extractPVsNames(pvs, pvNames);
-    
     auto simPl  = computeTask ?
-        std::make_shared<AverageRelative3D> (state, name, pvNames,
+        std::make_shared<AverageRelative3D> (state, name, extractPVNames(pvs),
                                              channelNames, sampleEvery, dumpEvery,
                                              binSize, relativeToOV->getName(), relativeToId) :
         nullptr;
@@ -242,11 +241,8 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
                                       std::vector<ParticleVector*> pvs, int every,
                                       real3 low, real3 high, real3 velocity)
 {
-    std::vector<std::string> pvNames;
-    if (computeTask) extractPVsNames(pvs, pvNames);
-            
     auto simPl = computeTask ?
-        std::make_shared<ImposeVelocityPlugin> (state, name, pvNames, low, high, velocity, every) :
+        std::make_shared<ImposeVelocityPlugin> (state, name, extractPVNames(pvs), low, high, velocity, every) :
         nullptr;
                                     
     return { simPl, nullptr };
@@ -324,11 +320,8 @@ PairPlugin createPinRodExtremityPlugin(bool computeTask, const MirState *state, 
 PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, std::vector<ParticleVector*> pvs,
                                        real3 low, real3 high, int sampleEvery, int tuneEvery, int dumpEvery, real3 targetVel, real Kp, real Ki, real Kd)
 {
-    std::vector<std::string> pvNames;
-    if (computeTask) extractPVsNames(pvs, pvNames);
-        
     auto simPl = computeTask ?
-        std::make_shared<SimulationVelocityControl>(state, name, pvNames, low, high,
+        std::make_shared<SimulationVelocityControl>(state, name, extractPVNames(pvs), low, high,
                                                     sampleEvery, tuneEvery, dumpEvery,
                                                     targetVel, Kp, Ki, Kd) :
         nullptr;
@@ -407,29 +400,30 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
     std::string postType = post ? post->at("__type").getString() : std::string();
 
     // Create a pair of sim and post plugins if the type names match.
-#define MIR_LOAD_PLUGIN_PAIR(A, B)                                             \
-    if (simType == #A && postType == #B) {                                     \
-        if (computeTask)                                                       \
-            return {true, std::make_shared<A>(state, loader, *sim), nullptr};  \
-        else                                                                   \
-            return {true, nullptr, std::make_shared<B>(loader, *post)};        \
-    }                                                                          \
-    static_assert(true, "Semicolon missing")
+#define MIR_LOAD_PLUGIN_PAIR(A, B) do {                                           \
+        if (simType == #A && postType == #B) {                                    \
+            if (computeTask)                                                      \
+                return {true, std::make_shared<A>(state, loader, *sim), nullptr}; \
+            else                                                                  \
+                return {true, nullptr, std::make_shared<B>(loader, *post)};       \
+        }                                                                         \
+    } while (0)
 
     // Create a simulation-only plugin, if the type names match.
-#define MIR_LOAD_SIM_PLUGIN(A)                                                 \
-    if (simType == #A && postType.empty()) {                                   \
-        return {true,                                                          \
-                computeTask ? std::make_shared<A>(state, loader, *sim)         \
-                            : nullptr,                                         \
-                nullptr};                                                      \
-    }                                                                          \
-    static_assert(true, "Semicolon missing")
+#define MIR_LOAD_SIM_PLUGIN(A) do {                                            \
+        if (simType == #A && postType.empty()) {                               \
+            return {true,                                                      \
+                    computeTask ? std::make_shared<A>(state, loader, *sim)     \
+                                : nullptr,                                     \
+                    nullptr};                                                  \
+        }                                                                      \
+    } while (0)
 
     // List all supported plugins.
     MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
     MIR_LOAD_PLUGIN_PAIR(ParticleSenderPlugin, ParticleDumperPlugin);
     MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
+    MIR_LOAD_SIM_PLUGIN(BerendsenThermostatPlugin);
     MIR_LOAD_SIM_PLUGIN(ForceSaverPlugin);
     MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
     MIR_LOAD_SIM_PLUGIN(WallRepulsionPlugin);

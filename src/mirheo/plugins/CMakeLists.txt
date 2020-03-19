@@ -15,6 +15,7 @@ set(sources_cu
   anchor_particle.cu
   average_flow.cu
   average_relative_flow.cu
+  berendsen_thermostat.cu
   density_control.cu
   displacement.cu
   dump_obj_stats.cu

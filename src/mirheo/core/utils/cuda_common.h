@@ -66,6 +66,21 @@ __HD__ inline  T sqr(T val)
     This function Must be called by all threads in the warp.
  */
 template<typename Operation>
+__device__ inline  float4 warpReduce(float4 val, Operation op)
+{
+#pragma unroll
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
+        val.z = op(val.z, warpShflDown(val.z, offset));
+        val.w = op(val.w, warpShflDown(val.w, offset));
+    }
+    return val;
+}
+
+/// See warpReduce()
+template<typename Operation>
 __device__ inline  float3 warpReduce(float3 val, Operation op)
 {
 #pragma unroll
@@ -106,6 +121,21 @@ __device__ inline  float warpReduce(float val, Operation op)
 //****************************************************************************
 // double
 //****************************************************************************
+
+/// See warpReduce()
+template<typename Operation>
+__device__ inline  double4 warpReduce(double4 val, Operation op)
+{
+#pragma unroll
+    for (int offset = warpSize/2; offset > 0; offset /= 2)
+    {
+        val.x = op(val.x, warpShflDown(val.x, offset));
+        val.y = op(val.y, warpShflDown(val.y, offset));
+        val.z = op(val.z, warpShflDown(val.z, offset));
+        val.w = op(val.w, warpShflDown(val.w, offset));
+    }
+    return val;
+}
 
 /// See warpReduce()
 template<typename Operation>
@@ -286,6 +316,16 @@ __device__ inline float3 atomicAdd(float4* addr, float3 v)
     return res;
 }
 
+__device__ inline float4 atomicAdd(float4* addr, float4 v)
+{
+    float4 res;
+    res.x = atomicAdd((float*)addr,   v.x);
+    res.y = atomicAdd((float*)addr+1, v.y);
+    res.z = atomicAdd((float*)addr+2, v.z);
+    res.w = atomicAdd((float*)addr+3, v.w);
+    return res;
+}
+
 
 __device__ inline double2 atomicAdd(double2* addr, double2 v)
 {
@@ -313,6 +353,15 @@ __device__ inline double3 atomicAdd(double4* addr, double3 v)
     return res;
 }
 
+__device__ inline double4 atomicAdd(double4* addr, double4 v)
+{
+    double4 res;
+    res.x = atomicAdd((double*)addr,   v.x);
+    res.y = atomicAdd((double*)addr+1, v.y);
+    res.z = atomicAdd((double*)addr+2, v.z);
+    res.w = atomicAdd((double*)addr+3, v.w);
+    return res;
+}
 
 namespace mirheo
 {

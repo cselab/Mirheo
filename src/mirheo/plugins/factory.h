@@ -31,6 +31,10 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
                                        std::function<std::vector<real3>(real)> velocities,
                                        std::vector<int> pids, int reportEvery, const std::string& path);
 
+PairPlugin createBerendsenThermostatPlugin(
+        bool computeTask, const MirState *state, std::string name,
+        const std::vector<ParticleVector *> &pv, real tau, real T, real kBT, bool increaseIfLower);
+
 PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
                                       real targetDensity, std::function<real(real3)> region, real3 resolution,
                                       real levelLo, real levelHi, real levelSpace, real Kp, real Ki, real Kd,

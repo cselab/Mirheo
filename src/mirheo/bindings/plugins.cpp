@@ -59,6 +59,33 @@ void exportPlugins(py::module& m)
             path: folder where to dump the stats
     )");
 
+    m.def("__createBerendsenThermostat", &plugin_factory::createBerendsenThermostatPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
+          "tau"_a, "T"_a=0, "kBT"_a=0, "increaseIfLower"_a=true, R"(
+        Berendsen thermostat.
+
+        On each time step the velocities of all particles in given particle vectors are multiplied by the following factor:
+
+        .. math::
+
+            \lambda = \sqrt{1 + \frac{\Delta t}{\tau} \left( \frac{T_0}{T} - 1 \right)}
+
+        where :math:`\Delta t` is a time step, :math:`\tau` relaxation time,
+        :math:`T` current temperature, :math:`T_0` target temperature.
+
+        Reference: `Berendsen et al. (1984) <https://aip.scitation.org/doi/10.1063/1.448118>`_
+
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` objects to apply the thermostat to
+            tau: relaxation time :math:`\tau`
+            T: target temperature :math:`T_0`. Can be used only if unit conversion factors are known (see :any:`set_unit_registry`). (*)
+            kBT: target thermal energy :math:`k_B T_0` (*)
+            increaseIfLower: whether to increase the temperature if it's lower than the target temperature
+
+        (*) Exactly one of ``kBT`` and ``T`` must be set.
+    )");
+
     m.def("__createDensityControl", &plugin_factory::createDensityControlPlugin, 
           "compute_task"_a, "state"_a, "name"_a, "file_name"_a, "pvs"_a, "target_density"_a,
           "region"_a, "resolution"_a, "level_lo"_a, "level_hi"_a, "level_space"_a,

@@ -66,6 +66,37 @@ def createAnchorParticles():
     """
     pass
 
+def createBerendsenThermostat():
+    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, T: float = 0, kBT: float = 0, increaseIfLower: bool = True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        Berendsen thermostat.
+
+        On each time step the velocities of all particles in given particle vectors are multiplied by the following factor:
+
+        .. math::
+
+            \lambda = \sqrt{1 + \frac{\Delta t}{\tau} \left( \frac{T_0}{T} - 1 \right)}
+
+        where :math:`\Delta t` is a time step, :math:`\tau` relaxation time,
+        :math:`T` current temperature, :math:`T_0` target temperature.
+
+        Reference: `Berendsen et al. (1984) <https://aip.scitation.org/doi/10.1063/1.448118>`_
+
+        Args:
+            name: name of the plugin
+            pvs: list of :any:`ParticleVector` objects to apply the thermostat to
+            tau: relaxation time :math:`\tau`
+            T: target temperature :math:`T_0`. Can be used only if unit conversion factors are known (see :any:`set_unit_registry`). (*)
+            kBT: target thermal energy :math:`k_B T_0` (*)
+            increaseIfLower: whether to increase the temperature if it's lower than the target temperature
+
+        (*) Exactly one of ``kBT`` and ``T`` must be set.
+    
+
+    """
+    pass
+
 def createDensityControl():
     r"""createDensityControl(state: MirState, name: str, file_name: str, pvs: List[ParticleVectors.ParticleVector], target_density: float, region: Callable[[real3], float], resolution: real3, level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 

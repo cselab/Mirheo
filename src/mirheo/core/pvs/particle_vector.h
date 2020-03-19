@@ -173,7 +173,7 @@ public:
     }
 
     /// get the particle mass
-    real getMassPerParticle() const;
+    real getMassPerParticle() const noexcept { return mass_; }
     
 protected:
     /** Construct a ParticleVector

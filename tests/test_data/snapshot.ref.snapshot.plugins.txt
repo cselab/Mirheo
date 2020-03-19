@@ -76,6 +76,16 @@
             ]
         },
         {
+            "__type": "BerendsenThermostatPlugin",
+            "name": "berendsen_thermostat",
+            "pvNames": [
+                "ov"
+            ],
+            "kBT": 123,
+            "tau": 10,
+            "increaseIfLower": 1
+        },
+        {
             "__type": "MembraneExtraForcePlugin",
             "name": "extraForce",
             "pvName": "ov"
@@ -128,6 +138,7 @@
                 "<SimulationPlugin with name=rbcs>",
                 "<SimulationPlugin with name=force_saver>",
                 "<SimulationPlugin with name=dump_particles>",
+                "<SimulationPlugin with name=berendsen_thermostat>",
                 "<SimulationPlugin with name=extraForce>",
                 "<SimulationPlugin with name=wallRepulsion>"
             ],

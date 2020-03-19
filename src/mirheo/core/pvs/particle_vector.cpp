@@ -248,11 +248,6 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
     local()->forces().uploadToDevice(defaultStream);
 }
 
-real ParticleVector::getMassPerParticle() const
-{
-    return mass_;
-}
-
 void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& filename)
 {
     CUDA_Check( cudaDeviceSynchronize() );
