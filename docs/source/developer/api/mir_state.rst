@@ -9,3 +9,6 @@ This class provides a global context to all Mirheo objects of the simulation.
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::UnitConversion
+   :project: mirheo
+   :members:

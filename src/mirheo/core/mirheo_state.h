@@ -85,6 +85,7 @@ public:
     /** \brief Construct a MirState object
         \param [in] domain The DomainInfo of the simulation
         \param [in] dt Simulation time step
+        \param [in] units Conversion factors from Mirheo to SI units
         \param [in] state If not \c nullptr, will set the current time info from snapshot info
     */
     MirState(DomainInfo domain, real dt, UnitConversion units, const ConfigValue *state = nullptr);

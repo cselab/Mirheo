@@ -39,7 +39,7 @@ class ConfigValue:
         - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
             Otherwise, a potentially approximate representation of the value is returned
         - ``repr(v)`` converts to a JSON string.
-    R
+    
     """
     def __init__():
         r"""__init__(*args, **kwargs)
@@ -68,7 +68,7 @@ class Mirheo:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0, units: UnitConversion = <UnitConversion object at 0x7febda28aa40>) -> None
 
 
 Create the Mirheo coordinator.
@@ -110,6 +110,7 @@ Args:
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
+    units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
         
 
 2. __init__(nranks: int3, snapshot: str, log_filename: str = 'log', debug_level: int = 3, cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
@@ -532,6 +533,33 @@ Tells nvprof to start recording timeline
         r"""stop_profiler(self: Mirheo) -> None
 
 Tells nvprof to stop recording timeline
+
+        """
+        pass
+
+class UnitConversion:
+    r"""
+        Factors for unit conversion between Mirheo and SI units.
+    
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(self: UnitConversion) -> None
+
+Default constructor. Conversion factors not known.
+
+2. __init__(toMeters: float, toSeconds: float, toKilograms: float) -> None
+
+
+            Construct from conversion factors from Mirheo units to SI units.
+
+            Args:
+                toMeters: value in meters of 1 Mirheo length unit
+                toSeconds: value in seconds of 1 Mirheo time (duration) unit
+                toKilograms: value in kilograms of 1 Mirheo mass unit
+        
 
         """
         pass

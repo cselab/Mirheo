@@ -69,10 +69,10 @@ class PintUnitsConverter:
 
 
 def set_unit_registry(ureg, mirL='mirL', mirT='mirT', mirM='mirM'):
-    """Register a pint UnitRegistry.
+    """Register a pint UnitRegistry and Mirheo's coordinate system.
 
     The unit registry will be used to convert any values with units to the
-    given Mirheo unit system before passing them to the mirheo C++ functions.
+    given Mirheo unit system before passing them to the Mirheo C++ functions.
 
     Arguments:
         ureg: a ``pint.UnitRegistry`` object

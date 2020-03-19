@@ -57,6 +57,7 @@ public:
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
+        \param units conversion factors from Mirheo to SI units
         \note MPI will be initialized internally. 
               If this constructor is used, the destructor will also finalize MPI.
 
@@ -64,7 +65,7 @@ public:
      */
     Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion{});
+           UnitConversion units = UnitConversion());
 
     /** \brief Construct a \c Mirheo object using a given communicator.
         \note MPI will be NOT be initialized. 
@@ -72,7 +73,7 @@ public:
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion{});
+           UnitConversion units = UnitConversion());
 
     /** \brief Construct a \c Mirheo object from a snapshot using MPI_COMM_WORLD.
         \param nranks3D Number of ranks along each cartesian direction. 
