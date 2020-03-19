@@ -11,6 +11,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/strprintf.h>
 #include <mirheo/core/walls/interface.h>
 
 #include <pybind11/stl.h>
@@ -74,7 +75,14 @@ void exportUnitConversion(py::module& m)
                 toMeters: value in meters of 1 Mirheo length unit
                 toSeconds: value in seconds of 1 Mirheo time (duration) unit
                 toKilograms: value in kilograms of 1 Mirheo mass unit
-        )");
+        )")
+        .def("__repr__", [](UnitConversion u) -> std::string
+            {
+                if (!u.isSet())
+                    return "UnitConversion()";
+                return strprintf("UnitConversion(%g, %g, %g)",
+                                 u.toMeters(1), u.toSeconds(1), u.toKilograms(1));
+            });
 }
 
 void exportMirheo(py::module& m)
