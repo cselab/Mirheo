@@ -9,6 +9,21 @@ The code uses Dissipative Particle Dynamics method to describe the liquid and it
 
 For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
+If you want to cite this repository, please use the reference of the corresponding paper:
+
+	@article{alexeev2020a,
+	author = {Dmitry Alexeev and Lucas Amoudruz and Sergey Litvinov and Petros Koumoutsakos},
+	doi = {10.1016/j.cpc.2020.107298},
+	journal = {Computer Physics Communications},
+	month = {mar},
+	pages = {107298},
+	publisher = {Elsevier {BV}},
+	title = {Mirheo: High-performance mesoscale simulations for microfluidics},
+	url = {http://www.cse-lab.ethz.ch/wp-content/papercite-data/pdf/alexeev2020a.pdf},
+	year = {2020}
+	}
+
+
 ## Installation
 
 ```sh
