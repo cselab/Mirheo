@@ -98,6 +98,7 @@ public:
     ~Mirheo();
     
     void restart(std::string folder="restart/"); ///< reset the internal state from a checkpoint folder
+    MPI_Comm getWorldComm() const noexcept { return comm_; } ///< \return the world communicator
     bool isComputeTask() const;  ///< \return \c true if the current rank is a \c Simulation rank
     bool isMasterTask() const;   ///< \return \c true if the current rank is the root (i.e. rank = 0)
     bool isSimulationMasterTask() const;  ///< \return \c true if the current rank is the root within the simulation communicator

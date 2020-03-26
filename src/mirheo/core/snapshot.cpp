@@ -158,19 +158,11 @@ static void checkCompilationOptions(const ConfigObject& options)
     }
 }
 
-void loadSnapshot(Mirheo *mir, Loader& loader)
+/// Load all objects that are defined only on compute ranks.
+static void loadComputeSpecificObjects(Mirheo *mir, Loader& loader, const ConfigObject& config)
 {
     LoaderContext& context = loader.getContext();
     std::shared_ptr<InitialConditions> ic = std::make_shared<RestartIC>(context.getPath());
-    const ConfigObject& config = context.getConfig();
-    const ConfigObject& mirConfig = config["Mirheo"][0].getObject();
-
-    checkCompilationOptions(mirConfig["compile_options"].getObject());
-
-    if (auto* attrs = mirConfig.get("attributes")) {
-        for (const auto& pair : attrs->getObject())
-            mir->setAttribute(pair.first, pair.second);
-    }
 
     if (auto *infos = config.get("Mesh")) {
         for (const auto& info : infos->getArray())
@@ -185,56 +177,77 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
         }
     }
 
-    if (mir->isComputeTask()) {
-        if (auto *infos = config.get("Wall"))
-            for (const auto& info : infos->getArray())
-                loadObject<Wall>(mir, loader, info, wall_factory::loadWall);
+    if (auto *infos = config.get("Wall"))
+        for (const auto& info : infos->getArray())
+            loadObject<Wall>(mir, loader, info, wall_factory::loadWall);
 
-        if (auto *infos = config.get("Interaction")) {
-            for (const auto& info : infos->getArray()) {
-                const auto& interaction = loadObject<Interaction>(
-                        mir, loader, info, interaction_factory::loadInteraction);
-                mir->registerInteraction(interaction);
-            }
-        }
-
-        if (auto *infos = config.get("Integrator")) {
-            for (const auto& info : infos->getArray()) {
-                const auto& integrator = loadObject<Integrator>(
-                        mir, loader, info, integrator_factory::loadIntegrator);
-                mir->registerIntegrator(integrator);
-            }
-        }
-
-        const ConfigObject& sim = config["Simulation"][0].getObject();
-        if (auto *infos = sim.get("interactionPrototypes")) {
-            for (const auto& info : infos->getArray()) {
-                const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
-                const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
-                const auto& interaction = context.get<Interaction>(info["interaction"]);
-                real rc = loader.load<real>(info["rc"]);
-                real irc = interaction->getCutoffRadius();
-                if (rc != irc)
-                    die("Interaction rc do not match: %f != %f.", rc, irc);
-                mir->setInteraction(interaction.get(), pv1.get(), pv2.get());
-            }
-        }
-
-        if (auto *infos = sim.get("integratorPrototypes")) {
-            for (const auto& info : infos->getArray()) {
-                const auto& pv = context.get<ParticleVector>(info["pv"]);
-                const auto& integrator = context.get<Integrator>(info["integrator"]);
-                mir->setIntegrator(integrator.get(), pv.get());
-            }
-        }
-
-        if (auto *infos = sim.get("checkWallPrototypes")) {
-            for (const auto& info : infos->getArray()) {
-                const auto& wall = context.get<Wall>(info["wall"]);
-                mir->registerWall(wall, info["every"]);
-            }
+    if (auto *infos = config.get("Interaction")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& interaction = loadObject<Interaction>(
+                    mir, loader, info, interaction_factory::loadInteraction);
+            mir->registerInteraction(interaction);
         }
     }
+
+    if (auto *infos = config.get("Integrator")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& integrator = loadObject<Integrator>(
+                    mir, loader, info, integrator_factory::loadIntegrator);
+            mir->registerIntegrator(integrator);
+        }
+    }
+
+    const ConfigObject& sim = config["Simulation"][0].getObject();
+    if (auto *infos = sim.get("interactionPrototypes")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& pv1 = context.get<ParticleVector>(info["pv1"]);
+            const auto& pv2 = context.get<ParticleVector>(info["pv2"]);
+            const auto& interaction = context.get<Interaction>(info["interaction"]);
+            real rc = loader.load<real>(info["rc"]);
+            real irc = interaction->getCutoffRadius();
+            if (rc != irc)
+                die("Interaction rc do not match: %f != %f.", rc, irc);
+            mir->setInteraction(interaction.get(), pv1.get(), pv2.get());
+        }
+    }
+
+    if (auto *infos = sim.get("integratorPrototypes")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& pv = context.get<ParticleVector>(info["pv"]);
+            const auto& integrator = context.get<Integrator>(info["integrator"]);
+            mir->setIntegrator(integrator.get(), pv.get());
+        }
+    }
+
+    if (auto *infos = sim.get("checkWallPrototypes")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& wall = context.get<Wall>(info["wall"]);
+            mir->registerWall(wall, info["every"]);
+        }
+    }
+}
+
+void loadSnapshot(Mirheo *mir, Loader& loader)
+{
+    // Ensure compute rank first accesses the GPU (on some machines, only one
+    // process can access the GPU).
+    if (mir->isComputeTask())
+        DeviceBuffer<char> tmp(1);
+    MPI_Barrier(mir->getWorldComm());
+
+    LoaderContext& context = loader.getContext();
+    const ConfigObject& config = context.getConfig();
+    const ConfigObject& mirConfig = config["Mirheo"][0].getObject();
+
+    checkCompilationOptions(mirConfig["compile_options"].getObject());
+
+    if (auto* attrs = mirConfig.get("attributes")) {
+        for (const auto& pair : attrs->getObject())
+            mir->setAttribute(pair.first, pair.second);
+    }
+
+    if (mir->isComputeTask())
+        loadComputeSpecificObjects(mir, loader, config);
 
     loadPlugins(mir, loader);
 }
