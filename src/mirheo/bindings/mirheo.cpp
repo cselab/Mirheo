@@ -412,23 +412,6 @@ Args:
 
             Args:
                 path: Target folder.
-        )")
-        .def("setAttribute", &Mirheo::setAttribute,
-            "name"_a, "value"_a, R"(
-            Add or update a user-defined attribute. Useful for adding custom information to snapshots.
-            Supports integers, floats and strings.
-
-            Args:
-                name: attribute name
-                value: a JSON-like ``ConfigValue`` object
-        )")
-        .def("getAttribute", &Mirheo::getAttribute,
-            "name"_a, R"(
-            Read a user-defined attribute and returns a ``ConfigValue``, an object convertible to integers, floats and string.
-            Throws an exception if the attribute is not found.
-
-            Args:
-                name: attribute name
         )");
 }
 

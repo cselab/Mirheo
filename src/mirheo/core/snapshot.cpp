@@ -241,11 +241,6 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
 
     checkCompilationOptions(mirConfig["compile_options"].getObject());
 
-    if (auto* attrs = mirConfig.get("attributes")) {
-        for (const auto& pair : attrs->getObject())
-            mir->setAttribute(pair.first, pair.second);
-    }
-
     if (mir->isComputeTask())
         loadComputeSpecificObjects(mir, loader, config);
 

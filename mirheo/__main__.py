@@ -6,23 +6,16 @@ def run(args):
 
     Usage:
         run [--ranks NX NY NZ]
-            ([--num-timesteps NUM]|[--num-timesteps-attr ATTR_NAME])
+            [--num-timesteps NUM]
+            [--final-snapshot PATH]
             snapshot_path
     """
-    if bool(args.num_timesteps is not None) == bool(args.num_timesteps_attr):
-        raise ValueError("Exactly one of --num-timesteps and --num-timesteps-attr must be set.")
-
     u = mirheo.Mirheo(args.ranks, snapshot=args.snapshot, debug_level=3, log_filename='log')
-    if args.num_timesteps_attr:
-        num_timesteps = int(u.getAttribute(args.num_timesteps_attr))
-    else:
-        num_timesteps = args.num_timesteps
 
-    u.run(num_timesteps)
+    u.run(args.num_timesteps)
 
     if args.final_snapshot:
         u.saveSnapshot(args.final_snapshot)
-
 
 
 def compile_opt(args):

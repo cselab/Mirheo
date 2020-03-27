@@ -138,13 +138,6 @@ We must manually match type names to the classes and invoke the correct construc
 To keep things clean and to avoid increasing the compilation time greatly, the code is organized into factory functions, one per every category (apart from trivial categories ``Simulation``, ``Postprocess`` and ``Mirheo``).
 
 
-Attributes
-----------
-
-It is sometimes useful to attach custom information to snapshots, e.g. the desired number of time steps.
-The ``Mirheo`` object therefore provides a ``setAttribute(name, value)`` function that adds or updates a user-defined attribute, and ``getAttribute*(name)`` functions to read the attribute values.
-
-
 Code organization
 -----------------
 

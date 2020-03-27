@@ -719,8 +719,6 @@ void Mirheo::saveSnapshot(std::string path)
     ConfigValue::Object mir;
     mir.emplace("__category", saver("Mirheo"));
     mir.emplace("__type",     saver("Mirheo"));
-    if (!attributes_.empty())
-        mir.emplace("attributes", attributes_);
     if (state_)
         mir.emplace("state",  saver(state_));
     if (sim_)
@@ -767,15 +765,6 @@ void Mirheo::saveSnapshot(std::string path)
         fwrite(content.data(), 1, content.size(), f.get());
     }
     MPI_Barrier(comm_);
-}
-
-void Mirheo::setAttribute(const std::string& name, ConfigValue value)
-{
-    attributes_.insert_or_assign(name, std::move(value));
-}
-const ConfigValue& Mirheo::getAttribute(const std::string& name)
-{
-    return attributes_.at(name);
 }
 
 } // namespace mirheo

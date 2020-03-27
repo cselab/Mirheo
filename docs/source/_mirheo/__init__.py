@@ -185,20 +185,6 @@ Args:
         """
         pass
 
-    def getAttribute():
-        r"""getAttribute(name: str) -> ConfigValue
-
-
-            Read a user-defined attribute and returns a ``ConfigValue``, an object convertible to integers, floats and string.
-            Throws an exception if the attribute is not found.
-
-            Args:
-                name: attribute name
-        
-
-        """
-        pass
-
     def getState():
         r"""getState(self: Mirheo) -> MirState
 
@@ -440,21 +426,6 @@ Register Plugins
              .. warning::
                  if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          
-
-        """
-        pass
-
-    def setAttribute():
-        r"""setAttribute(name: str, value: ConfigValue) -> None
-
-
-            Add or update a user-defined attribute. Useful for adding custom information to snapshots.
-            Supports integers, floats and strings.
-
-            Args:
-                name: attribute name
-                value: a JSON-like ``ConfigValue`` object
-        
 
         """
         pass
