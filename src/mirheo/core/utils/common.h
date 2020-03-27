@@ -94,19 +94,28 @@ enum class CheckpointIdAdvanceMode
     Incremental ///< 0,1,2,... Save all checkpoint files (more memory requirements, but safer)
 };
 
+/// Whether to use checkpoint or snapshot mechanism.
+enum class CheckpointMechanism
+{
+    Checkpoint, ///< Old checkpoint mechanism, no simulation setup stored.
+    Snapshot    ///< Full state of the solver, data + setup.
+};
+
 /// Stores the information required to dump checkpoint data
 struct CheckpointInfo
 {
     /// Constructor
     CheckpointInfo(int every = 0, const std::string& folder = "restart/",
-                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
+                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong,
+                   CheckpointMechanism mechanism = CheckpointMechanism::Checkpoint);
 
     /// \return \c true if there will be at least one dump
     bool needDump() const;
 
     int every; ///< The checkpoint data will be dumped every this many time steps
-    std::string folder; ///< directory that will contain the checkpoint data
+    std::string folder; ///< target directory (for checkpoints), or pattern (for snapshots)
     CheckpointIdAdvanceMode mode; ///< The mehod to increment the checkpoint index
+    CheckpointMechanism mechanism; ///< What kind of storing mechanism to use.
 };
 
 /// support for CheckpointInfo snapshot

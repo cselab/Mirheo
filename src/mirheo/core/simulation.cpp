@@ -129,7 +129,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     interactionsFinal_(std::make_unique<InteractionManager>()),
     gpuAwareMPI_(gpuAwareMPI)
 {
-    if (checkpointInfo_.needDump())
+    // Snapshot mechanism creates its own folders (one per snapshot).
+    if (checkpointInfo_.needDump() && checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
         createFoldersCollective(cartComm_, checkpointInfo_.folder);
 
     const auto &domain = state_->domain;
@@ -827,9 +828,17 @@ void Simulation::_createTasks()
 #undef INIT
 
     if (checkpointInfo_.every > 0)
+    {
         scheduler_->addTask(tasks_->checkpoint,
-                           [this](__UNUSED cudaStream_t stream) { this->checkpoint(); },
-                           checkpointInfo_.every);
+                           [this](__UNUSED cudaStream_t stream)
+        {
+            if (checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
+                this->checkpoint();
+            else
+                this->snapshot();
+        },
+       checkpointInfo_.every);
+    }
 
     for (auto& clVec : cellListMap_)
         for (auto& cl : clVec.second)
@@ -1356,6 +1365,13 @@ void Simulation::checkpoint()
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
+void Simulation::snapshot()
+{
+    advanceCheckpointId(checkpointId_, checkpointInfo_.mode);
+    notifyPostProcess(checkpointTag, checkpointId_);
+    snapshot(createSnapshotPath(checkpointInfo_.folder, checkpointId_));
+}
+
 MIRHEO_MEMBER_VARS(Simulation::IntegratorPrototype, pv, integrator);
 MIRHEO_MEMBER_VARS(Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
 MIRHEO_MEMBER_VARS(Simulation::WallPrototype, wall, pv, maximumPartTravel);
@@ -1388,6 +1404,8 @@ void Simulation::snapshot(const std::string& path)
         MPI_Check( MPI_Send(&size, 1, MPI_INT, 0, snapshotTag, interComm_) );
         MPI_Check( MPI_Send(simJson.c_str(), size, MPI_CHAR, 0, snapshotTag, interComm_) );
     }
+
+    CUDA_Check( cudaDeviceSynchronize() );
 }
 
 ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string &typeName)

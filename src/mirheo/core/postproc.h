@@ -24,9 +24,9 @@ public:
     /** \brief Construct a \c Postprocess object
         \param comm a communicator that holds all postprocessing ranks.
         \param interComm An inter communicator to communicate with the \c Simulation ranks.
-        \param checkpointFolder The folder name used to dump the checkpoint state.
+        \param checkpointInfo Checkpoint configuratoin.
      */
-    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder);
+    Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const CheckpointInfo& checkpointInfo);
     ~Postprocess();
 
     /** \brief Register a plugin to this object. 
@@ -78,6 +78,7 @@ private:
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins_;
 
     std::string checkpointFolder_;
+    CheckpointMechanism checkpointMechanism_;
 };
 
 } // namespace mirheo

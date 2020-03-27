@@ -15,11 +15,13 @@
 namespace mirheo
 {
 
-Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const std::string& checkpointFolder) :
+Postprocess::Postprocess(MPI_Comm& comm, MPI_Comm& interComm,
+                         const CheckpointInfo& checkpointInfo) :
     MirObject("postprocess"),
     comm_(comm),
     interComm_(interComm),
-    checkpointFolder_(checkpointFolder)
+    checkpointFolder_(checkpointInfo.folder),
+    checkpointMechanism_(checkpointInfo.mechanism)
 {
     info("Postprocessing initialized");
 }
@@ -112,7 +114,10 @@ void Postprocess::run()
             else if (index == checkpointReqIndex)
             {
                 debug2("Postprocess got a request for checkpoint, executing now");
-                checkpoint(checkpointId);
+                if (checkpointMechanism_ == CheckpointMechanism::Checkpoint)
+                    checkpoint(checkpointId);
+                else
+                    snapshot(createSnapshotPath(checkpointFolder_, checkpointId));
                 requests[index] = _listenSimulation(checkpointTag, &checkpointId);
             }
             else

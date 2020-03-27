@@ -22,7 +22,7 @@ namespace mirheo
 
 using namespace pybind11::literals;
 
-static CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
+static CheckpointIdAdvanceMode getCheckpointMode(const std::string& mode)
 {
     if (mode == "PingPong")
         return CheckpointIdAdvanceMode::PingPong;
@@ -31,6 +31,17 @@ static CheckpointIdAdvanceMode getCheckpointMode(std::string mode)
 
     die("Unknown checkpoint mode '%s'\n", mode.c_str());
     return CheckpointIdAdvanceMode::PingPong;
+}
+
+static CheckpointMechanism getCheckpointMechanism(const std::string& mechanism)
+{
+    if (mechanism == "Checkpoint")
+        return CheckpointMechanism::Checkpoint;
+    if (mechanism == "Snapshot")
+        return CheckpointMechanism::Snapshot;
+
+    die("Unknown checkpoint mechanism '%s'\n", mechanism.c_str());
+    return CheckpointMechanism::Checkpoint;
 }
 
 void exportConfigValue(py::module& m)
@@ -95,14 +106,17 @@ void exportMirheo(py::module& m)
         Main coordination class, should only be one instance at a time
     )")
         .def(py::init( [] (int3 nranks, real3 domain, real dt,
-                           std::string log, int debuglvl, int checkpointEvery,
+                           std::string log, int debuglvl,
+                           std::string checkpointMechanismStr, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
                            bool cudaMPI, bool noSplash, long commPtr, UnitConversion units)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
-                auto checkpointMode = getCheckpointMode(checkpointModeStr);
-                CheckpointInfo checkpointInfo(checkpointEvery, checkpointFolder, checkpointMode);
-                
+                CheckpointInfo checkpointInfo(
+                        checkpointEvery, checkpointFolder,
+                        getCheckpointMode(checkpointModeStr),
+                        getCheckpointMechanism(checkpointMechanismStr));
+
                 if (commPtr == 0) {
                     return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
                                                            checkpointInfo, cudaMPI, units);
@@ -114,9 +128,10 @@ void exportMirheo(py::module& m)
                 }
             } ),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3, "checkpoint_every"_a=0,
-             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a = "PingPong", "cuda_aware_mpi"_a=false,
-             "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
+             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3,
+             "checkpoint_mechanism"_a="Checkpoint", "checkpoint_every"_a=0,
+             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
+             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
 Create the Mirheo coordinator.
 
 .. warning::
@@ -150,8 +165,9 @@ Args:
         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
+    checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-    checkpoint_folder: folder where the checkpoint files will reside
+    checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.

@@ -124,6 +124,7 @@ h5
 /snapshot/log_00002.log
 /snapshot/log_00003.log
 /snapshot/stats.txt
+/snapshot/periodic_snapshots/
 /snapshot/snapshot1/
 /snapshot/snapshot2/
 /stress/log_00000.log
