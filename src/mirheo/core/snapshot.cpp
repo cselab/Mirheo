@@ -10,6 +10,7 @@
 #include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/strprintf.h>
 #include <mirheo/plugins/factory.h>
 
 #include <typeinfo>
@@ -243,6 +244,11 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
         loadComputeSpecificObjects(mir, loader, config);
 
     loadPlugins(mir, loader);
+}
+
+std::string createSnapshotPath(const std::string& pathPrefix, int snapshotId)
+{
+    return strprintf("%s%06d", pathPrefix.c_str(), snapshotId);
 }
 
 } // namespace mirheo

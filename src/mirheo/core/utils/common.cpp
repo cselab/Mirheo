@@ -80,10 +80,12 @@ const std::string torque     = "torques";
 } // namespace channel_names
 
 CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
-                               CheckpointIdAdvanceMode mode_) :
+                               CheckpointIdAdvanceMode mode_,
+                               CheckpointMechanism mechanism_) :
     every(every_),
     folder(folder_),
-    mode(mode_)
+    mode(mode_),
+    mechanism(mechanism_)
 {}
 
 bool CheckpointInfo::needDump() const
@@ -94,17 +96,19 @@ bool CheckpointInfo::needDump() const
 ConfigValue TypeLoadSave<CheckpointInfo>::save(Saver& saver, const CheckpointInfo& info)
 {
     return ConfigValue::Object{
-        {"__type", saver("CheckpointInfo")},
-        {"every",  saver(info.every)},
-        {"folder", saver(info.folder)},
-        {"mode",   saver(info.mode)},
+        {"__type",    saver("CheckpointInfo")},
+        {"every",     saver(info.every)},
+        {"folder",    saver(info.folder)},
+        {"mode",      saver(info.mode)},
+        {"mechanism", saver(info.mechanism)},
     };
 }
 
 CheckpointInfo TypeLoadSave<CheckpointInfo>::load(Loader&, const ConfigValue& config)
 {
     assert(config["__type"] == "CheckpointInfo");
-    return CheckpointInfo{config["every"], config["folder"], config["mode"]};
+    return CheckpointInfo{config["every"], config["folder"], config["mode"],
+                          config["mechanism"]};
 }
 
 } // namespace mirheo

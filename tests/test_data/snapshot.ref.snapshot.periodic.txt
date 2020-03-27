@@ -1,0 +1,10 @@
+snapshot_000001
+snapshot_000002
+snapshot_000003
+snapshot_000004
+snapshot_000005
+periodic_snapshots/snapshot_000001/config.json:            "currentStep": 0,
+periodic_snapshots/snapshot_000002/config.json:            "currentStep": 10,
+periodic_snapshots/snapshot_000003/config.json:            "currentStep": 20,
+periodic_snapshots/snapshot_000004/config.json:            "currentStep": 30,
+periodic_snapshots/snapshot_000005/config.json:            "currentStep": 40,

@@ -155,4 +155,7 @@ private:
 /// Load the snapshot to the Mirheo object.
 void loadSnapshot(Mirheo *mir, Loader& loader);
 
+/// Create a snapshot path from the prefix (pattern) and the snapshot ID.
+std::string createSnapshotPath(const std::string& pathPrefix, int snapshotId);
+
 } // namespace mirheo

@@ -90,8 +90,10 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
     if (rank_ == 0 && !logInfo.noSplash)
         sayHello();
 
-    checkpointInfo.folder = makePath(checkpointInfo.folder);
-    
+    // Append a '/' if checkpoints are used.
+    if (checkpointInfo.mechanism == CheckpointMechanism::Checkpoint)
+        checkpointInfo.folder = makePath(checkpointInfo.folder);
+
     if (noPostprocess_)
     {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
@@ -140,7 +142,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
         MPI_Check( MPI_Comm_rank(ioComm_, &rank_) );
 
-        post_ = std::make_unique<Postprocess> (ioComm_, interComm_, checkpointInfo.folder);
+        post_ = std::make_unique<Postprocess> (ioComm_, interComm_, checkpointInfo);
     }
 
     MPI_Check( MPI_Comm_free(&splitComm) );
@@ -689,10 +691,10 @@ void Mirheo::logCompileOptions() const
 
 void Mirheo::saveSnapshot(const std::string& path)
 {
-    // Abort if no-postprocess, not supported, mostly because loading assumes
-    // both Simulation and Postprocess objects are always available.
+    // Abort if no-postprocess. Does not make sense to make a full snapshot of
+    // a partial simulation setup.
     if (noPostprocess_)
-        die("saveSnapshot not implemented for no-postprocess runs.");
+        die("saveSnapshot not supported for no-postprocess runs.");
 
     if (sim_)
         sim_->snapshot(path);

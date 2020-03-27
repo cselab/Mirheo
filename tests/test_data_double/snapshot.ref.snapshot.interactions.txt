@@ -54,7 +54,8 @@
                 "__type": "CheckpointInfo",
                 "every": 0,
                 "folder": "restart/",
-                "mode": 0
+                "mode": 0,
+                "mechanism": 0
             },
             "particleVectors": [
                 "<ParticleVector with name=pv>"

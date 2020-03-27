@@ -58,8 +58,21 @@ public:
 
     /// restore the simulation state from a folder that contains all restart files
     void restart(const std::string& folder);
-    /// dump the whole simulation state to the checkpoint folder
+
+    /// Dump the whole simulation state to the checkpoint folder and advance the checkpoint ID.
     void checkpoint();
+
+    /** \brief Dump the whole simulation state and setup, and advance the checkpoint ID.
+
+        Target path is automatically determined from the checkpoint folder and ID.
+        Wrapper for `snaphot(const std::string&)`.
+      */
+    void snapshot();
+
+    /** \brief Dump the whole simulation setup and data at the given path.
+        \param path Target folder.
+      */
+    void snapshot(const std::string& path);
 
     /** \brief register a ParticleVector and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register
@@ -215,11 +228,6 @@ public:
         \param current if \c true, will only dump the current tasks; otherwise, will dump all possible ones.
      */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
-
-    /** \brief Save snapshot of the simulation setup and data.
-        \param path Target folder.
-      */
-    void snapshot(const std::string& path);
 
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
