@@ -86,8 +86,11 @@ PairPlugin createBerendsenThermostatPlugin(
         throw std::invalid_argument("At least one of `kBT` and `T` must be set.");
     if (kBT != 0 && T != 0)
         throw std::invalid_argument("Cannot set both `kBT` and `T`.");
-    if (computeTask && T != 0)
+    if (computeTask && T != 0) {
+        if (!state->units.isSet())
+            throw std::invalid_argument("Cannot use `T` without unit conversion factors.");
         kBT = T * state->units.joulesToMirheo(1.380649e-23_r); // kB
+    }
     return {
         computeTask ? std::make_shared<BerendsenThermostatPlugin>(
                 state, name, extractPVNames(pvs), kBT, tau, increaseIfLower) : nullptr,

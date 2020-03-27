@@ -12,7 +12,7 @@
 namespace mirheo
 {
 
-namespace BerendsenThermostatKernels
+namespace berendsen_thermostat_kernels
 {
 
 /// Compute the sum of (m * vx, m * vy, m * vz, m * v^2 / 2) for a given PV.
@@ -48,7 +48,7 @@ __global__ void updateVelocities(PVview view, real3 avgVel, real lambda)
     view.writeVelocity(tid, make_real4(vel3, vel4.w));
 }
 
-} // namespace BerendsenThermostatKernels
+} // namespace berendsen_thermostat_kernels
 
 
 BerendsenThermostatPlugin::BerendsenThermostatPlugin(
@@ -86,7 +86,7 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
     stats_.clearDevice(stream);
     for (size_t i = 0; i < pvs_.size(); ++i) {
         PVview view(pvs_[i], pvs_[i]->local());
-        SAFE_KERNEL_LAUNCH(BerendsenThermostatKernels::reduceVelocityAndEnergy,
+        SAFE_KERNEL_LAUNCH(berendsen_thermostat_kernels::reduceVelocityAndEnergy,
                            getNblocks(view.size, nthreads), nthreads, 0, stream,
                            view, stats_.devPtr() + i);
     }
@@ -124,7 +124,7 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
     // Update local particles.
     for (ParticleVector *pv : pvs_) {
         PVview view(pv, pv->local());
-        SAFE_KERNEL_LAUNCH(BerendsenThermostatKernels::updateVelocities,
+        SAFE_KERNEL_LAUNCH(berendsen_thermostat_kernels::updateVelocities,
                            getNblocks(view.size, nthreads), nthreads, 0, stream,
                            view, avgVel, lambda);
     }

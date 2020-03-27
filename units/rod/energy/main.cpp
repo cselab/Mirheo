@@ -201,7 +201,7 @@ static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1.f;
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     RodVector rv(&state, "rod", mass, nSegments);
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
@@ -263,7 +263,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1.f;
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     RodVector rv(&state, "rod", mass, nSegments);
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
@@ -331,7 +331,7 @@ static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1.f;
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     RodVector rv(&state, "rod", mass, nSegments);
 
     
@@ -395,7 +395,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1.f;
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     RodVector rv(&state, "rod", mass, nSegments);
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};

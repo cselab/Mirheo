@@ -15,7 +15,7 @@ static std::vector<real> generateSamples(Gen gen, real dt, long n)
 {
     DomainInfo domain;
     std::vector<real> samples (n);
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     state.currentTime = 0;    
 
     for (state.currentStep = 0; state.currentStep < n; ++state.currentStep)

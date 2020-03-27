@@ -91,7 +91,7 @@ TEST (RESTART, pv)
     real L = 64.f;
     real density = 4.f;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     auto pv0 = initializeRandomPV(comm, pvName, &state, density);
     auto pv1 = std::make_unique<ParticleVector> (&state, pvName, mass);
     
@@ -181,7 +181,7 @@ TEST (RESTART, rov)
     const int nObjs = 512;
     const int objSize = 666;
     DomainInfo domain = createDomainInfo(comm, {L, L, L});
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
 
     auto rov0 = initializeRandomREV(comm, rovName, &state, nObjs, objSize);
     auto rov1 = std::make_unique<RigidShapedObjectVector<Ellipsoid>> (&state, rovName, mass, objSize, Ellipsoid{{1.f, 1.f, 1.f}});

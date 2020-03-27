@@ -24,7 +24,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
     bool success = true;
     DomainInfo domain{length, {0,0,0}, length};
     real dt = 0; // dummy dt
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
 
     ParticleVector dpds(&state, "dpd", 1.0f);
     std::unique_ptr<CellList> cells = std::make_unique<PrimaryCellList>(&dpds, rc, length);

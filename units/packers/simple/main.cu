@@ -94,7 +94,7 @@ TEST (PACKERS_SIMPLE, particles)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
     auto lpv = pv->local();
 
@@ -150,7 +150,7 @@ TEST (PACKERS_SIMPLE, particlesShift)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     auto pv = initializeRandomPV(MPI_COMM_WORLD, &state, density);
     auto lpv = pv->local();
 
@@ -214,7 +214,7 @@ TEST (PACKERS_SIMPLE, objects)
     domain.globalSize  = {L, L, L};
     domain.globalStart = {0.f, 0.f, 0.f};
     domain.localSize   = {L, L, L};
-    MirState state(domain, dt);
+    MirState state(domain, dt, UnitConversion{});
     auto rev = initializeRandomREV(MPI_COMM_WORLD, &state, nObjs, objSize);
     auto lrev = rev->local();
 

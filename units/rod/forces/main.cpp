@@ -406,7 +406,7 @@ static void checkMomentum(const PinnedBuffer<real4>& pos, const HostBuffer<Force
 template <class CenterLine>
 static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSegments, Real h)
 {
-    MirState state(DomainInfo(), 0.f);
+    MirState state(DomainInfo(), 0.f, UnitConversion{});
 
     RodParameters params;
     params.kBending = {0.f, 0.f, 0.f};
@@ -465,7 +465,7 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
 template <class CenterLine>
 static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int nSegments, Real h)
 {
-    MirState state(DomainInfo(), 0.f);
+    MirState state(DomainInfo(), 0.f, UnitConversion{});
 
     RodParameters params;
     params.kBending = B;
