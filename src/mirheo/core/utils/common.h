@@ -125,5 +125,6 @@ constexpr int stoppingTag = 424242; ///< tag to notify the postprocess ranks to 
 constexpr int stoppingMsg = -1;     ///< stopping value 
 
 constexpr int checkpointTag = 434343; ///< tag to notify the postprocess ranks to perform checkpoint
+constexpr int snapshotTag = 434344;   ///< tag to use for snapshot data exchange
 
 } // namespace mirheo

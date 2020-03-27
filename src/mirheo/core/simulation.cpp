@@ -12,6 +12,7 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/task_scheduler.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/folders.h>
@@ -1363,9 +1364,30 @@ MIRHEO_MEMBER_VARS(Simulation::BouncerPrototype, bouncer, pv);
 MIRHEO_MEMBER_VARS(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
 MIRHEO_MEMBER_VARS(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
 
-void Simulation::saveSnapshotAndRegister(Saver& saver)
+void Simulation::snapshot(const std::string& path)
 {
+    // Prepare context and the saver.
+    SaverContext context;
+    context.path = path;
+    context.groupComm = cartComm_;
+    Saver saver{&context};
+
+    // Create the snapshot folder before saving.
+    if (!createFoldersCollective(cartComm_, path))
+        die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
+    MPI_Barrier(interComm_);
+
     saver.registerObject<Simulation>(this, _saveSnapshot(saver, "Simulation"));
+    saver.registerObject<MirState>(state_, saver(*state_));
+
+    int rank;
+    MPI_Comm_rank(cartComm_, &rank);
+    if (rank == 0) {
+        std::string simJson = ConfigValue{std::move(saver).getConfig()}.toJSONString();
+        int size = (int)simJson.size();
+        MPI_Check( MPI_Send(&size, 1, MPI_INT, 0, snapshotTag, interComm_) );
+        MPI_Check( MPI_Send(simJson.c_str(), size, MPI_CHAR, 0, snapshotTag, interComm_) );
+    }
 }
 
 ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string &typeName)

@@ -61,13 +61,6 @@ public:
     /// dump the whole simulation state to the checkpoint folder
     void checkpoint();
 
-    /** \brief Dump all simulation data, create a ConfigObject describing the simulation state and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly \c Simulation.
-      */
-    void saveSnapshotAndRegister(Saver& saver) override;
-
     /** \brief register a ParticleVector and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register
         \param ic The InitialConditions that will be applied to \p pv when registered
@@ -222,6 +215,11 @@ public:
         \param current if \c true, will only dump the current tasks; otherwise, will dump all possible ones.
      */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
+
+    /** \brief Save snapshot of the simulation setup and data.
+        \param path Target folder.
+      */
+    void snapshot(const std::string& path);
 
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.

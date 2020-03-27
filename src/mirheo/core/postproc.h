@@ -51,12 +51,10 @@ public:
      */
     void checkpoint(int checkpointId);
 
-    /** \brief Dump all postprocess data, create a ConfigObject describing the postprocess state and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly Postprocess.
+    /** \brief Save snapshot of the simulation setup and data.
+        \param path Target folder.
       */
-    void saveSnapshotAndRegister(Saver& saver) override;
+    void snapshot(const std::string& path);
 
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.

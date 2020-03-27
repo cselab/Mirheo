@@ -87,33 +87,30 @@
             "pvsIntegratorMap": {}
         }
     ],
-    "Mirheo": [
+    "MirState": [
         {
-            "__type": "Mirheo",
-            "state": {
-                "__type": "MirState",
-                "domainGlobalStart": [
-                    0,
-                    0,
-                    0
-                ],
-                "domainGlobalSize": [
-                    4,
-                    6,
-                    8
-                ],
-                "dt": 0.10000000149011612,
-                "currentTime": 0,
-                "currentStep": 0,
-                "units": {
-                    "toMeters": 0,
-                    "toSeconds": 0,
-                    "toKilograms": 0
-                }
-            },
-            "compile_options": {
-                "useDouble": 0
+            "__type": "MirState",
+            "domainGlobalStart": [
+                0,
+                0,
+                0
+            ],
+            "domainGlobalSize": [
+                4,
+                6,
+                8
+            ],
+            "dt": 0.10000000149011612,
+            "currentTime": 0,
+            "currentStep": 0,
+            "units": {
+                "toMeters": 0,
+                "toSeconds": 0,
+                "toKilograms": 0
             }
         }
-    ]
+    ],
+    "CompileOptions": {
+        "useDouble": 0
+    }
 }

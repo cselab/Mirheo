@@ -1,10 +1,15 @@
 #include "postproc.h"
 
 #include <mirheo/core/logger.h>
+#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/common.h>
+#include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/folders.h>
 
 #include <mpi.h>
+
+#include <cassert>
 #include <vector>
 
 namespace mirheo
@@ -148,9 +153,59 @@ void Postprocess::checkpoint(int checkpointId)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }
 
-void Postprocess::saveSnapshotAndRegister(Saver& saver)
+/// Prepare a ConfigObject listing all compilation options that affect the output format.
+static ConfigObject compileOptionsToConfig(Saver& saver) {
+    // If updating this, don't forget to update snapshot.cpp:checkCompilationOptions.
+    return ConfigObject{
+        {"useDouble", saver(compile_options.useDouble)},
+    };
+}
+
+void Postprocess::snapshot(const std::string& path)
 {
+    // Prepare context and the saver.
+    SaverContext context;
+    context.path = path;
+    context.groupComm = comm_;
+    Saver saver{&context};
+
+    // Folder creation barrier.
+    MPI_Barrier(interComm_);
+
+    // All ranks participate in storing the Postprocess object and its plugins.
     saver.registerObject<Postprocess>(this, _saveSnapshot(saver, "Postprocess"));
+
+    int rank;
+    MPI_Comm_rank(comm_, &rank);
+    if (rank == 0) {
+        // Get the JSON object from the simulation side.
+        int size;
+        MPI_Check( MPI_Recv(&size, 1, MPI_INT, 0, snapshotTag, interComm_, MPI_STATUS_IGNORE) );
+        std::string simJson(size, '_');
+        MPI_Check( MPI_Recv(const_cast<char *>(simJson.data()), size, MPI_CHAR,
+                            0, snapshotTag, interComm_, MPI_STATUS_IGNORE) );
+
+        // Postprocessing side will be merged into the simulation side.
+        ConfigObject all = configFromJSON(simJson).getObject();
+        ConfigObject &post = saver.getConfig();
+        assert(post.size() == 1 || post.size() == 2);  // Only plugins (optionally) and Postprocess.
+        auto it = post.find("PostprocessPlugin");
+        if (it != post.end()) {
+            // Insert before `SimulationPlugin` for cosmetic reasons.
+            all.unsafe_insert(all.find("SimulationPlugin"),
+                              "PostprocessPlugin", std::move(it->second));
+        }
+        all.unsafe_insert(all.find("Simulation"),
+                          "Postprocess", std::move(post["Postprocess"]));
+
+        // Store compile options as a special category.
+        all.unsafe_insert("CompileOptions", compileOptionsToConfig(saver));
+
+        // Save the config.json.
+        std::string content = ConfigValue(std::move(all)).toJSONString() + '\n';
+        FileWrapper f(joinPaths(path, "config.json"), "w");
+        fwrite(content.data(), 1, content.size(), f.get());
+    }
 }
 
 ConfigObject Postprocess::_saveSnapshot(Saver& saver, const std::string& typeName)

@@ -74,7 +74,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
                   UnitConversion units, LoaderContext *load)
 {
-    const ConfigValue *stateConfig = load ? &load->getConfig()["Mirheo"][0]["state"] : nullptr;
+    const ConfigValue *stateConfig = load ? &load->getConfig()["MirState"][0] : nullptr;
 
     int nranks;
 
@@ -111,7 +111,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
 
     MPI_Comm splitComm;
     
-    // Note: Update `is*Task()` and `saveSnapshot` functions if modifying this.
+    // Note: Update `is*Task()` functions if modifying this.
     computeTask_ = rank_ % 2;
     MPI_Check( MPI_Comm_split(comm_, computeTask_, rank_, &splitComm) );
 
@@ -152,7 +152,7 @@ void Mirheo::initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
     LoaderContext context{snapshotPath};
     Loader loader{&context};
 
-    const ConfigValue& mirState = context.getConfig()["Mirheo"][0]["state"];
+    const ConfigValue& mirState = context.getConfig()["MirState"][0];
     auto checkpointInfo = loader.load<CheckpointInfo>(
             context.getConfig()["Simulation"][0]["checkpointInfo"]);
 
@@ -687,84 +687,17 @@ void Mirheo::logCompileOptions() const
     info("USE_NVTX        : %d", compile_options.useNvtx       );
 }
 
-/// Prepare a ConfigObject listing all compilation options that affect the output format.
-static ConfigObject compileOptionsToConfig(Saver& saver) {
-    // Don't forget to update snapshot.cpp:checkCompilationOptions.
-    ConfigObject out;
-    out.unsafe_insert("useDouble", saver(compile_options.useDouble));
-    return out;
-}
-
-void Mirheo::saveSnapshot(std::string path)
+void Mirheo::saveSnapshot(const std::string& path)
 {
     // Abort if no-postprocess, not supported, mostly because loading assumes
     // both Simulation and Postprocess objects are always available.
     if (noPostprocess_)
         die("saveSnapshot not implemented for no-postprocess runs.");
 
-    // Prepare context and the saver.
-    SaverContext context;
-    context.path = path;
-    context.groupComm = isComputeTask() ? cartComm_ : ioComm_;
-    if (context.groupComm == MPI_COMM_NULL)
-        die("something's wrong with the comm.");
-    Saver saver{&context};
-
-    // Create the snapshot folder before saving.
-    if (!path.empty())
-        if (!createFoldersCollective(comm_, path))
-            die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
-
-    // Dump the Mirheo object and the whole simulation recursively.
-    ConfigValue::Object mir;
-    mir.emplace("__category", saver("Mirheo"));
-    mir.emplace("__type",     saver("Mirheo"));
-    if (state_)
-        mir.emplace("state",  saver(state_));
     if (sim_)
-        saver(sim_);
-    if (post_)
-        saver(post_);
-    mir.emplace("compile_options", compileOptionsToConfig(saver));
-    saver.registerObject(this, std::move(mir));
-    ConfigObject localConfig = std::move(saver).getConfig();
-
-    // Send the config to the postprocessing rank, merge and store on the disk.
-    constexpr int simMaster = 0;   // With respect to comm_.
-    constexpr int postMaster = 1;
-
-    if (isSimulationMasterTask()) {
-        std::string simJson = ConfigValue{std::move(localConfig)}.toJSONString();
-        int size = (int)simJson.size();
-        MPI_Check( MPI_Send(&size, 1, MPI_INT, postMaster, 98765, comm_) );
-        MPI_Check( MPI_Send(simJson.c_str(), size, MPI_CHAR, postMaster, 98765, comm_) );
-    }
-    if (isPostprocessMasterTask()) {
-        int size;
-        MPI_Check( MPI_Recv(&size, 1, MPI_INT, simMaster, 98765, comm_, MPI_STATUS_IGNORE) );
-        std::string simJson(size, '_');
-        MPI_Check( MPI_Recv(const_cast<char *>(simJson.data()), size, MPI_CHAR,
-                            simMaster, 98765, comm_, MPI_STATUS_IGNORE) );
-        ConfigObject all = configFromJSON(simJson).getObject();
-
-        // Merge post into sim (all).
-        ConfigObject &post = localConfig;
-        assert(post.size() == 2 || post.size() == 3);  // Plugins, postprocess, Mirheo.
-        auto it = post.find("PostprocessPlugin");
-        if (it != post.end()) {
-            // Insert before `SimulationPlugin` for cosmetic reasons.
-            all.unsafe_insert(all.find("SimulationPlugin"),
-                              "PostprocessPlugin", std::move(it->second));
-        }
-        all.unsafe_insert(all.find("Simulation"),
-                          "Postprocess", std::move(post["Postprocess"]));
-
-        // Save the config.json.
-        std::string content = ConfigValue(std::move(all)).toJSONString() + '\n';
-        FileWrapper f(joinPaths(path, "config.json"), "w");
-        fwrite(content.data(), 1, content.size(), f.get());
-    }
-    MPI_Barrier(comm_);
+        sim_->snapshot(path);
+    else
+        post_->snapshot(path);
 }
 
 } // namespace mirheo

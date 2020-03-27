@@ -278,7 +278,7 @@ public:
     /** \brief Save snapshot of the Mirheo simulation to the given folder.
         \param [in] path The target folder path.
       */
-    void saveSnapshot(std::string path);
+    void saveSnapshot(const std::string& path);
 
 private:
     std::unique_ptr<Simulation> sim_;

@@ -237,9 +237,7 @@ void loadSnapshot(Mirheo *mir, Loader& loader)
 
     LoaderContext& context = loader.getContext();
     const ConfigObject& config = context.getConfig();
-    const ConfigObject& mirConfig = config["Mirheo"][0].getObject();
-
-    checkCompilationOptions(mirConfig["compile_options"].getObject());
+    checkCompilationOptions(config["CompileOptions"].getObject());
 
     if (mir->isComputeTask())
         loadComputeSpecificObjects(mir, loader, config);

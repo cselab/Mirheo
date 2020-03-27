@@ -83,6 +83,7 @@ void MirState::restart(MPI_Comm comm, std::string folder)
 ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
 {
     return ConfigValue::Object{
+        {"__category",        saver("MirState")},
         {"__type",            saver("MirState")},
         {"domainGlobalStart", saver(state.domain.globalStart)},
         {"domainGlobalSize",  saver(state.domain.globalSize)},
