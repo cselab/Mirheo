@@ -32,8 +32,8 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     const int tid   = threadIdx.x;
     
     // Find to which buffer this object should go
-    auto prop = view.comAndExtents[objId];
-    auto dir  = exchangers_common::getDirection(prop.com, domain.localSize);
+    const auto prop = view.comAndExtents[objId];
+    const int3 dir  = exchangers_common::getDirection(prop.com, domain.localSize);
 
     const int bufId = fragment_mapping::getId(dir);
 
@@ -52,10 +52,10 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     {
         __syncthreads();
         
-        auto shift = exchangers_common::getShift(domain.localSize, dir);
+        const auto shift = exchangers_common::getShift(domain.localSize, dir);
 
         auto buffer = dataWrap.getBuffer(bufId);
-        int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
+        const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
         packer.blockPackShift(numElements, buffer, objId, shDstObjId, shift);
     }
