@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import numpy as np
 import trimesh, argparse
 
 parser = argparse.ArgumentParser()

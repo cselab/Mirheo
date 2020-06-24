@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -45,4 +44,3 @@ del (u)
 # rm -rf h5
 # mir.run --runargs "-n 2" ./density_outlet.py --max_density 0.0
 # mir.avgh5 yz number_densities h5/solvent-00009.h5 > profile.out.txt
-

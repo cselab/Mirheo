@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 
 import argparse
-import numpy as np
 import h5py as h5
+import numpy as np
+import sys
 
 def err(s): sys.stderr.write(s)
 

@@ -77,7 +77,7 @@ if args.vis:
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, path="ply/"))
 
 tend = int(5.0 / dt)
-    
+
 u.run(tend)
 
 if pv_rbc is not None:
@@ -88,23 +88,23 @@ if pv_rbc is not None:
 # nTEST: bounce.membrane.mesh
 # set -eu
 # cd bounce/membrane
-# rm -rf pos.rbc.txt pos.rbc.out.txt 
+# rm -rf pos.rbc.txt pos.rbc.out.txt
 # cp ../../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./mesh.py
-# mv pos.rbc.txt pos.rbc.out.txt 
+# mv pos.rbc.txt pos.rbc.out.txt
 
 # nTEST: bounce.membrane.mesh.substep
 # set -eu
 # cd bounce/membrane
-# rm -rf pos.rbc.txt pos.rbc.out.txt 
+# rm -rf pos.rbc.txt pos.rbc.out.txt
 # cp ../../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./mesh.py --subStep
-# mv pos.rbc.txt pos.rbc.out.txt 
+# mv pos.rbc.txt pos.rbc.out.txt
 
 # nTEST: bounce.membrane.mesh.exchange
 # set -eu
 # cd bounce/membrane
-# rm -rf pos.rbc.txt pos.rbc.out.txt 
+# rm -rf pos.rbc.txt pos.rbc.out.txt
 # cp ../../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./mesh.py --xorigin 4.1
-# mv pos.rbc.txt pos.rbc.out.txt 
+# mv pos.rbc.txt pos.rbc.out.txt

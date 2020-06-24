@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import numpy as np
 import mirheo as mir
 

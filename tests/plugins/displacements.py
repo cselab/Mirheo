@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import argparse
 import numpy as np
 
 ranks  = (1, 1, 1)

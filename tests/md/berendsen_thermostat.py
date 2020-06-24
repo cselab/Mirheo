@@ -5,7 +5,6 @@
 Test that running with 1 and with 2 ranks produces the same result.
 """
 
-from mpi4py import MPI
 import mirheo as mir
 import sys
 

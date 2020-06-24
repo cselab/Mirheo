@@ -2,7 +2,6 @@
 
 import mirheo as mir
 import numpy as np
-import argparse
 
 dt   = 0.001
 axes = (1, 2, 3)

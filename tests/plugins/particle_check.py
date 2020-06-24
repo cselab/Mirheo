@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import numpy as np
 import mirheo as mir
 
 ranks  = (1, 1, 1)
@@ -27,7 +26,7 @@ check_every = 1
 u.registerPlugins(mir.Plugins.createParticleChecker('checker', check_every))
 
 u.run(2)
-    
+
 
 # TEST: plugins.particle_check.bounds
 # cd plugins

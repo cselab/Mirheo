@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-import sys
+import argparse
 import numpy as np
-import mirheo as mir
+import sys
 
-import sys, argparse
+import mirheo as mir
 sys.path.append("..")
 from common.membrane_params import lina_parameters
 
@@ -69,7 +69,7 @@ if args.vis:
 if args.restart:
     u.restart("restart/")
 
-niters = int (t_end / dt)    
+niters = int (t_end / dt)
 u.run(niters)
 
 if args.restart and u.isComputeTask():
@@ -80,7 +80,7 @@ if args.restart and u.isComputeTask():
 # nTEST: restart.bounce
 # set -eu
 # cd restart
-# rm -rf pos.rbc.txt pos.rbc.out.txt restart 
+# rm -rf pos.rbc.txt pos.rbc.out.txt restart
 # cp ../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./bounce.py --vis
 # mir.run --runargs "-n 2" ./bounce.py --vis --restart

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import numpy as np
 import mirheo as mir
 import argparse
 
@@ -43,7 +42,7 @@ prm_rbc = {
     "kb"     : 0.0,
     "theta"  : 0.0
 }
-    
+
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "Lim", "Kantor", **prm_rbc, stress_free=args.stress_free)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
@@ -84,4 +83,3 @@ u.run(2)
 # cp ../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./lim.py --stress_free --mu 1000.0 --b1 2.0 --b2 4.0
 # mir.post ./utils/post.forces.py --file h5/rbc-00001.h5 --out forces.out.txt
-

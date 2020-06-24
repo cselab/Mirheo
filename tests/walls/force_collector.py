@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import mirheo as mir
 import numpy as np
 
@@ -22,7 +21,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = mir.InitialConditions.Uniform(number_density=density)
 u.registerParticleVector(pv, ic)
-    
+
 dpd = mir.Interactions.Pairwise('dpd', rc=rc, kind="DPD", a=12.0, gamma=gdpd, kBT=0.4, power=0.125)
 u.registerInteraction(dpd)
 
@@ -61,14 +60,14 @@ u.run((int)(tend/dt))
 
 if u.isComputeTask():
     A = domain[0] * domain[1]
-    
+
     data_hi = np.loadtxt(outname_hi)
     data_lo = np.loadtxt(outname_lo)
 
     # avg_from = 5
     # fx_hi = abs(np.mean(data_hi[avg_from:,1]))
     # fx_lo = abs(np.mean(data_lo[avg_from:,1]))
-    
+
     # Sxy_hi = fx_hi / A
     # Sxy_lo = fx_lo / A
     # thSxy = abs(gdot) * 4.96 * gdpd

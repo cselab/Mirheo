@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import argparse
 
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)

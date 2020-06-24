@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -27,7 +26,7 @@ u.run(2)
 # TEST: dump.h5
 # cd dump
 # rm -rf h5
-# mir.run --runargs "-n 2" ./h5.py --ranks 1 1 1 
+# mir.run --runargs "-n 2" ./h5.py --ranks 1 1 1
 # mir.avgh5 xz number_densities h5/solvent-00000.h5 > profile.out.txt
 
 # TEST: dump.h5.mpi

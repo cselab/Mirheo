@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 """Test automatic unit conversion (set_unit_registry)."""
 
-import argparse
 import json
-import os
 from mpi4py import MPI
 
 import mirheo as mir

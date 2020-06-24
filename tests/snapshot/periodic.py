@@ -6,7 +6,6 @@ We test that there are that many folders and that the currentStep changes.
 """
 
 import mirheo as mir
-import argparse
 
 u = mir.Mirheo(nranks=(1, 1, 1), domain=(4, 6, 8), dt=0.125, debug_level=3,
                log_filename='log', no_splash=True,

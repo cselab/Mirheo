@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-import numpy as np
 import mirheo as mir
-import sys, argparse
+import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--stress_free', action="store_true", default=False)
@@ -35,7 +34,7 @@ prm_rbc = {
     "kb"     : 0.0,
     "theta"  : 0.0
 }
-    
+
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=args.stress_free)
 u.registerInteraction(int_rbc)
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import mirheo as mir
-import numpy as np
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -19,7 +18,7 @@ else:
     restart_folder="restart/"
 
 u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
-    
+
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=2)
 u.registerParticleVector(pv, ic)
@@ -31,7 +30,7 @@ u.setInteraction(dpd, pv, pv)
 if args.restart:
     u.restart("restart/")
 u.run(7)
-    
+
 
 # TEST: restart.interactions
 # cd restart
@@ -39,4 +38,3 @@ u.run(7)
 # mir.run --runargs "-n 1" ./interactions.py --ranks 1 1 1
 # mir.run --runargs "-n 1" ./interactions.py --ranks 1 1 1 --restart
 # cat restart2/dpd.ParirwiseInt.txt > state.out.txt
-
