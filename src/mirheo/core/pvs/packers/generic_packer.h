@@ -17,13 +17,13 @@ namespace mirheo
 using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&) >;
 
 /** \brief A device-friendly structure that is used to pack and unpack multiple channels into a single buffer.
-    
+
     Additionally to being packed and unpacked, the data can be shifted.
     This facilitate the exchange and redistribute operations.
 
     The packed channels are structured in a single buffer containing:
     1. The first channel data
-    2. padding 
+    2. padding
     3. The second channel data
     4. padding
     5. ...
@@ -34,7 +34,7 @@ using PackPredicate = std::function< bool (const DataManager::NamedChannelDesc&)
 struct GenericPackerHandler
 {
     /// Alignment sufficient for all types used in channels. Useful for
-    /// external codes that operate with Mirheo's packing functions. 
+    /// external codes that operate with Mirheo's packing functions.
     static constexpr size_t alignment = getPaddedSize<char>(1);
 
     /** \brief Fetch one datum from the registered channels and pack it into a buffer
@@ -118,16 +118,16 @@ struct GenericPackerHandler
     __D__ void copyTo(GenericPackerHandler& dst, int srcId, int dstId) const
     {
         assert (nChannels_ == dst.nChannels_);
-        
+
         for (int i = 0; i < nChannels_; ++i)
         {
             cuda_variant::apply_visitor([&](auto srcPtr)
             {
                 using T = typename std::remove_pointer<decltype(srcPtr)>::type;
                 auto dstPtr = cuda_variant::get_alternative<T*>(dst.varChannelData_[i]);
-                
+
                 dstPtr[dstId]= srcPtr[srcId];
-                
+
             }, varChannelData_[i]);
         }
     }
@@ -136,7 +136,7 @@ struct GenericPackerHandler
         \param [in] numElements The number of elements that the buffer must contain once packed.
         \return The size (in bytes) of the buffer.
 
-        This must be used to allocate the buffer size. 
+        This must be used to allocate the buffer size.
         Because of padding, the size is not simply the sum of sizes of all elements.
      */
     __HD__ size_t getSizeBytes(int numElements) const
@@ -227,7 +227,7 @@ private:
         return totPacked;
     }
 
-protected:    
+protected:
     int nChannels_              {0};       ///< number of data channels to pack / unpack
     CudaVarPtr *varChannelData_ {nullptr}; ///< device pointers of the packed data
     bool *needShift_            {nullptr}; ///< flag per channel: true if data needs to be shifted
@@ -239,10 +239,10 @@ class GenericPacker : private GenericPackerHandler
 public:
     /** \brief Register all channels of a DataManager satisfying a predicate.
         \param [in] dataManager The object that contains the channels to register
-        \param [in] predicate The filter (white list) that is used to select the channels to register, 
+        \param [in] predicate The filter (white list) that is used to select the channels to register,
                               based on their description and names
         \param [in] stream The stream used to transfer the data on the device
-        
+
         All previously registered channels will be removed before adding those described above.
      */
     void updateChannels(DataManager& dataManager, PackPredicate& predicate, cudaStream_t stream);
@@ -252,11 +252,11 @@ public:
 
     /// see GenericPackerHandler::getSizeBytes().
     size_t getSizeBytes(int numElements) const;
-    
+
 private:
     void _registerChannel(CudaVarPtr varPtr, bool needShift,
                           bool& needUpload, cudaStream_t stream);
-    
+
     PinnedBuffer<CudaVarPtr> channelData_;
     PinnedBuffer<bool> needShiftData_;
 };

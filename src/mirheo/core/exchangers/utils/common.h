@@ -23,7 +23,7 @@ __device__ static inline int3 getDirection(real3 pos, real3 L)
     if (pos.x >= 0.5_r * L.x) dir.x = 1;
     if (pos.y >= 0.5_r * L.y) dir.y = 1;
     if (pos.z >= 0.5_r * L.z) dir.z = 1;
-    
+
     return dir;
 }
 

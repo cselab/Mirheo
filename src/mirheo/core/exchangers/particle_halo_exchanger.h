@@ -25,7 +25,7 @@ public:
     ParticleHaloExchanger();
     ~ParticleHaloExchanger();
 
-    /** \brief Add a ParticleVector for halo exchange. 
+    /** \brief Add a ParticleVector for halo exchange.
         \param pv The ParticleVector to attach
         \param cl The associated cell-list of \p pv
         \param extraChannelNames The list of channels to exchange (additionally to the default positions and velocities)

@@ -25,7 +25,7 @@ public:
     using ParticleType = Particle; ///< compatible particle type
     using HandlerType  = PairwiseNorandomDPD;  ///< handler type corresponding to this object
     using ParamsType   = NoRandomDPDParams; ///< parameters that are used to create this object
-    
+
     /// constructor
     PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real dt, real power) :
         ParticleFetcherWithVelocity(rc),
@@ -78,7 +78,7 @@ public:
     {
         return "PairwiseNorandomDPD";
     }
-    
+
 protected:
     real a_; ///< conservative force magnitude
     real gamma_; ///< viscous force coefficient

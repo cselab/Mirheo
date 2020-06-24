@@ -19,7 +19,7 @@ class LJAwarenessNone
 {
 public:
     using ParamsType = LJAwarenessParamsNone; ///< Corresponding parameters type
-    
+
     LJAwarenessNone() = default;
     /// Generic constructor
     LJAwarenessNone(__UNUSED const ParamsType& params) {}
@@ -40,11 +40,11 @@ class LJAwarenessObject
 {
 public:
     using ParamsType = LJAwarenessParamsObject;  ///< Corresponding parameters type
-    
+
     LJAwarenessObject() = default;
     /// Generic constructor
     LJAwarenessObject(__UNUSED const ParamsType& params) {}
-    
+
     /// Setup internal state
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2)
     {
@@ -81,7 +81,7 @@ private:
 MIRHEO_TYPE_NAME(LJAwarenessObject, "LJAwarenessObject");
 
 /** A GPU compatible functor that describes a filter for repulsive LJ interactions.
-    This particular class allows interactions only between particles of a different rod 
+    This particular class allows interactions only between particles of a different rod
     or particles within the same rod separated by a minimum number of segments.
     This is useful to avoid self crossing in rods.
  */
@@ -192,7 +192,7 @@ public:
         constexpr real tolerance = 1e-6_r;
         if (!awareness_.interact(src.i1, dst.i1))
             return make_real3(0.0_r);
-        
+
         const real3 dr = dst.r - src.r;
         const real dr2 = dot(dr, dr);
 

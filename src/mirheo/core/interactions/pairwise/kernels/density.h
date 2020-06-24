@@ -26,7 +26,7 @@ public:
     using HandlerType  = PairwiseDensity; ///< handler type corresponding to this object
     using ParamsType   = DensityParams;   ///< parameters that are used to create this object
 #endif // DOXYGEN_SHOULD_SKIP_THIS
-    
+
     /// construct from density kernel
     PairwiseDensity(real rc, DensityKernel densityKernel) :
         ParticleFetcher(rc),
@@ -67,7 +67,7 @@ public:
     {
         return constructTypeName<DensityKernel>("PairwiseDensity");
     }
-    
+
 protected:
     real invrc_; ///< 1 / rc
     DensityKernel densityKernel_; ///< the underlying density kernel

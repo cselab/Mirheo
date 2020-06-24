@@ -18,16 +18,16 @@ SingleNodeExchangeEngine::~SingleNodeExchangeEngine() = default;
 void SingleNodeExchangeEngine::init(cudaStream_t stream)
 {
     const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
-    
+
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (!exchanger_->needExchange(i))
             debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->getCName());
-    
+
     // Derived class determines what to send
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
             exchanger_->prepareSizes(i, stream);
-        
+
     CUDA_Check( cudaStreamSynchronize(stream) );
 
     // Derived class determines what to send
@@ -39,11 +39,11 @@ void SingleNodeExchangeEngine::init(cudaStream_t stream)
 void SingleNodeExchangeEngine::finalize(cudaStream_t stream)
 {
     const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
-    
+
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
             _copySend2Recv(exchanger_->getExchangeEntity(i), stream);
-        
+
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
             exchanger_->combineAndUploadData(i, stream);
@@ -53,7 +53,7 @@ void SingleNodeExchangeEngine::finalize(cudaStream_t stream)
 void SingleNodeExchangeEngine::_copySend2Recv(ExchangeEntity *helper, cudaStream_t stream)
 {
     const auto bulkId = helper->bulkId;
-    
+
     if (helper->send.sizes[bulkId] != 0)
         error("Non-empty message to itself detected, this may fail with the Single node engine, "
               "working with particle vector '%s'", helper->getCName());

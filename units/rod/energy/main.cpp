@@ -79,13 +79,13 @@ static std::vector<Real> computeBendingEnergies(const real4 *positions, int nSeg
 
         Real3 t0_dp0 = cross(t0, dp0);
         Real3 t1_dp1 = cross(t1, dp1);
-    
+
         Real3 dpPerp0 = dp0 - dpt0 * t0;
         Real3 dpPerp1 = dp1 - dpt1 * t1;
 
         Real dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
         Real dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
-    
+
         Real2 kappa0 { +dpPerp0inv * dot(bicur, t0_dp0),
                        -dpPerp0inv * dot(bicur,    dp0)};
 
@@ -104,7 +104,7 @@ static std::vector<Real> computeBendingEnergies(const real4 *positions, int nSeg
 
         if (Emode == EnergyMode::Density)
             Eb *= linv;
-        
+
         energies.push_back(Eb);
     }
     return energies;
@@ -164,7 +164,7 @@ static std::vector<Real> computeTwistEnergies(const real4 *positions, int nSegme
 
         Real theta0 = atan2(dpv0, dpu0);
         Real theta1 = atan2(dpv1, dpu1);
-    
+
         Real tau  = safeDiffTheta(theta0, theta1) * linv;
         Real dTau = tau - tauEq;
 
@@ -189,7 +189,7 @@ static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
         return (real) torsion(s);;
@@ -206,7 +206,7 @@ static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
-    
+
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
@@ -218,7 +218,7 @@ static Real checkBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, 
             (pos.data(), nSegments, kBending, kappaEq);
 
         Real h = 1.0 / nSegments;
-    
+
         for (int i = 0; i < nSegments - 1; ++i)
         {
             Real s = (i+1) * h;
@@ -251,7 +251,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
         return (real) torsion(s);;
@@ -282,7 +282,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
     auto gpuInt = createInteractionRod(&state, "twist_forces", params, StatesParametersNone{}, true);
     gpuInt->setPrerequisites(&rv, &rv, nullptr, nullptr);
     ic.exec(comm, &rv, defaultStream);
-    
+
     auto& pos = rv.local()->positions();
 
     rv.local()->forces().clear(defaultStream);
@@ -304,7 +304,7 @@ static Real checkGPUBendingEnergy(const MPI_Comm& comm, CenterLineFunc centerLin
         auto dE = math::abs(cpuE - gpuE);
         err = std::max(err, dE);
     }
-    
+
     return err;
 }
 
@@ -319,7 +319,7 @@ static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
         return (real) torsion(s);;
@@ -334,10 +334,10 @@ static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
     MirState state(domain, dt, UnitConversion{});
     RodVector rv(&state, "rod", mass, nSegments);
 
-    
+
     const ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
-    
+
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
@@ -350,7 +350,7 @@ static Real checkTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine, To
 
         Real h = 1.0 / nSegments;
         Real err = 0;
-    
+
         for (int i = 0; i < nSegments - 1; ++i)
         {
             Real s = (i+1) * h;
@@ -383,7 +383,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
         return (real) torsion(s);;
@@ -400,7 +400,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0f, 0.0f, 0.0f, 0.0f}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
-    
+
     RodParameters params;
     params.kBending = make_real3(0._r);
     params.kappaEq  = {make_real2(0._r)};
@@ -436,7 +436,7 @@ static Real checkGPUTwistEnergy(const MPI_Comm& comm, CenterLineFunc centerLine,
         auto dE = math::abs(cpuE - gpuE);
         err = std::max(err, dE);
     }
-    
+
     return err;
 }
 
@@ -448,14 +448,14 @@ TEST (ROD, cpu_energies_bending)
 
     Real3 kBending {1.0, 0.0, 1.0};
     Real2 kappaEq {0.1, 0.0};
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
     auto torsion = [](__UNUSED Real s) -> Real {return 0.0;};
-    
+
     auto analyticEnergy = [&](__UNUSED Real s) -> Real
     {
         Real2 Bo = symmetricMatMult(kBending, kappaEq);
@@ -464,9 +464,9 @@ TEST (ROD, cpu_energies_bending)
 
     Real2 Bo = symmetricMatMult(kBending, kappaEq);
     Real EtotRef = 0.5 * dot(Bo, kappaEq) * L;
-    
+
     std::vector<int> nsegs = {8, 16, 32, 64, 128, 256, 512};
-    
+
     for (auto n : nsegs)
     {
         auto err = checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
@@ -480,10 +480,10 @@ TEST (ROD, cpu_energies_bending)
 TEST (ROD, cpu_energies_bending_circle)
 {
     Real R = 1.5;
-    
+
     Real3 kBending {1.0, 0.0, 1.0};
     Real2 kappaEq {0., 0.};
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real t = 2 * M_PI * s;
@@ -491,7 +491,7 @@ TEST (ROD, cpu_energies_bending_circle)
     };
 
     auto torsion = [](__UNUSED Real s) -> Real {return 0.0;};
-    
+
     auto analyticEnergy = [&](__UNUSED Real s) -> Real
     {
         Real2 dOm = Real2{1/R, 0.0} - kappaEq;
@@ -502,10 +502,10 @@ TEST (ROD, cpu_energies_bending_circle)
     Real2 dOm = Real2{1/R, 0.0} - kappaEq;
     Real2 Bo = symmetricMatMult(kBending, dOm);
     Real EtotRef = 0.5 * dot(Bo, dOm) * 2 * M_PI * R;
-    
+
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
     std::vector<Real> errors;
-    
+
     for (auto n : nsegs)
         errors.push_back(checkBendingEnergy<CheckMode::Detail>(MPI_COMM_WORLD, centerLine, torsion, n,
                                                                kBending, kappaEq, analyticEnergy, EtotRef));
@@ -528,10 +528,10 @@ TEST (ROD, cpu_energies_bending_circle)
 TEST (ROD, gpu_energies_bending_circle)
 {
     Real R = 1.5;
-    
+
     Real3 kBending {1.0, 0.0, 1.0};
     Real2 kappaEq {0., 0.};
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real t = 2 * M_PI * s;
@@ -539,10 +539,10 @@ TEST (ROD, gpu_energies_bending_circle)
     };
 
     auto torsion = [](__UNUSED Real s) -> Real {return 0.0;};
-        
+
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
     // std::vector<int> nsegs = {32};
-    
+
     for (auto n : nsegs)
     {
         auto err = checkGPUBendingEnergy(MPI_COMM_WORLD, centerLine, torsion, n,
@@ -559,14 +559,14 @@ TEST (ROD, cpu_energies_twist)
     Real tau0  {0.1};
     Real kTwist {1.0};
     Real tauEq  {0.3};
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
     auto torsion = [&](__UNUSED Real s) -> Real {return tau0;};
-    
+
     auto analyticEnergy = [&](__UNUSED Real s) -> Real
     {
         Real dTau = tau0 - tauEq;
@@ -575,7 +575,7 @@ TEST (ROD, cpu_energies_twist)
 
     Real dTau = tau0 - tauEq;
     Real EtotRef = L * 0.5 * kTwist * dTau * dTau;
-    
+
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
 
     for (auto n : nsegs)
@@ -595,15 +595,15 @@ TEST (ROD, gpu_energies_twist)
     Real tau0  {0.1};
     Real kTwist {1.0};
     Real tauEq  {0.3};
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
     };
 
     auto torsion = [&](__UNUSED Real s) -> Real {return tau0;};
-    
-    
+
+
     std::vector<int> nsegs = {8, 16, 32, 64, 128};
 
     for (auto n : nsegs)
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 
     logger.init(MPI_COMM_WORLD, "rod_energy.log", 9);
-    
+
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();
 

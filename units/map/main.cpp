@@ -9,13 +9,13 @@ using namespace mirheo;
 TEST (MAP, Entry_backAndForth)
 {
     const int ntries = 10000;
-    
+
     for (int i = 0; i < ntries; ++i)
     {
         const int bufId = rand() % 27;
         const int id = rand() % (1<<(32-5));
         const MapEntry m (id, bufId);
-        
+
         ASSERT_EQ(id,    m.getId());
         ASSERT_EQ(bufId, m.getBufId());
     }
@@ -24,7 +24,7 @@ TEST (MAP, Entry_backAndForth)
 TEST (MAP, ThreadDispatch)
 {
     const int ntries = 10000;
-    
+
     for (int i = 0; i < ntries; ++i)
     {
         const int nBuffers = 27;
@@ -37,7 +37,7 @@ TEST (MAP, ThreadDispatch)
         int tid = rand() % offsets[nBuffers];
 
         int buffId = dispatchThreadsPerBuffer(nBuffers, offsets, tid);
-        
+
         ASSERT_LE(offsets[buffId], tid);
         ASSERT_GT(offsets[buffId+1], tid);
         ASSERT_LT(buffId, nBuffers);

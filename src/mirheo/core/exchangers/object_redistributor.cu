@@ -30,7 +30,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    
+
     // Find to which buffer this object should go
     const auto prop = view.comAndExtents[objId];
     const int3 dir  = exchangers_common::getDirection(prop.com, domain.localSize);
@@ -40,7 +40,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     __shared__ int shDstObjId;
 
     __syncthreads();
-    
+
     if (tid == 0)
         shDstObjId = atomicAdd(dataWrap.sizes + bufId, 1);
 
@@ -51,7 +51,7 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
     else
     {
         __syncthreads();
-        
+
         const auto shift = exchangers_common::getShift(domain.localSize, dir);
 
         auto buffer = dataWrap.getBuffer(bufId);
@@ -92,13 +92,13 @@ void ObjectRedistributor::attach(ObjectVector *ov)
     {
         return namedDesc.second->persistence == DataManager::PersistenceMode::Active;
     };
-    
+
     std::unique_ptr<ObjectPacker> packer;
     if (auto rv = dynamic_cast<RodVector*>(ov)) packer = std::make_unique<RodPacker>   (predicate);
     else                                        packer = std::make_unique<ObjectPacker>(predicate);
-    
+
     auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
-    
+
     packers_.push_back(std::move(packer));
     this->addExchangeEntity(std::move(helper));
 
@@ -113,9 +113,9 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto bulkId = helper->bulkId;
-    
+
     ov->findExtentAndCOM(stream, ParticleVectorLocality::Local);
-    
+
     OVview ovView(ov, lov);
 
     debug2("Counting exiting objects of '%s'", ov->getCName());
@@ -123,7 +123,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     // Prepare sizes
     helper->send.sizes.clear(stream);
     packer->update(lov, stream);
-    
+
     if (ovView.nObjects > 0)
     {
         const int nthreads = 256;
@@ -179,7 +179,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     // Gather data
     helper->resizeSendBuf();
     helper->send.sizes.clearDevice(stream);
-    
+
     const int nthreads = 256;
     const int nblocks  = ovView.nObjects;
 
@@ -202,7 +202,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
              nObjsBulk, nthreads, 0, stream,
              helper->send.getBufferDevPtr(bulkId), 0, packerHandler);
     }, exchangers_common::getHandler(packer));
-    
+
     helper->send.sizes[bulkId] = 0;
     helper->computeSendOffsets();
     helper->send.uploadInfosToDevice(stream);

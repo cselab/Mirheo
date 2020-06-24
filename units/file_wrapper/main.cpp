@@ -24,7 +24,7 @@ TEST (FILE_WRAPPER, stdout )
     stream.open(FileWrapper::SpecialStream::Cout, true);
     fprintf(stream.get(), "%s", content.c_str());
     const std::string output = testing::internal::GetCapturedStdout();
-    ASSERT_EQ(output, content); 
+    ASSERT_EQ(output, content);
 }
 
 TEST (FILE_WRAPPER, dump_file )
@@ -37,7 +37,7 @@ TEST (FILE_WRAPPER, dump_file )
     fflush(stream.get());
 
     const std::string dumped = getFileContent(fname);
-    ASSERT_EQ(dumped, content); 
+    ASSERT_EQ(dumped, content);
 }
 
 TEST (FILE_WRAPPER, move_dumper )
@@ -51,7 +51,7 @@ TEST (FILE_WRAPPER, move_dumper )
     fflush(stream1.get());
 
     const std::string dumped = getFileContent(fname);
-    ASSERT_EQ(dumped, content); 
+    ASSERT_EQ(dumped, content);
 }
 
 int main(int argc, char **argv)

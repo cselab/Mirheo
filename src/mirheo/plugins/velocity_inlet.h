@@ -17,7 +17,7 @@ public:
 
     using ImplicitSurfaceFunc = std::function<real(real3)>;
     using VelocityFieldFunc = std::function<real3(real3)>;
-    
+
     VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                         ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
                         real3 resolution, real numberDensity, real kBT);

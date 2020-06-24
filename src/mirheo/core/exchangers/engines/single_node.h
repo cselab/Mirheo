@@ -22,7 +22,7 @@ public:
      */
     SingleNodeExchangeEngine(std::unique_ptr<Exchanger>&& exchanger);
     ~SingleNodeExchangeEngine();
-    
+
     void init    (cudaStream_t stream) override;
     void finalize(cudaStream_t stream) override;
 

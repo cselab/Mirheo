@@ -22,7 +22,7 @@ __global__ void applyMagneticField(ROVview view, real3 B, real3 M)
     M = q.rotate(M);
 
     const real3 T = cross(M, B);
-    
+
     atomicAdd(&view.motions[gid].torque.x, static_cast<RigidReal>(T.x));
     atomicAdd(&view.motions[gid].torque.y, static_cast<RigidReal>(T.y));
     atomicAdd(&view.motions[gid].torque.z, static_cast<RigidReal>(T.z));
@@ -54,7 +54,7 @@ void MagneticOrientationPlugin::beforeForces(cudaStream_t stream)
 
     const auto t = getState()->currentTime;
     const auto B = magneticFunction_(t);
-    
+
     SAFE_KERNEL_LAUNCH(
             magnetic_orientation_plugin_kernels::applyMagneticField,
             getNblocks(view.size, nthreads), nthreads, 0, stream,

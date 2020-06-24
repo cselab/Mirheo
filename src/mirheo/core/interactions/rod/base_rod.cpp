@@ -11,7 +11,7 @@ BaseRodInteraction::BaseRodInteraction(const MirState *state, const std::string&
 {}
 
 BaseRodInteraction::~BaseRodInteraction() = default;
-    
+
 void BaseRodInteraction::halo(ParticleVector *pv1,
                               __UNUSED ParticleVector *pv2,
                               __UNUSED CellList *cl1,

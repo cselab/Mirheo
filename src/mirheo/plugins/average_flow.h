@@ -45,7 +45,7 @@ private:
     std::vector<std::string> pvNames_;
 
 protected:
-    
+
     std::vector<ParticleVector*> pvs_;
 
     int nSamples_ {0};

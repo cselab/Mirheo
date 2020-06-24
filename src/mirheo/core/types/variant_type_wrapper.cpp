@@ -10,7 +10,7 @@ struct VisitorToStr
 #define TYPE2STR(Type) std::string operator()(const DataTypeWrapper<Type>&) const {return #Type ;}
 
     MIRHEO_TYPE_TABLE(TYPE2STR)
-    
+
 #undef TYPE2STR
 };
 

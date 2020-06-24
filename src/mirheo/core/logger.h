@@ -35,7 +35,7 @@ namespace mirheo
     \code
     Logger logger;
     \endcode
-    has to be defined in one the objective file (typically the one that contains main()). 
+    has to be defined in one the objective file (typically the one that contains main()).
     Prior to any logging the method init() must be called.
  */
 class Logger
@@ -91,9 +91,9 @@ public:
      */
     void log [[gnu::format(printf, 5, 6)]] (
             const char *key, const char *filename, int line, const char *pattern, ...) const;
-    
+
     /** \brief Calls log() and kills the application on a fatal error
-        
+
         Print stack trace, error message, close the file and abort.
         See log() for parameters.
      */

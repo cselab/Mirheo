@@ -6,7 +6,7 @@
 namespace mirheo
 {
 
-/** \brief Rigid objects container. 
+/** \brief Rigid objects container.
 
     This is used to represent local or halo objects in RigidObjectVector.
     A rigid object is composed of frozen particles inside a volume that is represented by a triangle mesh.

@@ -22,7 +22,7 @@ class GridDims
 {
 public:
     virtual ~GridDims() = default;
-        
+
     virtual std::vector<hsize_t> getLocalSize()  const = 0; ///< number of elements in the current subdomain
     virtual std::vector<hsize_t> getGlobalSize() const = 0; ///< number of elements in the whole domain
     virtual std::vector<hsize_t> getOffsets()    const = 0; ///< start indices in the current subdomain
@@ -38,7 +38,7 @@ class Grid
 {
 public:
     virtual ~Grid() = default;
-    
+
     virtual const GridDims* getGridDims() const = 0; ///< \return the GridDims that describes the data dimensions
     virtual std::string getCentering() const = 0;    ///< \return A string describing (for XDMF) data location (e.g. "Node" or "Cell")
 
@@ -91,22 +91,22 @@ public:
      */
     UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm);
 
-    const GridDims* getGridDims() const override;        
+    const GridDims* getGridDims() const override;
     std::string getCentering()    const override;
-                                                                               
+
     void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const override;
     pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const override;
-        
+
     void readFromXMF(const pugi::xml_node &node, std::string &h5filename) override;
-    void splitReadAccess(MPI_Comm comm, int chunkSize = 1)                override;        
+    void splitReadAccess(MPI_Comm comm, int chunkSize = 1)                override;
     void readFromHDF5(hid_t file_id, MPI_Comm comm)                       override;
-        
+
 private:
     class UniformGridDims : public GridDims
     {
     public:
         UniformGridDims(int3 localSize, MPI_Comm cartComm);
-            
+
         std::vector<hsize_t> getLocalSize()  const override;
         std::vector<hsize_t> getGlobalSize() const override;
         std::vector<hsize_t> getOffsets()    const override;
@@ -121,9 +121,9 @@ private:
     UniformGridDims dims_;
     std::vector<real> spacing_;
 };
-        
+
 /** \brief Representation of particles geometry.
-    
+
     Each rank contains the positions of the particles in GLOBAL coordinates.
  */
 class VertexGrid : public Grid
@@ -132,17 +132,17 @@ public:
     /** \brief Construct a VertexGrid object
         \param positions The positions of the particles in the current subdomain, in global coordinates
         \param comm The communicator that will be used for I/O
-        \note The \p positions are passed as a shared pointer so that this class is able to either 
+        \note The \p positions are passed as a shared pointer so that this class is able to either
         allocate its own memory or can share it with someone else
      */
     VertexGrid(std::shared_ptr<std::vector<real3>> positions, MPI_Comm comm);
-    
-    const GridDims* getGridDims() const override;        
+
+    const GridDims* getGridDims() const override;
     std::string getCentering()    const override;
-                                                                               
+
     void writeToHDF5(hid_t file_id, MPI_Comm comm)                          const override;
     pugi::xml_node writeToXMF(pugi::xml_node node, std::string h5filename)  const override;
-        
+
     void readFromXMF(const pugi::xml_node &node, std::string &h5filename)         override;
     void splitReadAccess(MPI_Comm comm, int chunkSize = 1)                        override;
     void readFromHDF5(hid_t file_id, MPI_Comm comm)                               override;
@@ -156,7 +156,7 @@ protected:
             \param comm communicator
          */
         VertexGridDims(long nLocal, MPI_Comm comm);
-            
+
         std::vector<hsize_t> getLocalSize()  const override;
         std::vector<hsize_t> getGlobalSize() const override;
         std::vector<hsize_t> getOffsets()    const override;
@@ -172,7 +172,7 @@ protected:
     private:
         hsize_t nLocal_, nGlobal_, offset_;
     };
-        
+
 private:
     static const std::string positionChannelName_;
     VertexGridDims dims_;
@@ -184,9 +184,9 @@ private:
 
 
 /** \brief Representation of triangle mesh geometry.
-    
+
     This is a VertexGrid associated with the additional connectivity (list of triangle faces).
-    The vertices are stored in global coordinates and the connectivity also stores indices in global coordinates. 
+    The vertices are stored in global coordinates and the connectivity also stores indices in global coordinates.
  */
 class TriangleMeshGrid : public VertexGrid
 {
@@ -197,9 +197,9 @@ public:
         \param comm The communicator that will be used for I/O
      */
     TriangleMeshGrid(std::shared_ptr<std::vector<real3>> positions, std::shared_ptr<std::vector<int3>> triangles, MPI_Comm comm);
-    
+
     void writeToHDF5(hid_t file_id, MPI_Comm comm) const override;
-        
+
 private:
     static const std::string triangleChannelName_;
     VertexGridDims dimsTriangles_;

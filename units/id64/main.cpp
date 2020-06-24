@@ -12,7 +12,7 @@ TEST (ID64, backAndForth)
     Particle p;
 
     p.setId(id);
-    
+
     ASSERT_EQ(id, p.getId());
 }
 
@@ -30,7 +30,7 @@ TEST (ID64, subids)
 #else
     ASSERT_EQ(p.i1, low);
     ASSERT_EQ(p.i2, high);
-#endif    
+#endif
 }
 
 int main(int argc, char **argv)

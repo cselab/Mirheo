@@ -355,7 +355,7 @@ void TaskScheduler::run()
         {
             auto& task = tasks_[node->id];
             NvtxCreateRange(range, task.label.c_str());
-            
+
             for (auto& func_every : task.funcs)
                 if (nExecutions_ % func_every.second == 0)
                     func_every.first(stream);
@@ -418,7 +418,7 @@ void TaskScheduler::dumpGraphToGraphML(const std::string& fname) const
             add_edge(graph, dep->id, n->id);
     }
 
-    auto filename = fname + ".graphml";    
+    auto filename = fname + ".graphml";
     doc.save_file(filename.c_str());
 }
 

@@ -8,7 +8,7 @@ namespace mirheo
 {
 
 /** \brief a RAII class that allows to profile a scope with NVTX ranges
-    
+
     The NVTX range starts at the construction of this object.
     It ends when the destructor of this object is called.
  */

@@ -6,7 +6,7 @@ namespace mirheo
 {
 
 /** \brief Initialize MembraneVector objects with a typeId
-    
+
     See MembraneIC.
     Attach an additional typeId field to each membrane.
     This is useful to have different membrane forces without having many MembraneVector objects.

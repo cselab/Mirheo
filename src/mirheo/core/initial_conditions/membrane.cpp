@@ -18,17 +18,17 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
 {
     auto ov = dynamic_cast<MembraneVector*>(pv);
     const auto domain = pv->getState()->domain;
-    
+
     if (ov == nullptr)
         die("RBCs can only be generated out of rbc object vectors");
 
     LocalObjectVector *lov = ov->local();
 
     const auto map = createMap(domain);
-    
+
     const int nObjsLocal = static_cast<int>(map.size());
     const int nVerticesPerObject = ov->mesh->getNvertices();
-    
+
     lov->resize_anew(nObjsLocal * nVerticesPerObject);
     auto& pos = ov->local()->positions();
     auto& vel = ov->local()->velocities();
@@ -49,7 +49,7 @@ void MembraneIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t str
             const Particle p {{r.x, r.y, r.z, 0._r}, make_real4(0._r)};
 
             const size_t dstPid = objId * nVerticesPerObject + i;
-            
+
             pos[dstPid] = p.r2Real4();
             vel[dstPid] = p.u2Real4();
         }

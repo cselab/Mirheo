@@ -104,7 +104,7 @@ class __align__(16) Quaternion
                 static_cast<double>(y),
                 static_cast<double>(z)};
     }
-        
+
     __HD__ inline Real realPart() const {return w;} ///< \return the real part of the quaternion
     __HD__ inline Real3 vectorPart() const {return {x, y, z};} ///< \return the vector part of the quaternion
 
@@ -207,13 +207,13 @@ class __align__(16) Quaternion
         return half * pureVector(omega) * *this;
     }
 
-    
+
  public:
     Real w; ///< real part
     Real x; ///< vector part, x
     Real y; ///< vector part, y
     Real z; ///< vector part, z
-    
+
  private:
     __HD__ Quaternion(Real rw, Real vx, Real vy, Real vz) :
         w(rw),
@@ -228,7 +228,7 @@ class __align__(16) Quaternion
         y(u.y),
         z(u.z)
     {}
-    
+
     /** Create a Quaternion from two vectors.
         The quaternion representa the direct rotation that transform u into v.
         See also  https://stackoverflow.com/a/11741520/11630848

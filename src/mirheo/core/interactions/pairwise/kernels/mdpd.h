@@ -25,7 +25,7 @@ public:
 
     using ViewType     = PVviewWithDensities; ///< compatible view type
     using ParticleType = ParticleWithDensity; ///< compatible particle type
-    
+
     /// constructor
     PairwiseMDPDHandler(real rc, real rd, real a, real b, real gamma, real sigma, real power) :
         ParticleFetcherWithVelocityAndDensity(rc),
@@ -35,7 +35,7 @@ public:
         power_(power),
         rd_(rd),
         invrc_(1.0 / rc),
-        invrd_(1.0 / rd) 
+        invrd_(1.0 / rd)
     {}
 
     /// evaluate the force
@@ -73,8 +73,8 @@ public:
 protected:
     real a_; ///< conservative force magnitude (repulsive part)
     real b_; ///< conservative force magnitude (attractive part)
-    real gamma_; ///< viscous force coefficient    
-    real sigma_; ///< random force coefficient     
+    real gamma_; ///< viscous force coefficient
+    real sigma_; ///< random force coefficient
     real power_; ///< viscous kernel envelope power
     real rd_; ///< density cut-off radius
     real invrc_; ///< 1 / rc
@@ -90,7 +90,7 @@ public:
     using HandlerType = PairwiseMDPDHandler; ///< handler type corresponding to this object
     using ParamsType  = MDPDParams; ///< parameters that are used to create this object
 
-    /// Constructor    
+    /// Constructor
     PairwiseMDPD(real rc, real rd, real a, real b, real gamma, real kBT, real dt, real power, long seed = 42424242) :
         PairwiseMDPDHandler(rc, rd, a, b, gamma, computeSigma(gamma, kBT, dt), power),
         stepGen_(seed),

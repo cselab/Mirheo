@@ -16,7 +16,7 @@ static std::vector<real> generateSamples(Gen gen, real dt, long n)
     DomainInfo domain;
     std::vector<real> samples (n);
     MirState state(domain, dt, UnitConversion{});
-    state.currentTime = 0;    
+    state.currentTime = 0;
 
     for (state.currentStep = 0; state.currentStep < n; ++state.currentStep)
     {
@@ -33,7 +33,7 @@ template<typename Gen>
 static Real computeAutoCorrelation(Gen gen, real dt, long n)
 {
     auto samples = generateSamples(gen, dt, n);
-    
+
     Real sum = 0;
     for (const auto& x : samples) sum += (Real) x;
 
@@ -65,11 +65,11 @@ TEST (RNG, autoCorrelationGenFromTime)
 {
     GenFromTime gen;
     real dt = 1e-3;
-    
+
     auto corr = computeAutoCorrelation(gen, dt, 10000);
 
     printf("from time: %g\n", (double) corr);
-                                       
+
     ASSERT_LE(std::abs(corr), 1e-3);
 }
 
@@ -77,11 +77,11 @@ TEST (RNG, autoCorrelationGenFromMT)
 {
     StepRandomGen gen(424242);
     real dt = 1e-3;
-    
+
     auto corr = computeAutoCorrelation(gen, dt, 10000);
 
     printf("from MT: %g\n", (double) corr);
-                                       
+
     ASSERT_LE(std::abs(corr), 2e-3);
 }
 

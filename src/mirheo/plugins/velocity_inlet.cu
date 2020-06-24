@@ -51,7 +51,7 @@ __global__ void countFromCumulativeFluxes(int n, real dt, real numberDensity, co
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int nLocal = 0;
-    
+
     if (i < n) {
         cumulativeFluxes[i] += dt * numberDensity * localFluxes[i];
 
@@ -67,16 +67,16 @@ __global__ void countFromCumulativeFluxes(int n, real dt, real numberDensity, co
     int warpLocalStart = warpExclusiveScan(nLocal);
     int warpStart = 0;
     const int lastWarpId = warpSize - 1;
-        
+
     if (getLaneId<1>() == lastWarpId)
         warpStart = atomicAdd(nNewParticles, warpLocalStart + nLocal);
 
     warpStart = warpShfl(warpStart, lastWarpId);
-    
+
     for (int j = 0; j < nLocal; ++j) {
         int dstId = warpStart + warpLocalStart + j;
         workQueue[dstId] = i;
-    }        
+    }
 }
 
 // https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle
@@ -84,7 +84,7 @@ __device__ inline real3 getBarycentricUniformTriangle(real seed, int seed0, int 
 {
     real r1 = Saru::uniform01(seed, 42*seed0, 5+seed1);
     real r2 = Saru::uniform01(seed, 24*seed1, 6+seed0);
-    r1 = math::sqrt(r1);    
+    r1 = math::sqrt(r1);
     return { (1-r1), (1-r2)*r1, r2*r1 };
 }
 
@@ -101,7 +101,7 @@ __device__ inline real3 gaussian3D(real seed, int seed0, int seed1)
     real2 rand1 = Saru::normal2(seed, 42*seed0, 5+seed1);
     real2 rand2 = Saru::normal2(seed, 24*seed0, 6+seed1);
 
-    return {rand1.x, rand1.y, rand2.x}; 
+    return {rand1.x, rand1.y, rand2.x};
 }
 
 __global__ void generateParticles(real seed, real kBT, int nNewParticles, int oldSize, PVview view, const int *workQueue,
@@ -109,7 +109,7 @@ __global__ void generateParticles(real seed, real kBT, int nNewParticles, int ol
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= nNewParticles) return;
-    
+
     int triangleId = workQueue[i];
     real3 barCoords = getBarycentricUniformTriangle(seed, i, triangleId);
 
@@ -120,7 +120,7 @@ __global__ void generateParticles(real seed, real kBT, int nNewParticles, int ol
 
     p.u += math::sqrt(kBT * view.invMass) * gaussian3D(seed, i, triangleId);
     // TODO id
-    
+
     int dstId = oldSize + i;
 
     view.writeParticle(dstId, p);
@@ -153,7 +153,7 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
     marching_cubes::computeTriangles(getState()->domain, resolution_, implicitSurface_, triangles);
 
     const int nTriangles = triangles.size();
-    
+
     surfaceTriangles_.resize_anew(nTriangles * 3);
     surfaceVelocity_ .resize_anew(nTriangles * 3);
 
@@ -182,7 +182,7 @@ void VelocityInletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, co
 
     const real seed = dist_(gen_);
     const int nthreads = 128;
-    
+
     SAFE_KERNEL_LAUNCH(
         velocity_inlet_kernels::initCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, defaultStream,
@@ -201,19 +201,19 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
 {
     PVview view(pv_, pv_->local());
     const int nTriangles = surfaceTriangles_.size() / 3;
-    
+
     workQueue_.clear(stream);
     nNewParticles_.clear(stream);
 
     constexpr int nthreads = 128;
-    
+
     SAFE_KERNEL_LAUNCH(
         velocity_inlet_kernels::countFromCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, stream,
         nTriangles, getState()->dt, numberDensity_, localFluxes_.devPtr(),
         cumulativeFluxes_.devPtr(), nNewParticles_.devPtr(), workQueue_.devPtr());
 
-        
+
     nNewParticles_.downloadFromDevice(stream, ContainersSynch::Synch);
 
     const int oldSize = view.size;
@@ -224,7 +224,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
     view = PVview(pv_, pv_->local());
 
     const real seed = dist_(gen_);
-    
+
     SAFE_KERNEL_LAUNCH(
         velocity_inlet_kernels::generateParticles,
         getNblocks(nNewParticles_[0], nthreads), nthreads, 0, stream,

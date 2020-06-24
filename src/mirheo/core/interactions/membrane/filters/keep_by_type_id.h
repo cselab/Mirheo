@@ -54,7 +54,7 @@ public:
 
 private:
     int whiteListTypeId_; ///< The type id of the membranes that will be kept
-    const int *typeIds_ {nullptr}; ///< Points to the MembraneVector object channel containing type ids 
+    const int *typeIds_ {nullptr}; ///< Points to the MembraneVector object channel containing type ids
 
     friend MemberVars<FilterKeepByTypeId>;
 };

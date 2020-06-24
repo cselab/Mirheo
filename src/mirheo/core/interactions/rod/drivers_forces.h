@@ -35,7 +35,7 @@ __device__ inline rReal3 fbound(const rReal3& r0, const rReal3& r1, const real k
     auto linv = 1.0_rr / l;
 
     auto fmagn = ks * xi * (0.5_rr * xi + l);
-    
+
     return (linv * fmagn) * dr;
 }
 
@@ -87,7 +87,7 @@ __global__ void computeRodBoundForces(RVview view, GPU_RodBoundsParameters param
     BOUND(r0, r1, ksCenter, lcenter);
 
 #undef BOUND
-    
+
     atomicAdd(view.forces + start + 0, make_real3(fr0));
     atomicAdd(view.forces + start + 1, make_real3(fu0));
     atomicAdd(view.forces + start + 2, make_real3(fu1));
@@ -122,7 +122,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     fr0 = fr2 = fpm0 = fpm1 = make_rReal3(0.0_rr);
 
     const int state = getState<Nstates>(view, i);
-    
+
     bisegment.computeBendingForces(state, params, fr0, fr2, fpm0, fpm1);
     bisegment.computeTwistForces  (state, params, fr0, fr2, fpm0, fpm1);
 
@@ -130,7 +130,7 @@ __global__ void computeRodBiSegmentForces(RVview view, GPU_RodBiSegmentParameter
     auto fr1  = -(fr0 + fr2);
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
-    
+
     atomicAdd(view.forces + start + 0 * stride, make_real3(fr0));
     atomicAdd(view.forces + start + 1 * stride, make_real3(fr1));
     atomicAdd(view.forces + start + 2 * stride, make_real3(fr2));
@@ -194,7 +194,7 @@ __global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
                 gx.y * v.x + gy.y * v.y + gz.y * v.z,
                 gx.z * v.x + gy.z * v.y + gz.z * v.z};
     };
-    
+
     rReal3 fr0 =
         coeffl * applyGrad(gradr0x, gradr0y, gradr0z, dOmegal) +
         coeffm * applyGrad(gradr0x, gradr0y, gradr0z, dOmegar);
@@ -203,11 +203,11 @@ __global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
         coeffl * applyGrad(gradr2x, gradr2y, gradr2z, dOmegal) +
         coeffm * applyGrad(gradr2x, gradr2y, gradr2z, dOmegar);
 
-    rReal3 fpm0 = 
+    rReal3 fpm0 =
         coeffl * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegal) +
         coeffm * applyGrad(gradpm0x, gradpm0y, gradpm0z, dOmegar);
 
-    rReal3 fpm1 = 
+    rReal3 fpm1 =
         coeffl * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegal) +
         coeffm * applyGrad(gradpm1x, gradpm1y, gradpm1z, dOmegar);
 
@@ -218,12 +218,12 @@ __global__ void computeRodCurvatureSmoothing(RVview view, real kbi,
         fr0 -= coeff * bisegment.t0;
         fr2 += coeff * bisegment.t1;
     }
-    
+
     // by conservation of momentum
     auto fr1  = -(fr0 + fr2);
     auto fpp0 = -fpm0;
     auto fpp1 = -fpm1;
-    
+
     atomicAdd(view.forces + start + 0 * stride, make_real3(fr0));
     atomicAdd(view.forces + start + 1 * stride, make_real3(fr1));
     atomicAdd(view.forces + start + 2 * stride, make_real3(fr2));

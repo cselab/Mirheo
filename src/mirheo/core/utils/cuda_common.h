@@ -424,7 +424,7 @@ __device__ inline auto laneId() {return threadIdx.x % warpSize;}
 
     \rst
     .. warning::
-        This value will depend on the architecture. 
+        This value will depend on the architecture.
         This will not be give unique warp index per warp within one kernel.
     \endrst
  */
@@ -492,7 +492,7 @@ template<int DIMS=1>
 __device__ inline int atomicAggInc(int *ptr)
 {
     int lane_id = getLaneId<DIMS>();
-    
+
     int mask = warpBallot(1);
     // select the leader
     int leader = __ffs(mask) - 1;
@@ -549,7 +549,7 @@ inline double4 readNoCache(const double4 *addr)
     \param x The value to take the power to
     \param k The exponent
     \return |x|**k
-    
+
     This function may lead faster performance for k = 1, 0.5, 0.25 than pow.
  */
 __HD__ inline float fastPower(const float x, const float k)

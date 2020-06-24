@@ -1681,7 +1681,7 @@ static inline  __HD__ R3 anyOrthogonal(R3 v)
     constexpr R3 xAxis {1.f, 0.f, 0.f};
     constexpr R3 yAxis {0.f, 1.f, 0.f};
     constexpr R3 zAxis {0.f, 0.f, 1.f};
-    
+
     auto other = x < y ? (x < z ? xAxis : zAxis) : (y < z ? yAxis : zAxis);
     return cross(v, other);
 }

@@ -43,7 +43,7 @@ void ForceSaverPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const
     pv_ = simulation->getPVbyNameOrDie(pvName_);
 
     channel_names::failIfReserved(fieldName_, channel_names::reservedParticleFields);
-    
+
     pv_->requireDataPerParticle<real3>(fieldName_, DataManager::PersistenceMode::None);
 }
 

@@ -23,7 +23,7 @@ TEST (UTILS, splitByDelim)
         str += sep + list[i];
 
     auto splitted = mirheo::splitByDelim(str, sep);
-    
+
     ASSERT_EQ(splitted.size(), list.size());
 
     for (size_t i = 0; i < list.size(); ++i)

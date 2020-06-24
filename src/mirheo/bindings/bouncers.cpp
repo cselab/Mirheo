@@ -19,7 +19,7 @@ static std::map<std::string, real>
 castToMap(const py::kwargs& kwargs, const std::string& name)
 {
     std::map<std::string, real> parameters;
-    
+
     for (const auto& item : kwargs)
     {
         std::string key;
@@ -63,14 +63,14 @@ static VarBounceKernel readBounceKernel(const std::string& kernel, const py::kwa
     }
     return varBounceKernel;
 }
-    
+
 
 void exportBouncers(py::module& m)
 {
     py::handlers_class<Bouncer> pybounce(m, "Bouncer", R"(
         Base class for bouncing particles off the objects.
         Take bounce kernel as argument:
-        
+
         * **kernel** = "bounce_back":
             Bounces back the particle.
             The new velocity of the particle is given by:
@@ -89,18 +89,18 @@ void exportBouncers(py::module& m)
                 \mathbf{u}_\text{new} = \mathbf{u}_\text{wall} + \sqrt{\frac {k_BT} {m}} \xi,
 
             where :math:`\xi \sim \mathcal{N}\left(0, 1\right)`.
-            
+
 
 
     )");
 
-    
+
     py::handlers_class<BounceFromMesh>(m, "Mesh", pybounce, R"(
         This bouncer will use the triangular mesh associated with objects to detect boundary crossings.
         Therefore it can only be created for Membrane and Rigid Object types of object vectors.
         Due to numerical precision, about :math:`1` of :math:`10^5 - 10^6` mesh crossings will not be detected, therefore it is advised to use that bouncer in
         conjunction with correction option provided by the Object Belonging Checker, see :ref:`user-belongers`.
-        
+
         .. note::
             In order to prevent numerical instabilities in case of light membrane particles,
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
@@ -116,7 +116,7 @@ void exportBouncers(py::module& m)
                 name: name of the bouncer
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
         )");
-        
+
     py::handlers_class<BounceFromRigidShape<Capsule>>(m, "Capsule", pybounce, R"(
         This bouncer will use the analytical capsule representation of the rigid objects to perform the bounce.
         No additional correction from the Object Belonging Checker is usually required.
@@ -131,7 +131,7 @@ void exportBouncers(py::module& m)
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         )");
 
     py::handlers_class<BounceFromRigidShape<Cylinder>>(m, "Cylinder", pybounce, R"(
@@ -148,7 +148,7 @@ void exportBouncers(py::module& m)
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         )");
 
     py::handlers_class<BounceFromRigidShape<Ellipsoid>>(m, "Ellipsoid", pybounce, R"(
@@ -165,7 +165,7 @@ void exportBouncers(py::module& m)
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         )");
 
     py::handlers_class<BounceFromRod>(m, "Rod", pybounce, R"(
@@ -182,7 +182,7 @@ void exportBouncers(py::module& m)
                 name: name of the checker
                 radius: radius of the segments
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         )");
 }
 

@@ -28,7 +28,7 @@ __device__ static inline real3 rescue(real3 candidate, real dt, real tol, const 
         const real seed0 = candidate.x - math::floor(candidate.x) / i;
         const real seed1 = candidate.y - math::floor(candidate.y) * i;
         const real seed2 = candidate.z - math::floor(candidate.z) + i;
-        
+
         real3 rndShift;
         rndShift.x = Saru::mean0var1(seed0, seed1, seed2);
         rndShift.y = Saru::mean0var1(rndShift.x, seed0, seed1);
@@ -50,7 +50,7 @@ __device__ static inline void bounceCellArray(
     const real threshold = 2e-5_r;
 
     const Shape& shape = ovView.shape;
-    
+
     const auto motion     = toRealMotion( ovView.motions[objId] );
     const auto old_motion = toRealMotion( ovView.old_motions[objId] );
 
@@ -75,7 +75,7 @@ __device__ static inline void bounceCellArray(
         if (shape.inOutFunction(coo) > 0.0_r) continue;
 
         real3 newCoo;
-        
+
         // worst case scenario: was already inside before, we need to rescue the particle
         if (shape.inOutFunction(oldCoo) <= 0.0_r)
         {
@@ -123,7 +123,7 @@ __device__ static inline void bounceCellArray(
         }
 
         real3 normal = shape.normal(newCoo);
-        
+
         // Return to the original frame
         newCoo = motion.q.rotate(newCoo) + motion.r;
         normal = motion.q.rotate(normal);

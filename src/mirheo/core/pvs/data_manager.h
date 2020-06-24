@@ -40,29 +40,29 @@ public:
     /** The persistence mode describes if the data of a channel
         must be conserved when redistribution accross ranks occurs.
 
-        Example: The velocities of the particles must be copied and reordered together with the 
-        positions of the particles. 
+        Example: The velocities of the particles must be copied and reordered together with the
+        positions of the particles.
      */
     enum class PersistenceMode { None, Active };
 
     /** The shift mode describes if the data of a channel
         must be shifted in space when redistribution or exchange accross ranks occurs.
 
-        Example: the positions of the particles must be converted to the local coordinate system 
+        Example: the positions of the particles must be converted to the local coordinate system
         of the neighbour rank if transfered there, while the velocities require no "shift".
      */
     enum class ShiftMode { None, Active };
 #endif // DOXYGEN_SHOULD_SKIP_THIS
-    
+
     /** \brief Holds information and data of a single channel.
-        
+
         A channel has a type, persistence mode and shift mode.
      */
-    struct ChannelDescription 
+    struct ChannelDescription
     {
         std::unique_ptr<GPUcontainer> container; ///< The data stored in the channel. Internally stored as a PinnedBuffer
         VarPinnedBufferPtr varDataPtr; ///< Pointer to container that holds the correct type.
-        
+
         PersistenceMode persistence {PersistenceMode::None}; ///< The persistence mode of the channel
         ShiftMode       shift       {ShiftMode::None};       ///< The shift mode of the channel
 
@@ -70,7 +70,7 @@ public:
         inline bool needShift() const {return shift == ShiftMode::Active;}
     };
 
-    /// The full description of a channel, contains its name and description     
+    /// The full description of a channel, contains its name and description
     using NamedChannelDesc = std::pair< std::string, const ChannelDescription* >;
 
 
@@ -92,7 +92,7 @@ public:
     /// Copy channel names and their types from a given DataManager.
     /// Does not copy data or resize buffers. New buffers are empty.
     void copyChannelMap(const DataManager &);
-    
+
     /** \brief Allocate a new channel
         \tparam T datatype of the buffer element. \c sizeof(T) should be compatible with VarPinnedBufferPtr
         \param [in] name buffer name
@@ -135,7 +135,7 @@ public:
 
         \rst
         This method will die if the required name does not exist.
-        
+
         .. warning::
             This method can only increase the persistence. If the channel is already persistent,
             this method can not set its persistent mode to None.
@@ -164,8 +164,8 @@ public:
 
         This method will die if the required name does not exist.
      */
-    GPUcontainer* getGenericData(const std::string& name);    
-    
+    GPUcontainer* getGenericData(const std::string& name);
+
     /** \brief Get buffer by name
         \param [in] name buffer name
         \tparam T type of the element of the PinnedBuffer

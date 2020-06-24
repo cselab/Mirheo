@@ -12,7 +12,7 @@ namespace mirheo
 template <class Shape>
 struct RSOVview : public ROVview
 {
-    /** \brief Construct a \c RSOVview 
+    /** \brief Construct a \c RSOVview
         \param [in] rsov The RigidShapedObjectVector that the view represents
         \param [in] lrov The LocalRigidObjectVector that the view represents
     */
@@ -30,7 +30,7 @@ struct RSOVview : public ROVview
 template <class Shape>
 struct RSOVviewWithOldMotion : public RSOVview<Shape>
 {
-    /** \brief Construct a \c RSOVview 
+    /** \brief Construct a \c RSOVview
         \param [in] rsov The RigidShapedObjectVector that the view represents
         \param [in] lrov The LocalRigidObjectVector that the view represents
 

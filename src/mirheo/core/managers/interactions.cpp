@@ -28,7 +28,7 @@ void InteractionManager::add(Interaction *interaction,
 {
     const auto input  = interaction->getInputChannels();
     const auto output = interaction->getOutputChannels();
-    
+
     auto insertChannels = [&](CellList *cl)
     {
         auto _insertChannels = [&](const std::vector<Interaction::InteractionChannel>& channels,
@@ -53,7 +53,7 @@ void InteractionManager::add(Interaction *interaction,
         };
 
         _insertChannels( input,  inputChannels_);
-        _insertChannels(output, outputChannels_); 
+        _insertChannels(output, outputChannels_);
     };
 
     insertChannels(cl1);
@@ -80,16 +80,16 @@ CellList* InteractionManager::getLargestCellList(ParticleVector *pv) const
     auto& cellLists = it->second;
 
     CellList *clMax {nullptr};
-    
+
     for (auto cl : cellLists)
     {
         if (outputChannels_.find(cl) == outputChannels_.end())
             continue;
-        
+
         if (clMax == nullptr || cl->rc > clMax->rc)
             clMax = cl;
     }
-    
+
     return clMax;
 }
 
@@ -125,7 +125,7 @@ void InteractionManager::clearInput(ParticleVector *pv, cudaStream_t stream)
     for (auto cl : clListIt->second)
     {
         auto it = inputChannels_.find(cl);
-        
+
         if (it != inputChannels_.end()) {
             const auto activeChannels = _getActiveChannels(it->second);
             cl->clearChannels(activeChannels, stream);
@@ -136,7 +136,7 @@ void InteractionManager::clearInput(ParticleVector *pv, cudaStream_t stream)
 void InteractionManager::clearInputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
 {
     const auto activeChannels = _getActiveChannelsFrom(pv, inputChannels_);
-    
+
     for (const auto& channelName : activeChannels)
         lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
 }
@@ -152,7 +152,7 @@ void InteractionManager::clearOutput(ParticleVector *pv, cudaStream_t stream)
     for (auto cl : clListIt->second)
     {
         auto it = outputChannels_.find(cl);
-        
+
         if (it != outputChannels_.end()) {
             auto activeChannels = _getActiveChannels(it->second);
             cl->clearChannels(activeChannels, stream);
@@ -163,7 +163,7 @@ void InteractionManager::clearOutput(ParticleVector *pv, cudaStream_t stream)
 void InteractionManager::clearOutputLocalPV(ParticleVector *pv, LocalParticleVector *lpv, cudaStream_t stream) const
 {
     const auto activeChannels = _getActiveChannelsFrom(pv, outputChannels_);
-    
+
     for (const auto& channelName : activeChannels)
         lpv->dataPerParticle.getGenericData(channelName)->clearDevice(stream);
 }
@@ -175,7 +175,7 @@ void InteractionManager::accumulateOutput(cudaStream_t stream)
         auto cl = entry.first;
         auto activeChannels = _getActiveChannels(entry.second);
         cl->accumulateChannels(activeChannels, stream);
-    }    
+    }
 }
 
 void InteractionManager::gatherInputToCells(cudaStream_t stream)
@@ -244,7 +244,7 @@ std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *p
 
     for (const auto& cl : clList->second)
     {
-        const auto& it = allChannels.find(cl);        
+        const auto& it = allChannels.find(cl);
         if (it == allChannels.end())
             continue;
 
@@ -262,7 +262,7 @@ std::vector<std::string> InteractionManager::_getActiveChannels(const ChannelLis
     for (const auto& channel : channelList)
         if (channel.active())
             activeChannels.push_back(channel.name);
-    
+
     return activeChannels;
 }
 
@@ -273,13 +273,13 @@ std::vector<std::string> InteractionManager::_getActiveChannelsFrom(ParticleVect
         return {};
 
     std::set<std::string> channels;
-    
+
     for (const auto& cl : itCMap->second)
     {
         auto it = srcChannels.find(cl);
         if (it == srcChannels.end())
             continue;
-        
+
         for (const auto& entry : it->second)
         {
             if (entry.active())

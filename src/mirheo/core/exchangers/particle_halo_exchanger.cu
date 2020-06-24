@@ -91,7 +91,7 @@ __global__ void getHalo(const CellListInfo cinfo, DomainInfo domain,
 
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
             auto buffer = dataWrap.getBuffer(bufId);
-            
+
 #pragma unroll 3
             for (int i = 0; i < pend-pstart; ++i)
             {
@@ -108,9 +108,9 @@ __global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerH
 {
     const int tid = threadIdx.x;
     const int pid = tid + blockIdx.x * blockDim.x;
-    
+
     extern __shared__ int offsets[];
-    
+
     const int nBuffers = dataWrap.nBuffers;
 
     for (int i = tid; i < nBuffers + 1; i += blockDim.x)
@@ -120,10 +120,10 @@ __global__ void unpackParticles(BufferOffsetsSizesWrap dataWrap, ParticlePackerH
     if (pid >= offsets[nBuffers]) return;
 
     const int bufId = dispatchThreadsPerBuffer(nBuffers, offsets, pid);
-    
+
     auto buffer = dataWrap.getBuffer(bufId);
     const int numElements = dataWrap.sizes[bufId];
-    
+
     const int srcPid = pid - offsets[bufId];
     const int dstPid = pid;
 
@@ -154,18 +154,18 @@ void ParticleHaloExchanger::attach(ParticleVector *pv, CellList *cl, const std::
     {
         return std::find(channels.begin(), channels.end(), namedDesc.first) != channels.end();
     };
-    
+
     auto   packer = std::make_unique<ParticlePacker> (predicate);
     auto unpacker = std::make_unique<ParticlePacker> (predicate);
     auto   helper = std::make_unique<ExchangeEntity> (pv->getName(), id, packer.get());
-    
+
     this->addExchangeEntity(std::move(  helper));
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
-    
+
     std::string msg_channels = channels.empty() ? "no channels." : "with channels: ";
     for (const auto& ch : channels) msg_channels += "'" + ch + "' ";
-    
+
     info("Particle halo exchanger takes pv '%s' with celllist of rc = %g, %s",
          pv->getCName(), cl->rc, msg_channels.c_str());
 }
@@ -180,10 +180,10 @@ void ParticleHaloExchanger::prepareSizes(size_t id, cudaStream_t stream)
     debug2("Counting halo particles of '%s'", pv->getCName());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
-    
+
     helper->send.sizes.clearDevice(stream);
     packer->update(lpv, stream);
-    
+
     if (lpv->size() > 0)
     {
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
@@ -209,7 +209,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
     auto packer = packers_[id].get();
 
     int nEntities = helper->send.offsets[helper->nBuffers];
-    
+
     debug2("Downloading %d halo particles of '%s'", nEntities, pv->getCName());
 
     LocalParticleVector *lpv = cl->getLocalParticleVector();
@@ -223,7 +223,7 @@ void ParticleHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
-        
+
         SAFE_KERNEL_LAUNCH(
             particle_halo_exchangers_kernels::getHalo<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
@@ -241,23 +241,23 @@ void ParticleHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     auto lpv = pv->halo();
 
     const auto& offsets = helper->recv.offsets;
-    
+
     int totalRecvd = offsets[helper->nBuffers];
     lpv->resize_anew(totalRecvd);
 
     debug2("received %d particles from halo exchange", totalRecvd);
 
     unpacker->update(lpv, stream);
-    
+
     const int nthreads = 128;
     const int nblocks  = getNblocks(totalRecvd, nthreads);
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
-    
+
     SAFE_KERNEL_LAUNCH(
         particle_halo_exchangers_kernels::unpackParticles,
         nblocks, nthreads, shMemSize, stream,
         helper->wrapRecvData(), unpacker->handler());
-    
+
     pv->haloValid = true;
 }
 

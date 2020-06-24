@@ -49,7 +49,7 @@ createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, real
     else if (direction == "y") dir = ForcingTermPeriodicPoiseuille::Direction::y;
     else if (direction == "z") dir = ForcingTermPeriodicPoiseuille::Direction::z;
     else die("Direction can only be 'x' or 'y' or 'z'");
-        
+
     ForcingTermPeriodicPoiseuille forcing(force, dir);
     return std::make_shared<IntegratorVV<ForcingTermPeriodicPoiseuille>> (state, name, forcing);
 }
@@ -83,7 +83,7 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
               const std::vector<Interaction*>& fastForces)
 {
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
-}    
+}
 
 /** \brief Integrator factory. Instantiate the correct integrator depending on the snapshot parameters.
     \param [in] state The global state of the system.

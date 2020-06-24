@@ -41,7 +41,7 @@ createPairwiseFromKernelNoStress(const MirState *state, const std::string& name,
 {
     if (mpark::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
-    
+
     return std::make_shared<PairwiseInteraction<KernelType>>(state, name, rc, params);
 }
 
@@ -87,7 +87,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
         using DensityKernelType = typename std::remove_reference<decltype(densityKernelParams)>::type::KernelType;
         using EOSKernelType     = typename std::remove_reference<decltype(EOSParams          )>::type::KernelType;
         using KernelType = PairwiseSDPD<EOSKernelType, DensityKernelType>;
-        
+
         return createPairwiseFromKernel<KernelType>(state, name, rc, params, varStressParams);
     }, params.varDensityKernelParams, params.varEOSParams);
 }

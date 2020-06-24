@@ -21,8 +21,8 @@ namespace mirheo
 
 /** \brief Short-range symmetric pairwise interactions
     \tparam PairwiseKernel The functor that describes the interaction between two particles (interaction kernel).
-    
-    See the pairwise interaction entry of the developer documentation for the interface requirements of the kernel. 
+
+    See the pairwise interaction entry of the developer documentation for the interface requirements of the kernel.
  */
 template <class PairwiseKernel>
 class PairwiseInteraction : public BasePairwiseInteraction
@@ -32,7 +32,7 @@ public:
     /// The parameters corresponding to the interaction kernel.
     using KernelParams = typename PairwiseKernel::ParamsType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
-    
+
     /** \brief Construct a PairwiseInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
@@ -44,9 +44,9 @@ public:
                         KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         defaultPair_{rc, pairParams, state->dt, seed},
-        _pairParams{pairParams}        
+        _pairParams{pairParams}
     {}
-    
+
     /** \brief Constructs a PairwiseInteraction object from a snapshot.
         \param [in] state The global state of the system
         \param [in] loader The \c Loader object. Provides load context and unserialization functions.
@@ -72,7 +72,7 @@ public:
                     Kernel{PairwiseKernel{rc_, params, state->dt, seed}, params});
         }
     }
-    
+
     ~PairwiseInteraction() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
@@ -82,12 +82,12 @@ public:
         {
             pv1->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
             pv2->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
-            
+
             cl1->requireExtraDataPerParticle<real>(channel_names::densities);
             cl2->requireExtraDataPerParticle<real>(channel_names::densities);
         }
     }
-    
+
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         // if (pv1->local()->size() < pv2->local()->size())
@@ -136,7 +136,7 @@ public:
     std::vector<InteractionChannel> getInputChannels() const override
     {
         std::vector<InteractionChannel> channels;
-        
+
         if (requiresDensity<PairwiseKernel>::value)
             channels.push_back({channel_names::densities, Interaction::alwaysActive});
 
@@ -146,7 +146,7 @@ public:
     std::vector<InteractionChannel> getOutputChannels() const override
     {
         std::vector<InteractionChannel> channels;
-        
+
         if (outputsDensity<PairwiseKernel>::value)
             channels.push_back({channel_names::densities, Interaction::alwaysActive});
 
@@ -155,7 +155,7 @@ public:
 
         return channels;
     }
-    
+
     void setSpecificPair(const std::string& pv1name, const std::string& pv2name, const ParametersWrap::MapParams& mapParams) override
     {
         ParametersWrap desc(mapParams);
@@ -176,7 +176,7 @@ public:
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
     }
-    
+
     void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
         auto fname = createCheckpointName(path, "ParirwiseInt", "txt");
@@ -187,7 +187,7 @@ public:
         };
 
         check(fin.good());
-        
+
         check( defaultPair_.readState(fin) );
         for (auto& entry : intMap_)
             check( entry.second.kernel.readState(fin) );
@@ -198,7 +198,7 @@ public:
     {
         return constructTypeName("PairwiseInteraction", 1, PairwiseKernel::getTypeName().c_str());
     }
-    
+
     void saveSnapshotAndRegister(Saver& saver) override
     {
         saver.registerObject<PairwiseInteraction>(
@@ -241,7 +241,7 @@ private:
     }
 
     /** \brief  Convenience macro wrapper
-     
+
         Select one of the available kernels for external interaction depending
         on the number of particles involved, report it and call
      */
@@ -261,7 +261,7 @@ private:
 
     /** \brief Compute forces between all the pairs of particles that are closer
         than rc to each other.
-     
+
         Depending on type and whether pv1 == pv2 call
         computeSelfInteractions() or computeExternalInteractions_1tpp()
         (or other variants of external interaction kernels).
@@ -304,7 +304,7 @@ private:
     }
 
     /** \brief Compute halo forces
-        
+
         Note: for ObjectVector objects, the forces will be computed even for halos.
         For pure ParticleVector objects, the halo forces are computed only locally (we rely on the pairwise force
         symetry for the neighbouring ranks). This avoids extra communications.
@@ -322,7 +322,7 @@ private:
 
         ViewType dstView(pv1, pv1->halo());
         auto srcView = cl2->getView<ViewType>();
-        
+
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo

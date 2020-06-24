@@ -39,7 +39,7 @@ extern const std::string comExtents;  ///< center of mass and bounding box
 extern const std::string areaVolumes; ///< area and volume of membranes
 
 extern const std::string membraneTypeId; ///< Integers to differentiate between groups of membranes
-    
+
 // per object, specific to Juelicher bending + ADE
 extern const std::string areas;          ///< area of membranes
 extern const std::string meanCurvatures; ///< mean curvature of each membrane
@@ -130,8 +130,8 @@ struct TypeLoadSave<CheckpointInfo>
 };
 
 
-constexpr int stoppingTag = 424242; ///< tag to notify the postprocess ranks to end the simulation 
-constexpr int stoppingMsg = -1;     ///< stopping value 
+constexpr int stoppingTag = 424242; ///< tag to notify the postprocess ranks to end the simulation
+constexpr int stoppingMsg = -1;     ///< stopping value
 
 constexpr int checkpointTag = 434343; ///< tag to notify the postprocess ranks to perform checkpoint
 constexpr int snapshotTag = 434344;   ///< tag to use for snapshot data exchange

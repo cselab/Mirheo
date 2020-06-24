@@ -28,7 +28,7 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, real k, real3 tar
 {
     int rodId = threadIdx.x + blockIdx.x * blockDim.x;
     if (rodId >= view.nObjects) return;
-    
+
     int start = rodId * view.objSize + segmentId * 5;
 
     auto r0 = fetchPosition(view, start + 0);
@@ -40,13 +40,13 @@ __global__ void alignMaterialFrame(RVview view, int segmentId, real k, real3 tar
 
     real3 du = u1 - u0;
     du = du - t * dot(du, t);
-    
+
     real3 a = normalize(target - t * dot(target, t));
 
     real inv_du = math::rsqrt(dot(du, du));
 
     real3 fu0 = k * inv_du * (a - (inv_du * inv_du * dot(du, a)) * du);
-    
+
     atomicAdd(&view.forces[start+1],  fu0);
     atomicAdd(&view.forces[start+2], -fu0);
 }
@@ -81,10 +81,10 @@ void PinRodExtremityPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
 void PinRodExtremityPlugin::beforeIntegration(cudaStream_t stream)
 {
     RVview view(rv_, rv_->local());
-    
+
     const int nthreads = 32;
     const int nblocks = getNblocks(view.nObjects, nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(pin_rod_extremity_kernels::alignMaterialFrame,
                        nblocks, nthreads, 0, stream,
                        view, segmentId_, fmagn_, targetDirection_ );

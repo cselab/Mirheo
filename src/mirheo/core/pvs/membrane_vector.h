@@ -9,7 +9,7 @@ namespace mirheo
 
 /** \brief Represent a set of membranes
 
-    Each membrane is composed of the same connectivity (stored in mesh) and number of vertices. 
+    Each membrane is composed of the same connectivity (stored in mesh) and number of vertices.
     The particles data correspond to the vertices of the membranes.
  */
 class MembraneVector: public ObjectVector

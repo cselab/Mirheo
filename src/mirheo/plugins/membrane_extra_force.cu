@@ -64,7 +64,7 @@ MembraneExtraForcePlugin::MembraneExtraForcePlugin(const MirState *state, std::s
 
     for (size_t i = 0; i < forces.size(); ++i)
         hostForces[i].f = forces[i];
-    
+
     forces_.copy(hostForces, defaultStream);
 }
 

@@ -17,7 +17,7 @@ BasePairwiseInteraction::BasePairwiseInteraction(const MirState *state, __UNUSED
 {}
 
 BasePairwiseInteraction::~BasePairwiseInteraction() = default;
-    
+
 real BasePairwiseInteraction::getCutoffRadius() const
 {
     return rc_;

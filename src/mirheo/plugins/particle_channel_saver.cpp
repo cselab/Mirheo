@@ -32,7 +32,7 @@ void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)
         dstBufferPtr->copyDeviceOnly(*srcBufferPtr, stream);
     }, srcDesc.varDataPtr);
 }
-    
+
 bool ParticleChannelSaverPlugin::needPostproc()
 {
     return false;

@@ -40,10 +40,10 @@ static void updateStatesAndApplyForces(RodVector *rv,
 
     nthreads = 128;
     nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(rod_forces_kernels::computeRodCurvatureSmoothing,
                        nblocks, nthreads, 0, stream,
-                       view, stateParams.kSmoothing, kappa, tau_l);    
+                       view, stateParams.kSmoothing, kappa, tau_l);
 }
 
 static auto getGPUParams(StatesSpinParameters& p)
@@ -74,22 +74,22 @@ static void updateStatesAndApplyForces(RodVector *rv,
     {
         const int nthreads = 128;
         const int nblocks = view.nObjects;
-        
+
         SAFE_KERNEL_LAUNCH(rod_states_kernels::findPolymorphicStates<Nstates>,
                            nblocks, nthreads, 0, stream,
                            view, devParams, kappa, tau_l);
     }
-    
+
     const int nthreads = 512;
     const int nblocks = view.nObjects;
 
     // TODO check if it fits into shared mem
     const size_t shMemSize = sizeof(states[0]) * (view.nSegments - 1);
-    
+
     for (int i = 0; i < stateParams.nsteps; ++i)
     {
         auto devSpinParams = getGPUParams(stateParams);
-        
+
         SAFE_KERNEL_LAUNCH(rod_states_kernels::findPolymorphicStatesMCStep<Nstates>,
                            nblocks, nthreads, shMemSize, stream,
                            view, devParams, devSpinParams, kappa, tau_l);

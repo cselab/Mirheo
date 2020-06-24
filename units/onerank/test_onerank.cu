@@ -1,4 +1,3 @@
-// Yo ho ho ho
 #define private public
 
 #include "../timer.h"
@@ -63,7 +62,7 @@ void integrate(real4* pos, real4 *vel, Force *accs,
 {
     real3 dstart = dinfo.globalStart;
     real3 dlength = dinfo.localSize;
-    
+
     for (int i = 0; i < np; i++)
     {
         auto& r = pos[i];
@@ -75,7 +74,7 @@ void integrate(real4* pos, real4 *vel, Force *accs,
         r.x += u.x * dt;
         r.y += u.y * dt;
         r.z += u.z * dt;
-        
+
         if (r.x >  dstart.x+dlength.x) r.x -= dlength.x;
         if (r.x <= dstart.x)	       r.x += dlength.x;
 
@@ -107,12 +106,12 @@ void forces(const real4 *pos, const real4 *vel, Force *accs,
             CellListInfo cinfo, DomainInfo dinfo)
 {
     real3 dlength = dinfo.localSize;
-    
+
     auto addForce = [=] (int dstId, int srcId, Force& a)
     {
         Particle pdst(pos[dstId], vel[dstId]);
         Particle psrc(pos[srcId], vel[srcId]);
-        
+
         real _xr = pdst.r.x - psrc.r.x;
         real _yr = pdst.r.y - psrc.r.y;
         real _zr = pdst.r.z - psrc.r.z;
@@ -194,9 +193,9 @@ void execute(real3 length, int niters, double& l2, double& linf)
 {
     cudaStream_t defStream;
     CUDA_Check( cudaStreamCreateWithPriority(&defStream, cudaStreamNonBlocking, 10) );
-    
+
     // Initial cells
-    
+
     real3 domainStart = -length / 2.0f;
     const real rc = 1.0f;
     const real mass = 1.0f;
@@ -208,7 +207,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     domainInfo.globalStart.z = -0.5f * length.z;
 
     MirState state(domainInfo, dt, UnitConversion{});
-    
+
     ParticleVector pv(&state, "pv", mass);
     PrimaryCellList cells(&pv, rc, length);
     const int3 ncells = cells.ncells;
@@ -219,7 +218,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     auto& vel = pv.local()->velocities();
 
     srand48(0);
-    
+
     printf("initializing...\n");
 
     int c = 0;
@@ -229,10 +228,10 @@ void execute(real3 length, int niters, double& l2, double& linf)
                 for (int l = 0; l < ndens; l++)
                 {
                     Particle p;
-                    
+
                     p.r.x = i + drand48() + domainStart.x;
                     p.r.y = j + drand48() + domainStart.y;
-                    p.r.z = k + drand48() + domainStart.z;                    
+                    p.r.z = k + drand48() + domainStart.z;
 
                     p.u.x = 0*(drand48() - 0.5);
                     p.u.y = 0*(drand48() - 0.5);
@@ -265,7 +264,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     auto dpd = createInteractionPairwise(&state, "dpd", rc, dpdParams, StressNoneParams{});
 
     auto integrator = integrator_factory::createVV(&state, "vv");
-    
+
     CUDA_Check( cudaStreamSynchronize(defStream) );
 
     printf("GPU execution\n");
@@ -277,12 +276,12 @@ void execute(real3 length, int niters, double& l2, double& linf)
     {
         state.currentStep = i;
         state.currentTime = i * dt;
-        
+
         pv.local()->forces().clear(defStream);
         cells.build(defStream);
 
         haloEngine.init(defStream);
-        
+
         dpd->setPrerequisites(&pv, &pv, &cells, &cells);
         dpd->local(&pv, &pv, &cells, &cells, defStream);
 
@@ -292,7 +291,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
 
         integrator->setPrerequisites(&pv);
         integrator->execute(&pv, defStream);
-        
+
         CUDA_Check( cudaStreamSynchronize(defStream) );
 
         redistEngine.init(defStream);
@@ -313,9 +312,9 @@ void execute(real3 length, int niters, double& l2, double& linf)
     HostBuffer<real4> posBuffer(np), velBuffer(np);
     HostBuffer<Force> accs(np);
     HostBuffer<int>   cellsStartSize(totcells+1), cellsSize(totcells+1);
-    
+
     printf("CPU execution\n");
-    
+
     for (int i = 0; i < niters; i++)
     {
         printf("%d...", i);
@@ -343,7 +342,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
     {
         Particle pg(pos[i], vel[i]);
         Particle pc(positions[i], velocities[i]);
-        
+
         gpuid[pg.getId()] = i;
         cpuid[pc.getId()] = i;
     }
@@ -364,7 +363,7 @@ void execute(real3 length, int niters, double& l2, double& linf)
             math::abs(cpuP.r.x - gpuP.r.x) + math::abs(cpuP.u.x - gpuP.u.x),
             math::abs(cpuP.r.y - gpuP.r.y) + math::abs(cpuP.u.y - gpuP.u.y),
             math::abs(cpuP.r.z - gpuP.r.z) + math::abs(cpuP.u.z - gpuP.u.z)};
-            
+
         linf = max(linf, max(err.x, max(err.y, err.z)));
         perr = max(perr, max(err.x, max(err.y, err.z)));
         l2 += err.x * err.x + err.y * err.y + err.z * err.z;
@@ -391,7 +390,7 @@ TEST (ONE_RANK, small)
     int niters = 50;
     real3 length{8, 8, 8};
     tol = 0.001;
-    
+
     execute(length, niters, l2, linf);
 
     ASSERT_LE(l2,   tol);
@@ -404,7 +403,7 @@ TEST (ONE_RANK, big)
     int niters = 3;
     real3 length{32, 32, 32};
     tol = 0.00002;
-    
+
     execute(length, niters, l2, linf);
 
     ASSERT_LE(l2,   tol);
@@ -425,7 +424,7 @@ int main(int argc, char ** argv)
 
     testing::InitGoogleTest(&argc, argv);
     auto retval = RUN_ALL_TESTS();
-    
+
     MPI_Finalize();
     return retval;
 }

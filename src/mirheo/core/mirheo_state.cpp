@@ -47,7 +47,7 @@ void MirState::checkpoint(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))
         return;
-    
+
     real3 gsz, gst, lsz;
     gsz = domain.globalSize;
     gst = domain.globalStart;
@@ -63,8 +63,8 @@ void MirState::checkpoint(MPI_Comm comm, std::string folder)
 void MirState::restart(MPI_Comm comm, std::string folder)
 {
     if (!isMasterRank(comm))
-        return;    
-    
+        return;
+
     real3 gsz, gst, lsz;
     auto filename = folder + fname;
     auto good = text_IO::read(filename,
@@ -74,7 +74,7 @@ void MirState::restart(MPI_Comm comm, std::string folder)
                              dt, currentTime, currentStep);
 
     if (!good) die("failed to read '%s'\n", filename.c_str());
-    
+
     domain.globalSize  = gsz;
     domain.globalStart = gst;
     domain.localSize   = lsz;

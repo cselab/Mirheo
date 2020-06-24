@@ -58,7 +58,7 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 
     pv_ = simulation->getPVbyNameOrDie(pvName_);
     wall_ = dynamic_cast<SDFBasedWall*>(simulation->getWallByNameOrDie(wallName_));
-    
+
     pv_->requireDataPerParticle<real>(channel_names::sdf, DataManager::PersistenceMode::None);
     pv_->requireDataPerParticle<real3>(channel_names::grad_sdf, DataManager::PersistenceMode::None);
 
@@ -73,12 +73,12 @@ void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, co
 void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
 {
     PVview view(pv_, pv_->local());
-    
+
     auto sdfs      = pv_->local()->dataPerParticle.getData<real>(channel_names::sdf);
     auto gradients = pv_->local()->dataPerParticle.getData<real3>(channel_names::grad_sdf);
 
     const real gradientThreshold = h_ + 0.1_r;
-    
+
     wall_->sdfPerParticle(pv_->local(), sdfs, gradients, gradientThreshold, stream);
 
     const int nthreads = 128;

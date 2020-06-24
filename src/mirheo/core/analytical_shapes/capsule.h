@@ -11,10 +11,10 @@ namespace mirheo
 /** \brief Represents a capsule.
 
     A capsule is represented by a segment and a radius.
-    Its surfae is the set of points whose distance to the 
+    Its surfae is the set of points whose distance to the
     segment is equal to the radius.
 
-    In more visual terms, a capsule looks like a finite cylinder 
+    In more visual terms, a capsule looks like a finite cylinder
     with two half spheres on its ends.
 
     The capsule is centered at the origin and oriented along the z axis.
@@ -25,7 +25,7 @@ public:
     /** \brief Construct a \c Capsule.
         \param [in] R the radius of the capsule.  Must be positive.
         \param [in] L the length of the segment used to represent the
-                      capsule. Must be positive. 
+                      capsule. Must be positive.
     */
     Capsule(real R, real L) :
         R_(R),
@@ -74,7 +74,7 @@ public:
                        dz > 0 ? dz : 0._r};
         return rinv * n;
     }
-    
+
 
     /**\brief Get the inertia tensor of the capsule in its frame of reference.
        \param [in] totalMass The total mass of the capsule.
@@ -86,9 +86,9 @@ public:
         const real R3 = R2 * R_;
         const real R4 = R2 * R2;
         const real R5 = R3 * R2;
-        
+
         const real V_pi   = 2.0_r * halfL_ * R2 + (4.0_r / 3.0_r) * R3;
-        
+
         const real xxB_pi = R5 * (4.0_r / 15.0_r);
         const real xxC_pi = R4 * halfL_ * 0.5_r;
 
@@ -105,7 +105,7 @@ public:
     }
 
     static const char *desc;  ///< the description of shape.
-    
+
 private:
     real R_;     ///< radius
     real halfL_; ///< half length between the two sphere centers

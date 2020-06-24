@@ -17,7 +17,7 @@ TEST (PID, PidEquilibrates)
     const float target_start = 0.f;
     const float target_end   = 1.f;
     const float tolerance = 1e-5;
-    
+
     state = target = 0.f;
     step_time = 20;
     nsteps = 200;
@@ -26,7 +26,7 @@ TEST (PID, PidEquilibrates)
     Kp = 3.f;
     Ki = 2.f;
     Kd = 3.f;
-    
+
     PidControl<float> pid(target-state, Kp, Ki, Kd);
 
     for (int i = 0; i < nsteps; ++i) {

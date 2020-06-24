@@ -18,10 +18,10 @@ namespace XDMF
 {
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MirState::TimeType time, MPI_Comm comm)
-{        
+{
     std::string h5Filename  = filename + ".h5";
     std::string xmfFilename = filename + ".xmf";
-        
+
     info("Writing XDMF data to %s[.h5,.xmf]", filename.c_str());
 
     mTimer timer;
@@ -30,7 +30,7 @@ void write(const std::string& filename, const Grid *grid,
     HDF5::write(h5Filename, comm, grid, channels);
     info("Writing took %f ms", timer.elapsed());
 }
-    
+
 void write(const std::string& filename, const Grid *grid,
            const std::vector<Channel>& channels, MPI_Comm comm)
 {
@@ -64,7 +64,7 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
 
     const size_t nElements = getLocalNumElements(grid.getGridDims());
     const size_t  nChannels = vertexData.descriptions.size();
-    
+
     vertexData.data.resize(nChannels);
 
     debug("Got %lud channels with %ld items each", nChannels, nElements);
@@ -73,12 +73,12 @@ VertexChannelsData readVertexData(const std::string& filename, MPI_Comm comm, in
     {
         auto& data = vertexData.data[i];
         auto& desc = vertexData.descriptions[i];
-        
+
         auto sz = nElements * desc.nComponents() * desc.precision();
         data.resize(sz);
         desc.data = data.data();
     }
-        
+
     HDF5::read(h5filename, comm, &grid, vertexData.descriptions);
     info("Reading took %f ms", timer.elapsed());
 

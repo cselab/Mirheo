@@ -51,7 +51,7 @@ void execute(MPI_Comm comm, real3 length)
 {
     DomainInfo domain{length, {0,0,0}, length};
     const real dt = 0.002;
-    
+
     MirState state(domain, dt, UnitConversion{});
 
     const real rc = 1.0f;
@@ -80,7 +80,7 @@ void execute(MPI_Comm comm, real3 length)
     auto& pos2 = dpds2.local()->positions();
     auto& vel1 = dpds1.local()->velocities();
     auto& vel2 = dpds2.local()->velocities();
-    
+
     pos1.downloadFromDevice(defaultStream);
     pos2.downloadFromDevice(defaultStream);
     vel1.downloadFromDevice(defaultStream);
@@ -107,12 +107,12 @@ void execute(MPI_Comm comm, real3 length)
     for (int i = 0; i < np; i++)
     {
         bool from1 = i < static_cast<int>(pos1.size());
-        
+
         initialPos[i] = from1 ? pos1[i] : pos2[i-pos1.size()];
         initialVel[i] = from1 ? vel1[i] : vel2[i-vel1.size()];
     }
 
-    const real k = 1;    
+    const real k = 1;
     const real kbT = 1.0f;
     const real gammadpd = 20;
     const real sigmadpd = math::sqrt(2 * gammadpd * kbT);

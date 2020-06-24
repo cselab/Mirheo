@@ -46,13 +46,13 @@ void XYZPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
-    
+
     _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, pv_->getName(), positions_);
     _send(sendBuffer_);
 }
 
-//=================================================================================
+
 
 XYZDumper::XYZDumper(std::string name, std::string path) :
     PostprocessPlugin(name),
@@ -71,7 +71,7 @@ void XYZDumper::deserialize()
 {
     std::string pvName;
     MirState::StepType timeStamp;
-    
+
     SimpleSerializer::deserialize(data_, timeStamp, pvName, pos_);
 
     std::string currentFname = path_ + pvName + "_" + createStrZeroPadded(timeStamp) + ".xyz";

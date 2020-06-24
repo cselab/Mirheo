@@ -15,7 +15,7 @@ public:
     /** \brief Construct a base pairwise interaction from parameters.
         \param [in] state The global state of the system.
         \param [in] name The name of the interaction.
-        \param [in] rc The cutoff radius of the interaction. 
+        \param [in] rc The cutoff radius of the interaction.
                        Must be positive and smaller than the sub-domain size.
     */
     BasePairwiseInteraction(const MirState *state, const std::string& name, real rc);

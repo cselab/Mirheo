@@ -12,7 +12,7 @@ namespace mirheo
 
     \rst
     The ellipsoid is centered at the origin and oriented along its principal axes.
-    the three radii are passed through the `axes` variable. 
+    the three radii are passed through the `axes` variable.
     The surface is described implicitly by the zero level set of:
 
     .. math::
@@ -67,7 +67,7 @@ public:
 
         return {1.0_r, 0.0_r, 0.0_r}; // arbitrary if r = 0
     }
-    
+
     /**\brief Get the inertia tensor of the ellipsoid in its frame of reference.
        \param [in] totalMass The total mass of the ellipsoid.
        \return The diagonal of the inertia tensor.
@@ -81,8 +81,8 @@ public:
     }
 
     static const char *desc;  ///< the description of shape.
-    
-private:    
+
+private:
     real3 axes_;    ///< radii along each direction
     real3 invAxes_; ///< 1/axes
 };

@@ -76,13 +76,13 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
         const size_t smem = 2 * nthreads * sizeof(int);
 
         bounceKernel.update(rng_);
-    
+
         SAFE_KERNEL_LAUNCH(
             shape_bounce_kernels::bounce,
             nblocks, nthreads, smem, stream,
             ovView, pvView, cl->cellInfo(), getState()->dt,
             bounceKernel);
-        
+
     }, varBounceKernel_);
 }
 

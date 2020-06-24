@@ -19,8 +19,8 @@ class ObjectHaloExchanger;
     \see ObjectHaloExchanger
 
     This class only exchanges the additional data (not e.g. the default particle's positions and velocities).
-    It uses the packing map from an external ObjectHaloExchanger. 
-    The attached ObjectVector objects must be the same as the ones in the external ObjectHaloExchanger 
+    It uses the packing map from an external ObjectHaloExchanger.
+    The attached ObjectVector objects must be the same as the ones in the external ObjectHaloExchanger
     (and in the same order).
  */
 class ObjectExtraExchanger : public Exchanger
@@ -32,7 +32,7 @@ public:
     ObjectExtraExchanger(ObjectHaloExchanger *entangledHaloExchanger);
     ~ObjectExtraExchanger();
 
-    /** \brief Add a ObjectVector for halo exchange. 
+    /** \brief Add a ObjectVector for halo exchange.
         \param ov The ObjectVector to attach
         \param extraChannelNames The list of channels to exchange
      */
@@ -42,7 +42,7 @@ private:
     std::vector<ObjectVector*> objects_;
     ObjectHaloExchanger *entangledHaloExchanger_;
     std::vector<std::unique_ptr<ObjectPacker>> packers_, unpackers_;
-    
+
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;
     void combineAndUploadData(size_t id, cudaStream_t stream) override;

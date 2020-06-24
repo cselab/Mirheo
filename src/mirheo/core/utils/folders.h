@@ -10,7 +10,7 @@ namespace mirheo
 /** \brief Create a string representing an integer with 0 padding
     \param i The integer to print (must non negative)
     \param zeroPadding The total number of characters
-    \return the string representation of \p i with padded zeros 
+    \return the string representation of \p i with padded zeros
 
     If \p zeroPadding is too small, this method will die.
     Example: \c createStrZeroPadded(42, 5) gives "00042"
@@ -47,7 +47,7 @@ std::string getParentPath(std::string path);
  */
 std::string getBaseName(std::string path);
 
-/** \brief Concatenate two paths A and B. 
+/** \brief Concatenate two paths A and B.
     \param A first part of the full path
     \param B last part of the full path
     \return A/B
@@ -55,7 +55,7 @@ std::string getBaseName(std::string path);
 */
 std::string joinPaths(const std::string &A, const std::string &B);
 
-/** \brief Create a folder. 
+/** \brief Create a folder.
     \param comm The communicator used to decide which rank creates the folder
     \param path the folder to create
     \return \c true if the operation was successful, \c false otherwise

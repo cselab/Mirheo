@@ -31,12 +31,12 @@ static auto generateUniformEllipsoid(size_t n, real3 axes, long seed = 424242)
     pos.reserve(n);
 
     Ellipsoid ell(axes);
-    
+
     std::mt19937 gen(seed);
     std::uniform_real_distribution<real> dx(-axes.x, axes.x);
     std::uniform_real_distribution<real> dy(-axes.y, axes.y);
     std::uniform_real_distribution<real> dz(-axes.z, axes.z);
-    
+
     while (pos.size() < n)
     {
         const real3 r {dx(gen), dy(gen), dz(gen)};
@@ -62,7 +62,7 @@ static auto generateObjectComQ(int n, real3 L, long seed=12345)
         const real4 q {1._r, 0._r, 0._r, 0._r};
         com_q.push_back({r, q});
     }
-    
+
     return com_q;
 }
 
@@ -78,7 +78,7 @@ initializeRandomREV(const MPI_Comm& comm, const MirState *state, int nObjs, int 
 
     auto com_q  = generateObjectComQ(nObjs, state->domain.globalSize);
     auto coords = generateUniformEllipsoid(objSize, axes);
-    
+
     RigidIC ic(com_q, coords);
     ic.exec(comm, rev.get(), defaultStream);
 
@@ -91,18 +91,18 @@ initializeRandomRods(const MPI_Comm& comm, const MirState *state, int nObjs, int
     real mass = 1._r;
     real a = 0.1_r;
     real L = 4._r;
-    
+
     auto centerLine = [&](real s)
     {
         return real3 {0._r, 0._r, L * (s-0.5_r)};
     };
 
     auto torsion = [](__UNUSED real s) {return 0._r;};
-    
+
     auto rv = std::make_unique<RodVector> (state, "rv", mass, numSegments);
 
     auto com_q  = generateObjectComQ(nObjs, state->domain.globalSize);
-    
+
     RodIC ic(com_q, centerLine, torsion, a);
     ic.exec(comm, rv.get(), defaultStream);
 
@@ -152,4 +152,4 @@ inline bool areEquals(RigidMotion a, RigidMotion b)
         areEquals(a.omega, b.omega) &&
         areEquals(a.force, b.force) &&
         areEquals(a.torque, b.torque);
-}               
+}

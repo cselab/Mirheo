@@ -30,7 +30,7 @@ static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
     p.kBT    = desc.read<real>("kBT");
 
     p.fluctuationForces = (p.kBT > 1e-6_r);
-    
+
     return p;
 }
 
@@ -44,7 +44,7 @@ static WLCParameters readWLCParameters(ParametersWrap& desc)
 
     p.kd = desc.read<real>("ka");
     p.totArea0 = desc.read<real>("tot_area");
-    
+
     return p;
 }
 
@@ -55,13 +55,13 @@ static LimParameters readLimParameters(ParametersWrap& desc)
     p.ka = desc.read<real>("ka");
     p.a3 = desc.read<real>("a3");
     p.a4 = desc.read<real>("a4");
-    
+
     p.mu = desc.read<real>("mu");
     p.b1 = desc.read<real>("b1");
     p.b2 = desc.read<real>("b2");
 
     p.totArea0 = desc.read<real>("tot_area");
-    
+
     return p;
 }
 
@@ -71,7 +71,7 @@ static KantorBendingParameters readKantorParameters(ParametersWrap& desc)
 
     p.kb    = desc.read<real>("kb");
     p.theta = desc.read<real>("theta");
-    
+
     return p;
 }
 
@@ -84,7 +84,7 @@ static JuelicherBendingParameters readJuelicherParameters(ParametersWrap& desc)
 
     p.kad = desc.read<real>("kad");
     p.DA0 = desc.read<real>("DA0");
-    
+
     return p;
 }
 
@@ -103,12 +103,12 @@ interaction_factory::createInteractionMembrane(const MirState *state, std::strin
     VarBendingParams varBendingParams;
     VarShearParams varShearParams;
     VarMembraneFilter varFilter;
-    ParametersWrap desc {parameters};    
+    ParametersWrap desc {parameters};
 
     // those are default parameters
     real initLengthFraction {1.0_r};
     real growUntil          {0.0_r};
-    
+
     auto commonPrms = readCommonParameters(desc);
 
     if      (shearDesc == "wlc") varShearParams = readWLCParameters(desc);
@@ -128,7 +128,7 @@ interaction_factory::createInteractionMembrane(const MirState *state, std::strin
         growUntil          = desc.read<real>("grow_until");
         initLengthFraction = desc.read<real>("init_length_fraction");
     }
-    
+
     desc.checkAllRead();
     return createInteractionMembrane(
         state, name, commonPrms, varBendingParams, varShearParams, stressFree,
@@ -150,7 +150,7 @@ static RodParameters readRodParameters(ParametersWrap& desc)
 
         for (const auto& om : kappaEqs)
             p.kappaEq.push_back(om);
-        
+
         for (const auto& tau : tauEqs)
             p.tauEq.push_back(tau);
 
@@ -167,10 +167,10 @@ static RodParameters readRodParameters(ParametersWrap& desc)
         else
             p.groundE.push_back(0._r);
     }
-    
+
     p.kBending  = desc.read<real3>("k_bending");
     p.kTwist    = desc.read<real>("k_twist");
-    
+
     p.a0        = desc.read<real>("a0");
     p.l0        = desc.read<real>("l0");
     p.ksCenter  = desc.read<real>("k_s_center");
@@ -204,7 +204,7 @@ interaction_factory::createInteractionRod(const MirState *state, std::string nam
     auto params = readRodParameters(desc);
 
     VarSpinParams spinParams;
-    
+
     if      (stateUpdate == "none")
         spinParams = StatesParametersNone{};
     else if (stateUpdate == "smoothing")
@@ -213,7 +213,7 @@ interaction_factory::createInteractionRod(const MirState *state, std::string nam
         spinParams = readStatesSpinRodParameters(desc);
     else
         die("unrecognised state update method: '%s'", stateUpdate.c_str());
-    
+
     desc.checkAllRead();
     return createInteractionRod(state, name, params, spinParams, saveEnergies);
 }
@@ -223,7 +223,7 @@ interaction_factory::createPairwiseInteraction(const MirState *state, std::strin
 {
     ParametersWrap desc {parameters};
     VarPairwiseParams varParams;
-    
+
     if (type == "DPD")
         varParams = factory_helper::readDPDParams(desc);
     else if (type == "MDPD")

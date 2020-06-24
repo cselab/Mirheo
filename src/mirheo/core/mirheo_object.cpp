@@ -52,7 +52,7 @@ static std::string createBaseName(const std::string& path,
 {
     auto base = path + "/" + name;
     appendIfNonEmpty(base, identifier);
-    return base;    
+    return base;
 }
 
 
@@ -80,11 +80,11 @@ void MirObject::createCheckpointSymlink(MPI_Comm comm, const std::string& path, 
         const std::string lnname = createCheckpointName      (path, identifier, extension);
         const std::string  fname = createCheckpointNameWithId(path, identifier, extension, checkpointId);
         const std::string command = "ln -f " + fname + " " + lnname;
-        
+
         if ( system(command.c_str()) != 0 )
             error("Could not create symlink '%s' for checkpoint file '%s'",
                   lnname.c_str(), fname.c_str());
-    }    
+    }
 }
 
 

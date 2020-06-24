@@ -51,14 +51,14 @@ class Mirheo
 {
 public:
     /** \brief Construct a \c Mirheo object using MPI_COMM_WORLD.
-        \param nranks3D Number of ranks along each cartesian direction. 
+        \param nranks3D Number of ranks along each cartesian direction.
         \param globalDomainSize The full domain dimensions in length units. Must be positive.
         \param dt The simulation time step
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
         \param units conversion factors from Mirheo to SI units
-        \note MPI will be initialized internally. 
+        \note MPI will be initialized internally.
               If this constructor is used, the destructor will also finalize MPI.
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
@@ -68,7 +68,7 @@ public:
            UnitConversion units = UnitConversion());
 
     /** \brief Construct a \c Mirheo object using a given communicator.
-        \note MPI will be NOT be initialized. 
+        \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
@@ -76,11 +76,11 @@ public:
            UnitConversion units = UnitConversion());
 
     /** \brief Construct a \c Mirheo object from a snapshot using MPI_COMM_WORLD.
-        \param nranks3D Number of ranks along each cartesian direction. 
+        \param nranks3D Number of ranks along each cartesian direction.
         \param snapshotPath The folder path containing the snapshot
         \param logInfo Information about logging
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
-        \note MPI will be initialized internally. 
+        \note MPI will be initialized internally.
               If this constructor is used, the destructor will also finalize MPI.
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
@@ -89,14 +89,14 @@ public:
            LogInfo logInfo, bool gpuAwareMPI=false);
 
     /** \brief Construct a \c Mirheo object from snapshot using a given communicator.
-        \note MPI will be NOT be initialized. 
+        \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, const std::string& snapshotPath,
            LogInfo logInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
-    
+
     void restart(std::string folder="restart/"); ///< reset the internal state from a checkpoint folder
     MPI_Comm getWorldComm() const noexcept { return comm_; } ///< \return the world communicator
     bool isComputeTask() const;  ///< \return \c true if the current rank is a \c Simulation rank
@@ -111,7 +111,7 @@ public:
         \param current if \c true, will only dump the current tasks; otherwise, will dump all possible ones.
     */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
-    
+
     void run(int niters); ///< advance the system for a given number of time steps
 
     /** \brief register a ParticleVector in the simulation and initialize it with the gien InitialConditions.
@@ -119,22 +119,22 @@ public:
         \param ic The InitialConditions that will be applied to \p pv when registered
     */
     void registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic);
-    
+
     /** \brief register an \c Interaction
         \param interaction the \c Interaction to register.
         \see setInteraction().
-     */ 
+     */
     void registerInteraction(const std::shared_ptr<Interaction>& interaction);
 
     /** \brief register an \c Integrator
         \param integrator the \c Integrator to register.
         \see setIntegrator().
-    */ 
+    */
     void registerIntegrator(const std::shared_ptr<Integrator>& integrator);
 
     /** \brief register a \c Wall
         \param wall The \c Wall to register
-        \param checkEvery The particles that will bounce against this wall will be checked (inside/outside log info) 
+        \param checkEvery The particles that will bounce against this wall will be checked (inside/outside log info)
                every this number of time steps. 0 means no check.
     */
     void registerWall(const std::shared_ptr<Wall>& wall, int checkEvery=0);
@@ -142,30 +142,30 @@ public:
     /** \brief register a \c Bouncer
         \param bouncer the \c Bouncer to register.
         \see setBouncer().
-    */ 
+    */
     void registerBouncer(const std::shared_ptr<Bouncer>& bouncer);
 
     /** \brief register a SimulationPlugin
         \param simPlugin the SimulationPlugin to register (only relevant if the current rank is a compute task).
         \param postPlugin the PostprocessPlugin to register (only relevant if the current rank is a postprocess task).
-    */ 
+    */
     void registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin,
                          const std::shared_ptr<PostprocessPlugin>& postPlugin);
 
     /// More generic version of registerPlugins()
     void registerPlugins(const PairPlugin &plugins);
-    
+
     /** \brief register a ObjectBelongingChecker
         \param checker the ObjectBelongingChecker to register.
         \param ov the associated ObjectVector (must be registered).
         \see applyObjectBelongingChecker()
-    */ 
+    */
     void registerObjectBelongingChecker(const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector *ov);
- 
+
     /** \brief Assign a registered \c Integrator to a registered ParticleVector.
         \param integrator The registered integrator (will die if it was not registered)
         \param pv The registered ParticleVector (will die if it was not registered)
-     */    
+     */
     void setIntegrator(Integrator *integrator,  ParticleVector *pv);
 
     /** \brief Assign two registered \c Interaction to two registered ParticleVector objects.
@@ -175,21 +175,21 @@ public:
 
         This was designed to handle PairwiseInteraction, which needs up to two ParticleVector.
         For self interaction cases (such as MembraneInteraction), \p pv1 and \p pv2 must be the same.
-    */    
+    */
     void setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2);
 
     /** \brief Assign a registered \c Bouncer to registered ObjectVector and ParticleVector.
         \param bouncer The registered bouncer (will die if it is not registered)
         \param ov The registered ObjectVector that contains the surface to bounce on (will die if it is not registered)
         \param pv The registered ParticleVector to bounce (will die if it is not registered)
-    */    
+    */
     void setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv);
 
     /** \brief Set a registered ParticleVector to bounce on a registered \c Wall.
         \param wall The registered wall (will die if it is not registered)
         \param pv The registered ParticleVector (will die if it is not registered)
         \param maximumPartTravel Performance parameter. See \c Wall for more information.
-    */    
+    */
     void setWallBounce(Wall *wall, ParticleVector *pv, real maximumPartTravel = 0.25f);
 
     MirState* getState(); ///< \return the global state of the system
@@ -202,7 +202,7 @@ public:
         \param walls List of \c Wall objects. The union of these walls will be dumped.
         \param h The grid spacing
         \param filename The base name of the dumped files (without extension)
-     */ 
+     */
     void dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, const std::string& filename);
 
     /** \brief Compute the volume inside the geometry formed by the given walls with simple Monte-Carlo integration.
@@ -222,7 +222,7 @@ public:
         \param nsteps Number of equilibration steps
         \return The frozen particles
 
-        This will run a simulation of "bulk" particles and select the particles that are inside the effective 
+        This will run a simulation of "bulk" particles and select the particles that are inside the effective
         cut-off radius of the given list of interactions.
      */
     std::shared_ptr<ParticleVector> makeFrozenWallParticles(std::string pvName,
@@ -251,7 +251,7 @@ public:
                                                              std::vector<std::shared_ptr<Interaction>> interactions,
                                                              std::shared_ptr<Integrator>   integrator,
                                                              real numDensity, real mass, int nsteps);
-    
+
     /** \brief Enable a registered ObjectBelongingChecker to split particles of a registered ParticleVector.
         \param checker The ObjectBelongingChecker (will die if it is not registered)
         \param pv The registered ParticleVector that must be split (will die if it is not registered)
@@ -261,8 +261,8 @@ public:
 
         \p inside or \p outside can take the reserved value "none", in which case the corresponding particles will be deleted.
         Furthermore, exactly one of \p inside and \p outside must be the same as \p pv.
-        
-        If \p inside or \p outside has the name of a ParticleVector that is not registered, this call will create an empty ParticleVector 
+
+        If \p inside or \p outside has the name of a ParticleVector that is not registered, this call will create an empty ParticleVector
         with the given name  and register it in the \c Simulation.
         Otherwise the already registered ParticleVector will be used.
      */
@@ -270,7 +270,7 @@ public:
                                                                 ParticleVector *pv,
                                                                 int checkEvery,
                                                                 std::string inside = "",
-                                                                std::string outside = "");    
+                                                                std::string outside = "");
 
     /// print the list of all compile options and their current value in the logs
     void logCompileOptions() const;
@@ -284,12 +284,12 @@ private:
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
     std::shared_ptr<MirState> state_;
-    
+
     int rank_;
     int computeTask_;
     bool noPostprocess_;
     int pluginsTag_ {0}; ///< used to create unique tag per plugin
-    
+
     bool initialized_    = false;
     bool initializedMpi_ = false;
 

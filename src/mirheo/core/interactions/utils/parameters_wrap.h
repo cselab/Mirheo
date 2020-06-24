@@ -13,7 +13,7 @@ namespace mirheo
 {
 
 /** \brief A tool to transform a map from string keys to variant parameters.
-    
+
     The input map is typically an input from the python interface.
  */
 class ParametersWrap
@@ -30,7 +30,7 @@ public:
     /** \brief Check if a parameter of a given type and name exists in the map
         \tparam T The type of the parameter
         \param [in] key The name of the parameter to check
-        \return true if T and key match, false otherwise. 
+        \return true if T and key match, false otherwise.
      */
     template <typename T>
     bool exists(const std::string& key)
@@ -67,15 +67,15 @@ public:
 private:
     // have to do template specialization trick because explicit
     // specializations have to be at namespace scope in C++
-    
+
     template<typename T>
     struct Identity { using Type = T; };
-    
+
     template <typename T>
     T _read(const std::string& key, Identity<T>)
     {
         auto it = params_.find(key);
-    
+
         if (it == params_.end())
             die("missing parameter '%s'", key.c_str());
 

@@ -28,15 +28,15 @@ void exportParticleVectors(py::module& m)
 
     m.def("getReservedBisegmentChannels", []() {return channel_names::reservedBisegmentFields;},
           "Return the list of reserved channel names per bisegment fields");
-    
+
     py::handlers_class<ParticleVector> pypv(m, "ParticleVector", R"(
         Basic particle vector, consists of identical disconnected particles.
     )");
-    
+
     pypv.def(py::init<const MirState*, std::string, real>(), py::return_value_policy::move,
              "state"_a, "name"_a, "mass"_a, R"(
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
         )")
         //
@@ -45,15 +45,15 @@ void exportParticleVectors(py::module& m)
                 A list of unique integer particle identifiers
         )")
         .def("getCoordinates", &ParticleVector::getCoordinates_vector, R"(
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )")
         .def("getVelocities",  &ParticleVector::getVelocities_vector, R"(
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         )")
         .def("getForces",      &ParticleVector::getForces_vector, R"(
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )")
         //
@@ -76,18 +76,18 @@ void exportParticleVectors(py::module& m)
 
     pymesh.def(py::init<const std::string&>(), "off_filename"_a, R"(
         Create a mesh by reading the OFF file
-        
+
         Args:
             off_filename: path of the OFF file
     )")
         .def(py::init<const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "faces"_a, R"(
         Create a mesh by giving coordinates and connectivity
-        
+
         Args:
             vertices: vertex coordinates
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
-        
+
     )")
         .def("getVertices", &Mesh::getPyVertices, R"(
         returns the vertex coordinates of the mesh.
@@ -98,20 +98,20 @@ void exportParticleVectors(py::module& m)
 
     py::handlers_class<MembraneMesh>(m, "MembraneMesh", pymesh, R"(
         Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
-        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh, 
-        including connectivity structures and stress-free quantities.        
+        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh,
+        including connectivity structures and stress-free quantities.
     )")
         .def(py::init<const std::string&>(), "off_filename"_a, R"(
             Create a mesh by reading the OFF file.
             The stress free shape is the input initial mesh
-            
+
             Args:
                 off_filename: path of the OFF file
         )")
         .def(py::init<const std::string&, const std::string&>(),
              "off_initial_mesh"_a, "off_stress_free_mesh"_a, R"(
             Create a mesh by reading the OFF file, with a different stress free shape.
-            
+
             Args:
                 off_initial_mesh: path of the OFF file : initial mesh
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
@@ -119,7 +119,7 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "faces"_a, R"(
             Create a mesh by giving coordinates and connectivity
-        
+
             Args:
                 vertices: vertex coordinates
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
@@ -127,23 +127,23 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const std::vector<real3>&, const std::vector<real3>&, const std::vector<int3>&>(),
              "vertices"_a, "stress_free_vertices"_a, "faces"_a, R"(
             Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
-        
+
             Args:
                 vertices: vertex coordinates
                 stress_free_vertices: vertex coordinates of the stress-free shape
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
     )");
 
-        
+
     py::handlers_class<ObjectVector> pyov(m, "ObjectVector", pypv, R"(
-        Basic Object Vector. 
+        Basic Object Vector.
         An Object Vector stores chunks of particles, each chunk belonging to the same object.
 
         .. warning::
             In case of interactions with other :any:`ParticleVector`, the extents of the objects must be smaller than a subdomain size. The code only issues a run time warning but it is the responsibility of the user to ensure this condition for correctness.
 
-    )"); 
-        
+    )");
+
     py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
@@ -151,27 +151,27 @@ void exportParticleVectors(py::module& m)
         .def(py::init<const MirState*, std::string, real, std::shared_ptr<MembraneMesh>>(),
              "state"_a, "name"_a, "mass"_a, "mesh"_a, R"(
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
-                mesh: :any:`MembraneMesh` object                
+                mesh: :any:`MembraneMesh` object
         )");
-        
+
     py::handlers_class<RigidObjectVector> pyrov(m, "RigidObjectVector", pyov, R"(
         Rigid Object is an Object Vector representing objects that move as rigid bodies, with no relative displacement against each other in an object.
         It must have a triangular mesh associated with it that defines the shape of the object.
     )");
 
     pyrov.def(py::init<const MirState*, std::string, real, real3, int, std::shared_ptr<Mesh>>(),
-              "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"( 
+              "state"_a, "name"_a, "mass"_a, "inertia"_a, "object_size"_a, "mesh"_a, R"(
 
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
                 inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                 object_size: number of frozen particles per object
                 mesh: :any:`Mesh` object used for bounce back and dump
         )");
-        
+
     py::handlers_class<RigidShapedObjectVector<Capsule>> (m, "RigidCapsuleVector", pyrov, R"(
         :any:`RigidObjectVector` specialized for capsule shapes.
         The advantage is that it doesn't need mesh and moment of inertia define, as those can be computed analytically.

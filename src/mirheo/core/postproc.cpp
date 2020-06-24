@@ -50,7 +50,7 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
     int index;
     MPI_Status stat;
     MPI_Check( MPI_Waitany((int) requests.size(), requests.data(), &index, &stat) );
-    statuses[index] = stat;    
+    statuses[index] = stat;
 
     std::vector<int> mask(requests.size(), 0);
     mask[index] = 1;
@@ -64,7 +64,7 @@ static std::vector<int> findGloballyReady(std::vector<MPI_Request>& requests, st
             if (requests[i] != MPI_REQUEST_NULL)
                 MPI_Check( MPI_Wait(&requests[i], &statuses[i]) );
         }
-    
+
     return ids;
 }
 
@@ -92,7 +92,7 @@ void Postprocess::run()
     requests.push_back( _listenSimulation(checkpointTag, &checkpointId) );
 
     std::vector<MPI_Status> statuses(requests.size());
-    
+
     info("Postprocess is listening to messages now");
     while (true)
     {
@@ -103,12 +103,12 @@ void Postprocess::run()
             if (index == stoppingReqIndex)
             {
                 if (endMsg != stoppingMsg) die("Received wrong stopping message");
-    
-                info("Postprocess got a stopping message and will stop now");    
-                
+
+                info("Postprocess got a stopping message and will stop now");
+
                 for (auto& req : requests)
                     safeCancelAndFreeRequest(req);
-                
+
                 return;
             }
             else if (index == checkpointReqIndex)
@@ -135,8 +135,8 @@ MPI_Request Postprocess::_listenSimulation(int tag, int *msg) const
 {
     int rank;
     MPI_Request req;
-    
-    MPI_Check( MPI_Comm_rank(comm_, &rank) );    
+
+    MPI_Check( MPI_Comm_rank(comm_, &rank) );
     MPI_Check( MPI_Irecv(msg, 1, MPI_INT, rank, tag, interComm_, &req) );
 
     return req;
@@ -145,15 +145,15 @@ MPI_Request Postprocess::_listenSimulation(int tag, int *msg) const
 void Postprocess::restart(const std::string& folder)
 {
     info("Reading postprocess state, from folder %s", folder.c_str());
-    
+
     for (auto& pl : plugins_)
-        pl->restart(comm_, folder);    
+        pl->restart(comm_, folder);
 }
 
 void Postprocess::checkpoint(int checkpointId)
 {
     info("Writing postprocess state, into folder %s", checkpointFolder_.c_str());
-    
+
     for (auto& pl : plugins_)
         pl->checkpoint(comm_, checkpointFolder_, checkpointId);
 }

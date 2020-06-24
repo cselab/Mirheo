@@ -20,7 +20,7 @@ namespace pin_object_kernels
 __global__ void restrictVelocities(OVview view, real3 targetVelocity, real4 *totForces)
 {
     int objId = blockIdx.x;
-    
+
     __shared__ real3 objTotForce, objVelocity;
     objTotForce = make_real3(0.0_r);
     objVelocity = make_real3(0.0_r);
@@ -52,11 +52,11 @@ __global__ void restrictVelocities(OVview view, real3 targetVelocity, real4 *tot
     {
         // This is the velocity correction
         objVelocity = targetVelocity - objVelocity;
-        
+
         if (targetVelocity.x == PinObjectPlugin::Unrestricted) { objTotForce.x = 0; objVelocity.x = 0; }
         if (targetVelocity.y == PinObjectPlugin::Unrestricted) { objTotForce.y = 0; objVelocity.y = 0; }
         if (targetVelocity.z == PinObjectPlugin::Unrestricted) { objTotForce.z = 0; objVelocity.z = 0; }
-        
+
         totForces[view.ids[objId]] += Real3_int(objTotForce, 0).toReal4();
         objTotForce /= view.objSize;
     }
@@ -67,7 +67,7 @@ __global__ void restrictVelocities(OVview view, real3 targetVelocity, real4 *tot
     // Finally change the original forces and velocities
     // Velocities should be preserved anyways, only changed in the very
     // beginning of the simulation
-    
+
     for (int pid = threadIdx.x; pid < view.objSize; pid += blockDim.x)
     {
         view.forces    [pid + objId*view.objSize] -= Real3_int(objTotForce, 0).toReal4();
@@ -92,19 +92,19 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
         motion.r.dim = old_motion.r.dim + targetVelocity.dim*dt; \
         motion.vel.dim = targetVelocity.dim;                     \
     }
-    
+
     VELOCITY_PER_DIM(x);
     VELOCITY_PER_DIM(y);
     VELOCITY_PER_DIM(z);
-    
+
 #undef VELOCITY_PER_DIM
-    
+
     // First filter out the invalid values
     auto adjustedTargetOmega = old_motion.omega;
     if (targetOmega.x != PinObjectPlugin::Unrestricted) adjustedTargetOmega.x = targetOmega.x;
     if (targetOmega.y != PinObjectPlugin::Unrestricted) adjustedTargetOmega.y = targetOmega.y;
     if (targetOmega.z != PinObjectPlugin::Unrestricted) adjustedTargetOmega.z = targetOmega.z;
-    
+
     // Next compute the corrected dq_dt and revert if necessary
     auto dq_dt = old_motion.q.timeDerivative(adjustedTargetOmega);
 #define OMEGA_PER_DIM(dim)                                   \
@@ -114,13 +114,13 @@ __global__ void restrictRigidMotion(ROVviewWithOldMotion view, real3 targetVeloc
         motion.q.dim = old_motion.q.dim + dq_dt.dim*dt;      \
         motion.omega.dim = targetOmega.dim;                  \
     }
-    
+
     OMEGA_PER_DIM(x);
     OMEGA_PER_DIM(y);
     OMEGA_PER_DIM(z);
-    
+
 #undef OMEGA_PER_DIM
-    
+
     motion.q.normalize();
     view.motions[objId] = motion;
 }
@@ -188,7 +188,7 @@ void PinObjectPlugin::beforeIntegration(cudaStream_t stream)
                 view, translation_, forces_.devPtr() );
     }
 }
-   
+
 void PinObjectPlugin::afterIntegration(cudaStream_t stream)
 {
     // If the object IS rigid, modify forces and torques

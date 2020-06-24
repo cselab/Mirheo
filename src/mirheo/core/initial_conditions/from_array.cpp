@@ -22,7 +22,7 @@ void FromArrayIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t st
     const size_t n = pos_.size();
     positions .reserve(n);
     velocities.reserve(n);
-    
+
     for (size_t i = 0; i < n; ++i)
     {
         const real3 rg = pos_[i];

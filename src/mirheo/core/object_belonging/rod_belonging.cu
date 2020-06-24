@@ -70,13 +70,13 @@ __global__ void setInsideTags(RVview rvView, real radius, PVview pvView, CellLis
         {
             cid3.x = cidLow.x;
             const int cidLo = math::max(cinfo.encode(cid3), 0);
-            
+
             cid3.x = cidHigh.x;
             const int cidHi = math::min(cinfo.encode(cid3)+1, cinfo.totcells);
-            
+
             const int pstart = cinfo.cellStarts[cidLo];
             const int pend   = cinfo.cellStarts[cidHi];
-            
+
             setTagsCell(pstart, pend, radius, r0, r1, pvView, tags);
         }
     }
@@ -101,7 +101,7 @@ void RodBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStream
     tags_.clearDevice(stream);
 
     const int numSegmentsPerRod = rv->local()->getNumSegmentsPerRod();
-    
+
     auto pvView   = cl->getView<PVview>();
 
     auto computeTags = [&](ParticleVectorLocality locality)

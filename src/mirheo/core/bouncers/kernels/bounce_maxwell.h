@@ -12,9 +12,9 @@ namespace mirheo
 
 /** \brief Implements reflection with Maxwell scattering.
 
-    This bounce kernel sets the particle velocity to the surface one with an 
+    This bounce kernel sets the particle velocity to the surface one with an
     additional random term drawed from Maxwell distribution.
-    The kernel tries to make the random term have a positive dot product with 
+    The kernel tries to make the random term have a positive dot product with
     the surface normal.
  */
 class BounceMaxwell
@@ -28,7 +28,7 @@ public:
     {}
 
     /** \brief Update internal state, must be called before use.
-        \param rng A random number generator. 
+        \param rng A random number generator.
      */
     void update(std::mt19937& rng)
     {

@@ -16,7 +16,7 @@ struct RodParameters
     std::vector<real> tauEq;    ///< equilibrium torsion (one per state)
 
     std::vector<real> groundE; ///< ground energy of each state
-    
+
     real a0;        ///< equilibrium length between two opposite material frame particles
     real l0;        ///< equilibrium length between two consecutive centerline particles
     real ksCenter;  ///< spring force magnitude for centerline
@@ -41,7 +41,7 @@ struct StatesSpinParameters
 
     /// \return a random seed
     inline auto generate() {return udistr_(gen_);}
-    
+
 private:
     std::mt19937 gen_;
     std::uniform_real_distribution<real> udistr_;

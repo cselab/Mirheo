@@ -32,7 +32,7 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    
+
     int nHalos = 0;
     short validHalos[7];
 
@@ -88,9 +88,9 @@ __global__ void getObjectHaloAndMap(DomainInfo domain, OVview view, MapEntry *ma
             const int numElements = dataWrap.offsets[bufId+1] - dataWrap.offsets[bufId];
 
             packer.blockPackShift(numElements, buffer, objId, shDstObjId, shift);
-            
+
             // save map
-            
+
             const int myOffset = dataWrap.offsets[bufId] + shDstObjId;
             if (tid == 0)
                 map[myOffset] = MapEntry(objId, bufId);
@@ -103,9 +103,9 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler pac
 {
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
-    
+
     extern __shared__ int offsets[];
-    
+
     const int nBuffers = dataWrap.nBuffers;
 
     for (int i = tid; i < nBuffers + 1; i += blockDim.x)
@@ -115,7 +115,7 @@ __global__ void unpackObjects(BufferOffsetsSizesWrap dataWrap, PackerHandler pac
     const int bufId = dispatchThreadsPerBuffer(nBuffers, offsets, objId);
     auto buffer = dataWrap.getBuffer(bufId);
     const int numElements = dataWrap.sizes[bufId];
-    
+
     const int srcObjId = objId - offsets[bufId];
     const int dstObjId = objId;
 
@@ -171,7 +171,7 @@ void ObjectHaloExchanger::attach(ObjectVector *ov, real rc, const std::vector<st
     std::string allChannelNames = "";
     for (const auto& name : channels)
         allChannelNames += "'" + name + "' ";
-    
+
     info("Object vector '%s' (rc %f) was attached to halo exchanger with channels %s",
          ov->getCName(), rc, allChannelNames.c_str());
 }
@@ -217,7 +217,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto& map = maps_[id];
-    
+
     const int nhalo = helper->send.offsets[helper->nBuffers];
     OVview ovView(ov, lov);
     map.resize_anew(nhalo);
@@ -229,7 +229,7 @@ void ObjectHaloExchanger::prepareData(size_t id, cudaStream_t stream)
 
         helper->resizeSendBuf();
         helper->send.sizes.clearDevice(stream);
-        
+
         mpark::visit([&](const auto& packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
@@ -257,7 +257,7 @@ void ObjectHaloExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks = totalRecvd;
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
-    
+
     mpark::visit([&](const auto& unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(

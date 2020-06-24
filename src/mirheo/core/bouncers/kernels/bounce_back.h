@@ -9,14 +9,14 @@ namespace mirheo
 {
 
 /** \brief Implements bounce-back reflection.
-    This bounce kernel reverses the velocity of the particle in the frame of reference of the surface. 
+    This bounce kernel reverses the velocity of the particle in the frame of reference of the surface.
  */
 class BounceBack
 {
 public:
     BounceBack() = default;
 
-    /** 
+    /**
         Does nothing, just to be consistent with the inteface
      */
     void update(__UNUSED std::mt19937& rng) {}

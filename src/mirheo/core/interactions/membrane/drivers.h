@@ -96,13 +96,13 @@ __device__ inline mReal3 bondTriangleForce(
     {
         const int i1 = startId + i;
         const int i2 = startId + ((i+1) % degree);
-        
+
         const int idv2 = rbcId * mesh.nvertices + mesh.adjacent[i2];
 
         const auto p2 = fetchParticle(view, idv2);
 
         const auto eq = triangleInteraction.getEquilibriumDesc(mesh, i1, i2);
-        
+
         f0 += triangleInteraction (p.r, p1.r, p2.r, eq)
             + _fconstrainArea     (p.r, p1.r, p2.r, totArea,   parameters)
             + _fconstrainVolume   (p.r, p1.r, p2.r, totVolume, parameters)
@@ -143,7 +143,7 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
            V
            v1
     */
-    
+
     mReal3 f0 = make_mReal3(0.0_mr);
 
     dihedralInteraction.computeInternalCommonQuantities(view, rbcId);
@@ -159,7 +159,7 @@ __device__ inline mReal3 dihedralForce(int locId, int rbcId,
         f0 += dihedralInteraction(v0, v1, v2, v3, f1);
 
         atomicAdd(view.forces + idv1, make_real3(f1));
-            
+
         v1   = v2  ; v2   = v3  ;
         idv1 = idv2; idv2 = idv3;
     }

@@ -89,7 +89,7 @@ __device__ inline void computeCell(
 
     \param [in] cinfo cell-list data
     \param [in,out] view The view that contains the particle data
-    \param [in] interaction The pairwise interaction kernel 
+    \param [in] interaction The pairwise interaction kernel
 
     Mapping is one thread per particle. The thread will traverse half
     of the neighbouring cells and compute all the interactions between
@@ -115,16 +115,16 @@ __global__ void computeSelfInteractions(
         {
             if ( !(cellY >= 0 && cellY < cinfo.ncells.y && cellZ >= 0 && cellZ < cinfo.ncells.z) ) continue;
             if (cellY == cell0.y && cellZ > cell0.z) continue;
-            
+
             const int midCellId = cinfo.encode(cell0.x, cellY, cellZ);
             const int rowStart  = math::max(midCellId-1, 0);
             int rowEnd          = math::min(midCellId+2, cinfo.totcells);
-            
+
             if ( cellY == cell0.y && cellZ == cell0.z ) rowEnd = midCellId + 1; // this row is already partly covered
-            
+
             const int pstart = cinfo.cellStarts[rowStart];
             const int pend   = cinfo.cellStarts[rowEnd];
-            
+
             if (cellY == cell0.y && cellZ == cell0.z)
                 computeCell<InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionWith::Self>
                     (pstart, pend, dstP, dstId, view, interaction, accumulator);
@@ -136,7 +136,7 @@ __global__ void computeSelfInteractions(
 
     if (needSelfInteraction<Interaction>::value)
         accumulator.add(interaction(dstP, dstId, dstP, dstId));
-    
+
     accumulator.atomicAddToDst(accumulator.get(), view, dstId);
 }
 
@@ -152,7 +152,7 @@ __global__ void computeSelfInteractions(
     \param [in,out] srcView Source particles data
     \param [in] interaction Instance of the pairwise kernel functor
 
-    Mapping is one thread per destination particle. 
+    Mapping is one thread per destination particle.
     The thread will traverse all of the neighbouring cells and compute the interactions between
     the destination particle and all the particles of the \p srcView in those cells.
  */
@@ -185,7 +185,7 @@ __global__ void computeExternalInteractions_1tpp(
                 const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
                 if (rowStart >= rowEnd) continue;
-                
+
                 const int pstart = srcCinfo.cellStarts[rowStart];
                 const int pend   = srcCinfo.cellStarts[rowEnd];
 
@@ -250,7 +250,7 @@ __global__ void computeExternalInteractions_3tpp(
             const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
             if (rowStart >= rowEnd) continue;
-            
+
             const int pstart = srcCinfo.cellStarts[rowStart];
             const int pend   = srcCinfo.cellStarts[rowEnd];
 
@@ -272,7 +272,7 @@ __global__ void computeExternalInteractions_3tpp(
             }
         }
     }
-    
+
     if (NeedDstOutput == InteractionOutMode::NeedOutput)
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
@@ -315,7 +315,7 @@ __global__ void computeExternalInteractions_9tpp(
         const int rowEnd    = math::min(midCellId+2, srcCinfo.totcells);
 
         if (rowStart >= rowEnd) return;
-        
+
         const int pstart = srcCinfo.cellStarts[rowStart];
         const int pend   = srcCinfo.cellStarts[rowEnd];
 
@@ -357,8 +357,8 @@ __global__ void computeExternalInteractions_27tpp(
     const int gid = blockIdx.x*blockDim.x + threadIdx.x;
 
     const int dstId = gid / 27;
-    const int dircode = gid % 27;    
-    
+    const int dircode = gid % 27;
+
     if (dstId >= dstView.size) return;
 
     const auto dstP = interaction.readNoCache(dstView, dstId);

@@ -11,7 +11,7 @@ namespace mirheo
 {
 
 /** \brief Fill the domain with uniform number density in a given region
-    
+
     Initialize particles uniformly with the given number density on a specified region of the domain.
     The region is specified by a filter functor.
     The domain considered is that of the ParticleVector.
@@ -27,8 +27,8 @@ public:
      */
     UniformFilteredIC(real numDensity, PositionFilter filter);
     ~UniformFilteredIC();
-    
-    void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;    
+
+    void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
     real numDensity_;

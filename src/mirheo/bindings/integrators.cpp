@@ -55,7 +55,7 @@ void exportIntegrators(py::module& m)
                     velocity: :math:`\mathbf{u}_0`
                     period: oscillation period :math:`T`
             )");
-        
+
     py::handlers_class<IntegratorVVRigid>(m, "RigidVelocityVerlet", pyint, R"(
         Integrate the position and rotation (in terms of quaternions) of the rigid bodies as per Velocity-Verlet scheme.
         Can only applied to :any:`RigidObjectVector` or :any:`RigidEllipsoidVector`.
@@ -65,7 +65,7 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
             )");
-        
+
     py::handlers_class<IntegratorTranslate>(m, "Translate", pyint, R"(
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
     )")
@@ -75,17 +75,17 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             )");
-        
+
     py::handlers_class<IntegratorVV<ForcingTermNone>>
         (m, "VelocityVerlet", pyint, R"(
             Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
             The velocities are shifted with respect to the coordinates by one half of the time-step
-            
+
             .. math::
 
                 \mathbf{a}^{n} &= \frac{1}{m} \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) \\
                 \mathbf{v}^{n+1/2} &= \mathbf{v}^{n-1/2} + \mathbf{a}^n \Delta t \\
-                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \mathbf{v}^{n+1/2} \Delta t 
+                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \mathbf{v}^{n+1/2} \Delta t
 
             where bold symbol means a vector, :math:`m` is a particle mass, and superscripts denote the time: :math:`\mathbf{x}^{k} = \mathbf{x}(k \, \Delta t)`
         )")
@@ -94,11 +94,11 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
             )");
-        
+
     py::handlers_class<IntegratorVV<ForcingTermConstDP>>
         (m, "VelocityVerlet_withConstForce", pyint, R"(
             Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
-   
+
             .. math::
 
                 \mathbf{a}^{n} &= \frac{1}{m} \left( \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) + \mathbf{F}_{extra} \right) \\
@@ -110,16 +110,16 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
                     force: :math:`\mathbf{F}_{extra}`
             )");
-        
+
     py::handlers_class<IntegratorVV<ForcingTermPeriodicPoiseuille>>
         (m, "VelocityVerlet_withPeriodicForce", pyint, R"(
             Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
             This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force
             :math:`F_{Poiseuille}` parallel to Oy, Oz or Ox correspondingly, and the particles in another half of the domain are pushed in the same direction
-            with force :math:`-F_{Poiseuille}`    
+            with force :math:`-F_{Poiseuille}`
         )")
         .def(py::init(&integrator_factory::createVV_PeriodicPoiseuille),
-             "state"_a, "name"_a, "force"_a, "direction"_a, R"(                
+             "state"_a, "name"_a, "force"_a, "direction"_a, R"(
                 Args:
                     name: name of the integrator
                     force: force magnitude, :math:`F_{Poiseuille}`
@@ -142,7 +142,7 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
                     substeps: number of sub steps
                     fastForces: a list of fast interactions. Only accepts :any:`MembraneForces` or :any:`RodForces`
-                
+
                 .. warning::
                     The interaction will be set to the required object vector when setting this integrator to the object vector.
                     Hence the interaction needs not to be set explicitely to the OV.

@@ -54,7 +54,7 @@ void AverageRelative3D::setup(Simulation* simulation, const MPI_Comm& comm, cons
 
     int local_size = numberDensity_.size();
     int global_size = local_size * nranks_;
-    
+
     localNumberDensity_      .resize(local_size);
     numberDensity_           .resize_anew(global_size);
     accumulatedNumberDensity_.resize_anew(global_size);
@@ -109,7 +109,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 {
     const int TAG = 22;
     const int NCOMPONENTS = 2 * sizeof(real3) / sizeof(real);
-    
+
     if (!isTimeEvery(getState(), sampleEvery_)) return;
 
     debug2("Plugin %s is sampling now", getCName());
@@ -150,7 +150,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
         sampleOnePv(relativeParams[0], pv, stream);
 
     accumulateSampledAndClear(stream);
-    
+
     averageRelativeVelocity_ += relativeParams[1];
 
     nSamples_++;
@@ -160,7 +160,7 @@ void AverageRelative3D::afterIntegration(cudaStream_t stream)
 void AverageRelative3D::extractLocalBlock()
 {
     static const double scale_by_density = -1.0;
-    
+
     auto oneChannel = [this] (const PinnedBuffer<double>& channel, Average3D::ChannelType type, double scale, std::vector<double>& dest) {
 
         MPI_Check( MPI_Allreduce(MPI_IN_PLACE, channel.hostPtr(), channel.size(), MPI_DOUBLE, MPI_SUM, comm_) );
@@ -176,7 +176,7 @@ void AverageRelative3D::extractLocalBlock()
             for (int j = rank3D_.y * resolution_.y; j < (rank3D_.y+1) * resolution_.y; ++j)
             {
                 for (int i = rank3D_.x * resolution_.x; i < (rank3D_.x+1) * resolution_.x; ++i)
-                {                    
+                {
                     const int scalId = (k*globalResolution.y*globalResolution.x + j*globalResolution.x + i);
                     int srcId = ncomponents * scalId;
                     for (int c = 0; c < ncomponents; ++c)
@@ -211,20 +211,20 @@ void AverageRelative3D::serializeAndSend(cudaStream_t stream)
         {
             constexpr int nthreads = 128;
             const int numVec3 = data.size() / 3;
-            
+
             SAFE_KERNEL_LAUNCH
                 (sampling_helpers_kernels::correctVelocity,
                  getNblocks(numVec3, nthreads), nthreads, 0, stream,
                  numVec3, reinterpret_cast<double3*> (data.devPtr()),
                  accumulatedNumberDensity_.devPtr(), averageRelativeVelocity_ / static_cast<real>(nSamples_));
-        
+
             averageRelativeVelocity_ = make_real3(0.0_r);
         }
     }
-        
+
     accumulatedNumberDensity_.downloadFromDevice(stream, ContainersSynch::Asynch);
     accumulatedNumberDensity_.clearDevice(stream);
-    
+
     for (auto& data : accumulatedAverage_)
     {
         data.downloadFromDevice(stream, ContainersSynch::Asynch);

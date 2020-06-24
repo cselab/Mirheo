@@ -57,7 +57,7 @@ public:
 
     /// Generic converter from the ParticleType type to the common \c real3 coordinates
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.r;}
-    
+
 protected:
     real rc_;  ///< cut-off radius
     real rc2_; ///< rc^2
@@ -67,7 +67,7 @@ protected:
 class ParticleFetcherWithVelocity : public ParticleFetcher
 {
 public:
-    /// \param rc cut-off radius    
+    /// \param rc cut-off radius
     ParticleFetcherWithVelocity(real rc) :
         ParticleFetcher(rc)
     {}
@@ -94,7 +94,7 @@ public:
     using ViewType     = PVviewWithDensities; ///< compatible view type
     using ParticleType = ParticleWithDensity; ///< compatible particle type
 
-    /// \param rc cut-off radius    
+    /// \param rc cut-off radius
     ParticleFetcherWithVelocityAndDensity(real rc) :
         ParticleFetcherWithVelocity(rc)
     {}
@@ -176,7 +176,7 @@ public:
         ParticleFetcherWithVelocity::readCoordinates(p.p, view, id);
     }
 
-    /// read velocity, number density and mass of the particle    
+    /// read velocity, number density and mass of the particle
     __D__ inline void readExtraData(ParticleType& p, const ViewType& view, int id) const
     {
         ParticleFetcherWithVelocity::readExtraData(p.p, view, id);

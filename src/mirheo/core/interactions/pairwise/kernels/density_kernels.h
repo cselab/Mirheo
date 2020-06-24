@@ -37,7 +37,7 @@ class WendlandC2DensityKernel
 public:
      /// parameters struct for this type
     using ParamsType = WendlandC2DensityKernelParams;
-    
+
     WendlandC2DensityKernel() = default;
     /// generic constructor
     WendlandC2DensityKernel(const ParamsType&) {};
@@ -49,7 +49,7 @@ public:
         const real rm = 1.0_r - r_;
         const real rm2 = rm * rm;
         const real invrc3 = invrc * invrc * invrc;
-        
+
         return normalization_ * invrc3 * rm2 * rm2 * (1.0_r + 4.0_r * r_);
     }
 

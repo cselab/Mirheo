@@ -47,7 +47,7 @@ static std::vector<Real> computeCurvatures(const real4 *positions, int nSegments
         auto bicurFactor = 1.0 / (le0 * le1 + dot(e0, e1));
         auto bicur = (2.0 * bicurFactor) * cross(e0, e1);
         auto kappa = (1/l) * bicur;
-        
+
         curvatures.push_back(length(kappa));
     }
     return curvatures;
@@ -82,7 +82,7 @@ static std::vector<Real> computeTorsions(const real4 *positions, int nSegments)
 
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
-        
+
         const auto Q = Quaternion<Real>::createFromVectors(t0, t1);
         Real3 u0 = normalize(anyOrthogonal(t0));
         Real3 u1 = normalize(Q.rotate(u0));
@@ -105,9 +105,9 @@ static std::vector<Real> computeTorsions(const real4 *positions, int nSegments)
 
         Real theta0 = atan2(dpv0, dpu0);
         Real theta1 = atan2(dpv1, dpu1);
-    
+
         Real tau = safeDiffTheta(theta0, theta1) * linv;
-        
+
         torsions.push_back(tau);
     }
     return torsions;
@@ -121,7 +121,7 @@ static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](__UNUSED real s)
     {
         return 0.f;
@@ -138,16 +138,16 @@ static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
-    
+
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
-    
+
     auto curvatures = computeCurvatures(pos.data(), nSegments);
 
     Real h = 1.0 / nSegments;
     Real err = 0;
-    
+
     for (int i = 0; i < nSegments - 1; ++i)
     {
         Real s = (i+1) * h;
@@ -168,7 +168,7 @@ static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
         auto r = centerLine(s);
         return real3({(real) r.x, (real) r.y, (real) r.z});
     };
-    
+
     RodIC::MappingFunc1D mirTorsion = [&](real s)
     {
         return (real) torsion(s);
@@ -185,16 +185,16 @@ static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
     RodIC ic({comq}, mirCenterLine, mirTorsion, a);
-    
+
     ic.exec(comm, &rv, defaultStream);
 
     auto& pos = rv.local()->positions();
-    
+
     auto torsions = computeTorsions(pos.data(), nSegments);
 
     Real h = 1.0 / nSegments;
     Real err = 0;
-    
+
     for (int i = 0; i < nSegments - 1; ++i)
     {
         Real s = (i+1) * h;
@@ -212,7 +212,7 @@ static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
 TEST (ROD, curvature_straight)
 {
     Real L = 5.0;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
@@ -235,7 +235,7 @@ TEST (ROD, curvature_straight)
 TEST (ROD, curvature_circle)
 {
     Real radius = 1.2;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real coss = cos(2*M_PI*s);
@@ -271,7 +271,7 @@ TEST (ROD, curvature_helix)
 {
     Real a = 1.2;
     Real b = 2.32;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real t = 2 * M_PI * s;
@@ -307,7 +307,7 @@ TEST (ROD, torsion_straight_const)
 {
     Real L = 5.0;
     Real tau = 0.5;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
@@ -331,7 +331,7 @@ TEST (ROD, torsion_straight_vary)
 {
     Real L = 5.0;
     Real tauA = 1.5;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         return {(s-0.5) * L, 0., 0.};
@@ -355,14 +355,14 @@ TEST (ROD, torsion_circle_vary)
 {
     Real radius = 1.2;
     Real tauA = 1.5;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real coss = cos(2*M_PI*s);
         Real sins = sin(2*M_PI*s);
         return {radius * coss, radius * sins, 0.};
     };
-    
+
     auto torsion = [&](Real s)
     {
         return s * tauA;
@@ -381,7 +381,7 @@ TEST (ROD, torsion_helix)
 {
     Real a = 1.2;
     Real b = 2.32;
-    
+
     auto centerLine = [&](Real s) -> Real3
     {
         Real t = 2 * M_PI * s;
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 
     logger.init(MPI_COMM_WORLD, "rod_discretization.log", 9);
-    
+
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();
 

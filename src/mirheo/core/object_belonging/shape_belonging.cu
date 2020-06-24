@@ -71,7 +71,7 @@ void ShapeBelongingChecker<Shape>::_tagInner(ParticleVector *pv, CellList *cl, c
     auto computeTags = [&](ParticleVectorLocality locality)
     {
         ov_->findExtentAndCOM(stream, locality);
-        
+
         auto rsovView = RSOVview<Shape>(rsov, rsov->get(locality));
 
         debug("Computing inside/outside tags for %d %s %s '%s' and %d '%s' particles",
@@ -84,7 +84,7 @@ void ShapeBelongingChecker<Shape>::_tagInner(ParticleVector *pv, CellList *cl, c
             shape_belonging_kernels::computeTags,
             rsovView.nObjects, nthreads, 0, stream,
             rsovView, cl->cellInfo(), pvView, tags_.devPtr());
-    };        
+    };
 
     computeTags(ParticleVectorLocality::Local);
     computeTags(ParticleVectorLocality::Halo);

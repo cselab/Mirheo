@@ -16,7 +16,7 @@ public:
 
         The format of the file is custom.
         It is a single file that contains a header followed by the data grid data in binary format.
-        The header is composed of two lines in ASCII format: 
+        The header is composed of two lines in ASCII format:
         - domain size (3 floating point numbers)
         - number of grid points (3 integers)
 
@@ -27,9 +27,9 @@ public:
 
     /// move constructor
     FieldFromFile(FieldFromFile&&);
-    
+
     void setup(const MPI_Comm& comm) override;
-    
+
 private:
     std::string fieldFileName_; ///< file name
 };

@@ -12,7 +12,7 @@ namespace mirheo
 {
 
 /** \brief Base class for all the objects of Mirheo
-    
+
     Each object has a name and provides must interface for checkpoint / restart mechanism.
  */
 class MirObject : public AutoObjectSnapshotTag
@@ -111,7 +111,7 @@ public:
     const MirState* getState() const {return state_;}
     /// \brief Set the simulation state.
     virtual void setState(const MirState *state);
-    
+
 private:
     const MirState *state_; ///< Global simulation state shared with other Mirheo objects.
 };

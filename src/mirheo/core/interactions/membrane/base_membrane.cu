@@ -96,9 +96,9 @@ void BaseMembraneInteraction::_precomputeQuantities(MembraneVector *mv, cudaStre
     mv->local()
         ->dataPerObject.getData<real2>(channel_names::areaVolumes)
         ->clearDevice(stream);
-    
+
     constexpr int nthreads = 128;
-    
+
     SAFE_KERNEL_LAUNCH(
         base_membrane_interaction_kernels::computeAreaAndVolume,
         view.nObjects, nthreads, 0, stream,

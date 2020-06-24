@@ -53,7 +53,7 @@ Average3D::Average3D(const MirState *state, std::string name,
     binSize_(binSize)
 {
     const size_t n = channelNames.size();
-    
+
     channelsInfo_.n = n;
     channelsInfo_.types      .resize_anew(n);
     channelsInfo_.averagePtrs.resize_anew(n);
@@ -100,20 +100,20 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
         die("Plugin '%s' needs at least one particle vector", getCName());
 
     const LocalParticleVector *lpv = pvs_[0]->local();
-    
+
     // setup types from available channels
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
         const std::string& channelName = channelsInfo_.names[i];
         const auto& desc = lpv->dataPerParticle.getChannelDescOrDie(channelName);
-        
+
         const ChannelType type = getChannelTypeFromChannelDesc(channelName, desc);
         channelsInfo_.types[i] = type;
     }
-    
+
     rank3D_   = simulation->getRank3D();
     nranks3D_ = simulation->getNRanks3D();
-    
+
     // TODO: this should be reworked if the domains are allowed to have different size
     resolution_ = make_int3( math::floor(getState()->domain.localSize / binSize_) );
     binSize_ = getState()->domain.localSize / make_real3(resolution_);
@@ -131,19 +131,19 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
 
     accumulatedNumberDensity_.resize_anew(total);
     accumulatedNumberDensity_.clear(defaultStream);
-    
+
     std::string allChannels = numberDensityChannelName_;
 
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
         const int components = getNcomponents(channelsInfo_.types[i]);
-        
+
         channelsInfo_.average[i].resize_anew(components * total);
         accumulatedAverage_  [i].resize_anew(components * total);
-        
+
         channelsInfo_.average[i].clear(defaultStream);
         accumulatedAverage_  [i].clear(defaultStream);
-        
+
         channelsInfo_.averagePtrs[i] = channelsInfo_.average[i].devPtr();
 
         allChannels += ", " + channelsInfo_.names[i];
@@ -184,7 +184,7 @@ void Average3D::accumulateSampledAndClear(cudaStream_t stream)
     const int ncells = numberDensity_.size();
 
     accumulateOneArray(ncells, 1, numberDensity_.devPtr(), accumulatedNumberDensity_.devPtr(), stream);
-    numberDensity_.clear(stream);    
+    numberDensity_.clear(stream);
 
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
@@ -210,7 +210,7 @@ void Average3D::afterIntegration(cudaStream_t stream)
         sampleOnePv(pv, stream);
 
     accumulateSampledAndClear(stream);
-    
+
     ++nSamples_;
 }
 
@@ -218,7 +218,7 @@ void Average3D::scaleSampled(cudaStream_t stream)
 {
     constexpr int nthreads = 128;
     const int ncells = accumulatedNumberDensity_.size();
-    // Order is important here! First channels, only then density 
+    // Order is important here! First channels, only then density
 
     for (int i = 0; i < channelsInfo_.n; ++i)
     {
@@ -250,11 +250,11 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 {
     if (!isTimeEvery(getState(), dumpEvery_)) return;
     if (nSamples_ == 0) return;
-    
+
     scaleSampled(stream);
 
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_) - 1;  // -1 to start from 0
-    
+
     debug2("Plugin '%s' is now packing the data", getCName());
     _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
@@ -267,7 +267,7 @@ void Average3D::handshake()
 
     for (auto t : channelsInfo_.types)
         sizes.push_back(getNcomponents(t));
-    
+
     SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes, channelsInfo_.names, numberDensityChannelName_);
     _send(sendBuffer_);
 }

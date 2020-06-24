@@ -32,7 +32,7 @@ public:
     {}
 
     /** Synchronize with simulation state. Must be called at every time step.
-        \param [in] t Simulation time. 
+        \param [in] t Simulation time.
         \param [in] domain domain info.
      */
     void setup(__UNUSED real t, DomainInfo domain)

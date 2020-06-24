@@ -77,10 +77,10 @@ __device__ static inline bool segmentTriangleQuickCheck(Triangle trNew, Triangle
 
     // assume that particles don t move more than this distance every time step
     constexpr real tolDistance = 0.1_r;
-    
+
     if (math::abs(F0) > tolDistance && math::abs(F1) > tolDistance)
         return false;
-    
+
     if (F0 * F1 < 0.0_r)
         return true;
 
@@ -216,7 +216,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     constexpr real epsilon    {1e-5_r};
 
     IntersectionInfo info;
-    
+
     const real3 v0 = trOld.v0;
     const real3 v1 = trOld.v1;
     const real3 v2 = trOld.v2;
@@ -328,7 +328,7 @@ intersectSegmentWithTriangle(Triangle trNew, Triangle trOld,
     else if (validRoot(roots[1]) && checkIfInside(roots[1].x)) info.alpha = roots[1].x;
     else if (validRoot(roots[2]) && checkIfInside(roots[2].x)) info.alpha = roots[2].x;
     else                                                       info.alpha = noCollision;
-    
+
     return info;
 }
 

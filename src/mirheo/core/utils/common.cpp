@@ -28,7 +28,7 @@ const std::string comExtents  = "com_extents";
 const std::string areaVolumes = "area_volumes";
 
 const std::string membraneTypeId = "membrane_type_id";
-    
+
 const std::string areas          = "areas";
 const std::string meanCurvatures = "mean_curvatures";
 const std::string lenThetaTot    = "len_theta_tot";

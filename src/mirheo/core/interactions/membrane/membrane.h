@@ -44,7 +44,7 @@ static membrane_forces_kernels::GPU_CommonMembraneParameters setParams(const Com
         devP.seed = stepGen.generate(state);
         devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
     }
-    
+
     return devP;
 }
 
@@ -80,7 +80,7 @@ public:
         \param [in] dihedralParams Parameters that contain the parameters of the dihedral forces kernel
         \param [in] initLengthFraction The membrane will grow from this fraction of its size to its full size in \p growUntil time
         \param [in] growUntil The membrane will grow from \p initLengthFraction fraction of its size to its full size in this amount of time
-        \param [in] filter Describes which membranes to apply the interactions 
+        \param [in] filter Describes which membranes to apply the interactions
         \param [in] seed Random seed for rng
 
         More information can be found on \p growUntil in _scaleFromTime().
@@ -118,7 +118,7 @@ public:
     }
 
     ~MembraneInteraction() = default;
-    
+
     void local(ParticleVector *pv1,
                __UNUSED ParticleVector *pv2,
                __UNUSED CellList *cl1,
@@ -126,9 +126,9 @@ public:
                cudaStream_t stream) override
     {
         auto mv = dynamic_cast<MembraneVector *>(pv1);
-        
+
         this->_precomputeQuantities(mv, stream);
-       
+
         if (mv->getObjectSize() != mv->mesh->getNvertices())
             die("Object size of '%s' (%d) and number of vertices (%d) mismatch",
                 mv->getCName(), mv->getObjectSize(), mv->mesh->getNvertices());
@@ -153,7 +153,7 @@ public:
         DihedralInteraction dihedralInteraction(dihedralParams_, scale);
         TriangleInteraction triangleInteraction(triangleParams_, mesh, scale);
         filter_.setup(mv);
-        
+
         SAFE_KERNEL_LAUNCH(
             membrane_forces_kernels::computeMembraneForces,
             nblocks, nthreads, 0, stream,
@@ -169,7 +169,7 @@ public:
                           __UNUSED CellList *cl2) override
     {
         BaseMembraneInteraction::setPrerequisites(pv1, pv2, cl1, cl2);
-        
+
         if (auto mv = dynamic_cast<MembraneVector*>(pv1))
         {
             setPrerequisitesPerEnergy(dihedralParams_, mv);
@@ -182,14 +182,14 @@ public:
                 this->getCName(), pv1->getCName());
         }
     }
-    
+
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         const auto fname = createCheckpointNameWithId(path, "MembraneInt", "txt", checkpointId);
         text_IO::write(fname, stepGen_);
         createCheckpointSymlink(comm, path, "MembraneInt", "txt", checkpointId);
     }
-    
+
     void restart(__UNUSED MPI_Comm comm, const std::string& path) override
     {
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
@@ -203,7 +203,7 @@ public:
         return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
                 "MembraneInteraction");
     }
-    
+
     void saveSnapshotAndRegister(Saver& saver) override
     {
         saver.registerObject<MembraneInteraction>(this, _saveSnapshot(saver, getTypeName()));
@@ -241,7 +241,7 @@ private:
         \param [in] t The simulation time (must be positive)
         \return scaling factor for length
 
-        Will grow linearly from initLengthFraction_ to 1 during the first growUntil_ time interval. 
+        Will grow linearly from initLengthFraction_ to 1 during the first growUntil_ time interval.
         Otherwise this returns 1.
      */
     real _scaleFromTime(real t) const

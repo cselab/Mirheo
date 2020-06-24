@@ -49,11 +49,11 @@ MPIExchangeEngine::~MPIExchangeEngine()
 void MPIExchangeEngine::init(cudaStream_t stream)
 {
     const size_t numExchangeEntities = exchanger_->getNumExchangeEntities();
-    
+
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (!exchanger_->needExchange(i))
             debug("Exchange of PV '%s' is skipped", exchanger_->getExchangeEntity(i)->getCName());
-    
+
     // Post irecv for sizes
     for (size_t i = 0; i < numExchangeEntities; ++i)
         if (exchanger_->needExchange(i))
@@ -131,10 +131,10 @@ void MPIExchangeEngine::_postRecvSize(ExchangeEntity *helper)
     for (int i = 0; i < nBuffers; i++)
     {
         if (i == bulkId) continue;
-        
+
         MPI_Request req;
         const int tag = nBuffers * helper->getUniqueId() + dir2recvTag_[i];
-        
+
         MPI_Check( MPI_Irecv(rSizes + i, 1, MPI_INT, dir2rank_[i], tag, haloComm_, &req) );
         helper->recv.requests.push_back(req);
     }
@@ -155,7 +155,7 @@ void MPIExchangeEngine::_sendSizes(ExchangeEntity *helper)
     for (int i = 0; i < nBuffers; i++)
     {
         if (i == bulkId) continue;
-        
+
         const int tag = nBuffers * helper->getUniqueId() + dir2sendTag_[i];
         MPI_Check( MPI_Send(sSizes+i, 1, MPI_INT, dir2rank_[i], tag, haloComm_) );
     }
@@ -172,7 +172,7 @@ static void safeWaitAll(int count, MPI_Request array_of_requests[])
         int nchar;
         MPI_Error_string(code, buf, &nchar);
         allErrors += std::string(buf) + "\n";
-        for (int i = 0; i < count; ++i) {            
+        for (int i = 0; i < count; ++i) {
             MPI_Error_string(statuses[i].MPI_ERROR, buf, &nchar);
             allErrors += std::string(buf) + "\n";
         }
@@ -210,17 +210,17 @@ void MPIExchangeEngine::_postRecv(ExchangeEntity *helper)
     for (int i = 0; i < nBuffers; i++)
     {
         if (i == bulkId) continue;
-            
+
         MPI_Request req;
         const int tag = nBuffers * helper->getUniqueId() + dir2recvTag_[i];
 
         debug3("Receiving %s entities from rank %d, %d entities (buffer %d, %ld bytes)",
                pvName.c_str(), dir2rank_[i], rSizes[i], i, rSizesBytes[i]);
-        
+
         if (rSizes[i] > 0)
         {
             auto ptr = gpuAwareMPI_ ? helper->recv.buffer.devPtr() : helper->recv.buffer.hostPtr();
-            
+
             MPI_Check( MPI_Irecv(ptr + rOffsetsBytes[i], (int) rSizesBytes[i],
                                  MPI_BYTE, dir2rank_[i], tag, haloComm_, &req) );
 
@@ -242,12 +242,12 @@ void MPIExchangeEngine::_wait(ExchangeEntity *helper, cudaStream_t stream)
     const auto rSizesBytes   = helper->recv.sizesBytes.  hostPtr();
     const auto rOffsetsBytes = helper->recv.offsetsBytes.hostPtr();
     const bool singleCopy = helper->recv.offsetsBytes[fragment_mapping::numFragments] < singleCopyThreshold_;
-    
+
     debug("Waiting to receive '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI_ ? "on" : "off");
 
     helper->recv.uploadInfosToDevice(stream);
-    
+
     double waitTime = 0;
     mTimer tm;
     // Wait for all if we want to copy all at once
@@ -295,7 +295,7 @@ void MPIExchangeEngine::_send(ExchangeEntity *helper, cudaStream_t stream)
     const auto sSizesBytes   = helper->send.sizesBytes.  hostPtr();
     const auto sOffsetsBytes = helper->send.offsetsBytes.hostPtr();
     bool singleCopy = helper->send.buffer.size() < singleCopyThreshold_;
-    
+
     debug("Sending '%s' entities, single copy is %s, GPU aware MPI is %s",
         pvName.c_str(), singleCopy ? "on" : "off", gpuAwareMPI_ ? "on" : "off");
 
@@ -309,7 +309,7 @@ void MPIExchangeEngine::_send(ExchangeEntity *helper, cudaStream_t stream)
     for (int i = 0; i < nBuffers; i++)
     {
         if (i == bulkId) continue;
-            
+
         debug3("Sending %s entities to rank %d in dircode %d [%2d %2d %2d], %d entities",
                pvName.c_str(), dir2rank_[i], i, fragment_mapping::getDirx(i), fragment_mapping::getDiry(i), fragment_mapping::getDirz(i), sSizes[i]);
 
@@ -319,7 +319,7 @@ void MPIExchangeEngine::_send(ExchangeEntity *helper, cudaStream_t stream)
         if (sSizes[i] > 0)
         {
             auto ptr = gpuAwareMPI_ ? helper->send.buffer.devPtr() : helper->send.buffer.hostPtr();
-                
+
             if (!singleCopy && (!gpuAwareMPI_))
             {
                 CUDA_Check( cudaMemcpyAsync(

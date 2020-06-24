@@ -17,7 +17,7 @@ int Channel::precision() const
 {
     return numberTypeToPrecision(numberType);
 }
-    
+
 std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
 {
     switch (dataForm)
@@ -40,7 +40,7 @@ int dataFormToNcomponents(Channel::DataForm dataForm)
     constexpr auto szRM = sizeof(RigidMotion);
     constexpr auto szRMx = sizeof(RigidMotion::r.x);
     static_assert(szRM % szRMx == 0, "RigidMotion components must be of same type");
-    
+
     switch (dataForm)
     {
     case Channel::DataForm::Scalar:      return 1;
@@ -122,7 +122,7 @@ int numberTypeToPrecision(Channel::NumberType dt)
     }
     return sizeof(float);
 }
-    
+
 Channel::NumberType infoToNumberType(const std::string& str, int precision)
 {
     if (precision == sizeof(float)   && str == "Float") return Channel::NumberType::Float;

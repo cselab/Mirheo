@@ -10,7 +10,7 @@ namespace mirheo
 /** \brief A View with additional stress info
     \tparam BasicView The pv view to extend with stresses
  */
-template <typename BasicView> 
+template <typename BasicView>
 struct PVviewWithStresses : public BasicView
 {
     /** \brief Construct a PVviewWithStresses
@@ -25,7 +25,7 @@ struct PVviewWithStresses : public BasicView
     PVviewWithStresses(ParticleVector *pv, LocalParticleVector *lpv) :
         BasicView(pv, lpv)
     {
-        stresses = lpv->dataPerParticle.getData<Stress>(channel_names::stresses)->devPtr();            
+        stresses = lpv->dataPerParticle.getData<Stress>(channel_names::stresses)->devPtr();
     }
 
     Stress *stresses {nullptr}; ///< stresses per particle

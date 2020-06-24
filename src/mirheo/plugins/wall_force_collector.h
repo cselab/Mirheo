@@ -21,7 +21,7 @@ public:
     ~WallForceCollectorPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    
+
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;
 
@@ -30,19 +30,19 @@ public:
 private:
     int sampleEvery_, dumpEvery_;
     int nsamples_ {0};
-    
+
     std::string wallName_;
     std::string frozenPvName_;
-    
+
     bool needToDump_ {false};
 
     SDFBasedWall *wall_;
     ParticleVector *pv_;
-    
+
     PinnedBuffer<double3> *bounceForceBuffer_ {nullptr};
     PinnedBuffer<double3> pvForceBuffer_ {1};
     double3 totalForce_ {0.0, 0.0, 0.0};
-    
+
     std::vector<char> sendBuffer_;
 };
 

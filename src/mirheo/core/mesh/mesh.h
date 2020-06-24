@@ -12,7 +12,7 @@ namespace mirheo
 {
 
 /** \brief A triangle mesh structure.
-    
+
     The topology is represented by a list of faces (three vertex indices per face).
  */
 class Mesh : public AutoObjectSnapshotTag
@@ -69,7 +69,7 @@ protected:
     /// Update the internal value maxDegree_ from the current topology.
     void _computeMaxDegree();
 
-    /// Check if all faces contain valid indices; dies otherwise 
+    /// Check if all faces contain valid indices; dies otherwise
     void _check() const;
 
 protected:

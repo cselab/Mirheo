@@ -21,7 +21,7 @@ public:
     __HD__ inline ControlType update(ControlType error)
     {
         ControlType derError;
-        
+
         derError   = error - oldError_;
         sumError_ += error;
         oldError_  = error;
@@ -35,14 +35,14 @@ public:
                << pid.sumError_ << std::endl;
         return stream;
     }
-    
+
     friend std::ifstream& operator>>(std::ifstream& stream, PidControl<ControlType>& pid)
     {
         stream >> pid.oldError_
                >> pid.sumError_;
         return stream;
     }
-    
+
 private:
     real Kp_, Ki_, Kd_;
     ControlType oldError_, sumError_;

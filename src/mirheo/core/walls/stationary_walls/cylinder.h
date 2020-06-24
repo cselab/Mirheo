@@ -20,8 +20,8 @@ public:
     enum class Direction {x, y, z};
 
     /** \brief Construct a StationaryWallCylinder.
-        \param [in] center Center of the cylinder in global coordinates in the plane 
-                           perpendicular to the direction 
+        \param [in] center Center of the cylinder in global coordinates in the plane
+                           perpendicular to the direction
         \param [in] radius Radius of the cylinder
         \param [in] dir The direction of the main axis.
         \param [in] inside Domain is inside the cylinder if set to \c true.

@@ -11,7 +11,7 @@ class Exchanger;
 
     Responsible to communicate the data managed by an \c Exchanger between different subdomains.
     The communication is split into two parts so that asynchronous communication can be used.
-    Every init() call must have a single finalize() call that follows. 
+    Every init() call must have a single finalize() call that follows.
  */
 class ExchangeEngine
 {
@@ -25,14 +25,14 @@ public:
 
     /** \brief Initialize the communication.
         \param stream Execution stream used to prepare / download the data
-        
+
         The data packing from the exchanger happens in this step.
      */
     virtual void init(cudaStream_t stream)     = 0;
 
     /** \brief Finalize the communication.
         \param stream Execution stream used to upload / unpack the data
-        
+
         Must follow a pending init() call.
         The data unpacking from the exchanger happens in this step.
      */

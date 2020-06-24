@@ -131,7 +131,7 @@ private:
     {
         return math::sqrt(2.0 * gamma * kBT / dt);
     }
-    
+
     StepRandomGen stepGen_;
     real kBT_;
 };

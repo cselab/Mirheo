@@ -82,7 +82,7 @@ __global__ static void scaleVec(int n, int fieldComponents, double *field, const
     if (id >= n) return;
 
     const double nd = numberDensity[id];
-    
+
     for (int c = 0; c < fieldComponents; ++c)
         if (math::abs(nd) > 1e-6_r)
             field[fieldComponents*id + c] /= nd;

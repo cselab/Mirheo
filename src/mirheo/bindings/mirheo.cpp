@@ -146,7 +146,7 @@ Create the Mirheo coordinator.
         6. report more debug
         7. report all the debug
         8. force flushing to the file after each message
-    
+
     Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
     Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
 
@@ -157,12 +157,12 @@ Args:
         The largest chunk size that a single MPI rank can have depends on the total number of particles,
         handlers and hardware, and is typically about :math:`120^3 - 200^3`.
     dt: timestep of the simulation
-    log_filename: prefix of the log files that will be created. 
-        Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ... 
-        will be created, where NP is the total number of MPI ranks. 
+    log_filename: prefix of the log files that will be created.
+        Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ...
+        will be created, where NP is the total number of MPI ranks.
         Each MPI task (including postprocess) writes messages about itself into his own log file, and the combined log may be created by merging all
         the individual ones and sorting with respect to time.
-        If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
+        If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however,
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
     checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
@@ -201,11 +201,11 @@ Args:
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
         )")
-        
+
         .def("registerParticleVector", &Mirheo::registerParticleVector,
             "pv"_a, "ic"_a=nullptr, R"(
             Register particle vector
-            
+
             Args:
                 pv: :any:`ParticleVector`
                 ic: :class:`~libmirheo.InitialConditions.InitialConditions` that will generate the initial distibution of the particles
@@ -227,12 +227,12 @@ Args:
         .def("registerObjectBelongingChecker", &Mirheo::registerObjectBelongingChecker,
              "checker"_a, "ov"_a, R"(
                 Register Object Belonging Checker
-                
+
                 Args:
                     checker: instance of :any:`BelongingChecker`
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
-        
+
         .def("registerBouncer",  &Mirheo::registerBouncer,
              "bouncer"_a, R"(
                Register Object Bouncer
@@ -246,7 +246,7 @@ Args:
 
                Args:
                    wall: the :any:`Wall` to register
-                   check_every: if positive, check every this many time steps if particles penetrate the walls 
+                   check_every: if positive, check every this many time steps if particles penetrate the walls
         )")
         .def("registerPlugins",
              (void(Mirheo::*)(const std::shared_ptr<SimulationPlugin> &,
@@ -292,54 +292,54 @@ Args:
                         this should be as small as possible for performance reasons but large enough for correctness
          )")
         .def("getState",       &Mirheo::getMirState,    "Return mirheo state")
-        
+
         .def("dumpWalls2XDMF",    &Mirheo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
-                
+
                 Args:
                     walls: list of walls to dump; the output sdf will be the union of all walls inside
                     h: cell-size of the resulting grid
-                    filename: base filename output, will create to files filename.xmf and filename.h5 
-        )")        
+                    filename: base filename output, will create to files filename.xmf and filename.h5
+        )")
 
         .def("computeVolumeInsideWalls", &Mirheo::computeVolumeInsideWalls,
             "walls"_a, "nSamplesPerRank"_a=100000, R"(
                 Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
                 The computation is made via simple Monte-Carlo.
-                
+
                 Args:
                     walls: sdf based walls
                     nSamplesPerRank: number of Monte-Carlo samples used per rank
-        )")        
-        
+        )")
+
         .def("applyObjectBelongingChecker",    &Mirheo::applyObjectBelongingChecker,
             "checker"_a, "pv"_a, "correct_every"_a=0, "inside"_a="", "outside"_a="", R"(
                 Apply the **checker** to the given particle vector.
                 One and only one of the options **inside** or **outside** has to be specified.
-                
+
                 Args:
                     checker: instance of :any:`BelongingChecker`
-                    pv: :any:`ParticleVector` that will be split (source PV) 
+                    pv: :any:`ParticleVector` that will be split (source PV)
                     inside: if specified and not "none", a new :any:`ParticleVector` with name **inside** will be returned, that will keep the inner particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the outer particles
                     outside: if specified and not "none", a new :any:`ParticleVector` with name **outside** will be returned, that will keep the outer particles of the source PV. If set to "none", None object will be returned. In any case, the source PV will only contain the inner particles
-                    correct_every: If greater than zero, perform correction every this many time-steps.                        
+                    correct_every: If greater than zero, perform correction every this many time-steps.
                         Correction will move e.g. *inner* particles of outer PV to the :inner PV
                         and viceversa. If one of the PVs was defined as "none", the 'wrong' particles will be just removed.
-                            
+
                 Returns:
                     New :any:`ParticleVector` or None depending on **inside** and **outside** options
-                    
+
         )")
-        
+
         .def("makeFrozenWallParticles", &Mirheo::makeFrozenWallParticles,
              "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
-                
+
                 .. note::
                     A separate simulation will be run for every call to this function, which may take certain amount of time.
                     If you want to save time, consider using restarting mechanism instead
-                
+
                 Args:
                     pvName: name of the created particle vector
                     walls: array of instances of :any:`Wall` for which the frozen particles will be generated
@@ -348,20 +348,20 @@ Args:
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
-                            
+
                 Returns:
                     New :any:`ParticleVector` that will contain particles that are close to the wall boundary, but still inside the wall.
-                    
+
         )")
 
         .def("makeFrozenRigidParticles", &Mirheo::makeFrozenRigidParticles,
              "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
-                
+
                 .. note::
                     A separate simulation will be run for every call to this function, which may take certain amount of time.
                     If you want to save time, consider using restarting mechanism instead
-                
+
                 Args:
                     checker: object belonging checker
                     shape: object vector describing the shape of the rigid object
@@ -371,18 +371,18 @@ Args:
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
                     nsteps: run this many steps to achieve equilibrium
-                            
+
                 Returns:
                     New :any:`ParticleVector` that will contain particles that are close to the wall boundary, but still inside the wall.
-                    
+
         )")
-        
+
         .def("restart", &Mirheo::restart,
              "folder"_a="restart/", R"(
                Restart the simulation. This function should typically be called just before running the simulation.
                It will read the state of all previously registered instances of :any:`ParticleVector`, :any:`Interaction`, etc.
                If the folder contains no checkpoint file required for one of those, an error occur.
-               
+
                .. warning::
                   Certain :any:`Plugins` may not implement restarting mechanism and will not restart correctly.
                   Please check the documentation for the plugins.
@@ -398,11 +398,11 @@ Args:
         .def("save_dependency_graph_graphml",  &Mirheo::dumpDependencyGraphToGraphML,
              "fname"_a, "current"_a = true, R"(
              Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
-             
+
              Args:
                  fname: the output filename (without extension)
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
-             
+
              .. warning::
                  if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          )")

@@ -9,7 +9,7 @@ class MembraneVector;
 
 /** \brief Base class that represents membrane interactions.
 
-    This kind of interactions does not require any cell-lists and is always a "self-interaction", 
+    This kind of interactions does not require any cell-lists and is always a "self-interaction",
     hence the halo interaction does not do anything.
     This must be used only with MembraneVector objects.
  */
@@ -36,14 +36,14 @@ public:
         \param cl1 Unused
         \param cl2 Unused
 
-        This method will fail if pv1 is not a MembraneVector or if pv1 is not the same as pv2. 
+        This method will fail if pv1 is not a MembraneVector or if pv1 is not the same as pv2.
     */
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) final;
 
     bool isSelfObjectInteraction() const override;
-    
+
 protected:
 
     /** \brief Compute quantities used inside the force kernels.

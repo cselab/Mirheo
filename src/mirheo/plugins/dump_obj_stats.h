@@ -27,7 +27,7 @@ private:
     std::string ovName_;
     int dumpEvery_;
     bool needToSend_ {false};
-    
+
     HostBuffer<int64_t> ids_;
     HostBuffer<COMandExtent> coms_;
     HostBuffer<RigidMotion> motions_;

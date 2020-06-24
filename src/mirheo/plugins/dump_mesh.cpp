@@ -56,7 +56,7 @@ void MeshPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     auto& mesh = ov_->mesh;
 
     MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
-    
+
     _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, timeStamp, ov_->getName(),
                                 mesh->getNvertices(), mesh->getNtriangles(), mesh->getFaces(),
@@ -82,7 +82,7 @@ ConfigObject MeshPlugin::_saveSnapshot(Saver& saver, const std::string& typeName
 
 template<typename T>
 static MPI_Offset writeToMPI(const std::vector<T>& data, MPI_File f, MPI_Offset base, MPI_Comm comm)
-{    
+{
     MPI_Offset offset = 0;
     const MPI_Offset nbytes = data.size() * sizeof(T);
     MPI_Check( MPI_Exscan(&nbytes, &offset, 1, MPI_OFFSET, MPI_SUM, comm));
@@ -147,7 +147,7 @@ static void writePLY(
     MPI_Check( MPI_Bcast(&headerSize, 1, MPI_INT, 0, comm) );
 
     fileOffset += headerSize;
-    
+
     fileOffset += writeToMPI(vertices, f, fileOffset, comm);
 
     int verticesOffset = 0;

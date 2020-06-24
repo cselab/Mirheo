@@ -32,7 +32,7 @@ std::vector<std::string> splitByDelim(std::string str, char delim)
 std::string makePath(std::string path)
 {
     const size_t n = path.size();
-    
+
     if ( n > 0 && path[n-1] != '/')
         path += '/';
 

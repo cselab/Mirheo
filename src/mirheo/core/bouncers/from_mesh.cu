@@ -84,7 +84,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
     mesh_bounce_kernels::TriangleTable devCoarseTable { maxCoarseCollisions,
                                                         coarseTable_.nCollisions.devPtr(),
                                                         coarseTable_.collisionTable.devPtr() };
-    
+
     const int maxFineCollisions = static_cast<int>(fineCollisionsPerTri_ * static_cast<real>(totalTriangles));
     fineTable_.collisionTable.resize_anew(maxFineCollisions);
     fineTable_.nCollisions.clear(stream);
@@ -143,11 +143,11 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
             "something may be broken or you need to increase the estimate",
             fineTable_.nCollisions[0], maxFineCollisions);
 
-    // Step 3, resolve the collisions    
+    // Step 3, resolve the collisions
     mpark::visit([&](auto& bounceKernel)
     {
         bounceKernel.update(rng_);
-        
+
         SAFE_KERNEL_LAUNCH(
             mesh_bounce_kernels::performBouncingTriangle,
             getNblocks(fineTable_.nCollisions[0], nthreads), nthreads, 0, stream,

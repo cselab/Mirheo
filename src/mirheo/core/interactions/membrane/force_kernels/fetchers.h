@@ -37,7 +37,7 @@ public:
 
     using VertexType = VertexWithMeanCurvature;   ///< info contained in the fetched data
     using ViewType   = OVviewWithJuelicherQuants; ///< compatible view
-    
+
     /** \brief fetch a vertex coordinates and its mean curvature from a view
         \param [in] view The view from which to fetch the vertex
         \param [in] i The index of the vertex in \p view

@@ -105,7 +105,7 @@ struct ParticleRReal
     rReal3 u; ///< velocity
 };
 
-/// read position in required precision from a view 
+/// read position in required precision from a view
 template <typename View>
 __D__ inline rReal3 fetchPosition(View view, int i)
 {
@@ -113,7 +113,7 @@ __D__ inline rReal3 fetchPosition(View view, int i)
     return make_rReal3(ri.v);
 }
 
-/// read position and velocity in required precision from a view 
+/// read position and velocity in required precision from a view
 template <typename View>
 __D__ inline ParticleRReal fetchParticle(View view, int i)
 {

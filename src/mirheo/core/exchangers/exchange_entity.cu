@@ -23,7 +23,7 @@ __global__ void computeOffsetsSizeBytes(BufferOffsetsSizesWrap wrapData, size_t 
         size = wrapData.sizes[tid];
 
     size_t sizeBytes = packer.getSizeBytes(size);
-    
+
     int    offset      = warpExclusiveScan(size     );
     size_t offsetBytes = warpExclusiveScan(sizeBytes);
 
@@ -46,7 +46,7 @@ inline void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
     // must be launched on one warp only
     constexpr int nthreads = 32;
     constexpr int nblocks  = 1;
-    
+
     SAFE_KERNEL_LAUNCH(
         exchange_entities_kernels::computeOffsetsSizeBytes,
         nblocks, nthreads, 0, stream,
@@ -64,7 +64,7 @@ static void computeOffsetsSizeBytesDev(const BufferOffsetsSizesWrap& wrapData,
     {
         computeOffsetsSizeBytesDev(wrapData, sizeBytes, packerHandler, stream);
     };
-    
+
     if      (rp != nullptr) execute(rp->handler());
     else if (op != nullptr) execute(op->handler());
     else                    execute(pp->handler());
@@ -142,7 +142,7 @@ void ExchangeEntity::computeSendOffsets()
 void ExchangeEntity::computeSendOffsets_Dev2Dev(cudaStream_t stream)
 {
     computeOffsetsSizeBytesDev(wrapSendData(), send.sizesBytes, packer_, stream);
-    
+
     send.sizes       .downloadFromDevice(stream, ContainersSynch::Asynch);
     send.offsets     .downloadFromDevice(stream, ContainersSynch::Asynch);
     send.sizesBytes  .downloadFromDevice(stream, ContainersSynch::Asynch);

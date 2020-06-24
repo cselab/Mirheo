@@ -79,7 +79,7 @@ struct SimulationTasks
 
     TASK_LIST(DECLARE)
 
-#undef DECLARE    
+#undef DECLARE
 };
 
 static void checkCartesianTopology(const MPI_Comm& cartComm)
@@ -100,7 +100,7 @@ static Rank3DInfos getRank3DInfos(const MPI_Comm& cartComm)
 {
     int nranks[3], periods[3], coords[3];
     checkCartesianTopology(cartComm);
-    
+
     MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, coords) );
     return {{nranks[0], nranks[1], nranks[2]},
             {coords[0], coords[1], coords[2]}};
@@ -272,7 +272,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", getCName());
-    
+
     if (pv->getName().rfind("_", 0) == 0)
         die("Identifier of Particle Vectors cannot start with _");
 
@@ -330,7 +330,7 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
     if (integratorMap_.find(name) != integratorMap_.end())
         die("More than one integrator is called %s", getCName());
-    
+
     integratorMap_[name] = std::move(integrator);
 }
 
@@ -366,7 +366,7 @@ void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int ta
         die("More than one plugin is called %s", getCName());
 
     plugin->setTag(tag);
-    
+
     plugins.push_back(std::move(plugin));
 }
 
@@ -387,7 +387,7 @@ void Simulation::setIntegrator(const std::string& integratorName, const std::str
             pvName.c_str(), pvsIntegratorMap_[pvName].c_str());
 
     pvsIntegratorMap_[pvName] = integratorName;
-    
+
     integrator->setPrerequisites(pv);
 
     integratorPrototypes_.push_back({pv, integrator});
@@ -400,7 +400,7 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
 
     if (interactionMap_.find(interactionName) == interactionMap_.end())
         die("No such interaction: %s", interactionName.c_str());
-    auto interaction = interactionMap_[interactionName].get();    
+    auto interaction = interactionMap_[interactionName].get();
 
     const real rc = interaction->getCutoffRadius();
     interactionPrototypes_.push_back({rc, pv1, pv2, interaction});
@@ -446,7 +446,7 @@ void Simulation::setObjectBelongingChecker(const std::string& checkerName, const
         checker->setup(ov);
     else
         die("'%s' is not an object vector: can not set to belonging '%s'",
-            objName.c_str(), checkerName.c_str());        
+            objName.c_str(), checkerName.c_str());
 }
 
 
@@ -507,7 +507,7 @@ static void sortDescendingOrder(std::vector<real>& v)
 static void removeDuplicatedElements(std::vector<real>& v, real tolerance)
 {
     auto it = std::unique(v.begin(), v.end(), [=] (real a, real b) { return math::abs(a - b) < tolerance; });
-    v.resize( std::distance(v.begin(), it) );    
+    v.resize( std::distance(v.begin(), it) );
 }
 
 void Simulation::_prepareCellLists()
@@ -572,7 +572,7 @@ static CellList* selectBestClist(std::vector<std::unique_ptr<CellList>>& cellLis
 {
     real minDiff = 1e6;
     CellList* best = nullptr;
-    
+
     for (auto& cl : cellLists) {
         real diff = cl->rc - rc;
         if (diff > -tolerance && diff < minDiff) {
@@ -600,7 +600,7 @@ void Simulation::_prepareInteractions()
 
         cl1 = selectBestClist(clVec1, rc, rcTolerance_);
         cl2 = selectBestClist(clVec2, rc, rcTolerance_);
-        
+
         auto inter = prototype.interaction;
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
@@ -624,7 +624,7 @@ void Simulation::_prepareBouncers()
         if (pvsIntegratorMap_.find(pv->getName()) == pvsIntegratorMap_.end())
             die("Setting bouncer '%s': particle vector '%s' has no integrator, required for bounce back",
                 bouncer->getCName(), pv->getCName());
-        
+
         auto& clVec = cellListMap_[pv];
 
         if (clVec.empty()) continue;
@@ -649,7 +649,7 @@ void Simulation::_prepareWalls()
     {
         auto wall = prototype.wall;
         auto pv   = prototype.pv;
-        
+
         auto& clVec = cellListMap_[pv];
 
         if (clVec.empty()) continue;
@@ -686,7 +686,7 @@ void Simulation::_preparePlugins()
 std::vector<std::string> Simulation::_getExtraDataToExchange(ObjectVector *ov)
 {
     std::set<std::string> channels;
-    
+
     for (auto& entry : bouncerMap_)
     {
         auto& bouncer = entry.second;
@@ -717,7 +717,7 @@ std::vector<std::string> Simulation::_getDataToSendBack(const std::vector<std::s
 
     for (const auto& name : extraOut)
         channels.insert(name);
-    
+
     for (auto& entry : bouncerMap_)
     {
         auto& bouncer = entry.second;
@@ -736,7 +736,7 @@ void Simulation::_prepareEngines()
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
     auto partHaloFinalImp               = std::make_unique<ParticleHaloExchanger>();
     auto partHaloIntermediateImp        = std::make_unique<ParticleHaloExchanger>();
-    auto objRedistImp                   = std::make_unique<ObjectRedistributor>();        
+    auto objRedistImp                   = std::make_unique<ObjectRedistributor>();
     auto objHaloFinalImp                = std::make_unique<ObjectHaloExchanger>();
     auto objHaloIntermediateImp         = std::make_unique<ObjectExtraExchanger>  (objHaloFinalImp.get());
     auto objHaloReverseIntermediateImp  = std::make_unique<ObjectReverseExchanger>(objHaloFinalImp.get());
@@ -746,7 +746,7 @@ void Simulation::_prepareEngines()
     for (auto& pv : particleVectors_)
     {
         auto  pvPtr       = pv.get();
-        auto& cellListVec = cellListMap_[pvPtr];        
+        auto& cellListVec = cellListMap_[pvPtr];
 
         if (cellListVec.size() == 0) continue;
 
@@ -757,7 +757,7 @@ void Simulation::_prepareEngines()
         auto extraOut = interactionsFinal_       ->getOutputChannels(pvPtr);
 
         auto cl = cellListVec[0].get();
-        
+
         if (auto ov = dynamic_cast<ObjectVector*>(pvPtr))
         {
             objRedistImp->attach(ov);
@@ -774,7 +774,7 @@ void Simulation::_prepareEngines()
         else
         {
             partRedistImp->attach(pvPtr, cl);
-            
+
             if (clInt != nullptr)
                 partHaloIntermediateImp->attach(pvPtr, clInt, {});
 
@@ -782,9 +782,9 @@ void Simulation::_prepareEngines()
                 partHaloFinalImp->attach(pvPtr, clOut, extraInt);
         }
     }
-    
+
     std::function< std::unique_ptr<ExchangeEngine>(std::unique_ptr<Exchanger>) > makeEngine;
-    
+
     // If we're on one node, use a singleNode engine
     // otherwise use MPI
     if (nranks3D_.x * nranks3D_.y * nranks3D_.z == 1)
@@ -795,7 +795,7 @@ void Simulation::_prepareEngines()
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm_, gpuAwareMPI_);
         };
-    
+
     partRedistributor_            = makeEngine(std::move(partRedistImp));
     partHaloFinal_                = makeEngine(std::move(partHaloFinalImp));
     partHaloIntermediate_         = makeEngine(std::move(partHaloIntermediateImp));
@@ -940,7 +940,7 @@ void Simulation::_createTasks()
                        [this] (cudaStream_t stream) {
                            interactionsFinal_->executeHalo(stream);
                        });
-    
+
 
     scheduler_->addTask(tasks_->gatherInteractionIntermediate,
                        [this] (cudaStream_t stream) {
@@ -951,7 +951,7 @@ void Simulation::_createTasks()
                        [this] (cudaStream_t stream) {
                            interactionsIntermediate_->accumulateOutput(stream);
                        });
-            
+
     scheduler_->addTask(tasks_->accumulateInteractionFinal,
                        [this] (cudaStream_t stream) {
                            interactionsFinal_->accumulateOutput(stream);
@@ -1092,7 +1092,7 @@ void Simulation::_createTasks()
     for (auto& wall : wallMap_)
     {
         auto wallPtr = wall.second.get();
-        scheduler_->addTask(tasks_->wallBounce, [wallPtr, this] (cudaStream_t stream) {    
+        scheduler_->addTask(tasks_->wallBounce, [wallPtr, this] (cudaStream_t stream) {
             wallPtr->bounce(stream);
         });
     }
@@ -1122,14 +1122,14 @@ static void createTasksDummy(TaskScheduler *scheduler, SimulationTasks *tasks)
 static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 {
     scheduler->addDependency(tasks->pluginsBeforeCellLists, { tasks->cellLists }, {});
-    
+
     scheduler->addDependency(tasks->checkpoint, { tasks->partClearFinal }, { tasks->cellLists });
 
     scheduler->addDependency(tasks->correctObjBelonging, { tasks->cellLists }, {});
 
     scheduler->addDependency(tasks->cellLists, {tasks->partClearFinal, tasks->partClearIntermediate, tasks->objClearLocalIntermediate}, {});
 
-    
+
     scheduler->addDependency(tasks->pluginsBeforeForces, {tasks->localForces, tasks->haloForces}, {tasks->partClearFinal});
     scheduler->addDependency(tasks->pluginsSerializeSend, {tasks->pluginsBeforeIntegration, tasks->pluginsAfterIntegration}, {tasks->pluginsBeforeForces});
 
@@ -1142,7 +1142,7 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 
     scheduler->addDependency(tasks->objClearHaloIntermediate, {}, {tasks->cellLists});
     scheduler->addDependency(tasks->haloIntermediate, {}, {tasks->partHaloIntermediateFinalize, tasks->objClearHaloIntermediate});
-    scheduler->addDependency(tasks->objReverseIntermediateInit, {}, {tasks->haloIntermediate});    
+    scheduler->addDependency(tasks->objReverseIntermediateInit, {}, {tasks->haloIntermediate});
     scheduler->addDependency(tasks->objReverseIntermediateFinalize, {}, {tasks->objReverseIntermediateInit});
 
     scheduler->addDependency(tasks->accumulateInteractionIntermediate, {}, {tasks->localIntermediate, tasks->haloIntermediate});
@@ -1152,7 +1152,7 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 
     scheduler->addDependency(tasks->objHaloIntermediateInit, {}, {tasks->gatherInteractionIntermediate});
     scheduler->addDependency(tasks->objHaloIntermediateFinalize, {}, {tasks->objHaloIntermediateInit});
-    
+
     scheduler->addDependency(tasks->partHaloFinalInit, {}, {tasks->pluginsBeforeForces, tasks->gatherInteractionIntermediate, tasks->objHaloIntermediateInit});
     scheduler->addDependency(tasks->partHaloFinalFinalize, {}, {tasks->partHaloFinalInit});
 
@@ -1197,7 +1197,7 @@ static void buildDependencies(TaskScheduler *scheduler, SimulationTasks *tasks)
 
     scheduler->setHighPriority(tasks->objClearLocalForces);
     scheduler->setHighPriority(tasks->objLocalBounce);
-    
+
     scheduler->compile();
 }
 
@@ -1219,7 +1219,7 @@ void Simulation::init()
     _prepareEngines();
 
     info("Time-step is set to %f", getCurrentDt());
-    
+
     _createTasks();
     buildDependencies(scheduler_.get(), tasks_.get());
 }
@@ -1244,7 +1244,7 @@ void Simulation::run(int nsteps)
                 "Timestep: %lld, simulation time: %f", state_->currentStep, state_->currentTime);
 
         scheduler_->run();
-        
+
         state_->currentTime += state_->dt;
     }
 
@@ -1273,7 +1273,7 @@ void Simulation::_restartState(const std::string& folder)
 {
     auto filename = createCheckpointName(folder, "state", "txt");
     auto good = text_IO::read(filename, state_->currentTime, state_->currentStep, checkpointId_);
-    if (!good) die("failed to read '%s'\n", filename.c_str());    
+    if (!good) die("failed to read '%s'\n", filename.c_str());
 }
 
 void Simulation::_checkpointState()
@@ -1332,36 +1332,36 @@ void Simulation::restart(const std::string& folder)
 void Simulation::checkpoint()
 {
     this->_checkpointState();
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
-    
+
     info("Writing simulation state, into folder %s", checkpointInfo_.folder.c_str());
-    
+
     for (auto& pv : particleVectors_)
         pv->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : bouncerMap_)
         handler.second->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : integratorMap_)
         handler.second->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : interactionMap_)
         handler.second->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : wallMap_)
         handler.second->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : belongingCheckerMap_)
         handler.second->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
-    
+
     for (auto& handler : plugins)
         handler->checkpoint(cartComm_, checkpointInfo_.folder, checkpointId_);
 
     advanceCheckpointId(checkpointId_, checkpointInfo_.mode);
 
     notifyPostProcess(checkpointTag, checkpointId_);
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
@@ -1448,7 +1448,7 @@ void Simulation::dumpDependencyGraphToGraphML(const std::string& fname, bool cur
     {
         TaskScheduler s;
         SimulationTasks t;
-        
+
         createTasksDummy(&s, &t);
         buildDependencies(&s, &t);
 

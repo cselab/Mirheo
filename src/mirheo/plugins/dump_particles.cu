@@ -88,7 +88,7 @@ void ParticleSenderPlugin::handshake()
             typeDescriptorsStr.push_back(typeDescriptorToString(DataTypeWrapper<T>{}));
         }, desc.varDataPtr);
     };
-    
+
     auto ov = dynamic_cast<ObjectVector*>(pv_);
     auto rv = dynamic_cast<RodVector*>(pv_);
 
@@ -139,13 +139,13 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
     mpark::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
-        
+
         constexpr int nthreads = 128;
         const int nParts = objSize * nObjects;
         const int nblocks = getNblocks(nParts, nthreads);
 
         workSpace.resize_anew(nParts * sizeof(T));
-    
+
         SAFE_KERNEL_LAUNCH(
             dump_particles_kernels::copyObjectDataToParticles,
             nblocks, nthreads, 0, stream,
@@ -169,13 +169,13 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
     mpark::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
-        
+
         constexpr int nthreads = 128;
         const int nParts = objSize * nObjects;
         const int nblocks = getNblocks(nParts, nthreads);
 
         workSpace.resize_anew(nParts * sizeof(T));
-    
+
         SAFE_KERNEL_LAUNCH(
             dump_particles_kernels::copyRodDataToParticles,
             nblocks, nthreads, 0, stream,
@@ -225,7 +225,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     debug2("Plugin %s is sending now data", getCName());
-    
+
     for (auto& p : positions_)
     {
         auto r = getState()->domain.local2global(make_real3(p));
@@ -233,7 +233,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 
     const MirState::StepType timeStamp = getTimeStamp(getState(), dumpEvery_);
-    
+
     debug2("Plugin %s is packing now data consisting of %zu particles",
            getCName(), positions_.size());
     _waitPrevSend();
@@ -281,7 +281,7 @@ void ParticleDumperPlugin::handshake()
     std::vector<std::string> typeDescriptorsStr;
 
     SimpleSerializer::deserialize(data_, names, dataForms, numberTypes, typeDescriptorsStr);
-    
+
     auto initChannel = [] (const std::string& name, XDMF::Channel::DataForm dataForm,
                            XDMF::Channel::NumberType numberType, TypeDescriptor datatype,
                            XDMF::Channel::NeedShift needShift = XDMF::Channel::NeedShift::False)
@@ -300,13 +300,13 @@ void ParticleDumperPlugin::handshake()
         const auto dataForm   = dataForms[i];
         const auto numberType = numberTypes[i];
         const auto dataType   = stringToTypeDescriptor(typeDescriptorsStr[i]);
-        
+
         const auto channel = initChannel(name, dataForm, numberType, dataType);
 
         channels_.push_back(channel);
         allNames += ", '" + name + "'";
     }
-    
+
     // Create the required folder
     createFoldersCollective(comm_, getParentPath(path_));
 
@@ -335,12 +335,12 @@ void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::St
 {
     int c = 0;
     SimpleSerializer::deserialize(data_, timeStamp, time, pos4_, vel4_, channelData_);
-        
+
     unpackParticles(pos4_, vel4_, *positions_, velocities_, ids_);
 
     channels_[c++].data = velocities_.data();
     channels_[c++].data = ids_.data();
-    
+
     for (auto& cd : channelData_)
         channels_[c++].data = cd.data();
 }
@@ -352,9 +352,9 @@ void ParticleDumperPlugin::deserialize()
     MirState::TimeType time;
     MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
-    
+
     std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
-    
+
     XDMF::VertexGrid grid(positions_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);
 }

@@ -8,10 +8,10 @@ namespace mirheo
 {
 
 /** \brief Restrict ParticleVector velocities to a sine wave.
-    
+
     \rst
     Set velocities to follow a sine wave:
-    
+
     .. math::
         v(t) = v \cos\left(\frac{ 2 \pi t} {T}\right)
 

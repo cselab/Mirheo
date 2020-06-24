@@ -2,7 +2,7 @@
 
 namespace mirheo
 {
-    
+
 ParametersWrap::ParametersWrap(const ParametersWrap::MapParams& params) :
     params_(params)
 {

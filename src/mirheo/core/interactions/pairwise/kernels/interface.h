@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-/// Interface of host methods required for a pairwise kernel 
+/// Interface of host methods required for a pairwise kernel
 class PairwiseKernel
 {
 public:

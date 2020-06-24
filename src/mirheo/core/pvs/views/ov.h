@@ -9,12 +9,12 @@ class ObjectVector;
 class LocalObjectVector;
 
 /** \brief A \c PVview with additionally basic object data
-    
+
     Contains object ids, object extents.
  */
 struct OVview : public PVview
 {
-    /** \brief Construct a \c OVview 
+    /** \brief Construct a \c OVview
         \param [in] ov The ObjectVector that the view represents
         \param [in] lov The LocalObjectVector that the view represents
     */
@@ -49,7 +49,7 @@ struct OVviewWithAreaVolume : public OVview
 /// \brief A \c OVviewWithAreaVolume with additional curvature related quantities
 struct OVviewWithJuelicherQuants : public OVviewWithAreaVolume
 {
-    /** \brief Construct a OVviewWithJuelicherQuants 
+    /** \brief Construct a OVviewWithJuelicherQuants
         \param [in] ov The ObjectVector that the view represents
         \param [in] lov The LocalObjectVector that the view represents
 

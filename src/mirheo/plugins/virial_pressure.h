@@ -37,7 +37,7 @@ private:
     bool needToSend_ = false;
 
     FieldFromFunction region_;
-    
+
     PinnedBuffer<virial_pressure_plugin::ReductionType> localVirialPressure_ {1};
     MirState::TimeType savedTime_ = 0;
 
@@ -51,10 +51,10 @@ class VirialPressureDumper : public PostprocessPlugin
 {
 public:
     VirialPressureDumper(std::string name, std::string path);
-    
+
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    void handshake() override;    
+    void handshake() override;
 
 private:
     std::string path_;

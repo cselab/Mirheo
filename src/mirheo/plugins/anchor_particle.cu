@@ -21,7 +21,7 @@ __global__ void anchorParticles(PVview view, int n, const int *pids, const real3
     if (i >= n) return;
 
     int pid = pids[i];
-    
+
     auto p = view.readParticle(pid);
     p.r = poss[i];
     p.u = vels[i];
@@ -43,9 +43,9 @@ AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string 
     reportEvery_(reportEvery)
 {
     const size_t n = pids.size();
-    
+
     pids_.resize_anew(n);
-    
+
     for (size_t i = 0; i < n; ++i)
     {
         const auto pid = pids[i];
@@ -53,7 +53,7 @@ AnchorParticlesPlugin::AnchorParticlesPlugin(const MirState *state, std::string 
             die("invalid particle id %d\n", pid);
         pids_[i] = pid;
     }
-    
+
     if (positions_(0).size() != n)
         die("pids and positions must have the same size");
 
@@ -100,7 +100,7 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 
     posBuffer_.uploadToDevice(stream);
     velBuffer_.uploadToDevice(stream);
-    
+
     SAFE_KERNEL_LAUNCH(
             anchor_particles_kernels::anchorParticles,
             nblocks, nthreads, 0, stream,

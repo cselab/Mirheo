@@ -22,7 +22,7 @@ struct always_false {
     static constexpr bool value = false;
 };
 
-/// Obtains the type T without any top-level const or volatile qualification; remove, if present, reference of T. 
+/// Obtains the type T without any top-level const or volatile qualification; remove, if present, reference of T.
 template<typename T>
 struct remove_cvref {
     using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;

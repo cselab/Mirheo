@@ -50,7 +50,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 {
     MPI_Comm shmcomm;
     MPI_Check( MPI_Comm_split_type(source, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shmcomm) );
-    
+
     int shmrank, shmsize;
     MPI_Check( MPI_Comm_rank(shmcomm, &shmrank) );
     MPI_Check( MPI_Comm_size(shmcomm, &shmsize) );
@@ -59,7 +59,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 
     int ngpus;
     CUDA_Check( cudaGetDeviceCount(&ngpus) );
-    
+
     int mygpu = shmrank % ngpus;
 
     info("Found %d GPUs per node, will use GPU %d", ngpus, mygpu);
@@ -97,7 +97,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
     if (noPostprocess_)
     {
         warn("No postprocess will be started now, use this mode for debugging. All the joint plugins will be turned off too.");
-        
+
         selectIntraNodeGPU(comm_);
 
         createCartComm(comm_, nranks3D, &cartComm_);
@@ -112,7 +112,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
     info("Program started, splitting communicator");
 
     MPI_Comm splitComm;
-    
+
     // Note: Update `is*Task()` functions if modifying this.
     computeTask_ = rank_ % 2;
     MPI_Check( MPI_Comm_split(comm_, computeTask_, rank_, &splitComm) );
@@ -230,7 +230,7 @@ static void safeCommFree(MPI_Comm *comm)
 Mirheo::~Mirheo()
 {
     debug("Mirheo coordinator is destroyed");
-    
+
     sim_.reset();
     post_.reset();
 
@@ -239,7 +239,7 @@ Mirheo::~Mirheo()
     safeCommFree(&ioComm_);
     safeCommFree(&compComm_);
     safeCommFree(&interComm_);
-    
+
     if (initializedMpi_)
         MPI_Finalize();
 }
@@ -247,7 +247,7 @@ Mirheo::~Mirheo()
 void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->registerParticleVector(pv, ic);
 }
@@ -255,7 +255,7 @@ void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, c
 void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->registerIntegrator(integrator);
 }
@@ -263,7 +263,7 @@ void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 void Mirheo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->registerInteraction(interaction);
 }
@@ -271,7 +271,7 @@ void Mirheo::registerInteraction(const std::shared_ptr<Interaction>& interaction
 void Mirheo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->registerWall(wall, checkEvery);
 }
@@ -279,7 +279,7 @@ void Mirheo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
 void Mirheo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->registerBouncer(bouncer);
 }
@@ -287,7 +287,7 @@ void Mirheo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
 void Mirheo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
     {
         sim_->registerObjectBelongingChecker(checker);
@@ -300,7 +300,7 @@ void Mirheo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin,
     ensureNotInitialized();
 
     const int tag = pluginsTag_++;
-    
+
     if (isComputeTask())
     {
         if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess_) )
@@ -320,7 +320,7 @@ void Mirheo::registerPlugins(const PairPlugin &plugins) {
 void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->setIntegrator(integrator->getName(), pv->getName());
 }
@@ -328,7 +328,7 @@ void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, ParticleVector *pv2)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->setInteraction(interaction->getName(), pv1->getName(), pv2->getName());
 }
@@ -336,7 +336,7 @@ void Mirheo::setInteraction(Interaction *interaction, ParticleVector *pv1, Parti
 void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->setBouncer(bouncer->getName(), ov->getName(), pv->getName());
 }
@@ -344,7 +344,7 @@ void Mirheo::setBouncer(Bouncer *bouncer, ObjectVector *ov, ParticleVector *pv)
 void Mirheo::setWallBounce(Wall *wall, ParticleVector *pv, real maximumPartTravel)
 {
     ensureNotInitialized();
-    
+
     if (isComputeTask())
         sim_->setWallBounce(wall->getName(), pv->getName(), maximumPartTravel);
 }
@@ -385,14 +385,14 @@ void Mirheo::dumpWalls2XDMF(std::vector<std::shared_ptr<Wall>> walls, real3 h, c
     {
         auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
         if (sdfWall == nullptr)
-            die("Only sdf-based walls are supported!");        
+            die("Only sdf-based walls are supported!");
         else
             sdfWalls.push_back(sdfWall);
 
         // Check if the wall is set up
         sim_->getWallByNameOrDie(wall->getName());
     }
-    
+
     wall_helpers::dumpWalls2XDMF(sdfWalls, h, state_->domain, filename, sim_->getCartComm());
 }
 
@@ -401,13 +401,13 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
     if (!isComputeTask()) return 0;
 
     info("Computing volume inside walls\n");
-    
+
     std::vector<SDFBasedWall*> sdfWalls;
     for (auto &wall : walls)
     {
         auto sdfWall = dynamic_cast<SDFBasedWall*>(wall.get());
         if (sdfWall == nullptr)
-            die("Only sdf-based walls are supported!");        
+            die("Only sdf-based walls are supported!");
         else
             sdfWalls.push_back(sdfWall);
 
@@ -425,7 +425,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
                                                                real numDensity, real mass, int nsteps)
 {
     ensureNotInitialized();
-    
+
     if (!isComputeTask()) return nullptr;
 
     // Walls are not directly reusable in other simulations,
@@ -433,7 +433,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     //
     // But here we don't pass the wall into the other simulation,
     // we just use it to filter particles, which is totally fine
-    
+
     info("Generating frozen particles for walls");
 
     std::vector<SDFBasedWall*> sdfWalls;
@@ -448,39 +448,39 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
         // Check if the wall is set up
         sim_->getWallByNameOrDie(wall->getName());
 
-        info("Working with wall '%s'", wall->getCName());   
+        info("Working with wall '%s'", wall->getCName());
     }
 
     MirState stateCpy = *getState();
-    
+
     Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
 
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(numDensity);
-    
+
     wallsim.registerParticleVector(pv, ic);
-    
+
     wallsim.registerIntegrator(integrator);
-    
+
     wallsim.setIntegrator (integrator->getName(),  pv->getName());
 
     for (auto& interaction : interactions)
     {
-        wallsim.registerInteraction(interaction);        
+        wallsim.registerInteraction(interaction);
         wallsim.setInteraction(interaction->getName(), pv->getName(), pv->getName());
     }
-    
+
     wallsim.init();
     wallsim.run(nsteps);
 
     const real effectiveCutoff = wallsim.getMaxEffectiveCutoff();
-    
+
     constexpr real wallThicknessTolerance = 0.2_r;
     constexpr real wallLevelSet = 0.0_r;
     const real wallThickness = effectiveCutoff + wallThicknessTolerance;
 
     info("wall thickness is set to %g", wallThickness);
-    
+
     wall_helpers::freezeParticlesInWalls(sdfWalls, pv.get(), wallLevelSet, wallLevelSet + wallThickness);
     info("\n");
 
@@ -491,7 +491,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
 
     // go back to initial state
     *state_ = stateCpy;
-    
+
     return pv;
 }
 
@@ -503,16 +503,16 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
                                                                  real numDensity, real mass, int nsteps)
 {
     ensureNotInitialized();
-    
+
     if (!isComputeTask()) return nullptr;
 
     auto insideName = "inside_" + shape->getName();
-    
+
     info("Generating frozen particles for rigid object '%s'...\n\n", shape->getCName());
 
     if (shape->local()->getNumObjects() > 1)
         die("expected no more than one object vector; given %d", shape->local()->getNumObjects());
-    
+
     auto pv = std::make_shared<ParticleVector>(getState(), "outside__" + shape->getName(), mass);
     auto ic = std::make_shared<UniformIC>(numDensity);
 
@@ -520,17 +520,17 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
 
     {
         Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
-    
+
         eqsim.registerParticleVector(pv, ic);
 
         eqsim.registerIntegrator(integrator);
         eqsim.setIntegrator (integrator->getName(),  pv->getName());
-        
+
         for (auto& interaction : interactions) {
-            eqsim.registerInteraction(interaction);        
+            eqsim.registerInteraction(interaction);
             eqsim.setInteraction(interaction->getName(), pv->getName(), pv->getName());
-        }               
-    
+        }
+
         eqsim.init();
         eqsim.run(nsteps);
     }
@@ -559,15 +559,15 @@ std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelong
                                                                     std::string outside)
 {
     ensureNotInitialized();
-    
+
     if (!isComputeTask()) return nullptr;
-    
+
     if ( (inside != "" && outside != "") || (inside == "" && outside == "") )
         die("One and only one option can be specified for belonging checker '%s': inside or outside",
             checker->getCName());
-    
+
     std::string newPVname;
-    
+
     if (inside == "")
     {
         inside = pv->getName();
@@ -578,7 +578,7 @@ std::shared_ptr<ParticleVector> Mirheo::applyObjectBelongingChecker(ObjectBelong
         outside = pv->getName();
         newPVname = inside;
     }
-        
+
     sim_->applyObjectBelongingChecker(checker->getName(), pv->getName(), inside, outside, checkEvery);
     return sim_->getSharedPVbyName(newPVname);
 }
@@ -595,7 +595,7 @@ void Mirheo::sayHello()
 
     missing_spaces = math::max(0, max_length_sha1 - static_cast<int>(sha1.size()));
     sha1.append(missing_spaces, ' ');
-    
+
     printf("\n");
     printf("**************************************************\n");
     printf("*                Mirheo %s                *\n", version.c_str());
@@ -607,10 +607,10 @@ void Mirheo::sayHello()
 void Mirheo::setup()
 {
     if (initialized_) return;
-    
+
     if (isComputeTask())  sim_->init();
     else                 post_->init();
-    
+
     initialized_ = true;
 }
 
@@ -672,7 +672,7 @@ void Mirheo::stopProfiler()
 void Mirheo::run(int nsteps)
 {
     setup();
-    
+
     if (isComputeTask()) sim_->run(nsteps);
     else                post_->run();
 

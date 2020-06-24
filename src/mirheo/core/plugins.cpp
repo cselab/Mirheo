@@ -30,7 +30,7 @@ void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     MPI_Check( MPI_Comm_dup(comm, &comm_) );
     interComm_ = interComm;
-    
+
     MPI_Check( MPI_Comm_rank(comm_, &rank_) );
     MPI_Check( MPI_Comm_size(comm_, &nranks_) );
 }
@@ -95,7 +95,7 @@ void SimulationPlugin::_send(const void *data, size_t sizeInBytes)
     localSendSize_ = static_cast<int>(sizeInBytes);
 
     _waitPrevSend();
-        
+
     debug2("Plugin '%s' is sending the data (%zu bytes)", getCName(), sizeInBytes);
     MPI_Check( MPI_Issend(&localSendSize_, 1, MPI_INT,  rank_, _sizeTag(), interComm_, &sizeReq_) );
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank_, _dataTag(), interComm_, &dataReq_) );

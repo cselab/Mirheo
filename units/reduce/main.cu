@@ -34,7 +34,7 @@ static float reduceGPU(const PinnedBuffer<float>& data, cudaStream_t stream)
 
     constexpr int nthreads = 128;
     const int nblocks = getNblocks(data.size(), nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(
         ReduceKernels::reduce,
         nblocks, nthreads, 0, stream,
@@ -57,7 +57,7 @@ PinnedBuffer<float> initData(int n, cudaStream_t stream, long seed=42)
 
     for (auto& v : data)
         v = dis(gen);
-    
+
     data.uploadToDevice(stream);
     return data;
 }
@@ -70,7 +70,7 @@ static void testReduceRandom(int n, double tolerance=1e-6)
     const auto resCPU = reduceCPU(data);
 
     const double err = math::abs(resCPU - resGPU) / math::abs(resCPU);
-    
+
     ASSERT_LT(err, tolerance) << "failed: " << resGPU << " != " << resCPU;
 }
 

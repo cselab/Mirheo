@@ -13,7 +13,7 @@ namespace mirheo
 /// Compute bending forces from the extended Juelicher model.
 class DihedralJuelicher : public VertexFetcherWithMeanCurvatures
 {
-public:    
+public:
 
     /// Type of parameters that describe the kernel
     using ParametersType = JuelicherBendingParameters;
@@ -28,7 +28,7 @@ public:
         kb_    = p.kb         * lscale*lscale;
         kadPi_ = p.kad * M_PI * lscale*lscale;
 
-        H0_  = p.C0 / (2*lscale);        
+        H0_  = p.C0 / (2*lscale);
         DA0_ = p.DA0 / (lscale*lscale);
     }
 
@@ -46,14 +46,14 @@ public:
         \param [in] v1 vertex 1
         \param [in] v2 vertex 2
         \param [in] v3 vertex 3
-        \param [in,out] f1 force acting on \p v1; this method will add (not set) the dihedral force to that quantity. 
+        \param [in,out] f1 force acting on \p v1; this method will add (not set) the dihedral force to that quantity.
         \return The dihedral force acting on \p v0
      */
     __D__ inline mReal3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
         mReal3 f0;
         const mReal theta = supplementaryDihedralAngle(v0.r, v1.r, v2.r, v3.r);
-        
+
         f0  = _forceLen   (theta, v0,     v2        );
         f0 += _forceTheta (       v0, v1, v2, v3, f1);
         f0 += _forceArea  (       v0, v1, v2        );
@@ -73,7 +73,7 @@ private:
         const mReal3 v20 = v0.r - v2.r;
         const mReal3 v21 = v1.r - v2.r;
         const mReal3 v23 = v3.r - v2.r;
-    
+
         const mReal3 n = cross(v21, v20);
         const mReal3 k = cross(v20, v23);
 
@@ -82,7 +82,7 @@ private:
 
         const mReal cotangent2n = dot(v20, v21) * inv_lenn;
         const mReal cotangent2k = dot(v23, v20) * inv_lenk;
-    
+
         const mReal3 d1 = (dot(v20, v20)  * inv_lenn*inv_lenn) * n;
         const mReal3 d0 =
             (-cotangent2n * inv_lenn) * n +
@@ -114,9 +114,9 @@ private:
         return (0.5_mr * totLenTheta - DA0_) / totArea;
     }
 
-    
-private:    
-    mReal kb_;    ///< bending magnitude 
+
+private:
+    mReal kb_;    ///< bending magnitude
     mReal H0_;    ///< spntaneous mean curvature
     mReal kadPi_; ///< kAD * pi
     mReal DA0_;   ///< spontaneous area difference

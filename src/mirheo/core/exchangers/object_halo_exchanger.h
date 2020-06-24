@@ -30,7 +30,7 @@ public:
     ObjectHaloExchanger();
     ~ObjectHaloExchanger();
 
-    /** \brief Add a ObjectVector for halo exchange. 
+    /** \brief Add a ObjectVector for halo exchange.
         \param ov The ObjectVector to attach
         \param rc The required cut-off radius
         \param extraChannelNames The list of channels to exchange (additionally to the default positions and velocities)

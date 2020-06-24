@@ -42,7 +42,7 @@ public:
        \return The attached ObjectVector
      */
     ObjectVector* getObjectVector();
-    
+
     /** \brief Setup prerequisites to a given ParticleVector
         \param [in,out] pv The ParticleVector that will be bounced
 

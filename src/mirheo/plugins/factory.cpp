@@ -74,7 +74,7 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<AnchorParticlesStatsPlugin> (name, path);
-    
+
     return { simPl, postPl };
 }
 
@@ -112,7 +112,7 @@ PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, s
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<PostprocessDensityControl> (name, fname);
-    
+
     return { simPl, postPl };
 }
 
@@ -220,8 +220,8 @@ PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *st
 {
     auto simPl = computeTask ?
         std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->getName(), pv2->getName(), plane) : nullptr;
-        
-    return { simPl, nullptr };    
+
+    return { simPl, nullptr };
 }
 
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv)
@@ -230,13 +230,13 @@ PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std:
     return { simPl, nullptr };
 }
 
-PairPlugin createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv, 
+PairPlugin createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv,
                                      real3 low, real3 high, real3 velocity, real kBT)
 {
     auto simPl = computeTask ?
         std::make_shared<ImposeProfilePlugin> (state, name, pv->getName(), low, high, velocity, kBT) :
         nullptr;
-            
+
     return { simPl, nullptr };
 }
 
@@ -247,7 +247,7 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
     auto simPl = computeTask ?
         std::make_shared<ImposeVelocityPlugin> (state, name, extractPVNames(pvs), low, high, velocity, every) :
         nullptr;
-                                    
+
     return { simPl, nullptr };
 }
 
@@ -303,7 +303,7 @@ const real PinObjectMock::Unrestricted = PinObjectPlugin::Unrestricted;
 PairPlugin createPinObjPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,
                               int dumpEvery, std::string path, real3 velocity, real3 omega)
 {
-    auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (state, name, ov->getName(), velocity, omega, dumpEvery) : 
+    auto simPl  = computeTask ? std::make_shared<PinObjectPlugin> (state, name, ov->getName(), velocity, omega, dumpEvery) :
         nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ReportPinObjectPlugin> (name, path);
 
@@ -314,7 +314,7 @@ PairPlugin createPinRodExtremityPlugin(bool computeTask, const MirState *state, 
                                        real fmagn, real3 targetDirection)
 {
     auto simPl  = computeTask ?
-        std::make_shared<PinRodExtremityPlugin> (state, name, rv->getName(), segmentId, fmagn, targetDirection) : 
+        std::make_shared<PinRodExtremityPlugin> (state, name, rv->getName(), segmentId, fmagn, targetDirection) :
         nullptr;
 
     return { simPl, nullptr };
@@ -373,7 +373,7 @@ PairPlugin createVelocityInletPlugin(bool computeTask, const MirState *state, st
 
     return { simPl, nullptr };
 }
-    
+
 PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, Wall* wall,
                                      real C, real h, real maxForce)
 {
@@ -391,7 +391,7 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<WallForceDumperPlugin> (name, filename);
-        
+
     return { simPl, postPl };
 }
 

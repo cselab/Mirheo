@@ -16,7 +16,7 @@ namespace mirheo
 namespace XDMF
 {
 namespace XMF
-{        
+{
 
 void writeDataSet(pugi::xml_node node, const std::string& h5filename,
                   const Grid *grid, const Channel& channel);

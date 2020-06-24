@@ -30,8 +30,8 @@ public:
     using EquilibriumTriangleDesc = LengthArea;
     using ParametersType          = WLCParameters;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
-    
-    /** \brief Construct the functor 
+
+    /** \brief Construct the functor
         \param [in] p The parameters of the model
         \param [in] mesh Triangle mesh information
         \param [in] lscale Scaling length factor, applied to all parameters
@@ -44,7 +44,7 @@ public:
         mpow_ = p.mpow;
 
         kd_ = p.kd * lscale_ * lscale_;
-        
+
         area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
     }
@@ -82,7 +82,7 @@ public:
     {
         return _areaForce(v1, v2, v3, eq.a) + _bondForce(v1, v2, eq.l);
     }
-        
+
 private:
 
     __D__ mReal3 _bondForce(mReal3 v1, mReal3 v2, mReal l0) const

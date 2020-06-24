@@ -26,7 +26,7 @@ void readDataSet (hid_t file_id, const GridDims *gridDims, Channel& channel);
 void readData    (hid_t file_id, const GridDims *gridDims, std::vector<Channel>& channels);
 
 void close       (hid_t file_id);
-    
+
 
 void write(const std::string& filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels);
 void read (const std::string& filename, MPI_Comm comm, Grid *grid, std::vector<Channel>& channels);

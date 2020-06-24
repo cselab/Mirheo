@@ -16,11 +16,11 @@ public:
     ~ParticleDisplacementPlugin();
 
     void afterIntegration(cudaStream_t stream) override;
-    
+
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
     bool needPostproc() override {return false;}
-    
+
 private:
     std::string pvName_;
     ParticleVector *pv_;

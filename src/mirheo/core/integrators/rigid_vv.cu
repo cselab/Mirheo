@@ -81,7 +81,7 @@ __global__ void integrateRigidMotion(ROVviewWithOldMotion view, real dt)
 
     performRotation   (dt, view.J, view.J_1, motion);
     performTranslation(dt, view.invObjMass,  motion);
-    
+
     view.motions[objId] = motion;
 }
 
@@ -111,7 +111,7 @@ static void integrateRigidMotions(const ROVviewWithOldMotion& view, real dt, cud
 {
     const int nthreads = 64;
     const int nblocks = getNblocks(view.nObjects, nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(
         rigidVV_kernels::integrateRigidMotion,
         nblocks, nthreads, 0, stream,

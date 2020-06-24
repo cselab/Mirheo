@@ -13,7 +13,7 @@ namespace mirheo
     A stress-free state can be associated to the mesh.
     The precomputed geometric quantities that are stored in the object are computed from the stress free state.
 
-    Additionally to the list of faces (\see Mesh), this class contains a list of 
+    Additionally to the list of faces (\see Mesh), this class contains a list of
     adjacent vertices for each vertex.
     The list is stored in a single array, each vertex having a contiguous chunk of length maxDegree.
     See developer docs for more information.
@@ -22,7 +22,7 @@ class MembraneMesh : public Mesh
 {
 public:
     friend class MembraneMeshView;
-    
+
     /// construct an empty mesh
     MembraneMesh();
 
@@ -46,7 +46,7 @@ public:
      */
     MembraneMesh(const std::vector<real3>& vertices,
                  const std::vector<int3>& faces);
-    
+
     /** \brief Construct a MembraneMesh from a list of vertices and faces
         \param vertices The vertex coordinates of the mesh
         \param stressFreeVertices The vertex coordinates that represent the stress free state.
@@ -92,7 +92,7 @@ private:
     void _computeInitialAreas(const PinnedBuffer<real4>& vertices);
     /// compute the dot product between adjacent edges from the stress-free state
     /// used in Lim to determine if cos(phi) < 0
-    void _computeInitialDotProducts(const PinnedBuffer<real4>& vertices); /// 
+    void _computeInitialDotProducts(const PinnedBuffer<real4>& vertices); ///
 
 private:
     PinnedBuffer<int> adjacent_; ///< list of adjacent vertices for each vertex

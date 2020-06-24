@@ -5,7 +5,7 @@
 namespace mirheo
 {
 
-/** \brief Rod container. 
+/** \brief Rod container.
 
     This is used to represent local or halo rods in RodVector.
     A rod is a chunk of particles connected implicitly in segments with additional 4 particles per edge.

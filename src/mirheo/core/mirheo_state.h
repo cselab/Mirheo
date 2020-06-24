@@ -92,13 +92,13 @@ public:
 
 
     /** Save internal state to file
-        \param [in] comm MPI comm of the simulation 
+        \param [in] comm MPI comm of the simulation
         \param [in] path The directory in which to save the file
      */
     void checkpoint(MPI_Comm comm, std::string path);
 
     /** Load internal state from file
-        \param [in] comm MPI comm of the simulation 
+        \param [in] comm MPI comm of the simulation
         \param [in] path The directory from which to load the file
      */
     void restart(MPI_Comm comm, std::string path);

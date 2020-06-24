@@ -14,7 +14,7 @@ instantiateImpl(const MirState *state, const std::string& name, RodParameters pa
     mpark::visit([&](auto spinParams)
     {
         using SpinParamsType = decltype(spinParams);
-        
+
         impl = std::make_shared<RodInteraction<Nstates, SpinParamsType>>
             (state, name, parameters, spinParams, saveEnergies);
     }, varSpinParams);
@@ -42,7 +42,7 @@ createInteractionRod(const MirState *state, const std::string& name,
     {
         if (nstates <= 1)
             warn("using only one state for state_update != 'none' (while creating %s)", name.c_str());
-        
+
 #define CHECK_IMPLEMENT(Nstates) do {                                   \
             if (nstates == Nstates) {                                   \
                 impl = instantiateImpl<Nstates>                         \
@@ -50,7 +50,7 @@ createInteractionRod(const MirState *state, const std::string& name,
                 debug("Create interaction rod with %d states", Nstates); \
                 return impl;                                                 \
             } } while(0)
-        
+
         CHECK_IMPLEMENT(2); // 2 polymorphic states
         CHECK_IMPLEMENT(11); // bbacterial flagella have up to 11 states
 

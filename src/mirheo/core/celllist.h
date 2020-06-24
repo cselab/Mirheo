@@ -17,7 +17,7 @@ enum class CellListsProjection
 };
 
 /** A device-compatible structure that represents the cell-lists structure.
-    Contains geometric info (number of cells, cell sizes) and associated 
+    Contains geometric info (number of cells, cell sizes) and associated
     particles info (number of particles per cell and cell-starts).
  */
 class CellListInfo
@@ -26,9 +26,9 @@ public:
     /** \brief Construct a CellListInfo object
         \param [in] h The size of a single cell along each dimension
         \param [in] localDomainSize Size of the local domain
-        
+
         This will create a cell-lists structure with cell sizes which are larger
-        or equal to \p h, such that the number of cells fit exactly inside the 
+        or equal to \p h, such that the number of cells fit exactly inside the
         local domain size.
      */
     CellListInfo(real3 h, real3 localDomainSize);
@@ -36,9 +36,9 @@ public:
     /** \brief Construct a CellListInfo object
         \param [in] rc The minimum size of a single cell along every dimension
         \param [in] localDomainSize Size of the local domain
-        
+
         This will create a cell-lists structure with cell sizes which are larger
-        or equal to \p rc, such that the number of cells fit exactly inside the 
+        or equal to \p rc, such that the number of cells fit exactly inside the
         local domain size.
      */
     CellListInfo(real rc, real3 localDomainSize);
@@ -105,8 +105,8 @@ public:
         \return linear cell index
 
         \rst
-        .. warning:: 
-           If The projection is set to CellListsProjection::NoClamp, 
+        .. warning::
+           If The projection is set to CellListsProjection::NoClamp,
            this function will return -1 if the particle is outside the subdomain.
         \endrst
      */
@@ -133,7 +133,7 @@ public:
     real3 localDomainSize; ///< dimensions of the subdomain
     real rc;    ///< cutoff radius
     real3 h;    ///< dimensions of the cells along each direction
-    
+
     int *cellSizes;  ///< number of particles contained in each cell
     int *cellStarts; ///< exclusive prefix sum of cellSizes
 
@@ -146,9 +146,9 @@ private:
 };
 
 
-/** \brief Contains the cell-list data for a given ParticleVector. 
+/** \brief Contains the cell-list data for a given ParticleVector.
 
-    As opposed to the PrimaryCellList class, it contains a **copy** of the 
+    As opposed to the PrimaryCellList class, it contains a **copy** of the
     attached ParticleVector.
     This means that the original ParticleVector data will not be reorder but rather copied into this container.
     This is useful when several CellList object can be attached to the same ParticleVector or if the ParticleVector
@@ -156,7 +156,7 @@ private:
  */
 class CellList : public CellListInfo
 {
-public:    
+public:
     /** Construct a CellList object
         \param [in] pv The ParticleVector to attach.
         \param [in] rc The maximum cut-off radius that can be used with that cell list.
@@ -181,7 +181,7 @@ public:
      */
     virtual void build(cudaStream_t stream);
 
-    /** \brief Accumulate the channels from the data contained inside the cell-list 
+    /** \brief Accumulate the channels from the data contained inside the cell-list
         container to the attached ParticleVector.
         \param [in] channelNames List that contains the names of all the channels to accumulate
         \param [in] stream Execution stream
@@ -200,11 +200,11 @@ public:
     */
     void clearChannels(const std::vector<std::string>& channelNames, cudaStream_t stream);
 
-    
+
     /** \brief Create a view that points to the data contained in the cell-lists
         \tparam ViewType The type of the view to create
         \return View that points to the cell-lists data
-     */    
+     */
     template <typename ViewType>
     ViewType getView() const
     {
@@ -223,14 +223,14 @@ public:
 
     /// \return The LocalParticleVector that contains the data in the cell-list
     LocalParticleVector* getLocalParticleVector();
-    
+
 protected:
     /// initialize internal buffers; used in the constructor
     void _initialize();
     /// \return \c true if needs to build the cell-lists
     bool _checkNeedBuild() const;
     /// add needed channels to the internal data container so it matches
-    /// the attached ParricleVector  
+    /// the attached ParricleVector
     void _updateExtraDataChannels(cudaStream_t stream);
     /// Compute the number of particles per cell
     void _computeCellSizes(cudaStream_t stream);
@@ -249,7 +249,7 @@ protected:
 
     /** reorder a given channel according to the internal map
         \param [in] channelName The name of the channel to reorder
-        \param [in,out] channelDesc the channel data 
+        \param [in,out] channelDesc the channel data
         \param [in] stream The execution stream
     */
     void _reorderExtraDataEntry(const std::string& channelName,
@@ -271,15 +271,15 @@ protected:
 
     std::unique_ptr<LocalParticleVector> particlesDataContainer_; ///< local data that holds reordered copy of the attached particle data
     LocalParticleVector *localPV_; ///< will point to particlesDataContainer or pv->local() if Primary
-    
+
     ParticleVector *pv_; ///< The attached ParticleVector
 };
 
-/** \brief Contains the cell-list map for a given ParticleVector. 
+/** \brief Contains the cell-list map for a given ParticleVector.
 
     As opposed to the CellList class, the data is stored only in the ParticleVector.
     This means that the original ParticleVector data will be reorder according to this cell-list.
-    This allows to save memory and avoid extra copies. 
+    This allows to save memory and avoid extra copies.
     On the other hand, this class must not be used with ObjectVector objects.
  */
 class PrimaryCellList : public CellList
@@ -300,7 +300,7 @@ public:
     PrimaryCellList(ParticleVector *pv, int3 resolution, real3 localDomainSize);
 
     ~PrimaryCellList();
-    
+
     void build(cudaStream_t stream);
 
     void accumulateChannels(const std::vector<std::string>& channelNames, cudaStream_t stream) override;

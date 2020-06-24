@@ -37,7 +37,7 @@ __global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceH
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i >= nSamples) return;
-    
+
     real3 r {Saru::uniform01(seed, i - 2, i + 4242),
              Saru::uniform01(seed, i - 3, i + 4343),
              Saru::uniform01(seed, i - 4, i + 4444)};
@@ -45,7 +45,7 @@ __global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceH
     r = domain.localSize * (r - 0._r);
 
     int levelId = getLevelId(field, r, lb);
-    
+
     if (levelId != INVALID_LEVEL)
         atomicAdd(&nInsides[levelId], 1);
 }
@@ -76,7 +76,7 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
 {
     const real h = 0.25_r;
     const real zeroTolerance = 1e-10_r;
-    
+
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
 
@@ -131,8 +131,8 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 
     const int nLevelSets = (levelBounds_.hi - levelBounds_.lo) / levelBounds_.space;
     levelBounds_.space = (levelBounds_.hi - levelBounds_.lo) / nLevelSets;
-    
-    nInsides_ .resize_anew(nLevelSets);    
+
+    nInsides_ .resize_anew(nLevelSets);
     forces_   .resize_anew(nLevelSets);
 
     const real initError = 0;
@@ -141,10 +141,10 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
     volumes_  .resize(nLevelSets);
     densities_.resize(nLevelSets);
     densities_.assign(nLevelSets, 0.0_r);
-    
+
     computeVolumes(defaultStream, 1000000);
 
-    nInsides_ .clearDevice(defaultStream);    
+    nInsides_ .clearDevice(defaultStream);
     forces_   .clearDevice(defaultStream);
     nSamples_ = 0;
 }
@@ -175,14 +175,14 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 {
     const int nthreads = 128;
     const real seed = 0.42424242_r + rank_ * 17;
-    const auto domain = getState()->domain;    
+    const auto domain = getState()->domain;
     const int nLevelSets = nInsides_.size();
 
     PinnedBuffer<double> localVolumes(nLevelSets);
-    
+
     nInsides_    .clearDevice(stream);
     localVolumes.clearDevice(stream);
-    
+
     SAFE_KERNEL_LAUNCH(
         density_control_plugin_kernels::countInsideRegions,
         getNblocks(MCnSamples, nthreads), nthreads, 0, stream,
@@ -200,9 +200,9 @@ void DensityControlPlugin::computeVolumes(cudaStream_t stream, int MCnSamples)
 
     volumes_.resize(nLevelSets);
     volumes_.assign(nLevelSets, 0.0);
-    
+
     localVolumes.downloadFromDevice(stream);
-    
+
     MPI_Check( MPI_Allreduce(localVolumes.hostPtr(), volumes_.data(), volumes_.size(), MPI_DOUBLE, MPI_SUM, comm_) );
     // std::copy(localVolumes.begin(), localVolumes.end(), volumes.begin());
 }
@@ -219,7 +219,7 @@ void DensityControlPlugin::sample(cudaStream_t stream)
             density_control_plugin_kernels::collectSamples,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, spaceDecompositionField_->handler(),
-            levelBounds_, nInsides_.devPtr());        
+            levelBounds_, nInsides_.devPtr());
     }
 
     ++nSamples_;
@@ -227,8 +227,8 @@ void DensityControlPlugin::sample(cudaStream_t stream)
 
 void DensityControlPlugin::updatePids(cudaStream_t stream)
 {
-    nInsides_.downloadFromDevice(stream);    
-    
+    nInsides_.downloadFromDevice(stream);
+
     MPI_Check( MPI_Allreduce(MPI_IN_PLACE, nInsides_.hostPtr(), nInsides_.size(),
                              MPI_UNSIGNED_LONG_LONG, MPI_SUM, comm_) );
 
@@ -236,19 +236,19 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
     {
         const double denom = volumes_[i] * nSamples_;
 
-        densities_[i] = (denom > 1e-6) ? 
+        densities_[i] = (denom > 1e-6) ?
             nInsides_[i] / denom :
             0.0;
-    }       
+    }
 
     for (size_t i = 0; i < densities_.size(); ++i)
     {
-        const real error = densities_[i] - targetDensity_;        
+        const real error = densities_[i] - targetDensity_;
         forces_[i] = controllers_[i].update(error);
     }
 
     forces_.uploadToDevice(stream);
-    
+
     nInsides_.clearDevice(stream);
     nSamples_ = 0;
 }
@@ -256,7 +256,7 @@ void DensityControlPlugin::updatePids(cudaStream_t stream)
 void DensityControlPlugin::applyForces(cudaStream_t stream)
 {
     const int nthreads = 128;
-    
+
     for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
@@ -265,8 +265,8 @@ void DensityControlPlugin::applyForces(cudaStream_t stream)
             density_control_plugin_kernels::applyForces,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
             view, spaceDecompositionField_->handler(),
-            levelBounds_, forces_.devPtr());        
-    }    
+            levelBounds_, forces_.devPtr());
+    }
 }
 
 void DensityControlPlugin::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
@@ -278,7 +278,7 @@ void DensityControlPlugin::checkpoint(MPI_Comm comm, const std::string& path, in
         for (const auto& pid : controllers_)
             fout << pid << std::endl;
     }
-    
+
     createCheckpointSymlink(comm, path, "plugin." + getName(), "txt", checkpointId);
 }
 
@@ -317,7 +317,7 @@ void PostprocessDensityControl::deserialize()
         for (auto d : densities) fprintf(fdump_.get(), "%g ", d);
         for (auto f : forces)    fprintf(fdump_.get(), "%g ", f);
         fprintf(fdump_.get(), "\n");
-        
+
         fflush(fdump_.get());
     }
 }

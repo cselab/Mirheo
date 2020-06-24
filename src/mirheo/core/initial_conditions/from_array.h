@@ -17,7 +17,7 @@ class FromArrayIC : public InitialConditions
 {
 public:
     /** \brief Construct a FromArrayIC object
-        \param [in] pos list of initial positions in global coordinates. 
+        \param [in] pos list of initial positions in global coordinates.
                     The size will determine the maximum number of particles.
                     Positions outside the domain are filtered out.
         \param [in] vel list of initial velocities.

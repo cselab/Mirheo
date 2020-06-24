@@ -23,14 +23,14 @@ class DensityControlPlugin : public SimulationPlugin
 public:
 
     using RegionFunc = std::function<real(real3)>;
-    
+
     DensityControlPlugin(const MirState *state, std::string name,
                          std::vector<std::string> pvNames, real targetDensity,
                          RegionFunc region, real3 resolution,
                          real levelLo, real levelHi, real levelSpace,
                          real Kp, real Ki, real Kd,
                          int tuneEvery, int dumpEvery, int sampleEvery);
-    
+
     ~DensityControlPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -45,7 +45,7 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-    
+
 private:
     void computeVolumes(cudaStream_t stream, int MCnSamples);
     void sample(cudaStream_t stream);
@@ -59,7 +59,7 @@ private:
 
     LevelBounds levelBounds_;
     real targetDensity_;
-    
+
     std::unique_ptr<Field> spaceDecompositionField_; /// a scalar field used to decompose the space with level sets
 
     int nSamples_;                                   /// number of times we called sample function
@@ -68,7 +68,7 @@ private:
 
     std::vector<real> densities_;
     PinnedBuffer<real> forces_;
-    
+
     std::vector<PidControl<real>> controllers_;
     real Kp_, Ki_, Kd_;
 

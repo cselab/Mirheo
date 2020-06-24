@@ -20,7 +20,7 @@ void exportObjectBelongingCheckers(py::module& m)
 
     py::handlers_class<MeshBelongingChecker>(m, "Mesh", pycheck, R"(
         This checker will use the triangular mesh associated with objects to detect *inside*-*outside* status.
-   
+
         .. note:
             Checking if particles are inside or outside the mesh is a computationally expensive task,
             so it's best to perform checks at most every 1'000 - 10'000 time-steps.
@@ -30,7 +30,7 @@ void exportObjectBelongingCheckers(py::module& m)
             Args:
                 name: name of the checker
         )");
-        
+
     py::handlers_class<ShapeBelongingChecker<Capsule>>(m, "Capsule", pycheck, R"(
         This checker will use the analytical representation of the capsule to detect *inside*-*outside* status.
     )")

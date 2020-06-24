@@ -20,7 +20,7 @@ namespace object_reverse_exchanger_kernels
 template <class PackerHandler>
 __global__ void reversePack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
 {
-    
+
     const int objId = blockIdx.x;
     const int tid   = threadIdx.x;
 
@@ -48,13 +48,13 @@ __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
 {
     constexpr real eps = 1e-6_r;
     const int objId       = blockIdx.x;
-    
+
     const MapEntry mapEntry = map[objId];
     const int bufId    = mapEntry.getBufId();
     const int dstObjId = mapEntry.getId();
     const int srcObjId = objId - dataWrap.offsets[bufId];
     const int numElements = dataWrap.sizes[bufId];
-    
+
     auto buffer = dataWrap.getBuffer(bufId);
 
     packer.blockUnpackAddNonZero(numElements, buffer, srcObjId, dstObjId, eps);
@@ -75,7 +75,7 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     objects_.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
-    
+
     PackPredicate predicate = [channelNames](const DataManager::NamedChannelDesc& namedDesc)
     {
         return std::find(channelNames.begin(),
@@ -96,9 +96,9 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
         packer   = std::make_unique<RodPacker>(predicate);
         unpacker = std::make_unique<RodPacker>(predicate);
     }
-    
+
     auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
-    
+
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
     this->addExchangeEntity(std::move(  helper));
@@ -120,7 +120,7 @@ void ObjectReverseExchanger::prepareSizes(size_t id, __UNUSED cudaStream_t strea
 {
     auto  helper  = getExchangeEntity(id);
     auto& offsets = entangledHaloExchanger_->getRecvOffsets(id);
-    
+
     for (int i = 0; i < helper->nBuffers; ++i)
         helper->send.sizes[i] = offsets[i+1] - offsets[i];
 }
@@ -131,7 +131,7 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
     auto hov    = ov->halo();
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
-    
+
     debug2("Preparing '%s' data to reverse send", ov->getCName());
 
     packer->update(hov, stream);
@@ -142,7 +142,7 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
 
     const auto& offsets = helper->send.offsets;
     const int nSendObj = offsets[helper->nBuffers];
-    
+
     const int nthreads = 256;
     const int nblocks = nSendObj;
 
@@ -155,7 +155,7 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
             nblocks, nthreads, shMemSize, stream,
             helper->wrapSendData(), packerHandler );
     }, exchangers_common::getHandler(packer));
-    
+
     debug2("Will send back data for %d objects", nSendObj);
 }
 
@@ -174,7 +174,7 @@ void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream
     debug("Updating data for %d '%s' objects", totalRecvd, ov->getCName());
 
     const int nthreads = 256;
-        
+
     mpark::visit([&](auto unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(

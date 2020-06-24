@@ -27,7 +27,7 @@ public:
     /// The parameters corresponding to the interaction kernel.
     using KernelParams = typename PairwiseKernel::ParamsType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
-    
+
     /** \brief Construct a PairwiseInteractionWithStress object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
@@ -45,11 +45,11 @@ public:
     {}
 
     ~PairwiseInteractionWithStress() = default;
-    
+
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
         interactionWithoutStress_.setPrerequisites(pv1, pv2, cl1, cl2);
-        
+
         pv1->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
         pv2->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
 
@@ -60,11 +60,11 @@ public:
     void local(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         const real t = getState()->currentTime;
-        
+
         if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
         {
             debug("Executing interaction '%s' with stress", getCName());
-            
+
             interactionWithStress_.local(pv1, pv2, cl1, cl2, stream);
             lastStressTime_ = t;
         }
@@ -73,11 +73,11 @@ public:
             interactionWithoutStress_.local(pv1, pv2, cl1, cl2, stream);
         }
     }
-    
+
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
         const real t = getState()->currentTime;
-    
+
         if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
         {
             debug("Executing interaction '%s' with stress", getCName());
@@ -101,11 +101,11 @@ public:
     {
         return interactionWithoutStress_.getInputChannels();
     }
-    
+
     std::vector<InteractionChannel> getOutputChannels() const override
     {
         auto channels = interactionWithoutStress_.getOutputChannels();
-        
+
         auto activePredicateStress = [this]()
         {
             const real t = getState()->currentTime;
@@ -122,7 +122,7 @@ public:
         interactionWithoutStress_.checkpoint(comm, path, checkpointId);
         interactionWithStress_   .checkpoint(comm, path, checkpointId);
     }
-    
+
     void restart(MPI_Comm comm, const std::string& path) override
     {
         interactionWithoutStress_.restart(comm, path);
@@ -135,7 +135,7 @@ public:
         return constructTypeName("PairwiseInteractionWithStress", 1,
                                  PairwiseKernel::getTypeName().c_str());
     }
-    
+
 private:
     real stressPeriod_; ///< The stress will be computed every this amount of time
     real lastStressTime_ {-1e6}; ///< to keep track of the last time stress was computed

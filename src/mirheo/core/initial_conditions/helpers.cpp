@@ -59,7 +59,7 @@ void setUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     std::vector<real4> pos, vel;
     pos.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
     vel.reserve(ncells.x * ncells.y * ncells.z * static_cast<int>(math::ceil(numPartsPerCell)));
-    
+
     for (int i = 0; i < ncells.x; ++i) {
         for (int j = 0; j < ncells.y; ++j) {
             for (int k = 0; k < ncells.z; ++k) {
@@ -91,7 +91,7 @@ void setUniformParticles(real numberDensity, const MPI_Comm& comm, ParticleVecto
     pv->local()->resize(mycount, stream);
     std::copy(pos.begin(), pos.end(), pv->local()->positions ().begin());
     std::copy(vel.begin(), vel.end(), pv->local()->velocities().begin());
-    
+
     avgMomentum.x /= mycount;
     avgMomentum.y /= mycount;
     avgMomentum.z /= mycount;

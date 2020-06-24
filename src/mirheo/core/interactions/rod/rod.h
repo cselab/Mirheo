@@ -59,7 +59,7 @@ public:
         \param [in] name The name of the interaction
         \param [in] parameters The common parameters from all kernel forces
         \param [in] stateParameters Parameters related to polymorphic states transition
-        \param [in] saveEnergies \c true if the user wants to also compute the energies. 
+        \param [in] saveEnergies \c true if the user wants to also compute the energies.
                     In this case, energies will be saved in the \c channel_names::energies bisegment channel.
     */
     RodInteraction(const MirState *state, const std::string& name, RodParameters parameters,
@@ -94,7 +94,7 @@ public:
             die("'%s' expects a Rod vector, given '%s'", this->getCName(), pv1->getCName());
         }
     }
-    
+
     void local(ParticleVector *pv1,
                __UNUSED ParticleVector *pv2,
                __UNUSED CellList *cl1,
@@ -110,7 +110,7 @@ public:
         _updatePolymorphicStatesAndApplyForces (rv, stream);
         _computeElasticForces                  (rv, stream);
     }
-    
+
 private:
     void _computeBoundForces(RodVector *rv, cudaStream_t stream)
     {
@@ -118,9 +118,9 @@ private:
 
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.nObjects * view.nSegments, nthreads);
-        
+
         auto devParams = getBoundParams(parameters_);
-        
+
         SAFE_KERNEL_LAUNCH(rod_forces_kernels::computeRodBoundForces,
                            nblocks, nthreads, 0, stream,
                            view, devParams);
@@ -138,7 +138,7 @@ private:
 
             const int nthreads = 128;
             const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
-                
+
             SAFE_KERNEL_LAUNCH(rod_states_kernels::computeBisegmentData,
                                nblocks, nthreads, 0, stream,
                                view, kappa, tau_l);
@@ -146,12 +146,12 @@ private:
             updateStatesAndApplyForces<Nstates>(rv, devParams, stateParameters_, stream);
         }
     }
-    
+
     void _computeElasticForces(RodVector *rv, cudaStream_t stream)
     {
         RVview view(rv, rv->local());
         auto devParams = getBiSegmentParams<Nstates>(parameters_);
-        
+
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.nObjects * (view.nSegments-1), nthreads);
 

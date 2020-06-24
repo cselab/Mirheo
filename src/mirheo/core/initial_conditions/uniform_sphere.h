@@ -26,7 +26,7 @@ public:
      */
     UniformSphereIC(real numDensity, real3 center, real radius, bool inside);
     ~UniformSphereIC();
-    
+
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:

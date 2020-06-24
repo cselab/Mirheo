@@ -32,10 +32,10 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
         myMomentum = vel * view.mass;
         myEnergy   = dot(vel, vel) * view.mass * 0.5_r;
     }
-    
+
     myMomentum = warpReduce(myMomentum, [](real a, real b) { return a+b; });
     myEnergy   = warpReduce(myEnergy,   [](real a, real b) { return a+b; });
-    
+
     myMaxIvelI = warpReduce(length(vel), [](real a, real b) { return math::max(a, b); });
 
     if (laneId() == 0)
@@ -49,7 +49,7 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
     }
 }
 } // namespace stats_plugin_kernels
-    
+
 SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
     SimulationPlugin(state, name),
     fetchEvery_(fetchEvery)
@@ -155,7 +155,7 @@ void PostprocessStats::deserialize()
 
     MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MIN, 0, comm_) );
     MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MAX, 0, comm_) );
-    
+
     MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : &nparticles,     &nparticles,     1, getMPIIntType<stats_plugin::CountType>(),       MPI_SUM, 0, comm_) );
     MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : energy.data(),   energy.data(),   1, getMPIFloatType<stats_plugin::ReductionType>(), MPI_SUM, 0, comm_) );
     MPI_Check( MPI_Reduce(rank_ == 0 ? MPI_IN_PLACE : momentum.data(), momentum.data(), 3, getMPIFloatType<stats_plugin::ReductionType>(), MPI_SUM, 0, comm_) );

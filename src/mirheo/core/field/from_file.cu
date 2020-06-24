@@ -75,7 +75,7 @@ __global__ void cubicInterpolate3D(const float* in, int3 inDims, float3 inH, flo
         interp1D[dz] = cubicInterpolate1D(interp2D[dz], mu.y);
 
     // Interpolate along z
-    out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);    
+    out[ (iz*outDims.y + iy) * outDims.x + ix ] = cubicInterpolate1D(interp1D, mu.z);
 }
 
 
@@ -86,7 +86,7 @@ __device__ inline float interpolationKernel(float3 x, float3 x0)
     const float3 r = x-x0;
     const float l2 = dot(r, r);
     const float l4 = l2*l2;
-    
+
     return l4*l4;
 }
 
@@ -115,7 +115,7 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
 
     // Reference point of the original grid, rounded down
     int3 inputId_down = make_int3( math::floor(inputCoo / inH) );
-    
+
     float nominator = 0, denominator = 0;
 
     // Interpolate along x
@@ -126,7 +126,7 @@ __global__ void inverseDistanceWeightedInterpolation(const float* in, int3 inDim
                 int3 delta{dx, dy, dz};
                 const int3 curInputId = (inputId_down+delta + inDims) % inDims;
                 const float3 curInputCoo = make_float3(curInputId)*inH;
-                
+
                 const float k = interpolationKernel(inputCoo, curInputCoo);
                 nominator += in[ (curInputId.z*inDims.y + curInputId.y) * inDims.x + curInputId.x ] * k;
                 denominator += k;
@@ -165,7 +165,7 @@ static HeaderInfo readHeader(const std::string& fileName, const MPI_Comm& comm)
 {
     HeaderInfo info;
     constexpr int root = 0;
-    
+
     if (getRank(comm) == root)
     {
         std::ifstream file(fileName);
@@ -202,7 +202,7 @@ static std::vector<float> readSdf(const std::string& fileName, const MPI_Comm& c
 {
     const int rank   = getRank  (comm);
     const int nranks = getNranks(comm);
-    
+
     // Read part and allgather
     const int64_t readPerProc_byte = (info.fullSdfSize_byte + nranks - 1) / (int64_t)nranks;
     std::vector<char> readBuffer(readPerProc_byte);
@@ -252,7 +252,7 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
     sdfPiece.resolution = endId - startId;
 
     sdfPiece.data.resize_anew( multiplyComps(sdfPiece.resolution) );
-    
+
     auto locSdfDataPtr = sdfPiece.data.hostPtr();
 
     for (int k = 0; k < sdfPiece.resolution.z; ++k)
@@ -289,7 +289,7 @@ void FieldFromFile::setup(const MPI_Comm& comm)
     info("Setting up field from %s", fieldFileName_.c_str());
 
     const auto domain = getState()->domain;
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
 
     int nranks, rank;

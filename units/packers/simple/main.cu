@@ -22,7 +22,7 @@ __global__ void packParticlesIdentityMap(int n, ParticlePackerHandler packer, ch
 
     int srcId = i;
     int dstId = i;
-    
+
     packer.particles.pack(srcId, dstId, buffer, n);
 }
 
@@ -33,7 +33,7 @@ __global__ void packShiftParticlesIdentityMap(int n, real3 shift, ParticlePacker
 
     int srcId = i;
     int dstId = i;
-    
+
     packer.particles.packShift(srcId, dstId, buffer, n, shift);
 }
 
@@ -44,7 +44,7 @@ __global__ void unpackParticlesIdentityMap(int n, const char *buffer, ParticlePa
 
     int srcId = i;
     int dstId = i;
-    
+
     packer.particles.unpack(srcId, dstId, buffer, n);
 }
 
@@ -100,7 +100,7 @@ TEST (PACKERS_SIMPLE, particles)
 
     auto& pos = lpv->positions();
     auto& vel = lpv->velocities();
-    
+
     const std::vector<real4> pos_cpy(pos.begin(), pos.end());
     const std::vector<real4> vel_cpy(vel.begin(), vel.end());
 
@@ -109,7 +109,7 @@ TEST (PACKERS_SIMPLE, particles)
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
     ParticlePacker packer(predicate);
     packer.update(lpv, defaultStream);
-    
+
     size_t sizeBuff = packer.getSizeBytes(n);
     DeviceBuffer<char> buffer(sizeBuff);
 
@@ -156,7 +156,7 @@ TEST (PACKERS_SIMPLE, particlesShift)
 
     auto& pos = lpv->positions();
     auto& vel = lpv->velocities();
-    
+
     std::vector<real4> pos_cpy(pos.begin(), pos.end());
     std::vector<real4> vel_cpy(vel.begin(), vel.end());
 
@@ -166,13 +166,13 @@ TEST (PACKERS_SIMPLE, particlesShift)
         r.y += shift.y;
         r.z += shift.z;
     }
-    
+
     int n = lpv->size();
 
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
     ParticlePacker packer(predicate);
     packer.update(lpv, defaultStream);
-    
+
     size_t sizeBuff = packer.getSizeBytes(n);
     DeviceBuffer<char> buffer(sizeBuff);
 
@@ -235,7 +235,7 @@ TEST (PACKERS_SIMPLE, objects)
     PackPredicate predicate = [](const DataManager::NamedChannelDesc&) {return true;};
     ObjectPacker packer(predicate);
     packer.update(lrev, defaultStream);
-    
+
     size_t sizeBuff = packer.getSizeBytes(nObjs);
     DeviceBuffer<char> buffer(sizeBuff);
 
@@ -251,7 +251,7 @@ TEST (PACKERS_SIMPLE, objects)
     pos .clearDevice(defaultStream);
     vel .clearDevice(defaultStream);
     mot->clearDevice(defaultStream);
-    
+
     SAFE_KERNEL_LAUNCH(
         unpackObjectsIdentityMap,
         nblocks, nthreads, 0, defaultStream,
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "packers_simple.log", 3);    
+    logger.init(MPI_COMM_WORLD, "packers_simple.log", 3);
 
     testing::InitGoogleTest(&argc, argv);
     auto retval = RUN_ALL_TESTS();

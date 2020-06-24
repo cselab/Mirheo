@@ -50,7 +50,7 @@ void exportVectorTypes(py::module& m)
     py::implicitly_convertible<py::tuple, real2>();
     py::implicitly_convertible<py::list,  real2>();
 
-    
+
     py::class_<real3>(m, "real3")
         .def(py::init([](real x, real y, real z) {
             return real3{x, y, z};
@@ -128,7 +128,7 @@ void exportVectorTypes(py::module& m)
     py::implicitly_convertible<py::tuple, real4>();
     py::implicitly_convertible<py::list,  real4>();
 
-    
+
     py::class_<int3>(m, "int3")
         .def(py::init([](int x, int y, int z) {
             return int3{x, y, z};

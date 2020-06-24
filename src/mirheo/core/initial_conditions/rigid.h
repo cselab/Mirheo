@@ -12,7 +12,7 @@ namespace mirheo
 {
 
 /** \brief Initialize RigidObjectVector objects
-    
+
     Initialize rigid objects from center of mass positions, orientations and frozen particles.
 */
 class RigidIC : public InitialConditions
@@ -21,7 +21,7 @@ public:
     /** \brief Construct a RigidIC object
         \param [in] comQ List of (position, orientation) corresponding to each object.
                     The size of the list is the number of rigid objects that will be initialized.
-        \param [in] xyzfname The name of a file in xyz format. 
+        \param [in] xyzfname The name of a file in xyz format.
                     It contains the list of coordinates of the frozen particles (in the object frame of reference).
 
         This method will die if the file does not exist.

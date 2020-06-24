@@ -44,7 +44,7 @@ struct DPDParams
     real a;     ///< conservative force coefficient
     real gamma; ///< dissipative force conservative
     real kBT;   ///< temperature in energy units
-    real power; ///< exponent of the envelope of the viscous kernel 
+    real power; ///< exponent of the envelope of the viscous kernel
 };
 MIRHEO_MEMBER_VARS(DPDParams, a, gamma, kBT, power);
 
@@ -55,7 +55,7 @@ struct NoRandomDPDParams
     real a;     ///< conservative force coefficient
     real gamma; ///< dissipative force conservative
     real kBT;   ///< temperature in energy units
-    real power; ///< exponent of the envelope of the viscous kernel 
+    real power; ///< exponent of the envelope of the viscous kernel
 };
 MIRHEO_MEMBER_VARS(NoRandomDPDParams, a, gamma, kBT, power);
 
@@ -105,7 +105,7 @@ struct RepulsiveLJParams
 };
 MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
 
-/// Multi-body Dissipative Particle Dynamics parameters 
+/// Multi-body Dissipative Particle Dynamics parameters
 struct MDPDParams
 {
     using KernelType = PairwiseMDPD; ///< the corresponding kernel
@@ -114,7 +114,7 @@ struct MDPDParams
     real b;     ///< conservative force coefficient (attractive)
     real gamma; ///< dissipative force conservative
     real kBT;   ///< temperature in energy units
-    real power; ///< exponent of the envelope of the viscous kernel 
+    real power; ///< exponent of the envelope of the viscous kernel
 };
 MIRHEO_MEMBER_VARS(MDPDParams, rd, a, b, gamma, kBT, power);
 
@@ -158,7 +158,7 @@ struct QuasiIncompressiblePressureEOSParams
 {
     using KernelType = QuasiIncompressiblePressureEOS;  ///< the corresponding kernel
     real p0;   ///< pressure magnitude
-    real rhor; ///< reference density 
+    real rhor; ///< reference density
 };
 MIRHEO_MEMBER_VARS(QuasiIncompressiblePressureEOSParams, p0, rhor);
 

@@ -24,14 +24,14 @@ public:
     /** \brief Construct a BounceFromRod object
         \param [in] state Simulation state
         \param [in] name Name of the bouncer
-        \param [in] radius The radius of the capsules attached to each segment 
+        \param [in] radius The radius of the capsules attached to each segment
         \param [in] varBounceKernel How are the particles bounced
     */
     BounceFromRod(const MirState *state, const std::string& name, real radius, VarBounceKernel varBounceKernel);
     ~BounceFromRod();
 
-    /** 
-        Ask \p ov to keep its old motions accross persistently. 
+    /**
+        Ask \p ov to keep its old motions accross persistently.
         This method will die if \p ov is not of type RodObjectVector.
     */
     void setup(ObjectVector *ov) override;
@@ -42,7 +42,7 @@ public:
     void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     std::vector<std::string> getChannelsToBeSentBack() const override;
-    
+
 private:
     template <typename T>
     struct CollisionTableWrapper
@@ -71,7 +71,7 @@ private:
 
     VarBounceKernel varBounceKernel_;
     std::mt19937 rng_ {42L};
-    
+
     void exec(ParticleVector *pv, CellList *cl, ParticleVectorLocality locality, cudaStream_t stream) override;
 };
 

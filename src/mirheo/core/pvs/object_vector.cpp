@@ -58,7 +58,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 
     Particle p0( positions()[0], velocities()[0]);
     int64_t rankStart = p0.getId();
-    
+
     if ((rankStart % objSize_) != 0)
         die("Something went wrong when computing ids of '%s':"
             "got rankStart = '%ld' while objectSize is '%d'",
@@ -66,7 +66,7 @@ void LocalObjectVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 
     auto& ids = *dataPerObject.getData<int64_t>(channel_names::globalIds);
     int64_t id = (int64_t) (rankStart / objSize_);
-    
+
     for (auto& i : ids)
         i = id++;
 
@@ -164,14 +164,14 @@ void ObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& filenam
     auto coms_extents = local()->dataPerObject.getData<COMandExtent>(channel_names::comExtents);
 
     coms_extents->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    
+
     auto positions = std::make_shared<std::vector<real3>>(getCom(getState()->domain, *coms_extents));
 
     XDMF::VertexGrid grid(positions, comm);
 
     auto channels = checkpoint_helpers::extractShiftPersistentData(getState()->domain,
                                                                   local()->dataPerObject);
-    
+
     XDMF::write(filename, &grid, channels, comm);
 
     debug("Checkpoint for object vector '%s' successfully written", getCName());
@@ -198,7 +198,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
 
     // remove positions from the read data (artificial for non rov)
     restart_helpers::extractChannel<real3> (channel_names::XDMF::position, listData);
-    
+
     restart_helpers::exchangeListData(comm, ms.map, listData, objChunkSize);
     restart_helpers::requireExtraDataPerObject(listData, this);
 
@@ -206,7 +206,7 @@ void ObjectVector::_restartObjectData(MPI_Comm comm, const std::string& path,
     dataPerObject.resize_anew(ms.newSize);
 
     restart_helpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
-    
+
     info("Successfully read object infos of '%s'", getCName());
 }
 
@@ -220,7 +220,7 @@ void ObjectVector::restart(MPI_Comm comm, const std::string& path)
 {
     const auto ms = _restartParticleData(comm, path, getObjectSize());
     _restartObjectData(comm, path, ms);
-    
+
     local()->resize(ms.newSize * getObjectSize(), defaultStream);
 }
 

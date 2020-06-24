@@ -27,12 +27,12 @@ public:
         mReal a;    ///< equilibrium triangle area
         mReal dotp; ///< dot product of the two above edges
     };
-    
+
     using EquilibriumTriangleDesc = LengthsArea; ///< type to describe reference triangle info
     using ParametersType          = LimParameters; ///< type to describe parameters
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
-    /** \brief Construct the functor 
+    /** \brief Construct the functor
         \param [in] p The parameters of the model
         \param [in] mesh Triangle mesh information
         \param [in] lscale Scaling length factor, applied to all parameters
@@ -47,7 +47,7 @@ public:
 
         ka_ = p.ka * lscale_ * lscale_;
         mu_ = p.mu * lscale_ * lscale_;
-        
+
         area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
     }
@@ -102,7 +102,7 @@ public:
         const mReal coeffAlpha = 0.5_mr * ka_ * alpha * (2 + alpha * (3 * a3_ + alpha * 4 * a4_));
 
         const mReal3 fArea = coeffAlpha * derArea;
-        
+
         const mReal e0sq_A = dot(x12, x12) * area_inv;
         const mReal e1sq_A = dot(x13, x13) * area_inv;
 
@@ -118,9 +118,9 @@ public:
         const mReal3 derBeta = area_inv * ((0.25_mr * e1sq_A0 - dot_4A) * x12 +
                                           (0.25_mr * e0sq_A0 - dot_4A) * x13 +
                                           (dot_4A * dotp * area_inv - mixed_v) * derArea);
-        
+
         const mReal3 derAlpha = area0_inv * derArea;
-            
+
         const mReal coefAlpha = eq.a * mu_ * b1_ * beta;
         const mReal coefBeta  = eq.a * mu_ * (2*b2_*beta + alpha * b1_ + 1);
 
@@ -128,9 +128,9 @@ public:
 
         return fArea + fShear;
     }
-    
+
 private:
-    
+
     mReal ka_;
     mReal mu_;
     mReal a3_;

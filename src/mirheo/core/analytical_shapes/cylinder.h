@@ -58,23 +58,23 @@ public:
     {
         constexpr real eps   = 1e-6_r;
         constexpr real delta = 1e-3_r;
-        
+
         const real rsq = sqr(r.x) + sqr(r.y);
         const real rinv = rsq > eps ? math::rsqrt(rsq) : 0._r;
 
         const real dr = math::sqrt(rsq) - R_;
         const real dz = math::abs(r.z) - halfL_;
-        
+
         const real3 er {rinv * r.x, rinv * r.y, 0._r};
         const real3 ez {0._r, 0._r, r.z > 0 ? 1._r : -1._r};
 
-        
+
         real3 n {0._r, 0._r, 0._r};
         if (math::abs(dr) < delta) n += er;
         if (math::abs(dz) < delta) n += ez;
         return n;
     }
-    
+
     /**\brief Get the inertia tensor of the cylinder in its frame of reference.
        \param [in] totalMass The total mass of the cylinder.
        \return The diagonal of the inertia tensor.
@@ -84,12 +84,12 @@ public:
         const real xx = totalMass * R_ * R_ * 0.25_r;
         const real yy = xx;
         const real zz = totalMass * halfL_ * halfL_ * 0.3333333_r;
-        
+
         return make_real3(yy + zz, xx + zz, xx + yy);
     }
 
     static const char *desc;  ///< the description of shape.
-    
+
 private:
     real R_;     ///< radius
     real halfL_; ///< half length

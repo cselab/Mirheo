@@ -27,18 +27,18 @@ public:
     using ParticleType  = typename BasicPairwiseForceHandler::ParticleType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
-    /// Constructor    
+    /// Constructor
     PairwiseStressWrapperHandler(BasicPairwiseForceHandler basicForceHandler) :
         BasicPairwiseForceHandler(basicForceHandler)
     {}
 
     /// Evaluate the force and the stress
     __device__ inline ForceStress operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
-    {        
+    {
         const real3 dr = getPosition(dst) - getPosition(src);
         const real3 f  = BasicPairwiseForceHandler::operator()(dst, dstId, src, srcId);
         Stress s;
-        
+
         s.xx = 0.5_r * dr.x * f.x;
         s.xy = 0.5_r * dr.x * f.y;
         s.xz = 0.5_r * dr.x * f.z;
@@ -93,7 +93,7 @@ public:
     {
         return basicForceWrapperHandler_;
     }
-    
+
 private:
     HandlerType basicForceWrapperHandler_;
 };

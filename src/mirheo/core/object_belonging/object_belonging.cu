@@ -80,7 +80,7 @@ static void copyToLpv(int start, int n, const char *buffer, LocalParticleVector 
 
     ParticlePacker packer(keepAllpersistentDataPredicate);
     packer.update(lpv, stream);
-    
+
     SAFE_KERNEL_LAUNCH(
          object_belonging_kernels::unpackParticles,
          getNblocks(n, nthreads), nthreads, 0, stream,
@@ -115,7 +115,7 @@ void ObjectVectorBelongingChecker::splitByBelonging(ParticleVector *src, Particl
 
     DeviceBuffer<char> insideBuffer (packer.getSizeBytes(nInside_ [0]));
     DeviceBuffer<char> outsideBuffer(packer.getSizeBytes(nOutside_[0]));
-    
+
     nInside_. clearDevice(stream);
     nOutside_.clearDevice(stream);
 
@@ -163,7 +163,7 @@ void ObjectVectorBelongingChecker::checkInner(ParticleVector *pv, CellList *cl, 
     // Only count
     const int np = pv->local()->size();
     constexpr int nthreads = 128;
-    
+
     SAFE_KERNEL_LAUNCH(
         object_belonging_kernels::countInOut,
         getNblocks(np, nthreads), nthreads, 0, stream,

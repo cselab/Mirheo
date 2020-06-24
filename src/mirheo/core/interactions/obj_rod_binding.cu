@@ -44,7 +44,7 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     const real3 relAnchor = motion.q.rotate(params.relPos);
     const real3 anchor = motion.r + relAnchor;
 
-    const int start = j * rods.objSize; 
+    const int start = j * rods.objSize;
     auto r0 = fetchPosition(rods, start + 0);
     auto u0 = fetchPosition(rods, start + 1);
     auto u1 = fetchPosition(rods, start + 2);
@@ -65,7 +65,7 @@ __device__ void applyBindingForce(const DomainInfo& domain,
     real3 T       = params.T * e0;
     real3 fu0     = 0.5_r * cross(T, dp);
     real3 Tanchor = cross(relAnchor, fanchor);
-    
+
     atomicAdd(&rods.forces[start + 0], -fanchor);
     atomicAdd(&rods.forces[start + 1],  fu0);
     atomicAdd(&rods.forces[start + 2], -fu0);
@@ -153,7 +153,7 @@ void ObjectRodBindingInteraction::halo(ParticleVector *pv1, ParticleVector *pv2,
     if      ((rov1 != nullptr) && (rv2 != nullptr)) return _halo(rov1, rv2, stream);
     else if ((rov2 != nullptr) && (rv1 != nullptr)) return _halo(rov2, rv1, stream);
 
-    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", getCName());    
+    die("Local interactions '%s' must be given one RigidObjectVector and one RodVector", getCName());
 }
 
 
@@ -165,9 +165,9 @@ void ObjectRodBindingInteraction::_local(RigidObjectVector *rov, RodVector *rv, 
     const int nthreads = 64;
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
-    
+
     obj_rod_binding_kernels::BindingParams params {relAnchor_, torque_, kBound_};
-    
+
     SAFE_KERNEL_LAUNCH(
         obj_rod_binding_kernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,
@@ -182,9 +182,9 @@ void ObjectRodBindingInteraction::_halo(RigidObjectVector *rov, RodVector *rv, c
     const int nthreads = 64;
     const int nblocks  = getNblocks(objs.nObjects, nthreads);
     const size_t shMem = rods.nObjects * sizeof(int);
-    
+
     obj_rod_binding_kernels::BindingParams params {relAnchor_, torque_, kBound_};
-    
+
     SAFE_KERNEL_LAUNCH(
         obj_rod_binding_kernels::computeBindingForces,
         nblocks, nthreads, shMem, stream,

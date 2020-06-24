@@ -75,7 +75,7 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
 {
     const int tid   = threadIdx.x;
     const int rodId = blockIdx.x;
-    
+
     const int nBiSegments = view.nSegments - 1;
 
     for (int biSegmentId = tid; biSegmentId < nBiSegments; ++biSegmentId)
@@ -87,8 +87,8 @@ __global__ void findPolymorphicStates(RVview view, GPU_RodBiSegmentParameters<Ns
         fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
         int state = 0;
-        rReal E = computeEnergy(l, k0, k1, tau, state, params);            
-        
+        rReal E = computeEnergy(l, k0, k1, tau, state, params);
+
         #pragma unroll
         for (int s = 1; s < Nstates; ++s)
         {
@@ -128,12 +128,12 @@ __device__ inline int acceptReject(int sprev, int scurrent, int snext,
         + spinParams.J * (math::abs(sother  -sprev) + math::abs(sother  -snext));
 
     real dE = Eother - Ecurrent;
-    
+
     real u = Saru::uniform01(spinParams.seed, 12345 * threadIdx.x - 6789, 123456 * sother + 98765 * blockIdx.x );
 
     if (spinParams.kBT < 1e-6)
         return dE < 0 ? sother : scurrent;
-    
+
     if (u < math::exp(-dE * spinParams.beta))
         return sother;
 
@@ -146,7 +146,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 {
     const int tid   = threadIdx.x;
     const int rodId = blockIdx.x;
-    
+
     const int nBiSegments = view.nSegments - 1;
 
     extern __shared__ int states[];
@@ -164,11 +164,11 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
         for (int biSegmentId = tid; biSegmentId < nBiSegments; biSegmentId += blockDim.x)
         {
             if (biSegmentId % 2 == evenOdd) continue;
-            
+
             rReal2 k0, k1;
             rReal tau, l;
             int i = rodId * nBiSegments + biSegmentId;
-            
+
             fetchBisegmentData(i, kappa, tau_l, k0, k1, tau, l);
 
             int scurrent = states[biSegmentId];
@@ -182,7 +182,7 @@ __global__ void findPolymorphicStatesMCStep(RVview view, GPU_RodBiSegmentParamet
 
     constexpr int evenStep = 0;
     constexpr int  oddStep = 1;
-    
+
     execPhase(evenStep);
     __syncthreads();
 

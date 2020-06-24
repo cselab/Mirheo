@@ -32,7 +32,7 @@ public:
 
     void setup(MPI_Comm& comm) override;
     void setPrerequisites(ParticleVector *pv) override;
-    
+
     void attachFrozen(ParticleVector *pv) override;
 
     void removeInner(ParticleVector *pv) override;
@@ -62,7 +62,7 @@ protected:
 private:
     ParticleVector *frozen_ {nullptr}; ///< frozen particles attached to the wall
     PinnedBuffer<int> nInside_{1};     ///< number of particles inside (work space)
-    
+
 protected:
     InsideWallChecker insideWallChecker_; ///< The wall shape representation
 

@@ -11,10 +11,10 @@ RVview::RVview(RodVector *rv, LocalRodVector *lrv) :
     nSegments = lrv->getNumSegmentsPerRod();
 
     auto& data = lrv->dataPerBisegment;
-        
+
     if (data.checkChannelExists(channel_names::polyStates))
         states = data.getData<int>(channel_names::polyStates)->devPtr();
-        
+
     if (data.checkChannelExists(channel_names::energies))
         energies = data.getData<real>(channel_names::energies)->devPtr();
 }

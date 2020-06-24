@@ -31,7 +31,7 @@ public:
         \param [in] x The position, in local coordinates
         \return The scalar value at \p x
 
-        \rst 
+        \rst
         .. warning::
            The position must be inside the subdomain enlarged with a given margin (see \c Field)
 
@@ -45,7 +45,7 @@ public:
 
         const real3 texcoord = math::floor((x + extendedDomainSize_*0.5_r) * invh_);
         const real3 lambda = (x - (texcoord * h_ - extendedDomainSize_*0.5_r)) * invh_;
-        
+
         auto access = [this, &texcoord] (int dx, int dy, int dz)
         {
             const auto val = tex3D<float>(fieldTex_,
@@ -54,17 +54,17 @@ public:
                                           static_cast<float>(texcoord.z + static_cast<real>(dz)));
             return static_cast<real>(val);
         };
-        
+
         s000 = access(0, 0, 0);
         s001 = access(0, 0, 1);
         s010 = access(0, 1, 0);
         s011 = access(0, 1, 1);
-        
+
         s100 = access(1, 0, 0);
         s101 = access(1, 0, 1);
         s110 = access(1, 1, 0);
         s111 = access(1, 1, 1);
-        
+
         sx00 = s000 * (1 - lambda.x) + lambda.x * s100;
         sx01 = s001 * (1 - lambda.x) + lambda.x * s101;
         sx10 = s010 * (1 - lambda.x) + lambda.x * s110;
@@ -109,7 +109,7 @@ public:
         \param [in] comm The cartesian communicator of the domain.
      */
     virtual void setup(const MPI_Comm& comm) = 0;
-    
+
 protected:
     int3 resolution_;       ///< number of grid points along each dimension
     cudaArray *fieldArray_; ///< contains the field data

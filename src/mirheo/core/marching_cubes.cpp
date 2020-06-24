@@ -139,7 +139,7 @@ void computeTriangles(DomainInfo domain, real3 resolution,
                 {
                     if ((va < 0.0) == (vb < 0.0))
                         return;
-                    
+
                     real3 v = base;
                     v += axis * va / (va - vb);
                     edgeIndices[edgeId] = static_cast<int>(vertices.size());

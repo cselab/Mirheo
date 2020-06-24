@@ -86,7 +86,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
 {
     real t  = this->getState()->currentTime;
     real dt = this->getState()->dt;
-    
+
     velField_.setup(t, this->getState()->domain);
     this->bounceForce_.clear(stream);
 

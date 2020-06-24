@@ -62,14 +62,14 @@ __device__ inline rReal computeEnergy(rReal l, rReal2 kappa0, rReal2 kappa1, rRe
 {
     const rReal2 dkappa0 = kappa0 - make_rReal2(params.kappaEq[state]);
     const rReal2 dkappa1 = kappa1 - make_rReal2(params.kappaEq[state]);
-    
+
     const rReal2 Bkappa0 = symmetricMatMult(make_rReal3(params.kBending), dkappa0);
     const rReal2 Bkappa1 = symmetricMatMult(make_rReal3(params.kBending), dkappa1);
-    
+
     const rReal Eb = 0.25_rr * l * (dot(dkappa0, Bkappa0) + dot(dkappa1, Bkappa1));
-    
+
     const rReal dtau = tau - params.tauEq[state];
-    
+
     const rReal Et = 0.5_rr * l * params.kTwist * dtau * dtau;
 
     return Eb + Et + params.groundE[state];
@@ -101,12 +101,12 @@ struct BiSegment
         const auto r0  = fetchPosition(view, start + 0);
         const auto r1  = fetchPosition(view, start + 5);
         const auto r2  = fetchPosition(view, start + 10);
-        
+
         const auto pm0 = fetchPosition(view, start + 1);
         const auto pp0 = fetchPosition(view, start + 2);
         const auto pm1 = fetchPosition(view, start + 6);
         const auto pp1 = fetchPosition(view, start + 7);
-        
+
         e0 = r1 - r0;
         e1 = r2 - r1;
 
@@ -145,7 +145,7 @@ struct BiSegment
         \param [in,out] fr2 Force acting on r2
         \param [in,out] fpm0 Force acting on pm0
         \param [in,out] fpm1 Force acting on pm1
-        
+
         This metho will add bending foces to the given variables.
         The other forces (on e.g. r1) can be computed by the symmetric nature of the model.
      */
@@ -157,13 +157,13 @@ struct BiSegment
 
         const rReal3 t0_dp0 = cross(t0, dp0);
         const rReal3 t1_dp1 = cross(t1, dp1);
-    
+
         const rReal3 dpPerp0 = dp0 - dpt0 * t0;
         const rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
         const rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
         const rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
-    
+
         const rReal2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
                               -dpPerp0inv * linv * dot(bicur,    dp0)};
 
@@ -184,10 +184,10 @@ struct BiSegment
         const rReal3 grad0NormKappa1 = - 0.5_rr * linv * t0;
         const rReal3 grad2NormKappa1 =   0.5_rr * linv * t1 + (e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
 
-        // 1. contributions of center line:    
+        // 1. contributions of center line:
         const rReal3 baseGradKappa0x = cross(bicur, dp0) + dot(bicur, t0_dp0) * t0;
         const rReal3 baseGradKappa1x = cross(bicur, dp1) + dot(bicur, t1_dp1) * t1;
-    
+
 
         const rReal3 grad0Kappa0x = kappa0.x * grad0NormKappa0 + dpPerp0inv * linv * (applyGrad0Bicur(t0_dp0) - e0inv * baseGradKappa0x);
         const rReal3 grad2Kappa0x = kappa0.x * grad2NormKappa0 + dpPerp0inv * linv *  applyGrad2Bicur(t0_dp0);
@@ -199,7 +199,7 @@ struct BiSegment
 
         const rReal3 grad0Kappa1y = kappa1.y * grad0NormKappa1 - dpPerp1inv * linv *  applyGrad0Bicur(   dp1);
         const rReal3 grad2Kappa1y = kappa1.y * grad2NormKappa1 - dpPerp1inv * linv *  applyGrad2Bicur(   dp1);
-    
+
         // 1.a contribution of kappa
         fr0 += 0.5_rr * l * (Bkappa0.x * grad0Kappa0x + Bkappa0.y * grad0Kappa0y  +  Bkappa1.x * grad0Kappa1x + Bkappa1.y * grad0Kappa1y);
         fr2 += 0.5_rr * l * (Bkappa0.x * grad2Kappa0x + Bkappa0.y * grad2Kappa0y  +  Bkappa1.x * grad2Kappa1x + Bkappa1.y * grad2Kappa1y);
@@ -230,7 +230,7 @@ struct BiSegment
         \param [in,out] fr2 Force acting on r2
         \param [in,out] fpm0 Force acting on pm0
         \param [in,out] fpm1 Force acting on pm1
-        
+
         This metho will add twist foces to the given variables.
         The other forces (on e.g. r1) can be computed by the symmetric nature of the model.
     */
@@ -240,7 +240,7 @@ struct BiSegment
         const auto Q = Quaternion<rReal>::createFromVectors(t0, t1);
         const rReal3 u0 = normalize(anyOrthogonal(t0));
         const rReal3 u1 = normalize(Q.rotate(u0));
-        
+
         const auto v0 = cross(t0, u0);
         const auto v1 = cross(t1, u1);
 
@@ -252,31 +252,31 @@ struct BiSegment
 
         const rReal theta0 = math::atan2(dpv0, dpu0);
         const rReal theta1 = math::atan2(dpv1, dpu1);
-    
+
         const rReal tau = safeDiffTheta(theta0, theta1) * linv;
         const rReal dtau = tau - params.tauEq[state];
 
         // contribution from segment length on center line:
-        
+
         const rReal ftwistLFactor = 0.5_rr * params.kTwist * dtau * (tau + params.tauEq[state]);
-        
+
         fr0 -= 0.5_rr * ftwistLFactor * t0;
         fr2 += 0.5_rr * ftwistLFactor * t1;
 
         // contribution from theta on center line:
-        
+
         const rReal dthetaFFactor = dtau * params.kTwist;
-        
+
         fr0 += (0.5_rr * dthetaFFactor * e0inv) * bicur;
         fr2 -= (0.5_rr * dthetaFFactor * e1inv) * bicur;
 
         // contribution of theta on material frame:
-        
+
         fpm0 += (dthetaFFactor / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
         fpm1 += (dthetaFFactor / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }
 
-    
+
     /** Compute the curvatures along the material frames on each segment.
         \param [out] kappa0 Curvature on the first segment
         \param [out] kappa1 Curvature on the second segment
@@ -288,13 +288,13 @@ struct BiSegment
 
         const rReal3 t0_dp0 = cross(t0, dp0);
         const rReal3 t1_dp1 = cross(t1, dp1);
-    
+
         const rReal3 dpPerp0 = dp0 - dpt0 * t0;
         const rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
         const rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
         const rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
-    
+
         kappa0.x =   dpPerp0inv * linv * dot(bicur, t0_dp0);
         kappa0.y = - dpPerp0inv * linv * dot(bicur,    dp0);
 
@@ -322,7 +322,7 @@ struct BiSegment
 
         const rReal theta0 = math::atan2(dpv0, dpu0);
         const rReal theta1 = math::atan2(dpv1, dpu1);
-    
+
         tau = safeDiffTheta(theta0, theta1) * linv;
     }
 
@@ -337,13 +337,13 @@ struct BiSegment
 
         const rReal3 t0_dp0 = cross(t0, dp0);
         const rReal3 t1_dp1 = cross(t1, dp1);
-    
+
         const rReal3 dpPerp0 = dp0 - dpt0 * t0;
         const rReal3 dpPerp1 = dp1 - dpt1 * t1;
 
         const rReal dpPerp0inv = math::rsqrt(dot(dpPerp0, dpPerp0));
         const rReal dpPerp1inv = math::rsqrt(dot(dpPerp1, dpPerp1));
-    
+
         const rReal2 kappa0 { +dpPerp0inv * linv * dot(bicur, t0_dp0),
                               -dpPerp0inv * linv * dot(bicur,    dp0)};
 
@@ -356,10 +356,10 @@ struct BiSegment
         const rReal3 grad0NormKappa1 = - 0.5_rr * linv * t0;
         const rReal3 grad2NormKappa1 =   0.5_rr * linv * t1 + (e1inv * dpPerp1inv * dpPerp1inv * dpt1) * dpPerp1;
 
-        // 1. contributions of center line:    
+        // 1. contributions of center line:
         const rReal3 baseGradKappa0x = cross(bicur, dp0) + dot(bicur, t0_dp0) * t0;
         const rReal3 baseGradKappa1x = cross(bicur, dp1) + dot(bicur, t1_dp1) * t1;
-    
+
 
         const rReal3 grad0Kappa0x = kappa0.x * grad0NormKappa0 + dpPerp0inv * linv * (applyGrad0Bicur(t0_dp0) - e0inv * baseGradKappa0x);
         const rReal3 grad2Kappa0x = kappa0.x * grad2NormKappa0 + dpPerp0inv * linv *  applyGrad2Bicur(t0_dp0);
@@ -371,7 +371,7 @@ struct BiSegment
 
         const rReal3 grad0Kappa1y = kappa1.y * grad0NormKappa1 - dpPerp1inv * linv *  applyGrad0Bicur(   dp1);
         const rReal3 grad2Kappa1y = kappa1.y * grad2NormKappa1 - dpPerp1inv * linv *  applyGrad2Bicur(   dp1);
-    
+
         // 1.a contribution of kappa
         gradr0x = 0.5_rr * (grad0Kappa0x + grad0Kappa1x);
         gradr0y = 0.5_rr * (grad0Kappa0y + grad0Kappa1y);
@@ -405,7 +405,7 @@ struct BiSegment
         const auto Q = Quaternion<rReal>::createFromVectors(t0, t1);
         const rReal3 u0 = normalize(anyOrthogonal(t0));
         const rReal3 u1 = normalize(Q.rotate(u0));
-        
+
         const auto v0 = cross(t0, u0);
         const auto v1 = cross(t1, u1);
 
@@ -417,7 +417,7 @@ struct BiSegment
 
         const rReal theta0 = math::atan2(dpv0, dpu0);
         const rReal theta1 = math::atan2(dpv1, dpu1);
-    
+
         const rReal tau = safeDiffTheta(theta0, theta1) * linv;
 
         // contribution from segment length on center line:
@@ -426,12 +426,12 @@ struct BiSegment
         gradr2 = -0.5_rr * tau * linv * t1;
 
         // contribution from theta on center line:
-        
+
         gradr0 -= (linv * 0.5_rr * e0inv) * bicur;
         gradr2 += (linv * 0.5_rr * e1inv) * bicur;
 
         // contribution of theta on material frame:
-        
+
         gradpm0 = (-linv / (dpu0*dpu0 + dpv0*dpv0)) * (dpv0 * u0 - dpu0 * v0);
         gradpm1 = (-linv / (dpu1*dpu1 + dpv1*dpv1)) * (dpu1 * v1 - dpv1 * u1);
     }

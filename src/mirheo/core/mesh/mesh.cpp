@@ -46,7 +46,7 @@ Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
     }
 
     _check();
-    
+
     vertices_.uploadToDevice(defaultStream);
     faces_   .uploadToDevice(defaultStream);
 
@@ -167,7 +167,7 @@ void Mesh::_check() const
 MeshView::MeshView(const Mesh *m) :
     nvertices  (m->getNvertices()),
     ntriangles (m->getNtriangles()),
-    triangles  (m->getFaces().devPtr())   
+    triangles  (m->getFaces().devPtr())
 {}
 
 } // namespace mirheo

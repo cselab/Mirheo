@@ -47,7 +47,7 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
     const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     real3 localForce{0._r, 0._r, 0._r};
-    
+
     if (tid < nWallCells)
     {
         const int cid = wallCells[tid];
@@ -78,13 +78,13 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 
             p.r = candidate;
             p.u = unew;
-                           
+
             view.writeParticle(pid, p);
-        }        
+        }
     }
 
     localForce = warpReduce(localForce, [](real a, real b){return a+b;});
-    
+
     if ((laneId() == 0) && (length(localForce) > 1e-8_r))
         atomicAdd(totalForce, make_double3(localForce));
 

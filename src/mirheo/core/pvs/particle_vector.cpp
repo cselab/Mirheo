@@ -78,12 +78,12 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
 {
     int64_t rankStart = 0;
     int64_t np64 = np_;
-        
+
     MPI_Check( MPI_Exscan(&np64, &rankStart, 1, MPI_INT64_T, MPI_SUM, comm) );
 
     auto& pos = positions();
     auto& vel = velocities();
-    
+
     pos.downloadFromDevice(stream, ContainersSynch::Asynch);
     vel.downloadFromDevice(stream);
 
@@ -95,7 +95,7 @@ void LocalParticleVector::computeGlobalIds(MPI_Comm comm, cudaStream_t stream)
         pos[i] = p.r2Real4();
         vel[i] = p.u2Real4();
     }
-    
+
     pos.uploadToDevice(stream);
     vel.uploadToDevice(stream);
 }
@@ -131,7 +131,7 @@ std::vector<int64_t> ParticleVector::getIndices_vector()
     auto& vel = local()->velocities();
     pos.downloadFromDevice(defaultStream, ContainersSynch::Asynch);
     vel.downloadFromDevice(defaultStream);
-    
+
     std::vector<int64_t> res(pos.size());
 
     for (size_t i = 0; i < pos.size(); i++)
@@ -139,7 +139,7 @@ std::vector<int64_t> ParticleVector::getIndices_vector()
         Particle p (pos[i], vel[i]);
         res[i] = p.getId();
     }
-    
+
     return res;
 }
 
@@ -147,7 +147,7 @@ py_types::VectorOfReal3 ParticleVector::getCoordinates_vector()
 {
     auto& pos = local()->positions();
     pos.downloadFromDevice(defaultStream);
-    
+
     py_types::VectorOfReal3 res(pos.size());
     for (size_t i = 0; i < pos.size(); i++)
     {
@@ -155,7 +155,7 @@ py_types::VectorOfReal3 ParticleVector::getCoordinates_vector()
         r = getState()->domain.local2global(r);
         res[i] = { r.x, r.y, r.z };
     }
-    
+
     return res;
 }
 
@@ -163,14 +163,14 @@ py_types::VectorOfReal3 ParticleVector::getVelocities_vector()
 {
     auto& vel = local()->velocities();
     vel.downloadFromDevice(defaultStream);
-    
+
     py_types::VectorOfReal3 res(vel.size());
     for (size_t i = 0; i < vel.size(); i++)
     {
         real3 u = make_real3(vel[i]);
         res[i] = { u.x, u.y, u.z };
     }
-    
+
     return res;
 }
 
@@ -178,14 +178,14 @@ py_types::VectorOfReal3 ParticleVector::getForces_vector()
 {
     HostBuffer<Force> forces;
     forces.copy(local()->forces(), defaultStream);
-    
+
     py_types::VectorOfReal3 res(forces.size());
     for (size_t i = 0; i < forces.size(); i++)
     {
         real3 f = forces[i].f;
         res[i] = { f.x, f.y, f.z };
     }
-    
+
     return res;
 }
 
@@ -193,12 +193,12 @@ void ParticleVector::setCoordinates_vector(const std::vector<real3>& coordinates
 {
     auto& pos = local()->positions();
     const size_t n = local()->size();
-    
+
     if (coordinates.size() != n)
         throw std::invalid_argument("Wrong number of particles passed, "
             "expected: " + std::to_string(n) +
             ", got: " + std::to_string(coordinates.size()) );
-    
+
     for (size_t i = 0; i < coordinates.size(); i++)
     {
         real3 r = coordinates[i];
@@ -207,7 +207,7 @@ void ParticleVector::setCoordinates_vector(const std::vector<real3>& coordinates
         pos[i].y = r.y;
         pos[i].z = r.z;
     }
-    
+
     pos.uploadToDevice(defaultStream);
 }
 
@@ -215,12 +215,12 @@ void ParticleVector::setVelocities_vector(const std::vector<real3>& velocities)
 {
     auto& vel = local()->velocities();
     const size_t n = local()->size();
-    
+
     if (velocities.size() != n)
         throw std::invalid_argument("Wrong number of particles passed, "
         "expected: " + std::to_string(n) +
         ", got: " + std::to_string(velocities.size()) );
-    
+
     for (size_t i = 0; i < velocities.size(); i++)
     {
         const real3 u = velocities[i];
@@ -228,7 +228,7 @@ void ParticleVector::setVelocities_vector(const std::vector<real3>& velocities)
         vel[i].y = u.y;
         vel[i].z = u.z;
     }
-    
+
     vel.uploadToDevice(defaultStream);
 }
 
@@ -240,10 +240,10 @@ void ParticleVector::setForces_vector(const std::vector<real3>& forces)
         throw std::invalid_argument("Wrong number of particles passed, "
         "expected: " + std::to_string(n) +
         ", got: " + std::to_string(forces.size()) );
-    
+
     for (size_t i = 0; i < forces.size(); i++)
         myforces[i].f = forces[i];
-    
+
     local()->forces().copy(myforces);
     local()->forces().uploadToDevice(defaultStream);
 }
@@ -257,14 +257,14 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
 
     auto& pos4 = local()->positions ();
     auto& vel4 = local()->velocities();
-    
+
     pos4.downloadFromDevice(defaultStream, ContainersSynch::Asynch);
     vel4.downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
     auto positions = std::make_shared<std::vector<real3>>();
     std::vector<real3> velocities;
     std::vector<int64_t> ids;
-    
+
     std::tie(*positions, velocities, ids) = checkpoint_helpers::splitAndShiftPosVel(getState()->domain,
                                                                                    pos4, vel4);
 
@@ -282,7 +282,7 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
                                          XDMF::getNumberType<real>(),
                                          DataTypeWrapper<real>(),
                                          XDMF::Channel::NeedShift::False});
-    
+
     channels.push_back(XDMF::Channel{channel_names::XDMF::ids, ids.data(),
                                          XDMF::Channel::DataForm::Scalar,
                                          XDMF::Channel::NumberType::Int64,
@@ -290,7 +290,7 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
                                          XDMF::Channel::NeedShift::False});
 
     XDMF::write(filename, &grid, channels, comm);
-    
+
     debug("Checkpoint for particle vector '%s' successfully written", getCName());
 }
 
@@ -307,7 +307,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
                                                                  int chunkSize)
 {
     CUDA_Check( cudaDeviceSynchronize() );
-    
+
     const auto filename = createCheckpointName(path, RestartPVIdentifier, "xmf");
     info("Restarting particle vector %s data from file %s", getCName(), filename.c_str());
 
@@ -316,7 +316,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     auto pos = restart_helpers::extractChannel<real3>  (channel_names::XDMF::position, listData);
     auto vel = restart_helpers::extractChannel<real3>  (channel_names::XDMF::velocity, listData);
     auto ids = restart_helpers::extractChannel<int64_t>(channel_names::XDMF::ids,      listData);
-    
+
     std::vector<real4> pos4, vel4;
     std::tie(pos4, vel4) = restart_helpers::combinePosVelIds(pos, vel, ids);
 
@@ -326,7 +326,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     restart_helpers::exchangeData(comm, map, vel4, chunkSize);
     restart_helpers::exchangeListData(comm, map, listData, chunkSize);
     restart_helpers::requireExtraDataPerParticle(listData, this);
-    
+
     const int newSize = static_cast<int>(pos4.size()) / chunkSize;
 
     auto& dataPerParticle = local()->dataPerParticle;
@@ -336,7 +336,7 @@ ParticleVector::ExchMapSize ParticleVector::_restartParticleData(MPI_Comm comm, 
     auto& velocities = local()->velocities();
 
     restart_helpers::shiftElementsGlobal2Local(pos4, getState()->domain);
-    
+
     std::copy(pos4.begin(), pos4.end(), positions .begin());
     std::copy(vel4.begin(), vel4.end(), velocities.begin());
 

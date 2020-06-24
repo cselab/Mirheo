@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-/** \brief Objects container. 
+/** \brief Objects container.
 
     This is used to represent local or halo objects in ObjectVector.
     An object is a chunk of particles, each chunk with the same number of particles within an ObjectVector.
@@ -47,7 +47,7 @@ public:
     int getObjectSize() const;
     /// get number of objects
     int getNumObjects() const;
-    
+
 private:
     int _computeNobjects(int np) const;
 
@@ -76,7 +76,7 @@ public:
     */
     ObjectVector(const MirState *state, const std::string& name, real mass, int objSize, int nObjects = 0);
     virtual ~ObjectVector();
-    
+
     /** \brief Compute Extents and center of mass of each object in the given LocalObjectVector
         \param [in] stream The stream to execute the kernel on.
         \param [in] locality Specify which LocalObjectVector to compute the data
@@ -120,7 +120,7 @@ public:
 
     /// get number of particles per object
     int getObjectSize() const;
-    
+
 protected:
     /** Construct a ObjectVector
         \param [in] state The simulation state
@@ -137,7 +137,7 @@ protected:
     /** Dump object data into a file
         \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Destination folder
-        \param [in] checkpointId The Id of the dump  
+        \param [in] checkpointId The Id of the dump
      */
     virtual void _checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId);
 
@@ -147,7 +147,7 @@ protected:
         \param [in] ms Map to exchange the object data accross ranks, computed from _restartParticleData()
     */
     virtual void _restartObjectData(MPI_Comm comm, const std::string& path, const ExchMapSize& ms);
-    
+
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
         \param [in] typeName The name of the type being saved.
@@ -167,7 +167,7 @@ private:
     }
 
 public:
-    std::shared_ptr<Mesh> mesh; ///< Triangle mesh that can be used to represent the object surface. 
+    std::shared_ptr<Mesh> mesh; ///< Triangle mesh that can be used to represent the object surface.
 
 private:
     int objSize_;

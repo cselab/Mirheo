@@ -134,7 +134,7 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
     {
         Particle p;
         view.readPosition(p, i);
-        
+
         if (!p.isMarked() && isInsideRegion(field, p.r))
             ++countInside;
     }
@@ -162,7 +162,7 @@ void RegionOutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, con
     OutletPlugin::setup(simulation, comm, interComm);
 
     outletRegion_->setup(comm);
-    
+
     volume_ = computeVolume(1000000, udistr_(gen_));
 }
 
@@ -177,7 +177,7 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) cons
 
     const int nthreads = 128;
     const int nblocks = math::min(getNblocks(nSamples, nthreads), 1024);
-    
+
     SAFE_KERNEL_LAUNCH(
         region_outlet_plugin_kernels::countInsideRegion,
         nblocks, nthreads, 0, defaultStream,
@@ -194,7 +194,7 @@ void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
     nParticlesInside_.clearDevice(stream);
 
     const int nthreads = 128;
-    
+
     for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
@@ -202,8 +202,8 @@ void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
             region_outlet_plugin_kernels::countParticlesInside,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, outletRegion_->handler(), nParticlesInside_.devPtr());        
-    }    
+            view, outletRegion_->handler(), nParticlesInside_.devPtr());
+    }
 }
 
 
@@ -220,7 +220,7 @@ void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
     countInsideParticles(stream);
 
     const int nthreads = 128;
-    
+
     for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());
@@ -261,7 +261,7 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
     countInsideParticles(stream);
 
     const int  nthreads = 128;
-    
+
     for (auto pv : pvs_)
     {
         PVview view(pv, pv->local());

@@ -141,7 +141,7 @@ CellList::CellList(ParticleVector *pv, int3 resolution, real3 localDomainSize_) 
 void CellList::_initialize()
 {
     localPV_ = particlesDataContainer_.get();
-    
+
     cellSizes. resize_anew(totcells + 1);
     cellStarts.resize_anew(totcells + 1);
 
@@ -186,10 +186,10 @@ void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
         mpark::visit([&](auto pinnedBuffPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
-            
+
             if (!containerManager.checkChannelExists(name))
                 containerManager.createData<T>(name, np);
-            
+
         }, desc->varDataPtr);
     }
 }
@@ -213,7 +213,7 @@ void CellList::_computeCellStarts(cudaStream_t stream)
     // Scan is always working with the same number of cells
     // Memory requirements can't change
     size_t bufSize = scanBuffer.size();
-    
+
     if (bufSize == 0)
     {
         cub::DeviceScan::ExclusiveSum(nullptr, bufSize, cellSizes.devPtr(), cellStarts.devPtr(), totcells+1, stream);
@@ -248,13 +248,13 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
     const int np = pv_->local()->size();
 
     debug2("%s: reordering extra data '%s'", _makeName().c_str(), channelName.c_str());
-    
+
     mpark::visit([&](auto srcPinnedBuff)
     {
         auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varDataPtr);
-        
+
         constexpr int nthreads = 128;
-        
+
         SAFE_KERNEL_LAUNCH(
            cell_list_kernels::reorderExtraDataPerParticle,
            getNblocks(np, nthreads), nthreads, 0, stream,
@@ -265,7 +265,7 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
 void CellList::_reorderPersistentData(cudaStream_t stream)
 {
     auto srcExtraData = &pv_->local()->dataPerParticle;
-    
+
     for (const auto& namedChannel : srcExtraData->getSortedChannels())
     {
         const auto& name = namedChannel.first;
@@ -283,7 +283,7 @@ void CellList::_build(cudaStream_t stream)
     _computeCellStarts(stream);
     _reorderPositionsAndCreateMap(stream);
     _reorderPersistentData(stream);
-    
+
     changedStamp_ = pv_->cellListStamp;
 }
 
@@ -299,11 +299,11 @@ CellListInfo CellList::cellInfo()
 void CellList::build(cudaStream_t stream)
 {
     _updateExtraDataChannels(stream);
-        
+
     if (!_checkNeedBuild()) return;
-    
+
     debug("building %s", _makeName().c_str());
-    
+
     _build(stream);
 }
 
@@ -315,7 +315,7 @@ static void accumulateIfHasAddOperator(__UNUSED GPUcontainer *src,
     die("Cannot accumulate entries: operator+ not supported for this type");
 }
 
-// use SFINAE to choose between additionable types 
+// use SFINAE to choose between additionable types
 template <typename T, typename = void_t<decltype(std::declval<T>() +
                                                  std::declval<T>())>>
 static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
@@ -324,7 +324,7 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
                                        cudaStream_t stream)
 {
     const int nthreads = 128;
-    
+
     SAFE_KERNEL_LAUNCH(
         cell_list_kernels::accumulateKernel,
         getNblocks(n, nthreads), nthreads, 0, stream,
@@ -333,7 +333,7 @@ static void accumulateIfHasAddOperator(PinnedBuffer<T> *src,
 
 void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t stream)
 {
-    const int n = pv_->local()->size();    
+    const int n = pv_->local()->size();
 
     const auto& pvManager   = pv_->local()->dataPerParticle;
     const auto& contManager = localPV_->dataPerParticle;
@@ -362,7 +362,7 @@ void CellList::gatherChannels(const std::vector<std::string>& channelNames, cuda
     for (auto& channelName : channelNames)
     {
         debug("%s : gathering channel '%s'", _makeName().c_str(), channelName.c_str());
-        
+
         auto& desc = localPV_->dataPerParticle.getChannelDescOrDie(channelName);
         _reorderExtraDataEntry(channelName, &desc, stream);
 
@@ -424,7 +424,7 @@ void PrimaryCellList::build(cudaStream_t stream)
         debug2("%s consists of no particles, cell-list building skipped", pv_->getCName());
         return;
     }
-    
+
     // Now we need the new size of particles array.
     int newSize;
     CUDA_Check( cudaMemcpyAsync(&newSize, cellStarts.devPtr() + totcells, sizeof(int), cudaMemcpyDeviceToHost, stream) );
@@ -436,7 +436,7 @@ void PrimaryCellList::build(cudaStream_t stream)
     particlesDataContainer_->resize(newSize, stream);
 
     _swapPersistentExtraData();
-    
+
     pv_->local()->resize(newSize, stream);
 }
 
@@ -462,7 +462,7 @@ void PrimaryCellList::_swapPersistentExtraData()
 {
     auto& pvManager        = pv_->local()->dataPerParticle;
     auto& containerManager = particlesDataContainer_->dataPerParticle;
-    
+
     for (const auto& namedChannel : pvManager.getSortedChannels())
     {
         const auto& name = namedChannel.first;
@@ -472,7 +472,7 @@ void PrimaryCellList::_swapPersistentExtraData()
 
         const auto& descCont = containerManager.getChannelDescOrDie(name);
 
-        mpark::visit([&](auto pinnedBufferPv) 
+        mpark::visit([&](auto pinnedBufferPv)
         {
             auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
             std::swap(*pinnedBufferPv, *pinnedBufferCont);

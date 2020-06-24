@@ -6,8 +6,8 @@ namespace mirheo
 {
 
 /** \brief Advance individual particles with Velocity-Verlet scheme.
-    
-    \tparam ForcingTerm a functor that can add additional force to the particles 
+
+    \tparam ForcingTerm a functor that can add additional force to the particles
             depending on their position
  */
 template<class ForcingTerm>

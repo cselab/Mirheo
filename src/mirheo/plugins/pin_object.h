@@ -20,7 +20,7 @@ class PinObjectPlugin : public SimulationPlugin
 {
 public:
     constexpr static real Unrestricted = std::numeric_limits<real>::infinity();
-    
+
     PinObjectPlugin(const MirState *state, std::string name, std::string ovName, real3 translation, real3 rotation, int reportEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -49,7 +49,7 @@ class ReportPinObjectPlugin : public PostprocessPlugin
 {
 public:
     ReportPinObjectPlugin(std::string name, std::string path);
-    
+
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;

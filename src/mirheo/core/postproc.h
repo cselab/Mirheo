@@ -9,7 +9,7 @@
 namespace mirheo
 {
 
-/** \brief Manage post processing tasks (see \c Plugin) related to a \c Simulation. 
+/** \brief Manage post processing tasks (see \c Plugin) related to a \c Simulation.
 
     There must be exactly one \c Postprocess rank per \c Simulation rank or no \c Postprocess rank at all.
     All \c Plugin objects must be registered and set before calling init() and run().
@@ -29,16 +29,16 @@ public:
     Postprocess(MPI_Comm& comm, MPI_Comm& interComm, const CheckpointInfo& checkpointInfo);
     ~Postprocess();
 
-    /** \brief Register a plugin to this object. 
+    /** \brief Register a plugin to this object.
         \param plugin The plugin to register
-        \param tag a tag that is unique for each registered plugin 
+        \param tag a tag that is unique for each registered plugin
         \note The SimulationPlugin counterpart of the registered PostprocessPlugin must be registered on the simulation side.
      */
     void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);
 
     /// Setup all registered plugins. Must be called before run()
     void init();
-    /// Start the postprocess. Will run until a termination notification is sent by the simulation. 
+    /// Start the postprocess. Will run until a termination notification is sent by the simulation.
     void run();
 
     /** \brief Restore the state from checkpoint information.
@@ -65,7 +65,7 @@ protected:
 
 private:
     MPI_Request _listenSimulation(int tag, int *msg) const;
-    
+
     using MirObject::restart;
     using MirObject::checkpoint;
 
@@ -74,7 +74,7 @@ private:
 
     MPI_Comm comm_;
     MPI_Comm interComm_;
-    
+
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins_;
 
     std::string checkpointFolder_;

@@ -15,8 +15,8 @@ class ObjectVector;
 class CellList;
 
 /** \brief Mark or split particles which are inside of a given ObjectVector.
-    
-    The user must call setup() exactly once before any call of checkInner() or splitByBelonging(). 
+
+    The user must call setup() exactly once before any call of checkInner() or splitByBelonging().
  */
 class ObjectBelongingChecker : public MirSimulationObject
 {
@@ -33,7 +33,7 @@ public:
         \param [in,out] pvIn Buffer that will contain the inside particles.
         \param [in,out] pvOut Buffer that will contain the outside particles.
         \param [in] stream Stream used for the execution.
-        
+
         The \p pvIn and \p pvOut ParticleVector can be set to \c nullptr, in which case they will be ignored.
         If \p pvIn and \p src point to the same object, \p pvIn will contain only inside particles of \p src in the end.
         Otherwise, \p pvIn will contain its original particles additionally to the inside particles of \p src.

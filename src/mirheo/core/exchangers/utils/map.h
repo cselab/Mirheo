@@ -8,8 +8,8 @@ namespace mirheo
 {
 
 /** \brief A structure that holds a pair of buffer index and destination index in a single \c int32_t.
-    
-    This is used to create a packing map; each entity to pack needs to know in which buffer to go (bufId) 
+
+    This is used to create a packing map; each entity to pack needs to know in which buffer to go (bufId)
     and where in that buffer (id).
  */
 class __align__(4) MapEntry
@@ -49,10 +49,10 @@ class __align__(4) MapEntry
     // 27 < 2^5 buffers max
     static constexpr int bufWidth = 5;
     static constexpr int bufShift = 32 - bufWidth;
-    static constexpr uint32_t maskAll = 0xffffffff; 
+    static constexpr uint32_t maskAll = 0xffffffff;
     static constexpr uint32_t maskId  = (maskAll << bufWidth) >> bufWidth;
     static constexpr uint32_t maskBuf = ~maskId;
-    
+
     uint32_t i_ {0};
 };
 

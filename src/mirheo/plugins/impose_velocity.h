@@ -22,9 +22,9 @@ public:
     void afterIntegration(cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
-    
+
     void setTargetVelocity(real3 v);
-    
+
 private:
     std::vector<std::string> pvNames_;
     std::vector<ParticleVector*> pvs_;

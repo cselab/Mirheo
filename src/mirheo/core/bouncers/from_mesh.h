@@ -16,7 +16,7 @@ class RigidObjectVector;
 /** \brief Bounce particles against a triangle mesh.
 
     - if the attached object is a RigidObjectVector, the bounced particles will
-      transfer (atomically) their change of momentum into the force and torque of the 
+      transfer (atomically) their change of momentum into the force and torque of the
       rigid object.
 
     - if the attached object is a not RigidObjectVector, the bounced particles will
@@ -37,19 +37,19 @@ public:
     BounceFromMesh(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel);
     ~BounceFromMesh();
 
-    /** 
-        If \p ov is a rigid object, this will ask it to keep its old motions accross exchangers. 
-        Otherwise, ask \p ov to keep its old positions accross exchangers. 
+    /**
+        If \p ov is a rigid object, this will ask it to keep its old motions accross exchangers.
+        Otherwise, ask \p ov to keep its old positions accross exchangers.
     */
     void setup(ObjectVector *ov) override;
-    
+
     /**
        Will ask \p pv to keep its old positions (not in persistent mode)
      */
     void setPrerequisites(ParticleVector *pv) override;
     std::vector<std::string> getChannelsToBeExchanged() const override;
     std::vector<std::string> getChannelsToBeSentBack() const override;
-    
+
 private:
     template<typename T>
     struct CollisionTableWrapper

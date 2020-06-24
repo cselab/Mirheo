@@ -25,14 +25,14 @@ public:
     ~ParticleCheckerPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    
+
     void beforeIntegration(cudaStream_t stream) override;
     void afterIntegration (cudaStream_t stream) override;
 
     bool needPostproc() override { return false; }
 
     enum class Info {Ok, Out, Nan};
-    
+
     struct __align__(16) Status
     {
         int id;
@@ -41,12 +41,12 @@ public:
 
 private:
     void _dieIfBadStatus(cudaStream_t stream, const std::string& identifier);
-    
+
 private:
     int checkEvery_; ///< Particles will be checked every this amount of time steps
 
     static constexpr int maxNumReports = 256;  ///< maximum number of failed particles info
-    
+
     /// Contains info related to a given ParticleVector that needs to be checked
     template <class PVType>
     struct CheckData
@@ -60,7 +60,7 @@ private:
 
     using PVCheckData = CheckData<ParticleVector>;
     using ROVCheckData = CheckData<RigidObjectVector>;
-    
+
     std::vector<PVCheckData> pvCheckData_;
     std::vector<ROVCheckData> rovCheckData_;
 

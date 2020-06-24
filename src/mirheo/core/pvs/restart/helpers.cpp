@@ -97,7 +97,7 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
     ExchMap map;
     map.reserve(positions.size());
     int numberInvalid = 0;
-    
+
     for (auto r : positions)
     {
         int3 procId3 = make_int3(math::floor(r / domain.localSize));
@@ -121,7 +121,7 @@ static ExchMap getExchangeMapFromPos(MPI_Comm comm, const DomainInfo domain,
     if (numberInvalid)
         warn("Restart: skipped %d invalid particle positions", numberInvalid);
 
-    return map;    
+    return map;
 }
 
 ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
@@ -134,13 +134,13 @@ ExchMap getExchangeMap(MPI_Comm comm, const DomainInfo domain,
 
     if (objSize == 1)
         return getExchangeMapFromPos(comm, domain, positions);
-    
+
     std::vector<real3> coms;
     coms.reserve(nObjs);
 
     constexpr real3 zero3 {0._r, 0._r, 0._r};
     const real factor = 1.0_r / static_cast<real>(objSize);
-    
+
     for (int i = 0; i < nObjs; ++i)
     {
         const real3 com = factor * std::accumulate(positions.data() + (i + 0) * objSize,
@@ -215,11 +215,11 @@ void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv)
     for (const auto& entry : listData)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
-        
+
         mpark::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
-            
+
             pv->requireDataPerParticle<T>(entry.name, DataManager::PersistenceMode::Active, shiftMode);
         }, entry.data);
     }
@@ -230,11 +230,11 @@ void requireExtraDataPerObject(const ListData& listData, ObjectVector *ov)
     for (const auto& entry : listData)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
-        
+
         mpark::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
-            
+
             ov->requireDataPerObject<T>(entry.name, DataManager::PersistenceMode::Active, shiftMode);
         }, entry.data);
     }
@@ -247,7 +247,7 @@ void copyAndShiftListData(const DomainInfo domain,
     for (const auto& entry : listData)
     {
         auto channelDesc = &dataManager.getChannelDescOrDie(entry.name);
-        
+
         mpark::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
@@ -256,9 +256,9 @@ void copyAndShiftListData(const DomainInfo domain,
             std::copy(srcData.begin(), srcData.end(), dstData.begin());
             if (channelDesc->needShift())
                 restart_helpers::shiftElementsGlobal2Local(dstData, domain);
-            
+
             dstData.uploadToDevice(defaultStream);
-            
+
         }, entry.data);
     }
 }

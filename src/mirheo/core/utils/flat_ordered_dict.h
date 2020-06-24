@@ -5,9 +5,9 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 /** \brief Dictionary that stores the insertion order, similar to Python's OrderedDict.
- 
+
     Optimized for small dictionaries: the storage is flat and uses O(N) lookup.
- 
+
     Note: iterators are NOT permanent! They might be invalided after any
     addition or removal of elements. Apart from that, the interface tries to
     follow std::map interface as much as possible.

@@ -1,10 +1,3 @@
-/*
- * task_scheduler.h
- *
- *  Created on: Apr 10, 2017
- *      Author: alexeedm
- */
-
 #include <functional>
 #include <list>
 #include <memory>
@@ -19,9 +12,9 @@ namespace mirheo
 {
 
 /** \brief CUDA-aware task scheduler
-    
+
     Manages task dependencies and run them concurrently on different CUDA streams.
-    This is designed to be run in a time stepping scheme, e.g. all the tasks of a 
+    This is designed to be run in a time stepping scheme, e.g. all the tasks of a
     single time step must be described here before calling the run() method repetitively.
  */
 class TaskScheduler
@@ -42,7 +35,7 @@ public:
     /** \brief Create and register an empty task named \p label
         \param [in] label The name of the task
         \return the task id associated with the new task
-        
+
         This method will die if a task with the given label already exists.
     */
     TaskID createTask(const std::string& label);
@@ -56,7 +49,7 @@ public:
     /** \brief Retrieve the task id of the task with a given label
         \param [in] label The name of the task
         \return the task id
-        
+
         This method will die if no registered task has the given label
     */
     TaskID getTaskIdOrDie(const std::string& label);
@@ -69,7 +62,7 @@ public:
         Multiple functions can be added in a single task.
         The order of execution of these functions is the order in which they were added.
         This method will fail if the required task does not exist.
-     */    
+     */
     void addTask(TaskID id, Function task, int execEvery = 1);
 
     /** \brief add dependencies around a given task
@@ -111,7 +104,7 @@ private:
     struct Task
     {
         Task(const std::string& label, TaskID id, int priority);
-        
+
         std::string label;
         TaskID id;
         int priority;

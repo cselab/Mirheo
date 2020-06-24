@@ -31,7 +31,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
         if (region(r) > 0)
             P = (s.xx + s.yy + s.zz) / 3.0;
     }
-    
+
     P = warpReduce(P, [](virial_pressure_plugin::ReductionType a, virial_pressure_plugin::ReductionType b) { return a+b; });
 
     if (laneId() == 0)
@@ -77,14 +77,14 @@ void VirialPressurePlugin::afterIntegration(cudaStream_t stream)
 
     constexpr int nthreads = 128;
     const int nblocks = getNblocks(view.size, nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(
         virial_pressure_kernels::totalPressure,
         nblocks, nthreads, 0, stream,
         view, stress, region_.handler(), localVirialPressure_.devPtr() );
 
     localVirialPressure_.downloadFromDevice(stream, ContainersSynch::Synch);
-    
+
     savedTime_ = getState()->currentTime;
     needToSend_ = true;
 }
@@ -98,7 +98,7 @@ void VirialPressurePlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, savedTime_, localVirialPressure_[0]);
     _send(sendBuffer_);
-    
+
     needToSend_ = false;
 }
 

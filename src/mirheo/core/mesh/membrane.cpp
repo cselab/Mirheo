@@ -53,7 +53,7 @@ static bool sameFaces(const PinnedBuffer<int3>& facesA, const PinnedBuffer<int3>
 {
     if (facesA.size() != facesB.size())
         return false;
-    
+
     for (size_t i = 0; i < facesA.size(); ++i)
     {
         int3 a = facesA[i];
@@ -75,10 +75,10 @@ MembraneMesh::MembraneMesh(const std::string& initialMesh, const std::string& st
 
     if (!sameFaces(this->getFaces(), stressFree.getFaces()))
         die("Must pass meshes with same connectivity for initial positions and stressFree vertices");
-    
+
     if (this->getNvertices() != stressFree.getNvertices())
         die("Must pass same number of vertices for initial positions and stressFree vertices");
-    
+
     _findAdjacent();
     _computeInitialQuantities(stressFree.getVertices());
 }
@@ -98,7 +98,7 @@ MembraneMesh::MembraneMesh(const std::vector<real3>& vertices,
 {
     if (vertices.size() != stressFreeVertices.size())
         die("Must pass same number of vertices for initial positions and stressFree vertices");
-    
+
     Mesh stressFreeMesh(stressFreeVertices, faces);
     _findAdjacent();
     _computeInitialQuantities(stressFreeMesh.getVertices());
@@ -146,7 +146,7 @@ static void findDegrees(const EdgeMapPerVertex& adjacentPairs, PinnedBuffer<int>
 {
     const size_t nvertices = adjacentPairs.size();
     degrees.resize_anew(nvertices);
-    
+
     for (size_t i = 0; i < nvertices; ++i)
         degrees[i] = static_cast<int>(adjacentPairs[i].size());
 }
@@ -162,16 +162,16 @@ static void findNearestNeighbours(const EdgeMapPerVertex& adjacentPairs, int max
     {
         auto& l = adjacentPairs[v];
         auto myadjacent = &adjacent[maxDegree*v];
-        
+
         // Add all the vertices on the adjacent edges one by one.
         myadjacent[0] = l.begin()->first;
         for (size_t i = 1; i < l.size(); ++i)
         {
             const int current = myadjacent[i-1];
-            
+
             if (l.find(current) == l.end())
                 die("Unexpected adjacent pairs. This might come from a bad connectivity of the input mesh");
-            
+
             myadjacent[i] = l.find(current)->second;
         }
     }
@@ -181,11 +181,11 @@ void MembraneMesh::_findAdjacent()
 {
     /*
      For every vertex: map from neigbouring vertex to a neigbour of both of vertices
-    
+
       all of such edges:
          V
-    
-      <=====> 
+
+      <=====>
        \   /
         \ /
          *
@@ -201,7 +201,7 @@ void MembraneMesh::_findAdjacent()
 
     findDegrees(adjacentPairs, degrees_);
     findNearestNeighbours(adjacentPairs, getMaxDegree(), adjacent_);
-    
+
     adjacent_.uploadToDevice(defaultStream);
     degrees_.uploadToDevice(defaultStream);
 }
@@ -243,7 +243,7 @@ void MembraneMesh::_computeInitialAreas(const PinnedBuffer<real4>& vertices)
             [id0];
         const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
-        
+
         for (int j = 0; j < degree; ++j)
         {
             const int id1 = adjacent_[startId + j];
@@ -270,7 +270,7 @@ void MembraneMesh::_computeInitialDotProducts(const PinnedBuffer<real4>& vertice
         const int degree = degrees_[id0];
         const int startId = id0 * getMaxDegree();
         v0 = make_real3(vertices[id0]);
-        
+
         for (int j = 0; j < degree; ++j)
         {
             const int id1 = adjacent_[startId + j];

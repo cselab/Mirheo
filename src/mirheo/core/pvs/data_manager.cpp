@@ -15,7 +15,7 @@ DataManager::DataManager(const DataManager& b)
         auto& myDesc = channelMap_[name];
         myDesc.persistence = desc.persistence;
         myDesc.shift       = desc.shift;
-            
+
         mpark::visit([&](auto pinnedPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedPtr)>::type::value_type;
@@ -102,7 +102,7 @@ CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf)
 void DataManager::setPersistenceMode(const std::string& name, DataManager::PersistenceMode persistence)
 {
     if (persistence == PersistenceMode::None) return;
-    auto& desc = getChannelDescOrDie(name);    
+    auto& desc = getChannelDescOrDie(name);
     desc.persistence = persistence;
 }
 
@@ -118,7 +118,7 @@ GPUcontainer* DataManager::getGenericData(const std::string& name)
     auto& desc = getChannelDescOrDie(name);
     return desc.container.get();
 }
-    
+
 void* DataManager::getGenericPtr(const std::string& name)
 {
     auto& desc = getChannelDescOrDie(name);
@@ -193,7 +193,7 @@ void DataManager::_deleteChannel(const std::string& name)
         die("Channel '%s' not found.", name.c_str());
         return;
     }
-    
+
     for (auto it = sortedChannels_.begin(); it != sortedChannels_.end(); ++it)
     {
         if (it->first == name)

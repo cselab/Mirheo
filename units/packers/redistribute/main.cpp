@@ -108,7 +108,7 @@ static void createRefParticles(const PinnedBuffer<real4>& pos,
         backToDomain(v.z, L.z);
         vel[i] = v;
     }
-    
+
     vel.uploadToDevice(defaultStream);
 }
 
@@ -122,7 +122,7 @@ static void createRefObjects(int objSize, const PinnedBuffer<real4>& pos,
                              PinnedBuffer<real4>& vel, real3 L)
 {
     int nObj = pos.size() / objSize;
-    
+
     for (int i = 0; i < nObj; ++i)
     {
         real3 com {0.f, 0.f, 0.f};
@@ -136,7 +136,7 @@ static void createRefObjects(int objSize, const PinnedBuffer<real4>& pos,
         }
         com *= (1.0 / objSize);
         real3 scom = com;
-        
+
         backToDomain(scom.x, L.x);
         backToDomain(scom.y, L.y);
         backToDomain(scom.z, L.z);
@@ -151,7 +151,7 @@ static void createRefObjects(int objSize, const PinnedBuffer<real4>& pos,
             vel[id].z = pos[id].z + shift.z;
         }
     }
-    
+
     vel.uploadToDevice(defaultStream);
 }
 
@@ -169,8 +169,8 @@ static void createRefRods(int objSize,
     const int nObj = pos.size() / objSize;
     const int numSegments = (objSize - 1) / 5;
     const int numBiSegments = numSegments - 1;
-    
-    
+
+
     for (int i = 0; i < nObj; ++i)
     {
         real3 com {0.f, 0.f, 0.f};
@@ -184,7 +184,7 @@ static void createRefRods(int objSize,
         }
         com *= (1.0 / objSize);
         real3 scom = com;
-        
+
         backToDomain(scom.x, L.x);
         backToDomain(scom.y, L.y);
         backToDomain(scom.z, L.z);
@@ -205,7 +205,7 @@ static void createRefRods(int objSize,
         for (int j = 0; j < numBiSegments; ++j)
             data[i * numBiSegments + j] = p.getId();
     }
-    
+
     vel.uploadToDevice(defaultStream);
     data.uploadToDevice(defaultStream);
 }
@@ -241,7 +241,7 @@ static void checkRefParticles(const PinnedBuffer<real4>& pos,
 static void checkInsideObjects(int objSize, const PinnedBuffer<real4>& pos, real3 L)
 {
     int nObj = pos.size() / objSize;
-    
+
     for (int i = 0; i < nObj; ++i)
     {
         real3 com {0.f, 0.f, 0.f};
@@ -254,7 +254,7 @@ static void checkInsideObjects(int objSize, const PinnedBuffer<real4>& pos, real
             com.z += pos[id].z;
         }
         com *= (1.0 / objSize);
-        
+
         ASSERT_LT(com.x, 0.5f * L.x);
         ASSERT_LT(com.y, 0.5f * L.y);
         ASSERT_LT(com.z, 0.5f * L.z);
@@ -285,7 +285,7 @@ static void checkRefRods(int numBiSegments, int objSize,
                          const PinnedBuffer<int64_t>& data)
 {
     int nObjs = data.size() / numBiSegments;
-    
+
     for (size_t i = 0; i < pos.size(); ++i)
     {
         auto r = pos[i];
@@ -324,11 +324,11 @@ TEST (PACKERS_REDISTRIBUTE, particles)
     auto& vel = lpv->velocities();
 
     moveParticles(rc, pos);
-    createRefParticles(pos, vel, domain.localSize);    
+    createRefParticles(pos, vel, domain.localSize);
 
     auto cl = std::make_unique<PrimaryCellList>(pv.get(), rc, domain.localSize);
     cl->build(defaultStream);
-    
+
     auto redistr = std::make_unique<ParticleRedistributor>();
     redistr->attach(pv.get(), cl.get());
 
@@ -367,7 +367,7 @@ TEST (PACKERS_REDISTRIBUTE, objects)
     auto& mot = *lrev->dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     moveObjects(domain.localSize, pos, mot);
-    createRefObjects(objSize, pos, vel, domain.localSize);    
+    createRefObjects(objSize, pos, vel, domain.localSize);
 
     auto redistr = std::make_unique<ObjectRedistributor>();
     redistr->attach(rev.get());

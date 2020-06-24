@@ -14,7 +14,7 @@ inline void testSolver(Solver sqrtSolver)
 {
     constexpr int numTries {10};
     constexpr float tol = 1e-5f;
-    
+
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> distr(1.0f, 10.0f);
 
@@ -34,11 +34,11 @@ TEST (ROOTS, Newton_sqrt)
     {
         auto f      = [&](float x) {return x*x - a;};
         auto fprime = [&](float x) {return 2*x;};
-        
+
         const auto root = root_finder::newton(f, fprime, a);
         return root.x;
     };
-                               
+
     testSolver(sqrtSolverNewton);
 }
 
@@ -49,11 +49,11 @@ TEST (ROOTS, LinearSearch_sqrt)
         auto f = [&](float x) {return x*x - a;};
 
         const root_finder::Bounds limits{0.f, a};
-        
+
         const auto root = root_finder::linearSearchVerbose(f, limits);
         return root.x;
     };
-                               
+
     testSolver(sqrtSolverLinearSearch);
 }
 

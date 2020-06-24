@@ -9,7 +9,7 @@ namespace mirheo
 
 // interface
 
-/** \brief A type trait that states if a density kernel needs to count the self interaction 
+/** \brief A type trait that states if a density kernel needs to count the self interaction
     \tparam T The density kernel type
 
     By default, all density kernels need self interaction.

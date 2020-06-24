@@ -11,7 +11,7 @@ namespace mirheo
     \param val The value to transform to string
     \return the string representation of \p val (e.g. "42" if val=42)
  */
-std::string printToStr(int val); 
+std::string printToStr(int val);
 std::string printToStr(int64_t val); ///< \overload
 
 std::string printToStr(float val);  ///< \overload

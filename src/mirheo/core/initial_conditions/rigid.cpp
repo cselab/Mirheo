@@ -62,10 +62,10 @@ static PinnedBuffer<real4> getInitialPositions(const std::vector<real3>& in,
                                                cudaStream_t stream)
 {
     PinnedBuffer<real4> out(in.size());
-    
+
     for (size_t i = 0; i < in.size(); ++i)
         out[i] = make_real4(in[i].x, in[i].y, in[i].z, 0);
-        
+
     out.uploadToDevice(stream);
     return out;
 }
@@ -77,7 +77,7 @@ static void checkInitialPositions(const DomainInfo& domain,
         die("Expect at least one particle per rigid object");
 
     const real3 r0 = make_real3(positions[0]);
-    
+
     real3 low {r0}, hig {r0};
     for (auto r4 : positions)
     {
@@ -105,14 +105,14 @@ static std::vector<RigidMotion> createMotions(const DomainInfo& domain,
     for (size_t i = 0; i < comQ.size(); ++i)
     {
         const auto& entry = comQ[i];
-        
+
         // Zero everything at first
         RigidMotion motion{};
-        
+
         motion.r = make_rigidReal3( entry.r );
         motion.q = Quaternion<RigidReal>::createFromComponents(make_rigidReal4( entry.q ));
         motion.q.normalize();
-        
+
         if (i < comVelocities.size())
             motion.vel = {comVelocities[i].x, comVelocities[i].y, comVelocities[i].z};
 
@@ -148,14 +148,14 @@ void RigidIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream
     checkInitialPositions(domain, rov->initialPositions);
 
     auto lrov = rov->local();
-    
+
     if (rov->getObjectSize() != static_cast<int>(rov->initialPositions.size()))
         die("Object size and XYZ initial conditions don't match in size for '%s': %d vs %zu",
             rov->getCName(), rov->getObjectSize(), rov->initialPositions.size());
 
     const auto motions = createMotions(domain, comQ_, comVelocities_);
     const auto nObjs = static_cast<int>(motions.size());
-    
+
     lrov->resize_anew(nObjs * rov->getObjectSize());
 
     auto& rovMotions = *lrov->dataPerObject.getData<RigidMotion>(channel_names::motions);

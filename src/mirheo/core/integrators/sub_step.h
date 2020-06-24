@@ -14,10 +14,10 @@ class Interaction;
 
 /** \brief Advance one ObjectVector associated with internal forces with smaller time step.
 
-    We distinguish slow forces, which are computed outside of this class, from fast forces, 
+    We distinguish slow forces, which are computed outside of this class, from fast forces,
     computed only inside this class.
     Each time step given by the simulation is split into n sub time steps.
-    Each of these sub time step advances the object using the non updated slow forces and the updated 
+    Each of these sub time step advances the object using the non updated slow forces and the updated
     fast forces n times.
 
     This was motivated by the separation of time scale of membrane viscosity (fast forces) and solvent
@@ -74,7 +74,7 @@ private:
     std::vector<Interaction*> fastForces_; /* interactions (self) called `substeps` times per time step */
     std::unique_ptr<Integrator> subIntegrator_;
     MirState subState_;
-    
+
     int substeps_; /* number of substeps */
     DeviceBuffer<Force> slowForces_ {};
     DeviceBuffer<real4> previousPositions_ {};

@@ -139,10 +139,10 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
     SimulationPlugin::setup(simulation, comm, interComm);
 
     auto pvs = simulation->getParticleVectors();
-    
+
     numFailed_.resize_anew(pvs.size() * 2); // 2 * pvs.size >= that number of pvs + number of rovs
     numFailed_.clear(defaultStream);
-    
+
     int *numFailedDevPtr = numFailed_.devPtr();
     int *numFailedHstPtr = numFailed_.hostPtr();
 
@@ -150,7 +150,7 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
     {
         PVCheckData pvCd;
         pvCd.pv = pv;
-        pvCd.numFailedDev = numFailedDevPtr++; 
+        pvCd.numFailedDev = numFailedDevPtr++;
         pvCd.numFailedHst = numFailedHstPtr++;
         pvCheckData_.push_back(std::move(pvCd));
 
@@ -158,7 +158,7 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
         {
             ROVCheckData rovCd;
             rovCd.pv = rov;
-            rovCd.numFailedDev = numFailedDevPtr++; 
+            rovCd.numFailedDev = numFailedDevPtr++;
             rovCd.numFailedHst = numFailedHstPtr++;
             rovCheckData_.push_back(std::move(rovCd));
         }
@@ -170,7 +170,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
     if (!isTimeEvery(getState(), checkEvery_)) return;
 
     constexpr int nthreads = 128;
-    
+
     for (auto& pvCd : pvCheckData_)
     {
         auto pv = pvCd.pv;
@@ -186,7 +186,7 @@ void ParticleCheckerPlugin::beforeIntegration(cudaStream_t stream)
     {
         auto rov = rovCd.pv;
         ROVview rovView(rov, rov->local());
-        
+
         SAFE_KERNEL_LAUNCH(
             particle_checker_kernels::checkRigidForces<maxNumReports>,
             getNblocks(rovView.nObjects, nthreads), nthreads, 0, stream,
@@ -205,7 +205,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
     const real dt     = getState()->dt;
     const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
     const auto domain = getState()->domain;
-    
+
     for (auto& pvCd : pvCheckData_)
     {
         auto pv = pvCd.pv;
@@ -247,23 +247,23 @@ static inline void downloadAllFields(cudaStream_t stream, const DataManager& man
 static inline std::string listOtherFieldValues(const DataManager& manager, int id)
 {
     std::string fieldValues;
-    
+
     for (auto entry : manager.getSortedChannels())
     {
         const auto& name = entry.first;
         const auto desc = entry.second;
-            
+
         if (name == channel_names::positions ||
             name == channel_names::velocities)
             continue;
-            
+
         mpark::visit([&](auto pinnedBuffPtr)
         {
             const auto val = (*pinnedBuffPtr)[id];
             fieldValues += '\t' + name + " : " + printToStr(val) + '\n';
         }, desc->varDataPtr);
     }
-    return fieldValues;    
+    return fieldValues;
 }
 
 static inline std::string infoToStr(ParticleCheckerPlugin::Info info)
@@ -315,7 +315,7 @@ void ParticleCheckerPlugin::_dieIfBadStatus(cudaStream_t stream, const std::stri
 
             allErrors += listOtherFieldValues(lpv->dataPerParticle, partId);
         }
-        
+
         failing = true;
     }
 
@@ -338,13 +338,13 @@ void ParticleCheckerPlugin::_dieIfBadStatus(cudaStream_t stream, const std::stri
             const auto s = rovCd.statuses[i];
             const int rovId = s.id;
             const auto infoStr = infoToStr(s.info);
-        
+
             allErrors += strprintf("\n\tBad %s in rov '%s' : %s\n",
                                    identifier.c_str(), rov->getCName(), infoStr.c_str());
 
             allErrors += listOtherFieldValues(lrov->dataPerObject, rovId);
         }
-        
+
         failing = true;
     }
 

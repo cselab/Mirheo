@@ -22,21 +22,21 @@ createInteractionMembrane(const MirState *state, const std::string& name,
     std::shared_ptr<BaseMembraneInteraction> impl;
 
     mpark::visit([&](auto bendingParams, auto shearParams, auto filter)
-    {                     
+    {
         using FilterType    = decltype(filter);
         using DihedralForce = typename decltype(bendingParams)::DihedralForce;
-        
+
         if (stressFree)
         {
             using TriangleForce = typename decltype(shearParams)::TriangleForce <StressFreeState::Active>;
-            
+
             impl = std::make_shared<MembraneInteraction<TriangleForce, DihedralForce, FilterType>>
                 (state, name, commonParams, shearParams, bendingParams, initLengthFraction, growUntil, filter);
         }
         else
         {
             using TriangleForce = typename decltype(shearParams)::TriangleForce <StressFreeState::Inactive>;
-            
+
             impl = std::make_shared<MembraneInteraction<TriangleForce, DihedralForce, FilterType>>
                 (state, name, commonParams, shearParams, bendingParams, initLengthFraction, growUntil, filter);
         }

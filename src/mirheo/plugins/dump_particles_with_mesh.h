@@ -30,7 +30,7 @@ private:
 
 private:
     std::shared_ptr<std::vector<int3>> allTriangles_;
-    
+
     int nvertices_;
     std::vector<int3> triangles_;
 };

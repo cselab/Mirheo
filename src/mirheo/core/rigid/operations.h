@@ -9,15 +9,15 @@ namespace mirheo
 /// a set of operations applied to \c ROVview objects
 namespace rigid_operations
 {
-/// controls to what quantities to apply the 
+/// controls to what quantities to apply the
 enum class ApplyTo { PositionsOnly, PositionsAndVelocities };
 
-/// Reduce the forces contained in the particles to the force and torque variable of the RigidMotion objects 
+/// Reduce the forces contained in the particles to the force and torque variable of the RigidMotion objects
 void collectRigidForces(const ROVview& view, cudaStream_t stream);
 
 /** Set the positions (and optionally velocities, according to the rigid motions
     \param view The view that contains the input RigidMotion and output particles
-    \param initialPositions The positions of the particles in the frame of reference of the object 
+    \param initialPositions The positions of the particles in the frame of reference of the object
     \param action Apply the rigid motion to positions or positions and velocities
     \param stream execution stream
     \note The size of \p initialPositions must be the same as the object sizes described by \p view

@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <mirheo/core/datatypes.h>
 
@@ -16,7 +16,7 @@ using VectorOfTypeN = std::vector<std::array<T, Dimensions>>;
 
 template <int Dimensions>
 using VectorOfRealN = VectorOfTypeN<real, Dimensions>;
-    
+
 using VectorOfReal3 = VectorOfRealN<3>;
 
 template <int Dimensions>

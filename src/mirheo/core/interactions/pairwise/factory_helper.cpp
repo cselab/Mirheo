@@ -13,7 +13,7 @@ template <> void readParams<DPDParams>(DPDParams& p, ParametersWrap& desc, Param
     const auto gamma = reader.read<real>(desc, "gamma");
     const auto kBT   = reader.read<real>(desc, "kBT");
     const auto power = reader.read<real>(desc, "power");
-    
+
     if (a     != defaultReal) p.a     = a;
     if (gamma != defaultReal) p.gamma = gamma;
     if (kBT   != defaultReal) p.kBT   = kBT;
@@ -26,7 +26,7 @@ template <> void readParams<NoRandomDPDParams>(NoRandomDPDParams& p, ParametersW
     const auto gamma = reader.read<real>(desc, "gamma");
     const auto kBT   = reader.read<real>(desc, "kBT");
     const auto power = reader.read<real>(desc, "power");
-    
+
     if (a     != defaultReal) p.a     = a;
     if (gamma != defaultReal) p.gamma = gamma;
     if (kBT   != defaultReal) p.kBT   = kBT;
@@ -69,7 +69,7 @@ template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, Par
     const auto gamma = reader.read<real>(desc, "gamma");
     const auto kBT   = reader.read<real>(desc, "kBT");
     const auto power = reader.read<real>(desc, "power");
-    
+
     if (rd     != defaultReal) p.rd    = rd;
     if (a      != defaultReal) p.a     = a;
     if (b      != defaultReal) p.b     = b;
@@ -123,7 +123,7 @@ static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsRe
 {
     if (!desc.exists<std::string>("aware_mode"))
         return LJAwarenessParamsNone {};
-    
+
     VarLJAwarenessParams varP;
 
     const auto awareMode = desc.read<std::string>("aware_mode");
@@ -150,7 +150,7 @@ static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsRe
     {
         die("Unrecognized aware mode '%s'", awareMode.c_str());
     }
-    
+
     return varP;
 }
 
@@ -208,7 +208,7 @@ static VarSDPDDensityKernelParams readSDPDDensityKernelParams(ParametersWrap& de
 {
     VarSDPDDensityKernelParams p;
     const auto kernel = desc.read<std::string>("density_kernel");
-    
+
     if (kernel == "WendlandC2")
     {
         WendlandC2DensityKernelParams density;
@@ -226,7 +226,7 @@ static VarEOSParams readEOSParams(ParametersWrap& desc, ParamsReader reader)
 {
     VarEOSParams varEOS;
     const auto eos = desc.read<std::string>("EOS");
-    
+
     if (eos == "Linear")
     {
         LinearPressureEOSParams p;
@@ -283,7 +283,7 @@ VarStressParams readStressParams(ParametersWrap& desc)
 void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
+
     readParams(p, desc, reader);
 
     mpark::visit([&](auto& awareParams)
@@ -295,7 +295,7 @@ void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
 void readSpecificParams(DensityParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
+
     readParams(p, desc, reader);
 
     mpark::visit([&](auto& densityParams)
@@ -307,7 +307,7 @@ void readSpecificParams(DensityParams& p, ParametersWrap& desc)
 void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
-    
+
     readParams(p, desc, reader);
 
     mpark::visit([&](auto& eosParams)

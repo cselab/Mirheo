@@ -90,7 +90,7 @@ static std::vector<std::vector<T>> splitData(const ExchMap& map, int chunkSize,
                                              const std::vector<T>& data, int numProcs)
 {
     std::vector<std::vector<T>> bufs(numProcs);
-    
+
     for (size_t i = 0; i < map.size(); ++i)
     {
         const int procId = map[i];
@@ -109,7 +109,7 @@ template<typename T>
 static std::vector<MPI_Request> sendData(const std::vector<std::vector<T>>& sendBufs, MPI_Comm comm)
 {
     std::vector<MPI_Request> reqs;
-    
+
     for (size_t i = 0; i < sendBufs.size(); ++i)
     {
         MPI_Request req;
@@ -130,7 +130,7 @@ static std::vector<T> recvData(int numProcs, MPI_Comm comm)
         MPI_Status status;
         int sizeBytes;
         std::vector<T> recvBuf;
-        
+
         MPI_Check( MPI_Probe(i, tag, comm, &status) );
         MPI_Check( MPI_Get_count(&status, MPI_BYTE, &sizeBytes) );
 
@@ -139,7 +139,7 @@ static std::vector<T> recvData(int numProcs, MPI_Comm comm)
         if (static_cast<int>(size * sizeof(T)) != sizeBytes)
             die("unexpected received size: got %ld bytes, expected multiple of %ld",
                 static_cast<long>(sizeBytes), static_cast<long>(sizeof(T)));
-        
+
         recvBuf.resize(size);
 
         debug3("Receiving %d elements from %d", size, status.MPI_SOURCE);
@@ -179,7 +179,7 @@ template<typename Container>
 static void shiftElementsGlobal2Local(Container& data, const DomainInfo domain)
 {
     auto shift = domain.global2local({0._r, 0._r, 0._r});
-    for (auto& d : data) type_shift::apply(d, shift);    
+    for (auto& d : data) type_shift::apply(d, shift);
 }
 
 void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv);

@@ -28,7 +28,7 @@ public:
     ~SimulationStats();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
-    
+
     void afterIntegration(cudaStream_t stream) override;
     void serializeAndSend(cudaStream_t stream) override;
 

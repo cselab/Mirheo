@@ -97,7 +97,7 @@ void Logger::_logImpl(const char *key, const char *filename, int line, const cha
     fprintf(fout_.get(), "\n");
 
     ++numLogsSinceLastFlush_;
-    
+
     bool needToFlush = runtimeDebugLvl_  >= flushThreshold_ &&
                        COMPILE_DEBUG_LVL >= flushThreshold_;
     needToFlush = needToFlush || (numLogsSinceLastFlush_ > numLogsBetweenFlushes_);

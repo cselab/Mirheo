@@ -22,7 +22,7 @@ TEST (QUATERNION, rotate_identity )
 {
     auto q = Quaternion<real>::createFromComponents(1, 0, 0, 0);
     auto v = q.rotate(ex);
-    assertEquals(v, ex); 
+    assertEquals(v, ex);
 }
 
 TEST (QUATERNION, rotate_around_axis )
@@ -30,13 +30,13 @@ TEST (QUATERNION, rotate_around_axis )
     {
         const auto q = Quaternion<real>::createFromRotation(M_PI, ey);
         const auto v = q.rotate(ex);
-        
-        assertEquals(v, -ex); 
+
+        assertEquals(v, -ex);
     }
     {
         const auto q = Quaternion<real>::createFromRotation(M_PI/2.0_r, ez);
         const auto v = q.rotate(ex);
-        
+
         assertEquals(v, ey);
     }
 }

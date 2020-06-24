@@ -20,7 +20,7 @@ namespace plugin_factory
 {
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
-    
+
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 
@@ -73,7 +73,7 @@ PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *st
 
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv);
 
-PairPlugin createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv, 
+PairPlugin createImposeProfilePlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector* pv,
                                      real3 low, real3 high, real3 velocity, real kBT);
 
 PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, std::string name,

@@ -168,14 +168,14 @@ void MeshBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStrea
 
         constexpr int nthreads = 128;
         constexpr int warpsPerObject = 1024;
-        
+
         SAFE_KERNEL_LAUNCH(
             mesh_belonging_kernels::insideMesh<warpsPerObject>,
             getNblocks(warpsPerObject*32*view.nObjects, nthreads), nthreads, 0, stream,
             view, meshView, reinterpret_cast<real4*>(vertices->devPtr()),
             cl->cellInfo(), cl->getView<PVview>(), tags_.devPtr());
     };
-    
+
 
     computeTags(ParticleVectorLocality::Local);
     computeTags(ParticleVectorLocality::Halo);

@@ -21,16 +21,16 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         return ParticlePackerHandler::getSizeBytes(numElements * objSize) +
             objects.getSizeBytes(numElements);
     }
-    
+
 #ifdef __CUDACC__
 
-    /** \brief Fetch a full object from the registered channels and pack it into the buffer. 
+    /** \brief Fetch a full object from the registered channels and pack it into the buffer.
         \param [in] numElements Number of objects that will be packed in the buffer.
         \param [out] buffer Destination buffer that will hold the packed object
         \param [in] srcObjId The index of the object to fetch from registered channels
         \param [in] dstObjId The index of the object to store into the buffer
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockPack(int numElements, char *buffer,
@@ -39,14 +39,14 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         return _blockApply<PackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    /** \brief Fetch a full object from the registered channels, shift it and pack it into the buffer. 
+    /** \brief Fetch a full object from the registered channels, shift it and pack it into the buffer.
         \param [in] numElements Number of objects that will be packed in the buffer.
         \param [out] buffer Destination buffer that will hold the packed object
         \param [in] srcObjId The index of the object to fetch from registered channels
         \param [in] dstObjId The index of the object to store into the buffer
         \param [in] shift The coordnate shift
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockPackShift(int numElements, char *buffer,
@@ -55,13 +55,13 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         return _blockApply<PackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    /** \brief Unpack a full object from the buffer and store it into the registered channels. 
+    /** \brief Unpack a full object from the buffer and store it into the registered channels.
         \param [in] numElements Number of objects that will be packed in the buffer.
         \param [out] buffer Buffer that holds the packed object
         \param [in] srcObjId The index of the object to fetch from the buffer
         \param [in] dstObjId The index of the object to store into the registered channels
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockUnpack(int numElements, const char *buffer,
@@ -70,14 +70,14 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         return _blockApply<UnpackOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    /** \brief Unpack a full object from the buffer and add it to the registered channels. 
+    /** \brief Unpack a full object from the buffer and add it to the registered channels.
         \param [in] numElements Number of objects that will be packed in the buffer.
         \param [out] buffer Buffer that holds the packed object
         \param [in] srcObjId The index of the object to fetch from the buffer
         \param [in] dstObjId The index of the object to store into the registered channels
         \param [in] eps Threshold under which the data will not be added
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
@@ -86,14 +86,14 @@ struct ObjectPackerHandler : public ParticlePackerHandler
          return _blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    /** \brief Unpack a full object from the buffer, shift it and store it into the registered channels. 
+    /** \brief Unpack a full object from the buffer, shift it and store it into the registered channels.
         \param [in] numElements Number of objects that will be packed in the buffer.
         \param [out] buffer Buffer that holds the packed object
         \param [in] srcObjId The index of the object to fetch from the buffer
         \param [in] dstObjId The index of the object to store into the registered channels
         \param [in] shift Coordinates shift
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockUnpackShift(int numElements, const char *buffer,
@@ -102,12 +102,12 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         return _blockApply<UnpackShiftOp>({shift}, numElements, buffer, srcObjId, dstObjId);
     }
 
-    /** \brief Copy the particle data of a full object from registered channels into the 
+    /** \brief Copy the particle data of a full object from registered channels into the
                registered channels of a ParticlePackerHandler
         \param [out] dst The destination ParticlePackerHandler
         \param [in] srcObjId The index of the object to fetch from the registered channels
         \param [in] dstPartIdOffset The index of the first particle in the destination ParticlePackerHandler
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ void blockCopyParticlesTo(ParticlePackerHandler &dst, int srcObjId, int dstPartIdOffset) const
@@ -126,7 +126,7 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         \param [out] dst The destination ObjectPackerHandler
         \param [in] srcObjId The index of the object to fetch from the registered channels
         \param [in] dstObjId The index of the object to store in the destination ObjectPackerHandler
-        
+
         This method must be called by one CUDA block per object.
      */
     __device__ void blockCopyTo(ObjectPackerHandler &dst, int srcObjId, int dstObjId) const
@@ -218,12 +218,12 @@ protected:
     {
         const int tid = threadIdx.x;
         __shared__ size_t offsetBytes;
-        
+
         for (int pid = tid; pid < objSize; pid += blockDim.x)
         {
             const int srcPid = srcObjId * objSize + pid;
             const int dstPid = dstObjId * objSize + pid;
-            
+
             size_t ob = op(particles, srcPid, dstPid, buffer, numElements * objSize);
 
             if (tid == 0)
@@ -231,7 +231,7 @@ protected:
         }
         __syncthreads();
         buffer += offsetBytes;
-        
+
         if (tid == 0)
             offsetBytes += op(objects, srcObjId, dstObjId, buffer, numElements);
 
@@ -250,7 +250,7 @@ public:
      */
     ObjectPacker(PackPredicate predicate);
     ~ObjectPacker();
-    
+
     void update(LocalParticleVector *lpv, cudaStream_t stream) override;
 
     /// get a handler usable on device

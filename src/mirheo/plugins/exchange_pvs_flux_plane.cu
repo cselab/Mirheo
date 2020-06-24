@@ -52,9 +52,9 @@ __global__ void moveParticles(DomainInfo domain, PVviewWithOldParticles view1, P
     auto rOld = view1.readOldPosition(pid);
 
     if (p.isMarked()) return;
-    
+
     if (hasCrossedPlane(domain, p.r, rOld, plane))
-    {        
+    {
         int dst = atomicAdd(numberCrossed, 1);
         dst += oldsize2;
 
@@ -114,7 +114,7 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     const int nthreads = 128;
 
     numberCrossedParticles_.clear(stream);
-    
+
     SAFE_KERNEL_LAUNCH(
             exchange_pvs_flux_plane_kernels::countParticles,
             getNblocks(view1.size, nthreads), nthreads, 0, stream,
@@ -129,8 +129,8 @@ void ExchangePVSFluxPlanePlugin::beforeCellLists(cudaStream_t stream)
     pv2_->local()->resize(new_size2, stream);
     numberCrossedParticles_.clear(stream);
 
-    view2 = PVview(pv2_, pv2_->local());    
-    
+    view2 = PVview(pv2_, pv2_->local());
+
     extra1_->update(pv1_->local(), stream);
     extra2_->update(pv2_->local(), stream);
 

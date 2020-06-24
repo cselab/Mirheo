@@ -29,7 +29,7 @@ __global__ void pack(DomainInfo domain, PackerHandler packer, const MapEntry *ma
     const int bufId    = mapEntry.getBufId();
     const int srcObjId = mapEntry.getId();
     const int dstObjId = objId - dataWrap.offsets[bufId];
-    
+
     auto buffer = dataWrap.getBuffer(bufId);
     auto dir   = fragment_mapping::getDir(bufId);
     auto shift = exchangers_common::getShift(domain.localSize, dir);
@@ -44,7 +44,7 @@ __global__ void unpack(BufferOffsetsSizesWrap dataWrap, PackerHandler packer)
     const int tid   = threadIdx.x;
 
     extern __shared__ int offsets[];
-    
+
     const int nBuffers = dataWrap.nBuffers;
 
     for (int i = tid; i < nBuffers + 1; i += blockDim.x)
@@ -80,7 +80,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     objects_.push_back(ov);
 
     auto rv = dynamic_cast<RodVector*>(ov);
-    
+
     PackPredicate predicate = [extraChannelNames](const DataManager::NamedChannelDesc& namedDesc)
     {
         return std::find(extraChannelNames.begin(),
@@ -88,7 +88,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
                          namedDesc.first)
             != extraChannelNames.end();
     };
-    
+
     std::unique_ptr<ObjectPacker> packer, unpacker;
 
     if (rv == nullptr)
@@ -103,7 +103,7 @@ void ObjectExtraExchanger::attach(ObjectVector *ov, const std::vector<std::strin
     }
 
     auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());
-    
+
     packers_  .push_back(std::move(  packer));
     unpackers_.push_back(std::move(unpacker));
 
@@ -137,7 +137,7 @@ void ObjectExtraExchanger::prepareData(size_t id, cudaStream_t stream)
 
     const int nthreads = 256;
     const int nblocks = static_cast<int>(map.size());
-    
+
     mpark::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
@@ -156,7 +156,7 @@ void ObjectExtraExchanger::combineAndUploadData(size_t id, cudaStream_t stream)
     auto unpacker = unpackers_[id].get();
 
     const auto& offsets = helper->recv.offsets;
-    
+
     const int totalRecvd = offsets[helper->nBuffers];
 
     hov->resize_anew(totalRecvd * ov->getObjectSize());

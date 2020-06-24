@@ -14,16 +14,16 @@ StepRandomGen::StepRandomGen(long seed) :
 StepRandomGen::~StepRandomGen() = default;
 
 real StepRandomGen::generate(const MirState *state)
-{        
+{
     if (state->currentTime != lastTime)
     {
         lastTime   = state->currentTime;
         lastSample = udistr(gen);
     }
-    
+
     return lastSample;
 }
-    
+
 std::ofstream& operator<<(std::ofstream& stream, const StepRandomGen& srg)
 {
     stream << srg.lastTime    << std::endl

@@ -23,7 +23,7 @@ struct DomainInfo
     real3 localSize;   ///< size of the sub domain in the current rank.
 
     /** \brief Convert local coordinates to global coordinates
-        \param [in] x The local coordinates in the current subdomain 
+        \param [in] x The local coordinates in the current subdomain
         \return The position \p x expressed in global coordinates
      */
     inline __HD__ real3 local2global(real3 x) const
@@ -32,7 +32,7 @@ struct DomainInfo
     }
 
     /** \brief Convert global coordinates to local coordinates
-        \param [in] x The global coordinates in the simulation domain 
+        \param [in] x The global coordinates in the simulation domain
         \return The position \p x expressed in local coordinates
      */
     inline __HD__ real3 global2local(real3 x) const
@@ -41,7 +41,7 @@ struct DomainInfo
     }
 
     /** \brief Checks if the global coordinates \p xg are inside the current subdomain
-        \param [in] xg The global coordinates in the simulation domain 
+        \param [in] xg The global coordinates in the simulation domain
         \return \c true if \p xg is inside the current subdomain, \c false otherwise
      */
     template <typename RealType3>
@@ -50,10 +50,10 @@ struct DomainInfo
         return (globalStart.x <= xg.x) && (xg.x < (globalStart.x + localSize.x))
             && (globalStart.y <= xg.y) && (xg.y < (globalStart.y + localSize.y))
             && (globalStart.z <= xg.z) && (xg.z < (globalStart.z + localSize.z));
-    }    
+    }
 };
 
-/** \brief Construct a DomainInfo 
+/** \brief Construct a DomainInfo
     \param [in] cartComm A cartesian MPI communicator of the simulation
     \param [in] globalSize The size of the whole simulation domain
     \return The DomainInfo

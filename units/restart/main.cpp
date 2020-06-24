@@ -36,7 +36,7 @@ inline MPI_Comm createCart(MPI_Comm comm = MPI_COMM_WORLD)
 {
     const int periods[] = {1, 1, 1};
     constexpr int reorder = 0;
-    
+
     MPI_Comm cart;
     MPI_Check( MPI_Cart_create(comm, cartMaxdims, cartDims, periods, reorder, &cart) );
     return cart;
@@ -94,7 +94,7 @@ TEST (RESTART, pv)
     MirState state(domain, dt, UnitConversion{});
     auto pv0 = initializeRandomPV(comm, pvName, &state, density);
     auto pv1 = std::make_unique<ParticleVector> (&state, pvName, mass);
-    
+
     auto backupData = pv0->local()->dataPerParticle;
 
     constexpr int checkPointId = 0;
@@ -113,12 +113,12 @@ static auto generateUniformEllipsoid(int n, real3 axes, long seed = 424242)
     pos.reserve(n);
 
     Ellipsoid ell(axes);
-    
+
     std::mt19937 gen(seed);
     std::uniform_real_distribution<real> dx(-axes.x, axes.x);
     std::uniform_real_distribution<real> dy(-axes.y, axes.y);
     std::uniform_real_distribution<real> dz(-axes.z, axes.z);
-    
+
     while (static_cast<int>(pos.size()) < n)
     {
         const real3 r {dx(gen), dy(gen), dz(gen)};
@@ -150,7 +150,7 @@ static auto generateObjectComQ(int n, real3 L, long seed=12345)
 
     for (auto& rq : com_q)
         rq.r -= com;
-    
+
     return com_q;
 }
 
@@ -165,7 +165,7 @@ initializeRandomREV(const MPI_Comm& comm, const std::string& ovName, const MirSt
 
     auto com_q  = generateObjectComQ(nObjs, state->domain.globalSize);
     auto coords = generateUniformEllipsoid(objSize, axes);
-    
+
     RigidIC ic(com_q, coords);
     ic.exec(comm, rev.get(), defaultStream);
 
@@ -185,7 +185,7 @@ TEST (RESTART, rov)
 
     auto rov0 = initializeRandomREV(comm, rovName, &state, nObjs, objSize);
     auto rov1 = std::make_unique<RigidShapedObjectVector<Ellipsoid>> (&state, rovName, mass, objSize, Ellipsoid{{1.f, 1.f, 1.f}});
-    
+
     auto backupDataParticles = rov0->local()->dataPerParticle;
     auto backupDataObjects   = rov0->local()->dataPerObject;
 
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
     // only root listens to gtest
     // if (getRank(MPI_COMM_WORLD) != 0)
     //     delete listeners.Release(listeners.default_result_printer());
-    
+
     auto retval = RUN_ALL_TESTS();
 
     MPI_Finalize();

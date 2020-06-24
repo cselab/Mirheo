@@ -35,7 +35,7 @@ public:
 
 private:
     void _sampleOnePv(ParticleVector *pv, cudaStream_t stream);
-    
+
 private:
     int sampleEvery_, dumpEvery_, tuneEvery_;
     std::vector<std::string> pvNames_;
@@ -47,7 +47,7 @@ private:
     PinnedBuffer<int> nSamples_{1};
     PinnedBuffer<real3> totVel_{1};
     double3 accumulatedTotVel_;
-    
+
 
     PidControl<real3> pid_;
     std::vector<char> sendBuffer_;

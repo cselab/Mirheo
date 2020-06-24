@@ -23,7 +23,7 @@ public:
     /** \brief Construct a FileWrapper and tries to open the file \p fname in \p mode mode.
         \param fname The name of the file to open
         \param mode The open mode, e.g. "r" for read mode (see docs of std::fopen)
-        
+
         This method will die if the file was not found
      */
     FileWrapper(const std::string& fname, const std::string& mode);
@@ -31,7 +31,7 @@ public:
 
     FileWrapper           (const FileWrapper&) = delete;
     FileWrapper& operator=(const FileWrapper&) = delete;
-    
+
     FileWrapper           (FileWrapper&&); ///< move constructor
     FileWrapper& operator=(FileWrapper&&); ///< move assignment
 
@@ -52,17 +52,17 @@ public:
     /// \return the C-style file handler
     FILE* get() {return file_;}
 
-    /** \brief Close the current handler. 
-        
+    /** \brief Close the current handler.
+
         This does not need to be called manually unless reopening a new file, since it will be called in the destructor.
 
         If the handler was pointing to a file, the file is close.
-        If the handler was pointing to a special stream (cout, cerr), fflush may be called 
+        If the handler was pointing to a special stream (cout, cerr), fflush may be called
         (see forceFlushOnClose parameter in open(SpecialStream, bool)) but the stream is not closed.
         If the handler did not point to anything, nothing happens.
      */
     void close();
-    
+
 private:
     FILE *file_ {nullptr};
     bool forceFlushOnClose_{false};

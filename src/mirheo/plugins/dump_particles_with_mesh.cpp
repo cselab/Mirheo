@@ -63,16 +63,16 @@ void ParticleWithMeshDumperPlugin::_prepareConnectivity(int totNVertices)
     int offset   = 0;
 
     const int ntriangles = static_cast<int>(triangles_.size());
-    
+
     MPI_Check( MPI_Exscan(&nobjects, &offset, 1, MPI_INT, MPI_SUM, comm_) );
 
     allTriangles_->resize(nobjects * ntriangles);
 
     auto *connectivity = allTriangles_->data();
-    
+
     for (int i = 0; i < nobjects; ++i)
     {
-        const int start = nvertices_ * (offset + i);        
+        const int start = nvertices_ * (offset + i);
         for (int j = 0; j < ntriangles; ++j)
         {
             const int id = i * ntriangles + j;
@@ -89,13 +89,13 @@ void ParticleWithMeshDumperPlugin::deserialize()
     MirState::TimeType time;
     MirState::StepType timeStamp;
     _recvAndUnpack(time, timeStamp);
-    
-    const int totNVertices = static_cast<int>(positions_->size());    
+
+    const int totNVertices = static_cast<int>(positions_->size());
 
     _prepareConnectivity(totNVertices);
 
     const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
-    
+
     const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);
 }

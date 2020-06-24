@@ -28,7 +28,7 @@ enum class ParticleVectorLocality
 */
 std::string getParticleVectorLocalityStr(ParticleVectorLocality locality);
 
-/** \brief Particles container. 
+/** \brief Particles container.
     This is used to represent local or halo particles in ParticleVector.
 */
 class LocalParticleVector
@@ -52,13 +52,13 @@ public:
     /** resize the container, preserving the data.
         \param [in] n new number of particles
         \param [in] stream that is used to copy data
-    */ 
+    */
     virtual void resize(int n, cudaStream_t stream);
 
     /** resize the container, without preserving the data.
         \param [in] n new number of particles
-    */ 
-    virtual void resize_anew(int n);    
+    */
+    virtual void resize_anew(int n);
 
     /// get forces container reference
     PinnedBuffer<Force>& forces();
@@ -70,7 +70,7 @@ public:
     /** \brief Set a unique Id for each particle in the simulation.
         \param [in] comm MPI communicator of the simulation
         \param [in] stream Stream used to transfer data between host and device
-        
+
         The ids are stored in the channel ChannelNames::globalIds.
      */
     virtual void computeGlobalIds(MPI_Comm comm, cudaStream_t stream);
@@ -79,7 +79,7 @@ public:
     ParticleVector* parent() {return pv_;}
     /// get parent ParticleVector
     const ParticleVector* parent() const {return pv_;}
-    
+
 public:
     DataManager dataPerParticle; ///< Contains all particle channels
 
@@ -116,22 +116,22 @@ public:
 
     ~ParticleVector() override;
 
-    /// get the local LocalParticleVector 
+    /// get the local LocalParticleVector
     LocalParticleVector* local() { return local_.get(); }
-    /// get the halo LocalParticleVector 
+    /// get the halo LocalParticleVector
     LocalParticleVector* halo()  { return halo_.get();  }
 
     /** get the LocalParticleVector corresponding to a given locality
         \param [in] locality local or halo
-     */ 
+     */
     LocalParticleVector* get(ParticleVectorLocality locality)
     {
         return (locality == ParticleVectorLocality::Local) ? local() : halo();
     }
 
-    /// get the local LocalParticleVector 
+    /// get the local LocalParticleVector
     const LocalParticleVector* local() const { return local_.get(); }
-    /// get the halo LocalParticleVector 
+    /// get the halo LocalParticleVector
     const LocalParticleVector* halo()  const { return  halo_.get(); }
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
@@ -143,7 +143,7 @@ public:
         Checks that the object type is exactly ParticleVector.
       */
     void saveSnapshotAndRegister(Saver& saver) override;
-    
+
     /** Python getters / setters
         Use default blocking stream
     */
@@ -152,7 +152,7 @@ public:
     py_types::VectorOfReal3 getCoordinates_vector();
     py_types::VectorOfReal3 getVelocities_vector();
     py_types::VectorOfReal3 getForces_vector();
-    
+
     void setCoordinates_vector(const std::vector<real3>& coordinates);
     void setVelocities_vector(const std::vector<real3>& velocities);
     void setForces_vector(const std::vector<real3>& forces);
@@ -174,7 +174,7 @@ public:
 
     /// get the particle mass
     real getMassPerParticle() const noexcept { return mass_; }
-    
+
 protected:
     /** Construct a ParticleVector
         \param [in] state The simulation state
@@ -195,14 +195,14 @@ protected:
 
     /// Exchange map used when reading a file in MPI
     using ExchMap = std::vector<int>;
-    
+
     /// Simple helper structure
     struct ExchMapSize
     {
         ExchMap map; ///< echange map
         int newSize; ///< size after exchange
     };
-    
+
     /** Dump particle data into a file
         \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] filename Destination file.
@@ -212,14 +212,14 @@ protected:
     /** Dump particle data into a file
         \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Destination folder
-        \param [in] checkpointId The Id of the dump  
+        \param [in] checkpointId The Id of the dump
      */
     virtual void _checkpointParticleData(MPI_Comm comm, const std::string& path, int checkpointId);
 
     /** Load particle data from a file
         \param [in] comm MPI Cartesian comm used to perform I/O and exchange data across ranks
         \param [in] path Source folder that contains the file
-        \param [in] chunkSize Every chunk of this number of particles will always stay together. 
+        \param [in] chunkSize Every chunk of this number of particles will always stay together.
                               This is useful for ObjectVector.
         \return Exchange map that is used to redistribute the chunks of data across ranks.
      */
@@ -236,7 +236,7 @@ private:
         lpv->dataPerParticle.setShiftMode(name, shift);
     }
 
-public:    
+public:
     bool haloValid   {false}; ///< true if the halo is up to date
     bool redistValid {false}; ///< true if the particles are redistributed
 

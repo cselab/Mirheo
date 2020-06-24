@@ -36,7 +36,7 @@ public:
     }
 
     /** Synchronize with simulation state. Must be called at every time step.
-        \param [in] t Simulation time. 
+        \param [in] t Simulation time.
         \param [in] domain domain info.
      */
     void setup(real t, __UNUSED DomainInfo domain)
@@ -46,7 +46,7 @@ public:
 
     /// get a handler that can be used on the device.
     const VelocityFieldOscillate& handler() const { return *this; }
-    
+
     /** Evaluate the velocity field at a given position
         \param [in] r The position in local coordinates
         \return The velocity value

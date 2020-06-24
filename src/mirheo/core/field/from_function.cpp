@@ -34,9 +34,9 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
     info("Setting up field '%s'", getCName());
 
     const auto domain = getState()->domain;
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
-    
+
     PinnedBuffer<float> fieldRawData (resolution_.x * resolution_.y * resolution_.z);
 
     int3 i;
@@ -50,14 +50,14 @@ void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
                 r -= extendedDomainSize_ * 0.5_r;
                 r  = domain.local2global(r);
                 r  = make_periodic(r, domain.globalSize);
-                
+
                 fieldRawData[id++] = static_cast<float>(func_(r));
             }
         }
     }
 
     fieldRawData.uploadToDevice(defaultStream);
-    
+
     _setupArrayTexture(fieldRawData.devPtr());
 }
 

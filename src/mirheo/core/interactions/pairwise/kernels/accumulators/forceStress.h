@@ -29,8 +29,8 @@ public:
         frcStress_({{0._r, 0._r, 0._r},
                     {0._r, 0._r, 0._r, 0._r, 0._r, 0._r}})
     {}
-    
-    /** \brief Atomically add the force and stress \p fs to the destination \p view at id \p id. 
+
+    /** \brief Atomically add the force and stress \p fs to the destination \p view at id \p id.
         \param [in] fs The force, directed from src to dst, and the corresponding stress
         \param [out] view The destination container
         \param [in] id destination index in \p view
@@ -41,7 +41,7 @@ public:
         atomicAddStress(view.stresses + id, fs.stress);
     }
 
-    /** \brief Atomically add the force and stress \p fs to the source \p view at id \p id. 
+    /** \brief Atomically add the force and stress \p fs to the source \p view at id \p id.
         \param [in] fs The force, directed from src to dst, and the corresponding stress
         \param [out] view The destination container
         \param [in] id destination index in \p view
@@ -66,7 +66,7 @@ public:
         frcStress_.stress.yz += fs.stress.yz;
         frcStress_.stress.zz += fs.stress.zz;
     }
-    
+
 private:
     ForceStress frcStress_; ///< internal accumulated force and stress
 

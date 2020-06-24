@@ -16,7 +16,7 @@ namespace mirheo
 class ParticleVector;
 
 /** \brief Initialize MembraneVector objects
-    
+
     Initialize membrane objects from center of mass positions and orientations.
 */
 class MembraneIC : public InitialConditions
@@ -39,7 +39,7 @@ protected:
         The indices correspond to the indices of the comQ_ member variable.
     */
     std::vector<int> createMap(DomainInfo domain) const;
-    
+
 private:
     std::vector<ComQ> comQ_;
     real globalScale_;

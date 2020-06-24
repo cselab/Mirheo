@@ -8,7 +8,7 @@ namespace mirheo
 {
 
 /** \brief Initialize a ParticleVector from a checkpoint file
-    
+
     Will call the restart() member function of the given ParticleVector.
  */
 class RestartIC : public InitialConditions
@@ -19,9 +19,9 @@ public:
      */
     RestartIC(const std::string& path);
     ~RestartIC();
-    
+
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
-    
+
 private:
     std::string path_;
 };

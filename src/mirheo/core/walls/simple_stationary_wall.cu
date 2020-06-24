@@ -30,7 +30,7 @@ namespace mirheo
 
 enum class QueryMode {
    Query,
-   Collect    
+   Collect
 };
 
 namespace stationary_walls_kernels
@@ -84,7 +84,7 @@ __global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer, ch
     for (int i = laneId; i < view.objSize; i += warpSize)
     {
         Particle p(view.readParticle(objId * view.objSize + i));
-        
+
         if (checker(p.r) > -tolerance)
         {
             isRemaining = false;
@@ -101,7 +101,7 @@ __global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer, ch
     dstObjId = warpShfl(dstObjId, 0);
 
     size_t offsetObjData = 0;
-    
+
     for (int pid = laneId; pid < view.objSize; pid += warpSize)
     {
         const int srcPid = objId    * view.objSize + pid;
@@ -118,7 +118,7 @@ __global__ void unpackRemainingObjects(const char *from, OVview view, ObjectPack
     const int tid = threadIdx.x;
 
     size_t offsetObjData = 0;
-    
+
     for (int pid = tid; pid < view.objSize; pid += blockDim.x)
     {
         const int dstId = objId*view.objSize + pid;
@@ -212,7 +212,7 @@ __global__ void computeSdfPerParticle(PVview view, real gradientThreshold, real 
         if (sdf > -gradientThreshold)
         {
             const real3 grad = computeGradient(checker, r, h);
-            
+
             if (dot(grad, grad) < zeroTolerance)
                 gradients[pid] = make_real3(0, 0, 0);
             else
@@ -231,8 +231,8 @@ __global__ void computeSdfPerPosition(int n, const real3 *positions, real *sdfs,
 {
     int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= n) return;
-    
-    auto r = positions[pid];    
+
+    auto r = positions[pid];
 
     sdfs[pid] = checker(r);
 }
@@ -241,12 +241,12 @@ template<typename InsideWallChecker>
 __global__ void computeSdfOnGrid(CellListInfo gridInfo, real *sdfs, InsideWallChecker checker)
 {
     const int nid = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (nid >= gridInfo.totcells) return;
-    
+
     const int3 cid3 = gridInfo.decode(nid);
     const real3 r = gridInfo.h * make_real3(cid3) + 0.5_r * gridInfo.h - 0.5*gridInfo.localDomainSize;
-    
+
     sdfs[nid] = checker(r);
 }
 
@@ -309,7 +309,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
              pv->getCName(), getCName());
         return;
     }
-    
+
     if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
         die("PVs should only be attached to walls with the primary cell-lists! "
             "Invalid combination: wall %s, pv %s", getCName(), pv->getCName());
@@ -320,7 +320,7 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
 
     const int nthreads = 128;
     const int nblocks = getNblocks(cl->totcells, nthreads);
-    
+
     PinnedBuffer<int> nBoundaryCells(1);
     nBoundaryCells.clear(defaultStream);
 
@@ -360,7 +360,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
              pv->getCName(), getCName());
         return;
     }
-    
+
     CUDA_Check( cudaDeviceSynchronize() );
 
     PinnedBuffer<int> nRemaining(1);
@@ -382,7 +382,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         DeviceBuffer<char> tmp(packer.getSizeBytes(maxNumObj));
 
         constexpr int warpSize = 32;
-        
+
         SAFE_KERNEL_LAUNCH(
             stationary_walls_kernels::packRemainingObjects,
             getNblocks(ovView.nObjects*warpSize, nthreads), nthreads, 0, defaultStream,
@@ -390,7 +390,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             insideWallChecker_.handler(), maxNumObj );
 
         nRemaining.downloadFromDevice(defaultStream);
-        
+
         if (nRemaining[0] != ovView.nObjects)
         {
             info("Removing %d out of %d '%s' objects from walls '%s'",
@@ -416,7 +416,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
         const int maxNumParticles = view.size;
 
         DeviceBuffer<char> tmpBuffer(packer.getSizeBytes(maxNumParticles));
-        
+
         SAFE_KERNEL_LAUNCH(
             stationary_walls_kernels::packRemainingParticles,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
@@ -431,7 +431,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
             info("Removing %d out of %d '%s' particles from walls '%s'",
                  oldSize - newSize, oldSize,
                  pv->getCName(), this->getCName());
-            
+
             pv->local()->resize_anew(newSize);
             packer.update(pv->local(), defaultStream);
 
@@ -458,7 +458,7 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
     const real dt = this->getState()->dt;
 
     bounceForce_.clear(stream);
-    
+
     for (size_t i = 0; i < particleVectors_.size(); ++i)
     {
         auto  pv = particleVectors_[i];
@@ -516,7 +516,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerParticle(LocalParticleVector
             sdfs->datatype_size(), pv->getCName());
     sdfs->resize_anew( np * sizeof(real) / sdfs->datatype_size());
 
-    
+
     if (gradients != nullptr)
     {
         if (sizeof(real3) % gradients->datatype_size() != 0)
@@ -538,7 +538,7 @@ template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *positions, GPUcontainer *sdfs, cudaStream_t stream)
 {
     const int n = positions->size();
-    
+
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %zu (sampling sdf on positions)",
             sdfs->datatype_size());
@@ -546,7 +546,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfPerPosition(GPUcontainer *posit
     if (sizeof(real3) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for Psitions values: %zu (sampling sdf on positions)",
             positions->datatype_size());
-    
+
     const int nthreads = 128;
     SAFE_KERNEL_LAUNCH(
         stationary_walls_kernels::computeSdfPerPosition,
@@ -561,7 +561,7 @@ void SimpleStationaryWall<InsideWallChecker>::sdfOnGrid(real3 h, GPUcontainer *s
     if (sizeof(real) % sdfs->datatype_size() != 0)
         die("Incompatible datatype size of container for SDF values: %zu (sampling sdf on a grid)",
             sdfs->datatype_size());
-        
+
     const CellListInfo gridInfo(h, getState()->domain.localSize);
     sdfs->resize_anew(gridInfo.totcells);
 

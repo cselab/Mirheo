@@ -17,12 +17,12 @@ struct Triangle
 };
 
 static Triangle genTriangle(long seed)
-{    
+{
     Triangle t;
     srand48(seed);
 
     auto gen3 = []() -> Real3 { return {(Real) drand48(), (Real) drand48(), (Real) drand48()}; };
-    
+
     t.a = gen3();
     t.b = gen3();
     t.c = gen3();
@@ -75,7 +75,7 @@ static Real beta_stable(Triangle t, Triangle tref)
 
     Real v12v13    = dot(v12, v13);
     Real v12v13ref = dot(v12ref, v13ref);
-    
+
     Real beta = 0.125 * (e0sq_A0*e1sq_A + e1sq_A0*e0sq_A
                          - 2. * v12v13 * v12v13ref * area_inv * area0_inv
                          - 8.);
@@ -94,11 +94,11 @@ static void testManyTriangles(long seed, int ntests, InvariantFunction invariant
         auto tref = genTriangle(seed + 42 * i);
 
         Real a1, a2, a3;
-        
+
         a1 = invariant(t, tref); shuffle(t); shuffle(tref);
         a2 = invariant(t, tref); shuffle(t); shuffle(tref);
         a3 = invariant(t, tref);
-        
+
         ASSERT_LE(math::abs(a1-a2), tolerance);
         ASSERT_LE(math::abs(a1-a3), tolerance);
     }

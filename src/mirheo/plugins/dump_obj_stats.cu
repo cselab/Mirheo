@@ -26,7 +26,7 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
     RigidMotion local = {0};
 
     const real3 com = view.comAndExtents[objId].com;
-    
+
     for (int i = tid; i < view.objSize; i += blockDim.x)
     {
         const int pid = objId * view.objSize + i;
@@ -34,7 +34,7 @@ __global__ void collectObjStats(OVview view, RigidMotion *motionStats)
         const real3 f = make_real3(view.forces[pid]);
 
         const real3 dr = p.r - com;
-        
+
         local.vel    += p.u;
         local.omega  += cross(dr, p.u);
         local.force  += f;
@@ -84,7 +84,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
     if (!isTimeEvery(getState(), dumpEvery_)) return;
 
     auto lov = ov_->local();
-    
+
     ids_ .copy( *lov->dataPerObject.getData<int64_t>     (channel_names::globalIds),  stream );
     coms_.copy( *lov->dataPerObject.getData<COMandExtent>(channel_names::comExtents), stream );
 
@@ -116,7 +116,7 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
         typeIds_.copy( *lov->dataPerObject.getData<int>(channel_names::membraneTypeId), stream);
         hasTypeIds_ = true;
     }
-    
+
     savedTime_ = getState()->currentTime;
     needToSend_ = true;
 }
@@ -130,7 +130,7 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     _waitPrevSend();
     SimpleSerializer::serialize(sendBuffer_, savedTime_, getState()->domain, isRov_, ids_, coms_, motions_, hasTypeIds_, typeIds_);
     _send(sendBuffer_);
-    
+
     needToSend_=false;
 }
 
@@ -167,19 +167,19 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
                << std::setw(10) << motion.q.z;
         }
 
-        ss << "    "   
+        ss << "    "
            << std::setw(10) << motion.vel.x << " "
            << std::setw(10) << motion.vel.y << " "
            << std::setw(10) << motion.vel.z << "    "
-            
+
            << std::setw(10) << motion.omega.x << " "
            << std::setw(10) << motion.omega.y << " "
            << std::setw(10) << motion.omega.z << "    "
-            
+
            << std::setw(10) << motion.force.x << " "
            << std::setw(10) << motion.force.y << " "
            << std::setw(10) << motion.force.z << "    "
-            
+
            << std::setw(10) << motion.torque.x << " "
            << std::setw(10) << motion.torque.y << " "
            << std::setw(10) << motion.torque.z;

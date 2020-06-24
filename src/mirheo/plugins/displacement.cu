@@ -23,10 +23,10 @@ __global__ void computeDisplacementsAndSavePositions(PVview view, real4 *positio
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i > view.size) return;
-    
+
     Real3_int pos(view.readPosition(i));
     Real3_int oldPos(positions[i]);
-    
+
     displacements[i] = pos.v - oldPos.v;
     positions[i] = pos.toReal4();
 }
@@ -63,14 +63,14 @@ void ParticleDisplacementPlugin::setup(Simulation *simulation, const MPI_Comm& c
                                       DataManager::ShiftMode::Active);
 
     PVview view(pv_, pv_->local());
-    const int nthreads = 128;    
+    const int nthreads = 128;
 
     auto& manager      = pv_->local()->dataPerParticle;
     auto positions     = manager.getData<real4>(savedPositionChannelName_);
     auto displacements = manager.getData<real3>(displacementChannelName_);
 
     displacements->clear(defaultStream);
-    
+
     SAFE_KERNEL_LAUNCH(
             particle_displacement_plugin_kernels::extractPositions,
             getNblocks(view.size, nthreads), nthreads, 0, defaultStream,
@@ -82,7 +82,7 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
     if (!isTimeEvery(getState(), updateEvery_)) return;
 
     auto& manager = pv_->local()->dataPerParticle;
-    
+
     auto positions     = manager.getData<real4>(savedPositionChannelName_);
     auto displacements = manager.getData<real3>( displacementChannelName_);
 
@@ -92,7 +92,7 @@ void ParticleDisplacementPlugin::afterIntegration(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             particle_displacement_plugin_kernels::computeDisplacementsAndSavePositions,
             getNblocks(view.size, nthreads), nthreads, 0, stream,
-            view, positions->devPtr(), displacements->devPtr());    
+            view, positions->devPtr(), displacements->devPtr());
 }
 
 } // namespace mirheo

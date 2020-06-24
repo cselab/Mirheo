@@ -20,7 +20,7 @@ __global__ void totalForce(PVview view, double3 *totalForce)
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     real3 f {0._r, 0._r, 0._r};
-    
+
     if (tid < view.size)
         f = make_real3(view.forces[tid]);
 
@@ -60,7 +60,7 @@ void WallForceCollectorPlugin::setup(Simulation *simulation, const MPI_Comm& com
 }
 
 void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
-{   
+{
     if (isTimeEvery(getState(), sampleEvery_))
     {
         pvForceBuffer_.clear(stream);
@@ -81,7 +81,7 @@ void WallForceCollectorPlugin::afterIntegration(cudaStream_t stream)
 
         ++nsamples_;
     }
-    
+
     needToDump_ = (isTimeEvery(getState(), dumpEvery_) && nsamples_ > 0);
 }
 
@@ -113,7 +113,7 @@ void WallForceDumperPlugin::deserialize()
     double localForce[3], totalForce[3] = {0.0, 0.0, 0.0};
 
     SimpleSerializer::deserialize(data_, currentTime, nsamples, localForce);
-    
+
     MPI_Check( MPI_Reduce(localForce, totalForce, 3, MPI_DOUBLE, MPI_SUM, 0, comm_) );
 
     if (rank_ == 0)

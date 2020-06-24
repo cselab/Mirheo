@@ -18,20 +18,20 @@ public:
 
     void deserialize() override;
     void handshake() override;
-    
+
     XDMF::Channel getChannelOrDie(std::string chname) const;
     std::vector<int> getLocalResolution() const;
-        
+
 private:
     std::vector<XDMF::Channel> channels_;
     std::unique_ptr<XDMF::UniformGrid> grid_;
 
     std::vector<double> recvNumberDnsity_;
     std::vector<std::vector<double>> recvContainers_;
-    
+
     std::vector<real> numberDnsity_;
     std::vector<std::vector<real>> containers_;
-    
+
     std::string path_;
     static constexpr int zeroPadding_ = 5;
 

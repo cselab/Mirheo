@@ -7,7 +7,7 @@ namespace mirheo
 {
 
 /** \brief Fill the domain with uniform number density
-    
+
     Initialize particles uniformly with the given number density on the whole domain.
     The domain considered is that of the ParticleVector.
     ObjectVector objects are not supported.

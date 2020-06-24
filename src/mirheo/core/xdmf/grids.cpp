@@ -14,14 +14,14 @@ static hsize_t product(const std::vector<hsize_t>& v)
 {
     hsize_t prod = 1;
     for (auto d : v)
-        prod *= d;        
+        prod *= d;
     return prod;
 }
-    
+
 bool GridDims::localEmpty()  const { return product(getLocalSize ()) == 0; }
 bool GridDims::globalEmpty() const { return product(getGlobalSize()) == 0; }
 int  GridDims::getDims()     const { return (int) getLocalSize().size();   }
-    
+
 //
 // Uniform Grid
 //
@@ -30,14 +30,14 @@ UniformGrid::UniformGrid(int3 localSize, real3 h, MPI_Comm cartComm) :
     dims_(localSize, cartComm),
     spacing_{h.x, h.y, h.z}
 {}
-    
+
 UniformGrid::UniformGridDims::UniformGridDims(int3 localSize, MPI_Comm cartComm)
 {
     int nranks[3], periods[3], my3Drank[3];
     MPI_Check( MPI_Cart_get(cartComm, 3, nranks, periods, my3Drank) );
 
     localSize_  = std::vector<hsize_t>{ (hsize_t)localSize.x,  (hsize_t)localSize.y,  (hsize_t)localSize.z};
-        
+
     globalSize_ = std::vector<hsize_t>{ (hsize_t) nranks[0] * localSize.x,
                                         (hsize_t) nranks[1] * localSize.y,
                                         (hsize_t) nranks[2] * localSize.z};
@@ -51,34 +51,34 @@ UniformGrid::UniformGridDims::UniformGridDims(int3 localSize, MPI_Comm cartComm)
 std::vector<hsize_t> UniformGrid::UniformGridDims::getLocalSize()  const {return localSize_;}
 std::vector<hsize_t> UniformGrid::UniformGridDims::getGlobalSize() const {return globalSize_;}
 std::vector<hsize_t> UniformGrid::UniformGridDims::getOffsets()    const {return offsets_;}
-    
+
 std::string UniformGrid::getCentering() const { return "Cell"; }
 const GridDims* UniformGrid::getGridDims() const { return &dims_; }
-    
+
 void UniformGrid::writeToHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm) const
 {}
-    
+
 pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string h5filename) const
 {
     auto gridNode = node.append_child("Grid");
     gridNode.append_attribute("Name") = "mesh";
     gridNode.append_attribute("GridType") = "Uniform";
-        
+
     // Topology size is in vertices, so it's +1 wrt to the number of cells
     auto nodeResolution = dims_.getGlobalSize();
     for (auto& r : nodeResolution) r += 1;
-        
+
     // One more What. The. F
     std::reverse(nodeResolution.begin(), nodeResolution.end());
 
     auto topoNode = gridNode.append_child("Topology");
     topoNode.append_attribute("TopologyType") = "3DCORECTMesh";
     topoNode.append_attribute("Dimensions") = to_string(nodeResolution).c_str();
-        
+
     auto geomNode = gridNode.append_child("Geometry");
     geomNode.append_attribute("GeometryType") = "ORIGIN_DXDYDZ";
-        
-        
+
+
     auto setup3Fnode = [] (pugi::xml_node& n, std::string nodeName)
     {
         const std::array< std::pair<std::string, std::string>, 5 > name_vals =
@@ -89,19 +89,19 @@ pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string
               { "Precision", std::to_string(numberTypeToPrecision(Channel::NumberType::Float)) },
               { "Format", "XML" }
               }};
-        
+
         for (auto& name_val : name_vals)
             n.append_attribute(name_val.first.c_str()) = name_val.second.c_str();
     };
-        
+
     auto origNode = geomNode.append_child("DataItem");
     setup3Fnode(origNode, "Origin");
     origNode.text() = "0.0 0.0 0.0";
-        
+
     auto spaceNode = geomNode.append_child("DataItem");
     setup3Fnode(spaceNode, "Spacing");
     spaceNode.text() = to_string(spacing_).c_str();
-        
+
     return gridNode;
 }
 
@@ -122,7 +122,7 @@ void UniformGrid::readFromHDF5(__UNUSED hid_t file_id, __UNUSED MPI_Comm comm)
     // TODO
     die("not implemented");
 }
-        
+
 //
 // Vertex Grid
 //
@@ -155,37 +155,37 @@ VertexGrid::VertexGrid(std::shared_ptr<std::vector<real3>> positions, MPI_Comm c
     positions_(positions)
 {}
 
-const GridDims* VertexGrid::getGridDims() const { return &dims_; }    
-std::string VertexGrid::getCentering() const    { return "Node"; }    
+const GridDims* VertexGrid::getGridDims() const { return &dims_; }
+std::string VertexGrid::getCentering() const    { return "Node"; }
 
 void VertexGrid::writeToHDF5(hid_t file_id, __UNUSED MPI_Comm comm) const
 {
     Channel posCh {positionChannelName_, (void*) positions_->data(),
                    Channel::DataForm::Vector, XDMF::getNumberType<real>(),
                    DataTypeWrapper<real>(), Channel::NeedShift::True};
-        
+
     HDF5::writeDataSet(file_id, getGridDims(), posCh);
 }
-    
+
 pugi::xml_node VertexGrid::writeToXMF(pugi::xml_node node, std::string h5filename) const
 {
     auto gridNode = node.append_child("Grid");
     gridNode.append_attribute("Name") = "mesh";
     gridNode.append_attribute("GridType") = "Uniform";
-        
+
     auto topoNode = gridNode.append_child("Topology");
     _writeTopology(topoNode, h5filename);
-            
+
     auto geomNode = gridNode.append_child("Geometry");
     geomNode.append_attribute("GeometryType") = "XYZ";
-        
+
     auto partNode = geomNode.append_child("DataItem");
     partNode.append_attribute("Dimensions") = (std::to_string(dims_.getNGlobal()) + " 3").c_str();
     partNode.append_attribute("NumberType") = numberTypeToString(XDMF::getNumberType<real>()).c_str();
     partNode.append_attribute("Precision") = std::to_string(numberTypeToPrecision(XDMF::getNumberType<real>())).c_str();
     partNode.append_attribute("Format") = "HDF";
     partNode.text() = (h5filename + ":/" + positionChannelName_).c_str();
-        
+
     return gridNode;
 }
 
@@ -193,12 +193,12 @@ void VertexGrid::readFromXMF(const pugi::xml_node &node, std::string &h5filename
 {
     int d {0};
     hsize_t nglobal {0};
-    
+
     auto partNode = node.child("Geometry").child("DataItem");
 
     if (!partNode)
         die("Wrong format");
-        
+
     std::istringstream dimensions( partNode.attribute("Dimensions").value() );
 
     dimensions >> nglobal;
@@ -207,7 +207,7 @@ void VertexGrid::readFromXMF(const pugi::xml_node &node, std::string &h5filename
 
     if (d != 3)
         die("expected 3 dimesnional positions, got %d.", d);
-        
+
     std::string positionDataSet(partNode.text().as_string());
     auto endH5 = positionDataSet.find(":");
 
@@ -245,14 +245,14 @@ void VertexGrid::readFromHDF5(hid_t file_id, __UNUSED MPI_Comm comm)
     positions_->resize(dims_.getNLocal());
     Channel posCh {positionChannelName_, positions_->data(), Channel::DataForm::Vector,
                    XDMF::getNumberType<real>(), DataTypeWrapper<real>(), Channel::NeedShift::True};
-        
+
     HDF5::readDataSet(file_id, getGridDims(), posCh);
 }
 
 void VertexGrid::_writeTopology(pugi::xml_node& topoNode, __UNUSED const std::string& h5filename) const
 {
     topoNode.append_attribute("TopologyType") = "Polyvertex";
-    topoNode.append_attribute("NumberOfElements") = std::to_string(dims_.getNGlobal()).c_str();    
+    topoNode.append_attribute("NumberOfElements") = std::to_string(dims_.getNGlobal()).c_str();
 }
 
 const std::string VertexGrid::positionChannelName_ = "position";
@@ -260,7 +260,7 @@ const std::string VertexGrid::positionChannelName_ = "position";
 //
 // Triangle Mesh Grid
 //
-    
+
 TriangleMeshGrid::TriangleMeshGrid(std::shared_ptr<std::vector<real3>> positions,
                                    std::shared_ptr<std::vector<int3>> triangles,
                                    MPI_Comm comm) :
@@ -279,7 +279,7 @@ void TriangleMeshGrid::writeToHDF5(hid_t file_id, MPI_Comm comm) const
 
     HDF5::writeDataSet(file_id, &dimsTriangles_, triCh);
 }
-                
+
 void TriangleMeshGrid::_writeTopology(pugi::xml_node& topoNode, const std::string& h5filename) const
 {
     topoNode.append_attribute("TopologyType") = "Triangle";

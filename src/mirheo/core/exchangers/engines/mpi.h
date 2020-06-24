@@ -12,9 +12,9 @@ namespace mirheo
 class ExchangeEntity;
 
 /** \brief Engine implementing asynchronous MPI communication.
- 
+
     The pipeline is as follows:
-    - init() prepares the data into buffers, exchange the sizes, allocate recv buffers and post 
+    - init() prepares the data into buffers, exchange the sizes, allocate recv buffers and post
       the asynchronous communication calls.
     - finalize() waits for the communication to finish and unpacks the data.
  */
@@ -28,7 +28,7 @@ public:
      */
     MPIExchangeEngine(std::unique_ptr<Exchanger>&& exchanger, MPI_Comm comm, bool gpuAwareMPI);
     ~MPIExchangeEngine();
-    
+
     void init(cudaStream_t stream)     override;
     void finalize(cudaStream_t stream) override;
 
@@ -42,10 +42,10 @@ private:
 private:
     std::vector<int> dir2rank_;
     std::vector<int> dir2sendTag_;
-    std::vector<int> dir2recvTag_;    
+    std::vector<int> dir2recvTag_;
 
     bool gpuAwareMPI_;
-    
+
     MPI_Comm haloComm_;
     static constexpr int singleCopyThreshold_ = 4000000;
 };

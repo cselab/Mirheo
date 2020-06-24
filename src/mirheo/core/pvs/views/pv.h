@@ -10,12 +10,12 @@ class ParticleVector;
 class LocalParticleVector;
 
 /** \brief GPU-compatible struct that contains particle basic data
-    
+
     Contains particle positions, velocities, forces, and mass info.
  */
 struct PVview
 {
-    /** \brief Construct a \c PVview 
+    /** \brief Construct a \c PVview
         \param [in] pv The ParticleVector that the view represents
         \param [in] lpv The LocalParticleVector that the view represents
      */
@@ -99,7 +99,7 @@ struct PVview
  */
 struct PVviewWithOldParticles : public PVview
 {
-    /** \brief Construct a PVviewWithOldParticles 
+    /** \brief Construct a PVviewWithOldParticles
         \param [in] pv The ParticleVector that the view represents
         \param [in] lpv The LocalParticleVector that the view represents
 
@@ -124,7 +124,7 @@ struct PVviewWithOldParticles : public PVview
  */
 struct PVviewWithDensities : public PVview
 {
-    /** \brief Construct a PVviewWithOldParticles 
+    /** \brief Construct a PVviewWithOldParticles
         \param [in] pv The ParticleVector that the view represents
         \param [in] lpv The LocalParticleVector that the view represents
 

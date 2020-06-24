@@ -18,10 +18,10 @@ static hid_t createFileAccess(MPI_Comm comm)
 {
     int size;
     MPI_Check( MPI_Comm_size(comm, &size) );
-            
+
     // Don't set the hints if they are already provided by the env variable
     const char* hints = getenv("MPICH_MPIIO_HINTS");
-            
+
     MPI_Info info;
     if (hints == nullptr || strlen(hints) < 1)
     {
@@ -49,13 +49,13 @@ static hid_t createFileAccess(MPI_Comm comm)
     H5Pset_fapl_mpio(plist_id_access, comm, info);
     return plist_id_access;
 }
-        
+
 hid_t create(const std::string& filename, MPI_Comm comm)
 {
     hid_t access_id = createFileAccess(comm);
     hid_t file_id   = H5Fcreate( filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, access_id );
     H5Pclose(access_id);
-            
+
     return file_id;
 }
 
@@ -64,29 +64,29 @@ hid_t openReadOnly(const std::string& filename, MPI_Comm comm)
     hid_t access_id = createFileAccess(comm);
     hid_t file_id   = H5Fopen( filename.c_str(), H5F_ACC_RDONLY, access_id );
     H5Pclose(access_id);
-            
+
     return file_id;
 }
-        
+
 void writeDataSet(hid_t file_id, const GridDims *gridDims, const Channel& channel)
 {
     debug2("Writing channel '%s'", channel.name.c_str());
-            
+
     // Add one more dimension: number of reals per data item
     int ndims       = gridDims->getDims() + 1;
     auto localSize  = gridDims->getLocalSize();
     auto globalSize = gridDims->getGlobalSize();
-            
+
     // What. The. F.
     std::reverse(localSize .begin(), localSize .end());
     std::reverse(globalSize.begin(), globalSize.end());
-            
+
     localSize .push_back(channel.nComponents());
     globalSize.push_back(channel.nComponents());
-            
+
     // Float, Double, Int...
     auto numberType = numberTypeToHDF5type(channel.numberType);
-            
+
     hid_t filespace_simple = H5Screate_simple(ndims, globalSize.data(), nullptr);
 
     hid_t dset_id = H5Dcreate(file_id, channel.name.c_str(), numberType, filespace_simple, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -112,13 +112,13 @@ void writeDataSet(hid_t file_id, const GridDims *gridDims, const Channel& channe
     H5Pclose(xfer_plist_id);
     H5Dclose(dset_id);
 }
-        
+
 void writeData(hid_t file_id, const GridDims *gridDims, const std::vector<Channel>& channels)
 {
-    for (auto& channel : channels) 
+    for (auto& channel : channels)
         writeDataSet(file_id, gridDims, channel);
 }
-        
+
 void readDataSet(hid_t file_id, const GridDims *gridDims, Channel& channel)
 {
     debug2("Reading channel '%s'", channel.name.c_str());
@@ -126,13 +126,13 @@ void readDataSet(hid_t file_id, const GridDims *gridDims, Channel& channel)
     // Add one more dimension: number of floats per data item
     int ndims = gridDims->getDims() + 1;
     auto localSize  = gridDims->getLocalSize();
-            
+
     // What. The. F.
     std::reverse(localSize .begin(), localSize .end());
-            
+
     localSize.push_back(channel.nComponents());
-            
-    hid_t dset_id       = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);            
+
+    hid_t dset_id       = H5Dopen(file_id, channel.name.c_str(), H5P_DEFAULT);
     hid_t xfer_plist_id = H5Pcreate(H5P_DATASET_XFER);
 
     H5Pset_dxpl_mpio(xfer_plist_id, H5FD_MPIO_COLLECTIVE);
@@ -158,15 +158,15 @@ void readDataSet(hid_t file_id, const GridDims *gridDims, Channel& channel)
 
 void readData(hid_t file_id, const GridDims *gridDims, std::vector<Channel>& channels)
 {
-    for (auto& channel : channels) 
+    for (auto& channel : channels)
         readDataSet(file_id, gridDims, channel);
-}        
-        
+}
+
 void close(hid_t file_id)
 {
     H5Fclose(file_id);
 }
-        
+
 void write(const std::string& filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels)
 {
     auto file_id = create(filename, comm);
@@ -175,10 +175,10 @@ void write(const std::string& filename, MPI_Comm comm, const Grid *grid, const s
         if (file_id < 0) error("HDF5 failed to write to file '%s'", filename.c_str());
         return;
     }
-            
+
     grid->writeToHDF5(file_id, comm);
     writeData(file_id, grid->getGridDims(), channels);
-            
+
     close(file_id);
 }
 
@@ -192,11 +192,11 @@ void read(const std::string& filename, MPI_Comm comm, Grid *grid, std::vector<Ch
     }
 
     setbuf(stdout, NULL);
-            
+
     grid->readFromHDF5(file_id, comm);
 
     readData(file_id, grid->getGridDims(), channels);
-            
+
     close(file_id);
 }
 

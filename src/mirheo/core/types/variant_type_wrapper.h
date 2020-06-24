@@ -32,14 +32,14 @@ using TypeDescriptor = mpark::variant<
 /** \brief Convert a TypeDescriptor variant to the string that represents the type.
     \param desc The variant of DataTypeWrapper
     \return The string that correspond to the type (e.g. int gives "int")
-*/ 
+*/
 std::string typeDescriptorToString(const TypeDescriptor& desc);
 
 /** \brief reverse operation of typeDescriptorToString().
     \param str The string representation of the type (e.g. "int" for int)
     \return a variant that contains the DataTypeWrapper with the correct type.
 
-    This method will die if \p str does not correspond to any type in the type list. 
+    This method will die if \p str does not correspond to any type in the type list.
  */
 TypeDescriptor stringToTypeDescriptor(const std::string& str);
 

@@ -24,10 +24,10 @@ IntegratorOscillate::~IntegratorOscillate() = default;
 void IntegratorOscillate::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto t = static_cast<real>(getState()->currentTime);
-    
+
     const auto vel = vel_;
     constexpr auto twoPi = static_cast<real>(2.0 * M_PI);
-    
+
     const real cosOmega = math::cos(twoPi * t / period_);
 
     auto oscillate = [vel, cosOmega] __device__ (Particle& p, real3 f, real invm, real dt)

@@ -56,7 +56,7 @@ class RegionOutletPlugin : public OutletPlugin
 {
 public:
     using RegionFunc = std::function<real(real3)>;
-    
+
     RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                        RegionFunc region, real3 resolution);
 
@@ -70,9 +70,9 @@ protected:
 
     double computeVolume(long long int nSamples, real seed) const;
     void countInsideParticles(cudaStream_t stream);
-    
+
 protected:
-    
+
     double volume_;
     std::unique_ptr<Field> outletRegion_;
 };
@@ -81,16 +81,16 @@ protected:
 class DensityOutletPlugin : public RegionOutletPlugin
 {
 public:
-    
+
     DensityOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                         real numberDensity, RegionFunc region, real3 resolution);
 
     ~DensityOutletPlugin();
 
     void beforeCellLists(cudaStream_t stream) override;
-    
+
 protected:
-    
+
     real numberDensity_;
 };
 
@@ -98,16 +98,16 @@ protected:
 class RateOutletPlugin : public RegionOutletPlugin
 {
 public:
-    
+
     RateOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                      real rate, RegionFunc region, real3 resolution);
 
     ~RateOutletPlugin();
 
     void beforeCellLists(cudaStream_t stream) override;
-    
+
 protected:
-    
+
     real rate_;
 };
 

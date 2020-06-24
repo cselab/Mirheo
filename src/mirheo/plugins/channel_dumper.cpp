@@ -27,7 +27,7 @@ void UniformCartesianDumper::handshake()
     auto req = waitData();
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     recv();
-    
+
     int3 nranks3D, rank3D;
     int3 resolution;
     real3 h;
@@ -35,22 +35,22 @@ void UniformCartesianDumper::handshake()
     std::vector<std::string> names;
     std::string numberDensityChannelName;
     SimpleSerializer::deserialize(data_, nranks3D, rank3D, resolution, h, sizes, names, numberDensityChannelName);
-        
+
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {0, 0, 0};
     MPI_Check( MPI_Cart_create(comm_, 3, ranksArr, periods, 0, &cartComm_) );
     grid_ = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm_);
-        
+
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
     {
         return XDMF::Channel{str, nullptr, dataForm, XDMF::getNumberType<real>(),
                                  DataTypeWrapper<real>(), XDMF::Channel::NeedShift::False};
     };
-    
+
     // Density is a special channel which is always present
     std::string allNames = numberDensityChannelName;
     channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar, numberDensityChannelName));
-    
+
     for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
@@ -64,7 +64,7 @@ void UniformCartesianDumper::handshake()
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", getCName(), sizes[i], names[i].c_str());
         }
     }
-    
+
     // Create the required folder
     createFoldersCollective(comm_, getParentPath(path_));
 
@@ -84,15 +84,15 @@ void UniformCartesianDumper::deserialize()
     MirState::TimeType t;
     MirState::StepType timeStamp;
     SimpleSerializer::deserialize(data_, t, timeStamp, recvNumberDnsity_, recvContainers_);
-    
+
     debug2("Plugin '%s' will dump right now: simulation time %f, time stamp %lld",
            getCName(), t, timeStamp);
 
-    convert(recvNumberDnsity_, numberDnsity_);    
+    convert(recvNumberDnsity_, numberDnsity_);
     channels_[0].data = numberDnsity_.data();
 
     containers_.resize(recvContainers_.size());
-    
+
     for (size_t i = 0; i < recvContainers_.size(); ++i)
     {
         convert(recvContainers_[i], containers_[i]);
@@ -108,9 +108,9 @@ XDMF::Channel UniformCartesianDumper::getChannelOrDie(std::string chname) const
     for (const auto& ch : channels_)
         if (ch.name == chname)
             return ch;
-        
+
     die("No such channel in plugin '%s' : '%s'", getCName(), chname.c_str());
-   
+
    // Silence the noreturn warning
    return channels_[0];
 }
@@ -120,7 +120,7 @@ std::vector<int> UniformCartesianDumper::getLocalResolution() const
     std::vector<int> res;
     for (auto v : grid_->getGridDims()->getLocalSize())
         res.push_back(static_cast<int>(v));
-    
+
     return res;
 }
 

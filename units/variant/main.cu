@@ -34,14 +34,14 @@ __global__ void variantOperation(int n, const VarTypePtr dataVar, void *result)
     {
         auto dst = reinterpret_cast<decltype(dataPtr)>(result);
         dst[i] = eval(dataPtr[i]);
-    }, dataVar);        
+    }, dataVar);
 }
 
 TEST (Variant, cpu)
 {
     int   i = 42;
     float f = 3.14;
-    
+
     VarType var;
 
     auto check = [](auto ref, VarType var) -> bool
@@ -86,7 +86,7 @@ TEST (Variant, gpu)
 
     const int nthreads = 128;
     const int nblocks = getNblocks(n, nthreads);
-    
+
     dataVar = intData.devPtr();
     SAFE_KERNEL_LAUNCH(variantOperation,
                        nblocks, nthreads, 0, defaultStream,
@@ -100,7 +100,7 @@ TEST (Variant, gpu)
 
     intRes  .downloadFromDevice(defaultStream);
     floatRes.downloadFromDevice(defaultStream);
-    
+
     for (int i = 0; i < n; ++i)
     {
         ASSERT_EQ(intRes[i], intRef[i]);

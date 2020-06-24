@@ -75,7 +75,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
         dir = encodeCellId(dir, cinfo.ncells);
 
         if (p.isMarked()) continue;
-        
+
         if (hasToLeave(dir))
         {
             const int bufId = fragment_mapping::getId(dir);
@@ -95,7 +95,7 @@ __global__ void getExitingParticles(CellListInfo cinfo, PVview view, DomainInfo 
                 auto buffer = dataWrap.getBuffer(bufId);
 
                 packer.particles.packShift(srcId, myId, buffer, numElements, shift);
-                
+
                 // mark the particle as exited to assist cell-list building
                 Real3_int pos = p.r2Real3_int();
                 pos.mark();
@@ -116,7 +116,7 @@ __global__ void unpackParticles(int startDstId, BufferOffsetsSizesWrap dataWrap,
     {
         const int dstId = startDstId + dataWrap.offsets[bufId] + pid;
         const auto buffer = dataWrap.getBuffer(bufId);
-        
+
         packer.particles.unpack(pid, dstId, buffer, numElements);
     }
 }
@@ -165,7 +165,7 @@ void ParticleRedistributor::prepareSizes(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto lpv = pv->local();
-    
+
     debug2("Counting leaving particles of '%s'", pv->getCName());
 
     helper->send.sizes.clear(stream);
@@ -203,12 +203,12 @@ void ParticleRedistributor::prepareData(size_t id, cudaStream_t stream)
         const int maxdim = std::max({cl->ncells.x, cl->ncells.y, cl->ncells.z});
         const int nthreads = 64;
         const dim3 nblocks = dim3(getNblocks(maxdim*maxdim, nthreads), 6, 1);
-        
+
         helper->resizeSendBuf();
-        
+
         // Sizes will still remain on host, no need to download again
         helper->send.sizes.clearDevice(stream);
-        
+
         SAFE_KERNEL_LAUNCH(
             particle_redistributor_kernels::getExitingParticles<PackMode::Pack>,
             nblocks, nthreads, 0, stream,
@@ -224,7 +224,7 @@ void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
     auto helper = getExchangeEntity(id);
     auto packer = packers_[id].get();
     auto lpv = pv->local();
-    
+
     int oldSize = lpv->size();
     int totalRecvd = helper->recv.offsets[helper->nBuffers];
     lpv->resize(oldSize + totalRecvd, stream);
@@ -235,7 +235,7 @@ void ParticleRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
         const int nblocks  = helper->nBuffers - 1;
 
         packer->update(lpv, stream);
-        
+
         SAFE_KERNEL_LAUNCH(
             particle_redistributor_kernels::unpackParticles,
             nblocks, nthreads, 0, stream,

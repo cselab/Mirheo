@@ -133,7 +133,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
     positions.uploadToDevice(defaultStream);
     return positions;
 }
-                                  
+
 
 void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xdmfFilename,
                                             const std::string& ipFilename)
@@ -146,20 +146,20 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     auto motions = local()->dataPerObject.getData<RigidMotion>(channel_names::motions);
 
     motions->downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    
+
     auto positions = std::make_shared<std::vector<real3>>();
     std::vector<RigidReal4> quaternion;
     std::vector<RigidReal3> vel, omega, force, torque;
-    
+
     std::tie(*positions, quaternion, vel, omega, force, torque)
         = checkpoint_helpers::splitAndShiftMotions(getState()->domain, *motions);
 
-    XDMF::VertexGrid grid(positions, comm);    
+    XDMF::VertexGrid grid(positions, comm);
 
     auto rigidType = XDMF::getNumberType<RigidReal>();
 
     const std::set<std::string> blackList {channel_names::motions};
-    
+
     auto channels = checkpoint_helpers::extractShiftPersistentData(getState()->domain,
                                                                    local()->dataPerObject,
                                                                    blackList);
@@ -168,7 +168,7 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
                                          XDMF::Channel::DataForm::Quaternion,
                                          rigidType, DataTypeWrapper<RigidReal4>(),
                                          XDMF::Channel::NeedShift::False});
-    
+
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::velocity,   vel.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
@@ -178,17 +178,17 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
-    
+
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::force,      force.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
-    
+
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::torque,     torque.data(),
                                          XDMF::Channel::DataForm::Vector,
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
-    
+
     XDMF::write(xdmfFilename, &grid, channels, comm);
 
     writeInitialPositions(comm, ipFilename, initialPositions);
@@ -245,7 +245,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     auto torque     = restart_helpers::extractChannel<RigidReal3> (ChNames::motions::torque,     listData);
 
     auto motions = restart_helpers::combineMotions(pos, quaternion, vel, omega, force, torque);
-    
+
     restart_helpers::exchangeData    (comm, ms.map, motions,  objChunkSize);
     restart_helpers::exchangeListData(comm, ms.map, listData, objChunkSize);
 
@@ -254,7 +254,7 @@ void RigidObjectVector::_restartObjectData(MPI_Comm comm, const std::string& pat
     auto& dataPerObject = local()->dataPerObject;
     dataPerObject.resize_anew(ms.newSize);
     restart_helpers::copyAndShiftListData(getState()->domain, listData, dataPerObject);
-    
+
     restart_helpers::shiftElementsGlobal2Local(motions, getState()->domain);
 
     auto& dstMotions = *dataPerObject.getData<RigidMotion>(channel_names::motions);

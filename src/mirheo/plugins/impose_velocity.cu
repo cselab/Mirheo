@@ -53,7 +53,7 @@ __global__ void averageVelocity(PVview view, DomainInfo domain, real3 low, real3
             p.u = make_real3(0.0_r);
         }
     }
-    
+
     real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
     if (laneId() == 0 && dot(u, u) > 1e-8_r)
     {
@@ -90,7 +90,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
 
         totVel_.clearDevice(stream);
         nSamples_.clearDevice(stream);
-        
+
         for (auto& pv : pvs_)
         {
             SAFE_KERNEL_LAUNCH(
@@ -98,7 +98,7 @@ void ImposeVelocityPlugin::afterIntegration(cudaStream_t stream)
                     getNblocks(pv->local()->size(), nthreads), nthreads, 0, stream,
                     PVview(pv, pv->local()), getState()->domain, low_, high_, totVel_.devPtr(), nSamples_.devPtr() );
         }
-        
+
         totVel_.downloadFromDevice(stream, ContainersSynch::Asynch);
         nSamples_.downloadFromDevice(stream);
 
@@ -120,7 +120,7 @@ void ImposeVelocityPlugin::setTargetVelocity(real3 v)
     info("Changing target velocity from [%f %f %f] to [%f %f %f]",
          targetVel_.x, targetVel_.y, targetVel_.z,
          v.x, v.y, v.z);
-    
+
     targetVel_ = v;
 }
 

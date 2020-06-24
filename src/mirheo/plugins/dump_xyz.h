@@ -38,7 +38,7 @@ class XYZDumper : public PostprocessPlugin
 public:
     XYZDumper(std::string name, std::string path);
     ~XYZDumper();
-    
+
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
 

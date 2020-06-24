@@ -60,8 +60,8 @@ struct __align__(16) Real3_int
 
     /// a special value used to mark particles;
     /// useful e.g. to mark particles that must leave the domain
-    
-    static constexpr real mark_val = -900._r; 
+
+    static constexpr real mark_val = -900._r;
 
     /// copy constructor
     __HD__ inline Real3_int(const Real3_int& x)
@@ -115,7 +115,7 @@ struct __align__(16) Real3_int
 };
 
 /** \brief Structure that holds position, velocity and global index of one particle.
- 
+
     Due to performance reasons it should be aligned to 16 bytes boundary,
     therefore 8 bytes = 2 integer numbers are extra.
     The integer fields are used to store the global index
@@ -180,7 +180,7 @@ struct __align__(16) Particle
         return int64_t(i1) + (int64_t (i2) << 32);
 #endif
     }
-    
+
     /** \brief Construct a Particle from two real4 entries
         \param r4 first three reals will be position (#r), last one \e \.w - #i1 (reinterpreted, not converted)
         \param u4 first three reals will be velocity (#u), last one \e \.w - #i2 (reinterpreted, not converted)
@@ -195,7 +195,7 @@ struct __align__(16) Particle
     }
 
     /** \brief read position from array and stores it internally
-        \param addr start of the array with size > \p pid 
+        \param addr start of the array with size > \p pid
         \param pid  particle index
      */
     __HD__ inline void readCoordinate(const real4 *addr, const int pid)
@@ -206,7 +206,7 @@ struct __align__(16) Particle
     }
 
     /** \brief read velocity from array and stores it internally
-        \param addr pointer to the start of the array. Must be larger than \p pid 
+        \param addr pointer to the start of the array. Must be larger than \p pid
         \param pid  particle index
      */
     __HD__ inline void readVelocity(const real4 *addr, const int pid)
@@ -221,7 +221,7 @@ struct __align__(16) Particle
     {
         return Real3_int{r, i1};
     }
-    
+
     /** \brief Helps writing particles back to \e real4 array
         \return packed #r and #i1 as \e real4
      */
@@ -271,7 +271,7 @@ struct __align__(16) Particle
 };
 
 /** \brief Structure that holds force as \e real4 (to reduce number of load/store instructions)
-    
+
     Due to performance reasons it should be aligned to 16 bytes boundary.
     The integer field is not reserved for anything at the moment
  */
@@ -290,7 +290,7 @@ struct __align__(16) Force
     {};
 
     /// Construct a force from \c real4.
-    /// The 4th component will be reinterpreted as an integer (not converted) 
+    /// The 4th component will be reinterpreted as an integer (not converted)
     __HD__ inline Force(const real4 f4)
     {
         Real3_int tmp(f4);
@@ -311,7 +311,7 @@ __HD__ static inline void operator+=(Force& a, const Force& b)
     a.f.x += b.f.x;
     a.f.y += b.f.y;
     a.f.z += b.f.z;
-}    
+}
 
 /// \return a + b (the integer part is ignored)
 __HD__ static inline Force operator+(Force a, const Force& b)
@@ -321,7 +321,7 @@ __HD__ static inline Force operator+(Force a, const Force& b)
 }
 
 /** \brief Store a symmetric stess tensor in 3 dimensions
-    
+
     Since it is symmetric, only 6 components are needed (diagonal and upper part
  */
 struct Stress
@@ -338,7 +338,7 @@ __HD__ static inline void operator+=(Stress& a, const Stress& b)
 {
     a.xx += b.xx; a.xy += b.xy; a.xz += b.xz;
     a.yy += b.yy; a.yz += b.yz; a.zz += b.zz;
-}    
+}
 
 __HD__ static inline Stress operator+(Stress a, const Stress& b)
 {
@@ -348,7 +348,7 @@ __HD__ static inline Stress operator+(Stress a, const Stress& b)
 
 /// Contains the rigid object center of mass and bounding box
 /// Used e.g. to decide which domain the objects belong to and
-/// what particles / cells are close to it 
+/// what particles / cells are close to it
 struct __align__(16) COMandExtent
 {
     real3 com;  ///< center of mass

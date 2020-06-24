@@ -18,23 +18,23 @@ struct Channel
     enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, RigidMotion, Other };
     /// The type of the data contained in one element
     enum class NumberType { Float, Double, Int, Int64 };
-    /// If the data depends on the coordinates 
+    /// If the data depends on the coordinates
     enum class NeedShift { True, False };
-    
+
     std::string name;       ///< Name of the channel
     void *data;             ///< pointer to the data that needs to be dumped
     DataForm dataForm;      ///< topology of one element
     NumberType numberType;  ///< data type (enum version)
     TypeDescriptor type;    ///< data type (variant version)
-    NeedShift needShift;    ///< wether the data depends on the coordinates or not 
+    NeedShift needShift;    ///< wether the data depends on the coordinates or not
 
     int nComponents() const; ///< Number of component in each element (e.g. Vector has 3)
     int precision() const;   ///< Number of bytes of each component in one element
 };
 
-/// \return the xdmf-compatible string that describes the Channel::DataForm 
+/// \return the xdmf-compatible string that describes the Channel::DataForm
 std::string dataFormToXDMFAttribute (Channel::DataForm dataForm);
-/// \return the number of components in the Channel::DataForm 
+/// \return the number of components in the Channel::DataForm
 int         dataFormToNcomponents   (Channel::DataForm dataForm);
 /// \return a unique string that describes the Channel::DataForm (two different may map to the same xdmf attribute)
 std::string dataFormToDescription   (Channel::DataForm dataForm);

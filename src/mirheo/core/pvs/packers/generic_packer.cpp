@@ -11,7 +11,7 @@ void GenericPacker::updateChannels(DataManager& manager, PackPredicate& predicat
     for (const auto& nameDesc : manager.getSortedChannels())
     {
         auto desc = nameDesc.second;
-        
+
         if (!predicate(nameDesc)) continue;
 
         debug2("Packer: adding channel '%s' (id %d)",
@@ -66,7 +66,7 @@ void GenericPacker::_registerChannel(CudaVarPtr varPtr, bool needShift,
 
     channelData_  [nChannels_] = varPtr;
     needShiftData_[nChannels_] = needShift;
-    
+
     ++nChannels_;
 }
 

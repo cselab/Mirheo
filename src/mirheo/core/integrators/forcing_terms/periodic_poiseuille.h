@@ -17,11 +17,11 @@ class ParticleVector;
 
     .. math::
 
-        f_x = \begin{cases} 
+        f_x = \begin{cases}
         F, & y_p > L_y / 2 \\
         -F, & y_p \leqslant L_y / 2
         \end{cases}
-    
+
     Similarly, if the force is parallel to the y axis, its sign will
     depend on z; parallel to z it will depend on x.
     \endrst

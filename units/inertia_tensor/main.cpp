@@ -18,7 +18,7 @@ static real3 inertiaTensorMC(long nsamples, const Shape& shape, real3 low, real3
     std::uniform_real_distribution<real> distx(low.x, high.x);
     std::uniform_real_distribution<real> disty(low.y, high.y);
     std::uniform_real_distribution<real> distz(low.z, high.z);
-    
+
     for (long i = 0; i < nsamples; ++i)
     {
         real3 r {distx(gen), disty(gen), distz(gen)};
@@ -46,7 +46,7 @@ static real3 inertiaTensorMC(long nsamples, const Shape& shape, real3 low, real3
     printf("%g\n", V / nsamples);
     printf("V = %g\n", V * B.x * B.y * B.z / nsamples);
     printf("%g %g %g\n", xy / nsamples, xz / nsamples, yz / nsamples);
-    
+
     real3 I {real(yy + zz),
               real(xx + zz),
               real(xx + yy)};
@@ -69,7 +69,7 @@ TEST (InertiaTensor, Ellipsoid)
     // printf("%g %g %g   %g %g %g\n",
     //        Iref.x, Iref.y, Iref.z,
     //        I.x, I.y, I.z);
-    
+
     ASSERT_LE(Lmax(I, Iref), 1e-2);
 }
 

@@ -66,7 +66,7 @@ template<typename Container>
 static void shiftElementsLocal2Global(Container& data, const DomainInfo domain)
 {
     auto shift = domain.local2global({0._r, 0._r, 0._r});
-    for (auto& d : data) type_shift::apply(d, shift);    
+    for (auto& d : data) type_shift::apply(d, shift);
 }
 
 std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
@@ -74,12 +74,12 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
                                                       const std::set<std::string>& blackList)
 {
     std::vector<XDMF::Channel> channels;
-    
+
     for (auto& namedChannelDesc : extraData.getSortedChannels())
-    {        
+    {
         auto channelName = namedChannelDesc.first;
-        auto channelDesc = namedChannelDesc.second;        
-        
+        auto channelDesc = namedChannelDesc.second;
+
         if (channelDesc->persistence != DataManager::PersistenceMode::Active)
             continue;
 
@@ -92,17 +92,17 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
             bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);
 
             auto needShift = XDMF::Channel::NeedShift::False;
-            
+
             if (channelDesc->needShift())
             {
                 shiftElementsLocal2Global(*bufferPtr, domain);
                 needShift = XDMF::Channel::NeedShift::True;
             }
-            
+
             auto formtype   = XDMF::getDataForm<T>();
             auto numbertype = XDMF::getNumberType<T>();
             auto datatype   = DataTypeWrapper<T>();
-            
+
             channels.push_back(XDMF::Channel {channelName, bufferPtr->data(),
                                               formtype, numbertype, datatype, needShift});
         }, channelDesc->varDataPtr);

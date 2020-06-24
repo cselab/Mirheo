@@ -48,11 +48,11 @@ __global__ void minMaxCom(OVview ovView)
 void computeComExtents(ObjectVector *ov, LocalObjectVector *lov, cudaStream_t stream)
 {
     OVview view(ov, lov);
-    
+
     constexpr int warpSize = 32;
     const int nthreads = 128;
     const int nblocks = getNblocks(view.nObjects * warpSize, nthreads);
-    
+
     SAFE_KERNEL_LAUNCH(
         compute_com_extents_kernels::minMaxCom,
         nblocks, nthreads, 0, stream,

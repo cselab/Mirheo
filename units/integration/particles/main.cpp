@@ -10,11 +10,11 @@ using namespace mirheo;
 static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirState *state)
 {
     integrator->setPrerequisites(pv);
-    
+
     for (int i = 0; i < nsteps; ++i) {
         state->currentStep = i;
         state->currentTime = i * state->dt;
-        
+
         integrator->execute(pv, defaultStream);
     }
 
@@ -26,7 +26,7 @@ static void run_cpu(std::vector<real4>& pos, std::vector<real4>& vel,
                     const std::vector<Force>& forces, int nsteps, real dt, real mass)
 {
     real dt_m = dt / mass;
-    
+
     for (int step = 0; step < nsteps; ++step) {
         for (size_t i = 0; i < pos.size(); ++i) {
             real4& r = pos[i];
@@ -48,10 +48,10 @@ static std::tuple<std::vector<real4>, std::vector<real4>>
 initializeParticles(ParticleVector *pv)
 {
     std::vector<real4> hostPositions, hostVelocities;
-    
+
     auto& pos = pv->local()->positions();
     auto& vel = pv->local()->velocities();
-    
+
     for (size_t i = 0; i < pos.size(); ++i)
     {
         pos[i].x = drand48();
@@ -82,10 +82,10 @@ static std::vector<Force> initializeForces(ParticleVector *pv)
         f.f.x = drand48();
         f.f.y = drand48();
         f.f.z = drand48();
-    }    
+    }
 
     forces.uploadToDevice(defaultStream);
-    
+
     return {forces.begin(), forces.end()};
 }
 
@@ -97,7 +97,7 @@ computeError(int n,
     double l2 {0.};
     double linf {-1.};
     double dx, dy, dz, du, dv, dw;
-    
+
     for (int i = 0; i < n; ++i) {
         auto r1 = pos1[i], r2 = pos2[i];
         auto v1 = vel1[i], v2 = vel2[i];
@@ -130,15 +130,15 @@ static void testVelocityVerlet(real dt, real mass, int nparticles, int nsteps, d
     double l2, linf;
     DomainInfo domain; // dummy domain
     MirState state(domain, dt, UnitConversion{});
-    
+
     auto vv = integrator_factory::createVV(&state, "vv");
     ParticleVector pv(&state, "pv", mass, nparticles);
 
     std::vector<real4> hostPositions, hostVelocities;
-    
+
     std::tie(hostPositions, hostVelocities) = initializeParticles(&pv);
     const auto hostForces = initializeForces(&pv);
-    
+
     run_gpu(vv.get(), &pv, nsteps, &state);
     run_cpu(hostPositions, hostVelocities, hostForces, nsteps, dt, mass);
 
@@ -146,7 +146,7 @@ static void testVelocityVerlet(real dt, real mass, int nparticles, int nsteps, d
                                       pv.local()->positions ().data(),
                                       pv.local()->velocities().data(),
                                       hostPositions.data(), hostVelocities.data());
-    
+
     ASSERT_LE(l2, tolerance);
     ASSERT_LE(linf, tolerance);
 }

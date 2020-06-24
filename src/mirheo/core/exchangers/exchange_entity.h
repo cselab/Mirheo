@@ -64,8 +64,8 @@ public:
     /** \brief Construct an ExchangeEntity object
         \param name The name of the Corresponding ParticleVector
         \param uniqueId A positive integer. This must be unique when a collection of ExchangeEntity objects is registered in a single \c Exchanger.
-        \param packer The class used to pack/unpack the data into buffers 
-     */ 
+        \param packer The class used to pack/unpack the data into buffers
+     */
     ExchangeEntity(std::string name, int uniqueId, ParticlePacker *packer);
     ~ExchangeEntity();
 
@@ -88,21 +88,21 @@ public:
     void resizeRecvBuf(); ///< resize the internal recv buffers; requires recv offsetsBytes to be available on the host
 
     int getUniqueId() const; ///< \return the unique id
-    
+
     BufferOffsetsSizesWrap wrapSendData(); ///< \return a BufferOffsetsSizesWrap from the send BufferInfos
     BufferOffsetsSizesWrap wrapRecvData(); ///< \return a BufferOffsetsSizesWrap from the recv BufferInfos
 
     const std::string& getName() const; ///< \return the name of the attached ParticleVector
     const char* getCName() const;       ///< \return the name of the attached ParticleVector in c-style string
-    
+
 public:
     const int nBuffers = fragment_mapping::numFragments; ///< equal to number of neighbours + 1 (for bulk)
     const int bulkId   = fragment_mapping::bulkId;       ///< The index of the bulk buffer
-    
+
     BufferInfos send; ///< buffers for the send data
     BufferInfos recv; ///< buffers for the recv data
     std::vector<int> recvRequestIdxs; ///< only relevant for MPIExchangeEngine
-    
+
 private:
     std::string name_;       ///< corresponding ParticleVector name
     int uniqueId_;           ///< a unique exchange id: used for tags

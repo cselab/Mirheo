@@ -7,37 +7,37 @@ using namespace mirheo;
 
 TEST (STR_TYPES, int)
 {
-    const int i = 42; 
+    const int i = 42;
     ASSERT_EQ(printToStr(i), "42");
 }
 
 TEST (STR_TYPES, int64)
 {
-    const int64_t i = 42; 
+    const int64_t i = 42;
     ASSERT_EQ(printToStr(i), "42");
 }
 
 TEST (STR_TYPES, float)
 {
-    const float f = 42.3f; 
+    const float f = 42.3f;
     ASSERT_EQ(printToStr(f), "42.3");
 }
 
 TEST (STR_TYPES, float2)
 {
-    const float2 f {1.1f, 2.2f}; 
+    const float2 f {1.1f, 2.2f};
     ASSERT_EQ(printToStr(f), "1.1 2.2");
 }
 
 TEST (STR_TYPES, float3)
 {
-    const float3 f {1.1f, 2.2f, 3.3f}; 
+    const float3 f {1.1f, 2.2f, 3.3f};
     ASSERT_EQ(printToStr(f), "1.1 2.2 3.3");
 }
 
 TEST (STR_TYPES, float4)
 {
-    const float4 f {1.1f, 2.2f, 3.3f, 4.4f}; 
+    const float4 f {1.1f, 2.2f, 3.3f, 4.4f};
     ASSERT_EQ(printToStr(f), "1.1 2.2 3.3 4.4");
 }
 
@@ -47,7 +47,7 @@ TEST (STR_TYPES, COMandExtent)
     const real3 lo {-4._r, -5._r, -6._r};
     const real3 hi {4._r, 5._r, 6._r};
     const COMandExtent cae {com, lo, hi};
-    
+
     ASSERT_EQ(printToStr(cae), "[com: 1.1 2.2 3.3, lo: -4 -5 -6, hi: 4 5 6]");
 }
 
@@ -61,7 +61,7 @@ TEST (STR_TYPES, RigidMotion)
     const RigidReal3 t {9., 9., 9.};
 
     const RigidMotion m {r, q, vel, omega, f, t};
-    
+
     ASSERT_EQ(printToStr(m),
               "[r: 1.1 2.2 3.3, q: 1 0 0 0, v: -4 -5 -6, w: 4 5 6, F: 8 8 8, T: 9 9 9]");
 }

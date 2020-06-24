@@ -26,7 +26,7 @@ static void createRef(const PinnedBuffer<real4>& pos, PinnedBuffer<real4>& vel)
 {
     for (size_t i = 0; i < pos.size(); ++i)
         vel[i] = pos[i];
-    
+
     vel.uploadToDevice(defaultStream);
 }
 
@@ -58,7 +58,7 @@ struct Comp // for sorting particles
             (a.i == b.i && a.v.x  < b.v.x) ||
             (a.i == b.i && a.v.x == b.v.x && a.v.y  < b.v.y) ||
             (a.i == b.i && a.v.x == b.v.x && a.v.y == b.v.y && a.v.z == b.v.z);
-    } 
+    }
 };
 
 static void checkHalo(const PinnedBuffer<real4>& lpos,
@@ -75,7 +75,7 @@ static void checkHalo(const PinnedBuffer<real4>& lpos,
         int dx = -1 + (r0.x >= -0.5f * L.x + rc) + (r0.x >= 0.5f * L.x - rc);
         int dy = -1 + (r0.y >= -0.5f * L.y + rc) + (r0.y >= 0.5f * L.y - rc);
         int dz = -1 + (r0.z >= -0.5f * L.z + rc) + (r0.z >= 0.5f * L.z - rc);
-        
+
         for (int iz = math::min(dz,0); iz < math::max(dz,0); ++iz)
         for (int iy = math::min(dy,0); iy < math::max(dy,0); ++iy)
         for (int ix = math::min(dx,0); ix < math::max(dx,0); ++ix)
@@ -104,7 +104,7 @@ static void checkHalo(const PinnedBuffer<real4>& lpos,
                                        r, less);
 
             real err = 1e9f;
-            
+
             while (lb != hposSorted.end() && lessEq(*lb, r))
             {
                 real errx = math::abs(lb->x - r.x);
@@ -114,7 +114,7 @@ static void checkHalo(const PinnedBuffer<real4>& lpos,
                 err = std::min(err, curr);
                 ++lb;
             };
-            
+
             ASSERT_LE(err, 1e-6f);
         }
     }
@@ -138,11 +138,11 @@ TEST (PACKERS_EXCHANGE, particles)
     auto& lpos = lpv->positions();
     auto& lvel = lpv->velocities();
 
-    createRef(lpos, lvel);    
+    createRef(lpos, lvel);
 
     auto cl = std::make_unique<PrimaryCellList>(pv.get(), rc, domain.localSize);
     cl->build(defaultStream);
-    
+
     auto exch = std::make_unique<ParticleHaloExchanger>();
     exch->attach(pv.get(), cl.get(), {});
 
@@ -221,7 +221,7 @@ static void applyFieldPeriodic(const PinnedBuffer<real4>& pos,
             real3 r {r0.x + ix * L.x,
                      r0.y + iy * L.y,
                      r0.z + iz * L.z};
-        
+
             if (isInside(r, L))
                 forces[i] += getField(r);
         }
@@ -266,7 +266,7 @@ static void checkForces(const PinnedBuffer<real4>& pos,
                            r0.y + iy * L.y,
                            r0.z + iz * L.z};
             const auto f = getField(r).f;
-            
+
             err = std::min(err, linf(f0, f));
         }
         ASSERT_LE(err, 1e-6_r);
@@ -280,7 +280,7 @@ static void compareForces(const PinnedBuffer<Force>& forcesA,
     {
         auto fA = forcesA[i].f;
         auto fB = forcesB[i].f;
-        
+
         auto err = linf(fA, fB);
         ASSERT_LE(err, 1e-6_r);
 
@@ -322,7 +322,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
     auto exchanger = std::make_unique<ObjectHaloExchanger>();
 
     exchanger->attach(rev.get(), rc, extraExchangeChannels);
-        
+
     auto engineExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
 
     clearForces(lforces);
@@ -334,7 +334,7 @@ TEST (PACKERS_EXCHANGE, objects_exchange)
 
     hpos   .downloadFromDevice(defaultStream);
     hforces.downloadFromDevice(defaultStream);
-    
+
     checkForces(hpos, hforces, domain.localSize);
 }
 
@@ -375,7 +375,7 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
 
     exchanger       ->attach(rev.get(), rc, extraExchangeChannels);
     reverseExchanger->attach(rev.get(),   reverseExchangeChannels);
-        
+
     auto engineExchange        = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
     auto engineReverseExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(reverseExchanger));
 
@@ -387,7 +387,7 @@ TEST (PACKERS_EXCHANGE, objects_reverse_exchange)
     hpos   .downloadFromDevice(defaultStream);
     hforces.downloadFromDevice(defaultStream);
     clearForces(hforces);
-    
+
     applyFieldLocal(lpos, lforces, domain.localSize);
     applyFieldLocal(hpos, hforces, domain.localSize);
 
@@ -420,7 +420,7 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     auto hrev = rev->halo();
 
     const std::string extraChannelName = "single_real_field";
-    
+
     rev->requireDataPerParticle<real>(extraChannelName,
                                        DataManager::PersistenceMode::None,
                                        DataManager::ShiftMode::None);
@@ -433,7 +433,7 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     auto& hfield = *hrev->dataPerParticle.getData<real>(extraChannelName);
 
     auto fieldTransform = [](Force f){return length(f.f);};
-    
+
     std::vector<std::string> exchangeChannels = {channel_names::forces};
     std::vector<std::string> extraExchangeChannels = {extraChannelName};
 
@@ -441,16 +441,16 @@ TEST (PACKERS_EXCHANGE, objects_extra_exchange)
     clearForces(lforces);
     applyFieldUnbounded(lpos, lforces);
     std::transform(lforces.begin(), lforces.end(), lfield.begin(), fieldTransform);
-                   
+
     lforces.uploadToDevice(defaultStream);
     lfield.uploadToDevice(defaultStream);
-    
+
     auto exchanger      = std::make_unique<ObjectHaloExchanger>();
     auto extraExchanger = std::make_unique<ObjectExtraExchanger>(exchanger.get());
 
     exchanger     ->attach(rev.get(), rc, exchangeChannels);
     extraExchanger->attach(rev.get(), extraExchangeChannels);
-        
+
     auto engineExchange      = std::make_unique<SingleNodeExchangeEngine>(std::move(exchanger));
     auto engineExtraExchange = std::make_unique<SingleNodeExchangeEngine>(std::move(extraExchanger));
 
@@ -477,7 +477,7 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    logger.init(MPI_COMM_WORLD, "packers_exchange.log", 3);    
+    logger.init(MPI_COMM_WORLD, "packers_exchange.log", 3);
 
     testing::InitGoogleTest(&argc, argv);
     auto retval = RUN_ALL_TESTS();

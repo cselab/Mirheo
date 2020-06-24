@@ -14,7 +14,7 @@ using namespace mirheo;
 static inline RigidMotion initMotion(real3 omega)
 {
     constexpr RigidReal3 zero3 {0.0_r, 0.0_r, 0.0_r};
-    
+
     RigidMotion m;
     m.r = m.vel = m.force = m.torque = zero3;
     m.q = Quaternion<RigidReal>::createFromComponents(1.0, 0.0, 0.0, 0.0);
@@ -35,10 +35,10 @@ static inline std::vector<real3> makeTemplate(real x = 1.0_r, real y = 1.0_r, re
 static PinnedBuffer<real4> getInitialPositions(const std::vector<real3>& in, cudaStream_t stream)
 {
     PinnedBuffer<real4> out(in.size());
-    
+
     for (size_t i = 0; i < in.size(); ++i)
         out[i] = make_real4(in[i].x, in[i].y, in[i].z, 0);
-        
+
     out.uploadToDevice(stream);
     return out;
 }
@@ -65,14 +65,14 @@ static inline std::unique_ptr<RigidObjectVector> makeRigidVector(const MirState 
 
     auto lrov = rov->local();
     auto& motions = *lrov->dataPerObject.getData<RigidMotion>(channel_names::motions);
-    
+
     for (auto& m : motions)
         m = initMotion(omega);
     motions.uploadToDevice(stream);
 
     rov->initialPositions = getInitialPositions(posTemplate, stream);
     setParticlesFromMotions(rov.get(), stream);
-    
+
     return rov;
 }
 
@@ -88,7 +88,7 @@ struct Params
 static inline RigidMotion advanceGPU(const Params& p)
 {
     constexpr real L = 32.0_r;
-    
+
     DomainInfo domain {{L, L, L}, {0._r, 0._r, 0._r}, {L, L, L}};
     MirState state(domain, p.dt, UnitConversion{});
 
@@ -104,7 +104,7 @@ static inline RigidMotion advanceGPU(const Params& p)
 
     auto& motions = *rov->local()->dataPerObject.getData<RigidMotion>(channel_names::motions);
     motions.downloadFromDevice(defaultStream);
-    
+
     return motions[0];
 }
 
@@ -136,7 +136,7 @@ static inline void advanceRotationConsistentQ(real dt, real3 J, real3 invJ, Rigi
 {
     constexpr RigidReal tol = 1e-12;
     constexpr int maxIter = 50;
-    
+
     const RigidReal dt_half = 0.5 * dt;
     auto q = motion.q;
 
@@ -193,7 +193,7 @@ static inline void advanceOneStep(real dt, real3 J, real3 invJ, real invMass, Ri
         advanceRotationConsistentQ(dt, J, invJ, motion);
     else
         advanceRotation(dt, J, invJ, motion);
-    
+
     advanceTranslation(dt, invMass, motion);
 }
 
@@ -205,7 +205,7 @@ static inline RigidMotion advanceCPU(const Params& p, RigidMotion m)
 
     const real3 invJ = 1.0_r / p.J;
     const real invMass = 1.0 / p.mass;
-    
+
     for (TimeType t = 0; t < p.tend; t += dt)
         advanceOneStep<rotScheme>(dt, p.J, invJ, invMass, m);
 
@@ -251,7 +251,7 @@ TEST (Integration_Rigid, Analytic_CPU_compare_principal_axes)
         p.omega = omega;
 
         const auto cpuM = advanceCPU<RotationScheme::ConsistentQ>(p);
-        
+
         constexpr real tol = 1e-6;
         ASSERT_NEAR(omega.x, cpuM.omega.x, tol);
         ASSERT_NEAR(omega.y, cpuM.omega.y, tol);
@@ -310,7 +310,7 @@ TEST (Integration_Rigid, constantTorquePrincipalAxis)
 
         const real3 invJ = 1.0_r / p.J;
         const auto omegaRef = p.tend * invJ * torque;
-        
+
         const real3 tol = math::abs(1e-6_r * omegaRef);
         ASSERT_NEAR(omegaRef.x, cpuM.omega.x, tol.x);
         ASSERT_NEAR(omegaRef.y, cpuM.omega.y, tol.y);

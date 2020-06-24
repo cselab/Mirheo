@@ -31,7 +31,7 @@ __global__ void addForce(PVview view, DomainInfo domain, real3 low, real3 high, 
     if (gid >= view.size) return;
 
     auto r = Real3_int(view.readPosition(gid)).v;
-    
+
     const real3 gr = domain.local2global(r);
 
     if (is_inside(gr, low, high))
@@ -42,7 +42,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, real3 low, real3 hig
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     Particle p;
-    
+
     p.u = make_real3(0.0_r);
 
     if (gid < view.size) {
@@ -57,7 +57,7 @@ __global__ void sumVelocity(PVview view, DomainInfo domain, real3 low, real3 hig
     }
 
     const real3 u = warpReduce(p.u, [](real a, real b) { return a+b; });
-    
+
     if (laneId() == 0 && dot(u, u) > 1e-8)
         atomicAdd(totVel, u);
 }
@@ -76,7 +76,7 @@ SimulationVelocityControl::SimulationVelocityControl(const MirState *state, std:
     targetVel_(targetVel),
     sampleEvery_(sampleEvery),
     tuneEvery_(tuneEvery),
-    dumpEvery_(dumpEvery), 
+    dumpEvery_(dumpEvery),
     force_(make_real3(0, 0, 0)),
     pid_(make_real3(0, 0, 0), Kp, Ki, Kd),
     accumulatedTotVel_({0,0,0})
@@ -108,7 +108,7 @@ void SimulationVelocityControl::beforeForces(cudaStream_t stream)
 void SimulationVelocityControl::_sampleOnePv(ParticleVector *pv, cudaStream_t stream) {
     PVview pvView(pv, pv->local());
     const int nthreads = 128;
- 
+
     SAFE_KERNEL_LAUNCH
         (velocity_control_kernels::sumVelocity,
          getNblocks(pvView.size, nthreads), nthreads, 0, stream,
@@ -129,17 +129,17 @@ void SimulationVelocityControl::afterIntegration(cudaStream_t stream)
         accumulatedTotVel_.y += totVel_[0].y;
         accumulatedTotVel_.z += totVel_[0].z;
     }
-    
+
     if (!isTimeEvery(getState(), tuneEvery_)) return;
-    
+
     nSamples_.downloadFromDevice(stream);
     nSamples_.clearDevice(stream);
-    
+
     long nSamplesTot = 0;
     double3 totVelTot = make_double3(0,0,0);
 
     const long nSamplesLoc = nSamples_[0];
-    
+
     MPI_Check( MPI_Allreduce(&nSamplesLoc,         &nSamplesTot, 1, MPI_LONG,   MPI_SUM, comm_) );
     MPI_Check( MPI_Allreduce(&accumulatedTotVel_,  &totVelTot,   3, MPI_DOUBLE, MPI_SUM, comm_) );
 
@@ -162,7 +162,7 @@ void SimulationVelocityControl::checkpoint(MPI_Comm comm, const std::string& pat
     const auto filename = createCheckpointNameWithId(path, "plugin." + getName(), "txt", checkpointId);
 
     text_IO::write(filename, pid_);
-    
+
     createCheckpointSymlink(comm, path, "plugin." + getName(), "txt", checkpointId);
 }
 
@@ -202,7 +202,7 @@ void PostprocessVelocityControl::deserialize()
                 currentTime, currentTimeStep,
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z);
-        
+
         fflush(fdump_.get());
     }
 }

@@ -26,17 +26,17 @@ public:
     ObjectRedistributor();
     ~ObjectRedistributor();
 
-    /** \brief Add an ObjectVector to the redistribution. 
+    /** \brief Add an ObjectVector to the redistribution.
         \param ov The ObjectVector to attach
 
         Multiple ObjectVector objects can be attached to the same redistribution object.
      */
     void attach(ObjectVector *ov);
-    
+
 private:
     std::vector<ObjectVector*> objects_;
     std::vector<std::unique_ptr<ObjectPacker>> packers_;
-    
+
     void prepareSizes(size_t id, cudaStream_t stream) override;
     void prepareData (size_t id, cudaStream_t stream) override;
     void combineAndUploadData(size_t id, cudaStream_t stream) override;

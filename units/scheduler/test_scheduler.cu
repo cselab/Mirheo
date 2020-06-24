@@ -33,7 +33,7 @@ TEST(Scheduler, Order)
                   \ F
                             G
     */
-    
+
     TaskScheduler scheduler;
     std::vector<std::string> messages;
 
@@ -56,7 +56,7 @@ TEST(Scheduler, Order)
     scheduler.addTask(E , [&](__UNUSED cudaStream_t s){ messages.push_back("e" ); });
     scheduler.addTask(F , [&](__UNUSED cudaStream_t s){ messages.push_back("f" ); });
     scheduler.addTask(G , [&](__UNUSED cudaStream_t s){ messages.push_back("g" ); });
-                
+
     scheduler.addDependency(B, {}, {A1, A2});
     scheduler.addDependency(D1, {}, {B, C});
     scheduler.addDependency(D2, {}, {B, C});
@@ -90,7 +90,7 @@ TEST(Scheduler, Benchmark)
 
     float a, b, c, d, e, f, g;
     a = b = c = d = e = f = g = 0;
-        
+
     auto A1 = scheduler.createTask("A1");
     auto A2 = scheduler.createTask("A2");
     auto B  = scheduler.createTask("B");
@@ -100,7 +100,7 @@ TEST(Scheduler, Benchmark)
     auto E  = scheduler.createTask("E");
     auto F  = scheduler.createTask("F");
     auto G  = scheduler.createTask("G");
-        
+
     scheduler.addTask(C,  [&](__UNUSED cudaStream_t s){ c++; });
     scheduler.addTask(G,  [&](__UNUSED cudaStream_t s){ g--; });
     scheduler.addTask(D1, [&](__UNUSED cudaStream_t s){ d+=2; });
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
     logger.init(MPI_COMM_WORLD, "scheduler.log", 9);
 
     testing::InitGoogleTest(&argc, argv);
-    
+
     auto ret = RUN_ALL_TESTS();
 
     MPI_Finalize();

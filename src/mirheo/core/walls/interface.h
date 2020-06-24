@@ -32,7 +32,7 @@ public:
     /** \brief Initialize the wall internal state.
         \param [in] comm The MPI Cartesian communicator of the simulation.
 
-        This must be called before any other wall operations that involve its surface. 
+        This must be called before any other wall operations that involve its surface.
      */
     virtual void setup(MPI_Comm& comm) = 0;
 
@@ -45,16 +45,16 @@ public:
 
     /** \brief Remove particles inside the walls.
         \param [in,out] pv ParticleVector to remove the particles from.
-        
+
         If pv is an ObjectVector, any object with at least one particle will be removed by this operation.
-    */ 
+    */
     virtual void removeInner(ParticleVector *pv) = 0;
 
     /** \brief Register a ParticleVector that needs to be bounced from the wall.
         \param [in] pv The particles to be bounced. Will be ignored if it is the same as the frozen particles.
         \param [in] cl Cell lists corresponding to pv.
         \param [in] maximumPartTravel The estimated maximum distance traveled by one particle over a single time step.
-        
+
         Multiple ParticleVector can be registered by calling this method several times.
         The parameter maximumPartTravel is used for performance, lower leading to higher performances.
         Note that if it is too low, some particles may be ignored and not bounced and end up inside the walls (see bounce()).
@@ -63,14 +63,14 @@ public:
 
     /** \brief Bounce the particles attached to the wall.
         \param [in] stream The stream to execute the bounce operation on.
-        
+
         The particles that are bounced must be registered previously exactly once with attach().
      */
     virtual void bounce(cudaStream_t stream) = 0;
 
-    /** \brief Set properties needed by the particles to be bounced. 
+    /** \brief Set properties needed by the particles to be bounced.
         \param [in,out] pv Particles to add additional properties to.
-        
+
         Must be called just after setup() and before any bounce().
         Default: ask nothing.
      */
@@ -101,9 +101,9 @@ public:
     /** \brief Compute the wall SDF at particles positions.
         \param [in] lpv Input particles.
         \param [out] sdfs Values of the SDF at the particle positions.
-        \param [out] gradients Gradients of the SDF at the particle positions. 
+        \param [out] gradients Gradients of the SDF at the particle positions.
                      Can be disabled by passing a nullptr.
-        \param [in] gradientThreshold Compute gradients for particles that are only within that distance. 
+        \param [in] gradientThreshold Compute gradients for particles that are only within that distance.
                     Irrelevant if gradients is nullptr.
         \param [in] stream The stream to execute the operation on.
      */

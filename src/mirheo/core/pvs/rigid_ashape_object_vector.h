@@ -22,7 +22,7 @@ public:
     */
     RigidShapedObjectVector(const MirState *state, const std::string& name, real mass, int objSize,
                             Shape shape, int nObjects = 0);
-    
+
     /** Construct a RigidShapedObjectVector
         \param [in] state The simulation state
         \param [in] name Name of the pv
@@ -43,7 +43,7 @@ public:
 
     /// get the handler that represent the shape of the objects
     const Shape& getShape() const {return shape_;}
-    
+
 private:
     Shape shape_;
 };

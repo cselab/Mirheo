@@ -26,7 +26,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
 
     if (fastForces_.size() == 0)
         die("Integrator '%s' needs at least one integration", getCName());
-    
+
     for (auto ff : fastForces_)
     {
         if (!ff->isSelfObjectInteraction())
@@ -40,7 +40,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
           getCName(), substeps_, subIntegrator_->getCName(), ffNames.c_str());
 
     updateSubState_();
-    
+
     subIntegrator_->setState(&subState_);
 }
 
@@ -84,7 +84,7 @@ void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
 {
     // save "slow forces"
     slowForces_.copyFromDevice(pv->local()->forces(), stream);
-    
+
     // save previous positions
     previousPositions_.copyFromDevice(pv->local()->positions(), stream);
 
@@ -97,21 +97,21 @@ void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
 
     for (auto& ff : fastForces_)
         ff->setState(&subState_);
-    
+
     for (int substep = 0; substep < substeps_; ++substep)
     {
         if (substep != 0)
-            pv->local()->forces().copy(slowForces_, stream);        
+            pv->local()->forces().copy(slowForces_, stream);
 
         for (auto ff : fastForces_)
             ff->local(pv, pv, nullptr, nullptr, stream);
-        
+
         subIntegrator_->execute(pv, stream);
 
         subState_.currentTime += subState_.dt;
         subState_.currentStep ++;
     }
-    
+
     // restore previous positions into old_particles channel
     pv->local()->dataPerParticle.getData<real4>(channel_names::oldPositions)->copy(previousPositions_, stream);
 

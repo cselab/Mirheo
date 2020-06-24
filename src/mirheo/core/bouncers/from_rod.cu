@@ -102,7 +102,7 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
     mpark::visit([&](auto& bounceKernel)
     {
         bounceKernel.update(rng_);
-    
+
         SAFE_KERNEL_LAUNCH(
             rod_bounce_kernels::performBouncing,
             getNblocks(nCollisions, nthreads), nthreads, 0, stream,

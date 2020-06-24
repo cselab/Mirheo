@@ -20,7 +20,7 @@ using RigiQuaternion = Quaternion<RigidReal>; ///< quaternion
 
 /** \brief Holds the state of a rigid object
 
-    A rigid object state is defined by its position and orientation as 
+    A rigid object state is defined by its position and orientation as
     well as linear and angular velocities.
     For convenience, the force and torque are also stored in this structure.
  */
@@ -29,7 +29,7 @@ struct __align__(16) TemplRigidMotion
 {
     /// real3
     using R3 = typename vec_traits::Vec<RealType, 3>::Type;
-    
+
     R3 r;                   ///< position of the center of mass
     Quaternion<RealType> q; ///< orientation
     R3 vel;                 ///< linear velocity

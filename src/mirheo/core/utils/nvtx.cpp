@@ -15,9 +15,9 @@ constexpr int num_colors = sizeof(colors) / sizeof(colors[0]);
 NvtxTracer::NvtxTracer(const std::string& name)
 {
     std::hash<std::string> nameHash;
-    
+
     const int color_id = nameHash(name) % nvtx_helpers::num_colors;;
-    
+
     nvtxEventAttributes_t event = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     event.version       = NVTX_VERSION;
     event.size          = NVTX_EVENT_ATTRIB_STRUCT_SIZE;

@@ -68,13 +68,13 @@ static void initialFrame(Real3 t0, Real3& u, Real3& v)
 static void transportBishopFrame(const std::vector<Real3>& positions, std::vector<Real3>& frames)
 {
     int n = (positions.size() - 1) / 5;
-    
+
     for (int i = 1; i < n; ++i)
     {
         auto r0 = positions[5*(i-1)];
         auto r1 = positions[5*(i)];
         auto r2 = positions[5*(i+1)];
-        
+
         auto t0 = normalize(r1-r0);
         auto t1 = normalize(r2-r1);
 
@@ -93,7 +93,7 @@ static Real bendingEnergy(const std::vector<Real3>& positions, const real2 B[2],
     int n = (positions.size() - 1) / 5;
 
     Real Etot = 0;
-    
+
     for (int i = 1; i < n; ++i)
     {
         auto r0 = positions[5*(i-1)];
@@ -105,34 +105,34 @@ static Real bendingEnergy(const std::vector<Real3>& positions, const real2 B[2],
 
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
-        
+
         auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
         auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
 
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
-        
+
         Real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
-        
+
         Real dp0Perpinv = 1.0 / length(dp0Perp);
         Real dp1Perpinv = 1.0 / length(dp1Perp);
 
         Real l = 0.5 * (length(e0) + length(e1));
         Real linv = 1.0 / l;
-        
+
         Real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
                      - linv * dp0Perpinv * dot(bicur, dp0)};
         Real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
                      - linv * dp1Perpinv * dot(bicur, dp1)};
-        
-        
+
+
         om0 -= make_Real2(omega_eq);
         om1 -= make_Real2(omega_eq);
 
         Real2 Bom0 {dot(om0, make_Real2(B[0])),
                     dot(om0, make_Real2(B[1]))};
-        
+
         Real2 Bom1 {dot(om1, make_Real2(B[0])),
                     dot(om1, make_Real2(B[1]))};
 
@@ -156,7 +156,7 @@ static Real twistEnergy(const std::vector<Real3>& positions, Real kTwist, Real t
     int n = (positions.size() - 1) / 5;
 
     Real Etot = 0;
-    
+
     for (int i = 1; i < n; ++i)
     {
         auto r0 = positions[5*(i-1)];
@@ -165,20 +165,20 @@ static Real twistEnergy(const std::vector<Real3>& positions, Real kTwist, Real t
 
         auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
         auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
-        
+
         auto e0 = r1-r0;
         auto e1 = r2-r1;
 
         auto t0 = normalize(e0);
-        auto t1 = normalize(e1); 
-        
+        auto t1 = normalize(e1);
+
         auto  Q = Quaternion<Real>::createFromVectors(t0, t1);
         auto u0 = normalize(anyOrthogonal(t0));
         auto u1 = normalize(Q.rotate(u0));
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
-        
+
         auto l = 0.5 * (length(e0) + length(e1));
 
         auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
@@ -186,7 +186,7 @@ static Real twistEnergy(const std::vector<Real3>& positions, Real kTwist, Real t
 
         auto tau = safeDiffTheta(theta0, theta1) / l;
         auto dtau = tau - tau0;
-        
+
         auto E = 0.5 * kTwist * l * dtau * dtau;
 
         Etot += E;
@@ -199,7 +199,7 @@ static Real smoothingEnergy(const std::vector<Real3>& positions, Real kSmoothing
 {
     int n = (positions.size() - 1) / 5;
     int nBisegments = n - 1;
-    
+
     std::vector<Real>  taus  (nBisegments);
     std::vector<Real2> omegas(nBisegments);
 
@@ -214,16 +214,16 @@ static Real smoothingEnergy(const std::vector<Real3>& positions, Real kSmoothing
 
         auto t0 = normalize(e0);
         auto t1 = normalize(e1);
-        
+
         auto dp0 = positions[5*(i-1) + 2] - positions[5*(i-1) + 1];
         auto dp1 = positions[5*i     + 2] - positions[5*i     + 1];
 
         auto dp0Perp = dp0 - dot(dp0, t0) * t0;
         auto dp1Perp = dp1 - dot(dp1, t1) * t1;
-        
+
         Real denom = length(e0) * length(e1) + dot(e0, e1);
         auto bicur = (2.f / denom) * cross(e0, e1);
-        
+
         Real dp0Perpinv = 1.0 / length(dp0Perp);
         Real dp1Perpinv = 1.0 / length(dp1Perp);
 
@@ -233,35 +233,35 @@ static Real smoothingEnergy(const std::vector<Real3>& positions, Real kSmoothing
 
         auto v0 = cross(t0, u0);
         auto v1 = cross(t1, u1);
-        
+
         auto theta0 = atan2(dot(dp0, v0), dot(dp0, u0));
         auto theta1 = atan2(dot(dp1, v1), dot(dp1, u1));
-        
+
         Real l = 0.5 * (length(e0) + length(e1));
         Real linv = 1.0 / l;
-        
+
         Real2 om0 = {+ linv * dp0Perpinv * dot(bicur, cross(t0, dp0)),
                      - linv * dp0Perpinv * dot(bicur, dp0)};
         Real2 om1 = {+ linv * dp1Perpinv * dot(bicur, cross(t1, dp1)),
                      - linv * dp1Perpinv * dot(bicur, dp1)};
 
         auto tau = safeDiffTheta(theta0, theta1) / l;
-        
+
         omegas[i-1] = 0.5 * (om0 + om1);
         taus  [i-1] = tau;
     }
-    
+
     Real Etot = 0;
-    
+
     for (int i = 1; i < n-1; ++i)
     {
         auto r0 = positions[5*(i-1)];
         auto r1 = positions[5*(i  )];
         auto l = length(r1-r0);
-        
+
         auto dtau   = taus  [i] - taus  [i-1];
-        auto domega = omegas[i] - omegas[i-1];            
-        
+        auto domega = omegas[i] - omegas[i-1];
+
         auto E = 0.5 * kSmoothing * l * (domega.x * domega.x +
                                          domega.y * domega.y +
                                          dtau     * dtau);
@@ -279,7 +279,7 @@ inline void computeForces(const std::vector<Real3>& positions, std::vector<Real3
                           EnergyComp computeEnergy)
 {
     auto perturbed = positions;
-    
+
     for (size_t i = 0; i < positions.size(); ++i)
     {
         auto computeForce = [&](Real3 dir) {
@@ -376,7 +376,7 @@ static void copyToRv(const std::vector<Real3>& positions, RodVector& rod)
         vel[i] = p.u2Real4();
     }
     pos.uploadToDevice(defaultStream);
-    vel.uploadToDevice(defaultStream);    
+    vel.uploadToDevice(defaultStream);
 }
 
 static void checkMomentum(const PinnedBuffer<real4>& pos, const HostBuffer<Force>& forces)
@@ -418,7 +418,7 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
     params.l0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    
+
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     auto interactions = createInteractionRod(&state, "rod_interaction", params, StatesParametersNone{}, false);
@@ -453,12 +453,12 @@ static double testTwistForces(real kt, real tau0, CenterLine centerLine, int nSe
         //            a.x, a.y, a.z,
         //            b.x, b.y, b.z,
         //            length(a), length(b));
-        
+
         Linfty = std::max(Linfty, err);
     }
 
     checkMomentum(rod.local()->positions(), forces);
-    
+
     return Linfty;
 }
 
@@ -477,7 +477,7 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
     params.l0       = 0.f;
     params.ksCenter = 0.f;
     params.ksFrame  = 0.f;
-    
+
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     auto interactions = createInteractionRod(&state, "rod_interaction", params, StatesParametersNone{}, false);
@@ -504,7 +504,7 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
         Real3 b = make_Real3(forces[i].f);
         Real3 diff = a - b;
         double err = std::max(std::max(math::abs(diff.x), math::abs(diff.y)), math::abs(diff.z));
-        
+
         // if ((i % 5) == 0) printf("%03d ---------- \n", i/5);
         // if ((i % 5) == 0)
         //     printf(FMT SEP FMT SEP FMT SEP SEP
@@ -517,7 +517,7 @@ static double testBendingForces(real3 B, real2 kappa, CenterLine centerLine, int
     }
 
     checkMomentum(rod.local()->positions(), forces);
-    
+
     return Linfty;
 }
 
@@ -539,7 +539,7 @@ static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nS
 
     StatesSmoothingParameters stateParams;
     stateParams.kSmoothing = kSmoothing;
-    
+
     std::vector<Real3> refPositions, refFrames, refForces;
     RodVector rod(&state, "rod", 1.f, nSegments, 1);
     auto interactions = createInteractionRod(&state, "rod_interaction", params, stateParams, false);
@@ -579,7 +579,7 @@ static double testSmoothingForces(real kSmoothing, CenterLine centerLine, int nS
     }
     // fclose(f);
     checkMomentum(rod.local()->positions(), forces);
-    
+
     return Linfty;
 }
 
@@ -588,7 +588,7 @@ TEST (ROD, twistForces_straight)
 {
     Real height = 5.0;
     Real h = 1e-6;
-    
+
     auto centerLine = [&](Real s) -> Real3 {
                           return {0.f, 0.f, s*height};
                       };
@@ -603,7 +603,7 @@ TEST (ROD, twistForces_helix)
     Real radius = 0.5;
     Real height = 1.0;
     Real h = 1e-4;
-    
+
     auto centerLine = [&](Real s) -> Real3 {
                           Real z = s * height;
                           Real theta = 2 * M_PI * z / pitch;
@@ -621,7 +621,7 @@ TEST (ROD, bendingForces_straight)
 {
     Real height = 5.0;
     Real h = 1e-4;
-    
+
     auto centerLine = [&](Real s) -> Real3 {
                           return {0.f, 0.f, s*height};
                       };
@@ -635,7 +635,7 @@ TEST (ROD, bendingForces_circle)
 {
     Real radius = 4.0;
     Real h = 5e-5;
-    
+
     auto centerLine = [&](Real s) -> Real3 {
                           Real theta = s * 2 * M_PI;
                           Real x = radius * cos(theta);
@@ -662,7 +662,7 @@ TEST (ROD, bendingForces_helix)
     Real radius = 0.5;
     Real height = 1.0;
     Real h = 1e-3;
-    
+
     auto centerLine = [&](Real s) -> Real3 {
                           Real z = s * height;
                           Real theta = 2 * M_PI * z / pitch;
@@ -687,7 +687,7 @@ TEST (ROD, bendingForces_helix)
 // {
 //     Real radius = 4.0;
 //     Real h = 5e-5;
-    
+
 //     auto centerLine = [&](Real s) -> Real3
 //     {
 //         Real theta = s * 2 * M_PI;
@@ -711,7 +711,7 @@ TEST (ROD, bendingForces_helix)
 // TEST (ROD, smoothingForces_complex)
 // {
 //     Real h = 5e-3;
-    
+
 //     auto centerLine = [&](Real s) -> Real3
 //     {
 //         Real xmagn = 1.0;
@@ -742,7 +742,7 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 
     logger.init(MPI_COMM_WORLD, "rod_forces.log", 0);
-    
+
     testing::InitGoogleTest(&argc, argv);
     auto ret = RUN_ALL_TESTS();
 

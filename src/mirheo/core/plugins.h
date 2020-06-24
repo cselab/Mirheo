@@ -11,15 +11,15 @@ namespace mirheo
 class Simulation;
 
 /** \brief Base class to represent a Plugin.
-    
+
     Plugins are functionalities that are not required to run a simulation.
-    Each plugin must have a SimulationPlugin derived class, and, optionally, 
-    a compatible PostprocessPlugin derived class.  
-    The latter is used to perform potentially expensive work asynchronously 
+    Each plugin must have a SimulationPlugin derived class, and, optionally,
+    a compatible PostprocessPlugin derived class.
+    The latter is used to perform potentially expensive work asynchronously
     while the simulation is running (e.g. I/O).
  */
 class Plugin
-{    
+{
 public:
     /// default constructor
     Plugin();
@@ -29,19 +29,19 @@ public:
     /// Does not do anything by default.
     virtual void handshake();
 
-    /** \brief Set the tag that will be used internally to communicate between 
+    /** \brief Set the tag that will be used internally to communicate between
         SimulationPlugin and a PostprocessPlugin.
         \param tag The tag, must be unique (all plugins using the same intercommunicator must have a different tag, see _setup())
 
         Must be called before any other methods.
     */
     void setTag(int tag);
-    
+
 protected:
     /** Setup the internal state from the given MPI communicators.
         Must be called before any other method of the class.
         \param comm The communicator that holds all simulation or postprocess ranks. Will be duplicated.
-        \param interComm The communicator to communicate between simulation and postprocess ranks. 
+        \param interComm The communicator to communicate between simulation and postprocess ranks.
                 Will not be duplicated, so the user must ensure that it stays allocated while the Plugin is alive.
      */
     void _setup(const MPI_Comm& comm, const MPI_Comm& interComm);
@@ -53,7 +53,7 @@ private:
 
 protected:
     MPI_Comm comm_;      ///< The communicator shared by all simulation or postprocess ranks.
-    MPI_Comm interComm_; ///< The communicator used to communicate between simulation and postprocess ranks. 
+    MPI_Comm interComm_; ///< The communicator used to communicate between simulation and postprocess ranks.
     int rank_;   ///< rank id within comm_
     int nranks_; ///< number of ranks in comm_
 
@@ -63,12 +63,12 @@ private:
 };
 
 /** \brief Base class for the simulation side of a \c Plugin.
-    
+
     A simulation plugin is able to modify the state of the simulation.
-    Depending on its action, one of the "hooks" (e.g. beforeCellLists()) 
+    Depending on its action, one of the "hooks" (e.g. beforeCellLists())
     must be overriden (by default they do not do anything).
 
-    If a plugin needs reference to objects held by the simulation, it must 
+    If a plugin needs reference to objects held by the simulation, it must
     be saved in its internal structure at setup() time.
  */
 class SimulationPlugin : public Plugin, public MirSimulationObject
@@ -88,12 +88,12 @@ public:
 
     /** \brief setup the internal state of the SimulationPlugin.
         \param simulation The simulation to which the plugin is registered.
-        \param comm Contains all simulation ranks 
+        \param comm Contains all simulation ranks
         \param interComm used to communicate with the postprocess ranks
 
         This method must be called before any of the hooks of the plugin.
         This is the place to fetch reference to objects held by the simulation.
-     */    
+     */
     virtual void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm);
 
     virtual void beforeCellLists            (cudaStream_t stream); ///< hook before building the cell lists
@@ -132,9 +132,9 @@ private:
 };
 
 /** \brief Base class for the postprocess side of a \c Plugin.
-    
+
     A postprocess plugin can only receive information from its associated SimulationPlugin.
-    The use of such class is to wait for a message and then deserialize it (where additional 
+    The use of such class is to wait for a message and then deserialize it (where additional
     actions may be performed, such as I/O).
  */
 class PostprocessPlugin : public Plugin, public MirObject
@@ -147,11 +147,11 @@ public:
     virtual ~PostprocessPlugin();
 
     /** \brief setup the internal state of the PostprocessPlugin.
-        \param comm Contains all postprocess ranks 
+        \param comm Contains all postprocess ranks
         \param interComm used to communicate with the simulation ranks
 
         This method must be called before any other function call.
-     */    
+     */
     virtual void setup(const MPI_Comm& comm, const MPI_Comm& interComm);
 
     /// Post an asynchronous receive request to get a message from the associated SimulationPlugin

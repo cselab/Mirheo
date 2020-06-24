@@ -15,10 +15,10 @@ public:
     __D__ ForceAccumulator() :
         frc_({0._r, 0._r, 0._r})
     {}
-    
-    /** \brief Atomically add the force \p f to the destination \p view at id \p id. 
+
+    /** \brief Atomically add the force \p f to the destination \p view at id \p id.
         \param [in] f The force, directed from src to dst
-        \param [out] view The destination container 
+        \param [out] view The destination container
         \param [in] id destination index in \p view
      */
     __D__ void atomicAddToDst(real3 f, PVview& view, int id) const
@@ -26,9 +26,9 @@ public:
         atomicAdd(view.forces + id, f);
     }
 
-    /** \brief Atomically add the force \p f to the source \p view at id \p id. 
+    /** \brief Atomically add the force \p f to the source \p view at id \p id.
         \param [in] f The force, directed from src to dst
-        \param [out] view The destination container 
+        \param [out] view The destination container
         \param [in] id destination index in \p view
      */
     __D__ void atomicAddToSrc(real3 f, PVview& view, int id) const
@@ -41,7 +41,7 @@ public:
 
     /// add \p f to the internal force
     __D__ void add(real3 f) {frc_ += f;}
-    
+
 private:
     real3 frc_;  ///< internal accumulated force
 };

@@ -13,10 +13,10 @@ namespace mirheo
 /// Compute bending forces from the Kantor model.
 class DihedralKantor : public VertexFetcher
 {
-public:    
+public:
     /// Type of parameters that describe the kernel
     using ParametersType = KantorBendingParameters;
-    
+
     /** \brief Initialize the functor
         \param [in] p The parameters of the functor
         \param [in] lscale Scaling length factor, applied to all parameters
@@ -24,7 +24,7 @@ public:
     DihedralKantor(ParametersType p, mReal lscale)
     {
         const mReal theta0 = p.theta / 180.0 * M_PI;
-        
+
         cost0kb_ = math::cos(theta0) * p.kb * lscale * lscale;
         sint0kb_ = math::sin(theta0) * p.kb * lscale * lscale;
     }
@@ -32,20 +32,20 @@ public:
     /// Precompute internal values that are common to all vertices in the cell.
     __D__ inline void computeInternalCommonQuantities(const ViewType& view, int rbcId)
     {}
-    
+
     /** \brief Compute the dihedral forces. See Developer docs for more details.
         \param [in] v0 vertex 0
         \param [in] v1 vertex 1
         \param [in] v2 vertex 2
         \param [in] v3 vertex 3
-        \param [in,out] f1 force acting on \p v1; this method will add (not set) the dihedral force to that quantity. 
+        \param [in,out] f1 force acting on \p v1; this method will add (not set) the dihedral force to that quantity.
         \return The dihedral force acting on \p v0
      */
     __D__ inline mReal3 operator()(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
         return _kantor(v1, v0, v2, v3, f1);
     }
-    
+
 private:
 
     __D__ inline mReal3 _kantor(VertexType v1, VertexType v2, VertexType v3, VertexType v4, mReal3 &f1) const
@@ -68,7 +68,7 @@ private:
         const mReal b22 = -beta * cosTheta *  overIdzetaI * overIdzetaI;
 
         f1 = cross(ksi, v3 - v2)*b11 + cross(dzeta, v3 - v2)*b12;
-        
+
         return cross(ksi, v1 - v3)*b11 + ( cross(ksi, v3 - v4) + cross(dzeta, v1 - v3) )*b12 + cross(dzeta, v3 - v4)*b22;
     }
 

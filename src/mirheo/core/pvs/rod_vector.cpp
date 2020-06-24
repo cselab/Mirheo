@@ -37,7 +37,7 @@ void LocalRodVector::resize(int np, cudaStream_t stream)
 void LocalRodVector::resize_anew(int np)
 {
     LocalObjectVector::resize_anew(np);
-    
+
     const int totNumBisegments = (getNumSegmentsPerRod() - 1) * getNumObjects();
 
     dataPerBisegment.resize_anew(totNumBisegments);

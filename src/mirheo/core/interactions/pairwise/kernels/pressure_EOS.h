@@ -57,7 +57,7 @@ public:
         QuasiIncompressiblePressureEOS(p.p0, p.rhor)
     {}
 
-    /// Compute the pressure from mass density    
+    /// Compute the pressure from mass density
     __D__ inline real operator()(real rho) const
     {
         const real r = rho * invRhor_;

@@ -34,12 +34,12 @@ static real3 getFirstBishop(real3 r0, real3 r1, real3 r2, real3 initialMaterialF
 {
     const real3 t0 = normalize(r1 - r0);
     real3 u;
-    
+
     if (isDefaultFrame(initialMaterialFrame))
     {
         const real3 t1 = normalize(r2 - r1);
         const real3 b = cross(t0, t1);
-        
+
         if (length(b) > 1e-6_r)
         {
             u = b - dot(b, t0) * t0;
@@ -64,19 +64,19 @@ static std::vector<real3> createRodTemplate(int nSegments, real a, real3 initial
                                             const RodIC::MappingFunc1D& torsion)
 {
     assert(nSegments > 1);
-    
+
     std::vector<real3> positions (5*nSegments + 1);
     real h = 1._r / static_cast<real>(nSegments);
 
     real3 u; // bishop frame
-    
+
     for (int i = 0; i <= nSegments; ++i)
         positions[i*5] = make_real3(centerLine(static_cast<real>(i)*h));
 
     u = getFirstBishop(positions[0], positions[5], positions[10], initialMaterialFrame);
 
     double theta = 0; // angle w.r.t. bishop frame
-    
+
     for (int i = 0; i < nSegments; ++i)
     {
         auto r0 = positions[5*(i + 0)];
@@ -94,7 +94,7 @@ static std::vector<real3> createRodTemplate(int nSegments, real a, real3 initial
         // material frame
         real3 mu =  cost * u + sint * v;
         real3 mv = -sint * u + cost * v;
-            
+
         positions[5*i + 1] = r - 0.5_r * a * mu;
         positions[5*i + 2] = r + 0.5_r * a * mu;
         positions[5*i + 3] = r - 0.5_r * a * mv;
@@ -113,7 +113,7 @@ static std::vector<real3> createRodTemplate(int nSegments, real a, real3 initial
             theta += l * 0.5_r * (torsion((static_cast<real>(i)+0.5_r)*h) + torsion((static_cast<real>(i)+1.5_r)*h));
         }
     }
-    
+
     return positions;
 }
 
@@ -121,7 +121,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto rv = dynamic_cast<RodVector*>(pv);
     auto domain = pv->getState()->domain;
-    
+
     if (rv == nullptr)
         die("rods can only be generated out of rod vectors; provided '%s'", pv->getCName());
 
@@ -132,7 +132,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
     const auto positions = createRodTemplate(nSegments, a_, initialMaterialFrame_, centerLine_, torsion_);
 
     assert(objSize == static_cast<int>(positions.size()));
-    
+
     for (auto& entry : comQ_)
     {
         real3 com = entry.r;
@@ -146,7 +146,7 @@ void RodIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 
             real4 *pos = rv->local()->positions() .data();
             real4 *vel = rv->local()->velocities().data();
-            
+
             for (int i = 0; i < objSize; i++)
             {
                 const real3 r = com + q.rotate(positions[i]);

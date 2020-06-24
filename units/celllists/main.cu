@@ -1,4 +1,3 @@
-// Yo ho ho ho
 #define private   public
 #define protected public
 
@@ -37,7 +36,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
 
     std::copy(dpds.local()->positions ().begin(), dpds.local()->positions ().end(), initialPos.begin());
     std::copy(dpds.local()->velocities().begin(), dpds.local()->velocities().end(), initialVel.begin());
-    
+
     for (int i = 0; i < nbuilds; i++)
     {
         cells->build(defaultStream);
@@ -77,7 +76,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
         if ( (hcellsSize[cid]) != cellscount[cid] )
         {
             success = false;
-            
+
             if (verbose)
                 printf("cid %d:  %d (correct %d),  %d\n",
                         cid, hcellsSize[cid], cellscount[cid], hcellsStart[cid]);
@@ -85,7 +84,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
 
     auto& positions  = dpds.local()->positions();
     auto& velocities = dpds.local()->velocities();
-    
+
     for (int cid = 0; cid < cells->totcells; cid++)
     {
         const int start = hcellsStart[cid];
@@ -100,7 +99,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
             auto p = Particle(initialPos[origId], initialVel[origId]);
             auto coo = p.r;
             auto vel = p.u;
-            
+
             const real diff = std::max({
                 fabs(coo.x - cooDev.x), fabs(coo.y - cooDev.y), fabs(coo.z - cooDev.z),
                 fabs(vel.x - velDev.x), fabs(vel.y - velDev.y), fabs(vel.z - velDev.z) });
@@ -110,7 +109,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
             if (cid != actCid || diff > 1e-5)
             {
                 success = false;
-                
+
                 if (verbose)
                     printf("cid  %d,  correct cid  %d  for pid %d:  [%e %e %e  %ld]  correct: [%e %e %e  %ld]\n",
                             cid, actCid, pid, cooDev.x, cooDev.y, cooDev.z, origId,
@@ -118,7 +117,7 @@ void test_domain(real3 length, real rc, real density, int nbuilds)
             }
         }
     }
-    
+
     ASSERT_TRUE(success);
 }
 
@@ -127,7 +126,7 @@ TEST (CELLLISTS, DomainVaries)
 {
     real rc = 1.0, density = 7.5;
     int ncalls = 1;
-    
+
     test_domain(make_real3(64, 64, 64), rc, density, ncalls);
     test_domain(make_real3(64, 32, 16), rc, density, ncalls);
 }
@@ -137,7 +136,7 @@ TEST (CELLLISTS, rcVaries)
     real3 domain = make_real3(32, 32, 32);
     real density = 7.5;
     int ncalls = 1;
-    
+
     test_domain(domain, 0.5, density, ncalls);
     test_domain(domain, 1.2, density, ncalls);
 }
@@ -147,7 +146,7 @@ TEST (CELLLISTS, DensityVaries)
     real3 domain = make_real3(32, 32, 32);
     real rc = 1.0;
     int ncalls = 1;
-    
+
     test_domain(domain, rc, 2.0, ncalls);
     test_domain(domain, rc, 8.0, ncalls);
 }
@@ -157,7 +156,7 @@ int main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 
     logger.init(MPI_COMM_WORLD, "cells.log", 9);
-    
+
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

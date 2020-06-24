@@ -17,7 +17,7 @@ public:
     void setPrerequisites(__UNUSED MembraneVector *mv) const {}
     /// Set internal state of the object
     void setup           (__UNUSED MembraneVector *mv)       {}
-    
+
     /** \brief States if the given membrane must be kept or not
         \param [in] membraneId The index of the membrane to keep or not
         \return \c true if the membrane should be kept, \c false otherwise.

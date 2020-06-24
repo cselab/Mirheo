@@ -14,7 +14,7 @@ inline void dump_off(const std::vector<marching_cubes::Triangle>& triangles)
     fprintf(f, "%d %d\n",
             static_cast<int>(triangles.size() * 3),
             static_cast<int>(triangles.size()));
-    
+
     for (const auto& t : triangles) {
         fprintf(f, "%g %g %g\n", t.a.x, t.a.y, t.a.z);
         fprintf(f, "%g %g %g\n", t.b.x, t.b.y, t.b.z);
@@ -26,7 +26,7 @@ inline void dump_off(const std::vector<marching_cubes::Triangle>& triangles)
                 static_cast<int>(i * 3 + 0),
                 static_cast<int>(i * 3 + 1),
                 static_cast<int>(i * 3 + 2));
-    
+
     fclose(f);
 }
 
@@ -34,8 +34,8 @@ TEST (MARCHING_CUBES, Sphere)
 {
     real R = 1.0;
     real L = 2.5 * R;
-    
-    DomainInfo domain;    
+
+    DomainInfo domain;
     domain.globalStart = make_real3(0, 0, 0);
     domain.localSize   = make_real3(L, L, L);
     domain.globalSize  = domain.localSize;
@@ -53,14 +53,14 @@ TEST (MARCHING_CUBES, Sphere)
 
     real h = 0.1;
     real3 resolution {h, h, h};
-    
+
     marching_cubes::computeTriangles(domain, resolution, sphereSurface, triangles);
 
     real maxVal  = 0.0;
     real meanVal = 0.0;
 
     // dump_off(triangles);
-    
+
     for (auto& t : triangles) {
         real va, vb, vc;
         va = sphereSurface( domain.local2global(t.a) );

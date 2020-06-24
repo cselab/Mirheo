@@ -24,7 +24,7 @@ RigidShapedObjectVector(const MirState *state, const std::string& name, real mas
                       objSize, std::move(mesh_), nObjects),
     shape_(shape)
 {}
-        
+
 template <class Shape> RigidShapedObjectVector<Shape>::
 ~RigidShapedObjectVector() = default;
 

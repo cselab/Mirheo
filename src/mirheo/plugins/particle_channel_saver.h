@@ -14,7 +14,7 @@ public:
                                std::string channelName, std::string savedName);
 
     void beforeIntegration(cudaStream_t stream) override;
-    
+
     bool needPostproc() override;
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

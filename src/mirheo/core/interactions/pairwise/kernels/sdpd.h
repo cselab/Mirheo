@@ -51,10 +51,10 @@ public:
 
         if (rij2 > rc2_ || rij2 < eps)
             return make_real3(0.0_r);
-        
+
         const real di = dst.d;
         const real dj = src.d;
-        
+
         const real pi = pressure_(di * dst.m);
         const real pj = pressure_(dj * src.m);
 
@@ -75,11 +75,11 @@ public:
 
         const real Aij = (inv_disq + inv_djsq) * dWdr;
         const real Aij_rij = math::min(-0.0_r, Aij * inv_rij); // must be negative because of sqrt below
-        
+
         const real fC = - (inv_disq * pi + inv_djsq * pj) * dWdr;
         const real fD = fDfact_ *             Aij_rij  * erdotdu;
         const real fR = fRfact_ * math::sqrt(-Aij_rij) * myrandnr;
-        
+
         return (fC + fD + fR) * er;
     }
 
@@ -135,7 +135,7 @@ public:
     {
         return (const HandlerType&) (*this);
     }
-    
+
     void setup(__UNUSED LocalParticleVector *lpv1,
                __UNUSED LocalParticleVector *lpv2,
                __UNUSED CellList *cl1,
@@ -160,13 +160,13 @@ public:
     {
         return constructTypeName<PressureEOS, DensityKernel>("PairwiseSDPD");
     }
-    
+
 private:
     static real computeFRfact(real viscosity, real kBT, real dt)
     {
         return math::sqrt(2 * HandlerType::zeta_ * viscosity * kBT / dt);
     }
-    
+
     StepRandomGen stepGen_;
     real viscosity_;
     real kBT_;

@@ -16,7 +16,7 @@ class MagneticOrientationPlugin : public SimulationPlugin
 public:
 
     using UniformMagneticFunc = std::function<real3(real)>;
-    
+
     MagneticOrientationPlugin(const MirState *state, std::string name, std::string rovName, real3 moment, UniformMagneticFunc magneticFunction);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

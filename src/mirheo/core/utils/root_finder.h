@@ -46,10 +46,10 @@ __D__ static inline real safeDivide(real a, real b)
 
 /** \brief Find a root of a given function using bisection method
     \tparam Equation The equation type
-    \param F the equation to solve 
+    \param F the equation to solve
     \param limits the interval on which to solve the equation
-    \param tolerance Stop the iterations when F(x) is less that this tolerance 
-    \return RootInfo object. return invalidRoot if it did not converge. 
+    \param tolerance Stop the iterations when F(x) is less that this tolerance
+    \return RootInfo object. return invalidRoot if it did not converge.
  */
 template <typename Equation>
 __D__ inline RootInfo linearSearchVerbose(Equation F, const Bounds& limits, real tolerance = 1e-6_r)
@@ -105,7 +105,7 @@ __D__ inline real linearSearch(Equation F, const Bounds& limits, real tolerance 
     \param f the function to find the root
     \param fPrime the derivative of \p f
     \param x0 the initial guess
-    \param tolerance Stop the iterations when F(x) is less that this tolerance 
+    \param tolerance Stop the iterations when F(x) is less that this tolerance
     \return The obtained RootInfo object.
  */
 template <typename F, typename FPrime>
