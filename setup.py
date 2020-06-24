@@ -28,7 +28,7 @@ class CopyLibrary(build_ext):
         library = glob.glob(ext.sourcedir + '/build/src/mirheo/bindings/libmirheo.cpython*.so')
 
         if (len(library) == 0):
-            raise ValueError('No pre-build library found in folder ' + 
+            raise ValueError('No pre-build library found in folder ' +
                     ext.sourcedir + '/build/')
 
         shutil.copy2(library[0], extdir)

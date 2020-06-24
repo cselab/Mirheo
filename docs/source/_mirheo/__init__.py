@@ -68,7 +68,7 @@ class Mirheo:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0, units: UnitConversion = UnitConversion()) -> None
+1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_mechanism: str = 'Checkpoint', checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0, units: UnitConversion = UnitConversion()) -> None
 
 
 Create the Mirheo coordinator.
@@ -104,8 +104,9 @@ Args:
         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however, 
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
+    checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
-    checkpoint_folder: folder where the checkpoint files will reside
+    checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
