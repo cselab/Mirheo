@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "xdmf.h"
 #include "common.h"
 

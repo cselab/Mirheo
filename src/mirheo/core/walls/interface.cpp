@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "interface.h"
 #include <mirheo/core/utils/config.h>
 

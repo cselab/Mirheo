@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "mpi.h"
 #include "../exchange_entity.h"
 #include "../utils/fragments_mapping.h"

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "str.h"
 
 #include <mirheo/core/utils/strprintf.h>

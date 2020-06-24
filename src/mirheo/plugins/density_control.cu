@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "density_control.h"
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"

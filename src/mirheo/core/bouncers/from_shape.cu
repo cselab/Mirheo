@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "from_shape.h"
 #include "drivers/shape.h"
 #include "kernels/api.h"

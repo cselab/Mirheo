@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "membrane_with_type_ids.h"
 
 #include <mirheo/core/pvs/membrane_vector.h>

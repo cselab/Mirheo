@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "rigid.h"
 
 #include <mirheo/core/integrators/rigid_vv.h>

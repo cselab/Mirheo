@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "rod.h"
 
 #include <mirheo/core/pvs/rod_vector.h>

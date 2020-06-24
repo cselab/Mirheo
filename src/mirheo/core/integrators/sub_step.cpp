@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "sub_step.h"
 
 #include "forcing_terms/none.h"

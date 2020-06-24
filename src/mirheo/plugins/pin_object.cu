@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "pin_object.h"
 #include "utils/simple_serializer.h"
 

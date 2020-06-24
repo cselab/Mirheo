@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "outlet.h"
 
 #include <mirheo/core/field/from_function.h>

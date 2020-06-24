@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "rod_vector.h"
 #include "views/rv.h"
 

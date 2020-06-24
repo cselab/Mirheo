@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "stacktrace_explicit.h"
 
 #define BACKWARD_HAS_BFD 1

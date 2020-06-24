@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "vv.h"
 #include "integration_kernel.h"
 

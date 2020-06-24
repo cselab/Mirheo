@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "particle_checker.h"
 #include "utils/time_stamp.h"
 

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "base_pairwise.h"
 
 #include <mirheo/core/utils/config.h>

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "from_function.h"
 
 #include <mirheo/core/utils/cuda_common.h>

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "base_membrane.h"
 
 #include "force_kernels/common.h"

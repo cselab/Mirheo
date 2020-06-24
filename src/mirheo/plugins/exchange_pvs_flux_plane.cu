@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "exchange_pvs_flux_plane.h"
 
 #include <mirheo/core/pvs/packers/particles.h>

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "snapshot.h"
 #include <mirheo/core/initial_conditions/restart.h>
 #include <mirheo/core/integrators/factory.h>

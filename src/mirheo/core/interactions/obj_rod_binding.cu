@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "obj_rod_binding.h"
 
 #include <mirheo/core/pvs/views/rov.h>

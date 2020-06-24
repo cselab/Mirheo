@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "restart/helpers.h"
 #include "checkpoint/helpers.h"
 #include "rigid_object_vector.h"

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "membrane_vector.h"
 #include <mirheo/core/mesh/membrane.h>
 #include <mirheo/core/snapshot.h>

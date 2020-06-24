@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include <mirheo/core/utils/restart_helpers.h>
 
 #include "velocity_control.h"

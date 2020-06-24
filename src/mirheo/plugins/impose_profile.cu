@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "impose_profile.h"
 
 #include <mirheo/core/celllist.h>

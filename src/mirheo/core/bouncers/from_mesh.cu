@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "from_mesh.h"
 #include "drivers/mesh.h"
 #include "kernels/api.h"

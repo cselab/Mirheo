@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "off.h"
 
 #include <mirheo/core/logger.h>

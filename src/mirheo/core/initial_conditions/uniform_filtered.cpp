@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "uniform_filtered.h"
 
 #include <mirheo/core/pvs/particle_vector.h>

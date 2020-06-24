@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "rov.h"
 
 #include <mirheo/core/pvs/rigid_object_vector.h>

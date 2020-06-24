@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include <mirheo/core/logger.h>
 #include <mirheo/core/version.h>
 #include "bindings.h"

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "ov.h"
 
 #include <mirheo/core/pvs/object_vector.h>

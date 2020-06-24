@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "mesh_belonging.h"
 
 #include <mirheo/core/celllist.h>

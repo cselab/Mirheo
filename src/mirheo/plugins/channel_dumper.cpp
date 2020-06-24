@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "channel_dumper.h"
 #include "utils/simple_serializer.h"
 

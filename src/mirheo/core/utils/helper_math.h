@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 /**
  * Copyright 1993-2013 NVIDIA Corporation.  All rights reserved.q
  *

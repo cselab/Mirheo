@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "shape_belonging.h"
 
 #include <mirheo/core/analytical_shapes/api.h>

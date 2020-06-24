@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include <pybind11/stl.h>
 #include <pybind11/numpy.h>
 #include <pybind11/functional.h>

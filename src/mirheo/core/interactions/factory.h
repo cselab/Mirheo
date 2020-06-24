@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
 #include "utils/parameters_wrap.h"

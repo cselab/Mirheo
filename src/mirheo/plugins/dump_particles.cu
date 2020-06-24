@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "dump_particles.h"
 #include "utils/simple_serializer.h"
 #include "utils/time_stamp.h"

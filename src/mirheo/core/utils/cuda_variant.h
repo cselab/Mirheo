@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
 #include "cpu_gpu_defines.h"

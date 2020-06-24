@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "from_array.h"
 
 #include <mirheo/core/datatypes.h>

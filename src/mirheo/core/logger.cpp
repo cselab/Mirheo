@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "logger.h"
 
 #include <mirheo/core/utils/stacktrace_explicit.h>

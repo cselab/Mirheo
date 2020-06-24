@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "membrane_extra_force.h"
 
 #include <mirheo/core/pvs/membrane_vector.h>

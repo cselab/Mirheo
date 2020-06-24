@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "velocity_inlet.h"
 
 #include <mirheo/core/marching_cubes.h>

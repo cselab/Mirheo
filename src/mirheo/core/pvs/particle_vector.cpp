@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "particle_vector.h"
 #include "checkpoint/helpers.h"
 #include "restart/helpers.h"

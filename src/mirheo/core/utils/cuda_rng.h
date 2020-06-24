@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 /*
  *  dpd-rng.h
  *  Part of Mirheo/cuda-dpd-sem/

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "object_reverse_exchanger.h"
 #include "object_halo_exchanger.h"
 #include "exchange_entity.h"

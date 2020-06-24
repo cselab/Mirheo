@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "simple_stationary_wall.h"
 
 #include "common_kernels.h"

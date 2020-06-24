@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "grids.h"
 #include "common.h"
 #include "hdf5_helpers.h"

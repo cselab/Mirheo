@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "variant_type_wrapper.h"
 
 #include <mirheo/core/logger.h>

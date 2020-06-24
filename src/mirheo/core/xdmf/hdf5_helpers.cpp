@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "hdf5_helpers.h"
 
 #include <mirheo/core/logger.h>

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "object_redistributor.h"
 
 #include "exchange_entity.h"

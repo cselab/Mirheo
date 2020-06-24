@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include <mirheo/core/integrators/factory.h>
 #include <mirheo/core/interactions/interface.h>
 

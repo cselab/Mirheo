@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "particle_drag.h"
 
 #include <mirheo/core/pvs/particle_vector.h>

@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
 #include <mirheo/core/types/variant_type_wrapper.h>

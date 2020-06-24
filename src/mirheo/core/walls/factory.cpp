@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "factory.h"
 #include "simple_stationary_wall.h"
 #include <mirheo/core/utils/config.h>

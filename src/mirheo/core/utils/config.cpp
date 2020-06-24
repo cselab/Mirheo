@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "config.h"
 #include "strprintf.h"
 #include <mirheo/core/logger.h>

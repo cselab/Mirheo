@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "force_saver.h"
 
 #include <mirheo/core/simulation.h>

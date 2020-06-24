@@ -1,3 +1,4 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "oscillate.h"
 #include "integration_kernel.h"
 
