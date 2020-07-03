@@ -16,7 +16,7 @@
 #include <mirheo/core/snapshot.h>
 #include <mirheo/core/task_scheduler.h>
 #include <mirheo/core/utils/config.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/restart_helpers.h>
 #include <mirheo/core/walls/interface.h>
 

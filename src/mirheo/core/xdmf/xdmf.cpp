@@ -7,7 +7,7 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/cuda_common.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/timer.h>
 
 #include <hdf5.h>

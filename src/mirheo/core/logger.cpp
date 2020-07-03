@@ -1,8 +1,8 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "logger.h"
 
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/stacktrace_explicit.h>
-#include <mirheo/core/utils/folders.h>
 
 #include <cassert>
 #include <chrono>

@@ -68,7 +68,7 @@ set(sources_cpp
   utils/compile_options.cpp
   utils/config.cpp
   utils/file_wrapper.cpp
-  utils/folders.cpp
+  utils/path.cpp
   utils/nvtx.cpp
   utils/reflection.cpp
   utils/stacktrace_explicit.cpp

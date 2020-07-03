@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "folders.h"
+#include "path.h"
 
 #include <mirheo/core/logger.h>
 

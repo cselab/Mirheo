@@ -2,7 +2,7 @@
 #pragma once
 
 #include <mirheo/core/containers.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/plugins.h>
 
 #include <string>

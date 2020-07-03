@@ -6,7 +6,7 @@
 
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 
 namespace mirheo
 {

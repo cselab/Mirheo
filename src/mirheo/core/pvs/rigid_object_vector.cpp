@@ -6,8 +6,8 @@
 
 #include <mirheo/core/rigid/operations.h>
 #include <mirheo/core/snapshot.h>
-#include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/mpi_types.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/xdmf/type_map.h>
 #include <mirheo/core/xdmf/xdmf.h>
 

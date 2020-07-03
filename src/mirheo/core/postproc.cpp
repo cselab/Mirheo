@@ -6,7 +6,7 @@
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 
 #include <mpi.h>
 

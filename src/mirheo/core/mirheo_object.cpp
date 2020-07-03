@@ -2,8 +2,8 @@
 #include "mirheo_object.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/folders.h>
 #include <mirheo/core/utils/config.h>
+#include <mirheo/core/utils/path.h>
 
 namespace mirheo
 {

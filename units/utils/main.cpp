@@ -1,5 +1,5 @@
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 
 #include <cstdio>
 #include <gtest/gtest.h>

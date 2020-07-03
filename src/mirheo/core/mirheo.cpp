@@ -17,7 +17,7 @@
 #include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/version.h>
 #include <mirheo/core/walls/interface.h>
 #include <mirheo/core/walls/simple_stationary_wall.h>

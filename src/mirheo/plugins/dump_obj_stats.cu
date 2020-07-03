@@ -6,7 +6,7 @@
 #include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/folders.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
