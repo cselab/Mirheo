@@ -62,6 +62,14 @@ TEST (UTILS, joinPaths)
     ASSERT_EQ(mirheo::joinPaths("path", ""), "path/");
 }
 
+TEST (UTILS, setExtension)
+{
+    ASSERT_EQ(mirheo::setExtensionOrDie("file", "h5"), "file.h5");
+    ASSERT_EQ(mirheo::setExtensionOrDie("file.h5", "h5"), "file.h5");
+    ASSERT_EQ(mirheo::setExtensionOrDie("path/to/file", "h5"), "path/to/file.h5");
+    ASSERT_EQ(mirheo::setExtensionOrDie("path/to/file.h5", "h5"), "path/to/file.h5");
+}
+
 
 int main(int argc, char **argv)
 {

@@ -43,8 +43,8 @@ std::string makePath(std::string path);
 std::string getParentPath(std::string path);
 
 /** \brief remove the path from the given filename.
-    \param path The filename with full relative o absolute path
-    \return the filename only without any path
+    \param path The filename with full relative or absolute path
+    \return the filename only without any prepended folder
  */
 std::string getBaseName(std::string path);
 
@@ -65,5 +65,14 @@ std::string joinPaths(const std::string &A, const std::string &B);
     The returned value is accessible by all ranks.
  */
 bool createFoldersCollective(const MPI_Comm& comm, std::string path);
+
+/** \brief Add extension to the given path if there is no extension set.
+    \param path The input filename, with or without extension.
+    \param ext The extension to add or check, without the dot.
+    \return \p path + `.` + \p ext if path has no extension, or path if it has the correct extension.
+
+    This function will die if the path already contains an extension that is not the required one.
+ */
+std::string setExtensionOrDie(std::string path, const std::string ext);
 
 } // namespace mirheo

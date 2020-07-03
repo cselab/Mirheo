@@ -96,4 +96,26 @@ bool createFoldersCollective(const MPI_Comm& comm, std::string path)
     return res;
 }
 
+std::string setExtensionOrDie(std::string path, const std::string ext)
+{
+    std::string fname = getBaseName(path);
+    const std::string parentPath = getParentPath(path);
+
+    auto lastDotPos = path.find_last_of(".");
+
+    if (lastDotPos != std::string::npos) {
+        const std::string currentExt(path.begin() + lastDotPos + 1, path.end());
+        if (currentExt != ext) {
+            die("Path '%s' has wong extension: %s instead of %s.",
+                path.c_str(), currentExt.c_str(), ext.c_str());
+        }
+    }
+    else {
+        fname += '.';
+        fname += ext;
+    }
+
+    return joinPaths(parentPath, fname);
+}
+
 } // namespace mirheo
