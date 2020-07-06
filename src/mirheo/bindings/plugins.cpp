@@ -487,6 +487,20 @@ void exportPlugins(py::module& m)
             keepVelocity: True for adding Maxwell distribution to the previous velocity; False to set the velocity to a Maxwell distribution.
     )");
 
+    m.def("__createVacf", &plugin_factory::createVacfPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "start_time"_a, "end_time"_a, "dump_every"_a, "path"_a, R"(
+        This plugin computes the mean velocity autocorrelation over time from a given :any:`ParticleVector`.
+        The reference velocity `v0` is that of the given :any:`ParticleVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            start_time: Simulation time of the reference velocities.
+            end_time: End time until which to compute the VACF.
+            dump_every: Report total pressure every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    )");
+
     m.def("__createVelocityControl", &plugin_factory::createVelocityControlPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a, "pvs"_a, "low"_a, "high"_a,
           "sample_every"_a, "tune_every"_a, "dump_every"_a, "target_vel"_a, "Kp"_a, "Ki"_a, "Kd"_a, R"(
@@ -524,7 +538,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createVirialPressurePlugin", &plugin_factory::createVirialPressurePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "regionFunc"_a, "h"_a, "dump_every"_a, "path"_a, R"(
-        This plugin compute the virial pressure from a given :any:`ParticleVector`.
+        This plugin computes the virial pressure from a given :any:`ParticleVector`.
         Note that the stress computation must be enabled with the corresponding stressName.
         This returns the total internal virial part only (no temperature term).
         Note that the volume is not devided in the result, the user is responsible to properly scale the output.

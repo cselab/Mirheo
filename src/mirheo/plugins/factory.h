@@ -113,6 +113,9 @@ PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::strin
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);
 
+PairPlugin createVacfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                            MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
+
 PairPlugin createVirialPressurePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                       std::function<real(real3)> region, real3 h, int dumpEvery, std::string path);
 

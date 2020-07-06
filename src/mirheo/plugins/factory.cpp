@@ -29,6 +29,7 @@
 #include "pin_rod_extremity.h"
 #include "stats.h"
 #include "temperaturize.h"
+#include "vacf.h"
 #include "velocity_control.h"
 #include "velocity_inlet.h"
 #include "virial_pressure.h"
@@ -349,6 +350,15 @@ PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, st
 {
     auto simPl = computeTask ? std::make_shared<TemperaturizePlugin> (state, name, pv->getName(), kBT, keepVelocity) : nullptr;
     return { simPl, nullptr };
+}
+
+PairPlugin createVacfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                            MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<VacfPlugin> (state, name, pv->getName(), startTime, endTime, dumpEvery)
+        : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<VacfDumper> (name, path);
+    return { simPl, postPl };
 }
 
 PairPlugin createVirialPressurePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,

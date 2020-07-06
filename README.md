@@ -43,6 +43,7 @@ make install
 * add classical (non-repulsive) 12-6 Lennard-Jones interaction
 * add support for specifying Mirheo's unit system (based on `pint`)
 * add energy minimization integrator (gradient descent)
+* add VACF computation plugin
 * **interface changes**
   * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
   * pass particle mass in `mirheo::makeFrozenWallParticles` and `mirheo::makeFrozenRigidParticles`

@@ -33,6 +33,7 @@ set(sources_cu
   pin_rod_extremity.cu
   stats.cu
   temperaturize.cu
+  vacf.cu
   velocity_control.cu
   velocity_inlet.cu
   virial_pressure.cu
