@@ -604,6 +604,25 @@ def createTemperaturize():
     """
     pass
 
+def createVacf():
+    r"""createVacf(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin computes the mean velocity autocorrelation over time from a given :any:`ParticleVector`.
+        The reference velocity `v0` is that of the given :any:`ParticleVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            start_time: Simulation time of the reference velocities.
+            end_time: End time until which to compute the VACF.
+            dump_every: Report total pressure every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    
+
+    """
+    pass
+
 def createVelocityControl():
     r"""createVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: real3, high: real3, sample_every: int, tune_every: int, dump_every: int, target_vel: real3, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -651,7 +670,7 @@ def createVirialPressurePlugin():
     r"""createVirialPressurePlugin(state: MirState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[real3], float], h: real3, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
-        This plugin compute the virial pressure from a given :any:`ParticleVector`.
+        This plugin computes the virial pressure from a given :any:`ParticleVector`.
         Note that the stress computation must be enabled with the corresponding stressName.
         This returns the total internal virial part only (no temperature term).
         Note that the volume is not devided in the result, the user is responsible to properly scale the output.
