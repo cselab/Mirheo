@@ -498,7 +498,7 @@ def createPinObject():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+            path: the files will look like this: <path>/<ov_name>.csv
             velocity: 3 reals, each component is the desired object velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 reals, each component is the desired object angular velocity.
@@ -612,9 +612,9 @@ def createVelocityControl():
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
 
         Args:
-            name: name of the plugin
-            filename: dump file name
-            pvs: list of concerned :class:`ParticleVector`
+            name: Name of the plugin.
+            filename: Dump file name. Must have a csv extension or no extension at all.
+            pvs: List of concerned :class:`ParticleVector`.
             low, high: boundaries of the domain of interest
             sample_every: sample velocity every this many time-steps
             tune_every: adapt the force every this many time-steps

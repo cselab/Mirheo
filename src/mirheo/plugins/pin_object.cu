@@ -10,6 +10,7 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
+#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/quaternion.h>
 
 namespace mirheo
@@ -170,7 +171,8 @@ void PinObjectPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const 
 
 void PinObjectPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer_, ovName_);
+    const bool isRov = (rov_ != nullptr);
+    SimpleSerializer::serialize(sendBuffer_, ovName_, isRov);
     _send(sendBuffer_);
 }
 
@@ -243,13 +245,23 @@ void ReportPinObjectPlugin::handshake()
     recv();
 
     std::string ovName;
-    SimpleSerializer::deserialize(data_, ovName);
+    bool isRov;
+    SimpleSerializer::deserialize(data_, ovName, isRov);
+
     if (activated_ && rank_ == 0)
     {
-        std::string fname = path_ + ovName + ".txt";
+        const std::string fname = joinPaths(path_, setExtensionOrDie(ovName, "csv"));
         auto status = fout_.open(fname, "w" );
         if (status != FileWrapper::Status::Success)
             die("could not open file '%s'", fname.c_str());
+
+        // print header
+        fprintf(fout_.get(), "objId,time,fx,fy,fz");
+
+        if (isRov)
+            fprintf(fout_.get(), ",Tx,Ty,Tz");
+
+        fprintf(fout_.get(), "\n");
     }
 }
 
@@ -269,13 +281,13 @@ void ReportPinObjectPlugin::deserialize()
         for (size_t i = 0; i < forces.size(); ++i)
         {
             forces[i] /= nsamples;
-            fprintf(fout_.get(), "%lu  %f  %f %f %f",
+            fprintf(fout_.get(), "%lu,%f,%f,%f,%f",
                     i, currentTime, forces[i].x, forces[i].y, forces[i].z);
 
             if (i < torques.size())
             {
                 torques[i] /= nsamples;
-                fprintf(fout_.get(), "  %f %f %f", torques[i].x, torques[i].y, torques[i].z);
+                fprintf(fout_.get(), ",%f,%f,%f", torques[i].x, torques[i].y, torques[i].z);
             }
 
             fprintf(fout_.get(), "\n");

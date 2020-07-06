@@ -432,7 +432,7 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+            path: the files will look like this: <path>/<ov_name>.csv
             velocity: 3 reals, each component is the desired object velocity.
                 If the corresponding component should not be restricted, set this value to :python:`PinObject::Unrestricted`
             angular_velocity: 3 reals, each component is the desired object angular velocity.
