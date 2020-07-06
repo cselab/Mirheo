@@ -43,9 +43,10 @@ make install
 * add classical (non-repulsive) 12-6 Lennard-Jones interaction
 * add support for specifying Mirheo's unit system (based on `pint`)
 * add energy minimization integrator (gradient descent)
-* **interface changes** 
+* **interface changes**
   * `grow_until` parameter in membrane forces must be used with `initial_length_fraction` (which was hardcoded to 0.5)
   * pass particle mass in `mirheo::makeFrozenWallParticles` and `mirheo::makeFrozenRigidParticles`
+  * use csv format for plugin outputs instead of txt. This allows to access more easily a given field from python.
 * **internal changes**
   * rename `LJParams` to `RepulsiveLJParams`, while `LJParams` is now used for the ordinary LJ force
   * renamed most private variables: now should have a trailing `_`
@@ -53,7 +54,7 @@ make install
 * **bug fix**: avoid division by zero and nan in several places:
   * SDPD kernel
   * root finder (concerns bounce back)
-* **bug fixes**: 
+* **bug fixes**:
   * file wrapper: move constructor (added corresponding unit test)
   * file wrapper: flushOnClose was not active for special streams
 
@@ -84,7 +85,7 @@ make install
 ### v1.3.1
 
 * **interface changes**
-  * substep integrator now takes a list of interactions 
+  * substep integrator now takes a list of interactions
   * ObjStats plugin dumps additional type id field if activated
   * dump particles plugin does not need type infos
   * dump particles plugin supports object and rod data
@@ -104,7 +105,7 @@ make install
   * fixed cell lists sizes with domain sizes not multiple of rc
   * fix in reverse force exchanger
   * objectBelonging: split all persistent channels instead of positions and velocities only
-  
+
 * add `PlaneOutletPlugin` for removing particles that cross a given plane
 * add `ParticlePortal` plugin that transfers standalone particles from one Mirheo instance to another
 * add `ObjectDeleter` helper class for removing marked objects
@@ -131,14 +132,14 @@ Work in progress:
   * use `number_density` instead of `density`
   * rename `mirheo` class coordinator to `Mirheo`
 
-* **internal changes** 
+* **internal changes**
   * refactored pairwise interaction drivers
   * more consistent naming
 
 
 ### v1.1.2
 
-* **internal changes**: 
+* **internal changes**:
   * enable and fix warnings
   * fix initialization bugs
   * use forked [cselab/cuda_variant](https://github.com/cselab/cuda_variant)
@@ -172,7 +173,7 @@ Work in progress:
 
 ### v1.0.0
 
-* **rename to Mirheo** 
+* **rename to Mirheo**
 * add spin based state update for rods with polymorphic states (not validated yet)
 * **fix** was a possible deadlock for many nodes / many objects suspensions; see commit 4b65e00eba8cf163db3e99e1730e6f16c12fcd26
 * add Capsule Rigid Vectors together with bonce back and belonging checkers
@@ -186,7 +187,7 @@ Work in progress:
 * **tests** belonging checkers
 * **internal changes**:
   * do not rely on hash for mpi tags in plugins
-  * generic kernels in belonging and bounce for RigidObjectVectors with analytical shapes 
+  * generic kernels in belonging and bounce for RigidObjectVectors with analytical shapes
 
 ### v0.16.3
 
@@ -229,7 +230,7 @@ Work in progress:
 
 ### v0.15.0
 
-* **output change** 
+* **output change**
   * restart time-stamps are now continuing from the previous simulation
   * output dump files start at t=0
 * **fix** in TextIO::reader
@@ -292,7 +293,7 @@ Work in progress:
 ### v0.12.2
 
 * densities computed from pairwise interactions are now mass density
-* internal changes: 
+* internal changes:
   * add fetcher with mass
   * add type trait for self interacting pairwise kernels
 
@@ -313,7 +314,7 @@ Work in progress:
 * **docs**: minor fixes
 * **internal**:
   * tests are more robust to DPD noise
-  * proper rng per time step in DPD/MDPD 
+  * proper rng per time step in DPD/MDPD
 * add density outlet plugin
 * add rate outlet plugin
 * add experimental version of density control plugin
@@ -323,7 +324,7 @@ Work in progress:
 * support for RDMA communication
 * membrane fluctuation forces: use uniform distribution instead of gaussian so that it is bounded
 * membrane forces: more robust computation of Lim forces
-* internal changes: 
+* internal changes:
   * simplify interface of interaction manager
   * pairwise forces can contain only host memory variable and pass a separate handle to gpu
   * pairwise interaction: compiled separately when template instances are created
@@ -377,7 +378,7 @@ Work in progress:
 ### v0.10.5
 
 * add displacement plugin
-* add radial velocity control plugin 
+* add radial velocity control plugin
 * **fix** reordering of extra data in celllists
 * **fix** pvsExchanger plugin also copies persistent channels
 * add test for pvsExchanger
@@ -479,7 +480,7 @@ Work in progress:
 * reorganise membrane interaction kernels:
   * bending force kernels now separated from other
   * 2 parameter strctures
-* add Juelicher bending model 
+* add Juelicher bending model
 * add force saver plugin to save forces in channels
 
 ### v0.6.1
@@ -488,7 +489,7 @@ Work in progress:
 * synchronzation bug fix
 
 ### v0.6.0
- 
+
 * add plugin for magnetic orientation of rigid bodies
 
 ### v0.5.1
