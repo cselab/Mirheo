@@ -84,7 +84,7 @@ class Cylinder(Wall):
 class MovingPlane(Wall):
     r"""
         Planar wall that is moving along itself with constant velocity.
-        Can be used to produce Couette velocity profile in combination with 
+        Can be used to produce Couette velocity profile in combination with
         The boundary conditions on such wall are no-through and constant velocity (specified).
     
     """
@@ -116,9 +116,9 @@ class MovingPlane(Wall):
 class OscillatingPlane(Wall):
     r"""
         Planar wall that is moving along itself with periodically changing velocity:
-        
+
         .. math::
-            \mathbf{u}(t) = cos(2*\pi * t / T); 
+            \mathbf{u}(t) = cos(2*\pi * t / T);
     
     """
     def __init__():
@@ -213,11 +213,11 @@ class SDF(Wall):
     r"""
         This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
         The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
-        
-        First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined, 
+
+        First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined,
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
         Next the :math:`Nx \times Ny \times Nz` single precision realing point values are written (in binary representation).
-        
+
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
     
@@ -229,8 +229,8 @@ class SDF(Wall):
             Args:
                 name: name of the wall
                 sdfFilename: name of the ``.sdf`` file
-                h: resolution of the resampled SDF. 
-                   In order to have a more accurate SDF representation, the initial function is resampled on a finer grid. 
+                h: resolution of the resampled SDF.
+                   In order to have a more accurate SDF representation, the initial function is resampled on a finer grid.
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
         
 

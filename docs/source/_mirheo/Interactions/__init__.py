@@ -26,7 +26,7 @@ class MembraneForces(Interaction):
             U_A = \frac{k_a (A_{tot} - A^0_{tot})^2}{2 A^0_{tot}} + \sum_{j \in {1 ... N_t}} \frac{k_d (A_j-A_0)^2}{2A_0}, \\
             U_V = \frac{k_v (V-V^0_{tot})^2}{2 V^0_{tot}}.
 
-        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1` 
+        The viscous and dissipation forces are central forces and are the same as DPD interactions with :math:`w(r) = 1`
         (no cutoff radius, applied to each bond).
 
         Several bending models are implemented. First, the Kantor enrgy reads (see [kantor1987]_):
@@ -55,25 +55,25 @@ class MembraneForces(Interaction):
         Lim model: an extension of the Skalak shear energy (see [Lim2008]_).
 
         .. math::
-        
+
             U_{Lim} =& \sum_{i=1}^{N_{t}}\left(A_{0}\right)_{i}\left(\frac{k_a}{2}\left(\alpha_{i}^{2}+a_{3} \alpha_{i}^{3}+a_{4} \alpha_{i}^{4}\right)\right.\\
                      & +\mu\left(\beta_{i}+b_{1} \alpha_{i} \beta_{i}+b_{2} \beta_{i}^{2}\right) ),
 
         where :math:`\alpha` and :math:`\beta` are the invariants of the strains.
 
-        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E. 
-                         A multiscale red blood cell model with accurate mechanics, rheology, and dynamics 
+        .. [Fedosov2010] Fedosov, D. A.; Caswell, B. & Karniadakis, G. E.
+                         A multiscale red blood cell model with accurate mechanics, rheology, and dynamics
                          Biophysical journal, Elsevier, 2010, 98, 2215-2225
 
-        .. [kantor1987] Kantor, Y. & Nelson, D. R. 
-                        Phase transitions in flexible polymeric surfaces 
+        .. [kantor1987] Kantor, Y. & Nelson, D. R.
+                        Phase transitions in flexible polymeric surfaces
                         Physical Review A, APS, 1987, 36, 4020
 
-        .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky. 
+        .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky.
                            Shape transformations of vesicles with intramembrane domains.
                            Physical Review E 53.3 (1996): 2670.
 
-        .. [Lim2008] Lim HW, Gerald, Michael Wortis, and Ranjan Mukhopadhyay. 
+        .. [Lim2008] Lim HW, Gerald, Michael Wortis, and Ranjan Mukhopadhyay.
                      Red blood cell shapes and shape transformations: newtonian mechanics of a composite membrane: sections 2.1–2.4.
                      Soft Matter: Lipid Bilayers and Red Blood Cells 4 (2008): 83-139.
     
@@ -81,14 +81,14 @@ class MembraneForces(Interaction):
     def __init__():
         r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str = 'keep_all', stress_free: bool = False, **kwargs) -> None
 
- 
+
              Args:
                  name: name of the interaction
                  shear_desc: a string describing what shear force is used
                  bending_desc: a string describing what bending force is used
                  filter_desc: a string describing which membranes are concerned
                  stress_free: if True, stress Free shape is used for the shear parameters
-      
+
              kwargs:
 
                  * **tot_area**:                total area of the membrane at equilibrium
@@ -112,8 +112,8 @@ class MembraneForces(Interaction):
 
                  * **ka**: :math:`k_a`, magnitude of stretching force
                  * **mu**: :math:`\mu`, magnitude of shear force
-                 * **a3**: :math:`a_3`, non linear part for stretching 
-                 * **a4**: :math:`a_4`, non linear part for stretching 
+                 * **a3**: :math:`a_3`, non linear part for stretching
+                 * **a4**: :math:`a_4`, non linear part for stretching
                  * **b1**: :math:`b_1`, non linear part for shear
                  * **b2**: :math:`b_2`, non linear part for shear
 
@@ -131,13 +131,13 @@ class MembraneForces(Interaction):
 
              **filter_desc** = "keep_all":
 
-                 The interaction will be applied to all membranes 
+                 The interaction will be applied to all membranes
 
              **filter_desc** = "by_type_id":
 
                  The interaction will be applied membranes with a given **type_id** (see :class:`~InitialConditions.MembraneWithTypeId`)
 
-                 * **type_id**: the type id that the interaction applies to 
+                 * **type_id**: the type id that the interaction applies to
     
 
         """
@@ -165,43 +165,43 @@ class ObjRodBinding(Interaction):
 
 class Pairwise(Interaction):
     r"""
-        Generic pairwise interaction class. 
+        Generic pairwise interaction class.
         Can be applied between any kind of :any:`ParticleVector` classes.
         The following interactions are currently implemented:
 
 
-        * **DPD**: 
+        * **DPD**:
             Pairwise interaction with conservative part and dissipative + random part acting as a thermostat, see [Groot1997]_
-    
+
             .. math::
-            
+
                 \mathbf{F}_{ij} &= \left(\mathbf{F}^C_{ij} + \mathbf{F}^D_{ij} + \mathbf{F}^R_{ij} \right)  \mathbf{\hat r} \\
                 F^C_{ij} &= \begin{cases} a(1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
                 F^D_{ij} &= -\gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \\
                 F^R_{ij} &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \,
-        
-            where bold symbol means a vector, its regular counterpart means vector length: 
+
+            where bold symbol means a vector, its regular counterpart means vector length:
             :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
             :math:`\mathbf{\hat x} = \mathbf{x} / \left\lVert \mathbf{x} \right\rVert`. Moreover, :math:`\theta` is the random variable with zero mean
-            and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces 
+            and unit variance, that is distributed independently of the interacting pair *i*-*j*, dissipation and random forces
             are related by the fluctuation-dissipation theorem: :math:`\sigma^2 = 2 \gamma \, k_B T`; and :math:`w(r)` is the weight function
             that we define as follows:
-        
+
             .. math::
-            
+
                 w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
 
 
-        * **MDPD**: 
+        * **MDPD**:
             Compute MDPD interaction as described in [Warren2003].
             Must be used together with "Density" interaction with kernel "MDPD".
 
             The interaction forces are the same as described in "DPD" with the modified conservative term
 
             .. math::
-    
+
                 F^C_{ij} = a w_c(r_{ij}) + b (\rho_i + \rho_j) w_d(r_{ij}),
- 
+
             where :math:`\rho_i` is computed from "Density" and
 
             .. math::
@@ -210,17 +210,17 @@ class Pairwise(Interaction):
                 w_d(r) = \begin{cases} (1-\frac{r}{r_d}), & r < r_d \\ 0, & r \geqslant r_d \end{cases}
 
 
-        * **SDPD**: 
+        * **SDPD**:
             Compute SDPD interaction with angular momentum conservation, following [Hu2006]_ and [Bian2012]_.
             Must be used together with "Density" interaction with the same density kernel.
-    
+
             .. math::
-            
+
                 \mathbf{F}_{ij} &= \left(F^C_{ij} + F^D_{ij} + F^R_{ij} \right) \\
                 F^C_{ij} &= - \left( \frac{p_{i}}{d_{i}^{2}}+\frac{p_{j}}{d_{j}^{2}}\right) \frac{\partial w_\rho}{\partial r_{ij}}, \\
                 F^D_{ij} &= - \eta \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial w_\rho}{\partial r_{ij}}\right] \left( \mathbf{v}_{i j} \cdot \mathbf{e}_{ij} \right), \\
                 F^R_{ij} &= \sqrt{2 k_BT \eta} \left[ \left(\frac{1}{d_{i}^{2}}+\frac{1}{d_{j}^{2}}\right) \frac{-\zeta}{r_{ij}} \frac{\partial w_\rho}{\partial r_{ij}}\right]^{\frac 1 2} \xi_{ij},
-        
+
             where :math:`\eta` is the viscosity, :math:`w_\rho` is the density kernel, :math:`\zeta = 2+d = 5`, :math:`d_i` is the density of particle i and :math:`p_i = p(d_i)` is the pressure of particle i..
             The available density kernels are listed in "Density".
             The available equations of state (EOS) are:
@@ -230,7 +230,7 @@ class Pairwise(Interaction):
                 .. math::
 
                     p(\rho) = c_S^2 \left(\rho - \rho_0 \right)
- 
+
                 where :math:`c_S` is the speed of sound and :math:`\rho_0` is a parameter.
 
             Quasi incompressible EOS:
@@ -260,11 +260,11 @@ class Pairwise(Interaction):
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 
-        * **Density**: 
-            Compute density of particles with a given kernel. 
-    
+        * **Density**:
+            Compute density of particles with a given kernel.
+
             .. math::
-            
+
                 \rho_i = \sum\limits_{j \neq i} w_\rho (r_{ij})
 
             where the summation goes over the neighbours of particle :math:`i` within a cutoff range of :math:`r_c`.
@@ -272,20 +272,20 @@ class Pairwise(Interaction):
 
 
             * kernel "MDPD":
-            
+
                 see [Warren2003]_
-            
+
                 .. math::
-            
+
                     w_\rho(r) = \begin{cases} \frac{15}{2\pi r_d^3}\left(1-\frac{r}{r_d}\right)^2, & r < r_d \\ 0, & r \geqslant r_d \end{cases}
-        
+
             * kernel "WendlandC2":
-            
+
                 .. math::
-    
+
                     w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
 
-            
+
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
             J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`
@@ -306,7 +306,7 @@ class Pairwise(Interaction):
     def __init__():
         r"""__init__(name: str, rc: float, kind: str, **kwargs) -> None
 
-  
+
             Args:
                 name: name of the interaction
                 rc: interaction cut-off (no forces between particles further than **rc** apart)
@@ -314,7 +314,7 @@ class Pairwise(Interaction):
 
             Create one pairwise interaction handler of kind **kind**.
             When applicable, stress computation is activated by passing **stress = True**.
-            This activates virial stress computation every **stress_period** time units (also passed in **kwars**) 
+            This activates virial stress computation every **stress_period** time units (also passed in **kwars**)
 
             * **kind** = "DPD"
 
@@ -322,7 +322,7 @@ class Pairwise(Interaction):
                 * **gamma**: :math:`\gamma`
                 * **kBT**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
-                
+
             * **kind** = "MDPD"
 
                 * **rd**: :math:`r_d`
@@ -337,7 +337,7 @@ class Pairwise(Interaction):
 
                 * **viscosity**: fluid viscosity
                 * **kBT**: temperature :math:`k_B T`
-                * **EOS**: the desired equation of state (see below) 
+                * **EOS**: the desired equation of state (see below)
                 * **density_kernel**: the desired density kernel (see below)
 
 
@@ -349,7 +349,7 @@ class Pairwise(Interaction):
                 * **aware_mode**:
                     * if "None", all particles interact with each other.
                     * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
-                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector. 
+                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
                     * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
                       (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
 
@@ -385,7 +385,7 @@ class Pairwise(Interaction):
         This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
         The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
         Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
-        
+
         Args:
             pv1: first :any:`ParticleVector`
             pv2: second :any:`ParticleVector`
@@ -424,8 +424,8 @@ class RodForces(Interaction):
 
         The additional bound energy is a simple harmonic potential with a given equilibrium length.
 
-        .. [bergou2008] Bergou, M.; Wardetzky, M.; Robinson, S.; Audoly, B. & Grinspun, E. 
-                        Discrete elastic rods 
+        .. [bergou2008] Bergou, M.; Wardetzky, M.; Robinson, S.; Audoly, B. & Grinspun, E.
+                        Discrete elastic rods
                         ACM transactions on graphics (TOG), 2008, 27, 63
 
     
@@ -433,7 +433,7 @@ class RodForces(Interaction):
     def __init__():
         r"""__init__(name: str, state_update: str = 'none', save_energies: bool = False, **kwargs) -> None
 
- 
+
              Args:
                  name: name of the interaction
                  state_update: description of the state update method; only makes sense for multiple states. See below for possible choices.
@@ -442,7 +442,7 @@ class RodForces(Interaction):
              kwargs:
 
                  * **a0** (real):           equilibrium length between 2 opposite cross vertices
-                 * **l0** (real):           equilibrium length between 2 consecutive vertices on the centerline 
+                 * **l0** (real):           equilibrium length between 2 consecutive vertices on the centerline
                  * **k_s_center** (real):   elastic force magnitude for centerline
                  * **k_s_frame** (real):    elastic force magnitude for material frame particles
                  * **k_bending** (real3):   Bending symmetric tensor :math:`B` in the order :math:`\left(B_{xx}, B_{xy}, B_{zz} \right)`

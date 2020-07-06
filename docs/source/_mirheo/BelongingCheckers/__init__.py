@@ -59,7 +59,7 @@ class Ellipsoid(BelongingChecker):
 class Mesh(BelongingChecker):
     r"""
         This checker will use the triangular mesh associated with objects to detect *inside*-*outside* status.
-   
+
         .. note:
             Checking if particles are inside or outside the mesh is a computationally expensive task,
             so it's best to perform checks at most every 1'000 - 10'000 time-steps.

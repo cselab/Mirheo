@@ -11,7 +11,7 @@ Overloaded function.
 
 
         Create a mesh by reading the OFF file
-        
+
         Args:
             off_filename: path of the OFF file
     
@@ -20,11 +20,11 @@ Overloaded function.
 
 
         Create a mesh by giving coordinates and connectivity
-        
+
         Args:
             vertices: vertex coordinates
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
-        
+
     
 
         """
@@ -60,7 +60,7 @@ class ParticleVector:
 
 
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
         
 
@@ -71,7 +71,7 @@ class ParticleVector:
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -82,7 +82,7 @@ class ParticleVector:
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -93,7 +93,7 @@ class ParticleVector:
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -147,8 +147,8 @@ class ParticleVector:
 class MembraneMesh(Mesh):
     r"""
         Internally used class for desctibing a triangular mesh that can be used with the Membrane Interactions.
-        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh, 
-        including connectivity structures and stress-free quantities.        
+        In contrast with the simple :any:`Mesh`, this class precomputes some required quantities on the mesh,
+        including connectivity structures and stress-free quantities.
     
     """
     def __init__():
@@ -160,7 +160,7 @@ Overloaded function.
 
             Create a mesh by reading the OFF file.
             The stress free shape is the input initial mesh
-            
+
             Args:
                 off_filename: path of the OFF file
         
@@ -169,7 +169,7 @@ Overloaded function.
 
 
             Create a mesh by reading the OFF file, with a different stress free shape.
-            
+
             Args:
                 off_initial_mesh: path of the OFF file : initial mesh
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
@@ -179,7 +179,7 @@ Overloaded function.
 
 
             Create a mesh by giving coordinates and connectivity
-        
+
             Args:
                 vertices: vertex coordinates
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
@@ -189,7 +189,7 @@ Overloaded function.
 
 
             Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
-        
+
             Args:
                 vertices: vertex coordinates
                 stress_free_vertices: vertex coordinates of the stress-free shape
@@ -221,7 +221,7 @@ Overloaded function.
 
 class ObjectVector(ParticleVector):
     r"""
-        Basic Object Vector. 
+        Basic Object Vector.
         An Object Vector stores chunks of particles, each chunk belonging to the same object.
 
         .. warning::
@@ -238,7 +238,7 @@ class ObjectVector(ParticleVector):
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -249,7 +249,7 @@ class ObjectVector(ParticleVector):
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -260,7 +260,7 @@ class ObjectVector(ParticleVector):
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -322,9 +322,9 @@ class MembraneVector(ObjectVector):
 
 
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
-                mesh: :any:`MembraneMesh` object                
+                mesh: :any:`MembraneMesh` object
         
 
         """
@@ -334,7 +334,7 @@ class MembraneVector(ObjectVector):
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -345,7 +345,7 @@ class MembraneVector(ObjectVector):
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -356,7 +356,7 @@ class MembraneVector(ObjectVector):
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -416,10 +416,10 @@ class RigidObjectVector(ObjectVector):
     def __init__():
         r"""__init__(name: str, mass: float, inertia: real3, object_size: int, mesh: ParticleVectors.Mesh) -> None
 
- 
+
 
             Args:
-                name: name of the created PV 
+                name: name of the created PV
                 mass: mass of a single particle
                 inertia: moment of inertia of the body in its principal axes. The principal axes of the mesh are assumed to be aligned with the default global *OXYZ* axes
                 object_size: number of frozen particles per object
@@ -433,7 +433,7 @@ class RigidObjectVector(ObjectVector):
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -444,7 +444,7 @@ class RigidObjectVector(ObjectVector):
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -455,7 +455,7 @@ class RigidObjectVector(ObjectVector):
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -529,7 +529,7 @@ class RodVector(ObjectVector):
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -540,7 +540,7 @@ class RodVector(ObjectVector):
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -551,7 +551,7 @@ class RodVector(ObjectVector):
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -645,7 +645,7 @@ Overloaded function.
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -656,7 +656,7 @@ Overloaded function.
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -667,7 +667,7 @@ Overloaded function.
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -759,7 +759,7 @@ Overloaded function.
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -770,7 +770,7 @@ Overloaded function.
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -781,7 +781,7 @@ Overloaded function.
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 
@@ -874,7 +874,7 @@ Overloaded function.
         r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         
 
@@ -885,7 +885,7 @@ Overloaded function.
         r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         
 
@@ -896,7 +896,7 @@ Overloaded function.
         r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
 
 
-            Returns: 
+            Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         
 

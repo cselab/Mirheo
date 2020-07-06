@@ -101,7 +101,7 @@ class SubStep(Integrator):
                     name: name of the integrator
                     substeps: number of sub steps
                     fastForces: a list of fast interactions. Only accepts :any:`MembraneForces` or :any:`RodForces`
-                
+
                 .. warning::
                     The interaction will be set to the required object vector when setting this integrator to the object vector.
                     Hence the interaction needs not to be set explicitely to the OV.
@@ -131,12 +131,12 @@ class VelocityVerlet(Integrator):
     r"""
             Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.
             The velocities are shifted with respect to the coordinates by one half of the time-step
-            
+
             .. math::
 
                 \mathbf{a}^{n} &= \frac{1}{m} \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) \\
                 \mathbf{v}^{n+1/2} &= \mathbf{v}^{n-1/2} + \mathbf{a}^n \Delta t \\
-                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \mathbf{v}^{n+1/2} \Delta t 
+                \mathbf{x}^{n+1} &= \mathbf{x}^{n} + \mathbf{v}^{n+1/2} \Delta t
 
             where bold symbol means a vector, :math:`m` is a particle mass, and superscripts denote the time: :math:`\mathbf{x}^{k} = \mathbf{x}(k \, \Delta t)`
         
@@ -155,7 +155,7 @@ class VelocityVerlet(Integrator):
 class VelocityVerlet_withConstForce(Integrator):
     r"""
             Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:
-   
+
             .. math::
 
                 \mathbf{a}^{n} &= \frac{1}{m} \left( \mathbf{F}(\mathbf{x}^{n}, \mathbf{v}^{n-1/2}) + \mathbf{F}_{extra} \right) \\
@@ -179,13 +179,13 @@ class VelocityVerlet_withPeriodicForce(Integrator):
             Same as regular Velocity-Verlet, but the forces on all the particles are modified with periodic Poiseuille term.
             This means that all the particles in half domain along certain axis (Ox, Oy or Oz) are pushed with force
             :math:`F_{Poiseuille}` parallel to Oy, Oz or Ox correspondingly, and the particles in another half of the domain are pushed in the same direction
-            with force :math:`-F_{Poiseuille}`    
+            with force :math:`-F_{Poiseuille}`
         
     """
     def __init__():
         r"""__init__(name: str, force: float, direction: str) -> None
 
-                
+
                 Args:
                     name: name of the integrator
                     force: force magnitude, :math:`F_{Poiseuille}`

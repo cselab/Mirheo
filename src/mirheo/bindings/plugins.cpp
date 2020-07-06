@@ -469,9 +469,9 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
 
         Args:
-            name: name of the plugin
-            filename: the stats will also be recorded to that file in a computer-friendly way
-            every: report to standard output every that many time-steps
+            name: Name of the plugin.
+            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
+            every: Report to standard output every that many time-steps.
     )");
 
     m.def("__createTemperaturize", &plugin_factory::createTemperaturizePlugin,

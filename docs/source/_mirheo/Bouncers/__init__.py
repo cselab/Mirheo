@@ -2,7 +2,7 @@ class Bouncer:
     r"""
         Base class for bouncing particles off the objects.
         Take bounce kernel as argument:
-        
+
         * **kernel** = "bounce_back":
             Bounces back the particle.
             The new velocity of the particle is given by:
@@ -21,7 +21,7 @@ class Bouncer:
                 \mathbf{u}_\text{new} = \mathbf{u}_\text{wall} + \sqrt{\frac {k_BT} {m}} \xi,
 
             where :math:`\xi \sim \mathcal{N}\left(0, 1\right)`.
-            
+
 
 
     
@@ -45,7 +45,7 @@ class Capsule(Bouncer):
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         
 
         """
@@ -65,7 +65,7 @@ class Cylinder(Bouncer):
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         
 
         """
@@ -85,7 +85,7 @@ class Ellipsoid(Bouncer):
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         
 
         """
@@ -97,7 +97,7 @@ class Mesh(Bouncer):
         Therefore it can only be created for Membrane and Rigid Object types of object vectors.
         Due to numerical precision, about :math:`1` of :math:`10^5 - 10^6` mesh crossings will not be detected, therefore it is advised to use that bouncer in
         conjunction with correction option provided by the Object Belonging Checker, see :ref:`user-belongers`.
-        
+
         .. note::
             In order to prevent numerical instabilities in case of light membrane particles,
             the new velocity of the bounced particles will be a random vector drawn from the Maxwell distibution of given temperature
@@ -130,7 +130,7 @@ class Rod(Bouncer):
                 name: name of the checker
                 radius: radius of the segments
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
-            
+
         
 
         """
