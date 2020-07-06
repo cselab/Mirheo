@@ -79,4 +79,4 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/cylinder_coords_${rho}_${R}_${L}.txt $f
 # mir.run --runargs "-n 2" ./cylinder.py --coords $f
-# cat stats/cylinder.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/cylinder.csv time wz qz | uscale 100 > rigid.out.txt

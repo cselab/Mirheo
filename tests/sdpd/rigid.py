@@ -89,7 +89,7 @@ u.run(10000)
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f
-# cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time qw qx qy qz > rigid.out.txt
 
 # nTEST: sdpd.fsi.ellipsoid.edge
 # set -eu
@@ -99,4 +99,4 @@ u.run(10000)
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./rigid.py --density $rho --axes $ax $ay $az --coords $f --xpos 0.1
-# cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time qw qx qy qz > rigid.out.txt

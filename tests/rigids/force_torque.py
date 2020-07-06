@@ -63,7 +63,7 @@ u.run(10000)
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./force_torque.py --axes $ax $ay $az --coords $f --const_force
-# cat stats/ellipsoid.txt | awk '{print $2, $10, $3}' > rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time vx comx > rigid.out.txt
 
 # nTEST: rigids.const_torque
 # set -eu
@@ -73,4 +73,4 @@ u.run(10000)
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./force_torque.py --axes $ax $ay $az --coords $f --const_torque
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' > rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time wz qz > rigid.out.txt

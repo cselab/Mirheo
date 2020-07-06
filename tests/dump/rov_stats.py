@@ -25,5 +25,4 @@ u.run(2)
 # cd dump
 # rm -rf stats rov_stats.out.txt
 # mir.run --runargs "-n 2" ./rov_stats.py
-# cp stats/ellipsoid.txt rov_stats.out.txt
-
+# cp stats/ellipsoid.csv rov_stats.out.txt

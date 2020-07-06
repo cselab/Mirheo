@@ -80,8 +80,7 @@ u.run(nsteps)
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./contact.ellipsoids.dp.py --density $rho --axes $ax $ay $az --coords $f
 # mir.run --runargs "-n 2" ./contact.ellipsoids.dp.py --density $rho --axes $ax $ay $az --coords $f --restart
-# cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
-
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time qw qx qy qz > rigid.out.txt
 
 # nTEST: restart.contact.rigid.ellipsoid.mpi
 # set -eu
@@ -92,4 +91,4 @@ u.run(nsteps)
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 4" ./contact.ellipsoids.dp.py --density $rho --axes $ax $ay $az --coords $f --ranks 2 1 1
 # mir.run --runargs "-n 4" ./contact.ellipsoids.dp.py --density $rho --axes $ax $ay $az --coords $f --ranks 2 1 1 --restart
-# cat stats/ellipsoid.txt | awk '{print $2, $6, $7, $8, $9}' > rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time qw qx qy qz > rigid.out.txt

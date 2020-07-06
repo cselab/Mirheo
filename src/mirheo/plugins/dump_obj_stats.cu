@@ -71,12 +71,14 @@ void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const M
 {
     SimulationPlugin::setup(simulation, comm, interComm);
     ov_ = simulation->getOVbyNameOrDie(ovName_);
+    isRov_ = dynamic_cast<RigidObjectVector*>(ov_) != nullptr;
+    hasTypeIds_ = ov_->local()->dataPerObject.checkChannelExists(channel_names::membraneTypeId);
     info("Plugin '%s' initialized for object vector '%s'", getCName(), ovName_.c_str());
 }
 
 void ObjStatsPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer_, ovName_);
+    SimpleSerializer::serialize(sendBuffer_, ovName_, isRov_, hasTypeIds_);
     _send(sendBuffer_);
 }
 
@@ -93,7 +95,6 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
     {
         auto& oldMotions = *rov->local()->dataPerObject.getData<RigidMotion> (channel_names::oldMotions);
         motions_.copy(oldMotions, stream);
-        isRov_ = true;
     }
     else
     {
@@ -109,14 +110,10 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
             view, motionStats_.devPtr());
 
         motions_.copy(motionStats_, stream);
-        isRov_ = false;
     }
 
-    if (lov->dataPerObject.checkChannelExists(channel_names::membraneTypeId))
-    {
+    if (hasTypeIds_)
         typeIds_.copy( *lov->dataPerObject.getData<int>(channel_names::membraneTypeId), stream);
-        hasTypeIds_ = true;
-    }
 
     savedTime_ = getState()->currentTime;
     needToSend_ = true;
@@ -124,7 +121,8 @@ void ObjStatsPlugin::afterIntegration(cudaStream_t stream)
 
 void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 {
-    if (!needToSend_) return;
+    if (!needToSend_)
+        return;
 
     debug2("Plugin %s is sending now data", getCName());
 
@@ -137,56 +135,76 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
 
 //=================================================================================
 
+static void writeHeader(MPI_Comm comm, MPI_File& fout, bool isRov, bool hasTypeIds)
+{
+    int rank;
+    MPI_Check(MPI_Comm_rank(comm, &rank));
+    if (rank == 0)
+    {
+        std::string header = "objId,time,comx,comy,comz";
+        if (isRov)
+            header += ",qw,qx,qy,qz";
+        header += ",vx,vy,vz,wx,wy,wz,fx,fy,fz,Tx,Ty,Tz";
+        if (hasTypeIds)
+            header += ",typeIds";
+        header += '\n';
+
+        MPI_Check( MPI_File_write(fout, header.c_str(), header.size(), MPI_CHAR, MPI_STATUS_IGNORE) );
+    }
+    MPI_Check( MPI_Barrier(comm) );
+}
+
 static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real curTime, const std::vector<int64_t>& ids,
                        const std::vector<COMandExtent>& coms, const std::vector<RigidMotion>& motions, bool isRov,
                        bool hasTypeIds, const std::vector<int>& typeIds)
 {
-    const int np = ids.size();
+    const int nObjs = ids.size();
 
     std::stringstream ss;
     ss.setf(std::ios::fixed, std::ios::floatfield);
     ss.precision(5);
+    const char sep = ',';
 
-    for (int i = 0; i < np; ++i)
+    for (int i = 0; i < nObjs; ++i)
     {
         auto com = coms[i].com;
         com = domain.local2global(com);
 
-        ss << ids[i] << " " << curTime << "   "
-           << std::setw(10) << com.x << " "
-           << std::setw(10) << com.y << " "
-           << std::setw(10) << com.z;
+        ss << ids[i] << sep << curTime << sep
+           << com.x << sep
+           << com.y << sep
+           << com.z;
 
         const auto& motion = motions[i];
 
         if (isRov)
         {
-            ss << "    "
-               << std::setw(10) << motion.q.w << " "
-               << std::setw(10) << motion.q.x << " "
-               << std::setw(10) << motion.q.y << " "
-               << std::setw(10) << motion.q.z;
+            ss << sep
+               << motion.q.w << sep
+               << motion.q.x << sep
+               << motion.q.y << sep
+               << motion.q.z;
         }
 
-        ss << "    "
-           << std::setw(10) << motion.vel.x << " "
-           << std::setw(10) << motion.vel.y << " "
-           << std::setw(10) << motion.vel.z << "    "
+        ss << sep
+           << motion.vel.x << sep
+           << motion.vel.y << sep
+           << motion.vel.z << sep
 
-           << std::setw(10) << motion.omega.x << " "
-           << std::setw(10) << motion.omega.y << " "
-           << std::setw(10) << motion.omega.z << "    "
+           << motion.omega.x << sep
+           << motion.omega.y << sep
+           << motion.omega.z << sep
 
-           << std::setw(10) << motion.force.x << " "
-           << std::setw(10) << motion.force.y << " "
-           << std::setw(10) << motion.force.z << "    "
+           << motion.force.x << sep
+           << motion.force.y << sep
+           << motion.force.z << sep
 
-           << std::setw(10) << motion.torque.x << " "
-           << std::setw(10) << motion.torque.y << " "
-           << std::setw(10) << motion.torque.z;
+           << motion.torque.x << sep
+           << motion.torque.y << sep
+           << motion.torque.z;
 
         if (hasTypeIds)
-            ss << "    "  << typeIds[i];
+            ss << sep << typeIds[i];
 
         ss << std::endl;
     }
@@ -231,14 +249,17 @@ void ObjStatsDumper::handshake()
     recv();
 
     std::string ovName;
-    SimpleSerializer::deserialize(data_, ovName);
+    bool isRov;
+    bool hasTypeIds;
+    SimpleSerializer::deserialize(data_, ovName, isRov, hasTypeIds);
 
     if (activated_)
     {
-        const std::string fname = path_ + ovName + ".txt";
+        const std::string fname = joinPaths(path_, setExtensionOrDie(ovName, "csv"));
         MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );
         MPI_Check( MPI_File_close(&fout_) );
         MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout_) );
+        writeHeader(comm_, fout_, isRov, hasTypeIds);
     }
 }
 

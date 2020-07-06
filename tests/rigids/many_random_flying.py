@@ -21,7 +21,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 
 np.random.seed(84)
 com_q = np.random.rand(args.nobjects, 7)
-com_q[:, 0:3] = np.multiply(com_q[:, 0:3], np.array(domain)) 
+com_q[:, 0:3] = np.multiply(com_q[:, 0:3], np.array(domain))
 vels  = np.random.rand(args.nobjects, 3)
 
 coords = np.loadtxt(args.coords).tolist()
@@ -46,7 +46,7 @@ u.run(1000)
 # rho=4.0; ax=1.0; ay=2.0; az=3.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./many_random_flying.py --nranks 1 1 1 --nobjects 55  $f
-# LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv objId time comx comy comz qw qx qy qz vx vy vz wx wy wz fx fy fz Tx Ty Tz | LC_ALL=en_US.utf8 sort -g -k1 -k2 > freefly.out.txt
 
 # nTEST: rigids.many_random_flying.manyranks
 # set -eu
@@ -56,4 +56,4 @@ u.run(1000)
 # rho=4.0; ax=1.0; ay=2.0; az=3.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 12" ./many_random_flying.py --nranks 1 2 3 --nobjects 123  $f
-# LC_ALL=en_US.utf8 sort -g -k1 -k2 stats/ellipsoid.txt > freefly.out.txt
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv objId time comx comy comz qw qx qy qz vx vy vz wx wy wz fx fy fz Tx Ty Tz | LC_ALL=en_US.utf8 sort -g -k1 -k2 > freefly.out.txt

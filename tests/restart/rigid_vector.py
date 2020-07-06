@@ -18,7 +18,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=9,
               log_filename='log', no_splash=True,
               checkpoint_every = (0 if args.restart else 5))
 
-    
+
 mesh = trimesh.creation.icosphere(subdivisions=1, radius = 0.1)
 
 coords = [[-0.01, 0., 0.],
@@ -56,12 +56,11 @@ u.run(7)
 # rm -rf restart stats stats.rigid*txt
 # mir.run --runargs "-n 1" ./rigid_vector.py --ranks 1 1 1
 # mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 1 --restart
-# cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
+# mir.post ../tools/dump_csv.py stats/pv.csv objId time comx comy comz qw qx qy qz vx vy vz wx wy wz fx fy fz Tx Ty Tz | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
 
 # TEST: restart.rigid_vector.mpi
 # cd restart
 # rm -rf restart stats stats.rigid*txt
 # mir.run --runargs "-n 2" ./rigid_vector.py --ranks 1 1 2
 # mir.run --runargs "-n 4" ./rigid_vector.py --ranks 1 1 2 --restart
-# cat stats/pv.txt | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt
-
+# mir.post ../tools/dump_csv.py stats/pv.csv objId time comx comy comz qw qx qy qz vx vy vz wx wy wz fx fy fz Tx Ty Tz | LC_ALL=en_US.utf8 sort > stats.rigid.out.txt

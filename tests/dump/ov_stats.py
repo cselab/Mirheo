@@ -26,5 +26,4 @@ u.run(2)
 # rm -rf stats ov_stats.out.txt
 # cp ../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./ov_stats.py
-# cp stats/rbc.txt ov_stats.out.txt
-
+# cat stats/rbc.csv > ov_stats.out.txt

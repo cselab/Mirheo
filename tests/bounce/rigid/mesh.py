@@ -68,7 +68,7 @@ if args.vis:
 u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov=pv_rig, dump_every=dump_every, path="stats"))
 
 u.run(5000)
-    
+
 
 # nTEST: bounce.rigid.mesh
 # set -eu
@@ -77,7 +77,7 @@ u.run(5000)
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./mesh.py --file $f
-# cat stats/rigid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/rigid.csv time wz qz | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.mesh.exchange
 # set -eu
@@ -86,4 +86,4 @@ u.run(5000)
 # f="../../../data/rbc_mesh.off"
 # rm -rf pos*.txt vel*.txt
 # mir.run --runargs "-n 2" ./mesh.py --file $f --xorigin 4.1
-# cat stats/rigid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/rigid.csv time wz qz | uscale 100 > rigid.out.txt

@@ -244,7 +244,7 @@ def createDumpObjectStats():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>_NNNNN.txt
+            path: the files will look like this: <path>/<ov_name>.csv
     
 
     """

@@ -83,7 +83,7 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/ellipsoid.csv time wz qz | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.ellipsoid.mpi
 # set -eu
@@ -94,7 +94,7 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 4" ./ellipsoid.py --axes $ax $ay $az --coords $f --ranks 2 1 1
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/ellipsoid.csv time wz qz | uscale 100 > rigid.out.txt
 
 # nTEST: bounce.rigid.ellipsoid.exchange
 # set -eu
@@ -105,4 +105,4 @@ u.run(5000)
 # rm -rf pos*.txt vel*.txt
 # cp ../../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # mir.run --runargs "-n 2" ./ellipsoid.py --axes $ax $ay $az --coords $f --xorigin 4.1
-# cat stats/ellipsoid.txt | awk '{print $2, $15, $9}' | uscale 100 > rigid.out.txt
+# mir.post ../../tools/dump_csv.py stats/ellipsoid.csv time wz qz | uscale 100 > rigid.out.txt
