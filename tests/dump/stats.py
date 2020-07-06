@@ -21,12 +21,11 @@ vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(mir.Plugins.createStats('stats', "stats.txt", 200))
+u.registerPlugins(mir.Plugins.createStats('stats', "stats", 200))
 
 u.run(2000)
 
 # nTEST: dump.stats
 # cd dump
 # mir.run --runargs "-n 2" ./stats.py > /dev/null
-# cat stats.txt | awk '{print $1, $2, $3 * 1e5, $4 * 1e5, $5 * 1e5}' > stats.out.txt
-
+# mir.post ../tools/dump_csv.py stats.csv time kBT vx vy vz --header > stats.out.txt

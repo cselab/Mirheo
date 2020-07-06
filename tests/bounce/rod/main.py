@@ -61,10 +61,10 @@ if args.vis:
     dump_every = int(0.1 / dt)
     u.registerPlugins(mir.Plugins.createDumpParticles('solvent_dump', pv_solvent, dump_every, [], 'h5/solvent-'))
     u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', pv_rod, dump_every, [], 'h5/rod-'))
-    u.registerPlugins(mir.Plugins.createStats('stats', "stats.txt", dump_every))
-    
+    u.registerPlugins(mir.Plugins.createStats('stats', "stats", dump_every))
+
 tend = int(5.0 / dt)
-    
+
 u.run(tend)
 
 if pv_rod is not None:
@@ -75,6 +75,6 @@ if pv_rod is not None:
 # nTEST: bounce.rod
 # set -eu
 # cd bounce/rod
-# rm -rf pos.rod.txt pos.rod.out.txt 
+# rm -rf pos.rod.txt pos.rod.out.txt
 # mir.run --runargs "-n 2" ./main.py
-# mv pos.rod.txt pos.rod.out.txt 
+# mv pos.rod.txt pos.rod.out.txt

@@ -36,21 +36,18 @@ u.setIntegrator(vv, pv)
 
 dump_every = 100
 
-u.registerPlugins(mir.Plugins.createStats('stats', "stats.txt", dump_every))
-
-#u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
+u.registerPlugins(mir.Plugins.createStats('stats', "stats", dump_every))
 
 u.run(501)
 
 # nTEST: clist.primary.rc
 # cd clist
-# rm -rf stats.txt
+# rm -rf stats.csv
 # mir.run --runargs "-n 2" ./rest.py > /dev/null
-# cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
+# mir.post ../tools/dump_csv.py stats.csv time kBT vx vy vz --header > stats.out.txt
 
 # nTEST: clist.nonPrimary.rc
 # cd clist
-# rm -rf stats.txt
+# rm -rf stats.csv
 # mir.run --runargs "-n 2" ./rest.py --non_primary > /dev/null
-# cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
-
+# mir.post ../tools/dump_csv.py stats.csv time kBT vx vy vz --header > stats.out.txt

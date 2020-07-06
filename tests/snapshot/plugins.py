@@ -21,7 +21,7 @@ if not args.load_from:
     wall = mir.Walls.Plane('plane', (0, -1, 0), (1.0, 2.0, 3.0))
     u.registerWall(wall, check_every=123)
 
-    u.registerPlugins(mir.Plugins.createStats('stats', every=10, filename='stats.txt'))
+    u.registerPlugins(mir.Plugins.createStats('stats', every=10, filename='stats'))
     u.registerPlugins(mir.Plugins.createDumpMesh('rbcs', ov, dump_every=15, path='ply'))
     u.registerPlugins(mir.Plugins.createForceSaver('force_saver', pv))
     u.registerPlugins(mir.Plugins.createDumpParticles('dump_particles', pv, 20, ['forces'], 'h5/pv-'))

@@ -24,13 +24,12 @@ vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.registerPlugins(mir.Plugins.createStats('stats', "stats.txt", 1000))
+u.registerPlugins(mir.Plugins.createStats('stats', "stats", 1000))
 
 u.run(5001)
 
 # nTEST: flow.rest
 # cd flow
-# rm -rf stats.txt
+# rm -rf stats.csv
 # mir.run --runargs "-n 2" ./rest.py > /dev/null
-# cat stats.txt | awk '{print $1, $2, $3, $4, $5}' > stats.out.txt
-
+# mir.post ../tools/dump_csv.py stats.csv time kBT vx vy vz --header > stats.out.txt

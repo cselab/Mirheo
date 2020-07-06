@@ -11,6 +11,7 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
+#include <mirheo/core/utils/path.h>
 
 namespace mirheo
 {
@@ -19,7 +20,7 @@ namespace stats_plugin_kernels
 {
 using stats_plugin::ReductionType;
 
-__global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, real* maxvel)
+__global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, ReductionType *energy, real *maxvel)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -129,13 +130,16 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
 {
     if (filename_ != "")
     {
-        auto status = fdump_.open(filename_, "w");
+        filename_ = setExtensionOrDie(filename_, "csv");
+
+        const auto status = fdump_.open(filename_, "w");
         if (status != FileWrapper::Status::Success)
             die("Could not open file '%s'", filename_.c_str());
 
-        fprintf(fdump_.get(), "# time  kBT  vx vy vz  max(abs(v)) num_particles simulation_time_per_step(ms)\n");
+        fprintf(fdump_.get(), "time,kBT,vx,vy,vz,maxv,num_particles,simulation_time_per_step\n");
     }
 }
+
 PostprocessStats::PostprocessStats(Loader&, const ConfigObject& config) :
     PostprocessStats(config["name"].getString(), config["filename"].getString())
 {}
@@ -188,7 +192,7 @@ void PostprocessStats::deserialize()
 
         if (fdump_.get())
         {
-            fprintf(fdump_.get(), "%g %g %g %g %g %g %llu %g\n", currentTime,
+            fprintf(fdump_.get(), "%g,%g,%g,%g,%g,%g,%llu,%g\n", currentTime,
                     kBT, momentum[0], momentum[1], momentum[2],
                     maxvel[0], nparticles, realTime);
             fflush(fdump_.get());

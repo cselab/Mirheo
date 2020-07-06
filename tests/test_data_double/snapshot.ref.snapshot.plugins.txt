@@ -36,7 +36,7 @@
         {
             "__type": "PostprocessStats",
             "name": "stats",
-            "filename": "stats.txt"
+            "filename": "stats.csv"
         },
         {
             "__type": "MeshDumper",

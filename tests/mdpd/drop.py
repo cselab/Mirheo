@@ -45,7 +45,6 @@ del(u)
 
 # nTEST: mdpd.drop
 # cd mdpd
-# rm -rf stats.txt
+# rm -rf stats.csv
 # mir.run --runargs "-n 2" ./drop.py
 # mir.avgh5 xz number_densities h5/solvent-00000.h5 > profile.out.txt
-

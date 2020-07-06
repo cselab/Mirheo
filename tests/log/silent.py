@@ -28,7 +28,5 @@ u.run(50)
 
 # TEST: log.silent
 # cd log
-# rm -rf stats.txt
 # mir.run --runargs "-n 2" ./silent.py > log.out.txt
 # echo "end" >> log.out.txt
-
