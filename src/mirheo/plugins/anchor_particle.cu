@@ -112,7 +112,8 @@ void AnchorParticlesPlugin::afterIntegration(cudaStream_t stream)
 
 void AnchorParticlesPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer_, pvName_);
+    const int nAnchors = (int) forces_.size();
+    SimpleSerializer::serialize(sendBuffer_, pvName_, nAnchors);
     _send(sendBuffer_);
 }
 
@@ -150,14 +151,20 @@ void AnchorParticlesStatsPlugin::handshake()
     recv();
 
     std::string pvName;
-    SimpleSerializer::deserialize(data_, pvName);
+    int nAnchors;
+    SimpleSerializer::deserialize(data_, pvName, nAnchors);
 
     if (activated_ && rank_ == 0)
     {
-        const std::string fname = path_ + pvName + ".txt";
+        const std::string fname = joinPaths(path_, setExtensionOrDie(pvName, "csv"));
         auto status = fout_.open( fname, "w" );
         if (status != FileWrapper::Status::Success)
             die("could not open file '%s'", fname.c_str());
+
+        fprintf(fout_.get(), "time");
+        for (int i = 0; i < nAnchors; ++i)
+            fprintf(fout_.get(), ",fx_%03d,fy_%03d,fz_%03d", i, i, i);
+        fprintf(fout_.get(), "\n");
     }
 }
 
@@ -174,10 +181,10 @@ void AnchorParticlesStatsPlugin::deserialize()
     if (activated_ && rank_ == 0)
     {
         fprintf(fout_.get(), "%f", currentTime);
-        for (auto& f : forces)
+        for (auto f : forces)
         {
             f /= nsamples;
-            fprintf(fout_.get(), " %f %f %f", f.x, f.y, f.z);
+            fprintf(fout_.get(), ",%f,%f,%f", f.x, f.y, f.z);
         }
         fprintf(fout_.get(), "\n");
         fflush(fout_.get());
