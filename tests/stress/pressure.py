@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
+import argparse
 import mirheo as mir
 import numpy as np
-import argparse
+import os
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--out', type=str, required=True)
@@ -44,15 +46,14 @@ u.run(2001)
 volume = domain[0]*domain[1]*domain[2]
 
 if u.isMasterTask():
-    data = np.loadtxt(path+"/"+pv_name+".txt")
-    p_mean = np.mean(data[:,1]) / volume
+    df = pd.read_csv(os.path.join(path, pv_name+".csv"))
+    p_mean = np.mean(df["pressure"]) / volume
     np.savetxt(args.out, [p_mean])
 
 del(u)
 
 # nTEST: stress.pressure
 # cd stress
-# rm -rf pressure
+# rm -rf pressure pressure.txt
 # mir.run --runargs "-n 2" ./pressure.py --out pressure.txt
 # cat pressure.txt | uscale 0.1 > pressure.out.txt
-

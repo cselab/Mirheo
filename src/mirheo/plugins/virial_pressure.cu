@@ -127,11 +127,11 @@ void VirialPressureDumper::handshake()
 
     if (activated_)
     {
-        auto fname = path_ + pvName + ".txt";
+        auto fname = joinPaths(path_, setExtensionOrDie(pvName, "csv"));
         auto status = fdump_.open(fname, "w");
         if (status != FileWrapper::Status::Success)
             die("Could not open file '%s'", fname.c_str());
-        fprintf(fdump_.get(), "# time Pressure\n");
+        fprintf(fdump_.get(), "time,pressure\n");
     }
 }
 
@@ -147,7 +147,7 @@ void VirialPressureDumper::deserialize()
     const auto dataType = getMPIFloatType<virial_pressure_plugin::ReductionType>();
     MPI_Check( MPI_Reduce(&localPressure, &totalPressure, 1, dataType, MPI_SUM, 0, comm_) );
 
-    fprintf(fdump_.get(), "%g %.6e\n", curTime, totalPressure);
+    fprintf(fdump_.get(), "%g,%.6e\n", curTime, totalPressure);
 }
 
 } // namespace mirheo
