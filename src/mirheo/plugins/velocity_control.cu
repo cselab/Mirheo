@@ -11,6 +11,7 @@
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/path.h>
 
 namespace mirheo
 {
@@ -180,10 +181,11 @@ void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::strin
 PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::string filename) :
     PostprocessPlugin(name)
 {
+    filename = setExtensionOrDie(filename, "csv");
     auto status = fdump_.open(filename, "w");
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
-    fprintf(fdump_.get(), "# time time_step velocity force\n");
+    fprintf(fdump_.get(), "time,time_step,vx,vy,vz,fx,fy,fz\n");
 }
 
 void PostprocessVelocityControl::deserialize()
@@ -197,9 +199,9 @@ void PostprocessVelocityControl::deserialize()
     if (rank_ == 0)
     {
         fprintf(fdump_.get(),
-                "%g %lld "
-                "%g %g %g "
-                "%g %g %g\n",
+                "%g,%lld,"
+                "%g,%g,%g,"
+                "%g,%g,%g\n",
                 currentTime, currentTimeStep,
                 vel.x, vel.y, vel.z,
                 force.x, force.y, force.z);

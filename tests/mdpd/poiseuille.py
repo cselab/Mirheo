@@ -61,7 +61,7 @@ vc_sample_every = 5
 vc_tune_every = 5
 vc_dump_every = 500
 
-u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
+u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont", [pv], (0, 0, 0), domain, vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
 
 u.run(20002)
 

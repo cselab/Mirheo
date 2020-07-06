@@ -15,7 +15,7 @@ u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=T
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)
 u.registerParticleVector(pv, ic)
-    
+
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=50.0, kBT=0.1, power=0.25)
 u.registerInteraction(dpd)
 
@@ -51,7 +51,7 @@ vc_sample_every = 5
 vc_tune_every = 5
 vc_dump_every = 500
 
-u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain,
+u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont", [pv], (0, 0, 0), domain,
                                                     vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
 
 u.run(20002)
@@ -59,5 +59,5 @@ u.run(20002)
 # nTEST: flow.poiseuille
 # cd flow
 # rm -rf h5
-# mir.run --runargs "-n 2" ./poiseuille.py 
+# mir.run --runargs "-n 2" ./poiseuille.py
 # mir.avgh5 xy velocities h5/solvent-0001[5-9].h5 | awk '{print $1}' > profile.out.txt

@@ -27,13 +27,13 @@ Kp = 2.0 * factor
 Ki = 1.0 * factor
 Kd = 8.0 * factor
 
-u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont.txt", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
+u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont.csv", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 u.registerPlugins(mir.Plugins.createStats('stats', "stats.csv", 1000))
 
 u.run(5001)
 
 # nTEST: flow.uniform_vel
 # cd flow
-# rm -rf vcont.txt
+# rm -rf vcont.csv
 # mir.run --runargs "-n 2" ./uniform_vel.py > /dev/null
-# cat vcont.txt | awk '{print $1, $3}' > vcont.out.txt
+# mir.post ../tools/dump_csv.py vcont.csv time vx --header > vcont.out.txt

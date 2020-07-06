@@ -494,9 +494,9 @@ void exportPlugins(py::module& m)
         The force is adapted bvia a PID controller such that the velocity average of the particles matches the target average velocity.
 
         Args:
-            name: name of the plugin
-            filename: dump file name
-            pvs: list of concerned :class:`ParticleVector`
+            name: Name of the plugin.
+            filename: Dump file name. Must have a csv extension or no extension at all.
+            pvs: List of concerned :class:`ParticleVector`.
             low, high: boundaries of the domain of interest
             sample_every: sample velocity every this many time-steps
             tune_every: adapt the force every this many time-steps

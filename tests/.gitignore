@@ -39,7 +39,7 @@ h5
 /flow/log_00000.log
 /flow/log_00001.log
 /flow/stats.csv
-/flow/vcont.txt
+/flow/vcont.csv
 /fsi/log_00000.log
 /fsi/log_00001.log
 /fsi/pos.txt
@@ -55,7 +55,7 @@ h5
 /md/snapshot/
 /mdpd/log_00000.log
 /mdpd/log_00001.log
-/mdpd/vcont.txt
+/mdpd/vcont.csv
 /mdpd/stats.csv
 /membrane/log_00000.log
 /membrane/log_00001.log
@@ -134,12 +134,12 @@ h5
 /stress/pressure/
 /walls/analytic/log_00000.log
 /walls/analytic/log_00001.log
-/walls/analytic/vcont.txt
+/walls/analytic/vcont.csv
 /walls/log_00000.log
 /walls/log_00001.log
 /walls/sdf/log_00000.log
 /walls/sdf/log_00001.log
-/walls/sdf/vcont.txt
+/walls/sdf/vcont.csv
 /walls/volume/log_00000.log
 /walls/volume/volume.txt
 /walls/wallForceHi.txt
