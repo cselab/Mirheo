@@ -21,7 +21,7 @@ def decode(code):
         elif "yY".find(c) >= 0: rdir.append(1)
         elif "zZ".find(c) >= 0: rdir.append(0)
         else: err("bad code %c, must be in [xXyYzZ]\n" % c); exit(1)
-        
+
     return rdir
 
 
