@@ -34,7 +34,9 @@ make install
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.4.0
 
 * add basic structure for the development documentation
 * particle checker plugin dumps all particle fields when triggered
