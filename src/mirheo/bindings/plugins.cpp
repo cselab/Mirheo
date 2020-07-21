@@ -459,6 +459,20 @@ void exportPlugins(py::module& m)
             target_direction: the direction in which the material frame tends to align
     )");
 
+    m.def("__createRdf", &plugin_factory::createRdfPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "max_dist"_a, "nbins"_a, "basename"_a, "every"_a, R"(
+        Compute the radial distribution function (RDF) of a given :any:`ParticleVector`.
+        For simplicity, particles that are less that `max_dist` from the subdomain border are not counted.
+
+        Args:
+            name: Name of the plugin.
+            pv: The :any:`ParticleVector` that we ant to compute the RDF from.
+            max_dist: The RDF will be computed on the interval [0, max_dist]. Must be strictly less than half the minimum size of one subdomain.
+            nbins: The RDF is computed on nbins bins.
+            basename: Each RDF dump will be dumped in csv format to <basename>-XXXXX.csv.
+            every: Computes and dump the RDF every this amount of timesteps.
+    )");
+
     m.def("__createStats", &plugin_factory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
         This plugin will report aggregate quantities of all the particles in the simulation:

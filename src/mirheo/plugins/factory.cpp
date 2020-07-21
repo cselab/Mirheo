@@ -27,6 +27,7 @@
 #include "particle_drag.h"
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
+#include "rdf.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "vacf.h"
@@ -334,6 +335,14 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
     auto postPl = computeTask ?
         nullptr :
         std::make_shared<PostprocessVelocityControl> (name, filename);
+
+    return { simPl, postPl };
+}
+
+PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real maxDist, int nbins, std::string basename, int every)
+{
+    auto simPl  = computeTask ? std::make_shared<RdfPlugin> (state, name, pv->getName(), maxDist, nbins, every) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<RdfDump> (name, basename);
 
     return { simPl, postPl };
 }

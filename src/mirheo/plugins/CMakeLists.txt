@@ -31,6 +31,7 @@ set(sources_cu
   particle_drag.cu
   pin_object.cu
   pin_rod_extremity.cu
+  rdf.cu
   stats.cu
   temperaturize.cu
   vacf.cu
