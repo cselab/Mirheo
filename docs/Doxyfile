@@ -30,7 +30,9 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/exchange_pvs_flux_plane.h \
       ../src/mirheo/plugins/force_saver.h \
       ../src/mirheo/plugins/impose_profile.h \
-      ../src/mirheo/plugins/impose_velocity.h
+      ../src/mirheo/plugins/impose_velocity.h \
+      ../src/mirheo/plugins/magnetic_orientation.h \
+      ../src/mirheo/plugins/membrane_extra_force.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

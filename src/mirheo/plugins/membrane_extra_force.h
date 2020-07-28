@@ -15,9 +15,18 @@ namespace mirheo
 
 class MembraneVector;
 
+/** Add external, constant forces to each vertex of a membrane.
+    This was designed for a single membrane in order to model cell stretching.
+ */
 class MembraneExtraForcePlugin : public SimulationPlugin
 {
 public:
+    /** Create a MembraneExtraForcePlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the MembraneVector to dump.
+        \param [in] forces List of forces. Must have the same size as the number of vertices.
+    */
     MembraneExtraForcePlugin(const MirState *state, std::string name, std::string pvName, const std::vector<real3>& forces);
 
     /** \brief Construct a simulation plugin object from its snapshot.

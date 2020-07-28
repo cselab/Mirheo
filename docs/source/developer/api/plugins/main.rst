@@ -134,3 +134,8 @@ These plugins add more functionalities to the simulation.
 .. doxygenclass:: mirheo::ImposeVelocityPlugin
    :project: mirheo
    :members:
+
+
+.. doxygenclass:: mirheo::MagneticOrientationPlugin
+   :project: mirheo
+   :members:
