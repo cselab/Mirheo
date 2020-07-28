@@ -114,3 +114,23 @@ These plugins add more functionalities to the simulation.
 .. doxygenclass:: mirheo::ParticleDisplacementPlugin
    :project: mirheo
    :members:
+
+
+.. doxygenclass:: mirheo::ExchangePVSFluxPlanePlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::ForceSaverPlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::ImposeProfilePlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::ImposeVelocityPlugin
+   :project: mirheo
+   :members:

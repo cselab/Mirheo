@@ -26,7 +26,11 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/dump_obj_stats.h \
       ../src/mirheo/plugins/dump_particles.h \
       ../src/mirheo/plugins/dump_particles_with_mesh.h \
-      ../src/mirheo/plugins/dump_xyz.h
+      ../src/mirheo/plugins/dump_xyz.h \
+      ../src/mirheo/plugins/exchange_pvs_flux_plane.h \
+      ../src/mirheo/plugins/force_saver.h \
+      ../src/mirheo/plugins/impose_profile.h \
+      ../src/mirheo/plugins/impose_velocity.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

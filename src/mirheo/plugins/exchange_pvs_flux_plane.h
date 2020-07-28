@@ -13,9 +13,20 @@ namespace mirheo
 class ParticleVector;
 class ParticlePacker;
 
+/** Transfer particles from one ParticleVector to another when they cross a given plane.
+ */
 class ExchangePVSFluxPlanePlugin : public SimulationPlugin
 {
 public:
+    /** Create a \c ExchangePVSFluxPlanePlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pv1Name The name of the source ParticleVector. Only particles from this ParticleVector are transfered.
+        \param [in] pv2Name The name of the destination ParticleVector.
+        \param [in] plane Coefficients of the plane to be crossed, (a, b, c, d).
+
+        The particle has crossed the plane if a *x + b * y + c * z + d goes from negative to positive.
+     */
     ExchangePVSFluxPlanePlugin(const MirState *state, std::string name, std::string pv1Name, std::string pv2Name, real4 plane);
     ~ExchangePVSFluxPlanePlugin();
 
