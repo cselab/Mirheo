@@ -13,15 +13,21 @@ namespace mirheo
 class ParticleVector;
 class RigidObjectVector;
 
-/** \brief This \c Plugin has only a debug purpose.
-    It is designed to check the validity of the ParticleVector states:
-    - check the positions are within reasonable bounds
-    - check the velocities are within reasonable bounds
-    - check for nan or inf forces
+/** Check the validity of all ParticleVector in the simulation:
+    - Check that the positions are within reasonable bounds.
+    - Check that the velocities are within reasonable bounds.
+    - Check that forces do not contain NaN or Inf values.
+
+    If either of the above is not satisfied, the plugin will make the code die with an informative error.
  */
 class ParticleCheckerPlugin : public SimulationPlugin
 {
 public:
+    /** Create a ParticleCheckerPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] checkEvery Will check the states of particles every this number of steps.
+     */
     ParticleCheckerPlugin(const MirState *state, std::string name, int checkEvery);
     ~ParticleCheckerPlugin();
 
@@ -32,12 +38,14 @@ public:
 
     bool needPostproc() override { return false; }
 
+    /// Encode error type if there is any.
     enum class Info {Ok, Out, Nan};
 
+    /// Helper to encode problematic particles.
     struct __align__(16) Status
     {
-        int id;
-        Info info;
+        int id; ///< The Index of the potential problematic particle.
+        Info info; ///< What is problematic.
     };
 
 private:

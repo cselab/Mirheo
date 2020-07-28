@@ -19,6 +19,7 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/anchor_particle.h \
       ../src/mirheo/plugins/average_flow.h \
       ../src/mirheo/plugins/average_relative_flow.h \
+      ../src/mirheo/plugins/berendsen_thermostat.h \
       ../src/mirheo/plugins/channel_dumper.h \
       ../src/mirheo/plugins/density_control.h \
       ../src/mirheo/plugins/displacement.h \
@@ -32,7 +33,9 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/impose_profile.h \
       ../src/mirheo/plugins/impose_velocity.h \
       ../src/mirheo/plugins/magnetic_orientation.h \
-      ../src/mirheo/plugins/membrane_extra_force.h
+      ../src/mirheo/plugins/membrane_extra_force.h \
+      ../src/mirheo/plugins/particle_channel_saver.h \
+      ../src/mirheo/plugins/particle_checker.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
