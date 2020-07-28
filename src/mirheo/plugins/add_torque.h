@@ -8,9 +8,18 @@ namespace mirheo
 
 class RigidObjectVector;
 
+/** Add a constant torque to every object of a given RigidObjectVector at every time step.
+    The torque is added at the beforeForce() stage.
+ */
 class AddTorquePlugin : public SimulationPlugin
 {
 public:
+    /** Create a AddTorquePlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] rovName The name of the RigidObjectVector to which the torque should be applied.
+        \param [in] torque The torque to apply.
+     */
     AddTorquePlugin(const MirState *state, const std::string& name, const std::string& rovName, real3 torque);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
