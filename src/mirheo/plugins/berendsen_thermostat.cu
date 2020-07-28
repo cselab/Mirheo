@@ -16,7 +16,7 @@ namespace mirheo
 namespace berendsen_thermostat_kernels
 {
 
-/// Compute the sum of (m * vx, m * vy, m * vz, m * v^2 / 2) for a given PV.
+/// Compute the sum of (vx, vy, vz, v^2) for a given PV.
 __global__ void reduceVelocityAndEnergy(PVview view, real4 *stats)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -36,7 +36,7 @@ __global__ void reduceVelocityAndEnergy(PVview view, real4 *stats)
         atomicAdd(stats, warpStats);
 }
 
-// Update velocities v[i] := avgv + lambda * (v[i] - avgv).
+/// Update velocities v[i] := avgv + lambda * (v[i] - avgv).
 __global__ void updateVelocities(PVview view, real3 avgVel, real lambda)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -70,7 +70,7 @@ BerendsenThermostatPlugin::BerendsenThermostatPlugin(
         config["kBT"], config["tau"], config["increaseIfLower"]}
 {}
 
-void BerendsenThermostatPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
+void BerendsenThermostatPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
@@ -85,7 +85,8 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
 
     // Gather statistics for each individual PV.
     stats_.clearDevice(stream);
-    for (size_t i = 0; i < pvs_.size(); ++i) {
+    for (size_t i = 0; i < pvs_.size(); ++i)
+    {
         PVview view(pvs_[i], pvs_[i]->local());
         SAFE_KERNEL_LAUNCH(berendsen_thermostat_kernels::reduceVelocityAndEnergy,
                            getNblocks(view.size, nthreads), nthreads, 0, stream,
@@ -95,8 +96,9 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
 
     // Reduce local PV sums of (m * v, m * v^2, m, 1).
     real localTotal[6] = {0, 0, 0, 0, 0, 0};
-    for (size_t i = 0; i < pvs_.size(); ++i) {
-        real mass = pvs_[i]->getMassPerParticle();
+    for (size_t i = 0; i < pvs_.size(); ++i)
+    {
+        const real mass = pvs_[i]->getMassPerParticle();
         localTotal[0] += mass * stats_[i].x;
         localTotal[1] += mass * stats_[i].y;
         localTotal[2] += mass * stats_[i].z;
@@ -123,7 +125,8 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
             : 1.0_r;
 
     // Update local particles.
-    for (ParticleVector *pv : pvs_) {
+    for (ParticleVector *pv : pvs_)
+    {
         PVview view(pv, pv->local());
         SAFE_KERNEL_LAUNCH(berendsen_thermostat_kernels::updateVelocities,
                            getNblocks(view.size, nthreads), nthreads, 0, stream,
