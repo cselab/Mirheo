@@ -13,10 +13,19 @@ namespace mirheo
 class ParticleVector;
 class CellList;
 
+
+/** Send particle positions to \c XYZDumper.
+*/
 class XYZPlugin : public SimulationPlugin
 {
 public:
-    XYZPlugin(const MirState *state, std::string name, std::string pvNames, int dumpEvery);
+    /** Create a \c XYZPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector to dump.
+        \param [in] dumpEvery Send the data to the postprocess side every this number of steps.
+     */
+    XYZPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -33,10 +42,16 @@ private:
     HostBuffer<real4> positions_;
 };
 
-
+/** Postprocess side of \c XYZPlugin.
+    Dump the particle positions to simple .xyz format.
+*/
 class XYZDumper : public PostprocessPlugin
 {
 public:
+    /** Create a \c XYZDumper object.
+        \param [in] name The name of the plugin.
+        \param [in] path Data will be dumped to `pathXXXXX.xyz`.
+     */
     XYZDumper(std::string name, std::string path);
     ~XYZDumper();
 

@@ -19,12 +19,33 @@ namespace mirheo
 class ParticleVector;
 class Field;
 
+/** Apply forces on particles in order to keep the number density constant within layers in a field.
+    The layers are determined by the level sets of the field.
+    Forces are perpendicular to these layers; their magnitude is computed from PID controllers.
+ */
 class DensityControlPlugin : public SimulationPlugin
 {
 public:
-
+    /// functor that describes the region in terms of level sets.
     using RegionFunc = std::function<real(real3)>;
 
+    /** Create a DensityControlPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvNames The names of the ParticleVector that have the target density..
+        \param [in] targetDensity The target number density.
+        \param [in] region The field used to partition the space.
+        \param [in] resolution The grid spacing used to discretized \p region
+        \param [in] levelLo The minimum level set of the region to control.
+        \param [in] levelHi The maximum level set of the region to control.
+        \param [in] levelSpace Determines the difference between 2 consecutive layers in the partition of space.
+        \param [in] Kp "Proportional" coefficient of the PID.
+        \param [in] Ki "Integral" coefficient of the PID.
+        \param [in] Kd "Derivative" coefficient of the PID.
+        \param [in] tuneEvery Update th PID controllers every this number of steps.
+        \param [in] dumpEvery Dump statistics every this number of steps. See also PostprocessDensityControl.
+        \param [in] sampleEvery Sample statistics every this number of steps. Used by PIDs.
+     */
     DensityControlPlugin(const MirState *state, std::string name,
                          std::vector<std::string> pvNames, real targetDensity,
                          RegionFunc region, real3 resolution,
@@ -39,9 +60,12 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
     bool needPostproc() override { return true; }
 
+    /// Helper structure to partition the space.
     struct LevelBounds
     {
-        real lo, hi, space;
+        real lo; ///< Smallest level set.
+        real hi; ///< Largest level set.
+        real space; ///< Difference between two level sets.
     };
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
@@ -78,10 +102,16 @@ private:
 
 
 
-
+/** Postprocessing side of DensityControlPlugin.
+    Dumps the density and force in each layer of the space partition.
+ */
 class PostprocessDensityControl : public PostprocessPlugin
 {
 public:
+    /** Create a PostprocessDensityControl object.
+        \param [in] name The name of the plugin.
+        \param [in] filename The txt file that will contain the density and corresponding force magnitudes in each layer.
+     */
     PostprocessDensityControl(std::string name, std::string filename);
 
     void deserialize() override;

@@ -11,9 +11,18 @@
 namespace mirheo
 {
 
+/** Send object information to ObjStatsDumper.
+    Used to track the center of mass, linear and angular velocities, orintation, forces and torques of an ObjectVector.
+ */
 class ObjStatsPlugin : public SimulationPlugin
 {
 public:
+    /** Create a ObjStatsPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] ovName The name of the ObjectVector to extract the information from.
+        \param [in] dumpEvery Send the information to the postprocess side every this number of steps.
+     */
     ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -44,9 +53,16 @@ private:
 };
 
 
+/** Postprocess side of ObjStatsPlugin.
+    Dump object information to a csv file.
+*/
 class ObjStatsDumper : public PostprocessPlugin
 {
 public:
+    /** Create a ObjStatsDumper object.
+        \param [in] name The name of the plugin.
+        \param [in] path The csv file to dump. Must end with `.csv` or have no extension.
+    */
     ObjStatsDumper(std::string name, std::string path);
     ~ObjStatsDumper();
 

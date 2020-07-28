@@ -19,7 +19,14 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/anchor_particle.h \
       ../src/mirheo/plugins/average_flow.h \
       ../src/mirheo/plugins/average_relative_flow.h \
-      ../src/mirheo/plugins/channel_dumper.h
+      ../src/mirheo/plugins/channel_dumper.h \
+      ../src/mirheo/plugins/density_control.h \
+      ../src/mirheo/plugins/displacement.h \
+      ../src/mirheo/plugins/dump_mesh.h \
+      ../src/mirheo/plugins/dump_obj_stats.h \
+      ../src/mirheo/plugins/dump_particles.h \
+      ../src/mirheo/plugins/dump_particles_with_mesh.h \
+      ../src/mirheo/plugins/dump_xyz.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h
