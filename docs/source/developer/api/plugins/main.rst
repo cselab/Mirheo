@@ -18,3 +18,15 @@ List of plugins
 .. doxygenclass:: mirheo::AnchorParticlesStatsPlugin
    :project: mirheo
    :members:
+
+.. doxygenclass:: mirheo::Average3D
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::AverageRelative3D
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::UniformCartesianDumper
+   :project: mirheo
+   :members:

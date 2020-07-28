@@ -16,7 +16,10 @@ BUILTIN_STL_SUPPORT  = YES
 INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/add_force.h \
       ../src/mirheo/plugins/add_torque.h \
-      ../src/mirheo/plugins/anchor_particle.h
+      ../src/mirheo/plugins/anchor_particle.h \
+      ../src/mirheo/plugins/average_flow.h \
+      ../src/mirheo/plugins/average_relative_flow.h \
+      ../src/mirheo/plugins/channel_dumper.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

@@ -11,16 +11,31 @@
 namespace mirheo
 {
 
+/** Postprocessing side of \c Average3D or \c AverageRelative3D.
+    Dump uniform grid data to xmf + hdf5 format.
+*/
 class UniformCartesianDumper : public PostprocessPlugin
 {
 public:
+    /** Create a UniformCartesianDumper.
+        \param [in] name The name of the plugin.
+        \param [in] path The files will be dumped to `pathXXXXX.[xmf,h5]`, where `XXXXX` is the time stamp.
+     */
     UniformCartesianDumper(std::string name, std::string path);
     ~UniformCartesianDumper();
 
     void deserialize() override;
     void handshake() override;
 
+    /** Get the average channel data.
+        \param [in] chname The name of the channel.
+        \return The channel data.
+     */
     XDMF::Channel getChannelOrDie(std::string chname) const;
+
+    /** Get the grid size in the local domain.
+        \return An array with 3 entries, contains the number of grid points along each direction.
+     */
     std::vector<int> getLocalResolution() const;
 
 private:
