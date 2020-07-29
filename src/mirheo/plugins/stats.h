@@ -18,9 +18,18 @@ using ReductionType = double;
 using CountType = unsigned long long;
 }
 
+/** Collect global statistics of the simulation and send it to the postprocess ranks.
+    Compute total linear momentum and estimate of temperature.
+    Furthermore, measures average wall time of time steps.
+ */
 class SimulationStats : public SimulationPlugin
 {
 public:
+    /** Create a SimulationPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] fetchEvery Send the statistics every this number of steps.
+    */
     SimulationStats(const MirState *state, std::string name, int fetchEvery);
 
     /// Construct a simulation plugin object from its snapshot.
@@ -56,14 +65,15 @@ private:
     mTimer timer_;
 };
 
+
+/** Dump the stats sent by SimulationStats to a csv file and to the console output.
+ */
 class PostprocessStats : public PostprocessPlugin
 {
 public:
-    /** \brief Construct a `PostprocessStats` plugin.
-
-        \param state MirState object
-        \param name Plugin name
-        \param fetchEvery Every how many time steps to print statistics?
+    /** Construct a PostprocessStats plugin.
+        \param [in] name The name of the plugin.
+        \param [in] filename The csv file name that will be dumped.
       */
     PostprocessStats(std::string name, std::string filename = std::string());
 

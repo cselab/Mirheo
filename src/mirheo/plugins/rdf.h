@@ -20,9 +20,21 @@ using CountType = unsigned long long;
 class CellList;
 class ParticleVector;
 
+/** Measure the radial distribution function (RDF) of a ParticleVector.
+    The RDF is estimated periodically from ensemble averages.
+    See RdfDump for the I/O.
+*/
 class RdfPlugin : public SimulationPlugin
 {
 public:
+    /** Create a RdfPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector from which to measure the RDF.
+        \param [in] maxDist The RDF will be measured on [0, maxDist].
+        \param [in] nbins The number of bins in the interval [0, maxDist].
+        \param [in] computeEvery The number of time steps between two RDF evaluations and dump.
+    */
     RdfPlugin(const MirState *state, std::string name, std::string pvName, real maxDist, int nbins, int computeEvery);
     ~RdfPlugin();
 
@@ -49,10 +61,16 @@ private:
     std::unique_ptr<CellList> cl_;
 };
 
-
+/** Postprocess side of RdfPlugin.
+    Dump the RDF to a csv file.
+*/
 class RdfDump : public PostprocessPlugin
 {
 public:
+    /** Create a RdfDump object.
+        \param [in] name The name of the plugin.
+        \param [in] basename The RDF will be dumped to `basenameXXXXX.csv`.
+    */
     RdfDump(std::string name, std::string basename);
 
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;

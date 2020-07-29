@@ -76,6 +76,32 @@ The prefered format is csv, to allow clean postprocessing from e.g. python.
    :members:
 
 
+.. doxygenclass:: mirheo::RdfPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::RdfDump
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::SimulationStats
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PostprocessStats
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::VacfPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VacfDumper
+   :project: mirheo
+   :members:
+
 
 
 Modifier plugins
@@ -178,6 +204,16 @@ These plugins add more functionalities to the simulation.
 
 
 .. doxygenclass:: mirheo::PinObjectPlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::PinRodExtremityPlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::TemperaturizePlugin
    :project: mirheo
    :members:
 

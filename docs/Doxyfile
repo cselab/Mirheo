@@ -38,7 +38,12 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/particle_channel_saver.h \
       ../src/mirheo/plugins/particle_checker.h \
       ../src/mirheo/plugins/particle_drag.h \
-      ../src/mirheo/plugins/pin_object.h
+      ../src/mirheo/plugins/pin_object.h \
+      ../src/mirheo/plugins/pin_rod_extremity.h \
+      ../src/mirheo/plugins/rdf.h \
+      ../src/mirheo/plugins/stats.h \
+      ../src/mirheo/plugins/temperaturize.h \
+      ../src/mirheo/plugins/vacf.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

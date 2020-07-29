@@ -16,12 +16,20 @@ using ReductionType = double;
 } // namespace vacf_plugin
 
 
-/** A plugin to measure the velocity autocorrelation function (VACF)
-    Given a \c ParticleVector and a time origin, will compute the VACF over time.
+/** Compute the velocity autocorrelation function (VACF) of a given ParticleVector.
+    The VACF is computed every dumpEvery steps on the time interval [startTime, endTime].
  */
 class VacfPlugin : public SimulationPlugin
 {
 public:
+    /** Create a VacfPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector from which to measure the VACF.
+        \param [in] startTime VACF will use this time as origin.
+        \param [in] endTime The VACF will be reported only on [startTime, endTime].
+        \param [in] dumpEvery Will send the VACF to the postprocess side every this number of steps, only during the valid time interval.
+    */
     VacfPlugin(const MirState *state, std::string name, std::string pvName,
                MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery);
 
@@ -54,9 +62,16 @@ private:
 };
 
 
+/** Postprocess side of VacfPlugin.
+    Dumps the VACF in a csv file.
+*/
 class VacfDumper : public PostprocessPlugin
 {
 public:
+    /** Create a VacfDumper object.
+        \param [in] name The name of the plugin.
+        \param [in] path The folder that will contain the vacf csv file.
+    */
     VacfDumper(std::string name, std::string path);
 
     void deserialize() override;
