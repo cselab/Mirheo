@@ -8,7 +8,7 @@
 
 namespace mirheo
 {
-
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 template <typename T>
 inline bool checkType(__UNUSED const Average3D::ChannelType& channelType) { return false;}
 
@@ -17,6 +17,8 @@ template <> inline bool checkType<real3>(const Average3D::ChannelType& channelTy
 template <> inline bool checkType<real4>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Vector_real4;}
 template <> inline bool checkType<Stress>(const Average3D::ChannelType& channelType) { return channelType == Average3D::ChannelType::Tensor6;}
 template <> inline bool checkType<Force> (const Average3D::ChannelType& channelType) { return checkType<real4> (channelType);}
+
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, const Average3D::ChannelType& channelType)
 {
@@ -31,12 +33,20 @@ static real* getDataAndCheck(const std::string& name, LocalParticleVector *lpv, 
     }, contDesc.varDataPtr);
 }
 
+/** Lightweight structure that stores a list of pointers to multiple channels and their averages on the device.
+ */
 struct ChannelsInfo
 {
-    int n;
-    Average3D::ChannelType *types;
-    real **average, **data;
+    int n; ///< The number of channels.
+    Average3D::ChannelType *types; ///< The types of each channel.
+    real **average; ///< The list of averaged buffers.
+    real **data; ///< The list of particle data buffers.
 
+    /** Construct a ChannelsInfo object.
+        \param [in] info The data container.
+        \param [in] pv The concerned ParticleVector.
+        \param [in] stream Used to upload data.
+     */
     ChannelsInfo(Average3D::HostChannelsInfo& info, ParticleVector *pv, cudaStream_t stream)
     {
         for (int i = 0; i < info.n; i++)

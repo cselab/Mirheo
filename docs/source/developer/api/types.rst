@@ -46,4 +46,3 @@ Utils
 ..
    .. doxygenfunction:: mirheo::printToStr(int)
       :project: mirheo
-

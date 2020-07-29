@@ -14,41 +14,7 @@ WARN_IF_UNDOCUMENTED = YES
 BUILTIN_STL_SUPPORT  = YES
 
 INPUT = ../src/mirheo/core \
-      ../src/mirheo/plugins/add_force.h \
-      ../src/mirheo/plugins/add_torque.h \
-      ../src/mirheo/plugins/anchor_particle.h \
-      ../src/mirheo/plugins/average_flow.h \
-      ../src/mirheo/plugins/average_relative_flow.h \
-      ../src/mirheo/plugins/berendsen_thermostat.h \
-      ../src/mirheo/plugins/channel_dumper.h \
-      ../src/mirheo/plugins/density_control.h \
-      ../src/mirheo/plugins/displacement.h \
-      ../src/mirheo/plugins/dump_mesh.h \
-      ../src/mirheo/plugins/dump_obj_stats.h \
-      ../src/mirheo/plugins/dump_particles.h \
-      ../src/mirheo/plugins/dump_particles_with_mesh.h \
-      ../src/mirheo/plugins/dump_xyz.h \
-      ../src/mirheo/plugins/exchange_pvs_flux_plane.h \
-      ../src/mirheo/plugins/force_saver.h \
-      ../src/mirheo/plugins/impose_profile.h \
-      ../src/mirheo/plugins/impose_velocity.h \
-      ../src/mirheo/plugins/magnetic_orientation.h \
-      ../src/mirheo/plugins/membrane_extra_force.h \
-      ../src/mirheo/plugins/outlet.h \
-      ../src/mirheo/plugins/particle_channel_saver.h \
-      ../src/mirheo/plugins/particle_checker.h \
-      ../src/mirheo/plugins/particle_drag.h \
-      ../src/mirheo/plugins/pin_object.h \
-      ../src/mirheo/plugins/pin_rod_extremity.h \
-      ../src/mirheo/plugins/rdf.h \
-      ../src/mirheo/plugins/stats.h \
-      ../src/mirheo/plugins/temperaturize.h \
-      ../src/mirheo/plugins/vacf.h \
-      ../src/mirheo/plugins/velocity_control.h \
-      ../src/mirheo/plugins/velocity_inlet.h \
-      ../src/mirheo/plugins/virial_pressure.h \
-      ../src/mirheo/plugins/wall_force_collector.h \
-      ../src/mirheo/plugins/wall_repulsion.h
+      ../src/mirheo/plugins
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

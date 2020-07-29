@@ -9,3 +9,4 @@ Plugins
 
    plugins/interface
    plugins/main
+   plugins/utils

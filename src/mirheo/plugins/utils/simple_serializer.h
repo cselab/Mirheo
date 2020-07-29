@@ -12,8 +12,11 @@
 namespace mirheo
 {
 
-// Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported
-// Container size will be serialized too
+/** Helper class To serialize and deserialize data.
+    This is used to communicate data between simulation and postprocess plugins.
+
+    Only POD types and std::vectors/HostBuffers/PinnedBuffers of POD and std::strings are supported.
+ */
 class SimpleSerializer
 {
 private:
@@ -85,17 +88,30 @@ private:
     //============================================================================
 
 public:
+    /// \return The default total size of one element.
     static int totSize()
     {
         return 0;
     }
 
+    /** The total size of one element.
+        \tparam Arg The type of the element
+        \param arg The element instance.
+        \return The size in bytes of the element.
+    */
     template<typename Arg>
     static int totSize(const Arg& arg)
     {
         return sizeOfOne(arg);
     }
 
+    /** The total size of one element.
+        \tparam Arg The type of the element
+        \tparam OthArgs The types of the element other elements
+        \param arg The element instance.
+        \param othArgs The other element instances.
+        \return The size in bytes of all elements.
+    */
     template<typename Arg, typename... OthArgs>
     static int totSize(const Arg& arg, const OthArgs&... othArgs)
     {
@@ -230,6 +246,12 @@ private:
     //============================================================================
 
 public:
+    /** Serialize multiple elements into a buffer.
+        The buffer will be allocated to the correct size.
+        \tparam Args The types the elements to serialize.
+        \param [in] args The elements to serialize.
+        \param [out] buf The buffer that will contain the serialized data.
+    */
     template<typename... Args>
     static void serialize(std::vector<char>& buf, const Args&... args)
     {
@@ -238,6 +260,11 @@ public:
         pack(buf.data(), args...);
     }
 
+    /** Deserialize multiple elements from a buffer.
+        \tparam Args The types the elements to deserialize.
+        \param [out] args The deserialized elements.
+        \param [in] buf The buffer that contains the serialized data.
+    */
     template<typename... Args>
     static void deserialize(const std::vector<char>& buf, Args&... args)
     {
@@ -245,13 +272,23 @@ public:
     }
 
 
-    // Unsafe variants
+    /** Serialize multiple elements into a buffer.
+        The buffer will **NOT** be allocated to the correct size.
+        \tparam Args The types the elements to serialize.
+        \param [in] args The elements to serialize.
+        \param [out] to The buffer that will contain the serialized data. Must be sufficiently large.
+    */
     template<typename... Args>
     static void serialize(char* to, const Args&... args)
     {
         pack(to, args...);
     }
 
+    /** Deserialize multiple elements from a buffer.
+        \tparam Args The types the elements to deserialize.
+        \param [out] args The deserialized elements.
+        \param [in] from The buffer that contains the serialized data.
+    */
     template<typename... Args>
     static void deserialize(const char* from, Args&... args)
     {

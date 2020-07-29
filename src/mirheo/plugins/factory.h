@@ -95,9 +95,10 @@ PairPlugin createParticleDisplacementPlugin(bool computeTask, const MirState *st
 
 PairPlugin createParticleDragPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real drag);
 
+/// Dummy class to have the special value available.
 struct PinObjectMock
 {
-    const static real Unrestricted;
+    const static real Unrestricted; ///< Mock unrestricted special value.
 };
 
 PairPlugin createPinObjPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov,

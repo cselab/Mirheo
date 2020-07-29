@@ -30,7 +30,7 @@ public:
     */
     WallRepulsionPlugin(const MirState *state, std::string name,
                         std::string pvName, std::string wallName,
-                        real C, real h, real maxForce = 1e3_r);
+                        real C, real h, real maxForce);
 
     /// Load a snapshot of the plugin.
     WallRepulsionPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
