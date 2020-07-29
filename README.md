@@ -36,6 +36,11 @@ make install
 
 <!-- ### unreleased -->
 
+### v1.4.1
+
+* Add Rdf plugin.
+* Add developer documentation of plugins.
+
 ### v1.4.0
 
 * add basic structure for the development documentation
