@@ -12,13 +12,29 @@ namespace mirheo
 
 class ParticleVector;
 
+/** Add particles to a given ParticleVector.
+    The particles are injected on a given surface at a given influx rate.
+ */
 class VelocityInletPlugin : public SimulationPlugin
 {
 public:
 
+    /// Representation of a surface from a scalar field.
     using ImplicitSurfaceFunc = std::function<real(real3)>;
+
+    /// Velocity field used to describe the inflow.
     using VelocityFieldFunc = std::function<real3(real3)>;
 
+    /** Create a VelocityInletPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector to add the particles to.
+        \param [in] implicitSurface The scalar field that has the desired surface as zero level set.
+        \param [in] velocityField The inflow velocity. Only relevant on the surface.
+        \param [in] resolution Grid size used to sample the fields.
+        \param [in] numberDensity The target number density of injection.
+        \param [in] kBT The temperature of the injected particles.
+    */
     VelocityInletPlugin(const MirState *state, std::string name, std::string pvName,
                         ImplicitSurfaceFunc implicitSurface, VelocityFieldFunc velocityField,
                         real3 resolution, real numberDensity, real kBT);

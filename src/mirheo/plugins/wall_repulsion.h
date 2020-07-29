@@ -11,9 +11,23 @@ namespace mirheo
 class ParticleVector;
 class SDFBasedWall;
 
+
+/** Add a force that pushes particles away from the wall surfaces.
+    The magnitude of the force decreases linearly down to zero at a given distance h.
+    Furthermore, the force can be capped.
+ */
 class WallRepulsionPlugin : public SimulationPlugin
 {
 public:
+    /** Create a WallRepulsionPlugin object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector that will be subject to the force.
+        \param [in] wallName The name of the \c Wall.
+        \param [in] C Force coefficient.
+        \param [in] h Force maximum distance.
+        \param [in] maxForce Maximum force magnitude.
+    */
     WallRepulsionPlugin(const MirState *state, std::string name,
                         std::string pvName, std::string wallName,
                         real C, real h, real maxForce = 1e3_r);

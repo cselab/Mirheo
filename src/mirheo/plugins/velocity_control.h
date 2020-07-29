@@ -15,9 +15,26 @@ namespace mirheo
 
 class ParticleVector;
 
+/** Apply a force in a box region to all particles.
+    The force is controled by a PID controller that has a target mean velocity in that same region.
+*/
 class SimulationVelocityControl : public SimulationPlugin
 {
 public:
+    /** Create a SimulationVelocityControl object.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvNames The list of names of the ParticleVector to control.
+        \param [in] low The lower coordinates of the control region.
+        \param [in] high The upper coordinates of the control region.
+        \param [in] sampleEvery Sample the velocity average every this number of steps.
+        \param [in] tuneEvery Update the PID controller every this number of steps.
+        \param [in] dumpEvery Send statistics of the PID to the postprocess plugin every this number of steps.
+        \param [in] targetVel The target mean velocity in the region of interest.
+        \param [in] Kp "Proportional" coefficient of the PID.
+        \param [in] Ki "Integral" coefficient of the PID.
+        \param [in] Kd "Derivative" coefficient of the PID.
+    */
     SimulationVelocityControl(const MirState *state, std::string name, std::vector<std::string> pvNames,
                               real3 low, real3 high,
                               int sampleEvery, int tuneEvery, int dumpEvery,
@@ -54,9 +71,17 @@ private:
     std::vector<char> sendBuffer_;
 };
 
+
+/** Postprocess side of SimulationVelocityControl.
+    Receives and dump the PID stats to a csv file.
+*/
 class PostprocessVelocityControl : public PostprocessPlugin
 {
 public:
+    /** Create a SimulationVelocityControl object.
+        \param [in] name The name of the plugin.
+        \param [in] filename The csv file to which the statistics will be dumped.
+    */
     PostprocessVelocityControl(std::string name, std::string filename);
 
     void deserialize() override;

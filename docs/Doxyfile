@@ -43,7 +43,12 @@ INPUT = ../src/mirheo/core \
       ../src/mirheo/plugins/rdf.h \
       ../src/mirheo/plugins/stats.h \
       ../src/mirheo/plugins/temperaturize.h \
-      ../src/mirheo/plugins/vacf.h
+      ../src/mirheo/plugins/vacf.h \
+      ../src/mirheo/plugins/velocity_control.h \
+      ../src/mirheo/plugins/velocity_inlet.h \
+      ../src/mirheo/plugins/virial_pressure.h \
+      ../src/mirheo/plugins/wall_force_collector.h \
+      ../src/mirheo/plugins/wall_repulsion.h
 
 ## FILE_PATTERNS     = *.h *.cpp *.cu
 FILE_PATTERNS     = *.h

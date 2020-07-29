@@ -103,6 +103,24 @@ The prefered format is csv, to allow clean postprocessing from e.g. python.
    :members:
 
 
+.. doxygenclass:: mirheo::VirialPressurePlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::VirialPressureDumper
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::WallForceCollectorPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::WallForceDumperPlugin
+   :project: mirheo
+   :members:
+
+
 
 Modifier plugins
 ****************
@@ -216,6 +234,26 @@ These plugins add more functionalities to the simulation.
 .. doxygenclass:: mirheo::TemperaturizePlugin
    :project: mirheo
    :members:
+
+
+.. doxygenclass:: mirheo::SimulationVelocityControl
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PostprocessVelocityControl
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::VelocityInletPlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::WallRepulsionPlugin
+   :project: mirheo
+   :members:
+
 
 
 
