@@ -59,10 +59,10 @@ They can be used to dump selected parts of the state of the simulation to the di
 
 
 
-Statistics Plugins
-******************
+Statistics and In-situ analysis Plugins
+***************************************
 
-These plugins Do not modify the state of the simulation.
+These plugins do not modify the state of the simulation.
 They are used to measure properties of the simulation that can be processed directly at runtime.
 Their output is generally much lighter than dump plugins.
 The prefered format is csv, to allow clean postprocessing from e.g. python.
@@ -146,10 +146,45 @@ These plugins add more functionalities to the simulation.
    :members:
 
 
+.. doxygenclass:: mirheo::OutletPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PlaneOutletPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::RegionOutletPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::DensityOutletPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::RateOutletPlugin
+   :project: mirheo
+   :members:
+
+
 .. doxygenclass:: mirheo::ParticleChannelSaverPlugin
    :project: mirheo
    :members:
 
+
+.. doxygenclass:: mirheo::ParticleDragPlugin
+   :project: mirheo
+   :members:
+
+
+.. doxygenclass:: mirheo::PinObjectPlugin
+   :project: mirheo
+   :members:
+
+
+
+Debugging plugins
+*****************
 
 .. doxygenclass:: mirheo::ParticleCheckerPlugin
    :project: mirheo

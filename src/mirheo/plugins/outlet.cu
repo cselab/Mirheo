@@ -111,8 +111,8 @@ static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo
     for (AccumulatedIntType i = tid; i < nSamples; i += blockDim.x * gridDim.x)
     {
         real3 r {Saru::uniform01(seed, i - 2, i + 4242),
-                  Saru::uniform01(seed, i - 3, i + 4343),
-                  Saru::uniform01(seed, i - 4, i + 4444)};
+                 Saru::uniform01(seed, i - 3, i + 4343),
+                 Saru::uniform01(seed, i - 4, i + 4444)};
 
         r = domain.localSize * (r - 0.5_r);
 
@@ -164,10 +164,10 @@ void RegionOutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, con
 
     outletRegion_->setup(comm);
 
-    volume_ = computeVolume(1000000, udistr_(gen_));
+    volume_ = _computeVolume(1000000, udistr_(gen_));
 }
 
-double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) const
+double RegionOutletPlugin::_computeVolume(long long int nSamples, real seed) const
 {
     auto domain = getState()->domain;
 
@@ -190,7 +190,7 @@ double RegionOutletPlugin::computeVolume(long long int nSamples, real seed) cons
     return totVolume * (double) nInside[0] / (double) nSamples;
 }
 
-void RegionOutletPlugin::countInsideParticles(cudaStream_t stream)
+void RegionOutletPlugin::_countInsideParticles(cudaStream_t stream)
 {
     nParticlesInside_.clearDevice(stream);
 
@@ -218,7 +218,7 @@ DensityOutletPlugin::~DensityOutletPlugin() = default;
 
 void DensityOutletPlugin::beforeCellLists(cudaStream_t stream)
 {
-    countInsideParticles(stream);
+    _countInsideParticles(stream);
 
     const int nthreads = 128;
 
@@ -259,7 +259,7 @@ RateOutletPlugin::~RateOutletPlugin() = default;
 
 void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
 {
-    countInsideParticles(stream);
+    _countInsideParticles(stream);
 
     const int  nthreads = 128;
 
