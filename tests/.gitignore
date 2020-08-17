@@ -1,5 +1,6 @@
 *.out.txt
 h5
+/atest.log
 
 /bindings/log_00000.log
 /bindings/log_00001.log

@@ -21,7 +21,7 @@ docs:
 	$(MAKE) -C docs/
 
 test: install
-	(cd tests && mir.make test)
+	(cd tests && ./run.sh)
 
 units:
 	mkdir -p build
