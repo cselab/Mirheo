@@ -15,7 +15,7 @@ except ImportError:
         print("  Module pint not found, skipping python/unit_conversion.py", file=sys.stderr, flush=True)
         print("#############################################################", file=sys.stderr, flush=True)
 
-        # Skip by copy pasting the expected output.
+        # Skip by copy-pasting the expected output.
         print(open('../test_data/unit_conversion.ref.python.unit_conversion.txt').read(), end='')
     sys.exit()
 
@@ -48,9 +48,9 @@ if u.isComputeTask():
     with open('snapshot/config.json') as f:
         config = json.loads(f.read())
 
-    print("domainGlobalSize =", config["Mirheo"][0]["state"]["domainGlobalSize"])
-    print("dt =", config["Mirheo"][0]["state"]["dt"])
-    print("kBT =", config["Interaction"][0]["pairParams"]["kBT"])
+    print("domainGlobalSize =", config['MirState'][0]['domainGlobalSize'])
+    print("dt =", config['MirState'][0]['dt'])
+    print("kBT =", config['Interaction'][0]['pairParams']['kBT'])
 
 # TEST: python.unit_conversion
 # cd python

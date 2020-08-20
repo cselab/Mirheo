@@ -52,8 +52,11 @@ public:
     /// Convert a value in joules to corresponding mirheo units.
     real joulesToMirheo(real energy) const noexcept
     {
-        return energy * (toSeconds_ * toSeconds_)
-             / (toKilograms_ * toMeters_ * toMeters_);
+        // All these numbers have very large exponents that cause an overflow
+        // in single precision. To avoid that, we temporarily move to doubles.
+        // Alternatively, we could use two divisions.
+        return (real)((double)energy * ((double)toSeconds_ * toSeconds_)
+                    / ((double)toKilograms_ * toMeters_ * toMeters_));
     }
 
 private:

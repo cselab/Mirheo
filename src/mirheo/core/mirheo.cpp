@@ -701,6 +701,10 @@ void Mirheo::saveSnapshot(const std::string& path)
         sim_->snapshot(path);
     else
         post_->snapshot(path);
+
+    // Use a barrier, to avoid a race condition when reading the snapshot
+    // immediately after saving it. E.g. see tests/python/unit_conversion.py.
+    MPI_Barrier(comm_);
 }
 
 } // namespace mirheo
