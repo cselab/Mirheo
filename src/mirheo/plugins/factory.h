@@ -32,9 +32,8 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
                                        std::function<std::vector<real3>(real)> velocities,
                                        std::vector<int> pids, int reportEvery, const std::string& path);
 
-PairPlugin createBerendsenThermostatPlugin(
-        bool computeTask, const MirState *state, std::string name,
-        const std::vector<ParticleVector *> &pv, real tau, real T, real kBT, bool increaseIfLower);
+PairPlugin createBerendsenThermostatPlugin(bool computeTask, const MirState *state, std::string name,
+                                           const std::vector<ParticleVector *> &pv, real tau, real T, real kBT, bool increaseIfLower);
 
 PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
                                       real targetDensity, std::function<real(real3)> region, real3 resolution,
@@ -85,6 +84,9 @@ PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *sta
                                            std::function<real3(real)> magneticFunction);
 
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces);
+
+PairPlugin createMsdPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                           MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
 
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName);

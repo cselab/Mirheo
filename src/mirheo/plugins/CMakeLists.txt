@@ -26,6 +26,7 @@ set(sources_cu
   impose_velocity.cu
   magnetic_orientation.cu
   membrane_extra_force.cu
+  msd.cu
   outlet.cu
   particle_checker.cu
   particle_drag.cu

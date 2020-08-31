@@ -22,6 +22,7 @@
 #include "impose_velocity.h"
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
+#include "msd.h"
 #include "particle_channel_saver.h"
 #include "particle_checker.h"
 #include "particle_drag.h"
@@ -270,6 +271,15 @@ PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *stat
         std::make_shared<MembraneExtraForcePlugin> (state, name, pv->getName(), forces) : nullptr;
 
     return { simPl, nullptr };
+}
+
+PairPlugin createMsdPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                           MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<MsdPlugin> (state, name, pv->getName(), startTime, endTime, dumpEvery)
+        : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<MsdDumper> (name, path);
+    return { simPl, postPl };
 }
 
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,

@@ -367,6 +367,20 @@ void exportPlugins(py::module& m)
             forces: array of forces, one force (3 reals) per vertex in a single mesh
     )");
 
+    m.def("__createMsd", &plugin_factory::createMsdPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "start_time"_a, "end_time"_a, "dump_every"_a, "path"_a, R"(
+        This plugin computes the mean square displacement of th particles of a given :any:`ParticleVector`.
+        The reference position` is that of the given :any:`ParticleVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            start_time: Simulation time of the reference positions.
+            end_time: End time until which to compute the MSD.
+            dump_every: Report MSD every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    )");
+
     m.def("__createParticleChannelSaver", &plugin_factory::createParticleChannelSaverPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
@@ -511,7 +525,7 @@ void exportPlugins(py::module& m)
             pv: Concerned :class:`ParticleVector`.
             start_time: Simulation time of the reference velocities.
             end_time: End time until which to compute the VACF.
-            dump_every: Report total pressure every this many time-steps.
+            dump_every: Report the VACF every this many time-steps.
             path: The folder name in which the file will be dumped.
     )");
 
