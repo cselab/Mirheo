@@ -67,6 +67,16 @@ They are used to measure properties of the simulation that can be processed dire
 Their output is generally much lighter than dump plugins.
 The prefered format is csv, to allow clean postprocessing from e.g. python.
 
+
+.. doxygenclass:: mirheo::MsdPlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::MsdDumper
+   :project: mirheo
+   :members:
+
+
 .. doxygenclass:: mirheo::ObjStatsPlugin
    :project: mirheo
    :members:

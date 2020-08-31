@@ -418,6 +418,25 @@ def createMembraneExtraForce():
     """
     pass
 
+def createMsd():
+    r"""createMsd(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin computes the mean square displacement of th particles of a given :any:`ParticleVector`.
+        The reference position` is that of the given :any:`ParticleVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            start_time: Simulation time of the reference positions.
+            end_time: End time until which to compute the MSD.
+            dump_every: Report MSD every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    
+
+    """
+    pass
+
 def createParticleChannelSaver():
     r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -635,7 +654,7 @@ def createVacf():
             pv: Concerned :class:`ParticleVector`.
             start_time: Simulation time of the reference velocities.
             end_time: End time until which to compute the VACF.
-            dump_every: Report total pressure every this many time-steps.
+            dump_every: Report the VACF every this many time-steps.
             path: The folder name in which the file will be dumped.
     
 

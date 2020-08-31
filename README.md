@@ -34,7 +34,9 @@ make install
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add MSD plugin.
 
 ### v1.4.1
 
