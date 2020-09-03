@@ -106,7 +106,7 @@ std::string setExtensionOrDie(std::string path, const std::string ext)
     if (lastDotPos != std::string::npos) {
         const std::string currentExt(path.begin() + lastDotPos + 1, path.end());
         if (currentExt != ext) {
-            die("Path '%s' has wong extension: %s instead of %s.",
+            die("Path '%s' has wrong extension: %s instead of %s.",
                 path.c_str(), currentExt.c_str(), ext.c_str());
         }
     }

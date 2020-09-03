@@ -146,6 +146,9 @@ void exportVectorTypes(py::module& m)
                 throw std::runtime_error("Should have length 3.");
             return int3{t[0].cast<int>(), t[1].cast<int>(), t[2].cast<int>()};
         }))
+        .def_readwrite("x", &int3::x)
+        .def_readwrite("y", &int3::y)
+        .def_readwrite("z", &int3::z)
         .def("__str__", [](const int3 &v) {
             return "({}, {}, {})"_s.format(v.x, v.y, v.z);
         })
