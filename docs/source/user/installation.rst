@@ -24,79 +24,79 @@ Mirheo requires at least Kepler-generation NVIDIA GPU and depends on a few exter
 
    The code has been tested with  ``mpich-3.2.1``, ``mpich-3.3.1`` and ``openmpi-3.1.3``.
    A known bug in ``mpich-3.3`` causes Mirheo to deadlock, use another version instead.
-  
+
 With all the prerequisites installed, you can take the following steps to run Mirheo:
 
 #. Get the up-to-date version of the code:
 
    .. code-block:: console
-      
+
       $ git clone --recursive https://github.com/cselab/Mirheo.git mirheo
-      
+
 #. In most cases automatic installation will work correctly, you should try it in the first place.
    Navigate to the folder with the code and run the installation command:
-   
+
    .. code-block:: console
-      
+
       $ cd mirheo
       $ make install
-    
+
    In case of any issues, check the prerequisites or try a more "manual" way:
-    
+
    #. From the mirheo folder, create a build folder and run CMake:
-   
+
       .. code-block:: console
-         
+
          $ mkdir -p build/
          $ cd build
          $ cmake ../
-      
+
       If CMake reports some packages are not found, make sure you have all the prerequisites installed and corresponding modules loaded.
       If that doesn't help, or you have some packages installed in non-default locations,
       you will need to manually point CMake to the correct locations.
-      
+
       See CMake documentation for more details on how to provide package installation files.
-      
+
       .. note::
          On CRAY systems you may need to tell CMake to dynamically link the libraries by the following flag:
-         
+
          .. code-block:: console
-         
+
             $ cmake -DCMAKE_EXE_LINKER_FLAGS="-dynamic" ../
-            
+
       .. note::
          Usually CMake will correctly determine compute capability of your GPU. However, if compiling on a machine without a GPU
          (for example on a login node of a cluster), you may manually specify the compute capability (use your version instead of 6.0):
-         
+
          .. code-block:: console
-         
+
             $ cmake -DCUDA_ARCH_NAME=6.0 ../
-            
+
          Note that in case you don't specify any capability, Mirheo will be compiled for all supported architectures, which increases
          compilation time and slightly increases application startup. Performance, however, should not be affected.
-      
+
    #. Now you can compile the code:
-   
+
       .. code-block:: console
-         
-         $ make -j <number_of_jobs> 
-      
+
+         $ make -j <number_of_jobs>
+
       The library will be generated in the current build folder.
-      
+
    #. A simple way to use Mirheo after compilation is to install it with pip. Navigate to the root folder of Mirheo
       and run the following command:
-      
+
       .. code-block:: console
-         
+
          $ pip install --user --upgrade .
-         
-         
+
+
 #. Now you should be able to use the Mirheo in your Python scripts:
-      
+
    .. code-block:: python
-        
+
       import mirheo
-   
+
 
 Compile Options
 ***************
@@ -105,7 +105,7 @@ Additional compile options are provided through ``cmake``:
 
 * ``MEMBRANE_DOUBLE:BOOL=OFF``: Computes membrane forces (see :any:`MembraneForces`) in double precision if set to ``ON``; default: single precision
 * ``ROD_DOUBLE:BOOL=OFF``:  Computes rod forces (see :any:`RodForces`) in double precision if set to ``ON``; default: single precision
-* ``DOUBLE_PRECISION:BOOL=OFF``:  Set all the data in double precision if set to ``ON``, including force and rod forces; default: single precision
+* ``DOUBLE_PRECISION:BOOL=OFF``:  Use double precision everywhere if set to ``ON`` (including membrane forces and rod forces); default: single precision
 * ``USE_NVTX:BOOL=OFF``: Add NVIDIA Tools Extension (NVTX) trace support for more profiling informations if set to ``ON``; default: no NVTX
 
 .. note::
@@ -119,15 +119,15 @@ Additional compile options are provided through ``cmake``:
    When using the `Tools`_, the compile options can be passed using the ``CMAKE_FLAGS`` variable:
 
    .. code-block:: console
-   
+
       CMAKE_FLAGS="-DDOUBLE_PRECISION=ON" mir.make
 
 .. note::
 
    The compile options of the current installation can be viewd by typing in a terminal:
-   
+
    .. code-block:: console
-   
+
       python -m mirheo compile_opt all
 
 
@@ -151,26 +151,26 @@ Installation
 The tools can be installed by typing:
 
    .. code-block:: console
-        
+
       $ cd tools/
       $ ./configure
       $ make install
 
- 
+
    .. note::
       By default, the tools are installed in your ``$HOME/bin`` directory.
       It is possible to choose another location by setting the ``--bin-prefix`` option:
-      
+
       .. code-block:: console
-      
+
 	 $ ./configure --bin-prefix <my-custom-tools-location>
 
 
    .. note::
       In order to run on a cluster with a job scheduler (e.g. slurm), the ``--exec-cmd`` option should be set to the right command (e.g. ``srun``):
-      
+
       .. code-block:: console
-      
+
 	 $ ./configure --exec-cmd <my-custom-command>
 
       The default value is ``mpiexec``
@@ -179,7 +179,7 @@ The tools can be installed by typing:
 After installation, it is advised to test the tools by invoking
 
    .. code-block:: console
-        
+
       $ make test
 
 The above command requires the `atest <https://gitlab.ethz.ch/mavt-cse/atest.git>`_ framework (see :ref:`user-testing`).
@@ -193,7 +193,7 @@ mir.load
 
 This tool is not executable but need to be sourced instead.
 This simply contains the list of of possible modules required by Mirheo.
-``mir.load.post`` is similar and contains modules required only for postprocessing as it migh conflict with ``mir.load``. 
+``mir.load.post`` is similar and contains modules required only for postprocessing as it migh conflict with ``mir.load``.
 
 
 mir.make
@@ -247,7 +247,7 @@ mir.avgh5
 
 a simple postprocessing tool used in many tests.
 It allows to average a grid field contained in one or multiple h5 files along given directions.
-See more detailed documentation in 
+See more detailed documentation in
 
     .. code-block:: console
 
@@ -257,10 +257,8 @@ mir.restart.id
 ~~~~~~~~~~~~~~
 
 Convenience tool to manipulate the restart ID from multiple restart files.
-See more detailed documentation in 
+See more detailed documentation in
 
     .. code-block:: console
 
        $ mir.restart.id --help
-
-
