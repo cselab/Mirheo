@@ -6,13 +6,14 @@
 #include "reflection.h"
 #include "type_traits.h"
 
+#include <mirheo/core/utils/variant.h>
+
 #include <cstring>
 #include <map>
 #include <string>
 #include <typeinfo>
 #include <vector>
 
-#include <extern/variant/include/mpark/variant.hpp>
 #include <vector_types.h>
 
 namespace mirheo
@@ -161,7 +162,7 @@ public:
     /// Construct a ConfigValue from an integer.
     ConfigValue(Int value) : value_{value} {}
     /// Construct a ConfigValue from a floating point value.
-    ConfigValue(Float value) : value_{value} {}
+    ConfigValue(Float value) : value_{static_cast<Float>(value)} {}
     /// Construct a ConfigValue from a string.
     ConfigValue(String value) : value_{std::move(value)} {}
     /// Construct a ConfigValue from an object (dictionary).

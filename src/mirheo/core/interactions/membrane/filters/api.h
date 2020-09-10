@@ -4,7 +4,7 @@
 #include "keep_all.h"
 #include "keep_by_type_id.h"
 
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 namespace mirheo
 {

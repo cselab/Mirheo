@@ -2,8 +2,7 @@
 #pragma once
 
 #include <mirheo/core/pvs/packers/rods.h>
-
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 namespace mirheo
 {

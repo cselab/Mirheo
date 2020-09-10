@@ -5,8 +5,8 @@
 #include "force_kernels/parameters.h"
 
 #include <mirheo/core/mirheo_state.h>
+#include <mirheo/core/utils/variant.h>
 
-#include <extern/variant/include/mpark/variant.hpp>
 #include <memory>
 #include <string>
 

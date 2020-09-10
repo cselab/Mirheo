@@ -5,8 +5,7 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/types/type_list.h>
 #include <mirheo/core/types/variant_type_device.h>
-
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 #include <cuda_runtime.h>
 #include <map>

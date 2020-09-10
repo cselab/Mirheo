@@ -4,7 +4,7 @@
 #include "bounce_back.h"
 #include "bounce_maxwell.h"
 
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 namespace mirheo
 {

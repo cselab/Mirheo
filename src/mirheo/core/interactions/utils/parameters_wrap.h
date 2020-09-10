@@ -3,8 +3,7 @@
 
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/logger.h>
-
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 #include <map>
 #include <string>

@@ -3,7 +3,7 @@
 
 #include "type_list.h"
 
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 #include <string>
 

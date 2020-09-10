@@ -2,9 +2,10 @@
 #pragma once
 
 #include "kernels/parameters.h"
-#include <mirheo/core/mirheo_state.h>
 
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/mirheo_state.h>
+#include <mirheo/core/utils/variant.h>
+
 #include <memory>
 #include <string>
 
