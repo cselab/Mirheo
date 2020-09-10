@@ -1,7 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-#include <extern/variant/include/mpark/variant.hpp>
+#include <mirheo/core/utils/variant.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
