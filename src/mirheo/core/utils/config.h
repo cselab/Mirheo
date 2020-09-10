@@ -162,7 +162,7 @@ public:
     /// Construct a ConfigValue from an integer.
     ConfigValue(Int value) : value_{value} {}
     /// Construct a ConfigValue from a floating point value.
-    ConfigValue(Float value) : value_{static_cast<Float>(value)} {}
+    ConfigValue(Float value) : value_{value} {}
     /// Construct a ConfigValue from a string.
     ConfigValue(String value) : value_{std::move(value)} {}
     /// Construct a ConfigValue from an object (dictionary).
