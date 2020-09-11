@@ -37,6 +37,8 @@ make install
 ### unreleased
 
 * Add MSD plugin.
+* update pybind11 submodule.
+* update variant submodule (now supports nvcc-10.2).
 
 ### v1.4.1
 
