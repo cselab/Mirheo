@@ -548,7 +548,7 @@ struct TypeLoadSave<std::string>
 {
     static ConfigValue save(Saver&, std::string x)
     {
-        return std::move(x);
+        return ConfigValue{std::move(x)};
     }
     static const std::string& parse(const ConfigValue& config)
     {

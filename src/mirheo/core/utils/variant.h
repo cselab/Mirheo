@@ -8,25 +8,25 @@ namespace detail {
 template <typename From, typename To>
 struct is_non_narrowing_convertible;
 
-template <>
-struct is_non_narrowing_convertible<double, long long> {
-    static constexpr bool value = false;
-};
+#define MIRHEO_CONVERTIBLE_(a, b)                \
+    template <>                                  \
+    struct is_non_narrowing_convertible<a, b> {  \
+        static constexpr bool value = false;     \
+    }
 
-template <>
-struct is_non_narrowing_convertible<double&, long long> {
-    static constexpr bool value = false;
-};
+#define MIRHEO_CONVERTIBLE(a, b)  \
+    MIRHEO_CONVERTIBLE_(a, b);    \
+    MIRHEO_CONVERTIBLE_(a&, b)    \
 
-template <>
-struct is_non_narrowing_convertible<long long, double> {
-    static constexpr bool value = false;
-};
+MIRHEO_CONVERTIBLE(float, long long);
+MIRHEO_CONVERTIBLE(double, long long);
+MIRHEO_CONVERTIBLE(long long, float);
+MIRHEO_CONVERTIBLE(long long, double);
+MIRHEO_CONVERTIBLE(float, int);
+MIRHEO_CONVERTIBLE(int, float);
 
-template <>
-struct is_non_narrowing_convertible<long long&, double> {
-    static constexpr bool value = false;
-};
+#undef MIRHEO_CONVERTIBLE
+#undef MIRHEO_CONVERTIBLE_
 
 } // namespace detail
 } // namespace mpark
