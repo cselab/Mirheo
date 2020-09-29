@@ -25,3 +25,5 @@ __pycache__/
 *.kdev4
 build/
 .tramp_history
+/Mirheo.egg-info/
+/dist/
