@@ -13,6 +13,9 @@ namespace mirheo
 class PairwiseLJ : public PairwiseKernel, public ParticleFetcher
 {
 public:
+    // TODO: (Ivica) HandlerType should not include the whole PairwiseLJ, but
+    // only the Fetcher, since the PairwiseKernel includes some virtual
+    // functions. Check the DPD kernel for a proper implementation.
     using ViewType     = PVview;     ///< Compatible view type
     using ParticleType = Particle;   ///< Compatible particle type
     using HandlerType  = PairwiseLJ; ///< Corresponding handler
