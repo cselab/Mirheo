@@ -25,11 +25,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Options
 # ***********************
 
-option(BUILD_PYTHON_MODULE "Build mirheo python module"        ON )
-option(BUILD_TESTS         "Build mirheo unit tests"           OFF)
-option(ENABLE_LTO          "enable link time optimization"     OFF)
-option(ENABLE_SANITIZER    "enable ub sanitizer"               OFF)
-option(PROFILE_COMPILATION "print compilation profiling info"  OFF)
+option(MIR_BUILD_PYTHON_MODULE "Build mirheo python module"        ON )
+option(MIR_BUILD_TESTS         "Build mirheo unit tests"           OFF)
+option(MIR_ENABLE_LTO          "enable link time optimization"     OFF)
+option(MIR_ENABLE_SANITIZER    "enable ub sanitizer"               OFF)
+option(MIR_PROFILE_COMPILATION "print compilation profiling info"  OFF)
 
 include(options)
 include(version)
@@ -72,7 +72,7 @@ set(LIB_MIR "libmirheo")
 
 add_subdirectory(src)
 
-if (ENABLE_LTO)
+if (MIR_ENABLE_LTO)
   set_target_properties(${LIB_MIR_CORE}             PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
   set_target_properties(${LIB_MIR_CORE_AND_PLUGINS} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
   set_target_properties(${LIB_MIR}                  PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -82,11 +82,11 @@ endif()
 # unit tests
 # *************************
 
-if (BUILD_TESTS)
+if (MIR_BUILD_TESTS)
   enable_testing()
   add_subdirectory(units)
 endif()
 
-if (PROFILE_COMPILATION)
+if (MIR_PROFILE_COMPILATION)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 endif()

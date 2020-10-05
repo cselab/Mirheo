@@ -11,9 +11,9 @@ function (add_test_executable dirName nodes)
     "${CMAKE_CURRENT_SOURCE_DIR}/${dirName}/*.cpp")
 
   string(REGEX REPLACE "/" "_" execNameId ${dirName})
-  
+
   set(EXEC_NAME "test_${execNameId}")
-  
+
   add_executable(${EXEC_NAME} ${SOURCES})
   target_link_libraries(${EXEC_NAME} PRIVATE ${CUDA_LIBRARIES} ${LIB_MIR_CORE} gtest)
 
@@ -52,7 +52,7 @@ add_test_executable(utils 1)
 add_test_executable(variant 1)
 add_test_executable(warpScan 1)
 
-if (ENABLE_SANITIZER)
+if (MIR_ENABLE_SANITIZER)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -g")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")
 endif()

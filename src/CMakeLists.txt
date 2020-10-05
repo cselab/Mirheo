@@ -4,7 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # include external packages
 # *************************
 
-if (BUILD_PYTHON_MODULE)
+if (MIR_BUILD_PYTHON_MODULE)
   # Add pybind11
   if (NOT TARGET pybind11)
     add_subdirectory(extern/pybind11)
@@ -67,7 +67,7 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 # Linker flags
 set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
 
-if (ENABLE_SANITIZER)
+if (MIR_ENABLE_SANITIZER)
   set(san_opt "-fsanitize=undefined")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${san_opt} -g")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${san_opt}")
