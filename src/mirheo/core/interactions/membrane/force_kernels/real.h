@@ -7,11 +7,11 @@
 namespace mirheo
 {
 
-#ifdef MEMBRANE_FORCES_DOUBLE
+#ifdef MIRHEO_MEMBRANE_FORCES_DOUBLE
 using mReal  = double; ///< precision switch for double precision membrane interactions
 #else
 using mReal  = float; ///< precision switch for single precision membrane interactions
-#endif // MEMBRANE_FORCES_DOUBLE
+#endif // MIRHEO_MEMBRANE_FORCES_DOUBLE
 
 using mReal2 = vec_traits::Vec<mReal, 2>::Type; ///< real2 in mReal precision
 using mReal3 = vec_traits::Vec<mReal, 3>::Type; ///< real3 in mReal precision

@@ -1,7 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "nvtx.h"
 
-#ifdef USE_NVTX
+#ifdef MIRHEO_USE_NVTX
 #include <functional>
 
 namespace mirheo
@@ -37,4 +37,4 @@ NvtxTracer::~NvtxTracer()
 
 } // namespace mirheo
 
-#endif
+#endif // MIRHEO_USE_NVTX

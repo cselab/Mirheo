@@ -7,11 +7,11 @@
 namespace mirheo
 {
 
-#ifdef ROD_FORCES_DOUBLE
+#ifdef MIRHEO_ROD_FORCES_DOUBLE
 using rReal  = double; ///< double precision switch
 #else
 using rReal  = float; ///< single precision switch
-#endif // ROD_FORCES_DOUBLE
+#endif // MIRHEO_ROD_FORCES_DOUBLE
 
 using rReal2 = vec_traits::Vec<rReal, 2>::Type; ///< real2
 using rReal3 = vec_traits::Vec<rReal, 3>::Type; ///< real3

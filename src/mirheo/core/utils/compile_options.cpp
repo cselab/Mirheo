@@ -5,17 +5,17 @@ namespace mirheo
 {
 
 const CompileOptions compile_options{
-#ifdef MEMBRANE_FORCES_DOUBLE
+#ifdef MIRHEO_MEMBRANE_FORCES_DOUBLE
     true,
 #else
     false,
 #endif
-#ifdef ROD_FORCES_DOUBLE
+#ifdef MIRHEO_ROD_FORCES_DOUBLE
     true,
 #else
     false,
 #endif
-#ifdef USE_NVTX
+#ifdef MIRHEO_USE_NVTX
     true,
 #else
     false,

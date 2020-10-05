@@ -46,7 +46,7 @@ project(Mirheo VERSION ${MIR_VERSION_CMAKE_FORMAT} LANGUAGES C CXX CUDA)
 # ***********************
 
 set(MIR_BASE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
-set(CORE_DIR       "${MIR_BASE_INCLUDE_DIR}/mirheo/core/")
+set(MIR_CORE_DIR         "${MIR_BASE_INCLUDE_DIR}/mirheo/core/")
 set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 
 # ***********************
@@ -54,8 +54,8 @@ set(PYTHON_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mirheo")
 # ***********************
 
 configure_file(
-  "${CORE_DIR}/version.cpp.in"
-  "${CORE_DIR}/version.cpp"
+  "${MIR_CORE_DIR}/version.cpp.in"
+  "${MIR_CORE_DIR}/version.cpp"
   )
 configure_file(
   "${PYTHON_LIB_DIR}/version.py.in"

@@ -1,7 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-#ifdef USE_NVTX
+#ifdef MIRHEO_USE_NVTX
 #include <string>
 #include <nvToolsExt.h>
 

@@ -167,27 +167,27 @@ set_property(TARGET ${LIB_MIR_CORE} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # set options
 
-if (DOUBLE_PRECISION)
+if (MIR_DOUBLE_PRECISION)
   target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_DOUBLE_PRECISION)
-  message("compiling with DOUBLE_PRECISION ON")
-  set(MEMBRANE_DOUBLE ON)
-  set(ROD_DOUBLE ON)
+  message("compiling with MIRHEO_DOUBLE_PRECISION ON")
+  set(MIR_MEMBRANE_DOUBLE ON)
+  set(MIR_ROD_DOUBLE ON)
 endif()
 
-if (MEMBRANE_DOUBLE)
-  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MEMBRANE_FORCES_DOUBLE)
-  message("compiling with MEMBRANE_DOUBLE ON")
+if (MIR_MEMBRANE_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MIRHEO_MEMBRANE_FORCES_DOUBLE)
+  message("compiling with MIRHEO_MEMBRANE_DOUBLE ON")
 endif()
 
-if (ROD_DOUBLE)
-  target_compile_definitions(${LIB_MIR_CORE} PRIVATE ROD_FORCES_DOUBLE)
-  message("compiling with ROD_DOUBLE ON")
+if (MIR_ROD_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MIRHEO_ROD_FORCES_DOUBLE)
+  message("compiling with MIRHEO_ROD_DOUBLE ON")
 endif()
 
-if (USE_NVTX)
-  target_compile_definitions(${LIB_MIR_CORE} PRIVATE USE_NVTX)
+if (MIR_USE_NVTX)
+  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MIRHEO_USE_NVTX)
   target_link_libraries(${LIB_MIR_CORE} PUBLIC "-lnvToolsExt")
-  message("compiling with USE_NVTX ON")
+  message("compiling with MIRHEO_USE_NVTX ON")
 endif()
 
 # Alias

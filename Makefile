@@ -25,7 +25,7 @@ test: install
 
 units:
 	mkdir -p build
-	(cd build && ${CMAKE} ${CMAKE_FLAGS} -DBUILD_TESTS=ON ../)
+	(cd build && ${CMAKE} ${CMAKE_FLAGS} -DMIR_BUILD_TESTS=ON ../)
 	(cd build && $(MAKE))
 	(cd build && $(MAKE) test)
 

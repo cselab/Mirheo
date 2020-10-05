@@ -684,10 +684,10 @@ void Mirheo::run(int nsteps)
 void Mirheo::logCompileOptions() const
 {
     info("compile time options:");
-    info("MIRHEO_DOUBLE   : %d", compile_options.useDouble     );
-    info("MEMBRANE_DOUBLE : %d", compile_options.membraneDouble);
-    info("ROD_DOUBLE      : %d", compile_options.rodDouble     );
-    info("USE_NVTX        : %d", compile_options.useNvtx       );
+    info("MIRHEO_MIRHEO_DOUBLE   : %d", compile_options.useDouble     );
+    info("MIRHEO_MEMBRANE_DOUBLE : %d", compile_options.membraneDouble);
+    info("MIRHEO_ROD_DOUBLE      : %d", compile_options.rodDouble     );
+    info("MIRHEO_USE_NVTX        : %d", compile_options.useNvtx       );
 }
 
 void Mirheo::saveSnapshot(const std::string& path)
