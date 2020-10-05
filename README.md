@@ -39,6 +39,7 @@ make install
 * Add MSD plugin.
 * update pybind11 submodule.
 * update variant submodule (now supports nvcc-10.2).
+* Cmake options are prepended with `MIR_`
 
 ### v1.4.1
 
