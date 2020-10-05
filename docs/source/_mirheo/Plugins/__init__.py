@@ -67,7 +67,7 @@ def createAnchorParticles():
     pass
 
 def createBerendsenThermostat():
-    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, T: float = 0, kBT: float = 0, increaseIfLower: bool = True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, T: float=0, kBT: float=0, increaseIfLower: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Berendsen thermostat.
@@ -142,7 +142,7 @@ def createDensityOutlet():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: real3 = real3(1.0, 1.0, 1.0), channels: List[str], path: str = 'xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: real3=real3(1.0, 1.0, 1.0), channels: List[str], path: str='xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
@@ -171,7 +171,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: real3 = real3(1.0, 1.0, 1.0), channels: List[str], path: str = 'xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: real3=real3(1.0, 1.0, 1.0), channels: List[str], path: str='xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin acts just like the regular flow dumper, with one difference.
@@ -605,7 +605,7 @@ def createRdf():
     pass
 
 def createStats():
-    r"""createStats(state: MirState, name: str, filename: str = '', every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createStats(state: MirState, name: str, filename: str='', every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will report aggregate quantities of all the particles in the simulation:

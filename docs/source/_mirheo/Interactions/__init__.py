@@ -79,7 +79,7 @@ class MembraneForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str = 'keep_all', stress_free: bool = False, **kwargs) -> None
+        r"""__init__(name: str, shear_desc: str, bending_desc: str, filter_desc: str='keep_all', stress_free: bool=False, **kwargs) -> None
 
 
              Args:
@@ -431,7 +431,7 @@ class RodForces(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, state_update: str = 'none', save_energies: bool = False, **kwargs) -> None
+        r"""__init__(name: str, state_update: str='none', save_energies: bool=False, **kwargs) -> None
 
 
              Args:

@@ -68,7 +68,7 @@ class Mirheo:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str = 'log', debug_level: int = 3, checkpoint_mechanism: str = 'Checkpoint', checkpoint_every: int = 0, checkpoint_folder: str = 'restart/', checkpoint_mode: str = 'PingPong', cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0, units: UnitConversion = UnitConversion()) -> None
+1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str='log', debug_level: int=3, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
 
 
 Create the Mirheo coordinator.
@@ -114,7 +114,7 @@ Args:
     units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
         
 
-2. __init__(nranks: int3, snapshot: str, log_filename: str = 'log', debug_level: int = 3, cuda_aware_mpi: bool = False, no_splash: bool = False, comm_ptr: int = 0) -> None
+2. __init__(nranks: int3, snapshot: str, log_filename: str='log', debug_level: int=3, cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
 
 
 Create the Mirheo coordinator from a snapshot.
@@ -133,7 +133,7 @@ Args:
         pass
 
     def applyObjectBelongingChecker():
-        r"""applyObjectBelongingChecker(checker: mirheo::ObjectBelongingChecker, pv: mirheo::ParticleVector, correct_every: int = 0, inside: str = '', outside: str = '') -> mirheo::ParticleVector
+        r"""applyObjectBelongingChecker(checker: mirheo::ObjectBelongingChecker, pv: mirheo::ParticleVector, correct_every: int=0, inside: str='', outside: str='') -> mirheo::ParticleVector
 
 
                 Apply the **checker** to the given particle vector.
@@ -157,7 +157,7 @@ Args:
         pass
 
     def computeVolumeInsideWalls():
-        r"""computeVolumeInsideWalls(walls: List[mirheo::Wall], nSamplesPerRank: int = 100000) -> float
+        r"""computeVolumeInsideWalls(walls: List[mirheo::Wall], nSamplesPerRank: int=100000) -> float
 
 
                 Compute the volume inside the given walls in the whole domain (negative values are the 'inside' of the simulation).
@@ -172,7 +172,7 @@ Args:
         pass
 
     def dumpWalls2XDMF():
-        r"""dumpWalls2XDMF(walls: List[mirheo::Wall], h: real3, filename: str = 'xdmf/wall') -> None
+        r"""dumpWalls2XDMF(walls: List[mirheo::Wall], h: real3, filename: str='xdmf/wall') -> None
 
 
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
@@ -221,7 +221,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float = 1.0, nsteps: int = 1000) -> mirheo::ParticleVector
+        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, nsteps: int=1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside object.
@@ -249,7 +249,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float = 1.0, nsteps: int = 1000) -> mirheo::ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, nsteps: int=1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -329,7 +329,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def registerParticleVector():
-        r"""registerParticleVector(pv: mirheo::ParticleVector, ic: mirheo::InitialConditions = None) -> None
+        r"""registerParticleVector(pv: mirheo::ParticleVector, ic: mirheo::InitialConditions=None) -> None
 
 
             Register particle vector
@@ -351,7 +351,7 @@ Register Plugins
         pass
 
     def registerWall():
-        r"""registerWall(wall: mirheo::Wall, check_every: int = 0) -> None
+        r"""registerWall(wall: mirheo::Wall, check_every: int=0) -> None
 
 
                Register a :any:`Wall`.
@@ -365,7 +365,7 @@ Register Plugins
         pass
 
     def restart():
-        r"""restart(folder: str = 'restart/') -> None
+        r"""restart(folder: str='restart/') -> None
 
 
                Restart the simulation. This function should typically be called just before running the simulation.
@@ -415,7 +415,7 @@ Register Plugins
         pass
 
     def save_dependency_graph_graphml():
-        r"""save_dependency_graph_graphml(fname: str, current: bool = True) -> None
+        r"""save_dependency_graph_graphml(fname: str, current: bool=True) -> None
 
 
              Exports `GraphML <http://graphml.graphdrawing.org/>`_ file with task graph for the current simulation time-step
@@ -477,7 +477,7 @@ Register Plugins
         pass
 
     def setWall():
-        r"""setWall(wall: mirheo::Wall, pv: mirheo::ParticleVector, maximum_part_travel: float = 0.25) -> None
+        r"""setWall(wall: mirheo::Wall, pv: mirheo::ParticleVector, maximum_part_travel: float=0.25) -> None
 
 
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
@@ -549,6 +549,24 @@ Overloaded function.
 
 3. __init__(arg0: list) -> None
 
+        """
+        pass
+
+    @property
+    def x():
+        r"""
+        """
+        pass
+
+    @property
+    def y():
+        r"""
+        """
+        pass
+
+    @property
+    def z():
+        r"""
         """
         pass
 

@@ -32,7 +32,7 @@ class Membrane(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], global_scale: float = 1.0) -> None
+        r"""__init__(com_q: List[ComQ], global_scale: float=1.0) -> None
 
 
             Args:
@@ -56,7 +56,7 @@ class Restart(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(path: str = 'restart/') -> None
+        r"""__init__(path: str='restart/') -> None
 
 
 
@@ -145,7 +145,7 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], real3], torsion: Callable[[float], float], a: float, initial_frame: real3 = real3(inf, inf, inf)) -> None
+        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], real3], torsion: Callable[[float], float], a: float, initial_frame: real3=real3(inf, inf, inf)) -> None
 
 
             Args:
@@ -234,7 +234,7 @@ class MembraneWithTypeId(Membrane):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], type_ids: List[int], global_scale: float = 1.0) -> None
+        r"""__init__(com_q: List[ComQ], type_ids: List[int], global_scale: float=1.0) -> None
 
 
             Args:
