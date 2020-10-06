@@ -42,7 +42,7 @@ find_package(LIBBFD REQUIRED)
 # Setup compiler flags
 
 set(cxx_flags -g)
-set(cuda_flags --expt-extended-lambda --expt-relaxed-constexpr)
+set(cuda_flags --expt-extended-lambda --expt-relaxed-constexpr -Wno-deprecated-gpu-targets)
 
 # set(Werror "-Werror")
 set(Werror "")

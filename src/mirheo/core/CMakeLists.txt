@@ -128,6 +128,10 @@ target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR}/extern
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${CUDA_INCLUDE_DIRS})
 
+# CUB. Already available in CUDA since version 11.0.
+if ("${CUDA_VERSION}" VERSION_LESS "11.0")
+    target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR}/extern/cub/)
+endif()
 
 target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 target_link_libraries(${LIB_MIR_CORE} PUBLIC ${CUDA_LIBRARIES})

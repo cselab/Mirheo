@@ -11,7 +11,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-#include <extern/cub/cub/device/device_scan.cuh>
+#include <cub/device/device_scan.cuh>
 #pragma GCC diagnostic pop
 
 #include <algorithm>
