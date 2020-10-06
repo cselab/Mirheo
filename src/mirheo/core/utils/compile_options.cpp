@@ -4,6 +4,8 @@
 namespace mirheo
 {
 
+constexpr bool CompileOptions::useDouble;
+
 const CompileOptions compile_options{
 #ifdef MIRHEO_MEMBRANE_FORCES_DOUBLE
     true,
