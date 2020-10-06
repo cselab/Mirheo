@@ -34,7 +34,7 @@ __global__ void collectRigidForces(ROVview ovView)
         const int offset = (objId * ovView.objSize + i);
 
         const real3 frc = make_real3(ovView.forces[offset]);
-        const real3 r   = make_real3(ovView.readPosition(offset)) - com;
+        const real3 r   = make_real3(ovView.positions[offset]) - com;
 
         force  += frc;
         torque += cross(r, frc);
@@ -55,8 +55,12 @@ __global__ void collectRigidForces(ROVview ovView)
  * compute also velocity if template parameter set to corresponding value
  */
 template <rigid_operations::ApplyTo action>
-__global__ void applyRigidMotion(ROVview ovView, const real4 *initialPositions)
+__global__ void applyRigidMotion(ROVview _ovView, const real4 *initialPositions)
 {
+    // NVCC 10.1 has a bug where, in debug mode, accessing member functions of
+    // a grandparent class causes a crash in certain cases. Copying the
+    // argument into a local variable circumvents the bug.
+    ROVview ovView = _ovView;
     const int pid = threadIdx.x + blockDim.x * blockIdx.x;
     const int objId = pid / ovView.objSize;
     const int locId = pid % ovView.objSize;
