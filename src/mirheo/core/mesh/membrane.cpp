@@ -20,10 +20,12 @@ namespace mirheo
 static void readReals(FILE *f, PinnedBuffer<real> *buffer)
 {
     size_t size;
-    fscanf(f, "%zu", &size);
+    if (1 != fscanf(f, "%zu", &size))
+        die("fscanf error");
     buffer->resize_anew(size);
     for (size_t i = 0; i < buffer->size(); ++i)
-        fscanf(f, "%" MIRHEO_SCNgREAL, &(*buffer)[i]);
+        if (1 != fscanf(f, "%" MIRHEO_SCNgREAL, &(*buffer)[i]))
+            die("fscanf error");
     buffer->uploadToDevice(defaultStream);
 }
 

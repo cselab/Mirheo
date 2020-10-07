@@ -50,7 +50,7 @@ std::string readWholeFile(const std::string& filename)
     fseek(file.get(), 0, SEEK_SET);  /* same as rewind(f); */
 
     std::string output(size, '_');
-    fread(&output[0], 1, size, file.get());
+    file.fread(&output[0], 1, size);
     return output;
 }
 

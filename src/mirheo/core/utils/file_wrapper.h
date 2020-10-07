@@ -64,6 +64,9 @@ public:
      */
     void close();
 
+    /// Wrapper around std::fread. Throws an exception if reading failed.
+    void fread(void *ptr, size_t size, size_t count);
+
 private:
     FILE *file_ {nullptr};
     bool forceFlushOnClose_{false};

@@ -1,6 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "file_wrapper.h"
 #include <mirheo/core/logger.h>
+#include <mirheo/core/utils/strprintf.h>
 
 namespace mirheo
 {
@@ -69,6 +70,15 @@ void FileWrapper::close()
 
     file_ = nullptr;
     forceFlushOnClose_ = false;
+}
+
+void FileWrapper::fread(void *ptr, size_t size, size_t count) {
+    size_t read = ::fread(ptr, size, count, file_);
+    if (read != count)
+    {
+        die("Successfully read only %zu out of %zu element(s) of size %zuB.",
+            read, count, size);
+    }
 }
 
 } // namespace mirheo

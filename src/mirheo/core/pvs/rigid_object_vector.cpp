@@ -127,7 +127,7 @@ static PinnedBuffer<real4> readInitialPositions(MPI_Comm comm, const std::string
     {
         FileWrapper f;
         f.open(filename, "rb");
-        fread(positions.data(), sizeof(positions[0]), objSize, f.get());
+        f.fread(positions.data(), sizeof(positions[0]), objSize);
     }
     MPI_Check(MPI_Bcast(positions.data(), objSize * nRealsPerPosition, getMPIFloatType<real>(), root, comm));
 
