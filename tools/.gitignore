@@ -1,0 +1,7 @@
+postprocess/avg.out.txt
+postprocess/echo.out.txt
+restart/restart.out.txt
+restart/tests/example/file.txt
+restart/tests/example2/file0.txt
+restart/tests/example2/file1.txt
+run/echo.out.txt
