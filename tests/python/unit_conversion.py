@@ -47,7 +47,7 @@ if u.isComputeTask():
     with open('snapshot/config.json') as f:
         config = json.loads(f.read())
 
-    # `dt` should be equal to -1 at this point.
+    # `dt` should be equal to MirState::InvalidDt (-1) at this point.
     print("dt =", config['MirState'][0]['dt'])
     print("domainGlobalSize =", config['MirState'][0]['domainGlobalSize'])
     print("kBT =", config['Interaction'][0]['pairParams']['kBT'])

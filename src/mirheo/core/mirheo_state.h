@@ -82,6 +82,7 @@ struct TypeLoadSave<UnitConversion>
 class MirState
 {
 public:
+    static constexpr real InvalidDt = -1;
     using TimeType = double; ///< type used to store time information
     using StepType = long long; ///< type to store time step information
 
@@ -91,7 +92,7 @@ public:
         \param [in] units Conversion factors from Mirheo to SI units
         \param [in] state If not \c nullptr, will set the current time info from snapshot info
     */
-    MirState(DomainInfo domain, real dt = -1, UnitConversion units = UnitConversion{}, const ConfigValue *state = nullptr);
+    MirState(DomainInfo domain, real dt = InvalidDt, UnitConversion units = UnitConversion{}, const ConfigValue *state = nullptr);
 
 
     /** Save internal state to file

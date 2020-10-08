@@ -102,8 +102,8 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
         selectIntraNodeGPU(comm_);
 
         createCartComm(comm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), -1,
-                                             units, stateConfig);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
+                                             MirState::InvalidDt, units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
                                             checkpointInfo, gpuAwareMPI);
         computeTask_ = 0;
@@ -131,8 +131,8 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
         selectIntraNodeGPU(compComm_);
 
         createCartComm(compComm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), -1,
-                                             units, stateConfig);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
+                                             MirState::InvalidDt, units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
                                             checkpointInfo, gpuAwareMPI);
     }
@@ -677,7 +677,7 @@ void Mirheo::run(int nsteps, real dt)
     struct DtGuard {
         ~DtGuard() noexcept {
             if (state)
-                state->setDt(-1);  // Negative dt marks it as unavailable.
+                state->setDt(MirState::InvalidDt);
         }
 
         MirState *state;
