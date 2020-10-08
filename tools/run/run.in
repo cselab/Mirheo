@@ -1,4 +1,5 @@
 #! /bin/bash
+# vi: ft=sh
 
 EXE_PREFIX=@EXE_PREFIX@
 RUN_CMD=@RUN_CMD@

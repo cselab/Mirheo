@@ -100,9 +100,9 @@ decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType nt)
     return H5T_NATIVE_FLOAT;
 }
 
-std::string numberTypeToString(Channel::NumberType dt)
+std::string numberTypeToString(Channel::NumberType nt)
 {
-    switch (dt)
+    switch (nt)
     {
     case Channel::NumberType::Float  : return "Float";
     case Channel::NumberType::Double : return "Float";
@@ -112,9 +112,9 @@ std::string numberTypeToString(Channel::NumberType dt)
     return "Invalid";
 }
 
-int numberTypeToPrecision(Channel::NumberType dt)
+int numberTypeToPrecision(Channel::NumberType nt)
 {
-    switch (dt)
+    switch (nt)
     {
     case Channel::NumberType::Float  : return sizeof(float);
     case Channel::NumberType::Double : return sizeof(double);

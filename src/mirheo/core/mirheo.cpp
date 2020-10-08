@@ -474,9 +474,9 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(
     }
 
     wallsim.init();
-    wallsim.run(nsteps);
 
     const real effectiveCutoff = wallsim.getMaxEffectiveCutoff();
+    wallsim.run(nsteps);
 
     constexpr real wallThicknessTolerance = 0.2_r;
     constexpr real wallLevelSet = 0.0_r;
