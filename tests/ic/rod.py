@@ -24,7 +24,7 @@ def center_line(s):
     L = 5.0
     P = 1.0
     R = 1.0
-    t = s * L * np.pi / P 
+    t = s * L * np.pi / P
     return (R * np.cos(t),
             R * np.sin(t),
             (s-0.5) * L)
@@ -32,7 +32,8 @@ def center_line(s):
 def torsion(s):
     return 0.0
 
-rv = mir.ParticleVectors.RodVector('rod', mass=1, num_segments = 100)
+num_segments = 100
+rv = mir.ParticleVectors.RodVector('rod', mass=1, num_segments=num_segments)
 if args.initial_frame is None:
     ic = mir.InitialConditions.Rod(com_q, center_line, torsion, a)
 else:
@@ -45,11 +46,24 @@ u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, []
 u.run(2, dt=0)
 
 if rv:
-    icpos = rv.getCoordinates()
-    icvel = rv.getVelocities()
+    icpos = np.array(rv.getCoordinates())
+    icvel = np.array(rv.getVelocities())
+    num_rods = int(len(icpos) / (5*num_segments))
+
+    nv = num_segments * 5 + 1
+    assert nv * num_rods == len(icpos)
+
+    # sort by center of mass x coordinates
+    com = np.array([np.mean(icpos[i*nv:(i+1)*nv,:], axis=0) for i in range(num_rods)])
+
+    order = np.argsort(com[:,0])
+    idx = np.repeat(order, nv) * nv + np.tile(np.arange(nv), num_rods)
+    icpos = icpos[idx,:]
+    icvel = icpos[idx,:]
+
     np.savetxt("pos.ic.txt", icpos)
     np.savetxt("vel.ic.txt", icvel)
-    
+
 del u
 
 # nTEST: ic.rod
