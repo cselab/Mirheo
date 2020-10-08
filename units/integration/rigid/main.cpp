@@ -311,7 +311,7 @@ TEST (Integration_Rigid, constantTorquePrincipalAxis)
         const real3 invJ = 1.0_r / p.J;
         const auto omegaRef = p.tend * invJ * torque;
 
-        const real3 tol = math::abs(1e-6_r * omegaRef);
+        const real3 tol = math::abs(1e-3_r * omegaRef);
         ASSERT_NEAR(omegaRef.x, cpuM.omega.x, tol.x);
         ASSERT_NEAR(omegaRef.y, cpuM.omega.y, tol.y);
         ASSERT_NEAR(omegaRef.z, cpuM.omega.z, tol.z);
