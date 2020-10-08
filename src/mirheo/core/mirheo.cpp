@@ -611,8 +611,6 @@ void Mirheo::sayHello()
 
 void Mirheo::setup()
 {
-    if (initialized_) return;
-
     if (isComputeTask())  sim_->init();
     else                 post_->init();
 
@@ -621,9 +619,10 @@ void Mirheo::setup()
 
 void Mirheo::ensureNotInitialized() const
 {
+    // Break if already initialized, because the requested feature (after the
+    // first run()) was not yet implemented or tested.
     if (initialized_)
-        die("Coordinator is already initialized.\n"
-            "Do not call any register or set functions after 'restart' or 'run'");
+        die("Invoking this operation after the first run() is not supported.");
 }
 
 void Mirheo::restart(std::string folder)

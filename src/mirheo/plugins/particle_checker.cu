@@ -147,6 +147,9 @@ void ParticleCheckerPlugin::setup(Simulation *simulation, const MPI_Comm& comm, 
     int *numFailedDevPtr = numFailed_.devPtr();
     int *numFailedHstPtr = numFailed_.hostPtr();
 
+    pvCheckData_.clear();
+    pvCheckData_.reserve(pvs.size());
+    rovCheckData_.clear();
     for (auto pv : pvs)
     {
         PVCheckData pvCd;

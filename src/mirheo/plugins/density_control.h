@@ -22,6 +22,8 @@ class Field;
 /** Apply forces on particles in order to keep the number density constant within layers in a field.
     The layers are determined by the level sets of the field.
     Forces are perpendicular to these layers; their magnitude is computed from PID controllers.
+
+    Cannot be used with multiple invocations of `Mirheo.run`.
  */
 class DensityControlPlugin : public SimulationPlugin
 {

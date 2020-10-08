@@ -154,7 +154,7 @@ void AnchorParticlesStatsPlugin::handshake()
     int nAnchors;
     SimpleSerializer::deserialize(data_, pvName, nAnchors);
 
-    if (activated_ && rank_ == 0)
+    if (activated_ && rank_ == 0 && fout_.get() == nullptr)
     {
         const std::string fname = joinPaths(path_, setExtensionOrDie(pvName, "csv"));
         auto status = fout_.open( fname, "w" );

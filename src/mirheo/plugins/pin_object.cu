@@ -248,7 +248,7 @@ void ReportPinObjectPlugin::handshake()
     bool isRov;
     SimpleSerializer::deserialize(data_, ovName, isRov);
 
-    if (activated_ && rank_ == 0)
+    if (activated_ && rank_ == 0 && fout_.get() == nullptr)
     {
         const std::string fname = joinPaths(path_, setExtensionOrDie(ovName, "csv"));
         auto status = fout_.open(fname, "w" );

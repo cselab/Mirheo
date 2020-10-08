@@ -58,6 +58,7 @@ void OutletPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    pvs_.clear();
     pvs_.reserve(pvNames_.size());
     for (const auto& pvName : pvNames_)
         pvs_.push_back( simulation->getPVbyNameOrDie(pvName) );

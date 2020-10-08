@@ -83,6 +83,10 @@ struct SimulationTasks
 #undef DECLARE
 };
 
+/** Container of all data required specifically for the execution of the
+    Simulation::run() function. This data is constructed just before run() is
+    invoked (in init()), and immediately destructed at the end of run().
+  */
 struct RunData {
     using ExchangeEngineUniquePtr = std::unique_ptr<ExchangeEngine>;
 

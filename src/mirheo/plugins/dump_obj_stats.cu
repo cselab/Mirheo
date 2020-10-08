@@ -232,7 +232,7 @@ ObjStatsDumper::ObjStatsDumper(std::string name, std::string path) :
 
 ObjStatsDumper::~ObjStatsDumper()
 {
-    if (activated_)
+    if (fout_ != MPI_FILE_NULL)
         MPI_Check( MPI_File_close(&fout_) );
 }
 
@@ -253,7 +253,7 @@ void ObjStatsDumper::handshake()
     bool hasTypeIds;
     SimpleSerializer::deserialize(data_, ovName, isRov, hasTypeIds);
 
-    if (activated_)
+    if (activated_ && fout_ == MPI_FILE_NULL)
     {
         const std::string fname = joinPaths(path_, setExtensionOrDie(ovName, "csv"));
         MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );

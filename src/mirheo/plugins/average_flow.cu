@@ -94,6 +94,10 @@ void Average3D::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    // Resetting all internal buffers would be too complicated.
+    if (pvs_.size() > 0)
+        die("Average3D does not support multiple runs.");
+
     for (const auto& pvName : pvNames_)
         pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 

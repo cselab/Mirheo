@@ -17,6 +17,8 @@ class ObjectVector;
 class CellList;
 
 /** Perform the same task as AverageRelative3D on a grid that moves relatively to a given object's center of mass in a RigidObjectVector.
+
+    Cannot be used with multiple invocations of `Mirheo.run`.
  */
 class AverageRelative3D : public Average3D
 {

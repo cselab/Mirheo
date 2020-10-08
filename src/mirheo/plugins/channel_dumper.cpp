@@ -50,6 +50,7 @@ void UniformCartesianDumper::handshake()
 
     // Density is a special channel which is always present
     std::string allNames = numberDensityChannelName;
+    channels_.clear();
     channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar, numberDensityChannelName));
 
     for (size_t i = 0; i < sizes.size(); ++i)

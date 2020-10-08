@@ -74,6 +74,7 @@ void BerendsenThermostatPlugin::setup(Simulation *simulation, const MPI_Comm& co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    pvs_.clear();
     pvs_.reserve(pvNames_.size());
     for (const std::string& pvName : pvNames_)
         pvs_.push_back(simulation->getPVbyNameOrDie(pvName));

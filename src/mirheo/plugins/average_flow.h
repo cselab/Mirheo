@@ -17,6 +17,8 @@ class ParticleVector;
     Other quantities must be specified by giving the channel names.
 
     This plugin should be used with UniformCartesianDumper on the postprocessing side.
+
+    Cannot be used with multiple invocations of `Mirheo.run`.
  */
 class Average3D : public SimulationPlugin
 {

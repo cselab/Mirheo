@@ -75,7 +75,7 @@ private:
     int3 nranks3D_;
 
     bool activated_ = true;
-    MPI_File fout_;
+    MPI_File fout_ = MPI_FILE_NULL;
 };
 
 } // namespace mirheo
