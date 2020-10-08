@@ -71,7 +71,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
     MPI_Check( MPI_Comm_free(&shmcomm) );
 }
 
-void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
+void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
                   CheckpointInfo checkpointInfo, bool gpuAwareMPI,
                   UnitConversion units, LoaderContext *load)
 {
@@ -102,8 +102,8 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
         selectIntraNodeGPU(comm_);
 
         createCartComm(comm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, units, stateConfig);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), -1,
+                                             units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
                                             checkpointInfo, gpuAwareMPI);
         computeTask_ = 0;
@@ -131,8 +131,8 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInf
         selectIntraNodeGPU(compComm_);
 
         createCartComm(compComm_, nranks3D, &cartComm_);
-        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
-                                             dt, units, stateConfig);
+        state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize), -1,
+                                             units, stateConfig);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
                                             checkpointInfo, gpuAwareMPI);
     }
@@ -159,7 +159,7 @@ void Mirheo::initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
     auto checkpointInfo = loader.load<CheckpointInfo>(
             context.getConfig()["Simulation"][0]["checkpointInfo"]);
 
-    init(nranks3D, mirState["domainGlobalSize"], mirState["dt"], logInfo,
+    init(nranks3D, mirState["domainGlobalSize"], logInfo,
          checkpointInfo, gpuAwareMPI, mirState["units"], &context);
     loadSnapshot(this, loader);
 }
@@ -182,7 +182,7 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
     }
 }
 
-Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
+Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI,
                UnitConversion units)
 {
@@ -191,16 +191,16 @@ Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
     initializedMpi_ = true;
 
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, units);
+    init(nranks3D, globalDomainSize, logInfo, checkpointInfo, gpuAwareMPI, units);
 }
 
-Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
+Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
                LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI,
                UnitConversion units)
 {
     MPI_Comm_dup(comm, &comm_);
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, dt, logInfo, checkpointInfo, gpuAwareMPI, units);
+    init(nranks3D, globalDomainSize, logInfo, checkpointInfo, gpuAwareMPI, units);
 }
 
 Mirheo::Mirheo(int3 nranks3D, const std::string& snapshotPath,
@@ -419,11 +419,12 @@ double Mirheo::computeVolumeInsideWalls(std::vector<std::shared_ptr<Wall>> walls
     return wall_helpers::volumeInsideWalls(sdfWalls, state_->domain, sim_->getCartComm(), nSamplesPerRank);
 }
 
-std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvName,
-                                                               std::vector<std::shared_ptr<Wall>> walls,
-                                                               std::vector<std::shared_ptr<Interaction>> interactions,
-                                                               std::shared_ptr<Integrator> integrator,
-                                                               real numDensity, real mass, int nsteps)
+std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(
+        std::string pvName,
+        std::vector<std::shared_ptr<Wall>> walls,
+        std::vector<std::shared_ptr<Interaction>> interactions,
+        std::shared_ptr<Integrator> integrator,
+        real numDensity, real mass, real dt, int nsteps)
 {
     ensureNotInitialized();
 
@@ -453,6 +454,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     }
 
     MirState stateCpy = *getState();
+    getState()->setDt(dt);
 
     Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
 
@@ -496,12 +498,13 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(std::string pvNa
     return pv;
 }
 
-std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr<ObjectBelongingChecker> checker,
-                                                                std::shared_ptr<ObjectVector> shape,
-                                                                std::shared_ptr<InitialConditions> icShape,
-                                                                std::vector<std::shared_ptr<Interaction>> interactions,
-                                                                std::shared_ptr<Integrator>   integrator,
-                                                                 real numDensity, real mass, int nsteps)
+std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(
+        std::shared_ptr<ObjectBelongingChecker> checker,
+        std::shared_ptr<ObjectVector> shape,
+        std::shared_ptr<InitialConditions> icShape,
+        std::vector<std::shared_ptr<Interaction>> interactions,
+        std::shared_ptr<Integrator> integrator,
+        real numDensity, real mass, real dt, int nsteps)
 {
     ensureNotInitialized();
 
@@ -518,6 +521,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(std::shared_ptr
     auto ic = std::make_shared<UniformIC>(numDensity);
 
     MirState stateCpy = *getState();
+    getState()->setDt(dt);
 
     {
         Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
@@ -626,8 +630,6 @@ void Mirheo::restart(std::string folder)
 {
     folder = makePath(folder);
 
-    setup();
-
     if (isComputeTask())  sim_->restart(folder);
     else                 post_->restart(folder);
 }
@@ -670,8 +672,20 @@ void Mirheo::stopProfiler()
         sim_->stopProfiler();
 }
 
-void Mirheo::run(int nsteps)
+void Mirheo::run(int nsteps, real dt)
 {
+    struct DtGuard {
+        ~DtGuard() noexcept {
+            if (state)
+                state->setDt(-1);  // Negative dt marks it as unavailable.
+        }
+
+        MirState *state;
+    };
+    DtGuard guard{state_.get()};  // Reset dt even in case of an exception.
+    if (state_)
+        state_->setDt(dt);
+
     setup();
 
     if (isComputeTask()) sim_->run(nsteps);

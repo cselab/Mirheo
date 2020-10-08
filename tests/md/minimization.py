@@ -26,7 +26,7 @@ max_displacement = 0.001 * nm
 number_density = 0.6 / sigma ** 3
 domain = (12 * nm, 10 * nm, 8 * nm)
 
-u = mir.Mirheo((1, 1, 1), domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo((1, 1, 1), domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass=mass)
 ic = mir.InitialConditions.Uniform(number_density=number_density)
@@ -44,7 +44,7 @@ u.registerPlugins(mir.Plugins.createForceSaver('forceSaver', pv))
 u.registerPlugins(mir.Plugins.createDumpParticles(
         'meshdump', pv, 10, ['forces'], 'h5/pv-'))
 
-u.run(101)
+u.run(101, dt=dt)
 
 if MPI.COMM_WORLD.rank == 0:
     for i in range(10):

@@ -20,7 +20,7 @@ IntegratorMinimize::IntegratorMinimize(const MirState *state, Loader&, const Con
 void IntegratorMinimize::execute(ParticleVector *pv, cudaStream_t stream)
 {
     const auto t  = static_cast<real>(getState()->currentTime);
-    const auto dt = static_cast<real>(getState()->dt);
+    const auto dt = static_cast<real>(getState()->getDt());
 
     auto st2 = [max = maxDisplacement_] __device__ (Particle& p, real3 f, real invm, real dt)
     {

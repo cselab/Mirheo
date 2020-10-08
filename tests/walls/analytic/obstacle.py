@@ -16,7 +16,7 @@ force = (1.0, 0, 0)
 
 density = 4
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=density)
@@ -36,7 +36,7 @@ elif args.type == "sphere":
 u.registerWall(wall, 0)
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(wall, pv)
 
@@ -60,7 +60,7 @@ bin_size     = (1., 1., 1.0)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run(7002)
+u.run(7002, dt=dt)
 
 # nTEST: walls.analytic.obstacle.cylinder
 # cd walls/analytic

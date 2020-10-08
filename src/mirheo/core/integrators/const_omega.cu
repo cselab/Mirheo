@@ -38,7 +38,7 @@ void IntegratorConstOmega::execute(ParticleVector *pv, cudaStream_t stream)
         p.r  = domain.global2local(gr_c + center);
     };
 
-    integrate(pv, getState()->dt, rotate, stream);
+    integrate(pv, getState()->getDt(), rotate, stream);
     invalidatePV_(pv);
 }
 

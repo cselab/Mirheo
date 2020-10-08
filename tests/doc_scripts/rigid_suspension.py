@@ -15,7 +15,7 @@ inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv_solvent = mir.ParticleVectors.ParticleVector('solvent', mass)
 ic_solvent = mir.InitialConditions.Uniform(number_density)
@@ -66,4 +66,4 @@ u.setBouncer(bb, pv_rigid, pv_solvent)
 # dump the mesh every 200 steps in ply format to the folder 'ply/'
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rigid, 200, "ply/"))
 
-u.run(10000)
+u.run(10000, dt=dt)

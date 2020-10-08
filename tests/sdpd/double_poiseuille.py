@@ -9,7 +9,7 @@ domain = (16, 16, 16)
 ext_force = 1.0
 rc = 1.0
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = mir.InitialConditions.Uniform(number_density=10)
@@ -34,7 +34,7 @@ u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dum
                                                 ["velocities"],
                                                 'h5/solvent-'))
 
-u.run(5002)
+u.run(5002, dt=dt)
 
 # nTEST: sdpd.double_poiseuille
 # cd sdpd

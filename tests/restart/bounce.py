@@ -20,7 +20,7 @@ t_end = 2.5 + dt # time for one restart batch
 ranks  = args.ranks
 domain = (8, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log',
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log',
               checkpoint_every = int(0.5/dt), no_splash=True)
 
 nparts = 1000
@@ -70,7 +70,7 @@ if args.restart:
     u.restart("restart/")
 
 niters = int (t_end / dt)
-u.run(niters)
+u.run(niters, dt=dt)
 
 if args.restart and u.isComputeTask():
     pos = pv_rbc.getCoordinates()

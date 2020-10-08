@@ -21,7 +21,7 @@ tend    = 5.0
 
 nsteps = int (tend / dt)
 
-u = mir.Mirheo(args.ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True,
+u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True,
                checkpoint_every = (0 if args.restart else nsteps))
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
@@ -40,8 +40,8 @@ u.registerWall(plate_lo, nsteps_eq)
 u.registerWall(plate_hi, nsteps_eq)
 
 vv = mir.Integrators.VelocityVerlet("vv", )
-frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density)
-frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density)
+frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
+frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
@@ -65,7 +65,7 @@ u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dum
 if args.restart:
     u.restart("restart")
 
-u.run(nsteps+1)
+u.run(nsteps + 1, dt=dt)
 
 # nTEST: restart.walls
 # cd restart

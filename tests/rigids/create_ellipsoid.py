@@ -14,7 +14,7 @@ def create_ellipsoid(density, axes, niter):
     fact = 3
     domain = (fact*axes[0], fact*axes[1], fact*axes[2])
     
-    u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
     vv = mir.Integrators.VelocityVerlet('vv')
@@ -27,7 +27,7 @@ def create_ellipsoid(density, axes, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belonging_checker = mir.BelongingCheckers.Ellipsoid("ellipsoidChecker")
     
-    pv_ell = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, niter)
+    pv_ell = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, dt=dt, nsteps=niter)
     
     if pv_ell:
         frozen_coords = pv_ell.getCoordinates()

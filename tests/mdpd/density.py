@@ -7,7 +7,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (9, 9, 9)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=10)
@@ -39,7 +39,7 @@ grid_bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], grid_sample_every, grid_dump_every, grid_bin_size, [density_channel], 'h5/solvent-'))
 
-u.run(5002)
+u.run(5002, dt=dt)
 
 # nTEST: mdpd.density
 # cd mdpd

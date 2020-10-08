@@ -204,7 +204,7 @@ void PinObjectPlugin::afterIntegration(cudaStream_t stream)
         SAFE_KERNEL_LAUNCH(
                 pin_object_kernels::restrictRigidMotion,
                 getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-                view, translation_, rotation_, getState()->dt,
+                view, translation_, rotation_, getState()->getDt(),
                 forces_.devPtr(), torques_.devPtr() );
     }
 }

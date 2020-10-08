@@ -10,6 +10,7 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/restart_helpers.h>
 
+#include <cmath>
 #include <random>
 
 namespace mirheo
@@ -27,11 +28,10 @@ public:
     using ParticleType = Particle; ///< compatible particle type
 
     /// constructor
-    PairwiseDPDHandler(real rc, real a, real gamma, real sigma, real power) :
+    PairwiseDPDHandler(real rc, real a, real gamma, real power) :
         ParticleFetcherWithVelocity(rc),
         a_(a),
         gamma_(gamma),
-        sigma_(sigma),
         power_(power),
         invrc_(1.0 / rc)
     {}
@@ -69,7 +69,7 @@ public:
 protected:
     real a_; ///< conservative force magnitude
     real gamma_; ///< viscous force coefficient
-    real sigma_; ///< random force coefficient
+    real sigma_{NAN}; ///< random force coefficient, depends on dt
     real power_; ///< viscous kernel envelope power
     real invrc_; ///< 1 / rc
     real seed_ {0}; ///< random seed, must be updated at every time step
@@ -84,15 +84,15 @@ public:
     using ParamsType = DPDParams; ///< parameters that are used to create this object
 
     /// Constructor
-    PairwiseDPD(real rc, real a, real gamma, real kBT, real dt, real power, long seed=42424242) :
-        PairwiseDPDHandler(rc, a, gamma, computeSigma(gamma, kBT, dt), power),
+    PairwiseDPD(real rc, real a, real gamma, real kBT, real power, long seed=42424242) :
+        PairwiseDPDHandler(rc, a, gamma, power),
         stepGen_(seed),
         kBT_(kBT)
     {}
 
     /// Generic constructor
-    PairwiseDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
-        PairwiseDPD(rc, p.a, p.gamma, p.kBT, dt, p.power, seed)
+    PairwiseDPD(real rc, const ParamsType& p, long seed=42424242) :
+        PairwiseDPD(rc, p.a, p.gamma, p.kBT, p.power, seed)
     {}
 
     /// get the handler that can be used on device
@@ -108,7 +108,7 @@ public:
                const MirState *state) override
     {
         seed_ = stepGen_.generate(state);
-        sigma_ = computeSigma(gamma_, kBT_, state->dt);
+        sigma_ = computeSigma(gamma_, kBT_, state->getDt());
     }
 
     void writeState(std::ofstream& fout) override

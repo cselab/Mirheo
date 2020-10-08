@@ -22,7 +22,7 @@ if args.subStep:
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 1000
 np.random.seed(42)
@@ -78,7 +78,7 @@ if args.vis:
 
 tend = int(5.0 / dt)
 
-u.run(tend)
+u.run(tend, dt=dt)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()

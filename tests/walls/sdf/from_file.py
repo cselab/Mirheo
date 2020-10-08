@@ -18,7 +18,7 @@ domain = args.domain
 
 density = 8
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=density)
@@ -33,7 +33,7 @@ u.dumpWalls2XDMF([wall], (0.5, 0.5, 0.5), filename='h5/wall')
 
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interactions=[dpd], integrator=vv, number_density=density)
+frozen_wall = u.makeFrozenWallParticles(pvName="sdf", walls=[wall], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(wall, pv)
 
@@ -57,7 +57,7 @@ bin_size     = (1., 1., 1.0)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run(args.niters)
+u.run(args.niters, dt=dt)
 
 # nTEST: walls.sdf.from_file.profile
 # cd walls/sdf

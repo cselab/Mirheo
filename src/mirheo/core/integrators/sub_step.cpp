@@ -40,8 +40,6 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
     debug("setup substep integrator '%s' for %d substeps with sub integrator '%s' and fast forces '%s'",
           getCName(), substeps_, subIntegrator_->getCName(), ffNames.c_str());
 
-    updateSubState_();
-
     subIntegrator_->setState(&subState_);
 }
 
@@ -109,7 +107,7 @@ void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
 
         subIntegrator_->execute(pv, stream);
 
-        subState_.currentTime += subState_.dt;
+        subState_.currentTime += subState_.getDt();
         subState_.currentStep ++;
     }
 
@@ -133,7 +131,7 @@ void IntegratorSubStep::setPrerequisites(ParticleVector *pv)
 void IntegratorSubStep::updateSubState_()
 {
     subState_ = *getState();
-    subState_.dt = getState()->dt / static_cast<real>(substeps_);
+    subState_.setDt(getState()->getDt() / static_cast<real>(substeps_));
 }
 
 } // namespace mirheo

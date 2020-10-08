@@ -8,7 +8,7 @@ domain = (8, 8, 8)
 
 dt = 0.01
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 n = 20
 np.random.seed(42)
@@ -32,7 +32,7 @@ update_every = dump_every
 u.registerPlugins(mir.Plugins.createParticleDisplacement('disp', pv, update_every))
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, ["displacements"], 'h5/solvent_particles-'))
 
-u.run(100)
+u.run(100, dt=dt)
 
 # TEST: plugins.displacements
 # cd plugins

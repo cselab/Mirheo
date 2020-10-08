@@ -154,7 +154,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
             getNblocks(fineTable_.nCollisions[0], nthreads), nthreads, 0, stream,
             vertexView, pvView, ov_->mesh.get(),
             fineTable_.nCollisions[0], devFineTable.indices, collisionTimes_.devPtr(),
-            getState()->dt, bounceKernel );
+            getState()->getDt(), bounceKernel );
 
     }, varBounceKernel_);
 

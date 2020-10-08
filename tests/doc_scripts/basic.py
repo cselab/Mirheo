@@ -14,7 +14,7 @@ domain = (8, 16, 30)
 f = 1
 
 # Create the coordinator, this should precede any other setup from mirheo package
-u = mir.Mirheo(ranks, domain, dt, debug_level=2, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=2, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)   # Create a simple particle vector
 ic = mir.InitialConditions.Uniform(number_density=8)      # Specify uniform random initial conditions
@@ -46,4 +46,4 @@ u.registerPlugins(mir.Plugins.createStats('stats', every=500))
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
 # Run 5002 time-steps
-u.run(5002)
+u.run(5002, dt=dt)

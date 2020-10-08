@@ -7,7 +7,7 @@ density = 4
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 mesh = mir.ParticleVectors.MembraneMesh("rbc_mesh.off")
 
@@ -24,7 +24,7 @@ u.registerObjectBelongingChecker(inner_checker, pv_rbc)
 
 pv_inner = u.applyObjectBelongingChecker(inner_checker, pv_outer, correct_every = 0, inside = "pv_inner")
 
-u.run(1)
+u.run(1, dt=0)
 
 if u.isMasterTask():
     pv_inner_pos = pv_inner.getCoordinates()

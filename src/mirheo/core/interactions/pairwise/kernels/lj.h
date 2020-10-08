@@ -29,7 +29,7 @@ public:
     {}
 
     /// Generic constructor
-    PairwiseLJ(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
+    PairwiseLJ(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
         PairwiseLJ{rc, p.epsilon, p.sigma}
     {}
 

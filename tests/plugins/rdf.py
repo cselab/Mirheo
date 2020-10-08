@@ -10,7 +10,7 @@ domain = (16, 16, 16)
 rc = 1.0
 num_density = 8
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(num_density)
@@ -26,7 +26,7 @@ u.setIntegrator(vv, pv)
 
 u.registerPlugins(mir.Plugins.createRdf('rdf', pv, max_dist=2*rc, nbins=50, basename="rdf/pv-", every=5000))
 
-u.run(5002)
+u.run(5002, dt=dt)
 
 # nTEST: plugins.rdf
 # cd plugins

@@ -8,7 +8,7 @@ domain = (32, 32, 32)
 
 dt = 0.001
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density = 10)
@@ -29,7 +29,7 @@ u.registerPlugins(mir.Plugins.createVacf('vacf', pv, t_eq, t_eq + t_measure, dum
 
 t_tot = t_eq + t_measure
 
-u.run(int(t_tot / dt) + 1)
+u.run(int(t_tot / dt) + 1, dt=dt)
 
 # nTEST: plugins.vacf
 # cd plugins

@@ -15,9 +15,8 @@ parser.add_argument('--load-from', type=str)
 args = parser.parse_args()
 
 if not args.load_from:
-    # Keep dt as 0.1, just to see the difference between float and double.
-    u = mir.Mirheo(args.ranks, domain=(4, 6, 8), dt=0.1,
-                   debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(args.ranks, domain=(4, 6, 8),
+                   debug_level=15, log_filename='log', no_splash=True)
 
     pv = mir.ParticleVectors.ParticleVector('pv', mass=1)
     ic = mir.InitialConditions.Uniform(number_density=2)
@@ -37,7 +36,7 @@ if not args.load_from:
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
-    u.run(1)  # Test that it does not crash.
+    u.run(0, dt=0.1)  # Test that it does not crash.
 
 # NOTE: The development docs include this test case as a JSON sample.
 #       If updating this test case, check if the docs has to be updated.

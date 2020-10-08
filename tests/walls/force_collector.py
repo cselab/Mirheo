@@ -16,7 +16,7 @@ tend    = 10.1
 
 gdpd = 11.0
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic = mir.InitialConditions.Uniform(number_density=density)
@@ -33,8 +33,8 @@ u.registerWall(plate_lo, 1000)
 u.registerWall(plate_hi, 1000)
 
 vv = mir.Integrators.VelocityVerlet("vv", )
-frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density)
-frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density)
+frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
+frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
@@ -56,7 +56,7 @@ outname_lo = 'wallForceLo.txt'
 u.registerPlugins(mir.Plugins.createWallForceCollector('forceCollectorHi', plate_hi, frozen_hi, sample_every, dump_every, outname_hi))
 u.registerPlugins(mir.Plugins.createWallForceCollector('forceCollectorLo', plate_lo, frozen_lo, sample_every, dump_every, outname_lo))
 
-u.run((int)(tend/dt))
+u.run(int(tend / dt), dt=dt)
 
 if u.isComputeTask():
     A = domain[0] * domain[1]

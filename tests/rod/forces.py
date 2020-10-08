@@ -19,7 +19,7 @@ domain = [16, 16, 16]
 
 dt = 1e-3
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=8, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=8, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 
@@ -84,7 +84,7 @@ dump_every = 1
 u.registerPlugins(mir.Plugins.createForceSaver("forceSaver", rv))
 u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, ["forces"], 'h5/rod-'))
 
-u.run(2)
+u.run(2, dt=dt)
 
 del u
 

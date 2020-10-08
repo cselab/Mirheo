@@ -77,8 +77,8 @@ public:
     {}
 
     /// Generic constructor
-    PairwiseStressWrapper(real rc, const ParamsType& p, real dt, long seed=42424242) :
-        BasicPairwiseForce(rc, p, dt, seed),
+    PairwiseStressWrapper(real rc, const ParamsType& p, long seed=42424242) :
+        BasicPairwiseForce(rc, p, seed),
         basicForceWrapperHandler_ {HandlerType{BasicPairwiseForce::handler()}}
     {}
 

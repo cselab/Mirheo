@@ -6,7 +6,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = [8, 8, 8]
 
-u = mir.Mirheo(ranks, tuple(domain), dt=0.01, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 center = (domain[0]/2, domain[1]/2, domain[2]/2)
 
@@ -33,7 +33,7 @@ u.registerParticleVector(pv, ic)
 
 u.registerPlugins(mir.Plugins.createAnchorParticles("anchor", pv, positions, velocities, pids, 100, "anchor/"))
 
-u.run(500)
+u.run(500, dt=0.01)
 
 if pv:
     icpos = pv.getCoordinates()

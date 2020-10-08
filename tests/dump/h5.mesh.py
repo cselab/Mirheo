@@ -10,7 +10,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
 mesh = mir.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
@@ -22,7 +22,7 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 dumpEvery = 1
 u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dumpEvery, [], 'h5/rbc-'))
 
-u.run(2)
+u.run(2, dt=0)
 
 # TEST: dump.h5.mesh
 # cd dump

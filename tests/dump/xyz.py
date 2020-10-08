@@ -5,7 +5,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = (8, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=2)
@@ -13,7 +13,7 @@ u.registerParticleVector(pv, ic)
 
 u.registerPlugins(mir.Plugins.createDumpXYZ('xyz', pv, 1, "xyz"))
 
-u.run(2)
+u.run(2, dt=0)
 
 # TEST: dump.xyz
 # cd dump

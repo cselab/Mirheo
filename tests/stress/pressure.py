@@ -17,7 +17,7 @@ domain = (32, 32, 32)
 tdump_every = 0.001
 dump_every = int(tdump_every / dt)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv_name="pv"
 path="pressure"
@@ -41,7 +41,7 @@ h = (1.0, 1.0, 1.0)
 
 u.registerPlugins(mir.Plugins.createVirialPressurePlugin('Pressure', pv, predicate_all_domain, h, dump_every, path))
 
-u.run(2001)
+u.run(2001, dt=dt)
 
 volume = domain[0]*domain[1]*domain[2]
 

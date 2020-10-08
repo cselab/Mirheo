@@ -7,7 +7,7 @@ We test that there are that many folders and that the currentStep changes.
 
 import mirheo as mir
 
-u = mir.Mirheo(nranks=(1, 1, 1), domain=(4, 6, 8), dt=0.125, debug_level=3,
+u = mir.Mirheo(nranks=(1, 1, 1), domain=(4, 6, 8), debug_level=3,
                log_filename='log', no_splash=True,
                checkpoint_every=10, checkpoint_mode='Incremental',
                checkpoint_folder='periodic_snapshots/snapshot_', checkpoint_mechanism='Snapshot')
@@ -25,7 +25,7 @@ u.setInteraction(dpd, pv, pv)
 
 minimize = mir.Integrators.Minimize('minimize', max_displacement=1. / 1024)
 u.registerIntegrator(minimize)
-u.run(45)
+u.run(45, dt=0.125)
 
 # TEST: snapshot.periodic
 # cd snapshot

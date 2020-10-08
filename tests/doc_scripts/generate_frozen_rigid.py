@@ -23,7 +23,7 @@ inertia = [row[i] for i, row in enumerate(m.moment_inertia)]
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
     
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
 vv  = mir.Integrators.VelocityVerlet('vv')
@@ -46,7 +46,7 @@ fake_ic = mir.InitialConditions.Rigid(com_q, coords)
 belonging_checker = mir.BelongingCheckers.Mesh("mesh_checker")
 
 # similarly to wall creation, we freeze particles inside a rigid object
-pv_rigid = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, number_density, mass, niter)
+pv_rigid = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, number_density, mass, dt=dt, nsteps=niter)
 
 if u.isMasterTask():
     coords = pv_rigid.getCoordinates()

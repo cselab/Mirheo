@@ -13,7 +13,7 @@ rc      = 1.0
 omega   = 0.5 # angular velocity of outer cylinder; inner is fixed
 tend    = 10.1
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=density)
@@ -30,8 +30,8 @@ u.registerWall(cylinder_in,  1000)
 u.registerWall(cylinder_out, 1000)
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen_in  = u.makeFrozenWallParticles(pvName="cyl_in",  walls=[cylinder_in],  interactions=[dpd], integrator=vv, number_density=density)
-frozen_out = u.makeFrozenWallParticles(pvName="cyl_out", walls=[cylinder_out], interactions=[dpd], integrator=vv, number_density=density)
+frozen_in  = u.makeFrozenWallParticles(pvName="cyl_in",  walls=[cylinder_in],  interactions=[dpd], integrator=vv, number_density=density, dt=dt)
+frozen_out = u.makeFrozenWallParticles(pvName="cyl_out", walls=[cylinder_out], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(cylinder_in,  pv)
 u.setWall(cylinder_out, pv)
@@ -52,7 +52,7 @@ bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run((int)(tend/dt))
+u.run(int(tend / dt), dt=dt)
 
 # nTEST: walls.analytic.taylor_couette
 # cd walls/analytic

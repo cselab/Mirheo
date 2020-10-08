@@ -8,7 +8,7 @@ ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 vtarget = (1.0, 0, 0)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=2)
@@ -30,7 +30,7 @@ Kd = 8.0 * factor
 u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont.csv", [pv], (0, 0, 0), domain, 5, 5, 50, vtarget, Kp, Ki, Kd))
 u.registerPlugins(mir.Plugins.createStats('stats', "stats.csv", 1000))
 
-u.run(5001)
+u.run(5001, dt=dt)
 
 # nTEST: flow.uniform_vel
 # cd flow

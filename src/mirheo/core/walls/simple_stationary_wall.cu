@@ -456,7 +456,7 @@ void SimpleStationaryWall<InsideWallChecker>::removeInner(ParticleVector *pv)
 template<class InsideWallChecker>
 void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
 {
-    const real dt = this->getState()->dt;
+    const real dt = this->getState()->getDt();
 
     bounceForce_.clear(stream);
 

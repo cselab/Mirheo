@@ -28,11 +28,10 @@ public:
     using ParticleType = ParticleWithDensity; ///< compatible particle type
 
     /// constructor
-    PairwiseMDPDHandler(real rc, real rd, real a, real b, real gamma, real sigma, real power) :
+    PairwiseMDPDHandler(real rc, real rd, real a, real b, real gamma, real power) :
         ParticleFetcherWithVelocityAndDensity(rc),
         a_(a), b_(b),
         gamma_(gamma),
-        sigma_(sigma),
         power_(power),
         rd_(rd),
         invrc_(1.0 / rc),
@@ -75,7 +74,7 @@ protected:
     real a_; ///< conservative force magnitude (repulsive part)
     real b_; ///< conservative force magnitude (attractive part)
     real gamma_; ///< viscous force coefficient
-    real sigma_; ///< random force coefficient
+    real sigma_{NAN}; ///< random force coefficient, depends on dt
     real power_; ///< viscous kernel envelope power
     real rd_; ///< density cut-off radius
     real invrc_; ///< 1 / rc
@@ -92,15 +91,15 @@ public:
     using ParamsType  = MDPDParams; ///< parameters that are used to create this object
 
     /// Constructor
-    PairwiseMDPD(real rc, real rd, real a, real b, real gamma, real kBT, real dt, real power, long seed = 42424242) :
-        PairwiseMDPDHandler(rc, rd, a, b, gamma, computeSigma(gamma, kBT, dt), power),
+    PairwiseMDPD(real rc, real rd, real a, real b, real gamma, real kBT, real power, long seed = 42424242) :
+        PairwiseMDPDHandler(rc, rd, a, b, gamma, power),
         stepGen_(seed),
         kBT_(kBT)
     {}
 
     /// Generic constructor
-    PairwiseMDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
-        PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, dt, p.power, seed)
+    PairwiseMDPD(real rc, const ParamsType& p, long seed = 42424242) :
+        PairwiseMDPD(rc, p.rd, p.a, p.b, p.gamma, p.kBT, p.power, seed)
     {}
 
     /// get the handler that can be used on device
@@ -116,7 +115,7 @@ public:
                const MirState *state) override
     {
         seed_  = stepGen_.generate(state);
-        sigma_ = computeSigma(gamma_, kBT_, state->dt);
+        sigma_ = computeSigma(gamma_, kBT_, state->getDt());
     }
 
     void writeState(std::ofstream& fout) override

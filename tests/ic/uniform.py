@@ -12,13 +12,13 @@ ranks  = (1, 1, 1)
 domain = args.domain
 density = 8
 
-u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)
 u.registerParticleVector(pv, ic)
 
-u.run(2)
+u.run(2, dt=0)
 
 if pv:
     icpos = pv.getCoordinates()

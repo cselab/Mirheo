@@ -9,7 +9,7 @@ def run(niter, statsFname, comm_address):
     ranks  = (2, 1, 1)
     domain = (12, 8, 10)
 
-    u = mir.Mirheo(ranks, domain, dt, debug_level=8, log_filename='log', comm_ptr=comm_address)
+    u = mir.Mirheo(ranks, domain, debug_level=8, log_filename='log', comm_ptr=comm_address)
 
     pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
     ic = mir.InitialConditions.Uniform(number_density=2)
@@ -25,7 +25,7 @@ def run(niter, statsFname, comm_address):
 
     u.registerPlugins(mir.Plugins.createStats('stats', statsFname, 1000))
 
-    u.run(niter)
+    u.run(niter, dt=dt)
 
 comm = MPI.COMM_WORLD
 run(2002, "stats1", MPI._addressof(comm))

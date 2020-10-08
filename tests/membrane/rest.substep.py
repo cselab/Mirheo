@@ -18,7 +18,7 @@ substeps = 1000
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt * substeps, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 mesh_rbc = mir.ParticleVectors.MembraneMesh("rbc_mesh.off")
 pv_rbc   = mir.ParticleVectors.MembraneVector("rbc", mass=1.0, mesh=mesh_rbc)
@@ -36,7 +36,7 @@ u.setIntegrator(integrator, pv_rbc)
 
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 1, "ply/"))
 
-u.run(50)
+u.run(50, dt=dt * substeps)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()

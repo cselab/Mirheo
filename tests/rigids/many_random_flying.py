@@ -17,7 +17,7 @@ axes = (1, 2, 3)
 ranks  = tuple(args.nranks)
 domain = (31, 18, 59)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 np.random.seed(84)
 com_q = np.random.rand(args.nobjects, 7)
@@ -35,7 +35,7 @@ u.registerIntegrator(vv_ell)
 u.setIntegrator(vv_ell, pv_ell)
 
 u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every=10, path="stats") )
-u.run(1000)
+u.run(1000, dt=dt)
 
 
 # nTEST: rigids.many_random_flying.onerank

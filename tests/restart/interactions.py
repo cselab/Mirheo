@@ -17,7 +17,7 @@ if args.restart:
 else:
     restart_folder="restart/"
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', checkpoint_every=5, checkpoint_folder=restart_folder, no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=2)
@@ -29,7 +29,7 @@ u.setInteraction(dpd, pv, pv)
 
 if args.restart:
     u.restart("restart/")
-u.run(7)
+u.run(7, dt=dt)
 
 
 # TEST: restart.interactions

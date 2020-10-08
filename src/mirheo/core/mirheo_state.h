@@ -4,7 +4,6 @@
 #include "domain.h"
 #include "utils/common.h"
 
-#include <memory>
 #include <mpi.h>
 #include <string>
 
@@ -92,7 +91,7 @@ public:
         \param [in] units Conversion factors from Mirheo to SI units
         \param [in] state If not \c nullptr, will set the current time info from snapshot info
     */
-    MirState(DomainInfo domain, real dt, UnitConversion units, const ConfigValue *state = nullptr);
+    MirState(DomainInfo domain, real dt = -1, UnitConversion units = UnitConversion{}, const ConfigValue *state = nullptr);
 
 
     /** Save internal state to file
@@ -107,13 +106,33 @@ public:
      */
     void restart(MPI_Comm comm, std::string path);
 
+    /** Get the current time step dt. Accessible only during Mirheo::run. */
+    real getDt() const {
+        if (dt_ < 0)
+            _dieInvalidDt();
+        return dt_;
+    }
+
+    /** Set the time step dt.
+        \param [in] dt time step duration
+     */
+    void setDt(real dt) noexcept {
+        dt_ = dt;
+    }
+
 public:
     DomainInfo domain; ///< Global DomainInfo
 
-    real dt; ///< time step
     TimeType currentTime; ///< Current simulation time
     StepType currentStep; ///< Current simulation step
     UnitConversion units; ///< Conversion between Mirheo and SI units (optional).
+
+private:
+    void _dieInvalidDt [[noreturn]]() const; // To avoid including logger here.
+
+    real dt_; ///< time step
+
+    friend TypeLoadSave<MirState>;
 };
 
 /// template specialization struct to implement snapshot save

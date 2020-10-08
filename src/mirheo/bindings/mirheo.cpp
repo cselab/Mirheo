@@ -106,7 +106,7 @@ void exportMirheo(py::module& m)
     py::handlers_class<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
     )")
-        .def(py::init( [] (int3 nranks, real3 domain, real dt,
+        .def(py::init( [] (int3 nranks, real3 domain,
                            std::string log, int debuglvl,
                            std::string checkpointMechanismStr, int checkpointEvery,
                            std::string checkpointFolder, std::string checkpointModeStr,
@@ -119,17 +119,17 @@ void exportMirheo(py::module& m)
                         getCheckpointMechanism(checkpointMechanismStr));
 
                 if (commPtr == 0) {
-                    return std::make_unique<Mirheo> (      nranks, domain, dt, logInfo,
+                    return std::make_unique<Mirheo> (      nranks, domain, logInfo,
                                                            checkpointInfo, cudaMPI, units);
                 } else {
                     // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
                     MPI_Comm comm = *(MPI_Comm *)commPtr;
-                    return std::make_unique<Mirheo> (comm, nranks, domain, dt, logInfo,
+                    return std::make_unique<Mirheo> (comm, nranks, domain, logInfo,
                                                            checkpointInfo, cudaMPI, units);
                 }
             } ),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "dt"_a, "log_filename"_a="log", "debug_level"_a=3,
+             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3,
              "checkpoint_mechanism"_a="Checkpoint", "checkpoint_every"_a=0,
              "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
              "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
@@ -157,7 +157,6 @@ Args:
     domain: size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries. The domain will be split in equal chunks between the MPI ranks.
         The largest chunk size that a single MPI rank can have depends on the total number of particles,
         handlers and hardware, and is typically about :math:`120^3 - 200^3`.
-    dt: timestep of the simulation
     log_filename: prefix of the log files that will be created.
         Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ...
         will be created, where NP is the total number of MPI ranks.
@@ -334,7 +333,7 @@ Args:
         )")
 
         .def("makeFrozenWallParticles", &Mirheo::makeFrozenWallParticles,
-             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
+             "pvName"_a, "walls"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "dt"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside the walls.
 
                 .. note::
@@ -348,6 +347,7 @@ Args:
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
+                    dt: time step
                     nsteps: run this many steps to achieve equilibrium
 
                 Returns:
@@ -356,7 +356,7 @@ Args:
         )")
 
         .def("makeFrozenRigidParticles", &Mirheo::makeFrozenRigidParticles,
-             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "nsteps"_a=1000, R"(
+             "checker"_a, "shape"_a, "icShape"_a, "interactions"_a, "integrator"_a, "number_density"_a, "mass"_a=1.0_r, "dt"_a, "nsteps"_a=1000, R"(
                 Create particles frozen inside object.
 
                 .. note::
@@ -371,6 +371,7 @@ Args:
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
+                    dt: time step
                     nsteps: run this many steps to achieve equilibrium
 
                 Returns:
@@ -408,11 +409,12 @@ Args:
                  if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
          )")
         .def("run", &Mirheo::run,
-             "niters"_a, R"(
+             "niters"_a, "dt"_a, R"(
              Advance the system for a given amount of time steps.
 
              Args:
                  niters: number of time steps to advance
+                 dt: time step duration
         )")
         .def("log_compile_options", &Mirheo::logCompileOptions,
              R"(

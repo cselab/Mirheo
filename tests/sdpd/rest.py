@@ -14,7 +14,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16, 16, 16)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', args.mass)
 ic = mir.InitialConditions.Uniform(number_density=10)
@@ -50,7 +50,7 @@ u.setIntegrator(vv, pv)
 
 u.registerPlugins(mir.Plugins.createStats('stats', "stats", 1000))
 
-u.run(5001)
+u.run(5001, dt=dt)
 
 # nTEST: sdpd.rest
 # cd sdpd

@@ -5,7 +5,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = (8, 8, 16)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 axes = (1.0, 2.0, 3.0)
 
@@ -19,7 +19,7 @@ u.registerParticleVector(ov, ic)
 
 u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov, dump_every=1, path="stats"))
 
-u.run(2)
+u.run(2, dt=0)
 
 # TEST: dump.rov_stats
 # cd dump

@@ -15,7 +15,7 @@ ranks  = args.ranks
 domain = (16, 16, 16)
 a = 1
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 def upHalf(r):
     return r[1] > domain[1] * args.fraction
@@ -48,7 +48,7 @@ u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv1], sample_every, du
                                                 ["velocities"], 'h5/solvent-'))
 u.registerPlugins(mir.Plugins.createExchangePVSFluxPlane("color_exchanger", pv1, pv2, (1., 0., 0., 0.)))
 
-u.run(5002)
+u.run(5002, dt=dt)
 
 del(u)
 

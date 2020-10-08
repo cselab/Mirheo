@@ -12,7 +12,7 @@ domain = (12, 8, 10)
 
 rc=1.0
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 m = trimesh.load(args.mesh);
 mesh = mir.ParticleVectors.MembraneMesh(m.vertices.tolist(), m.faces.tolist())
@@ -32,7 +32,7 @@ u.registerPlugins(mir.Plugins.createWallRepulsion("wallRepulsion", pv_rbc, plate
 dump_every = 1
 u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('partDump', pv_rbc, dump_every, ["sdf"], 'h5/rbc-'))
 
-u.run(2)
+u.run(2, dt=0)
 
 # nTEST: dump.h5.mesh.sdf
 # cd dump

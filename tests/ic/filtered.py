@@ -12,7 +12,7 @@ ranks  = (1, 1, 1)
 domain = [4., 4., 4.]
 density = 8
 
-u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 if args.filter == "half":
     def my_filter(r):
@@ -27,7 +27,7 @@ pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.UniformFiltered(density, my_filter)
 u.registerParticleVector(pv=pv, ic=ic)
 
-u.run(2)
+u.run(2, dt=0)
 
 if pv:
     icpos = pv.getCoordinates()

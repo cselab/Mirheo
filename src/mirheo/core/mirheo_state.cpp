@@ -23,13 +23,13 @@ UnitConversion TypeLoadSave<UnitConversion>::parse(const ConfigValue& config) {
     return UnitConversion{config["toMeters"], config["toSeconds"], config["toKilograms"]};
 }
 
-MirState::MirState(DomainInfo domain_, real dt_, UnitConversion units_,
+MirState::MirState(DomainInfo domain_, real dt, UnitConversion units_,
                    const ConfigValue *state) :
     domain(domain_),
-    dt(dt_),
     currentTime(0),
     currentStep(0),
-    units(units_)
+    units(units_),
+    dt_(dt)
 {
     if (state) {
         currentTime = (*state)["currentTime"];
@@ -58,7 +58,7 @@ void MirState::checkpoint(MPI_Comm comm, std::string folder)
                   gsz.x, gsz.y, gsz.z,
                   gst.x, gst.y, gst.z,
                   lsz.x, lsz.y, lsz.z,
-                  dt, currentTime, currentStep);
+                  dt_, currentTime, currentStep);
 }
 
 void MirState::restart(MPI_Comm comm, std::string folder)
@@ -72,13 +72,17 @@ void MirState::restart(MPI_Comm comm, std::string folder)
                              gsz.x, gsz.y, gsz.z,
                              gst.x, gst.y, gst.z,
                              lsz.x, lsz.y, lsz.z,
-                             dt, currentTime, currentStep);
+                             dt_, currentTime, currentStep);
 
     if (!good) die("failed to read '%s'\n", filename.c_str());
 
     domain.globalSize  = gsz;
     domain.globalStart = gst;
     domain.localSize   = lsz;
+}
+
+void MirState::_dieInvalidDt [[noreturn]]() const {
+    die("Time step dt not available. Using dt is valid only during Mirheo::run().");
 }
 
 ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
@@ -88,7 +92,7 @@ ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
         {"__type",            saver("MirState")},
         {"domainGlobalStart", saver(state.domain.globalStart)},
         {"domainGlobalSize",  saver(state.domain.globalSize)},
-        {"dt",                saver(state.dt)},
+        {"dt",                saver(state.dt_)},
         {"currentTime",       saver(state.currentTime)},
         {"currentStep",       saver(state.currentStep)},
         {"units",             saver(state.units)},

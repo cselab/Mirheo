@@ -21,7 +21,7 @@ static std::vector<real> generateSamples(Gen gen, real dt, long n)
     for (state.currentStep = 0; state.currentStep < n; ++state.currentStep)
     {
         samples[state.currentStep] = gen.generate(&state);
-        state.currentTime += state.dt;
+        state.currentTime += state.getDt();
     }
 
     return samples;

@@ -8,7 +8,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 pv  = mir.ParticleVectors.ParticleVector('pv', mass = 1.0)
 ic  = mir.InitialConditions.Uniform(number_density)
@@ -33,7 +33,7 @@ u.registerWall(wall) # register the wall in the coordinator
 # the following command is running a simulation of a solvent with given density equilibrating with dpd interactions and vv integrator
 # for 1000 steps.
 # It then selects the frozen particles according to the walls geometry, register and returns the newly created particle vector.
-pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=number_density)
+pv_frozen = u.makeFrozenWallParticles(pvName="wall", walls=[wall], interactions=[dpd], integrator=vv, number_density=number_density, dt=dt)
 
 # set the wall for pv
 # this is required for non-penetrability of the solvent thanks to bounce-back
@@ -58,4 +58,4 @@ u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_wall', pv_frozen, d
 # the dumped file is a grid with spacings h containing the SDF values 
 u.dumpWalls2XDMF([wall], h = (0.5, 0.5, 0.5), filename = 'h5/wall')
 
-u.run(5002)
+u.run(5002, dt=dt)

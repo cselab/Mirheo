@@ -44,7 +44,7 @@ public:
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
-        defaultPair_{rc, pairParams, state->dt, seed},
+        defaultPair_{rc, pairParams, seed},
         _pairParams{pairParams}
     {}
 
@@ -70,7 +70,7 @@ public:
             intMap_.emplace(
                     std::make_pair(loader.load<std::string>(mapArray[i]),
                                    loader.load<std::string>(mapArray[i + 1])),
-                    Kernel{PairwiseKernel{rc_, params, state->dt, seed}, params});
+                    Kernel{PairwiseKernel{rc_, params, seed}, params});
         }
     }
 
@@ -162,7 +162,7 @@ public:
         ParametersWrap desc(mapParams);
         auto params = _pairParams;
         factory_helper::readSpecificParams(params, desc);
-        PairwiseKernel kernel {rc_, params, getState()->dt};
+        PairwiseKernel kernel {rc_, params};
         _setSpecificPair(pv1name, pv2name, kernel, params);
     }
 

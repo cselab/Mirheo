@@ -19,7 +19,7 @@ num_segments = 4
 mass_sol = 0.1
 mass_rod = 100.0
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 nparts = 1000
 np.random.seed(42)
@@ -65,7 +65,7 @@ if args.vis:
 
 tend = int(5.0 / dt)
 
-u.run(tend)
+u.run(tend, dt=dt)
 
 if pv_rod is not None:
     rod_pos = pv_rod.getCoordinates()

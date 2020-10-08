@@ -37,7 +37,7 @@ void IntegratorOscillate::execute(ParticleVector *pv, cudaStream_t stream)
         p.r += p.u * dt;
     };
 
-    integrate(pv, getState()->dt, oscillate, stream);
+    integrate(pv, getState()->getDt(), oscillate, stream);
     invalidatePV_(pv);
 }
 
