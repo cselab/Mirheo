@@ -89,6 +89,7 @@ void SimulationVelocityControl::setup(Simulation* simulation, const MPI_Comm& co
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    pvs_.clear();
     for (auto &pvName : pvNames_)
         pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 }

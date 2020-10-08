@@ -4,6 +4,8 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/config.h>
 
+#include <cassert>
+
 namespace mirheo
 {
 
@@ -29,6 +31,11 @@ void Plugin::setTag(int tag)
 
 void Plugin::_setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
+    if (comm_ != MPI_COMM_NULL) {
+        assert(interComm_ == interComm);
+        return;
+    }
+
     MPI_Check( MPI_Comm_dup(comm, &comm_) );
     interComm_ = interComm;
 

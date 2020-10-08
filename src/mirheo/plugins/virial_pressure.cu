@@ -125,7 +125,7 @@ void VirialPressureDumper::handshake()
     std::string pvName;
     SimpleSerializer::deserialize(data_, pvName);
 
-    if (activated_)
+    if (activated_ && fdump_.get() == nullptr)
     {
         auto fname = joinPaths(path_, setExtensionOrDie(pvName, "csv"));
         auto status = fdump_.open(fname, "w");

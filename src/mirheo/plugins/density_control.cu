@@ -125,6 +125,15 @@ void DensityControlPlugin::setup(Simulation *simulation, const MPI_Comm& comm, c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    if (nSamples_ > 0) {
+        // Ideally, running `run` multiple times should produce exactly the
+        // same result as running a single large `run`. However, it is not
+        // clear what should happens if new particle vectors are added or
+        // removed between two runs.
+        die("DensityControlPlugin does not support multiple runs.");
+    }
+
+    pvs_.clear();
     for (auto &pvName : pvNames_)
         pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
 

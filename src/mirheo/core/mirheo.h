@@ -296,7 +296,7 @@ private:
     bool noPostprocess_;
     int pluginsTag_ {0}; ///< used to create unique tag per plugin
 
-    bool initialized_    = false;
+    bool initialized_    = false; ///< has the setup been called at least once?
     bool initializedMpi_ = false;
 
     MPI_Comm comm_      {MPI_COMM_NULL}; ///< base communicator (world)

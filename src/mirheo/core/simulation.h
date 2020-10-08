@@ -323,7 +323,7 @@ private:
     const CheckpointInfo checkpointInfo_;
     const int rank_;
 
-    /// Data constructed in init() and used in run().
+    /// Data constructed in init() and used during the execution of run().
     std::unique_ptr<RunData> run_;
 
     const bool gpuAwareMPI_;

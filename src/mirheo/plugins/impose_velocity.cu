@@ -79,6 +79,7 @@ void ImposeVelocityPlugin::setup(Simulation* simulation, const MPI_Comm& comm, c
 {
     SimulationPlugin::setup(simulation, comm, interComm);
 
+    pvs_.clear();
     for (auto& nm : pvNames_)
         pvs_.push_back(simulation->getPVbyNameOrDie(nm));
 }

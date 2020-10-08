@@ -41,6 +41,10 @@ void Postprocess::init()
     for (auto& pl : plugins_)
     {
         debug("Setup and handshake of %s", pl->getCName());
+        // Both setup and handshake will be invoked each time run() is invoked.
+        // The plugin should support multiple runs if possible. Otherwise, the
+        // plugin should throw an exception when the run is invoked for the
+        // second time.
         pl->setup(comm_, interComm_);
         pl->handshake();
     }
