@@ -44,11 +44,11 @@ std::string dataFormToDescription   (Channel::DataForm dataForm);
 Channel::DataForm descriptionToDataForm(const std::string& str);
 
 /// \return the HDF5-compatible description of the given Channel::NumberType data type
-decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType dt);
+decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type  (Channel::NumberType nt);
 /// \return the xdmf-compatible string corresponding to the given Channel::NumberType data type
-std::string                 numberTypeToString    (Channel::NumberType dt);
+std::string                 numberTypeToString    (Channel::NumberType nt);
 /// \return the size in bytes of the type represented by the given Channel::NumberType data type
-int                         numberTypeToPrecision (Channel::NumberType dt);
+int                         numberTypeToPrecision (Channel::NumberType nt);
 
 /// reverse of numberTypeToString() and numberTypeToPrecision()
 Channel::NumberType infoToNumberType(const std::string& str, int precision);
