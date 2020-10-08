@@ -68,7 +68,7 @@ class Mirheo:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: int3, domain: real3, dt: float, log_filename: str='log', debug_level: int=3, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
+1. __init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=3, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
 
 
 Create the Mirheo coordinator.
@@ -95,7 +95,6 @@ Args:
     domain: size of the simulation domain in x,y,z. Periodic boundary conditions are applied at the domain boundaries. The domain will be split in equal chunks between the MPI ranks.
         The largest chunk size that a single MPI rank can have depends on the total number of particles,
         handlers and hardware, and is typically about :math:`120^3 - 200^3`.
-    dt: timestep of the simulation
     log_filename: prefix of the log files that will be created.
         Logging is implemented in the form of one file per MPI rank, so in the simulation folder NP files with names log_00000.log, log_00001.log, ...
         will be created, where NP is the total number of MPI ranks.
@@ -221,7 +220,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenRigidParticles():
-        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, nsteps: int=1000) -> mirheo::ParticleVector
+        r"""makeFrozenRigidParticles(checker: mirheo::ObjectBelongingChecker, shape: mirheo::ObjectVector, icShape: mirheo::InitialConditions, interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, dt: float, nsteps: int=1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside object.
@@ -238,6 +237,7 @@ Returns ``True`` if the current rank is the root
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
+                    dt: time step
                     nsteps: run this many steps to achieve equilibrium
 
                 Returns:
@@ -249,7 +249,7 @@ Returns ``True`` if the current rank is the root
         pass
 
     def makeFrozenWallParticles():
-        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, nsteps: int=1000) -> mirheo::ParticleVector
+        r"""makeFrozenWallParticles(pvName: str, walls: List[mirheo::Wall], interactions: List[mirheo::Interaction], integrator: mirheo::Integrator, number_density: float, mass: float=1.0, dt: float, nsteps: int=1000) -> mirheo::ParticleVector
 
 
                 Create particles frozen inside the walls.
@@ -265,6 +265,7 @@ Returns ``True`` if the current rank is the root
                     integrator: this :any:`Integrator` will be used to construct the equilibrium particles distribution
                     number_density: target particle number density
                     mass: the mass of a single frozen particle
+                    dt: time step
                     nsteps: run this many steps to achieve equilibrium
 
                 Returns:
@@ -384,13 +385,14 @@ Register Plugins
         pass
 
     def run():
-        r"""run(niters: int) -> None
+        r"""run(niters: int, dt: float) -> None
 
 
              Advance the system for a given amount of time steps.
 
              Args:
                  niters: number of time steps to advance
+                 dt: time step duration
         
 
         """
