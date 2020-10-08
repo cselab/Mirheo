@@ -179,7 +179,7 @@ public:
     }
 
     /// Generic constructor
-    PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED real dt, __UNUSED long seed=42424242) :
+    PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
         PairwiseRepulsiveLJ{rc,
                             p.epsilon,
                             p.sigma,

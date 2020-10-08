@@ -16,10 +16,9 @@ parser.add_argument('--load-from', type=str)
 args = parser.parse_args()
 
 domain = (4, 6, 8)
-dt = 0.1
 
 if not args.load_from:
-    u = mir.Mirheo(args.ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
     mesh1 = mir.ParticleVectors.MembraneMesh('mesh_dummy1.off')
     mesh2 = mir.ParticleVectors.MembraneMesh('mesh_dummy2.off')
@@ -32,7 +31,7 @@ if not args.load_from:
 else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
-    u.run(1)  # Test that it does not crash.
+    u.run(1, dt=0.1)  # Test that it does not crash.
 
 # TODO: Add h5diff once particles (membranes) are added. h5diff does not work
 # for empty data sets for some reason.

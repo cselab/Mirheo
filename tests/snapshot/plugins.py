@@ -10,7 +10,7 @@ parser.add_argument('--load-from', type=str)
 args = parser.parse_args()
 
 if not args.load_from:
-    u = mir.Mirheo(args.ranks, domain=(4, 6, 8), dt=0.1, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(args.ranks, domain=(4, 6, 8), debug_level=3, log_filename='log', no_splash=True)
 
     mesh = mir.ParticleVectors.MembraneMesh('mesh_dummy1.off')
     ov = mir.ParticleVectors.MembraneVector('ov', mesh=mesh, mass=1)

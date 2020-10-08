@@ -11,7 +11,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (4, 6, 8)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3,
+u = mir.Mirheo(ranks, domain, debug_level=3,
               log_filename='log', no_splash=True,
               checkpoint_every = (0 if args.restart else 5))
     
@@ -29,7 +29,7 @@ inner = u.applyObjectBelongingChecker(checker, pv, inside='inner')
 
 if args.restart:
     u.restart("restart/")
-u.run(7)
+u.run(7, dt=0)
 
 if u.isComputeTask():
     ids = inner.get_indices()

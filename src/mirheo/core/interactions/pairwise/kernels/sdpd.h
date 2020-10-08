@@ -34,12 +34,11 @@ public:
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Constructor
-    PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real fRfact) :
+    PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity) :
         ParticleFetcherWithVelocityDensityAndMass(rc),
         invrc_(1.0 / rc),
         pressure_(pressure),
         densityKernel_(densityKernel),
-        fRfact_(fRfact),
         fDfact_(viscosity * zeta_)
     {}
 
@@ -96,7 +95,7 @@ protected:
     PressureEOS pressure_;        ///< pressure functor
     DensityKernel densityKernel_; ///< number density functor; must define derivative()
     real fDfact_; ///< dissipative force factor (precomputed from parameters)
-    real fRfact_; ///< random force factor (precomputed from parameters)
+    real fRfact_{NAN}; ///< random force factor, depends on dt
 };
 
 /** Helper class to create PairwiseSDPDHandler from host
@@ -113,21 +112,20 @@ public:
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Constructor
-    PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, real dt, long seed = 42424242) :
-        PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity, computeFRfact(viscosity, kBT, dt)),
+    PairwiseSDPD(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity, real kBT, long seed = 42424242) :
+        PairwiseSDPDHandler<PressureEOS, DensityKernel>(rc, pressure, densityKernel, viscosity),
         stepGen_(seed),
         viscosity_(viscosity),
         kBT_(kBT)
     {}
 
     /// Generic constructor
-    PairwiseSDPD(real rc, const ParamsType& p, real dt, long seed = 42424242) :
+    PairwiseSDPD(real rc, const ParamsType& p, long seed = 42424242) :
         PairwiseSDPD{rc,
                      mpark::get<typename PressureEOS::ParamsType>(p.varEOSParams),
                      mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
                      p.viscosity,
                      p.kBT,
-                     dt,
                      seed}
     {}
 
@@ -143,7 +141,7 @@ public:
                __UNUSED CellList *cl2, const MirState *state) override
     {
         this->seed_ = stepGen_.generate(state);
-        this->fRfact_ = computeFRfact(this->viscosity_, this->kBT_, state->dt);
+        this->fRfact_ = computeFRfact(this->viscosity_, this->kBT_, state->getDt());
     }
 
     void writeState(std::ofstream& fout) override

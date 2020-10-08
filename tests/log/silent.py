@@ -10,7 +10,7 @@ domain = (12, 8, 10)
 rc = 1.0
 density = 8
 
-u = mir.Mirheo(ranks, domain, dt, no_splash=True, debug_level=0, log_filename='stdout')
+u = mir.Mirheo(ranks, domain, no_splash=True, debug_level=0, log_filename='stdout')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)
@@ -24,7 +24,7 @@ vv = mir.Integrators.VelocityVerlet('vv')
 u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
-u.run(50)
+u.run(50, dt=dt)
 
 # TEST: log.silent
 # cd log

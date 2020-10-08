@@ -8,7 +8,7 @@ axes = (1, 2, 3)
 ranks  = (1, 1, 1)
 domain = (8, 32, 24)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv1 = mir.ParticleVectors.ParticleVector('pv1', mass = 1)
 u.registerParticleVector(pv1, mir.InitialConditions.Uniform(number_density=4))
@@ -37,7 +37,7 @@ bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv2], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run(1010)
+u.run(1010, dt=dt)
 
 
 # nTEST: plugins.impose_velocity

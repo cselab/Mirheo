@@ -15,7 +15,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 mesh = trimesh.load_mesh(args.mesh)
 
@@ -43,7 +43,7 @@ forces[id_max][0] = + force_magn
 u.registerPlugins(mir.Plugins.createMembraneExtraForce("extraRbcForce", pv_rbc, forces.tolist()))
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 500, "ply/"))
 
-u.run(5000)
+u.run(5000, dt=dt)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()

@@ -11,7 +11,7 @@ length = 5.0
 radius = 1.0
 domain = (8.0, 8.0, 2*length)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 def center_line(s): return (0., 0., (s-0.5) * length)
 def torsion(s): return 0.0
@@ -31,7 +31,7 @@ u.registerObjectBelongingChecker(inner_checker, pv_rod)
 
 pv_inner = u.applyObjectBelongingChecker(inner_checker, pv_outer, correct_every = 0, inside = "pv_inner")
 
-u.run(1)
+u.run(1, dt=0)
 
 if u.isMasterTask():
     pv_inner_pos = pv_inner.getCoordinates()

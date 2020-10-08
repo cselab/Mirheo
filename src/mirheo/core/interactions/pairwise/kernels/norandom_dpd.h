@@ -28,18 +28,18 @@ public:
     using ParamsType   = NoRandomDPDParams; ///< parameters that are used to create this object
 
     /// constructor
-    PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real dt, real power) :
+    PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real power) :
         ParticleFetcherWithVelocity(rc),
         a_(a),
         gamma_(gamma),
-        sigma_(math::sqrt(2 * gamma_ * kBT / dt)),
+        kBT_(kBT),
         power_(power),
         invrc_(1.0 / rc)
     {}
 
     /// Generic constructor
-    PairwiseNorandomDPD(real rc, const ParamsType& p, real dt, long seed=42424242) :
-        PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, dt, p.power)
+    PairwiseNorandomDPD(real rc, const ParamsType& p, long seed=42424242) :
+        PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, p.power)
     {}
 
     /// evaluate the force
@@ -74,6 +74,16 @@ public:
         return (const HandlerType&) (*this);
     }
 
+    void setup(__UNUSED LocalParticleVector *lpv1,
+               __UNUSED LocalParticleVector *lpv2,
+               __UNUSED CellList *cl1,
+               __UNUSED CellList *cl2,
+               const MirState *state) override
+    {
+        sigma_ = math::sqrt(2 * gamma_ * kBT_ / state->getDt());
+    }
+
+
     /// \return type name string
     static std::string getTypeName()
     {
@@ -83,7 +93,8 @@ public:
 protected:
     real a_; ///< conservative force magnitude
     real gamma_; ///< viscous force coefficient
-    real sigma_; ///< random force coefficient
+    real sigma_{NAN}; ///< random force coefficient, depends on dt
+    real kBT_; ///< temperature
     real power_; ///< viscous kernel envelope power
     real invrc_; ///< 1 / rc
 };

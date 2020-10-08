@@ -211,7 +211,7 @@ void VelocityInletPlugin::beforeCellLists(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
         velocity_inlet_kernels::countFromCumulativeFluxes,
         getNblocks(nTriangles, nthreads), nthreads, 0, stream,
-        nTriangles, getState()->dt, numberDensity_, localFluxes_.devPtr(),
+        nTriangles, getState()->getDt(), numberDensity_, localFluxes_.devPtr(),
         cumulativeFluxes_.devPtr(), nNewParticles_.devPtr(), workQueue_.devPtr());
 
 

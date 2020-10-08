@@ -19,7 +19,7 @@ axes = tuple(args.axes)
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[0.5 * domain[0], 0.5 * domain[1], 0.5 * domain[2],   1., 0, 0, 0]]
 coords = np.loadtxt(args.coords).tolist()
@@ -56,7 +56,7 @@ u.registerPlugins(mir.Plugins.createMagneticOrientation("externalB", pv_ell, mom
 if args.withMesh:
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_ell, 1000, path="ply/"))
 
-u.run(10000)
+u.run(10000, dt=dt)
 
 del(u)
 

@@ -18,7 +18,7 @@ dt = 0.001
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 if args.sphere_stress_free:
     mesh_rbc = mir.ParticleVectors.MembraneMesh("rbc_mesh.off", "sphere_mesh.off")
@@ -40,7 +40,7 @@ u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 150, "ply/"))
 
-u.run(5000)
+u.run(5000, dt=dt)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()

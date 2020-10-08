@@ -54,7 +54,6 @@ public:
     /** \brief Construct a \c Mirheo object using MPI_COMM_WORLD.
         \param nranks3D Number of ranks along each cartesian direction.
         \param globalDomainSize The full domain dimensions in length units. Must be positive.
-        \param dt The simulation time step
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
@@ -64,7 +63,7 @@ public:
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
-    Mirheo(int3 nranks3D, real3 globalDomainSize, real dt,
+    Mirheo(int3 nranks3D, real3 globalDomainSize,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
            UnitConversion units = UnitConversion());
 
@@ -72,7 +71,7 @@ public:
         \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
-    Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize, real dt,
+    Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
            LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
            UnitConversion units = UnitConversion());
 
@@ -113,7 +112,11 @@ public:
     */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
 
-    void run(int niters); ///< advance the system for a given number of time steps
+    /** \brief advance the system for a given number of time steps
+        \param niters number of interations
+        \param dt time step duration
+    */
+    void run(int niters, real dt);
 
     /** \brief register a ParticleVector in the simulation and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register
@@ -220,6 +223,7 @@ public:
         \param integrator \c Integrator object used to equilibrate the particles
         \param numDensity The number density used to initialize the particles
         \param mass The mass of one particle
+        \param dt Equilibration time step
         \param nsteps Number of equilibration steps
         \return The frozen particles
 
@@ -230,7 +234,7 @@ public:
                                                             std::vector<std::shared_ptr<Wall>> walls,
                                                             std::vector<std::shared_ptr<Interaction>> interactions,
                                                             std::shared_ptr<Integrator> integrator,
-                                                            real numDensity, real mass, int nsteps);
+                                                            real numDensity, real mass, real dt, int nsteps);
 
     /** \brief Create frozen particles inside the given objects.
         \param checker The ObjectBelongingChecker to split inside particles
@@ -240,6 +244,7 @@ public:
         \param integrator \c Integrator object used to equilibrate the particles
         \param numDensity The number density used to initialize the particles
         \param mass The mass of one particle
+        \param dt Equilibration time step
         \param nsteps Number of equilibration steps
         \return The frozen particles, with name "inside_" + name of \p shape
 
@@ -251,7 +256,7 @@ public:
                                                              std::shared_ptr<InitialConditions> icShape,
                                                              std::vector<std::shared_ptr<Interaction>> interactions,
                                                              std::shared_ptr<Integrator>   integrator,
-                                                             real numDensity, real mass, int nsteps);
+                                                             real numDensity, real mass, real dt, int nsteps);
 
     /** \brief Enable a registered ObjectBelongingChecker to split particles of a registered ParticleVector.
         \param checker The ObjectBelongingChecker (will die if it is not registered)
@@ -300,7 +305,7 @@ private:
     MPI_Comm compComm_  {MPI_COMM_NULL}; ///< simulation communicator
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
-    void init(int3 nranks3D, real3 globalDomainSize, real dt, LogInfo logInfo,
+    void init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
               CheckpointInfo checkpointInfo, bool gpuAwareMPI,
               UnitConversion units, LoaderContext *context = nullptr);
     void initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,

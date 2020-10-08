@@ -21,7 +21,7 @@ domain = (16, 8, 8)
 
 nsteps = 5000
 
-u = mir.Mirheo(args.ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True,
+u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True,
                checkpoint_every = (0 if args.restart else nsteps))
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
@@ -69,7 +69,7 @@ u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_
 if args.restart:
     u.restart("restart")
 
-u.run(nsteps)
+u.run(nsteps, dt=dt)
 
 # nTEST: restart.contact.rigid.ellipsoid
 # set -eu

@@ -19,7 +19,7 @@ domain = [16., 8., 8.]
 dt   = 0.001
 t_end = 2.5 + dt # time for one restart batch
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log',
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log',
                checkpoint_every = int(0.5/dt), no_splash=True)
 
 nparts = 100
@@ -80,7 +80,7 @@ if args.restart:
     u.restart("restart/")
 
 niters = int (t_end / dt)
-u.run(niters)
+u.run(niters, dt=dt)
 
 # nTEST: restart.bounce.rigid.ellipsoid
 # set -eu

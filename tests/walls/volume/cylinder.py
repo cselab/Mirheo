@@ -6,7 +6,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = (16, 16, 8)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 center=(domain[0]*0.5, domain[1]*0.5)
 wall = mir.Walls.Cylinder("cylinder", center=center, radius=domain[1]*0.4, axis="z", inside=True)

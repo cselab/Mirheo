@@ -19,7 +19,7 @@ gdot    = 0.5 # shear rate
 T       = 3.0 # period for oscillating plate case
 tend    = 10.1
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=density)
@@ -40,8 +40,8 @@ u.registerWall(plate_lo, 1000)
 u.registerWall(plate_hi, 1000)
 
 vv = mir.Integrators.VelocityVerlet("vv", )
-frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density)
-frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density)
+frozen_lo = u.makeFrozenWallParticles(pvName="plate_lo", walls=[plate_lo], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
+frozen_hi = u.makeFrozenWallParticles(pvName="plate_hi", walls=[plate_hi], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
@@ -65,7 +65,7 @@ bin_size     = (8., 8., 1.0)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run((int)(tend/dt))
+u.run(int(tend / dt), dt=dt)
 
 # nTEST: walls.analytic.couette
 # cd walls/analytic

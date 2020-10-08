@@ -21,7 +21,7 @@ if args.substep:
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(number_density=8)
@@ -72,7 +72,7 @@ u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, (int)(0.15/dt)
 
 
 nsteps = (int) (tend/dt)
-u.run(nsteps)
+u.run(nsteps, dt=dt)
 
 if pv_rbc is not None:
     rbc_pos = pv_rbc.getCoordinates()

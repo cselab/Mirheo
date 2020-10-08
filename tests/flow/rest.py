@@ -10,7 +10,7 @@ domain = (12, 8, 10)
 rc = 1.0
 num_density = 8
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(num_density)
@@ -26,7 +26,7 @@ u.setIntegrator(vv, pv)
 
 u.registerPlugins(mir.Plugins.createStats('stats', "stats", 1000))
 
-u.run(5001)
+u.run(5001, dt=dt)
 
 # nTEST: flow.rest
 # cd flow

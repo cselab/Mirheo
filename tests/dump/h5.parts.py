@@ -10,7 +10,7 @@ args = parser.parse_args()
 ranks  = (1, 1, 1)
 domain = (2, 2, 4)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash = True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash = True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(args.density)
@@ -20,7 +20,7 @@ dump_every = 1
 
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
 
-u.run(1)
+u.run(1, dt=0)
 
 # TEST: dump.h5.parts
 # cd dump

@@ -12,7 +12,7 @@ L = 3.0
 fact = 3
 domain = (fact*R, fact*R, fact*(L/2+R))
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 coords = [[-R, -R, -L/2-R],
           [ R,  R,  L/2+R]]
@@ -31,7 +31,7 @@ u.registerObjectBelongingChecker(inner_checker, pv_cap)
 
 pv_inner = u.applyObjectBelongingChecker(inner_checker, pv_outer, correct_every = 0, inside = "pv_inner")
 
-u.run(1)
+u.run(1, dt=0)
 
 if u.isMasterTask():
     pv_inner_pos = pv_inner.getCoordinates()

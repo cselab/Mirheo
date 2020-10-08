@@ -13,7 +13,7 @@ def create_capsule(density, R, L, niter):
     fact = 3
     domain = (fact*R, fact*R, fact*(L/2+R))
     
-    u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
     vv = mir.Integrators.VelocityVerlet('vv')
@@ -26,7 +26,7 @@ def create_capsule(density, R, L, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q, coords)
     belonging_checker = mir.BelongingCheckers.Capsule("checker")
     
-    pv_cap = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, niter)
+    pv_cap = u.makeFrozenRigidParticles(belonging_checker, fake_oV, fake_ic, [dpd], vv, density, 1.0, dt=dt, nsteps=niter)
     
     if pv_cap:
         frozen_coords = pv_cap.getCoordinates()

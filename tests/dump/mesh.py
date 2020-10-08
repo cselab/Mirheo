@@ -16,7 +16,7 @@ off    = "rbc_mesh.off"
 ranks  = (1, 1, 1)
 domain = (12, 8, 10)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 if args.readFrom == "off":
     mesh = mir.ParticleVectors.MembraneMesh(off)
@@ -30,7 +30,7 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, 1, path))
 
-u.run(3)
+u.run(3, dt=0)
 
 if u.isMasterTask():
     mesh = trimesh.load(path + pvname + "_00000.ply")

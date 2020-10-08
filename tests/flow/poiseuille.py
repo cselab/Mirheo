@@ -10,7 +10,7 @@ vtarget = (1.0, 0, 0)
 
 density = 10
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(density)
@@ -25,7 +25,7 @@ u.registerWall(plate_lo, 0)
 u.registerWall(plate_hi, 0)
 
 vv = mir.Integrators.VelocityVerlet("vv")
-frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[dpd], integrator=vv, number_density=density)
+frozen = u.makeFrozenWallParticles(pvName="frozen", walls=[plate_lo, plate_hi], interactions=[dpd], integrator=vv, number_density=density, dt=dt)
 
 u.setWall(plate_lo, pv)
 u.setWall(plate_hi, pv)
@@ -54,7 +54,7 @@ vc_dump_every = 500
 u.registerPlugins(mir.Plugins.createVelocityControl("vc", "vcont", [pv], (0, 0, 0), domain,
                                                     vc_sample_every, vc_tune_every, vc_dump_every, vtarget, Kp, Ki, Kd))
 
-u.run(20002)
+u.run(20002, dt=dt)
 
 # nTEST: flow.poiseuille
 # cd flow

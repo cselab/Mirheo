@@ -9,7 +9,7 @@ number_density = 8.0
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 # create the particle vectors
 #############################
@@ -120,4 +120,4 @@ u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_inner', pv_inner, d
 u.registerPlugins(mir.Plugins.createDumpParticles('part_dump_outer', pv_outer, dump_every, [], 'h5/outer-'))
 u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/"))
 
-u.run(5002)
+u.run(5002, dt=dt)

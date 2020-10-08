@@ -6,7 +6,7 @@ import mirheo as mir
 ranks  = (1, 1, 1)
 domain = [4., 6., 8.]
 
-u = mir.Mirheo(ranks, tuple(domain), dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 a=(0.1, 0.2, 0.3)
 
@@ -26,7 +26,7 @@ pv = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=l
 ic = mir.InitialConditions.Rigid(com_q, coords)
 u.registerParticleVector(pv, ic)
 
-u.run(2)
+u.run(2, dt=0)
 
 if pv:
     icpos = pv.getCoordinates()

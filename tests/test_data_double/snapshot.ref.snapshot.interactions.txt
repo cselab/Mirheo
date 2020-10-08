@@ -101,7 +101,7 @@
                 6,
                 8
             ],
-            "dt": 0.10000000000000001,
+            "dt": -1,
             "currentTime": 0,
             "currentStep": 0,
             "units": {

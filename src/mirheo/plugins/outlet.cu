@@ -268,7 +268,7 @@ void RateOutletPlugin::beforeCellLists(cudaStream_t stream)
         PVview view(pv, pv->local());
 
         const real seed = udistr_(gen_);
-        const real QTimesdt = rate_ * getState()->dt * view.invMass;
+        const real QTimesdt = rate_ * getState()->getDt() * view.invMass;
 
         auto isInsideFunc = [field = outletRegion_->handler()] __device__ (const real3& r)
         {

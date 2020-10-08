@@ -30,8 +30,7 @@ mir.set_unit_registry(ureg, 'myL', 'myT', 'myM')
 
 # Test the unit conversion (not all arguments are probably dimensionalized below).
 domain = (10 * ureg.um, 15 * ureg.um, 20 * ureg.um)
-dt = 123 * ureg.us
-u = mir.Mirheo((1, 1, 1), domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo((1, 1, 1), domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass=1e-9 * ureg.kg)
 ic = mir.InitialConditions.Uniform(number_density=2 * ureg.um ** -3)
@@ -48,8 +47,9 @@ if u.isComputeTask():
     with open('snapshot/config.json') as f:
         config = json.loads(f.read())
 
-    print("domainGlobalSize =", config['MirState'][0]['domainGlobalSize'])
+    # `dt` should be equal to -1 at this point.
     print("dt =", config['MirState'][0]['dt'])
+    print("domainGlobalSize =", config['MirState'][0]['domainGlobalSize'])
     print("kBT =", config['Interaction'][0]['pairParams']['kBT'])
 
 # TEST: python.unit_conversion

@@ -12,7 +12,7 @@ sample_every = 2
 dump_every   = 1000
 bin_size     = (1., 1., 1.)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=4)
@@ -29,7 +29,7 @@ u.setIntegrator(vv, pv)
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size,
                                                 ["velocities", "stresses"], 'h5/solvent-'))
 
-u.run(5002)
+u.run(5002, dt=dt)
 
 # nTEST: stress.double_poiseuille
 # cd stress

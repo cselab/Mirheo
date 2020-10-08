@@ -13,7 +13,7 @@ static void run_gpu(Integrator *integrator, ParticleVector *pv, int nsteps, MirS
 
     for (int i = 0; i < nsteps; ++i) {
         state->currentStep = i;
-        state->currentTime = i * state->dt;
+        state->currentTime = i * state->getDt();
 
         integrator->execute(pv, defaultStream);
     }

@@ -7,7 +7,7 @@ domain = [4.0, 5.0, 6.0]
 
 dt = 100.0 # large dt to force the particles to go too far
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 
@@ -25,7 +25,7 @@ u.setIntegrator(vv, pv)
 check_every = 1
 u.registerPlugins(mir.Plugins.createParticleChecker('checker', check_every))
 
-u.run(2)
+u.run(2, dt=dt)
 
 
 # TEST: plugins.particle_check.bounds

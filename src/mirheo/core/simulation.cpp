@@ -238,7 +238,7 @@ int3 Simulation::getNRanks3D() const
 
 real Simulation::getCurrentDt() const
 {
-    return state_->dt;
+    return state_->getDt();
 }
 
 real Simulation::getCurrentTime() const
@@ -1246,7 +1246,7 @@ void Simulation::run(int nsteps)
 
         scheduler_->run();
 
-        state_->currentTime += state_->dt;
+        state_->currentTime += state_->getDt();
     }
 
     // Finish the redistribution by rebuilding the cell-lists

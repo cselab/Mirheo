@@ -19,7 +19,7 @@ density = args.density
 ranks  = (1, 1, 1)
 domain = (16, 8, 8)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(density)
@@ -58,7 +58,7 @@ if args.bounce_back:
 
 u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
 
-u.run(10000)
+u.run(10000, dt=dt)
 
 
 # nTEST: fsi.rigid.ellipsoid

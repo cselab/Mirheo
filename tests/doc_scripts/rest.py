@@ -9,7 +9,7 @@ number_density = 8.0
 ranks  = (1, 1, 1)
 domain = (16.0, 16.0, 16.0)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1.0) # Create a simple Particle Vector (PV) named 'pv'
 ic = mir.InitialConditions.Uniform(number_density)        # Specify uniform random initial conditions
@@ -36,4 +36,4 @@ u.registerPlugins(mir.Plugins.createStats('stats', every=500))
 dump_every = 500
 u.registerPlugins(mir.Plugins.createDumpParticles('part_dump', pv, dump_every, [], 'h5/solvent_particles-'))
 
-u.run(5002)
+u.run(5002, dt=dt)

@@ -17,7 +17,7 @@ t_dump_every = 1.0
 L = 5.0
 num_segments = 60
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 com_q = [[ 8., 8., 8.,    1.0, 0.0, 0.0, 0.0]]
 
@@ -74,7 +74,7 @@ u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', rv, drag))
 dump_every = int (t_dump_every/dt)
 u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, ["states"], 'h5/rod_particles-'))
 
-u.run(int (t_end / dt))
+u.run(int(t_end / dt), dt=dt)
 
 if rv is not None:
     pos = rv.getCoordinates()

@@ -12,7 +12,7 @@ dt  = 0.001
 ranks  = (1, 1, 1)
 domain = (32, 32, 32)
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 u.registerParticleVector(pv, mir.InitialConditions.Uniform(number_density=8))
@@ -35,7 +35,7 @@ bin_size = (1.0, 1.0, 1.0)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, [], 'h5/solvent-'))
 
-u.run(1010)
+u.run(1010, dt=dt)
 
 del (u)
 

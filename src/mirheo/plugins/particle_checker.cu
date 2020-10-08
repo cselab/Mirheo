@@ -203,7 +203,7 @@ void ParticleCheckerPlugin::afterIntegration(cudaStream_t stream)
 
     constexpr int nthreads = 128;
 
-    const real dt     = getState()->dt;
+    const real dt     = getState()->getDt();
     const real dtInv  = 1.0_r / math::max(1e-6_r, dt);
     const auto domain = getState()->domain;
 

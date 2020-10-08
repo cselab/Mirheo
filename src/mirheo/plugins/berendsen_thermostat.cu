@@ -121,7 +121,7 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
     // E_kinetic == 1/2 * k_B * T * <number of degrees of freedom>
     real currentkBT = kineticEnergy * 2 / (3 * totalParticles);
     real lambda = increaseIfLower_ || currentkBT > kBT_
-            ? sqrt(1 + getState()->dt / tau_ * (kBT_ / currentkBT - 1))
+            ? sqrt(1 + getState()->getDt() / tau_ * (kBT_ / currentkBT - 1))
             : 1.0_r;
 
     // Update local particles.

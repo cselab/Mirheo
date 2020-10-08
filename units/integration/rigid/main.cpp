@@ -97,7 +97,7 @@ static inline RigidMotion advanceGPU(const Params& p)
 
     gpuIntegrator.setPrerequisites(rov.get());
 
-    for (; state.currentTime < p.tend; state.currentTime += state.dt)
+    for (; state.currentTime < p.tend; state.currentTime += state.getDt())
     {
         gpuIntegrator.execute(rov.get(), defaultStream);
     }

@@ -9,7 +9,7 @@ args = parser.parse_args()
 
 domain = (8, 16, 4)
 
-u = mir.Mirheo(args.ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=3)
@@ -21,7 +21,7 @@ bin_size     = (1., 1., 1.)
 
 u.registerPlugins(mir.Plugins.createDumpAverage('field', [pv], sample_every, dump_every, bin_size, ["velocities"], 'h5/solvent-'))
 
-u.run(2)
+u.run(2, dt=0)
 
 # TEST: dump.h5
 # cd dump

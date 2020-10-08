@@ -5,7 +5,7 @@ import mirheo as mir
 ranks  = (2, 1, 1)
 domain = (4, 2, 2)
 
-u = mir.Mirheo(ranks, domain, dt=0, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
 
 pos = [[1., 0.25, 0.5],
        [1., 0.50, 0.5],
@@ -22,7 +22,7 @@ dump_every = 1
 
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv, dump_every, [], 'h5/solvent_particles-'))
 
-u.run(1)
+u.run(1, dt=0)
 
 # TEST: dump.h5.parts.mpi.2nodes
 # cd dump

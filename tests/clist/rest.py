@@ -15,7 +15,7 @@ domain = (6, 6, 6)
 rc_fake = 1.0
 rc = 0.75
 
-u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log')
+u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log')
 
 pv = mir.ParticleVectors.ParticleVector('pv', mass = 1)
 ic = mir.InitialConditions.Uniform(number_density=4)
@@ -38,7 +38,7 @@ dump_every = 100
 
 u.registerPlugins(mir.Plugins.createStats('stats', "stats", dump_every))
 
-u.run(501)
+u.run(501, dt=dt)
 
 # nTEST: clist.primary.rc
 # cd clist

@@ -25,7 +25,7 @@ def create_from_mesh(density, vertices, triangles, inertia, niter):
 
     ranks  = (1, 1, 1)
     
-    u = mir.Mirheo(ranks, domain, dt, debug_level=3, log_filename='log', no_splash=True)
+    u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
     
     dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.5, power=0.5)
     vv = mir.Integrators.VelocityVerlet('vv')
@@ -39,7 +39,7 @@ def create_from_mesh(density, vertices, triangles, inertia, niter):
     fake_ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
     belonging_checker = mir.BelongingCheckers.Mesh("meshChecker")
     
-    pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, 1.0, niter)
+    pvMesh = u.makeFrozenRigidParticles(belonging_checker, fake_ov, fake_ic, [dpd], vv, density, 1.0, dt=dt, nsteps=niter)
 
     if pvMesh:
         frozen_coords = pvMesh.getCoordinates()

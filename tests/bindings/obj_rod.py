@@ -21,7 +21,7 @@ L = 14.0
 num_segments = 10
 mass = 1.0
 
-u = mir.Mirheo(ranks, tuple(domain), dt, debug_level=3, log_filename='log', no_splash=True)
+u = mir.Mirheo(ranks, tuple(domain), debug_level=3, log_filename='log', no_splash=True)
 
 # rod
 
@@ -111,7 +111,7 @@ if args.vis:
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_ell, dump_every, path="ply/"))
 
 
-u.run(int (t_end / dt))
+u.run(int(t_end / dt), dt=dt)
 
 if pv_rod is not None:
     pos_rod = pv_rod.getCoordinates()
