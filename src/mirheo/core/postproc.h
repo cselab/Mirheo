@@ -37,6 +37,14 @@ public:
      */
     void registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int tag);
 
+    /** \brief Deregister a postprocess plugin.
+        \param plugin The plugin to deregister
+        \note The SimulationPlugin counterpart of the deregistered
+              PostprocessPlugin must also be deregistered. An exception is
+              thrown if the plugin is not found.
+     */
+    void deregisterPlugin(PostprocessPlugin *plugin);
+
     /// Setup all registered plugins. Must be called before run()
     void init();
     /// Start the postprocess. Will run until a termination notification is sent by the simulation.

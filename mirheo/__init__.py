@@ -126,8 +126,12 @@ def decorate_coordinator(f):
     return wrapper
 
 
-# Wrap the registration of the plugins
-def decorate_register_plugins(f):
+def decorate_func_with_plugin_arg(f):
+    """Decorate a function that takes a plugin as an argument.
+
+    A "plugin" is a pair of simulation and postprocess plugins.
+    The decorator expands this pair.
+    """
     @functools.wraps(f)
     def wrapper(self, plugins_tuple):
         return f(self, plugins_tuple[0], plugins_tuple[1])
@@ -222,11 +226,9 @@ def __init__():
                     getattr(m[1], newname).__doc__ = re.sub('compute_task: bool, ', '', getattr(m[1], newname).__doc__)
                     
 
-    # Wrap initialization of the mirheo coordinator
     Mirheo.__init__ = decorate_coordinator(Mirheo.__init__)
-    
-    # Wrap registration of the plugins
-    Mirheo.registerPlugins = decorate_register_plugins(Mirheo.registerPlugins)
+    Mirheo.registerPlugins = decorate_func_with_plugin_arg(Mirheo.registerPlugins)
+    Mirheo.deregisterPlugins = decorate_func_with_plugin_arg(Mirheo.deregisterPlugins)
 
 
 __init__()

@@ -253,6 +253,9 @@ Args:
                               const std::shared_ptr<PostprocessPlugin> &))&Mirheo::registerPlugins,
              "Register Plugins")
 
+        .def("deregisterIntegrator", &Mirheo::deregisterIntegrator, "integrator"_a, "Deregister a integrator.")
+        .def("deregisterPlugins", &Mirheo::deregisterPlugins, "Deregister a plugin.")
+
         .def("setIntegrator",  &Mirheo::setIntegrator,
              "integrator"_a, "pv"_a, R"(
                Set a specific :any:`Integrator` to a given :any:`ParticleVector`

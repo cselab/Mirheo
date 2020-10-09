@@ -255,8 +255,6 @@ void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, c
 
 void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
 {
-    ensureNotInitialized();
-
     if (isComputeTask())
         sim_->registerIntegrator(integrator);
 }
@@ -298,8 +296,6 @@ void Mirheo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongi
 
 void Mirheo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
 {
-    ensureNotInitialized();
-
     const int tag = pluginsTag_++;
 
     if (isComputeTask())
@@ -318,10 +314,28 @@ void Mirheo::registerPlugins(const PairPlugin &plugins) {
     registerPlugins(plugins.first, plugins.second);
 }
 
+void Mirheo::deregisterIntegrator(Integrator *integrator)
+{
+    if (isComputeTask())
+        sim_->deregisterIntegrator(integrator);
+}
+
+void Mirheo::deregisterPlugins(SimulationPlugin *simPlugin, PostprocessPlugin *postPlugin)
+{
+    if (isComputeTask())
+    {
+        if (simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess_))
+            sim_->deregisterPlugin(simPlugin);
+    }
+    else
+    {
+        if (postPlugin != nullptr && !noPostprocess_)
+            post_->deregisterPlugin(postPlugin);
+    }
+}
+
 void Mirheo::setIntegrator(Integrator *integrator, ParticleVector *pv)
 {
-    ensureNotInitialized();
-
     if (isComputeTask())
         sim_->setIntegrator(integrator->getName(), pv->getName());
 }

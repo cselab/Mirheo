@@ -17,11 +17,7 @@ UniformCartesianDumper::UniformCartesianDumper(std::string name, std::string pat
     path_(path)
 {}
 
-UniformCartesianDumper::~UniformCartesianDumper()
-{
-    if (cartComm_ != MPI_COMM_NULL)
-        MPI_Check( MPI_Comm_free(&cartComm_) );
-}
+UniformCartesianDumper::~UniformCartesianDumper() = default;
 
 void UniformCartesianDumper::handshake()
 {
@@ -39,7 +35,7 @@ void UniformCartesianDumper::handshake()
 
     int ranksArr[] = {nranks3D.x, nranks3D.y, nranks3D.z};
     int periods[] = {0, 0, 0};
-    MPI_Check( MPI_Cart_create(comm_, 3, ranksArr, periods, 0, &cartComm_) );
+    MPI_Check( MPI_Cart_create(comm_, 3, ranksArr, periods, 0, cartComm_.reset_and_get_address()) );
     grid_ = std::make_unique<XDMF::UniformGrid>(resolution, h, cartComm_);
 
     auto init_channel = [] (XDMF::Channel::DataForm dataForm, const std::string& str)
