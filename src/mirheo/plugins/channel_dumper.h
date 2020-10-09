@@ -2,6 +2,7 @@
 #pragma once
 
 #include <mirheo/core/plugins.h>
+#include <mirheo/core/utils/unique_mpi_comm.h>
 #include <mirheo/core/xdmf/xdmf.h>
 
 #include <memory>
@@ -51,7 +52,7 @@ private:
     std::string path_;
     static constexpr int zeroPadding_ = 5;
 
-    MPI_Comm cartComm_ {MPI_COMM_NULL};
+    UniqueMPIComm cartComm_;
 };
 
 } // namespace mirheo

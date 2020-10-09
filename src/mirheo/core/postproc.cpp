@@ -36,6 +36,19 @@ void Postprocess::registerPlugin(std::shared_ptr<PostprocessPlugin> plugin, int 
     plugins_.push_back( std::move(plugin) );
 }
 
+void Postprocess::deregisterPlugin(PostprocessPlugin *plugin)
+{
+    for (auto it = plugins_.begin(); it != plugins_.end(); ++it) {
+        if (it->get() == plugin) {
+            info("Plugin deregistered: %s", plugin->getCName());
+            plugins_.erase(it);
+            return;
+        }
+    }
+
+    die("PostprocessPlugin %s not found", plugin->getCName());
+}
+
 void Postprocess::init()
 {
     for (auto& pl : plugins_)

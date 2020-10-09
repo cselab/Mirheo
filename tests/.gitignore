@@ -54,6 +54,7 @@ h5
 /md/temperature1.txt
 /md/temperature2.txt
 /md/snapshot/
+/md/stats.csv
 /mdpd/log_00000.log
 /mdpd/log_00001.log
 /mdpd/vcont.csv

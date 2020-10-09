@@ -117,6 +117,17 @@ public:
     */
     void registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker);
 
+    /** \brief deregister an \c Integrator
+        \param integrator the \c Integrator to deregister.
+        \see registerIntegrator().
+    */
+    void deregisterIntegrator(Integrator *integrator);
+
+    /** \brief deregister a SimulationPlugin
+        \param plugin the SimulationPlugin to deregister.
+        \note If there is a \c Postprocess rank, the corresponding PostprocessPlugin must also be deregistered.
+    */
+    void deregisterPlugin(SimulationPlugin *plugin);
 
     /** \brief Assign a registered \c Integrator to a registered ParticleVector.
         \param integratorName Name of the registered integrator (will die if it does not exist)

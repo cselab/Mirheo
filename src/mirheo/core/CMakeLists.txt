@@ -68,11 +68,12 @@ set(sources_cpp
   utils/compile_options.cpp
   utils/config.cpp
   utils/file_wrapper.cpp
-  utils/path.cpp
   utils/nvtx.cpp
+  utils/path.cpp
   utils/reflection.cpp
   utils/stacktrace_explicit.cpp
   utils/strprintf.cpp
+  utils/unique_mpi_comm.cpp
   version.cpp
   walls/interface.cpp
   walls/stationary_walls/sdf.cpp

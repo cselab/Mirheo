@@ -287,7 +287,7 @@ void Simulation::stopProfiler() const
 
 void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std::shared_ptr<InitialConditions> ic)
 {
-    const std::string name = pv->getName();
+    const std::string& name = pv->getName();
 
     if (name == "none" || name == "all" || name == "")
         die("Invalid name for a particle vector (reserved word or empty): '%s'", name.c_str());
@@ -318,7 +318,7 @@ void Simulation::registerParticleVector(std::shared_ptr<ParticleVector> pv, std:
 
 void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 {
-    const std::string name = wall->getName();
+    const std::string& name = wall->getName();
 
     if (wallMap_.find(name) != wallMap_.end())
         die("More than one wall is called %s", name.c_str());
@@ -335,7 +335,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    const std::string name = interaction->getName();
+    const std::string& name = interaction->getName();
 
     if (interactionMap_.find(name) != interactionMap_.end())
         die("More than one interaction is called %s", name.c_str());
@@ -345,7 +345,7 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    const std::string name = integrator->getName();
+    const std::string& name = integrator->getName();
 
     if (integratorMap_.find(name) != integratorMap_.end())
         die("More than one integrator is called %s", name.c_str());
@@ -355,7 +355,7 @@ void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 
 void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 {
-    const std::string name = bouncer->getName();
+    const std::string& name = bouncer->getName();
 
     if (bouncerMap_.find(name) != bouncerMap_.end())
         die("More than one bouncer is called %s", name.c_str());
@@ -365,7 +365,7 @@ void Simulation::registerBouncer(std::shared_ptr<Bouncer> bouncer)
 
 void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker)
 {
-    const std::string name = checker->getName();
+    const std::string& name = checker->getName();
 
     if (belongingCheckerMap_.find(name) != belongingCheckerMap_.end())
         die("More than one splitter is called %s", name.c_str());
@@ -375,18 +375,53 @@ void Simulation::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingC
 
 void Simulation::registerPlugin(std::shared_ptr<SimulationPlugin> plugin, int tag)
 {
-    const std::string name = plugin->getName();
+    const std::string& name = plugin->getName();
 
-    bool found = false;
     for (auto& pl : plugins)
-        if (pl->getName() == name) found = true;
-
-    if (found)
-        die("More than one plugin is called %s", name.c_str());
+        if (pl->getName() == name)
+            die("More than one plugin is called %s", name.c_str());
 
     plugin->setTag(tag);
 
     plugins.push_back(std::move(plugin));
+}
+
+void Simulation::deregisterIntegrator(Integrator *integrator)
+{
+    // Remove the integrator from all containers that refer to it.
+    const std::string& name = integrator->getName();
+    auto in = integratorMap_.find(name);
+    if (in == integratorMap_.end())
+        die("Integrator %s not found.", name.c_str());
+
+    for (auto it = pvsIntegratorMap_.begin(); it != pvsIntegratorMap_.end(); ) {
+        if (it->second == name)
+            it = pvsIntegratorMap_.erase(it);
+        else
+            ++it;
+    }
+
+    auto it = std::remove_if(
+            integratorPrototypes_.begin(), integratorPrototypes_.end(),
+            [integrator](const IntegratorPrototype &proto) {
+                return proto.integrator == integrator;
+            });
+    integratorPrototypes_.erase(it, integratorPrototypes_.end());
+
+    integratorMap_.erase(in);
+}
+
+void Simulation::deregisterPlugin(SimulationPlugin *plugin)
+{
+    for (auto it = plugins.begin(); it != plugins.end(); ++it) {
+        if (it->get() == plugin) {
+            info("Plugin deregistered: %s", plugin->getCName());
+            plugins.erase(it);
+            return;
+        }
+    }
+
+    die("SimulationPlugin %s not found.", plugin->getCName());
 }
 
 //================================================================================================
@@ -1443,7 +1478,7 @@ void Simulation::snapshot(const std::string& path)
     CUDA_Check( cudaDeviceSynchronize() );
 }
 
-ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string &typeName)
+ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = MirObject::_saveSnapshot(saver, "Simulation", typeName);
     config.emplace("checkpointId",        saver(checkpointId_));

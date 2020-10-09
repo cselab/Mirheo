@@ -2,6 +2,7 @@
 #pragma once
 
 #include <mirheo/core/mirheo_object.h>
+#include <mirheo/core/utils/unique_mpi_comm.h>
 
 #include <mpi.h>
 #include <vector>
@@ -53,7 +54,7 @@ private:
     void _checkTag() const; ///< die if the tag has not been set.
 
 protected:
-    MPI_Comm comm_;      ///< The communicator shared by all simulation or postprocess ranks.
+    UniqueMPIComm comm_; ///< The communicator shared by all simulation or postprocess ranks.
     MPI_Comm interComm_; ///< The communicator used to communicate between simulation and postprocess ranks.
     int rank_;   ///< rank id within comm_
     int nranks_; ///< number of ranks in comm_
