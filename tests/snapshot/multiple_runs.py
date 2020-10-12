@@ -67,5 +67,5 @@ u.saveSnapshot(args.save_to)
 # mir.run --runargs "-n 2" ./multiple_runs.py --nruns=3 --nsteps=100 --save-to=snapshot2/ > /dev/null
 # git --no-pager diff --no-index snapshot1/config.json snapshot2/config.json
 # git --no-pager diff --no-index snapshot1/pv.PV.xmf snapshot2/pv.PV.xmf
-# ../common/hdf5_compare.py compare_pvs --rtol=1e-5 --files snapshot1/pv.PV.h5 snapshot2/pv.PV.h5
+# mir.post ../common/hdf5_compare.py compare_pvs --rtol=1e-5 --files snapshot1/pv.PV.h5 snapshot2/pv.PV.h5
 # echo "dummy" > snapshot.out.txt
