@@ -40,6 +40,12 @@ make install
 * update pybind11 submodule.
 * update variant submodule (now supports nvcc-10.2).
 * Cmake options are prepended with `MIR_`
+* add support for multistage simulations: `run` may be invoked multiple times
+* add `Mirheo::deregisterIntegrator` and `Mirheo::deregisterPlugin`
+* **interface changes**
+  * the `dt` parameter was moved from the `Mirheo` constructor to the `run`, `makeFrozenWallParticles` and `makeFrozenRigidParticles` methods
+* **internal changes**
+  * `MirState::dt` may now be accessed only through `MirState::getState` and only during `Mirheo::run`.
 
 ### v1.4.1
 
