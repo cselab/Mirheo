@@ -83,18 +83,39 @@ def set_unit_registry(ureg, mirL='mirL', mirT='mirT', mirM='mirM'):
     __unit_converter = PintUnitsConverter(ureg, mirL, mirT, mirM)
 
 
-# Wrap the __init__ or __new__ method of all the simulation handlers and particle vectors
-# If we are not a compute task, just return None
-# pass the state if needState is True
+def unit_conversion_decorator(o):
+    """Decorate a method or all methods of a class with automatic unit conversion."""
+
+    # If o is a class, decorate all methods.
+    if isinstance(o, type):
+        for key, value in o.__dict__.items():
+            if callable(value):
+                setattr(o, key, unit_conversion_decorator(value))
+        return o
+
+    # Otherwise, assume it is a function.
+    @functools.wraps(o)
+    def wrapper(*args, **kwargs):
+        if __unit_converter:
+            args = __unit_converter(args)
+            kwargs = __unit_converter(kwargs)
+
+        return o(*args, **kwargs)
+
+    return wrapper
+
+
 def decorate_object(f, needState = True):
+    """
+    Wrap the __init__ or __new__ method of all the simulation handlers and
+    particle vectors. If we are not a compute task, just return None pass the
+    state if needState is True.
+    """
+    @unit_conversion_decorator
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
-
-        if __unit_converter:
-            args   = __unit_converter(args)
-            kwargs = __unit_converter(kwargs)
 
         if __coordinator().isComputeTask():
             if needState:
@@ -106,17 +127,14 @@ def decorate_object(f, needState = True):
     return wrapper
 
 
-# Wrap the creation of the coordinator
 def decorate_coordinator(f):
+    """Wrap the creation of the coordinator."""
     @functools.wraps(f)
     def wrapper(self, *args, **kwargs):
         global __coordinator
-        if __unit_converter:
-            if 'units' not in kwargs:
-                kwargs['units'] = __unit_converter.unit_conversion
-            f(self, *__unit_converter(args), **__unit_converter(kwargs))
-        else:
-            f(self, *args, **kwargs)
+        if __unit_converter and 'units' not in kwargs:
+            kwargs['units'] = __unit_converter.unit_conversion
+        f(self, *args, **kwargs)
 
         if __coordinator is not None and  __coordinator() is not None:
            raise Exception('There can only be one coordinator at a time!')
@@ -143,15 +161,12 @@ def decorate_func_with_plugin_arg(f):
 # Pass the compute task status into the creation function
 # Pass the common global state associated to the coordinator
 def decorate_plugins(f):
+    @unit_conversion_decorator
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         global __coordinator
         if __coordinator is None:
             raise Exception('No coordinator created yet!')
-
-        if __unit_converter:
-            args   = __unit_converter(args)
-            kwargs = __unit_converter(kwargs)
 
         return f(__coordinator().isComputeTask(),
                  __coordinator().getState(),
@@ -226,6 +241,7 @@ def __init__():
                     getattr(m[1], newname).__doc__ = re.sub('compute_task: bool, ', '', getattr(m[1], newname).__doc__)
                     
 
+    unit_conversion_decorator(Mirheo)  # Decorate all methods.
     Mirheo.__init__ = decorate_coordinator(Mirheo.__init__)
     Mirheo.registerPlugins = decorate_func_with_plugin_arg(Mirheo.registerPlugins)
     Mirheo.deregisterPlugins = decorate_func_with_plugin_arg(Mirheo.deregisterPlugins)
