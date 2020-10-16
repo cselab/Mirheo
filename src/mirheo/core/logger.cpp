@@ -3,6 +3,7 @@
 
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/stacktrace_explicit.h>
+#include <mirheo/core/utils/strprintf.h>
 
 #include <cassert>
 #include <chrono>
@@ -108,18 +109,6 @@ void Logger::_logImpl(const char *key, const char *filename, int line, const cha
         fflush(fout_.get());
         numLogsSinceLastFlush_ = 0;
     }
-}
-
-/// std::string variant of vsprintf.
-static std::string vstrprintf(const char *fmt, va_list args) {
-    va_list args2;
-    va_copy(args2, args);
-
-    const int size = vsnprintf(nullptr, 0, fmt, args);
-
-    std::string result(size, '_');
-    vsnprintf(&result[0], size + 1, fmt, args2);
-    return result;
 }
 
 void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, ...) const

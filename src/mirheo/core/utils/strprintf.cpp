@@ -1,14 +1,12 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "strprintf.h"
 
-#include <cstdarg>
 #include <cstdio>
 
 namespace mirheo
 {
 
-/// std::string variant of vsprintf.
-static inline std::string vstrprintf(const char *fmt, va_list args)
+std::string vstrprintf(const char *fmt, va_list args)
 {
     va_list args2;
     va_copy(args2, args);
