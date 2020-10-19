@@ -34,7 +34,9 @@ make install
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.5.0
 
 * Add MSD plugin.
 * update pybind11 submodule.
