@@ -88,6 +88,9 @@ PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *stat
 PairPlugin createMsdPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                            MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
 
+PairPlugin createParticleChannelAveragerPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                               std::string channelName, std::string averageName, real updateEvery);
+
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName);
 

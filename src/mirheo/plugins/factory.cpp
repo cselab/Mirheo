@@ -23,6 +23,7 @@
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
 #include "msd.h"
+#include "particle_channel_averager.h"
 #include "particle_channel_saver.h"
 #include "particle_checker.h"
 #include "particle_drag.h"
@@ -282,10 +283,21 @@ PairPlugin createMsdPlugin(bool computeTask, const MirState *state, std::string 
     return { simPl, postPl };
 }
 
+PairPlugin createParticleChannelAveragerPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                               std::string channelName, std::string averageName, real updateEvery)
+{
+    auto simPl = computeTask
+        ? std::make_shared<ParticleChannelAveragerPlugin> (state, name, pv->getName(), channelName, averageName, updateEvery)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
 PairPlugin createParticleChannelSaverPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                             std::string channelName, std::string savedName)
 {
-    auto simPl = computeTask ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->getName(), channelName, savedName) : nullptr;
+    auto simPl = computeTask
+        ? std::make_shared<ParticleChannelSaverPlugin> (state, name, pv->getName(), channelName, savedName)
+        : nullptr;
     return { simPl, nullptr };
 }
 

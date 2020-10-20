@@ -17,9 +17,7 @@ Overloaded function.
 
 2. __init__(arg0: real3, arg1: real4) -> None
 
-3. __init__(arg0: tuple) -> None
-
-4. __init__(arg0: list) -> None
+3. __init__(arg0: List[float]) -> None
 
         """
         pass
@@ -166,6 +164,22 @@ Args:
                     walls: sdf based walls
                     nSamplesPerRank: number of Monte-Carlo samples used per rank
         
+
+        """
+        pass
+
+    def deregisterIntegrator():
+        r"""deregisterIntegrator(integrator: mirheo::Integrator) -> None
+
+Deregister a integrator.
+
+        """
+        pass
+
+    def deregisterPlugins():
+        r"""deregisterPlugins(arg0: mirheo::SimulationPlugin, arg1: mirheo::PostprocessPlugin) -> None
+
+Deregister a plugin.
 
         """
         pass
@@ -547,9 +561,7 @@ Overloaded function.
 
 1. __init__(arg0: int, arg1: int, arg2: int) -> None
 
-2. __init__(arg0: tuple) -> None
-
-3. __init__(arg0: list) -> None
+2. __init__(arg0: List[int]) -> None
 
         """
         pass
@@ -581,9 +593,7 @@ Overloaded function.
 
 1. __init__(arg0: float, arg1: float) -> None
 
-2. __init__(arg0: tuple) -> None
-
-3. __init__(arg0: list) -> None
+2. __init__(arg0: List[float]) -> None
 
         """
         pass
@@ -609,9 +619,7 @@ Overloaded function.
 
 1. __init__(arg0: float, arg1: float, arg2: float) -> None
 
-2. __init__(arg0: tuple) -> None
-
-3. __init__(arg0: list) -> None
+2. __init__(arg0: List[float]) -> None
 
         """
         pass
@@ -643,9 +651,7 @@ Overloaded function.
 
 1. __init__(arg0: float, arg1: float, arg2: float, arg3: float) -> None
 
-2. __init__(arg0: tuple) -> None
-
-3. __init__(arg0: list) -> None
+2. __init__(arg0: List[float]) -> None
 
         """
         pass

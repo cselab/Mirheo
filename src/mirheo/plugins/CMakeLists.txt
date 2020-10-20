@@ -28,6 +28,7 @@ set(sources_cu
   membrane_extra_force.cu
   msd.cu
   outlet.cu
+  particle_channel_averager.cu
   particle_checker.cu
   particle_drag.cu
   pin_object.cu

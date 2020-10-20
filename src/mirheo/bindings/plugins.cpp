@@ -381,6 +381,19 @@ void exportPlugins(py::module& m)
             path: The folder name in which the file will be dumped.
     )");
 
+    m.def("__createParticleChannelAverager", &plugin_factory::createParticleChannelAveragerPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "averageName"_a, "updateEvery"_a, R"(
+        This plugin averages a channel (per particle data) inside the given particle vector and saves it to a new channel.
+        This new channel (containing the averaged data) is updated every fixed number of time steps.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: The name of the source channel.
+            averageName: The name of the average channel.
+            updateEvery: reinitialize the averages every this number of steps.
+    )");
+
     m.def("__createParticleChannelSaver", &plugin_factory::createParticleChannelSaverPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "channelName"_a, "savedName"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector with a given name.

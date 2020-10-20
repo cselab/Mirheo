@@ -437,6 +437,24 @@ def createMsd():
     """
     pass
 
+def createParticleChannelAverager():
+    r"""createParticleChannelAverager(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, averageName: str, updateEvery: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin averages a channel (per particle data) inside the given particle vector and saves it to a new channel.
+        This new channel (containing the averaged data) is updated every fixed number of time steps.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            channelName: The name of the source channel.
+            averageName: The name of the average channel.
+            updateEvery: reinitialize the averages every this number of steps.
+    
+
+    """
+    pass
+
 def createParticleChannelSaver():
     r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
