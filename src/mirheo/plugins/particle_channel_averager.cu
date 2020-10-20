@@ -16,13 +16,59 @@ namespace mirheo
 namespace particle_channel_averager_kernels
 {
 
+/// do nothing, it does not make sense.
+__D__ RigidMotion& operator += (RigidMotion& a, RigidMotion __UNUSED b)
+{
+    return a;
+}
+
+__D__ COMandExtent& operator += (COMandExtent& a, COMandExtent b)
+{
+    a.com += b.com;
+    a.low += b.low;
+    a.high += b.high;
+    return a;
+}
+
+
+/// do nothing, it does not make sense.
+__D__ RigidMotion& operator *= (RigidMotion& a, real __UNUSED s)
+{
+    return a;
+}
+
+__D__ COMandExtent& operator *= (COMandExtent& a, real b)
+{
+    a.com *= b;
+    a.low *= b;
+    a.high *= b;
+    return a;
+}
+
+__D__ Force& operator *= (Force& a, real b)
+{
+    a.f *= b;
+    return a;
+}
+
+__D__ Stress& operator *= (Stress& a, real b)
+{
+    a.xx *= b;
+    a.xy *= b;
+    a.xz *= b;
+    a.yy *= b;
+    a.yz *= b;
+    a.zz *= b;
+    return a;
+}
+
 template <class T>
 __global__ void add(int n, const T *src, T *sum)
 {
     const int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < n)
-        type_add::apply(&sum[i], src[i]);
+        sum[i] += src[i];
 }
 
 template <class T>
@@ -33,7 +79,7 @@ __global__ void computeAverage(int n, const T *sum, real scale, T *average)
     if (i < n)
     {
         auto s = sum[i];
-        type_scale::apply(&s, scale);
+        s *= scale;
         average[i] = s;
     }
 }
