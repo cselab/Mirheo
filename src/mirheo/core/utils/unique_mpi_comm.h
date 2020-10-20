@@ -13,14 +13,25 @@ namespace mirheo
 class UniqueMPIComm
 {
 public:
+    /// Default constructor. Initialize to \c MPI_COMM_NULL.
     UniqueMPIComm() noexcept : comm_{MPI_COMM_NULL} { }
+
     UniqueMPIComm(const UniqueMPIComm &) = delete;
+
+    /** Move constructor.
+        Set the other to \c MPI_COMM_NULL.
+        \param other Th UniqueMPIComm to move from.
+    */
     UniqueMPIComm(UniqueMPIComm &&other) : comm_{other.comm_}
     {
         other.comm_ = MPI_COMM_NULL;
     }
 
     UniqueMPIComm& operator=(const UniqueMPIComm &) = delete;
+
+    /** Move assignement.
+        \param other Th UniqueMPIComm to move from.
+     */
     UniqueMPIComm& operator=(UniqueMPIComm &&other)
     {
         reset();
@@ -46,6 +57,7 @@ public:
         return &comm_;
     }
 
+    /// \return MPI_Comm
     operator MPI_Comm() { return comm_; }
 private:
     MPI_Comm comm_;

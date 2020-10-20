@@ -221,6 +221,11 @@ These plugins add more functionalities to the simulation.
    :members:
 
 
+.. doxygenclass:: mirheo::ParticleChannelAveragerPlugin
+   :project: mirheo
+   :members:
+
+
 .. doxygenclass:: mirheo::ParticleChannelSaverPlugin
    :project: mirheo
    :members:
