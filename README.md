@@ -34,7 +34,9 @@ make install
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add particle averager plugin
 
 ### v1.5.0
 
