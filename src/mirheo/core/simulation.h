@@ -186,7 +186,7 @@ public:
 
 
     void init(); ///< setup all the simulation tasks from the registered objects and their relation. Must be called after all the register and set methods.
-    void run(int nsteps); ///< advance the system for a given number of time steps. Must be called after init()
+    void run(MirState::StepType nsteps); ///< advance the system for a given number of time steps. Must be called after init()
 
     /** \brief Send a tagged message to the \c Postprocess rank.
         This is useful to pass special messages, e.g. termination or checkpoint.

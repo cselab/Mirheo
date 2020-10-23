@@ -1283,7 +1283,7 @@ void Simulation::init()
     buildDependencies(&run_->scheduler, &run_->tasks);
 }
 
-void Simulation::run(int nsteps)
+void Simulation::run(MirState::StepType nsteps)
 {
     // Initial preparation
     run_->scheduler.forceExec( run_->tasks.objHaloFinalInit,     defaultStream );
@@ -1292,9 +1292,10 @@ void Simulation::run(int nsteps)
     run_->scheduler.forceExec( run_->tasks.objClearLocalForces,  defaultStream );
     _execSplitters();
 
-    MirState::StepType begin = state_->currentStep, end = state_->currentStep + nsteps;
+    const MirState::StepType begin = state_->currentStep;
+    const MirState::StepType end = state_->currentStep + nsteps;
 
-    info("Will run %d iterations now", nsteps);
+    info("Will run %lld iterations now", nsteps);
 
 
     for (state_->currentStep = begin; state_->currentStep < end; state_->currentStep++)
@@ -1310,7 +1311,7 @@ void Simulation::run(int nsteps)
     // Finish the redistribution by rebuilding the cell-lists
     run_->scheduler.forceExec( run_->tasks.cellLists, defaultStream );
 
-    info("Finished with %d iterations", nsteps);
+    info("Finished with %lld iterations", nsteps);
     MPI_Check( MPI_Barrier(cartComm_) );
 
     for (auto& pl : plugins)

@@ -116,7 +116,7 @@ public:
         \param niters number of interations
         \param dt time step duration
     */
-    void run(int niters, real dt);
+    void run(MirState::StepType niters, real dt);
 
     /** \brief register a ParticleVector in the simulation and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register

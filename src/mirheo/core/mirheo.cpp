@@ -685,7 +685,7 @@ void Mirheo::stopProfiler()
         sim_->stopProfiler();
 }
 
-void Mirheo::run(int nsteps, real dt)
+void Mirheo::run(MirState::StepType nsteps, real dt)
 {
     struct DtGuard {
         ~DtGuard() noexcept {
