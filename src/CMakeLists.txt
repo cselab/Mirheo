@@ -49,15 +49,11 @@ set(Werror "")
 set(cxx_private_flags -Wall -Wextra -Wno-unknown-pragmas -pedantic -Wconversion ${Werror} -Wshadow)
 set(cuda_private_flags --compiler-options "-Wall -Wextra -Wno-unknown-pragmas ${Werror} -Wshadow")
 
-
-# Auto-detect compute capability if not provided
-if (NOT DEFINED CUDA_ARCH_NAME)
-  set(CUDA_ARCH_NAME Auto)
-endif()
+# Option to specify architectures. Auto-detect if not provided.
+set(MIR_CUDA_ARCH_NAME "Auto" CACHE STRING "Architectures to compile for. Auto by default.")
 
 # The options come out crooked, fix'em
-cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS ${CUDA_ARCH_NAME})
-unset(CUDA_ARCH_NAME CACHE)
+cuda_select_nvcc_arch_flags(BUGGED_ARCH_FLAGS ${MIR_CUDA_ARCH_NAME})
 
 string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
 string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")

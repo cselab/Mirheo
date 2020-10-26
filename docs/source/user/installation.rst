@@ -70,7 +70,7 @@ With all the prerequisites installed, you can take the following steps to run Mi
 
          .. code-block:: console
 
-            $ cmake -DCUDA_ARCH_NAME=6.0 ../
+            $ cmake -DMIR_CUDA_ARCH_NAME=6.0 ../
 
          Note that in case you don't specify any capability, Mirheo will be compiled for all supported architectures, which increases
          compilation time and slightly increases application startup. Performance, however, should not be affected.
