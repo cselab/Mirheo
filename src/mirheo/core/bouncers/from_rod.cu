@@ -96,8 +96,8 @@ void BounceFromRod::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocalit
     debug("Found %d rod collision candidates", nCollisions);
 
     if (nCollisions > maxCollisions)
-        die("Found too many rod collisions (%d),"
-            "something may be broken or you need to increase the estimate", nCollisions);
+        die("Found too many rod collisions (%d) in bouncer '%s'.",
+            nCollisions, getCName());
 
     // Step 2, resolve the collisions
     mpark::visit([&](auto& bounceKernel)

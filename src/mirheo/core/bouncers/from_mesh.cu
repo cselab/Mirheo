@@ -124,9 +124,8 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
     debug("Found %d triangle collision candidates", coarseTable_.nCollisions[0]);
 
     if (coarseTable_.nCollisions[0] > maxCoarseCollisions)
-        die("Found too many triangle collision candidates (coarse) (%d, max %d),"
-            "something may be broken or you need to increase the estimate",
-            coarseTable_.nCollisions[0], maxCoarseCollisions);
+        die("Found too many triangle collision candidates (coarse) (%d, max %d) in bouncer '%s'.",
+            coarseTable_.nCollisions[0], maxCoarseCollisions, getCName());
 
     // Step 2, filter the candidates
     SAFE_KERNEL_LAUNCH(
@@ -140,9 +139,8 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
     debug("Found %d precise triangle collisions", fineTable_.nCollisions[0]);
 
     if (fineTable_.nCollisions[0] > maxFineCollisions)
-        die("Found too many triangle collisions (precise) (%d, max %d),"
-            "something may be broken or you need to increase the estimate",
-            fineTable_.nCollisions[0], maxFineCollisions);
+        die("Found too many triangle collisions (precise) (%d, max %d) in bouncer '%s'.",
+            fineTable_.nCollisions[0], maxFineCollisions, getCName());
 
     // Step 3, resolve the collisions
     mpark::visit([&](auto& bounceKernel)
