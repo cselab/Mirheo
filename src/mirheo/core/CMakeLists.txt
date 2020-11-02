@@ -106,6 +106,7 @@ set(sources_cu
   interactions/membrane/base_membrane.cu
   interactions/membrane/factory.cu
   interactions/membrane/prerequisites.cu
+  interactions/obj_binding.cu
   interactions/obj_rod_binding.cu
   interactions/pairwise/factory.cu
   interactions/rod/factory.cu

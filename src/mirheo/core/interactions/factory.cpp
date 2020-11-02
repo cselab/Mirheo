@@ -3,6 +3,7 @@
 
 #include "membrane/base_membrane.h"
 #include "membrane/factory.h"
+#include "obj_binding.h"
 #include "obj_rod_binding.h"
 #include "pairwise/base_pairwise.h"
 #include "pairwise/factory.h"
@@ -246,11 +247,19 @@ interaction_factory::createPairwiseInteraction(const MirState *state, std::strin
     return createInteractionPairwise(state, name, rc, varParams, varStressParams);
 }
 
+std::shared_ptr<ObjectBindingInteraction>
+interaction_factory::createInteractionObjBinding(const MirState *state, std::string name,
+                                                 real kBound, std::vector<int2> pairs)
+{
+    return std::make_shared<ObjectBindingInteraction>(state, std::move(name), kBound, std::move(pairs));
+}
+
+
 std::shared_ptr<ObjectRodBindingInteraction>
 interaction_factory::createInteractionObjRodBinding(const MirState *state, std::string name,
                                                    real torque, real3 relAnchor, real kBound)
 {
-    return std::make_shared<ObjectRodBindingInteraction>(state, name, torque, relAnchor, kBound);
+    return std::make_shared<ObjectRodBindingInteraction>(state, std::move(name), torque, relAnchor, kBound);
 }
 
 static bool startsWith(const std::string &text, const char *tmp)

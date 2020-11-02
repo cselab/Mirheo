@@ -5,6 +5,7 @@
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
+#include <mirheo/core/interactions/obj_binding.h>
 #include <mirheo/core/interactions/obj_rod_binding.h>
 #include <mirheo/core/interactions/rod/base_rod.h>
 
@@ -427,6 +428,20 @@ void exportInteractions(py::module& m)
                  * **type_id**: the type id that the interaction applies to
     )");
 
+
+    py::handlers_class<ObjectBindingInteraction> pyObjBinding(m, "ObjBinding", pyInt, R"(
+        Forces attaching a :any:`ParticleVector`to another via harmonic potentials between the particles of specific pairs.
+    )");
+
+    pyObjBinding.def(py::init(&interaction_factory::createInteractionObjBinding),
+                     "state"_a, "name"_a, "k_bound"_a, "pairs"_a, R"(
+            Args:
+                name: Name of the interaction.
+                k_bound: Spring force coefficient.
+                pairs: The global Ids of the particles that will interact through the harmonic potential.
+                       For each pair, the first entry is the id of pv1 while the second is that of pv2 (see :any:`Mirheo::setInteraction`).
+
+    )");
 
     py::handlers_class<ObjectRodBindingInteraction> pyObjRodBinding(m, "ObjRodBinding", pyInt, R"(
         Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.

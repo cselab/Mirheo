@@ -110,6 +110,28 @@ void exportVectorTypes(py::module& m)
     py::implicitly_convertible<py::iterable, real4>();
 
 
+    py::class_<int2>(m, "int2")
+        .def(py::init([](int x, int y) {
+            return int2{x, y};
+        }))
+        .def(py::init([](const std::vector<int> &v)
+        {
+            if (v.size() != 2)
+                throw std::invalid_argument("Expected 2 elements.");
+            return int2{v[0], v[1]};
+        }))
+        .def_readwrite("x", &int2::x)
+        .def_readwrite("y", &int2::y)
+        .def("__str__", [](const int2 &v) {
+            return "({}, {})"_s.format(v.x, v.y);
+        })
+        .def("__repr__", [](const int2 &v) {
+            return "int2({}, {})"_s.format(v.x, v.y);
+        });
+
+    py::implicitly_convertible<py::iterable, int2>();
+
+
     py::class_<int3>(m, "int3")
         .def(py::init([](int x, int y, int z) {
             return int3{x, y, z};
