@@ -56,7 +56,7 @@ __global__ void createPartnersMap(int npairs, const int2 *pairs, const int *gidT
         partnerIds[from] = to;
 }
 
-__global__ void applyBindingForces(real kBound, const int *partnerIds, PVview view1, PVview view2)
+__global__ void applyBindingForces(real kBound, const int *partnerIds, PVview view1, PVview view2, DomainInfo domain)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -72,6 +72,12 @@ __global__ void applyBindingForces(real kBound, const int *partnerIds, PVview vi
     const auto rj = Real3_int(view2.readPosition(j)).v;
 
     const auto dr = rj - ri;
+
+    if (math::abs(dr.x) >= 0.5_r * domain.localSize.x ||
+        math::abs(dr.y) >= 0.5_r * domain.localSize.y ||
+        math::abs(dr.z) >= 0.5_r * domain.localSize.z)
+        return;
+
     const real3 f = kBound * dr;
 
     atomicAdd(view1.forces + i,  f);
@@ -175,7 +181,7 @@ void ObjectBindingInteraction::_computeForces(ParticleVector *pv1, ParticleVecto
     SAFE_KERNEL_LAUNCH(
          obj_binding_kernels::applyBindingForces,
          nblocks, nthreads, 0, stream,
-         kBound_, partnersMaps_.devPtr(), view1, view2);
+         kBound_, partnersMaps_.devPtr(), view1, view2, getState()->domain);
 }
 
 
