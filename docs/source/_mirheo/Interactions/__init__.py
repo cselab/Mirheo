@@ -143,6 +143,29 @@ class MembraneForces(Interaction):
         """
         pass
 
+class ObjBinding(Interaction):
+    r"""
+        Forces attaching a :any:`ParticleVector` to another via harmonic potentials between the particles of specific pairs.
+
+        .. warning::
+            To deal with MPI, the force is zero if two particles of a pair are apart from more than half the subdomain size. Since this interaction is designed to bind objects to each other, this should not happen under normal conditions.
+
+    
+    """
+    def __init__():
+        r"""__init__(name: str, k_bound: float, pairs: List[int2]) -> None
+
+
+            Args:
+                name: Name of the interaction.
+                k_bound: Spring force coefficient.
+                pairs: The global Ids of the particles that will interact through the harmonic potential. For each pair, the first entry is the id of pv1 while the second is that of pv2 (see :any:`setInteraction`).
+
+    
+
+        """
+        pass
+
 class ObjRodBinding(Interaction):
     r"""
         Forces attaching a :any:`RodVector` to a :any:`RigidObjectVector`.

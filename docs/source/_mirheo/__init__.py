@@ -552,6 +552,32 @@ Default constructor. Conversion factors not known.
         """
         pass
 
+class int2:
+    r"""None
+    """
+    def __init__():
+        r"""__init__(*args, **kwargs)
+Overloaded function.
+
+1. __init__(arg0: int, arg1: int) -> None
+
+2. __init__(arg0: List[int]) -> None
+
+        """
+        pass
+
+    @property
+    def x():
+        r"""
+        """
+        pass
+
+    @property
+    def y():
+        r"""
+        """
+        pass
+
 class int3:
     r"""None
     """
