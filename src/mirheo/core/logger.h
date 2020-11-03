@@ -131,7 +131,6 @@ public:
 
 private:
     void _logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
-    void _printStacktrace() const;
 
 private:
     int runtimeDebugLvl_ {0};  ///< debug level defined at runtime through setDebugLvl

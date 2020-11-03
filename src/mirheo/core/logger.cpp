@@ -17,6 +17,12 @@ namespace mirheo
 
 Logger logger;
 
+static void printStacktrace(FILE *fout)
+{
+    std::ostringstream strace;
+    stacktrace::getStacktrace(strace);
+    fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
+}
 
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
@@ -72,11 +78,12 @@ void Logger::_logImpl(const char *key, const char *filename, int line, const cha
     {
         int world_rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-        fprintf(stderr, "Logger file is not set but tried to be used at %s:%d from rank %d"
+        printStacktrace(stderr);
+        fprintf(stderr, "\n\nLogger file is not set but tried to be used at %s:%d from rank %d"
                 " with the following message:\n", filename, line, world_rank);
         vfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
-        exit(1);
+        throw std::runtime_error("Logger used before initialization. Message was printed to stderr.");
     }
 
     using namespace std::chrono;
@@ -118,7 +125,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     _logImpl("", filename, line, fmt, args);
     va_end(args);
 
-    _printStacktrace();
+    printStacktrace(fout_.get());
     fout_.close();
 
     // http://stackoverflow.com/a/26221725  (modified)
@@ -145,13 +152,6 @@ void Logger::_MPI_die [[noreturn]](const char *filename, int line, int code) con
     MPI_Error_string(code, buf, &nchar);
 
     _die(filename, line, "MPI Error on rank %d: %s", rank_, buf);
-}
-
-void Logger::_printStacktrace() const
-{
-    std::ostringstream strace;
-    stacktrace::getStacktrace(strace);
-    fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout_.get());
 }
 
 } // namespace mirheo
