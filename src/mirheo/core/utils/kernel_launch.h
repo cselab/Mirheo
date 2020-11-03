@@ -41,11 +41,11 @@ inline bool isValid_nBlocks(dim3 blocks)
  */
 #define MIRHEO_SAFE_KERNEL_LAUNCH(kernel, blocks, threads, shmem, stream, ...) \
     do {                                                                \
-        if (isValid_nBlocks(blocks))                                    \
+        if (::mirheo::isValid_nBlocks(blocks))                          \
         {                                                               \
             debug4("Launching kernel "#kernel);                         \
             kernel <<< blocks, threads, shmem, stream >>> ( __VA_ARGS__ ); \
-            if (logger.getDebugLvl() >= 9)                              \
+            if (::mirheo::logger.getDebugLvl() >= 9)                    \
             {                                                           \
                 CUDA_Check( cudaStreamSynchronize(stream) );            \
                 CUDA_Check( cudaPeekAtLastError() );                    \

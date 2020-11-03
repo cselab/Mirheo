@@ -200,8 +200,8 @@ class Pairwise(Interaction):
 
                 \mathbf{F}_{ij} &= \left(\mathbf{F}^C_{ij} + \mathbf{F}^D_{ij} + \mathbf{F}^R_{ij} \right)  \mathbf{\hat r} \\
                 F^C_{ij} &= \begin{cases} a(1-\frac{r}{r_c}), & r < r_c \\ 0, & r \geqslant r_c \end{cases} \\
-                F^D_{ij} &= -\gamma w^2(\frac{r}{r_c}) (\mathbf{r} \cdot \mathbf{u}) \\
-                F^R_{ij} &= \sigma w(\frac{r}{r_c}) \, \theta \sqrt{\Delta t} \,
+                F^D_{ij} &= -\gamma w^2(\tfrac{r}{r_c}) (\mathbf{\hat r} \cdot \mathbf{u}) \\
+                F^R_{ij} &= \sigma w(\tfrac{r}{r_c}) \, \frac{\theta}{\sqrt{\Delta t}} \,
 
             where bold symbol means a vector, its regular counterpart means vector length:
             :math:`x = \left\lVert \mathbf{x} \right\rVert`, hat-ed symbol is the normalized vector:
