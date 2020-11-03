@@ -37,6 +37,7 @@ make install
 ### unreleased
 
 * Add particle averager plugin
+* Add binding (spring) interaction between particle vectors
 
 ### v1.5.0
 
