@@ -2,10 +2,7 @@
 #include "stacktrace_explicit.h"
 
 #define BACKWARD_HAS_BFD 1
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #include <extern/backward-cpp/backward.hpp>
-#pragma GCC diagnostic pop
 
 namespace mirheo {
 namespace stacktrace {
