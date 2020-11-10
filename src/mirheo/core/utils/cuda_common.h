@@ -4,6 +4,10 @@
 #include "helper_math.h"
 #include "cpu_gpu_defines.h"
 
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+#include <cooperative_groups.h>
+#endif
+
 namespace mirheo
 {
 
@@ -509,7 +513,6 @@ __device__ inline int atomicAggInc(int *ptr)
 
 #else
 
-#include <cooperative_groups.h>
 namespace cg = cooperative_groups;
 
 __device__ inline int atomicAggInc(int *ptr)
