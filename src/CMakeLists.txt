@@ -59,6 +59,8 @@ string(REPLACE "gencode;" "gencode=" ARCH_FLAGS_LIST "${BUGGED_ARCH_FLAGS}")
 string(REPLACE ";" " " CUDA_ARCH_FLAGS "${ARCH_FLAGS_LIST}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${CUDA_ARCH_FLAGS}")
 
+# Export the determined flags to codes using Mirheo as a library.
+set(MIR_CUDA_ARCH_FLAGS "${CUDA_ARCH_FLAGS}" CACHE INTERNAL "Architecture flags.")
 
 # Linker flags
 set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -rdynamic -flto -g")
