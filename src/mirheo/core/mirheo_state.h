@@ -92,7 +92,7 @@ public:
         \param [in] units Conversion factors from Mirheo to SI units
         \param [in] state If not \c nullptr, will set the current time info from snapshot info
     */
-    MirState(DomainInfo domain, real dt = InvalidDt, UnitConversion units = UnitConversion(), const ConfigValue *state = nullptr);
+    MirState(DomainInfo domain, real dt = (real)InvalidDt, UnitConversion units = UnitConversion(), const ConfigValue *state = nullptr);
 
 
     /** Save internal state to file
