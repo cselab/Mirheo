@@ -38,6 +38,7 @@ make install
 
 * Add particle averager plugin
 * Add binding (spring) interaction between particle vectors
+* Docs: Add ADE model and add the corresponding reference.
 
 ### v1.5.0
 
