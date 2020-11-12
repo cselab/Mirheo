@@ -42,7 +42,11 @@ class MembraneForces(Interaction):
             U_b = 2 k_b \sum_{\alpha = 1}^{N_v} \frac {\left( M_{\alpha} - C_0\right)^2}{A_\alpha}, \\
             M_{\alpha} = \frac 1 4 \sum_{<i,j>}^{(\alpha)} l_{ij} \theta_{ij}.
 
-        It is improved with the ADE model (TODO: ref).
+        It is improved with the area-difference model (see [Bian2020]_), which is a discretized version of:
+
+        .. math::
+
+            U_{AD} = \frac{k_{AD} \pi}{2 D_0^2 A_0} \left(\Delta A - \Delta A_0 \right)^2.
 
         Currently, the stretching and shear energy models are:
 
@@ -72,6 +76,10 @@ class MembraneForces(Interaction):
         .. [Juelicher1996] Juelicher, Frank, and Reinhard Lipowsky.
                            Shape transformations of vesicles with intramembrane domains.
                            Physical Review E 53.3 (1996): 2670.
+
+        .. [Bian2020] Bian, Xin, Sergey Litvinov, and Petros Koumoutsakos.
+                      Bending models of lipid bilayer membranes: Spontaneous curvature and area-difference elasticity.
+                      Computer Methods in Applied Mechanics and Engineering 359 (2020): 112758.
 
         .. [Lim2008] Lim HW, Gerald, Michael Wortis, and Ranjan Mukhopadhyay.
                      Red blood cell shapes and shape transformations: newtonian mechanics of a composite membrane: sections 2.1–2.4.
