@@ -135,12 +135,12 @@ public:
     real rc;    ///< cutoff radius
     real3 h;    ///< dimensions of the cells along each direction
 
-    int *cellSizes;  ///< number of particles contained in each cell
-    int *cellStarts; ///< exclusive prefix sum of cellSizes
+    int *cellSizes {nullptr};  ///< number of particles contained in each cell
+    int *cellStarts {nullptr}; ///< exclusive prefix sum of cellSizes
 
     /// used to reorder particles when building the cell lists:
     /// \c order[pid] is the destination index of the particle with index \c pid before reordering
-    int *order;
+    int *order {nullptr};
 
 private:
     real3 invh_; ///< 1 / h
