@@ -32,10 +32,9 @@ struct CommonMembraneParameters
     real kBT;     ///< Temperature in energy units
     real totArea0;   ///< Total area at equilibrium
     real totVolume0; ///< Total volume at equilibrium
-    bool fluctuationForces; ///< wether to enable or disable fluctuation forces
 };
 MIRHEO_MEMBER_VARS(CommonMembraneParameters, ka, kv, gammaC, gammaT, kBT,
-                   totArea0, totVolume0, fluctuationForces);
+                   totArea0, totVolume0);
 
 /// structure containing WLC bond + local area energy parameters
 struct WLCParameters

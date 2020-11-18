@@ -48,14 +48,10 @@ static membrane_forces_kernels::GPUViscMembraneParameters getViscParams(const Co
     devP.gammaC = p.gammaC;
     devP.gammaT = p.gammaT;
 
-    devP.fluctuationForces = p.fluctuationForces;
+    devP.seed = stepGen.generate(state);
 
-    if (devP.fluctuationForces)
-    {
-        const auto dt = state->getDt();
-        devP.seed = stepGen.generate(state);
-        devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
-    }
+    const auto dt = state->getDt();
+    devP.sigma_rnd = math::sqrt(2 * p.kBT * p.gammaC / dt);
 
     return devP;
 }

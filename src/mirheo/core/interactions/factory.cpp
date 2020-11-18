@@ -31,8 +31,6 @@ static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
     p.gammaT = desc.read<real>("gammaT");
     p.kBT    = desc.read<real>("kBT");
 
-    p.fluctuationForces = (p.kBT > 1e-6_r);
-
     return p;
 }
 

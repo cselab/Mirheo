@@ -23,7 +23,6 @@ struct GPUViscMembraneParameters
     mReal gammaC; ///< viscous coefficient, central
     mReal gammaT; ///< viscous coefficient, tangential
 
-    bool fluctuationForces; ///< \c true if fluctuation sis enabled, \c false otherwise
     mReal seed;      ///< seed that is used for rng; must be changed at every time interation
     mReal sigma_rnd; ///< random force coefficient
 };
@@ -186,11 +185,6 @@ __device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
 __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
                                  const GPUViscMembraneParameters& parameters)
 {
-    if (!parameters.fluctuationForces)
-        return make_mReal3(0.0_mr);
-
-    // mReal mean0var1 = Saru::normal2(parameters.seed, math::min(i1, i2), math::max(i1, i2)).x;
-
     constexpr mReal sqrt_12 = 3.4641016151_mr;
     const mReal mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, math::min(i1, i2), math::max(i1, i2)) - 0.5_mr);
 
