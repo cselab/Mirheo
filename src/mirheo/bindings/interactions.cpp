@@ -280,21 +280,6 @@ void exportInteractions(py::module& m)
                 * **rho_r**: :math:`\rho_r`
     )");
 
-    pyIntPairwise.def("setSpecificPair", [](BasePairwiseInteraction *self, ParticleVector *pv1, ParticleVector *pv2, py::kwargs kwargs)
-    {
-        auto params = castToMap(kwargs, self->getName());
-        self->setSpecificPair(pv1->getName(), pv2->getName(), params);
-    }, "pv1"_a, "pv2"_a, R"(
-        Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.
-        This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
-        The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
-        Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
-
-        Args:
-            pv1: first :any:`ParticleVector`
-            pv2: second :any:`ParticleVector`
-    )");
-
     py::handlers_class<BaseMembraneInteraction> pyMembraneForces(m, "MembraneForces", pyInt, R"(
         Abstract class for membrane interactions.
         Mesh-based forces acting on a membrane according to the model in [Fedosov2010]_

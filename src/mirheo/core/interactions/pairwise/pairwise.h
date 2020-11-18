@@ -44,8 +44,8 @@ public:
     PairwiseInteraction(const MirState *state, const std::string& name, real rc,
                         KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
-        defaultPair_{rc, pairParams, seed},
-        _pairParams{pairParams}
+        pair_{rc, pairParams, seed},
+        pairParams_(pairParams)
     {}
 
     /** \brief Constructs a PairwiseInteraction object from a snapshot.
@@ -56,30 +56,14 @@ public:
     PairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
         PairwiseInteraction(state, config["name"], config["rc"],
                             loader.load<KernelParams>(config["pairParams"]))
-    {
-        long seed = 42424242;
-        warn("NOTE: Seed not serialized, resetting it!");
-        const ConfigArray& mapArray = config["intMap"].getArray();
-        if (mapArray.size() % 3 != 0) {
-            die("The array's number of elements is supposed to be a "
-                "multiple of 3, got %zu instead.", mapArray.size());
-        }
-        // intMap stored as an array [key1a, key1b, rawParams1, key2a, key2b, rawParams2, ...].
-        for (size_t i = 0; i < mapArray.size(); i += 3) {
-            KernelParams params = loader.load<KernelParams>(mapArray[i + 2]);
-            intMap_.emplace(
-                    std::make_pair(loader.load<std::string>(mapArray[i]),
-                                   loader.load<std::string>(mapArray[i + 1])),
-                    Kernel{PairwiseKernel{rc_, params, seed}, params});
-        }
-    }
+    {}
 
     ~PairwiseInteraction() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
         if (outputsDensity <PairwiseKernel>::value ||
-            requiresDensity<PairwiseKernel>::value   )
+            requiresDensity<PairwiseKernel>::value)
         {
             pv1->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
             pv2->requireDataPerParticle<real>(channel_names::densities, DataManager::PersistenceMode::None);
@@ -157,23 +141,12 @@ public:
         return channels;
     }
 
-    void setSpecificPair(const std::string& pv1name, const std::string& pv2name, const ParametersWrap::MapParams& mapParams) override
-    {
-        ParametersWrap desc(mapParams);
-        auto params = _pairParams;
-        factory_helper::readSpecificParams(params, desc);
-        PairwiseKernel kernel {rc_, params};
-        _setSpecificPair(pv1name, pv2name, kernel, params);
-    }
-
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override
     {
         auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt", checkpointId);
         {
             std::ofstream fout(fname);
-            defaultPair_.writeState(fout);
-            for (auto& entry : intMap_)
-                entry.second.kernel.writeState(fout);
+            pair_.writeState(fout);
         }
         createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
     }
@@ -184,14 +157,13 @@ public:
         std::ifstream fin(fname);
 
         auto check = [&](bool good) {
-            if (!good) die("failed to read '%s'\n", fname.c_str());
+            if (!good)
+                die("failed to read '%s'\n", fname.c_str());
         };
 
         check(fin.good());
 
-        check( defaultPair_.readState(fin) );
-        for (auto& entry : intMap_)
-            check( entry.second.kernel.readState(fin) );
+        check( pair_.readState(fin) );
     }
 
     /// \return A string that describes the type of this object
@@ -214,32 +186,11 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
     {
         ConfigObject config = BasePairwiseInteraction::_saveSnapshot(saver, typeName);
-        config.emplace("pairParams", saver(_pairParams));
-
-        // Key and value are stores as a list of three elements, two for the
-        // key, one for the value (raw parameters).
-        ConfigArray map;
-        map.reserve(intMap_.size());
-        for (const auto& pair : intMap_) {
-            ConfigArray item;
-            item.reserve(3);
-            item.emplace_back(pair.first.first);   // Key.
-            item.emplace_back(pair.first.second);  // Key.
-            item.emplace_back(saver(pair.second.rawParams));  // Value (raw params).
-            // TODO: Serialize RNG state.
-            map.emplace_back(std::move(item));
-        }
-        config.emplace("intMap", std::move(map));
+        config.emplace("pairParams", saver(pairParams_));
         return config;
     }
 
 private:
-
-    void _setSpecificPair(const std::string& pv1name, const std::string& pv2name, PairwiseKernel kernel, const KernelParams& rawParams)
-    {
-        intMap_.insert({{pv1name, pv2name}, {kernel, rawParams}});
-        intMap_.insert({{pv2name, pv1name}, {kernel, rawParams}});
-    }
 
     /** \brief  Convenience macro wrapper
 
@@ -269,10 +220,9 @@ private:
     */
     void _computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
     {
-        auto& pair = _getPairwiseKernel(pv1->getName(), pv2->getName());
         using ViewType = typename PairwiseKernel::ViewType;
 
-        pair.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
+        pair_.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
 
         /*  Self interaction */
         if (pv1 == pv2)
@@ -287,7 +237,7 @@ private:
             SAFE_KERNEL_LAUNCH(
                  computeSelfInteractions,
                  getNblocks(np, nth), nth, 0, stream,
-                 cinfo, view, pair.handler());
+                 cinfo, view, pair_.handler());
         }
         else /*  External interaction */
         {
@@ -300,7 +250,7 @@ private:
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::RowWise, pair.handler());
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::RowWise, pair_.handler());
         }
     }
 
@@ -312,10 +262,9 @@ private:
      */
     void _computeHalo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
-        auto& pair = _getPairwiseKernel(pv1->getName(), pv2->getName());
         using ViewType = typename PairwiseKernel::ViewType;
 
-        pair.setup(pv1->halo(), pv2->local(), cl1, cl2, getState());
+        pair_.setup(pv1->halo(), pv2->local(), cl1, cl2, getState());
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();
@@ -327,35 +276,14 @@ private:
         const int nth = 128;
         if (np1 > 0 && np2 > 0)
             if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,   InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair.handler() );
+                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,   InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair_.handler() );
             else
-                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair.handler() );
-    }
-
-    PairwiseKernel& _getPairwiseKernel(const std::string& pv1name, const std::string& pv2name)
-    {
-        auto it = intMap_.find({pv1name, pv2name});
-        if (it != intMap_.end())
-        {
-            debug("Using SPECIFIC parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
-            return it->second.kernel;
-        }
-        else
-        {
-            debug("Using default parameters for PV pair '%s' -- '%s'", pv1name.c_str(), pv2name.c_str());
-            return defaultPair_;
-        }
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair_.handler() );
     }
 
 private:
-    PairwiseKernel defaultPair_;
-    KernelParams _pairParams;
-
-    struct Kernel {
-        PairwiseKernel kernel;
-        KernelParams rawParams;
-    };
-    std::map< std::pair<std::string, std::string>, Kernel > intMap_;
+    PairwiseKernel pair_;
+    KernelParams pairParams_; // this is stored because of config, we need this to serialize the object.
 };
 
 } // namespace mirheo

@@ -92,12 +92,6 @@ public:
         }
     }
 
-    void setSpecificPair(const std::string& pv1name, const std::string& pv2name, const ParametersWrap::MapParams& mapParams) override
-    {
-        interactionWithoutStress_.setSpecificPair(pv1name, pv2name, mapParams);
-        interactionWithStress_   .setSpecificPair(pv1name, pv2name, mapParams);
-    }
-
     std::vector<InteractionChannel> getInputChannels() const override
     {
         return interactionWithoutStress_.getInputChannels();

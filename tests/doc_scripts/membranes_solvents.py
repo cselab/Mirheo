@@ -62,29 +62,25 @@ prms_rbc = {
 }
 
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prms_rbc)
-int_dpd = mir.Interactions.Pairwise('dpd', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
+int_dpd_oo = mir.Interactions.Pairwise('dpd_oo', rc, kind="DPD", a=10.0, gamma=10.0, kBT=1.0, power=0.5)
+int_dpd_ii = mir.Interactions.Pairwise('dpd_ii', rc, kind="DPD", a=10.0, gamma=20.0, kBT=1.0, power=0.5)
+int_dpd_io = mir.Interactions.Pairwise('dpd_io', rc, kind="DPD", a=10.0, gamma=15.0, kBT=1.0, power=0.5)
+int_dpd_sr = mir.Interactions.Pairwise('dpd_sr', rc, kind="DPD", a=0.0, gamma=15.0, kBT=1.0, power=0.5)
 
 u.registerInteraction(int_rbc)
-u.registerInteraction(int_dpd)
+u.registerInteraction(int_dpd_oo)
+u.registerInteraction(int_dpd_ii)
+u.registerInteraction(int_dpd_io)
+u.registerInteraction(int_dpd_sr)
 
-u.setInteraction(int_dpd, pv_outer, pv_outer)
-u.setInteraction(int_dpd, pv_inner, pv_inner)
-u.setInteraction(int_dpd, pv_inner, pv_outer)
+u.setInteraction(int_dpd_oo, pv_outer, pv_outer)
+u.setInteraction(int_dpd_ii, pv_inner, pv_inner)
+u.setInteraction(int_dpd_io, pv_inner, pv_outer)
 
 u.setInteraction(int_rbc, pv_rbc, pv_rbc)
 
-u.setInteraction(int_dpd, pv_outer, pv_rbc)
-u.setInteraction(int_dpd, pv_inner, pv_rbc)
-
-# some properties of the fluids are different, we can set this as follows
-# instead of creating another interaction object
-# note that the postprocess rank has int_dpd = None
-
-if u.isComputeTask():
-    int_dpd.setSpecificPair(pv_inner, pv_inner, gamma = 20.0)
-    int_dpd.setSpecificPair(pv_inner, pv_outer, gamma = 15.0)
-    int_dpd.setSpecificPair(pv_inner, pv_rbc, a = 0.0, gamma = 15.0)
-    int_dpd.setSpecificPair(pv_outer, pv_rbc, a = 0.0, gamma = 15.0)
+u.setInteraction(int_dpd_sr, pv_outer, pv_rbc)
+u.setInteraction(int_dpd_sr, pv_inner, pv_rbc)
 
 # integrators
 #############
