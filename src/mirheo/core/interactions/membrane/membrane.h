@@ -18,24 +18,35 @@
 namespace mirheo
 {
 
-/** \brief Convert model parameters struct to a struct usable on device.
+/** \brief Extract the constraint parameters to a struct usable on device.
     \param [in] p model parameters
-    \param [in,out] stepGen Random number generator
-    \param [in] state Simulation state
     \return parameters to be passed to GPU kernels
  */
-static membrane_forces_kernels::GPU_CommonMembraneParameters setParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const MirState *state)
+static membrane_forces_kernels::GPUConstraintMembraneParameters getConstraintParams(const CommonMembraneParameters& p)
 {
-    membrane_forces_kernels::GPU_CommonMembraneParameters devP;
-
-    devP.gammaC = p.gammaC;
-    devP.gammaT = p.gammaT;
+    membrane_forces_kernels::GPUConstraintMembraneParameters devP;
 
     devP.totArea0   = p.totArea0;
     devP.totVolume0 = p.totVolume0;
 
     devP.ka0 = p.ka / p.totArea0;
     devP.kv0 = p.kv / (6.0_r*p.totVolume0);
+
+    return devP;
+}
+
+/** \brief Convert model parameters struct to a struct usable on device.
+    \param [in] p model parameters
+    \param [in,out] stepGen Random number generator
+    \param [in] state Simulation state
+    \return parameters to be passed to GPU kernels
+ */
+static membrane_forces_kernels::GPUViscMembraneParameters getViscParams(const CommonMembraneParameters& p, StepRandomGen& stepGen, const MirState *state)
+{
+    membrane_forces_kernels::GPUViscMembraneParameters devP;
+
+    devP.gammaC = p.gammaC;
+    devP.gammaT = p.gammaT;
 
     devP.fluctuationForces = p.fluctuationForces;
 
@@ -149,7 +160,8 @@ public:
         const int nthreads = 128;
         const int nblocks  = getNblocks(view.size, nthreads);
 
-        const auto devParams = setParams(currentParams, stepGen_, getState());
+        const auto devConstraintParams = getConstraintParams(currentParams);
+        const auto devViscParams = getViscParams(currentParams, stepGen_, getState());
 
         DihedralInteraction dihedralInteraction(dihedralParams_, scale);
         TriangleInteraction triangleInteraction(triangleParams_, mesh, scale);
@@ -160,8 +172,12 @@ public:
             nblocks, nthreads, 0, stream,
             triangleInteraction,
             dihedralInteraction, dihedralView,
-            view, meshView, devParams, filter_);
+            view, meshView, devConstraintParams, filter_);
 
+        SAFE_KERNEL_LAUNCH(
+            membrane_forces_kernels::computeMembraneViscousFluctForces,
+            nblocks, nthreads, 0, stream,
+            view, meshView, devViscParams, filter_);
     }
 
     void setPrerequisites(ParticleVector *pv1,

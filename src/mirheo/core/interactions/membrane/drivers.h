@@ -10,14 +10,18 @@ namespace membrane_forces_kernels
 {
 
 /// Device compatible structure that holds the parameters common to all membrane interactions
-struct GPU_CommonMembraneParameters
+struct GPUConstraintMembraneParameters
 {
-    mReal gammaC; ///< viscous coefficient, central
-    mReal gammaT; ///< viscous coefficient, tangential
     mReal totArea0;   ///< total area at equilibrium
     mReal totVolume0; ///< total volume at equilibrium
     mReal ka0; ///< energy magnitude for total area constraint
     mReal kv0; ///< energy magnitude for total volume constraint
+};
+
+struct GPUViscMembraneParameters
+{
+    mReal gammaC; ///< viscous coefficient, central
+    mReal gammaT; ///< viscous coefficient, tangential
 
     bool fluctuationForces; ///< \c true if fluctuation sis enabled, \c false otherwise
     mReal seed;      ///< seed that is used for rng; must be changed at every time interation
@@ -25,7 +29,7 @@ struct GPU_CommonMembraneParameters
 };
 
 __device__ inline mReal3 _fconstrainArea(mReal3 v1, mReal3 v2, mReal3 v3, mReal totArea,
-                                         const GPU_CommonMembraneParameters& parameters)
+                                         const GPUConstraintMembraneParameters& parameters)
 {
     const mReal3 x21 = v2 - v1;
     const mReal3 x32 = v3 - v2;
@@ -42,51 +46,26 @@ __device__ inline mReal3 _fconstrainArea(mReal3 v1, mReal3 v2, mReal3 v3, mReal 
 }
 
 __device__ inline mReal3 _fconstrainVolume(mReal3 v1, mReal3 v2, mReal3 v3, mReal totVolume,
-                                          const GPU_CommonMembraneParameters& parameters)
+                                          const GPUConstraintMembraneParameters& parameters)
 {
     const mReal coeff = parameters.kv0 * (totVolume - parameters.totVolume0);
     return coeff * cross(v3, v2);
 }
 
 
-__device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
-                               const GPU_CommonMembraneParameters& parameters)
-{
-    const mReal3 du = p2.u - p1.u;
-    const mReal3 dr = p1.r - p2.r;
-
-    return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
-}
-
-__device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
-                                 const GPU_CommonMembraneParameters& parameters)
-{
-    if (!parameters.fluctuationForces)
-        return make_mReal3(0.0_mr);
-
-    // mReal mean0var1 = Saru::normal2(parameters.seed, math::min(i1, i2), math::max(i1, i2)).x;
-
-    constexpr mReal sqrt_12 = 3.4641016151_mr;
-    const mReal mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, math::min(i1, i2), math::max(i1, i2)) - 0.5_mr);
-
-    const mReal3 x21 = v2 - v1;
-    return (mean0var1 * parameters.sigma_rnd / length(x21)) * x21;
-}
-
 template <class TriangleInteraction>
-__device__ inline mReal3 bondTriangleForce(
+__device__ inline mReal3 triangleForce(
         const TriangleInteraction& triangleInteraction,
         const ParticleMReal& p, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
-        const GPU_CommonMembraneParameters& parameters)
+        const GPUConstraintMembraneParameters& parameters)
 {
     mReal3 f0 = make_mReal3(0.0_mr);
     const int startId = mesh.maxDegree * locId;
     const int degree = mesh.degrees[locId];
 
-    const int idv0 = rbcId * mesh.nvertices + locId;
-    int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
+    const int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
     auto p1 = fetchParticle(view, idv1);
 
     const mReal totArea   = view.area_volumes[rbcId].x;
@@ -106,11 +85,8 @@ __device__ inline mReal3 bondTriangleForce(
 
         f0 += triangleInteraction (p.r, p1.r, p2.r, eq)
             + _fconstrainArea     (p.r, p1.r, p2.r, totArea,   parameters)
-            + _fconstrainVolume   (p.r, p1.r, p2.r, totVolume, parameters)
-            + _fvisc              (p,   p1,                    parameters)
-            + _ffluct             (p.r, p1.r, idv0, idv1,      parameters);
+            + _fconstrainVolume   (p.r, p1.r, p2.r, totVolume, parameters);
 
-        idv1 = idv2;
         p1   = p2;
     }
 
@@ -173,7 +149,7 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
                                       typename DihedralInteraction::ViewType dihedralView,
                                       OVviewWithAreaVolume view,
                                       MembraneMeshView mesh,
-                                      GPU_CommonMembraneParameters parameters,
+                                      GPUConstraintMembraneParameters parameters,
                                       Filter filter)
 {
     // RBC particles are at the same time mesh vertices
@@ -189,8 +165,84 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     const auto p = fetchParticle(view, pid);
 
     mReal3 f;
-    f  = bondTriangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
+    f  = triangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
     f += dihedralForce(locId, rbcId, dihedralView, dihedralInteraction, mesh);
+
+    atomicAdd(view.forces + pid, make_real3(f));
+}
+
+
+
+
+__device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
+                               const GPUViscMembraneParameters& parameters)
+{
+    const mReal3 du = p2.u - p1.u;
+    const mReal3 dr = p1.r - p2.r;
+
+    return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
+}
+
+__device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,
+                                 const GPUViscMembraneParameters& parameters)
+{
+    if (!parameters.fluctuationForces)
+        return make_mReal3(0.0_mr);
+
+    // mReal mean0var1 = Saru::normal2(parameters.seed, math::min(i1, i2), math::max(i1, i2)).x;
+
+    constexpr mReal sqrt_12 = 3.4641016151_mr;
+    const mReal mean0var1 = sqrt_12 * (Saru::uniform01(parameters.seed, math::min(i1, i2), math::max(i1, i2)) - 0.5_mr);
+
+    const mReal3 x21 = v2 - v1;
+    return (mean0var1 * parameters.sigma_rnd / length(x21)) * x21;
+}
+
+__device__ inline mReal3 bondForces(
+        const ParticleMReal& p, int locId, int rbcId,
+        const OVview& view,
+        const MembraneMeshView& mesh,
+        const GPUViscMembraneParameters& parameters)
+{
+    mReal3 f0 = make_mReal3(0.0_mr);
+    const int startId = mesh.maxDegree * locId;
+    const int degree = mesh.degrees[locId];
+
+    const int idv0 = rbcId * mesh.nvertices + locId;
+
+#pragma unroll 2
+    for (int d = 0; d < degree; ++d)
+    {
+        const int i1 = startId + d;
+
+        const int idv1 = rbcId * mesh.nvertices + mesh.adjacent[i1];
+
+        const auto p1 = fetchParticle(view, idv1);
+
+        f0 +=  _fvisc  (p,   p1,               parameters)
+            +  _ffluct (p.r, p1.r, idv0, idv1, parameters);
+    }
+
+    return f0;
+}
+
+template <class Filter>
+__global__ void computeMembraneViscousFluctForces(OVview view,
+                                                  MembraneMeshView mesh,
+                                                  GPUViscMembraneParameters parameters,
+                                                  Filter filter)
+{
+    assert(view.objSize == mesh.nvertices);
+    const int pid = threadIdx.x + blockDim.x * blockIdx.x;
+    const int locId = pid % mesh.nvertices;
+    const int rbcId = pid / mesh.nvertices;
+
+    if (pid >= view.nObjects * mesh.nvertices) return;
+    if (!filter.inWhiteList(rbcId)) return;
+
+    const auto p = fetchParticle(view, pid);
+
+    const mReal3 f = bondForces(p, locId, rbcId, view, mesh, parameters);
 
     atomicAdd(view.forces + pid, make_real3(f));
 }
