@@ -157,7 +157,6 @@ public:
         const int nblocks  = getNblocks(view.size, nthreads);
 
         const auto devConstraintParams = getConstraintParams(currentParams);
-        const auto devViscParams = getViscParams(currentParams, stepGen_, getState());
 
         DihedralInteraction dihedralInteraction(dihedralParams_, scale);
         TriangleInteraction triangleInteraction(triangleParams_, mesh, scale);
@@ -169,6 +168,13 @@ public:
             triangleInteraction,
             dihedralInteraction, dihedralView,
             view, meshView, devConstraintParams, filter_);
+
+        const auto devViscParams = getViscParams(currentParams, stepGen_, getState());
+
+        if (devViscParams.sigma_rnd == 0 &&
+            devViscParams.gammaC == 0 &&
+            devViscParams.gammaT == 0)
+            return;
 
         SAFE_KERNEL_LAUNCH(
             membrane_forces_kernels::computeMembraneViscousFluctForces,
