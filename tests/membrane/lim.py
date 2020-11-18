@@ -37,7 +37,6 @@ prm_rbc = {
     "b1"     : args.b1,
     "b2"     : args.b2,
     "gammaC" : 0.0,
-    "gammaT" : 0.0,
     "kBT"    : 0.0,
     "kb"     : 0.0,
     "theta"  : 0.0

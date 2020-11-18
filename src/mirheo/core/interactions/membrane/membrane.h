@@ -46,7 +46,6 @@ static membrane_forces_kernels::GPUViscMembraneParameters getViscParams(const Co
     membrane_forces_kernels::GPUViscMembraneParameters devP;
 
     devP.gammaC = p.gammaC;
-    devP.gammaT = p.gammaT;
 
     devP.seed = stepGen.generate(state);
 
@@ -65,9 +64,7 @@ static void rescaleParameters(CommonMembraneParameters& p, real scale)
     p.totArea0   *= scale * scale;
     p.totVolume0 *= scale * scale * scale;
     p.kBT        *= scale * scale;
-
-    p.gammaC *= scale;
-    p.gammaT *= scale;
+    p.gammaC     *= scale;
 }
 
 /** \brief Generic implementation of membrane forces.
@@ -172,8 +169,7 @@ public:
         const auto devViscParams = getViscParams(currentParams, stepGen_, getState());
 
         if (devViscParams.sigma_rnd == 0 &&
-            devViscParams.gammaC == 0 &&
-            devViscParams.gammaT == 0)
+            devViscParams.gammaC == 0)
             return;
 
         SAFE_KERNEL_LAUNCH(

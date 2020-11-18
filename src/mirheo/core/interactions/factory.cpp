@@ -28,7 +28,6 @@ static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
     p.kv = desc.read<real>("kv_tot");
 
     p.gammaC = desc.read<real>("gammaC");
-    p.gammaT = desc.read<real>("gammaT");
     p.kBT    = desc.read<real>("kBT");
 
     return p;

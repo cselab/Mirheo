@@ -25,15 +25,14 @@ class DihedralJuelicher;
 /// Structure keeping common parameters of the RBC model
 struct CommonMembraneParameters
 {
-    real ka; ///< magnitude of total area constraint energy
-    real kv; ///< magnitude of total volume constraint energy
-    real gammaC;  ///< viscous coefficient, central part
-    real gammaT;  ///< viscous coefficient, tengential part (will not conserve angular momentum if non zero!)
-    real kBT;     ///< Temperature in energy units
+    real ka;         ///< magnitude of total area constraint energy
+    real kv;         ///< magnitude of total volume constraint energy
+    real gammaC;     ///< viscous coefficient
+    real kBT;        ///< Temperature in energy units
     real totArea0;   ///< Total area at equilibrium
     real totVolume0; ///< Total volume at equilibrium
 };
-MIRHEO_MEMBER_VARS(CommonMembraneParameters, ka, kv, gammaC, gammaT, kBT,
+MIRHEO_MEMBER_VARS(CommonMembraneParameters, ka, kv, gammaC, kBT,
                    totArea0, totVolume0);
 
 /// structure containing WLC bond + local area energy parameters

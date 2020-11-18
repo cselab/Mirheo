@@ -22,7 +22,6 @@ prm_rbc = {
     "ks"     : 0.0,
     "mpow"   : 2,
     "gammaC" : 0.0,
-    "gammaT" : 0.0,
     "kBT"    : 0.0,
     "tot_area"   : 62.2242,
     "tot_volume" : 26.6649,

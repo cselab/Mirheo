@@ -20,9 +20,7 @@ struct GPUConstraintMembraneParameters
 
 struct GPUViscMembraneParameters
 {
-    mReal gammaC; ///< viscous coefficient, central
-    mReal gammaT; ///< viscous coefficient, tangential
-
+    mReal gammaC;    ///< viscous coefficient
     mReal seed;      ///< seed that is used for rng; must be changed at every time interation
     mReal sigma_rnd; ///< random force coefficient
 };
@@ -179,7 +177,7 @@ __device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
     const mReal3 du = p2.u - p1.u;
     const mReal3 dr = p1.r - p2.r;
 
-    return du*parameters.gammaT + dr * parameters.gammaC*dot(du, dr) / dot(dr, dr);
+    return dr * (parameters.gammaC * dot(du, dr) / dot(dr, dr));
 }
 
 __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,

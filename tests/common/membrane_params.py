@@ -10,7 +10,6 @@ def lina_parameters(lscale=1.0, fluctuations=False):
         "ks"     : kBT / p,
         "mpow"   : 2.0,
         "gammaC" : 52.0 * lscale,
-        "gammaT" : 0.0,
         "kBT"    : 0.0,
         "tot_area"   : 62.2242 * lscale**2,
         "tot_volume" : 26.6649 * lscale**3,
@@ -19,5 +18,5 @@ def lina_parameters(lscale=1.0, fluctuations=False):
     }
     if fluctuations:
         prms["kBT"] = kBT
-    
+
     return prms

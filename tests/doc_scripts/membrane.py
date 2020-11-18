@@ -31,7 +31,6 @@ prms_rbc = {
     "ks"     : 0.0444 / 0.000906667,
     "mpow"   : 2.0,
     "gammaC" : 52.0,
-    "gammaT" : 0.0,
     "kBT"    : 0.0,
     "tot_area"   : 62.2242,
     "tot_volume" : 26.6649,
