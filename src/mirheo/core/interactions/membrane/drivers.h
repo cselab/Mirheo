@@ -55,7 +55,7 @@ __device__ inline mReal3 _fconstrainVolume(mReal3 v1, mReal3 v2, mReal3 v3, mRea
 template <class TriangleInteraction>
 __device__ inline mReal3 triangleForce(
         const TriangleInteraction& triangleInteraction,
-        const ParticleMReal& p, int locId, int rbcId,
+        const mReal3& r0, int locId, int rbcId,
         const OVviewWithAreaVolume& view,
         const MembraneMeshView& mesh,
         const GPUConstraintMembraneParameters& parameters)
@@ -65,7 +65,7 @@ __device__ inline mReal3 triangleForce(
     const int degree = mesh.degrees[locId];
 
     const int idv1 = rbcId * mesh.nvertices + mesh.adjacent[startId];
-    auto p1 = fetchParticle(view, idv1);
+    auto r1 = fetchPosition(view, idv1);
 
     const mReal totArea   = view.area_volumes[rbcId].x;
     const mReal totVolume = view.area_volumes[rbcId].y;
@@ -78,15 +78,15 @@ __device__ inline mReal3 triangleForce(
 
         const int idv2 = rbcId * mesh.nvertices + mesh.adjacent[i2];
 
-        const auto p2 = fetchParticle(view, idv2);
+        const auto r2 = fetchPosition(view, idv2);
 
         const auto eq = triangleInteraction.getEquilibriumDesc(mesh, i1, i2);
 
-        f0 += triangleInteraction (p.r, p1.r, p2.r, eq)
-            + _fconstrainArea     (p.r, p1.r, p2.r, totArea,   parameters)
-            + _fconstrainVolume   (p.r, p1.r, p2.r, totVolume, parameters);
+        f0 += triangleInteraction (r0, r1, r2, eq)
+            + _fconstrainArea     (r0, r1, r2, totArea,   parameters)
+            + _fconstrainVolume   (r0, r1, r2, totVolume, parameters);
 
-        p1   = p2;
+        r1 = r2;
     }
 
     return f0;
@@ -161,10 +161,10 @@ __global__ void computeMembraneForces(TriangleInteraction triangleInteraction,
     if (pid >= view.nObjects * mesh.nvertices) return;
     if (!filter.inWhiteList(rbcId)) return;
 
-    const auto p = fetchParticle(view, pid);
+    const auto r0 = fetchPosition(view, pid);
 
     mReal3 f;
-    f  = triangleForce(triangleInteraction, p, locId, rbcId, view, mesh, parameters);
+    f  = triangleForce(triangleInteraction, r0, locId, rbcId, view, mesh, parameters);
     f += dihedralForce(locId, rbcId, dihedralView, dihedralInteraction, mesh);
 
     atomicAdd(view.forces + pid, make_real3(f));
