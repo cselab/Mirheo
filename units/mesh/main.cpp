@@ -98,6 +98,9 @@ TEST (MESH, edgeSets)
     MembraneMesh mesh(rbc_off);
     MeshDistinctEdgeSets edgeSets(&mesh);
 
+    std::set<int> allUsedVertices;
+    int numUsedEdges{0};
+
     // check there is no overlapping vertices
     for (int color = 0; color < edgeSets.numColors(); ++color)
     {
@@ -109,8 +112,19 @@ TEST (MESH, edgeSets)
 
             ASSERT_EQ(usedVertices.find(edge.y), usedVertices.end());
             usedVertices.insert(edge.y);
+
+            allUsedVertices.insert(edge.x);
+            allUsedVertices.insert(edge.y);
+            ++numUsedEdges;
         }
     }
+
+    // check that we used all vertices
+    ASSERT_EQ((int) allUsedVertices.size(), mesh.getNvertices());
+
+    // Euler Formula assuming the mesh has genus 0
+    const int numEdges = mesh.getNvertices() + mesh.getNtriangles() - 2;
+    ASSERT_EQ(numUsedEdges, numEdges);
 }
 
 
