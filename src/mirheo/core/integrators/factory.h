@@ -7,6 +7,7 @@
 #include "forcing_terms/periodic_poiseuille.h"
 #include "minimize.h"
 #include "oscillate.h"
+#include "rbc_shardlow.h"
 #include "rigid_vv.h"
 #include "sub_step.h"
 #include "translate.h"
@@ -71,6 +72,13 @@ inline std::shared_ptr<IntegratorOscillate>
 createOscillating(const MirState *state, const std::string& name, real3 velocity, real period)
 {
     return std::make_shared<IntegratorOscillate> (state, name, velocity, period);
+}
+
+inline std::shared_ptr<IntegratorSubStepShardlowSweep>
+createSubstepShardlowSweep(const MirState *state, const std::string& name, int substeps,
+                           BaseMembraneInteraction* fastForces, real gammaC, real kBT, int nsweeps)
+{
+    return std::make_shared<IntegratorSubStepShardlowSweep> (state, name, substeps, fastForces, gammaC, kBT, nsweeps);
 }
 
 inline std::shared_ptr<IntegratorVVRigid>

@@ -222,9 +222,9 @@ void IntegratorSubStepShardlowSweep::_viscousSweeps(MembraneVector *mv, cudaStre
             const int nblocks = getNblocks(ovview.nObjects * edges.size(), nthreads);
 
             SAFE_KERNEL_LAUNCH(
-               rbc_shardlow_kernels::sweepVelocities,
-               nblocks, nthreads, 0, stream,
-               edges.size(), edges.devPtr(), ovview, dt, gammaC_, sigma, invMass, seed);
+                rbc_shardlow_kernels::sweepVelocities,
+                nblocks, nthreads, 0, stream,
+                edges.size(), edges.devPtr(), ovview, dt, gammaC_, sigma, invMass, seed);
         }
     }
 }

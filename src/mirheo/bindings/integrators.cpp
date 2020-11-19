@@ -1,6 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include <mirheo/core/integrators/factory.h>
 #include <mirheo/core/interactions/interface.h>
+#include <mirheo/core/interactions/membrane/base_membrane.h>
 
 #include "bindings.h"
 #include "class_wrapper.h"
@@ -143,6 +144,27 @@ void exportIntegrators(py::module& m)
                     name: name of the integrator
                     substeps: number of sub steps
                     fastForces: a list of fast interactions. Only accepts :any:`MembraneForces` or :any:`RodForces`
+
+                .. warning::
+                    The interaction will be set to the required object vector when setting this integrator to the object vector.
+                    Hence the interaction needs not to be set explicitely to the OV.
+            )");
+
+    py::handlers_class<IntegratorSubStepShardlowSweep>
+        (m, "SubStepShardlowSweep", pyint, R"(
+            Takes advantage of separation of time scales between "fast" internal forces and other "slow" forces on a membrane vector.
+            This integrator advances the object vector with constant slow forces for 'substeps' sub time steps.
+            The fast forces are updated after each sub step using the Shardlow method for viscous forces with multiple seeps.
+        )")
+        .def(py::init(&integrator_factory::createSubstepShardlowSweep),
+             "state"_a, "name"_a, "substeps"_a, "fastForces"_a, "gammaC"_a, "kBT"_a, "nsweeps"_a, R"(
+                Args:
+                    name: Name of the integrator.
+                    substeps: Number of sub steps.
+                    fastForces: Membrane interactions. Only accepts :any:`MembraneForces`. Must have zero gammaC and zero kBT.
+                    gammaC: Membrane viscous coefficient.
+                    kBT: temperature, in energy units. Set to zero to disable membrane fluctuations.
+                    nsweeps: Number of sweeps for the semi implicit step. Must be strictly more than 0.
 
                 .. warning::
                     The interaction will be set to the required object vector when setting this integrator to the object vector.
