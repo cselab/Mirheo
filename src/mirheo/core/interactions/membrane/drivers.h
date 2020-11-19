@@ -3,6 +3,8 @@
 
 #include "force_kernels/common.h"
 
+#include <mirheo/core/utils/cuda_rng.h>
+
 namespace mirheo
 {
 
