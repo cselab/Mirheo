@@ -1,6 +1,7 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mesh/mesh.h>
 #include <mirheo/core/mesh/membrane.h>
+#include <mirheo/core/mesh/edge_colors.h>
 
 #include <cstdio>
 #include <cmath>
@@ -51,6 +52,69 @@ TEST (MESH, adjacencyList)
         }
     }
 }
+
+static void checkColors(const MembraneMesh *mesh)
+{
+    const auto colors = computeEdgeColors(mesh);
+
+    const int nv = mesh->getNvertices();
+    const int maxDegree = mesh->getMaxDegree();
+    const auto& deg = mesh->getDegrees();
+
+    // check every edge is assigned to the at least one color
+    for (int i = 0; i < nv; ++i)
+    {
+        for (int d = 0; d < deg[i]; ++d)
+        {
+            const int color = colors[maxDegree * i + d];
+            // printf("%d: %d\n", i, color);
+            ASSERT_NE(color, -1);
+        }
+    }
+
+    // check that every vertex has each color once at most
+    std::vector<std::vector<int>> vertexToColors(nv);
+    for (int i = 0; i < nv; ++i)
+    {
+        auto& myColors = vertexToColors[i];
+
+        for (int d = 0; d < deg[i]; ++d)
+        {
+            const int color = colors[maxDegree * i + d];
+            ASSERT_EQ(std::find(myColors.begin(), myColors.end(), color), myColors.end());
+            myColors.push_back(color);
+        }
+    }
+}
+
+TEST (MESH, edgeColors)
+{
+    MembraneMesh mesh(rbc_off);
+    checkColors(&mesh);
+}
+
+TEST (MESH, edgeSets)
+{
+    MembraneMesh mesh(rbc_off);
+    MeshDistinctEdgeSets edgeSets(&mesh);
+
+    // check there is no overlapping vertices
+    for (int color = 0; color < edgeSets.numColors(); ++color)
+    {
+        std::set<int> usedVertices;
+        for (const auto edge : edgeSets.edgeSet(color))
+        {
+            ASSERT_EQ(usedVertices.find(edge.x), usedVertices.end());
+            usedVertices.insert(edge.x);
+
+            ASSERT_EQ(usedVertices.find(edge.y), usedVertices.end());
+            usedVertices.insert(edge.y);
+        }
+    }
+}
+
+
+
 
 int main(int argc, char **argv)
 {
