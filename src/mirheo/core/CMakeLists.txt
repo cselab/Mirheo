@@ -101,6 +101,7 @@ set(sources_cu
   integrators/const_omega.cu
   integrators/minimize.cu
   integrators/oscillate.cu
+  integrators/rbc_shardlow.cu
   integrators/rigid_vv.cu
   integrators/translate.cu
   integrators/vv.cu
