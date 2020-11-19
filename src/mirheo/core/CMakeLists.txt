@@ -31,6 +31,7 @@ set(sources_cpp
   logger.cpp
   managers/interactions.cpp
   marching_cubes.cpp
+  mesh/edge_colors.cpp
   mesh/factory.cpp
   mesh/membrane.cpp
   mesh/mesh.cpp

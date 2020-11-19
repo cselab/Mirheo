@@ -74,6 +74,12 @@ public:
       */
     void saveSnapshotAndRegister(Saver& saver) override;
 
+    /// \return The adjacency list of each vertex
+    const PinnedBuffer<int>& getAdjacents() const {return adjacent_;}
+
+    /// \return The degree of each vertex
+    const PinnedBuffer<int>& getDegrees() const {return degrees_; }
+
 protected:
     /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
