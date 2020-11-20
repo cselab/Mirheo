@@ -144,6 +144,9 @@ void IntegratorSubStepShardlowSweep::execute(ParticleVector *pv, cudaStream_t st
     // save "slow forces"
     slowForces_.copyFromDevice(pv->local()->forces(), stream);
 
+    // initialize the forces for the first half step
+    fastForces_->local(pv, pv, nullptr, nullptr, stream);
+
     // save previous positions
     previousPositions_.copyFromDevice(pv->local()->positions(), stream);
 
@@ -154,9 +157,6 @@ void IntegratorSubStepShardlowSweep::execute(ParticleVector *pv, cudaStream_t st
 
     for (int substep = 0; substep < substeps_; ++substep)
     {
-        if (substep != 0)
-            pv->local()->forces().copy(slowForces_, stream);
-
         _viscousSweeps(mv, stream);
 
         constexpr int nthreads = 128;
@@ -167,6 +167,7 @@ void IntegratorSubStepShardlowSweep::execute(ParticleVector *pv, cudaStream_t st
             nblocks, nthreads, 0, stream,
             pvView, dt_2m, dt);
 
+        pv->local()->forces().copy(slowForces_, stream);
         fastForces_->local(pv, pv, nullptr, nullptr, stream);
 
         SAFE_KERNEL_LAUNCH(

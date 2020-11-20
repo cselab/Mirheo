@@ -25,7 +25,7 @@ The first entry in each list is arbitrary, only the order is important.
 The list of adjacent vertices of vertex ``i`` starts at ``i * maxDegree``.
 
 .. graphviz::
-   
+
    graph adjacent {
    node [shape=plaintext]
    {rank = same; 3; 4}
@@ -65,6 +65,10 @@ Host classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::MeshDistinctEdgeSets
+   :project: mirheo
+   :members:
+
 
 Views
 ^^^^^
@@ -76,4 +80,3 @@ Views
 .. doxygenstruct:: mirheo::MembraneMeshView
    :project: mirheo
    :members:
-

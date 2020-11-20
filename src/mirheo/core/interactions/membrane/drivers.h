@@ -11,7 +11,7 @@ namespace mirheo
 namespace membrane_forces_kernels
 {
 
-/// Device compatible structure that holds the parameters common to all membrane interactions
+/// Device compatible structure that holds the parameters for area and volume constraints
 struct GPUConstraintMembraneParameters
 {
     mReal totArea0;   ///< total area at equilibrium
@@ -20,6 +20,7 @@ struct GPUConstraintMembraneParameters
     mReal kv0; ///< energy magnitude for total volume constraint
 };
 
+/// Device compatible structure that holds the viscous and fluctuation parameters
 struct GPUViscMembraneParameters
 {
     mReal gammaC;    ///< viscous coefficient

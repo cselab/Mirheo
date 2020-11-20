@@ -22,7 +22,7 @@ class MeshDistinctEdgeSets
 {
 public:
     /** Construct a MeshDistinctEdgeSets.
-        \param [in] The input mesh with adjacency lists.
+        \param [in] mesh The input mesh with adjacency lists.
     */
     MeshDistinctEdgeSets(const MembraneMesh *mesh);
 

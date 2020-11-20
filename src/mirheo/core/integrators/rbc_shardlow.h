@@ -41,9 +41,11 @@ public:
     /** \brief construct a IntegratorSubStepShardlowSweep object.
         \param [in] state The global state of the system. The time step and domain used during the execution are passed through this object.
         \param [in] name The name of the integrator.
-        \param [in] substeps Number of sub steps
+        \param [in] substeps Number of sub steps. Must be at least 1.
         \param [in] fastForces Internal interactions executed at each sub step.
-
+        \param [in] gammaC The dissipation coefficient.
+        \param [in] kBT The temperature in energy units.
+        \param [in] nsweeps The number of iterations spent for each viscous update. Must be at least 1.
     */
     IntegratorSubStepShardlowSweep(const MirState *state, const std::string& name, int substeps,
                                    BaseMembraneInteraction* fastForces, real gammaC, real kBT, int nsweeps);

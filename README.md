@@ -38,6 +38,7 @@ make install
 
 * Add particle averager plugin
 * Add binding (spring) interaction between particle vectors
+* Add Shardlow integrator for membranes
 * Docs: Add ADE model and add the corresponding reference.
 * **interface changes**
   * remove `setSpecificPair` from pirwise interactions. The same effect can be obtained by creating more pairwise interactions instead.

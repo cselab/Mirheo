@@ -104,8 +104,7 @@ class MembraneForces(Interaction):
                  * **ka_tot**:                  constraint energy for total area
                  * **kv_tot**:                  constraint energy for total volume
                  * **kBT**:                     fluctuation temperature (set to zero will switch off fluctuation forces)
-                 * **gammaC**:                  central component of dissipative forces
-                 * **gammaT**:                  tangential component of dissipative forces (warning: if non zero, the interaction will NOT conserve angular momentum)
+                 * **gammaC**:                  dissipative forces coefficient
                  * **initial_length_fraction**: the size of the membrane increases linearly in time from this fraction of the provided mesh to its full size after grow_until time; the parameters are scaled accordingly with time. If this is set, **grow_until** must also be provided. Default value: 1.
                  * **grow_until**:              the size increases linearly in time from a fraction of the provided mesh to its full size after that time; the parameters are scaled accordingly with time. If this is set, **initial_length_fraction** must also be provided. Default value: 0
 
@@ -403,23 +402,6 @@ class Pairwise(Interaction):
 
                 * **p0**: :math:`p_0`
                 * **rho_r**: :math:`\rho_r`
-    
-
-        """
-        pass
-
-    def setSpecificPair():
-        r"""setSpecificPair(pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, **kwargs) -> None
-
-
-        Set specific parameters of a given interaction for a specific pair of :any:`ParticleVector`.
-        This is useful when interactions only slightly differ between different pairs of :any:`ParticleVector`.
-        The specific parameters should be set in the **kwargs** field, with same naming as in construction of the interaction.
-        Note that only the values of the parameters can be modified, not the kernel types (e.g. change of density kernel is not supported in the case of SDPD interactions).
-
-        Args:
-            pv1: first :any:`ParticleVector`
-            pv2: second :any:`ParticleVector`
     
 
         """

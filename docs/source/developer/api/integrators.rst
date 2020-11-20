@@ -31,6 +31,10 @@ Derived classes
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::IntegratorSubStepShardlowSweep
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::IntegratorSubStep
    :project: mirheo
    :members:
@@ -61,5 +65,3 @@ Currently implemented forcing terms:
 .. doxygenclass:: mirheo::ForcingTermPeriodicPoiseuille
    :project: mirheo
    :members:
-
-

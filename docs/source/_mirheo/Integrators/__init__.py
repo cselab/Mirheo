@@ -110,6 +110,33 @@ class SubStep(Integrator):
         """
         pass
 
+class SubStepShardlowSweep(Integrator):
+    r"""
+            Takes advantage of separation of time scales between "fast" internal forces and other "slow" forces on a membrane vector.
+            This integrator advances the object vector with constant slow forces for 'substeps' sub time steps.
+            The fast forces are updated after each sub step using the Shardlow method for viscous forces with multiple seeps.
+        
+    """
+    def __init__():
+        r"""__init__(name: str, substeps: int, fastForces: Interactions.MembraneForces, gammaC: float, kBT: float, nsweeps: int) -> None
+
+
+                Args:
+                    name: Name of the integrator.
+                    substeps: Number of sub steps.
+                    fastForces: Membrane interactions. Only accepts :any:`MembraneForces`. Must have zero gammaC and zero kBT.
+                    gammaC: Membrane viscous coefficient.
+                    kBT: temperature, in energy units. Set to zero to disable membrane fluctuations.
+                    nsweeps: Number of sweeps for the semi implicit step. Must be strictly more than 0.
+
+                .. warning::
+                    The interaction will be set to the required object vector when setting this integrator to the object vector.
+                    Hence the interaction needs not to be set explicitely to the OV.
+            
+
+        """
+        pass
+
 class Translate(Integrator):
     r"""
         Translate particles with a constant velocity :math:`\mathbf{u}` regardless forces acting on them.
