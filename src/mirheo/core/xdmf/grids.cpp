@@ -86,8 +86,8 @@ pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string
             {{
               { "Name", nodeName },
               { "Dimensions", "3" },
-              { "NumberType", numberTypeToString(Channel::NumberType::Float) },
-              { "Precision", std::to_string(numberTypeToPrecision(Channel::NumberType::Float)) },
+              { "NumberType", numberTypeToString(XDMF::getNumberType<real>()) },
+              { "Precision", std::to_string(numberTypeToPrecision(XDMF::getNumberType<real>())) },
               { "Format", "XML" }
               }};
 
