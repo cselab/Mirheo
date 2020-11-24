@@ -57,9 +57,9 @@ __global__ void getCountsPerDistance(PVview view, CellListInfo cinfo, CountType 
 
             const int3 c0 = cinfo.getCellIdAlongAxes(ri);
             int3 c1;
-            for (c1.z = c0.z-1; c1.z <= c0.z+1; ++c1.z) {
-                for (c1.y = c0.y-1; c1.y <= c0.y+1; ++c1.y) {
-                    for (c1.x = c0.x-1; c1.x <= c0.x+1; ++c1.x) {
+            for (c1.z = math::max(c0.z-1, 0); c1.z <= math::min(c0.z+1, cinfo.ncells.z-1); ++c1.z) {
+                for (c1.y = math::max(c0.y-1, 0); c1.y <= math::min(c0.y+1, cinfo.ncells.y-1); ++c1.y) {
+                    for (c1.x = math::max(c0.x-1, 0); c1.x <= math::min(c0.x+1, cinfo.ncells.x-1); ++c1.x) {
                         const int cid1 = cinfo.encode(c1);
                         const int start = cinfo.cellStarts[cid1];
                         const int end   = cinfo.cellStarts[cid1+1];
