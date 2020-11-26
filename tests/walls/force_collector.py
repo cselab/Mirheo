@@ -51,30 +51,16 @@ u.setIntegrator(translate, frozen_hi)
 
 sample_every = 1
 dump_every   = 1000
-outname_hi = 'wallForceHi.txt'
-outname_lo = 'wallForceLo.txt'
+outname_hi = 'wallForceHi.csv'
+outname_lo = 'wallForceLo.csv'
 u.registerPlugins(mir.Plugins.createWallForceCollector('forceCollectorHi', plate_hi, frozen_hi, sample_every, dump_every, outname_hi))
 u.registerPlugins(mir.Plugins.createWallForceCollector('forceCollectorLo', plate_lo, frozen_lo, sample_every, dump_every, outname_lo))
 
 u.run(int(tend / dt), dt=dt)
 
-if u.isComputeTask():
-    A = domain[0] * domain[1]
-
-    data_hi = np.loadtxt(outname_hi)
-    data_lo = np.loadtxt(outname_lo)
-
-    # avg_from = 5
-    # fx_hi = abs(np.mean(data_hi[avg_from:,1]))
-    # fx_lo = abs(np.mean(data_lo[avg_from:,1]))
-
-    # Sxy_hi = fx_hi / A
-    # Sxy_lo = fx_lo / A
-    # thSxy = abs(gdot) * 4.96 * gdpd
-    # print(thSxy, Sxy_hi, Sxy_lo)
 
 # nTEST: walls.force_collector.couette
 # cd walls/
 # rm -rf wallForce*txt
 # mir.run --runargs "-n 2" ./force_collector.py
-# cat wallForceHi.txt | awk 'NR>1 {print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt
+# mir.post ../tools/dump_csv.py wallForceHi.csv time fx fy fz | awk 'NR>1 {print $1, $2 / 10000.0, $3 / 10000.0, $4 / 10000.0}' > wallForce.out.txt

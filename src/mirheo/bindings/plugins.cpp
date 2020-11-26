@@ -623,7 +623,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createWallForceCollector", &plugin_factory::createWallForceCollectorPlugin,
           "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, R"(
-        This plugin collects and average the total force exerted on a given wall.
+        This plugin collects and averages the total force exerted on a given wall.
         The result has 2 components:
 
             * bounce back: force necessary to the momentum change
@@ -631,11 +631,11 @@ void exportPlugins(py::module& m)
 
         Args:
             name: name of the plugin
-            wall: :any:`Wall` that we ll work with
+            wall: The :any:`Wall` to collect forces from
             pvFrozen: corresponding frozen :any:`ParticleVector`
             sample_every: sample every this number of time steps
-            dump_every: dump every this amount of timesteps
-            filename: output filename
+            dump_every: dump every this number of time steps
+            filename: output filename (csv format)
     )");
 }
 

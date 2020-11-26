@@ -147,5 +147,5 @@ h5
 /walls/sdf/vcont.csv
 /walls/volume/log_00000.log
 /walls/volume/volume.txt
-/walls/wallForceHi.txt
-/walls/wallForceLo.txt
+/walls/wallForceHi.csv
+/walls/wallForceLo.csv
