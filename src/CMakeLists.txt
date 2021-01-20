@@ -6,10 +6,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if (MIR_BUILD_PYTHON_MODULE)
   # Add pybind11
-  if (NOT TARGET pybind11)
+  if (NOT TARGET pybind11 AND NOT TARGET pybind11::headers)
     add_subdirectory(extern/pybind11)
   endif()
-  set(PYBIND11_CPP_STANDARD -std=c++14)
 endif()
 
 # Add mpark/variant
