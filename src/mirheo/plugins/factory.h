@@ -135,7 +135,7 @@ PairPlugin createVelocityInletPlugin(bool computeTask, const MirState *state, st
 PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, Wall* wall, real C, real h, real maxForce);
 
 PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
-                                          int sampleEvery, int dumpEvery, std::string filename);
+                                          int sampleEvery, int dumpEvery, std::string filename, bool detailedDump);
 
 
 /** \brief Construct a simulation & postprocess plugin pair given their ConfigObjects.

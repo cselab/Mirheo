@@ -744,7 +744,7 @@ def createVirialPressurePlugin():
     pass
 
 def createWallForceCollector():
-    r"""createWallForceCollector(state: MirState, name: str, wall: Walls.Wall, pvFrozen: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, filename: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createWallForceCollector(state: MirState, name: str, wall: Walls.Wall, pvFrozen: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, filename: str, detailed_dump: bool=False) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin collects and averages the total force exerted on a given wall.
@@ -760,6 +760,7 @@ def createWallForceCollector():
             sample_every: sample every this number of time steps
             dump_every: dump every this number of time steps
             filename: output filename (csv format)
+            detailed_dump: if True, will dump separately the bounce contribution and the rest. If False, only the sum is dumped.
     
 
     """

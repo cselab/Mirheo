@@ -101,8 +101,9 @@ void WallForceCollectorPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filename) :
-    PostprocessPlugin(name)
+WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filename, bool detailedDump) :
+    PostprocessPlugin(name),
+    detailedDump_(detailedDump)
 {
     filename = setExtensionOrDie(filename, "csv");
 
@@ -110,7 +111,10 @@ WallForceDumperPlugin::WallForceDumperPlugin(std::string name, std::string filen
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename.c_str());
 
-    fprintf(fdump_.get(), "time,fx,fy,fz\n");
+    if (detailedDump_)
+        fprintf(fdump_.get(), "time,fbx,fby,fbz,fix,fiy,fiz\n");
+    else
+        fprintf(fdump_.get(), "time,fx,fy,fz\n");
 }
 
 void WallForceDumperPlugin::deserialize()
@@ -133,8 +137,19 @@ void WallForceDumperPlugin::deserialize()
         const auto fb = make_double3(totalForce[0], totalForce[1], totalForce[2]);
         const auto fi = make_double3(totalForce[3], totalForce[4], totalForce[5]);
 
-        fprintf(fdump_.get(), "%g,%g,%g,%g\n",
-                currentTime, fb.x + fi.x, fb.y + fi.y, fb.z + fi.z);
+        if (detailedDump_)
+        {
+            fprintf(fdump_.get(), "%g,%g,%g,%g,%g,%g,%g\n",
+                    currentTime,
+                    fb.x, fb.y, fb.z,
+                    fi.x, fi.y, fi.z);
+        }
+        else
+        {
+            const auto f = fb + fi;
+            fprintf(fdump_.get(), "%g,%g,%g,%g\n", currentTime, f.x, f.y, f.z);
+        }
+
         fflush(fdump_.get());
     }
 }

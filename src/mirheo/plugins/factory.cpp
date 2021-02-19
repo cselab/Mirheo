@@ -424,7 +424,7 @@ PairPlugin createWallRepulsionPlugin(bool computeTask, const MirState *state, st
 }
 
 PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *state, std::string name, Wall *wall, ParticleVector* pvFrozen,
-                                          int sampleEvery, int dumpEvery, std::string filename)
+                                          int sampleEvery, int dumpEvery, std::string filename, bool detailedDump)
 {
     auto simPl = computeTask ?
         std::make_shared<WallForceCollectorPlugin> (state, name, wall->getName(), pvFrozen->getName(), sampleEvery, dumpEvery) :
@@ -432,7 +432,7 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
 
     auto postPl = computeTask ?
         nullptr :
-        std::make_shared<WallForceDumperPlugin> (name, filename);
+        std::make_shared<WallForceDumperPlugin> (name, filename, detailedDump);
 
     return { simPl, postPl };
 }

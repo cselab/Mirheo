@@ -71,12 +71,15 @@ public:
     /** Create a WallForceDumperPlugin.
         \param [in] name The name of the plugin.
         \param [in] filename The file to dump the stats to.
+        \param [in] detailedDump If \c true, the file will contain the bounce contribution
+                                 and particle interactions contributions instead of the sum.
     */
-    WallForceDumperPlugin(std::string name, std::string filename);
+    WallForceDumperPlugin(std::string name, std::string filename, bool detailedDump);
 
     void deserialize() override;
 
 private:
+    bool detailedDump_;
     FileWrapper fdump_;
 };
 

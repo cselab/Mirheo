@@ -622,7 +622,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createWallForceCollector", &plugin_factory::createWallForceCollectorPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "wall"_a, "pvFrozen"_a, "sample_every"_a, "dump_every"_a, "filename"_a, "detailed_dump"_a=false, R"(
         This plugin collects and averages the total force exerted on a given wall.
         The result has 2 components:
 
@@ -636,6 +636,7 @@ void exportPlugins(py::module& m)
             sample_every: sample every this number of time steps
             dump_every: dump every this number of time steps
             filename: output filename (csv format)
+            detailed_dump: if True, will dump separately the bounce contribution and the rest. If False, only the sum is dumped.
     )");
 }
 
