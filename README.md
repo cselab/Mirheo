@@ -43,6 +43,7 @@ make install
 * **interface changes**
   * remove `setSpecificPair` from pirwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
   * wall force collector plugin: use csv format for output.
+  * wall force collector plugin: add optional "detailed" dump.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
 
