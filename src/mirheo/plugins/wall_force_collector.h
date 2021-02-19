@@ -55,7 +55,8 @@ private:
 
     PinnedBuffer<double3> *bounceForceBuffer_ {nullptr};
     PinnedBuffer<double3> pvForceBuffer_ {1};
-    double3 totalForce_ {0.0, 0.0, 0.0};
+    double3 bounceForce_ {0.0, 0.0, 0.0};
+    double3 pvForce_ {0.0, 0.0, 0.0};
 
     std::vector<char> sendBuffer_;
 };
