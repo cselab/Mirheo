@@ -41,12 +41,12 @@ make install
 * Add Shardlow integrator for membranes
 * Docs: Add ADE model and add the corresponding reference.
 * **interface changes**
-  * remove `setSpecificPair` from pirwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
+  * remove `setSpecificPair` from pairwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
   * wall force collector plugin: use csv format for output.
   * wall force collector plugin: add optional "detailed" dump.
+  * Shape Bouncers: warnings are now optional, disabled by default.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
-  * Shape Bouncers: warnings are now optional, disabled by default.
 
 
 ### v1.5.0
