@@ -112,7 +112,7 @@ void exportBouncers(py::module& m)
                           auto varBounceKernel = readBounceKernel(kernel, kwargs, name);
                           return std::make_shared<BounceFromMesh>(state, name, varBounceKernel);
                       }),
-                      "state"_a, "name"_a, "kernel"_a, R"(
+            "state"_a, "name"_a, "kernel"_a, R"(
             Args:
                 name: name of the bouncer
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
@@ -123,15 +123,16 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, const py::kwargs& kwargs)
+        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, int verbosity, const py::kwargs& kwargs)
                       {
                           auto varBounceKernel = readBounceKernel(kernel, kwargs, name);
-                          return std::make_shared<BounceFromRigidShape<Capsule>>(state, name, varBounceKernel);
+                          return std::make_shared<BounceFromRigidShape<Capsule>>(state, name, varBounceKernel, verbosity);
                       }),
-            "state"_a, "name"_a, "kernel"_a, R"(
+            "state"_a, "name"_a, "kernel"_a, "verbosity"_a=0, R"(
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         )");
 
@@ -140,15 +141,16 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the cylinder is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, const py::kwargs& kwargs)
+        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, int verbosity, const py::kwargs& kwargs)
                       {
                           auto varBounceKernel = readBounceKernel(kernel, kwargs, name);
-                          return std::make_shared<BounceFromRigidShape<Cylinder>>(state, name, varBounceKernel);
+                          return std::make_shared<BounceFromRigidShape<Cylinder>>(state, name, varBounceKernel, verbosity);
                       }),
-            "state"_a, "name"_a, "kernel"_a, R"(
+            "state"_a, "name"_a, "kernel"_a, "verbosity"_a=0, R"(
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         )");
 
@@ -157,15 +159,16 @@ void exportBouncers(py::module& m)
         No additional correction from the Object Belonging Checker is usually required.
         The velocity of the particles bounced from the ellipsoid is reversed with respect to the boundary velocity at the contact point.
     )")
-        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, const py::kwargs& kwargs)
+        .def(py::init([](const MirState *state, const std::string& name, const std::string& kernel, int verbosity, const py::kwargs& kwargs)
                       {
                           auto varBounceKernel = readBounceKernel(kernel, kwargs, name);
-                          return std::make_shared<BounceFromRigidShape<Ellipsoid>>(state, name, varBounceKernel);
+                          return std::make_shared<BounceFromRigidShape<Ellipsoid>>(state, name, varBounceKernel, verbosity);
                       }),
-            "state"_a, "name"_a, "kernel"_a, R"(
+            "state"_a, "name"_a, "kernel"_a, "verbosity"_a=0, R"(
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         )");
 

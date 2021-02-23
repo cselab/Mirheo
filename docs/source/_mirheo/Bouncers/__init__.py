@@ -39,12 +39,13 @@ class Capsule(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         
 
@@ -59,12 +60,13 @@ class Cylinder(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         
 
@@ -79,12 +81,13 @@ class Ellipsoid(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
 
 
             Args:
                 name: name of the checker
                 kernel: the kernel used to bounce the particles (see :any:`Bouncer`)
+                verbosity: 0 for no warning, 1 to display rescue failures, 2 to display all warnings
 
         
 

@@ -16,9 +16,11 @@ namespace mirheo
 template <class Shape>
 BounceFromRigidShape<Shape>::BounceFromRigidShape(const MirState *state,
                                                   const std::string& name,
-                                                  VarBounceKernel varBounceKernel) :
+                                                  VarBounceKernel varBounceKernel,
+                                                  int verbosity) :
     Bouncer(state, name),
-    varBounceKernel_(varBounceKernel)
+    varBounceKernel_(varBounceKernel),
+    verbosity_(verbosity)
 {}
 
 template <class Shape>
@@ -82,7 +84,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
             shape_bounce_kernels::bounce,
             nblocks, nthreads, smem, stream,
             ovView, pvView, cl->cellInfo(), getState()->getDt(),
-            bounceKernel);
+            bounceKernel, BounceVerbosity(verbosity_));
 
     }, varBounceKernel_);
 }

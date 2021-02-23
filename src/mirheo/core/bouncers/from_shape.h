@@ -29,8 +29,9 @@ public:
         \param [in] state Simulation state
         \param [in] name Name of the bouncer
         \param [in] varBounceKernel How are the particles bounced
+        \param [in] verbosity 0: no print; 1 print to console the rescue failures; 2 print to console all failures.
     */
-    BounceFromRigidShape(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel);
+    BounceFromRigidShape(const MirState *state, const std::string& name, VarBounceKernel varBounceKernel, int verbosity);
     ~BounceFromRigidShape();
 
     /**
@@ -53,6 +54,8 @@ protected:
 
     VarBounceKernel varBounceKernel_; ///< The kernel used to reflect the particles on the surface
     std::mt19937 rng_ {42L}; ///< rng used to update varBounceKernel_
+
+    int verbosity_;
 };
 
 } // namespace mirheo

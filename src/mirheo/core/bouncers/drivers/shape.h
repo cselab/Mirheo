@@ -1,6 +1,8 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
+#include "common.h"
+
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/pvs/views/rsov.h>
 #include <mirheo/core/rigid/utils.h>
@@ -46,7 +48,8 @@ template <class Shape, class BounceKernel>
 __device__ static inline void bounceCellArray(
         const RSOVviewWithOldMotion<Shape>& ovView, PVviewWithOldParticles& pvView,
         int objId, const int *validCells, int nCells,
-        CellListInfo cinfo, const real dt, const BounceKernel& bounceKernel)
+        CellListInfo cinfo, const real dt, const BounceKernel& bounceKernel,
+        BounceVerbosity verbosity)
 {
     const real threshold = 2e-5_r;
 
@@ -84,13 +87,14 @@ __device__ static inline void bounceCellArray(
 
             if (shape.inOutFunction(newCoo) < 0.0_r)
             {
-                printf("Bounce-back rescue failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g (rescued: %g).\n",
-                       p.getId(),
-                       p.r.x, p.r.y, p.r.z,
-                       coo.x, coo.y, coo.z,
-                       shape.inOutFunction(oldCoo),
-                       shape.inOutFunction(coo),
-                       shape.inOutFunction(newCoo));
+                if (verbosity >= BounceVerbosity::RescueFails)
+                    printf("Bounce-back rescue failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g (rescued: %g).\n",
+                           p.getId(),
+                           p.r.x, p.r.y, p.r.z,
+                           coo.x, coo.y, coo.z,
+                           shape.inOutFunction(oldCoo),
+                           shape.inOutFunction(coo),
+                           shape.inOutFunction(newCoo));
 
                 newCoo = oldCoo;
             }
@@ -110,14 +114,15 @@ __device__ static inline void bounceCellArray(
             // If smth went notoriously bad
             if (shape.inOutFunction(newCoo) < 0.0_r)
             {
-                printf("Bounce-back failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g to %g, alpha %f. Recovering to old position\n",
-                       p.getId(),
-                       p.r.x, p.r.y, p.r.z,
-                       coo.x, coo.y, coo.z,
-                       shape.inOutFunction(oldCoo),
-                       shape.inOutFunction(coo),
-                       shape.inOutFunction(newCoo - threshold*normal),
-                       alpha);
+                if (verbosity >= BounceVerbosity::BounceFails)
+                    printf("Bounce-back failed on particle %ld (%g %g %g) (local: (%g %g %g))  %g -> %g to %g, alpha %f. Recovering to old position\n",
+                           p.getId(),
+                           p.r.x, p.r.y, p.r.z,
+                           coo.x, coo.y, coo.z,
+                           shape.inOutFunction(oldCoo),
+                           shape.inOutFunction(coo),
+                           shape.inOutFunction(newCoo - threshold*normal),
+                           alpha);
 
                 newCoo = oldCoo;
             }
@@ -172,7 +177,7 @@ __device__ static inline bool isValidCell(int3 cid3, const RealRigidMotion& moti
 
 template <class Shape, class BounceKernel>
 __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticles pvView,
-                       CellListInfo cinfo, const real dt, const BounceKernel bounceKernel)
+                       CellListInfo cinfo, const real dt, const BounceKernel bounceKernel, BounceVerbosity verbosity)
 {
     // About max travel distance per step + safety
     // Safety comes from the fact that bounce works with the analytical shape,
@@ -215,7 +220,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
         // If we have enough cells ready - process them
         if (nCells >= blockDim.x)
         {
-            bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cinfo, dt, bounceKernel);
+            bounceCellArray(ovView, pvView, objId, validCells, blockDim.x, cinfo, dt, bounceKernel, verbosity);
 
             __syncthreads();
 
@@ -229,7 +234,7 @@ __global__ void bounce(RSOVviewWithOldMotion<Shape> ovView, PVviewWithOldParticl
     __syncthreads();
 
     // Process remaining
-    bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt, bounceKernel);
+    bounceCellArray(ovView, pvView, objId, validCells, nCells, cinfo, dt, bounceKernel, verbosity);
 }
 
 } // namespace shape_bounce_kernels

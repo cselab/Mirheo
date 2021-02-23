@@ -46,6 +46,7 @@ make install
   * wall force collector plugin: add optional "detailed" dump.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
+  * Shape Bouncers: warnings are now optional, disabled by default.
 
 
 ### v1.5.0
