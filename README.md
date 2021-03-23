@@ -4,12 +4,12 @@
 
 Computational Microfluidics
 
-Mirheo is a GPU high-performance and high-throughput code aimed at simulation of flows at milli- and microscales.
-The code uses Dissipative Particle Dynamics method to describe the liquid and its interaction with cells and other bodies.
+Mirheo is a GPU high-performance and high-throughput code aimed at simulation of flows at milli- and microscales [[ref:cpc2020]].
+The code uses Dissipative Particle Dynamics method to describe the liquid and its interaction with cells [[ref::pra2021]] and rigid bodies.
 
 For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
-If you want to cite this repository, please use the reference of the corresponding paper:
+If you want to cite this repository, please use the reference of the corresponding paper [[ref:cpc2020]]:
 
 	@article{alexeev2020a,
 	author = {Dmitry Alexeev and Lucas Amoudruz and Sergey Litvinov and Petros Koumoutsakos},
@@ -24,6 +24,7 @@ If you want to cite this repository, please use the reference of the correspondi
 	}
 
 
+
 ## Installation
 
 ```sh
@@ -31,6 +32,18 @@ git clone --recursive https://github.com/cselab/Mirheo
 cd Mirheo
 make install
 ```
+
+## Publications
+
+[[item:cpc2020]] D. Alexeev, L. Amoudruz, S. Litvinov, and P. Koumoutsakos,
+	“Mirheo: high-performance mesoscale simulations for microfluidics,"
+	Comput. Phys. Commun., p. 107298, 2020
+  [10.1016/j.cpc.2020.107298](http://dx.doi.org/10.1016/j.cpc.2020.107298)
+
+[[item:pra2021]] A. Economides, G. Arampatzis, D. Alexeev, S. Litvinov, L. Amoudruz, L. Kulakova, C. Papadimitriou, and P. Koumoutsakos,
+	“Hierarchical bayesian uncertainty quantification for a model of the red blood cell,"
+	Phys. Rev. Appl., vol. 15, iss. 3, 2021.
+  [10.1103/physrevapplied.15.034062](http://dx.doi.org/10.1103/physrevapplied.15.034062)
 
 ## Changelog
 
