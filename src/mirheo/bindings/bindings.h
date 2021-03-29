@@ -13,6 +13,7 @@ void exportConfigValue(py::module& m);
 void exportUnitConversion(py::module& m);
 void exportMirheo(py::module& m);
 void exportInitialConditions(py::module& m);
+void exportCudaArrayInterface(py::module& m);
 void exportDataManagerChannel(py::module& m);
 void exportLocalParticleVector(py::module& m);
 void exportParticleVectors(py::module& m);

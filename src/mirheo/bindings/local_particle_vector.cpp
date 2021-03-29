@@ -1,6 +1,7 @@
 // Copyright 2021 ETH Zurich. All Rights Reserved.
 
 #include "bindings.h"
+#include "cuda_array_interface.h"
 #include <mirheo/core/pvs/particle_vector.h>
 
 namespace mirheo
@@ -17,24 +18,63 @@ void exportLocalParticleVector(py::module& m) {
             {
                 auto * const channel = lpv->dataPerParticle.getChannelDesc(name);
                 return channel ? channel : throw py::key_error(name);
-            }, "name"_a, R"(
+            }, "name"_a, py::return_value_policy::reference_internal, R"(
                 Returns:
                     The ChannelDescription for the given channel name.
-            )", py::return_value_policy::reference_internal);
-
+            )");
     pylpv.def("__iter__", [](LocalParticleVector *lpv)
+            {
+                const auto &channels = lpv->dataPerParticle.getSortedChannels();
+                return py::make_key_iterator(channels.begin(), channels.end());
+            }, py::keep_alive<0, 1>(), R"(
+                Returns:
+                    Iterator to channel names.
+            )");
+    pylpv.def("items", [](LocalParticleVector *lpv)
             {
                 // getSortedChannels returns const pointers, but pybind11 strips
                 // constness away (which is desired here).
                 const auto &channels = lpv->dataPerParticle.getSortedChannels();
-                return py::make_key_iterator(channels.begin(), channels.end());
-            }, py::keep_alive<0, 1>());
-
-    pylpv.def("items", [](LocalParticleVector *lpv)
-            {
-                const auto &channels = lpv->dataPerParticle.getSortedChannels();
                 return py::make_iterator(channels.begin(), channels.end());
-            }, py::keep_alive<0, 1>());
+            }, py::keep_alive<0, 1>(), R"(
+                Returns:
+                    Iterator to (channel name, channel data) pairs.
+            )");
+
+    pylpv.def_property_readonly("r", [](LocalParticleVector& lpv)
+            {
+                CudaArrayInterface array = getBufferCudaArrayInterface(lpv.positions());
+                assert(array.shape[1] == 4);
+                array.shape[1] = 3;
+                return array;
+            }, py::keep_alive<0, 1>(), R"(
+                Alias for the `real3` part of `lpv['positions']`.
+
+                Returns:
+                    Cupy-compatible view of the positions buffer.
+            )");
+    pylpv.def_property_readonly("v", [](LocalParticleVector& lpv)
+            {
+                CudaArrayInterface array = getBufferCudaArrayInterface(lpv.velocities());
+                assert(array.shape[1] == 4);
+                array.shape[1] = 3;
+                return array;
+            }, py::keep_alive<0, 1>(), R"(
+                Alias for the `real3` part of `lpv['velocities']`.
+
+                Returns:
+                    Cupy-compatible view of the velocities buffer.
+            )");
+    pylpv.def_property_readonly("f", [](LocalParticleVector& lpv)
+            {
+                // Here the `int` part of the `Force` struct is already stripped away.
+                return getBufferCudaArrayInterface(lpv.forces());
+            }, py::keep_alive<0, 1>(), R"(
+                Alias for the `real3` part of `lpv['__forces']`.
+
+                Returns:
+                    Cupy-compatible view of the forces buffer.
+            )");
 }
 
 } // namespace mirheo

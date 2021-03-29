@@ -168,12 +168,14 @@ void DataManager::_sortChannels()
     });
 }
 
-DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name) {
+DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name)
+{
     auto it = channelMap_.find(name);
     return it != channelMap_.end() ? &it->second : nullptr;
 }
 
-const DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name) const {
+const DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name) const
+{
     auto it = channelMap_.find(name);
     return it != channelMap_.end() ? &it->second : nullptr;
 }

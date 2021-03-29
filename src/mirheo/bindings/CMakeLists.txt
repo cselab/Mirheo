@@ -1,6 +1,7 @@
 set(sources_cpp
   bindings.cpp
   bouncers.cpp
+  cuda_array_interface.cpp
   data_manager.cpp
   initial_conditions.cpp
   integrators.cpp
