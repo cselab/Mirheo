@@ -52,6 +52,24 @@ Overloaded function.
         """
         pass
 
+class CudaArrayInterface:
+    r"""
+        Cupy and numba-compatible view for an internal CUDA buffer.
+    
+    """
+    @property
+    def __cuda_array_interface__():
+        r"""
+        The dictionary describing the underlying CUDA buffer.
+
+        For more information, see:
+            https://numba.pydata.org/numba-doc/dev/cuda/cuda_array_interface.html
+        and
+            https://docs.cupy.dev/en/stable/reference/interoperability.html#numba
+    
+        """
+        pass
+
 class MirState:
     r"""
         state of the simulation shared by all simulation objects.
