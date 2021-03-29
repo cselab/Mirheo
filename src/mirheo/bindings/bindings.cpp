@@ -12,6 +12,7 @@ PYBIND11_MODULE(libmirheo, m)
     // https://github.com/pybind/pybind11/issues/1869
     m.attr("version") = Version::mir_version;  // This is not const!
 
+    exportCudaArrayInterface(m);
     exportVectorTypes(m);
     exportConfigValue(m);
     exportUnitConversion(m);
@@ -22,6 +23,7 @@ PYBIND11_MODULE(libmirheo, m)
     exportInitialConditions(ic);
 
     auto pv = m.def_submodule("ParticleVectors");
+    exportLocalParticleVector(pv);
     exportParticleVectors(pv);
 
     auto interactions = m.def_submodule("Interactions");

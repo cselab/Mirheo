@@ -1,6 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "bindings.h"
 #include "class_wrapper.h"
+#include "cuda_array_interface.h"
 
 #include <mirheo/core/mesh/membrane.h>
 #include <mirheo/core/mesh/mesh.h>
@@ -40,6 +41,47 @@ void exportParticleVectors(py::module& m)
                 name: name of the created PV
                 mass: mass of a single particle
         )")
+        .def_property_readonly("local", py::overload_cast<>(&ParticleVector::local), R"(
+            The local LocalParticleVector instance, the storage of local particles.
+        )", py::return_value_policy::reference_internal)
+        .def_property_readonly("halo", py::overload_cast<>(&ParticleVector::halo), R"(
+            The halo LocalParticleVector instance, the storage of halo particles.
+        )", py::return_value_policy::reference_internal)
+        //
+        .def_property_readonly("r", [](ParticleVector& pv)
+                {
+                    CudaArrayInterface array = getBufferCudaArrayInterface(pv.local()->positions());
+                    assert(array.shape[1] == 4);
+                    array.shape[1] = 3;
+                    return array;
+                }, py::keep_alive<0, 1>(), R"(
+                    Alias for the `real3` part of `pv.local['positions']`.
+
+                    Returns:
+                        Cupy-compatible view over the internal local positions buffer.
+                )")
+        .def_property_readonly("v", [](ParticleVector& pv)
+                {
+                    CudaArrayInterface array = getBufferCudaArrayInterface(pv.local()->velocities());
+                    assert(array.shape[1] == 4);
+                    array.shape[1] = 3;
+                    return array;
+                }, py::keep_alive<0, 1>(), R"(
+                    Alias for the `real3` part of `pv.local['velocities']`.
+
+                    Returns:
+                        Cupy-compatible view over the internal local velocities buffer.
+                )")
+        .def_property_readonly("f", [](ParticleVector& pv)
+                {
+                    // Here the `int` part of the `Force` struct is already stripped away.
+                    return getBufferCudaArrayInterface(pv.local()->forces());
+                }, py::keep_alive<0, 1>(), R"(
+                    Alias for the `real3` part of `pv.local['__forces']`.
+
+                    Returns:
+                        Cupy-compatible view over the internal local forces buffer.
+                )")
         //
         .def("get_indices", &ParticleVector::getIndices_vector, R"(
             Returns:
