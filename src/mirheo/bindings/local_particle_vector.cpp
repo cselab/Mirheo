@@ -20,7 +20,7 @@ void exportLocalParticleVector(py::module& m) {
                 if (channel == nullptr)
                     throw py::key_error(name);
                 return getVariantCudaArrayInterface(channel->varDataPtr);
-            }, "name"_a, py::return_value_policy::reference_internal, R"(
+            }, "name"_a, py::keep_alive<0, 1>, R"(
                 Returns:
                     Cupy-compatible view over the internal CUDA buffer.
             )");

@@ -30,6 +30,7 @@ static py::tuple toTuple(const int *array, int size)
 
 py::dict CudaArrayInterface::cudaArrayInterface() const
 {
+    assert(ndim <= 2);
     const bool isReadOnly = false;
     return py::dict(
             "shape"_a = toTuple(shape, ndim),
@@ -69,9 +70,10 @@ struct GetPartialArrayInterface
         }                                                 \
     }
 
-// Cupy does not support custom dtypes, so everything has to be exported as
-// zero or multidimensional primitive types. It is not clear how to export
-// Stress, RigidMotion and COMandExtent, so we disable it for now.
+// Cupy does not support structured dtypes, so it's best to export everything
+// using primitive types only (numba doesn't seem to have such limitation).
+// Optional structured bindings could be added in the future, for example as
+// `pv.local[channel_name].structured`.
 MIR_NUMPY_PARTIAL_INFO(int, -1, sizeof(int), 'd');
 MIR_NUMPY_PARTIAL_INFO(int64_t, -1, sizeof(int64_t), 'd');
 MIR_NUMPY_PARTIAL_INFO(float, -1, sizeof(float), 'f');
@@ -83,8 +85,9 @@ MIR_NUMPY_PARTIAL_INFO(double2, 2, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(double3, 3, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(double4, 4, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(Stress, 6, sizeof(real), 'f');
-// RigidMotion should be exported as a structured type because it has padding
-// in the middle due to alignment of the quaternion. Disabling for now.
+// RigidMotion has padding in the middle due to alignment of the quaternion.
+// Disabling for now, since exporting it in a naive fashion would expose the
+// dummy element which would be quite impractical.
 // MIR_NUMPY_PARTIAL_INFO(RigidMotion, 3 + 4 + 3 + 3 + 3 + 3, sizeof(real), 'f');
 MIR_NUMPY_PARTIAL_INFO(COMandExtent, 9, sizeof(real), 'f');
 MIR_NUMPY_PARTIAL_INFO(Force, 3, sizeof(real), 'f');  // <-- The int part is skipped!
