@@ -58,7 +58,7 @@ void exportParticleVectors(py::module& m)
                     Alias for the `real3` part of `pv.local['positions']`.
 
                     Returns:
-                        Cupy-compatible view of the internal local positions buffer.
+                        Cupy-compatible view over the internal local positions buffer.
                 )")
         .def_property_readonly("v", [](ParticleVector& pv)
                 {
@@ -70,7 +70,7 @@ void exportParticleVectors(py::module& m)
                     Alias for the `real3` part of `pv.local['velocities']`.
 
                     Returns:
-                        Cupy-compatible view of the internal local velocities buffer.
+                        Cupy-compatible view over the internal local velocities buffer.
                 )")
         .def_property_readonly("f", [](ParticleVector& pv)
                 {
@@ -80,7 +80,7 @@ void exportParticleVectors(py::module& m)
                     Alias for the `real3` part of `pv.local['__forces']`.
 
                     Returns:
-                        Cupy-compatible view of the internal local forces buffer.
+                        Cupy-compatible view over the internal local forces buffer.
                 )")
         //
         .def("get_indices", &ParticleVector::getIndices_vector, R"(

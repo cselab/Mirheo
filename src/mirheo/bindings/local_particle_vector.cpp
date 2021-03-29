@@ -17,10 +17,12 @@ void exportLocalParticleVector(py::module& m) {
     pylpv.def("__getitem__", [](LocalParticleVector *lpv, const std::string &name)
             {
                 auto * const channel = lpv->dataPerParticle.getChannelDesc(name);
-                return channel ? channel : throw py::key_error(name);
+                if (channel == nullptr)
+                    throw py::key_error(name);
+                return getVariantCudaArrayInterface(channel->varDataPtr);
             }, "name"_a, py::return_value_policy::reference_internal, R"(
                 Returns:
-                    The ChannelDescription for the given channel name.
+                    Cupy-compatible view over the internal CUDA buffer.
             )");
     pylpv.def("__iter__", [](LocalParticleVector *lpv)
             {
@@ -28,17 +30,7 @@ void exportLocalParticleVector(py::module& m) {
                 return py::make_key_iterator(channels.begin(), channels.end());
             }, py::keep_alive<0, 1>(), R"(
                 Returns:
-                    Iterator to channel names.
-            )");
-    pylpv.def("items", [](LocalParticleVector *lpv)
-            {
-                // getSortedChannels returns const pointers, but pybind11 strips
-                // constness away (which is desired here).
-                const auto &channels = lpv->dataPerParticle.getSortedChannels();
-                return py::make_iterator(channels.begin(), channels.end());
-            }, py::keep_alive<0, 1>(), R"(
-                Returns:
-                    Iterator to (channel name, channel data) pairs.
+                    Iterator over channel names.
             )");
 
     pylpv.def_property_readonly("r", [](LocalParticleVector& lpv)
@@ -51,7 +43,7 @@ void exportLocalParticleVector(py::module& m) {
                 Alias for the `real3` part of `lpv['positions']`.
 
                 Returns:
-                    Cupy-compatible view of the positions buffer.
+                    Cupy-compatible view over the positions buffer.
             )");
     pylpv.def_property_readonly("v", [](LocalParticleVector& lpv)
             {
@@ -63,7 +55,7 @@ void exportLocalParticleVector(py::module& m) {
                 Alias for the `real3` part of `lpv['velocities']`.
 
                 Returns:
-                    Cupy-compatible view of the velocities buffer.
+                    Cupy-compatible view over the velocities buffer.
             )");
     pylpv.def_property_readonly("f", [](LocalParticleVector& lpv)
             {
@@ -73,7 +65,7 @@ void exportLocalParticleVector(py::module& m) {
                 Alias for the `real3` part of `lpv['__forces']`.
 
                 Returns:
-                    Cupy-compatible view of the forces buffer.
+                    Cupy-compatible view over the forces buffer.
             )");
 }
 

@@ -83,12 +83,11 @@ MIR_NUMPY_PARTIAL_INFO(double2, 2, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(double3, 3, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(double4, 4, sizeof(double), 'f');
 MIR_NUMPY_PARTIAL_INFO(Stress, 6, sizeof(real), 'f');
-MIR_NUMPY_PARTIAL_INFO(RigidMotion, 3 + 4 + 3 + 3 + 3 + 3, sizeof(real), 'f');
+// RigidMotion should be exported as a structured type because it has padding
+// in the middle due to alignment of the quaternion. Disabling for now.
+// MIR_NUMPY_PARTIAL_INFO(RigidMotion, 3 + 4 + 3 + 3 + 3 + 3, sizeof(real), 'f');
 MIR_NUMPY_PARTIAL_INFO(COMandExtent, 9, sizeof(real), 'f');
 MIR_NUMPY_PARTIAL_INFO(Force, 3, sizeof(real), 'f');  // <-- The int part is skipped!
-
-// +1 because of alignment (works for both float and double).
-static_assert(sizeof(RigidMotion) == (3 + 4 + 3 + 3 + 3 + 3 + 1) * sizeof(real), "");
 
 } // anonymous namespace
 

@@ -23,7 +23,6 @@ PYBIND11_MODULE(libmirheo, m)
     exportInitialConditions(ic);
 
     auto pv = m.def_submodule("ParticleVectors");
-    exportDataManagerChannel(pv);
     exportLocalParticleVector(pv);
     exportParticleVectors(pv);
 
