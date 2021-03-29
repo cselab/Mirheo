@@ -168,22 +168,30 @@ void DataManager::_sortChannels()
     });
 }
 
+DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name) {
+    auto it = channelMap_.find(name);
+    return it != channelMap_.end() ? &it->second : nullptr;
+}
+
+const DataManager::ChannelDescription *DataManager::getChannelDesc(const std::string& name) const {
+    auto it = channelMap_.find(name);
+    return it != channelMap_.end() ? &it->second : nullptr;
+}
+
 DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::string& name)
 {
-    auto it = channelMap_.find(name);
-    if (it == channelMap_.end())
+    auto * const ptr = getChannelDesc(name);
+    if (ptr == nullptr)
         die("No such channel: '%s'", name.c_str());
-
-    return it->second;
+    return *ptr;
 }
 
 const DataManager::ChannelDescription& DataManager::getChannelDescOrDie(const std::string& name) const
 {
-    auto it = channelMap_.find(name);
-    if (it == channelMap_.end())
+    const auto * const ptr = getChannelDesc(name);
+    if (ptr == nullptr)
         die("No such channel: '%s'", name.c_str());
-
-    return it->second;
+    return *ptr;
 }
 
 

@@ -17,7 +17,7 @@ const std::string globalIds   = "ids";
 
 const std::string positions     = "positions";
 const std::string velocities    = "velocities";
-const std::string forces        = "__forces"; // forces are special, as they are not available di
+const std::string forces        = "__forces"; // forces are special, as they are not available directly for dump
 
 const std::string stresses      = "stresses";
 const std::string densities     = "densities";

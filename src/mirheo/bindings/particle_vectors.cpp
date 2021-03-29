@@ -40,6 +40,12 @@ void exportParticleVectors(py::module& m)
                 name: name of the created PV
                 mass: mass of a single particle
         )")
+        .def_property_readonly("local", py::overload_cast<>(&ParticleVector::local), R"(
+            The local LocalParticleVector instance, the storage of local particles.
+        )", py::return_value_policy::reference_internal)
+        .def_property_readonly("halo", py::overload_cast<>(&ParticleVector::halo), R"(
+            The halo LocalParticleVector instance, the storage of halo particles.
+        )", py::return_value_policy::reference_internal)
         //
         .def("get_indices", &ParticleVector::getIndices_vector, R"(
             Returns:

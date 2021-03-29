@@ -209,6 +209,12 @@ public:
     /// Resize all the channels without preserving the data
     void resize_anew(int n);
 
+    /// Get channel from its name or nullptr if it is not found
+    /// \{
+    ChannelDescription *getChannelDesc(const std::string& name);
+    const ChannelDescription *getChannelDesc(const std::string& name) const;
+    /// \}
+
     /// Get channel from its name or die if it is not found
     /// \{
     ChannelDescription& getChannelDescOrDie(const std::string& name);
