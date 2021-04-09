@@ -42,7 +42,7 @@ createInteractionMembrane(const MirState *state, const std::string& name,
         }
     }, varBendingParams, varShearParams, varFilter);
 
-    return std::move(impl);
+    return impl;
 }
 
 
@@ -86,7 +86,7 @@ loadInteractionMembrane(const MirState *state, Loader& loader, const ConfigObjec
     if (!impl)
         die("Unrecognized impl type \"%s\".", typeName.c_str());
 
-    return std::move(impl);
+    return impl;
 }
 
 } // namespace mirheo

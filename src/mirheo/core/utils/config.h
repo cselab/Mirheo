@@ -378,7 +378,7 @@ public:
         array.reserve(size);
         for (size_t i = 0; i < size; ++i)
             array.push_back((*this)(data[i]));
-        return std::move(array);
+        return array;
     }
 
     /// Check if an object with given address has been registered.
@@ -634,7 +634,7 @@ struct TypeLoadSave<T, std::enable_if_t<MemberVarsAvailable<T>::value>>
     {
         ConfigObject object;
         MemberVars<T>::foreach(detail::DumpHandler{&object, &saver}, &t);
-        return std::move(object);
+        return object;
     }
     static T parse(const ConfigValue&)
     {
@@ -690,7 +690,7 @@ struct TypeLoadSave<std::map<std::string, T>>
         object.reserve(values.size());
         for (auto& pair : values)
             object.unsafe_insert(pair.first, saver(pair.second));
-        return std::move(object);
+        return object;
     }
     static std::map<std::string, T> load(Loader& loader, const ConfigValue& config)
     {
