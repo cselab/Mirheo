@@ -88,4 +88,4 @@ if __name__ == '__main__':
 
 # TEST: bindings.particle_vector
 # cd bindings
-# ./particle_vector.py > particle_vector.out.txt
+# mir.run -n 1 ./particle_vector.py > particle_vector.out.txt
