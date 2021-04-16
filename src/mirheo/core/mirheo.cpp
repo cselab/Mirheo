@@ -66,7 +66,11 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
     info("Found %d GPUs per node, will use GPU %d", ngpus, mygpu);
 
     CUDA_Check( cudaSetDevice(mygpu) );
-    CUDA_Check( cudaDeviceReset() );
+
+    // Disabled because it breaks cupy when instantiating Mirheo multiple times
+    // within the same process (e.g. in unit tests). Python users can invoke
+    // mirheo.destroyCudaContext() manually if needed.
+    // CUDA_Check( cudaDeviceReset() );
 
     MPI_Check( MPI_Comm_free(&shmcomm) );
 }
