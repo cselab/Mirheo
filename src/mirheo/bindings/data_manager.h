@@ -6,6 +6,6 @@
 namespace mirheo {
 namespace py = pybind11;
 
-void exportLocalParticleVector(py::module& m);
+void exportDataManager(py::module& m);
 
 } // namespace mirheo

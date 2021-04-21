@@ -184,42 +184,6 @@ void exportParticleVectors(py::module& m)
         .def_property_readonly("halo", py::overload_cast<>(&ParticleVector::halo), R"(
             The halo LocalParticleVector instance, the storage of halo particles.
         )", py::return_value_policy::reference_internal)
-        //
-        .def_property_readonly("r", [](ParticleVector& pv)
-                {
-                    CudaArrayInterface array = getBufferCudaArrayInterface(pv.local()->positions());
-                    assert(array.shape[1] == 4);
-                    array.shape[1] = 3;
-                    return array;
-                }, py::keep_alive<0, 1>(), R"(
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                )")
-        .def_property_readonly("v", [](ParticleVector& pv)
-                {
-                    CudaArrayInterface array = getBufferCudaArrayInterface(pv.local()->velocities());
-                    assert(array.shape[1] == 4);
-                    array.shape[1] = 3;
-                    return array;
-                }, py::keep_alive<0, 1>(), R"(
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                )")
-        .def_property_readonly("f", [](ParticleVector& pv)
-                {
-                    // Here the `int` part of the `Force` struct is already stripped away.
-                    return getBufferCudaArrayInterface(pv.local()->forces());
-                }, py::keep_alive<0, 1>(), R"(
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                )")
-        //
         .def("get_indices", [](ParticleVector *pv) {return getPerParticleIndices(pv);}, R"(
             Returns:
                 A list of unique integer particle identifiers

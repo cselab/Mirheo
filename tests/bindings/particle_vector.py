@@ -30,33 +30,19 @@ class TestParticleVector(unittest.TestCase):
         u.setIntegrator(vv, pv)
 
         # Test explicit access.
-        r = cp.asarray(pv.local['positions'])
-        v = cp.asarray(pv.local['velocities'])
-        f = cp.asarray(pv.local['__forces'])
+        r = cp.asarray(pv.local.per_particle['positions'])
+        v = cp.asarray(pv.local.per_particle['velocities'])
+        f = cp.asarray(pv.local.per_particle['__forces'])
         self.assertEqual(r.shape, (N, 4))  # The 4th component is kept.
         self.assertEqual(v.shape, (N, 4))  # The 4th component is kept.
         self.assertEqual(f.shape, (N, 3))  # The `int` element is stripped away.
 
-        # Test implicit access.
-        self.assertEqual(cp.asarray(pv.r).shape, (N, 3))
-        self.assertEqual(cp.asarray(pv.v).shape, (N, 3))
-        self.assertEqual(cp.asarray(pv.f).shape, (N, 3))
-        self.assertEqual(cp.asarray(pv.local.r).shape, (N, 3))
-        self.assertEqual(cp.asarray(pv.local.v).shape, (N, 3))
-        self.assertEqual(cp.asarray(pv.local.f).shape, (N, 3))
-        cp.asarray(pv.r)[:] = 10.0 * cp.arange(N * 3).reshape((N, 3))
-        cp.asarray(pv.v)[:] = 20.0 * cp.arange(N * 3).reshape((N, 3))
-        cp.asarray(pv.f)[:] = 30.0 * cp.arange(N * 3).reshape((N, 3))
-        cp.testing.assert_array_equal(r[:, :3], pv.r)
-        cp.testing.assert_array_equal(v[:, :3], pv.v)
-        cp.testing.assert_array_equal(f[:, :3], pv.f)
-
         # Test updating velocities and reading positions.
-        r = cp.asarray(pv.r)
-        v = cp.asarray(pv.v)
-        f = cp.asarray(pv.f)
-        r[:] = 0.0  # Reset positions to the middle of the domain.
-        v[:] = cp.array([
+        r = cp.asarray(pv.local.per_particle['positions'])
+        v = cp.asarray(pv.local.per_particle['velocities'])
+        f = cp.asarray(pv.local.per_particle['__forces'])
+        r[:,:3] = 0.0  # Reset positions to the middle of the domain.
+        v[:,:3] = cp.array([
             [10, 20, 30],
             [11, 21, 31],
             [12, 22, 32],
@@ -65,18 +51,22 @@ class TestParticleVector(unittest.TestCase):
         ])
         f[:] = 0.0  # Reset forces.
         u.run(1, dt=10.0)
-        cp.testing.assert_array_equal(pv.r, cp.array(r0 - mid) + 10.0 * v)
+        r = cp.asarray(pv.local.per_particle['positions'])
+        cp.testing.assert_array_equal(r[:,:3], cp.array(r0 - mid) + 10.0 * v[:,:3])
 
         # Test forces.
-        r = cp.asarray(pv.r)
-        v = cp.asarray(pv.v)
-        r[:] = 0.0  # Reset positions to the middle of the domain.
-        v[:] = 0.0  # Reset velocities.
+        r = cp.asarray(pv.local.per_particle['positions'])
+        v = cp.asarray(pv.local.per_particle['velocities'])
+        r[:,:3] = 0.0  # Reset positions to the middle of the domain.
+        v[:,:3] = 0.0  # Reset velocities.
         u.registerPlugins(mir.Plugins.createAddForce('add_force', pv, (1.0, 2.0, 3.0)))
         u.run(1, dt=10.0)
-        cp.testing.assert_array_equal(pv.r, [[100.0, 200.0, 300.0]] * N)
-        cp.testing.assert_array_equal(pv.v, [[10.0, 20.0, 30.0]] * N)
-        cp.testing.assert_array_equal(pv.f, [[1.0, 2.0, 3.0]] * N)
+        r = cp.asarray(pv.local.per_particle['positions'])
+        v = cp.asarray(pv.local.per_particle['velocities'])
+        f = cp.asarray(pv.local.per_particle['__forces'])
+        cp.testing.assert_array_equal(r[:,:3], [[100.0, 200.0, 300.0]] * N)
+        cp.testing.assert_array_equal(v[:,:3], [[10.0, 20.0, 30.0]] * N)
+        cp.testing.assert_array_equal(f, [[1.0, 2.0, 3.0]] * N)
 
 
 if __name__ == '__main__':

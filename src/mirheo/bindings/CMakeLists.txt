@@ -2,10 +2,11 @@ set(sources_cpp
   bindings.cpp
   bouncers.cpp
   cuda_array_interface.cpp
+  data_manager.cpp
   initial_conditions.cpp
   integrators.cpp
   interactions.cpp
-  local_particle_vector.cpp
+  local_particle_vectors.cpp
   mirheo.cpp
   object_belonging_checkers.cpp
   particle_vectors.cpp

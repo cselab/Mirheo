@@ -2,10 +2,11 @@
 
 #include "bouncers.h"
 #include "cuda_array_interface.h"
+#include "data_manager.h"
 #include "initial_conditions.h"
 #include "integrators.h"
 #include "interactions.h"
-#include "local_particle_vector.h"
+#include "local_particle_vectors.h"
 #include "mirheo.h"
 #include "object_belonging_checkers.h"
 #include "particle_vectors.h"
@@ -38,7 +39,8 @@ PYBIND11_MODULE(libmirheo, m)
     exportInitialConditions(ic);
 
     auto pv = m.def_submodule("ParticleVectors");
-    exportLocalParticleVector(pv);
+    exportDataManager(pv);
+    exportLocalParticleVectors(pv);
     exportParticleVectors(pv);
 
     auto interactions = m.def_submodule("Interactions");
