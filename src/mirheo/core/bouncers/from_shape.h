@@ -55,7 +55,7 @@ protected:
     VarBounceKernel varBounceKernel_; ///< The kernel used to reflect the particles on the surface
     std::mt19937 rng_ {42L}; ///< rng used to update varBounceKernel_
 
-    int verbosity_;
+    int verbosity_; ///< if set to \c true, will print bounce failures to the console.
 };
 
 } // namespace mirheo

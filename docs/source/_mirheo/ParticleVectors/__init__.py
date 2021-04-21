@@ -1,6 +1,16 @@
+class DataManager:
+    r"""
+        A collection of channels in pinned memory.
+    
+    """
+    def __init__():
+        r"""Initialize self.  See help(type(self)) for accurate signature.
+        """
+        pass
+
 class LocalParticleVector:
     r"""
-        Particle data storage, a collection of channels.
+        Particle local data storage, composed of particle channels.
     
     """
     def __init__():
@@ -9,35 +19,10 @@ class LocalParticleVector:
         pass
 
     @property
-    def f():
+    def per_particle():
         r"""
-                Alias for the `real3` part of `lpv['__forces']`.
-
-                Returns:
-                    Cupy-compatible view over the forces buffer.
-            
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                Alias for the `real3` part of `lpv['positions']`.
-
-                Returns:
-                    Cupy-compatible view over the positions buffer.
-            
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                Alias for the `real3` part of `lpv['velocities']`.
-
-                Returns:
-                    Cupy-compatible view over the velocities buffer.
-            
+            The :any:`DataManager` that contains the particle channels.
+        
         """
         pass
 
@@ -188,17 +173,6 @@ class ParticleVector:
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
             The halo LocalParticleVector instance, the storage of halo particles.
@@ -214,25 +188,29 @@ class ParticleVector:
         """
         pass
 
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
+class LocalObjectVector(LocalParticleVector):
+    r"""
+        Object vector local data storage, additionally contains object channels.
+    
+    """
+    def __init__():
+        r"""Initialize self.  See help(type(self)) for accurate signature.
         """
         pass
 
     @property
-    def v():
+    def per_object():
         r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
+            The :any:`DataManager` that contains the object channels.
+        
+        """
+        pass
 
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
+    @property
+    def per_particle():
+        r"""
+            The :any:`DataManager` that contains the particle channels.
+        
         """
         pass
 
@@ -404,20 +382,9 @@ class ObjectVector(ParticleVector):
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -425,30 +392,8 @@ class ObjectVector(ParticleVector):
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -549,20 +494,9 @@ class MembraneVector(ObjectVector):
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -570,30 +504,8 @@ class MembraneVector(ObjectVector):
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -697,20 +609,9 @@ class RigidObjectVector(ObjectVector):
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -718,30 +619,8 @@ class RigidObjectVector(ObjectVector):
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -842,20 +721,9 @@ class RodVector(ObjectVector):
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -863,30 +731,8 @@ class RodVector(ObjectVector):
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -1007,20 +853,9 @@ Overloaded function.
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -1028,30 +863,8 @@ Overloaded function.
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -1170,20 +983,9 @@ Overloaded function.
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -1191,30 +993,8 @@ Overloaded function.
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
@@ -1334,20 +1114,9 @@ Overloaded function.
         pass
 
     @property
-    def f():
-        r"""
-                    Alias for the `real3` part of `pv.local['__forces']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local forces buffer.
-                
-        """
-        pass
-
-    @property
     def halo():
         r"""
-            The halo LocalParticleVector instance, the storage of halo particles.
+            The halo LocalObjectVector instance, the storage of halo objects.
         
         """
         pass
@@ -1355,30 +1124,8 @@ Overloaded function.
     @property
     def local():
         r"""
-            The local LocalParticleVector instance, the storage of local particles.
+            The local LocalObjectVector instance, the storage of local objects.
         
-        """
-        pass
-
-    @property
-    def r():
-        r"""
-                    Alias for the `real3` part of `pv.local['positions']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local positions buffer.
-                
-        """
-        pass
-
-    @property
-    def v():
-        r"""
-                    Alias for the `real3` part of `pv.local['velocities']`.
-
-                    Returns:
-                        Cupy-compatible view over the internal local velocities buffer.
-                
         """
         pass
 
