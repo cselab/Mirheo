@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "initial_conditions.h"
 #include "class_wrapper.h"
 
 #include <mirheo/core/initial_conditions/from_array.h>

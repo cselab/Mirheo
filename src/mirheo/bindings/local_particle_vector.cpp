@@ -1,7 +1,8 @@
 // Copyright 2021 ETH Zurich. All Rights Reserved.
 
-#include "bindings.h"
+#include "local_particle_vector.h"
 #include "cuda_array_interface.h"
+
 #include <mirheo/core/pvs/particle_vector.h>
 
 namespace mirheo
@@ -9,7 +10,8 @@ namespace mirheo
 
 using namespace py::literals;
 
-void exportLocalParticleVector(py::module& m) {
+void exportLocalParticleVector(py::module& m)
+{
     py::class_<LocalParticleVector> pylpv(m, "LocalParticleVector", R"(
         Particle data storage, a collection of channels.
     )");

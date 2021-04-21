@@ -1,12 +1,13 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
-#include <pybind11/functional.h>
+
+#include "plugins.h"
+#include "class_wrapper.h"
 
 #include <mirheo/plugins/factory.h>
 
-#include "bindings.h"
-#include "class_wrapper.h"
+#include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 
 namespace mirheo
 {

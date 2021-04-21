@@ -1,10 +1,10 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
+#include "integrators.h"
+#include "class_wrapper.h"
+
 #include <mirheo/core/integrators/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
-
-#include "bindings.h"
-#include "class_wrapper.h"
 
 #include <pybind11/stl.h>
 

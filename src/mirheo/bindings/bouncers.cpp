@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "bouncers.h"
 #include "class_wrapper.h"
 
 #include <mirheo/core/analytical_shapes/api.h>

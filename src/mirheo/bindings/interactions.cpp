@@ -1,17 +1,17 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include <mirheo/core/pvs/particle_vector.h>
 
-#include <mirheo/core/interactions/pairwise/base_pairwise.h>
+#include "interactions.h"
+#include "class_wrapper.h"
+#include "variant_cast.h"
+
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
 #include <mirheo/core/interactions/obj_binding.h>
 #include <mirheo/core/interactions/obj_rod_binding.h>
+#include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/interactions/rod/base_rod.h>
-
-#include "bindings.h"
-#include "class_wrapper.h"
-#include "variant_cast.h"
+#include <mirheo/core/pvs/particle_vector.h>
 
 namespace mirheo
 {

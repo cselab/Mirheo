@@ -1,5 +1,5 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
-#include "bindings.h"
+#include "particle_vectors.h"
 #include "class_wrapper.h"
 #include "cuda_array_interface.h"
 

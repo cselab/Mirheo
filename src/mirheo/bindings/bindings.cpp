@@ -1,7 +1,22 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
+
+#include "bouncers.h"
+#include "cuda_array_interface.h"
+#include "initial_conditions.h"
+#include "integrators.h"
+#include "interactions.h"
+#include "local_particle_vector.h"
+#include "mirheo.h"
+#include "object_belonging_checkers.h"
+#include "particle_vectors.h"
+#include "plugins.h"
+#include "utils.h"
+#include "vector_types.h"
+#include "walls.h"
+
 #include <mirheo/core/logger.h>
 #include <mirheo/core/version.h>
-#include "bindings.h"
+
 #include <mpi.h>
 
 PYBIND11_MODULE(libmirheo, m)

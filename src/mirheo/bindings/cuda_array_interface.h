@@ -1,11 +1,13 @@
+// Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-#include "bindings.h"
 #include <mirheo/core/containers.h>
 #include <mirheo/core/pvs/data_manager.h>
 
-namespace mirheo
-{
+#include <pybind11/pybind11.h>
+
+namespace mirheo {
+namespace py = pybind11;
 
 struct CudaArrayInterface
 {
@@ -25,5 +27,7 @@ CudaArrayInterface getBufferCudaArrayInterface(PinnedBuffer<T>& buffer);
 
 /// Get a cupy/numba-compatible representation of the pinned buffer under the given variant.
 CudaArrayInterface getVariantCudaArrayInterface(VarPinnedBufferPtr& bufferVariant);
+
+void exportCudaArrayInterface(py::module& m);
 
 } // namespace mirheo
