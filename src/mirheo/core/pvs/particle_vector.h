@@ -5,7 +5,6 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/mirheo_object.h>
 #include <mirheo/core/pvs/data_manager.h>
-#include <mirheo/core/utils/pytypes.h>
 
 #include <memory>
 #include <string>
@@ -149,11 +148,6 @@ public:
         Use default blocking stream
     */
     /// \{
-    std::vector<int64_t> getIndices_vector();
-    py_types::VectorOfReal3 getCoordinates_vector();
-    py_types::VectorOfReal3 getVelocities_vector();
-    py_types::VectorOfReal3 getForces_vector();
-
     void setCoordinates_vector(const std::vector<real3>& coordinates);
     void setVelocities_vector(const std::vector<real3>& velocities);
     void setForces_vector(const std::vector<real3>& forces);

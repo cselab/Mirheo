@@ -14,11 +14,107 @@
 
 #include <pybind11/stl.h>
 
-namespace mirheo
-{
+#include <array>
 
 namespace py = pybind11;
 using namespace pybind11::literals;
+
+
+namespace mirheo
+{
+
+namespace py_types
+{
+
+template <class T, int Dimensions>
+using VectorOfTypeN = std::vector<std::array<T, Dimensions>>;
+
+template <int Dimensions>
+using VectorOfRealN = VectorOfTypeN<real, Dimensions>;
+
+using VectorOfReal3 = VectorOfRealN<3>;
+
+template <int Dimensions>
+using VectorOfIntN = VectorOfTypeN<int, Dimensions>;
+
+using VectorOfInt3 = VectorOfIntN<3>;
+
+
+} // namespace py_types
+
+
+/** Download the positions and velocities of the pv from device to host and
+    return a python-compatible list of the per particle global indices.
+ */
+static std::vector<int64_t> getPerParticleIndices(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& pos = pv->local()->positions();
+    auto& vel = pv->local()->velocities();
+    pos.downloadFromDevice(stream, ContainersSynch::Asynch);
+    vel.downloadFromDevice(stream);
+
+    std::vector<int64_t> indices(pos.size());
+
+    for (size_t i = 0; i < pos.size(); i++)
+    {
+        const Particle p (pos[i], vel[i]);
+        indices[i] = p.getId();
+    }
+
+    return indices;
+}
+
+/** Download the positions of the pv from device to host and return a python-compatible list of it.
+ */
+static py_types::VectorOfReal3 getPerParticlePositions(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& pos = pv->local()->positions();
+    pos.downloadFromDevice(stream);
+
+    py_types::VectorOfReal3 pyPositions;
+    pyPositions.reserve(pos.size());
+
+    for (const real4 r : pos)
+        pyPositions.push_back({r.x, r.y, r.z});
+
+    return pyPositions;
+}
+
+/** Download the velocities of the pv from device to host and return a python-compatible list of it.
+ */
+static py_types::VectorOfReal3 getPerParticleVelocities(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    auto& vel = pv->local()->velocities();
+    vel.downloadFromDevice(stream);
+
+    py_types::VectorOfReal3 pyVelocities;
+    pyVelocities.reserve(vel.size());
+
+    for (const real4 v : vel)
+        pyVelocities.push_back({v.x, v.y, v.z});
+
+    return pyVelocities;
+}
+
+/** Download the forces of the pv from device to host and return a python-compatible list of it.
+ */
+static py_types::VectorOfReal3 getPerParticleForces(ParticleVector *pv, cudaStream_t stream = defaultStream)
+{
+    HostBuffer<Force> forces;
+    forces.copy(pv->local()->forces(), stream);
+
+    py_types::VectorOfReal3 pyForces;
+    pyForces.reserve(forces.size());
+
+    for (const Force f : forces)
+        pyForces.push_back({f.f.x, f.f.y, f.f.z});
+
+    return pyForces;
+}
+
+
+
+
 
 /** Get the vertices of a mesh.
    \return the list of vertices of the given mesh on host.
@@ -120,19 +216,19 @@ void exportParticleVectors(py::module& m)
                         Cupy-compatible view over the internal local forces buffer.
                 )")
         //
-        .def("get_indices", &ParticleVector::getIndices_vector, R"(
+        .def("get_indices", [](ParticleVector *pv) {return getPerParticleIndices(pv);}, R"(
             Returns:
                 A list of unique integer particle identifiers
         )")
-        .def("getCoordinates", &ParticleVector::getCoordinates_vector, R"(
+        .def("getCoordinates", [](ParticleVector *pv) {return getPerParticlePositions(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
         )")
-        .def("getVelocities",  &ParticleVector::getVelocities_vector, R"(
+        .def("getVelocities", [](ParticleVector *pv) {return getPerParticleVelocities(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
         )")
-        .def("getForces",      &ParticleVector::getForces_vector, R"(
+        .def("getForces", [](ParticleVector *pv) {return getPerParticleForces(pv);}, R"(
             Returns:
                 A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )")
