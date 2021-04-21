@@ -288,6 +288,16 @@ void exportParticleVectors(py::module& m)
 
     )");
 
+    pyov.def_property_readonly("local", py::overload_cast<>(&ObjectVector::local), R"(
+            The local LocalObjectVector instance, the storage of local objects.
+        )", py::return_value_policy::reference_internal);
+
+    pyov.def_property_readonly("halo", py::overload_cast<>(&ObjectVector::halo), R"(
+            The halo LocalObjectVector instance, the storage of halo objects.
+        )", py::return_value_policy::reference_internal);
+
+
+
     py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
         Membrane is an Object Vector representing cell membranes.
         It must have a triangular mesh associated with it such that each particle is mapped directly onto single mesh vertex.
