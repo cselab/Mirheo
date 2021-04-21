@@ -64,7 +64,7 @@ static std::vector<int64_t> getPerParticleIndices(ParticleVector *pv, cudaStream
     return indices;
 }
 
-/** Download the positions of the pv from device to host and return a python-compatible list of it.
+/** Download the positions of the pv from device to host and return a python-compatible list of it (in global coordinates).
  */
 static py_types::VectorOfReal3 getPerParticlePositions(ParticleVector *pv, cudaStream_t stream = defaultStream)
 {
@@ -74,8 +74,12 @@ static py_types::VectorOfReal3 getPerParticlePositions(ParticleVector *pv, cudaS
     py_types::VectorOfReal3 pyPositions;
     pyPositions.reserve(pos.size());
 
-    for (const real4 r : pos)
+    const auto& domain = pv->getState()->domain;
+    for (const real4 r4 : pos)
+    {
+        const real3 r = domain.local2global(make_real3(r4));
         pyPositions.push_back({r.x, r.y, r.z});
+    }
 
     return pyPositions;
 }

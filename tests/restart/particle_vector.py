@@ -44,7 +44,7 @@ comm = comm.Split(color, rank)
 if args.restart and pv:
     ids = pv.get_indices()
     pos = pv.getCoordinates()
-    vel = pv.getVelocities() 
+    vel = pv.getVelocities()
 
     data = np.hstack((np.atleast_2d(ids).T, pos, vel))
     data = comm.gather(data, root=0)
@@ -52,7 +52,7 @@ if args.restart and pv:
     if comm.Get_rank() == 0:
         data = np.concatenate(data)
         np.savetxt("parts.txt", data)
-    
+
 
 # TEST: restart.particle_vector
 # cd restart
@@ -67,4 +67,3 @@ if args.restart and pv:
 # mir.run --runargs "-n 4" ./particle_vector.py --ranks 1 2 2
 # mir.run --runargs "-n 4" ./particle_vector.py --ranks 1 2 2 --restart
 # cat parts.txt | LC_ALL=en_US.utf8 sort > parts.out.txt
-
