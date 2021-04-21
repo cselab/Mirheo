@@ -20,6 +20,43 @@ namespace mirheo
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+/** Get the vertices of a mesh.
+   \return the list of vertices of the given mesh on host.
+ */
+static py_types::VectorOfReal3 getPyVerticesMesh(const Mesh *mesh)
+{
+    // vertices are not changing during the simulation, we assume here that
+    // the data is already on the host.
+    const PinnedBuffer<real4>& vertices = mesh->getVertices();
+
+    py_types::VectorOfReal3 pyVertices;
+    pyVertices.reserve(vertices.size());
+
+    for (const real4 r : vertices)
+        pyVertices.push_back({r.x, r.y, r.z});
+
+    return pyVertices;
+}
+
+/** \return the list of faces of the given mesh on host.
+ */
+static py_types::VectorOfInt3 getPyFacesMesh(const Mesh *mesh)
+{
+    // faces are not changing during the simulation, we assume here that
+    // the data is already on the host.
+    const PinnedBuffer<int3>& faces = mesh->getFaces();
+    py_types::VectorOfInt3 pyFaces;
+    pyFaces.reserve(faces.size());
+
+    for (const int3 f : faces)
+        pyFaces.push_back({f.x, f.y, f.z});
+
+    return pyFaces;
+}
+
+
+
+
 void exportParticleVectors(py::module& m)
 {
     m.def("getReservedParticleChannels", []() {return channel_names::reservedParticleFields;},
@@ -132,10 +169,10 @@ void exportParticleVectors(py::module& m)
             faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
 
     )")
-        .def("getVertices", &Mesh::getPyVertices, R"(
+        .def("getVertices", [](const Mesh *mesh) {return getPyVerticesMesh(mesh);}, R"(
         returns the vertex coordinates of the mesh.
     )")
-        .def("getFaces", &Mesh::getPyFaces, R"(
+        .def("getFaces", [](const Mesh *mesh) {return getPyFacesMesh(mesh);}, R"(
         returns the vertex indices for each triangle of the mesh.
     )");
 

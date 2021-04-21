@@ -42,16 +42,13 @@ public:
 
     virtual ~Mesh();
 
-    const int& getNtriangles() const; ///< \return the number of faces
-    const int& getNvertices() const;  ///< \return the number of vertices
-    const int& getMaxDegree() const;  ///< \return the maximum valence of all vertices
+    int getNtriangles() const; ///< \return the number of faces
+    int getNvertices() const;  ///< \return the number of vertices
+    int getMaxDegree() const;  ///< \return the maximum valence of all vertices
 
 
     const PinnedBuffer<real4>& getVertices() const; ///< \return the list of vertices
     const PinnedBuffer<int3>& getFaces() const;     ///< \return the list of faces
-
-    py_types::VectorOfReal3 getPyVertices();  ///< \return the list of vertices (python compatible)
-    py_types::VectorOfInt3  getPyFaces();     ///< \return the list of faces (python compatible)
 
     /** \brief Dump the mesh in an .off file, create a ConfigObject with the mesh name and register it in the saver.
         \param [in,out] saver The \c Saver object. Provides save context and serialization functions.

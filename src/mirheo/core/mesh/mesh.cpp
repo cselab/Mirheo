@@ -60,46 +60,31 @@ Mesh& Mesh::operator=(Mesh&&) = default;
 
 Mesh::~Mesh() = default;
 
-const int& Mesh::getNtriangles() const {return ntriangles_;}
-const int& Mesh::getNvertices()  const {return nvertices_;}
+int Mesh::getNtriangles() const
+{
+    return ntriangles_;
+}
 
-const int& Mesh::getMaxDegree() const {
+int Mesh::getNvertices()  const
+{
+    return nvertices_;
+}
+
+int Mesh::getMaxDegree() const
+{
     if (maxDegree_ < 0)
         die("maxDegree was not computed");
     return maxDegree_;
 }
 
-const PinnedBuffer<real4>& Mesh::getVertices() const {return vertices_;}
-const PinnedBuffer<int3>& Mesh::getFaces() const {return faces_;}
-
-py_types::VectorOfReal3 Mesh::getPyVertices()
+const PinnedBuffer<real4>& Mesh::getVertices() const
 {
-    vertices_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    py_types::VectorOfReal3 ret(getNvertices());
-
-    for (int i = 0; i < getNvertices(); ++i)
-    {
-        auto r = vertices_[i];
-        ret[i][0] = r.x;
-        ret[i][1] = r.y;
-        ret[i][2] = r.z;
-    }
-    return ret;
+    return vertices_;
 }
 
-py_types::VectorOfInt3 Mesh::getPyFaces()
+const PinnedBuffer<int3>& Mesh::getFaces() const
 {
-    faces_.downloadFromDevice(defaultStream, ContainersSynch::Synch);
-    py_types::VectorOfInt3 ret(getNtriangles());
-
-    for (int i = 0; i < getNtriangles(); ++i)
-    {
-        auto t = faces_[i];
-        ret[i][0] = t.x;
-        ret[i][1] = t.y;
-        ret[i][2] = t.z;
-    }
-    return ret;
+    return faces_;
 }
 
 void Mesh::saveSnapshotAndRegister(Saver& saver)
