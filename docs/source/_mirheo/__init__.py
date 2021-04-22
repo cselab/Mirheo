@@ -70,11 +70,129 @@ class CudaArrayInterface:
         """
         pass
 
+class DomainInfo:
+    r"""
+        Convert between local domain coordinates (specific to each rank) and global domain coordinates.
+    
+    """
+    def global_to_local():
+        r"""global_to_local(x: real3) -> real3
+
+
+            Convert from global coordinates to local coordinates.
+
+            Args:
+                x: Position in global coordinates.
+        
+
+        """
+        pass
+
+    def is_in_subdomain():
+        r"""is_in_subdomain(x: real3) -> bool
+
+
+            Returns True if the given position (in global coordinates) is inside the subdomain of the current rank,
+            False otherwise.
+
+            Args:
+                x: Position in global coordinates.
+        
+
+        """
+        pass
+
+    def local_to_global():
+        r"""local_to_global(x: real3) -> real3
+
+
+            Convert local coordinates to global coordinates.
+
+            Args:
+                x: Position in local coordinates.
+        
+
+        """
+        pass
+
+    @property
+    def global_size():
+        r"""
+            Size of the whole simulation domain.
+        
+        """
+        pass
+
+    @property
+    def global_start():
+        r"""
+            Subdomain lower corner position of the current rank, in global coordinates.
+        
+        """
+        pass
+
+    @property
+    def global_to_local_shift():
+        r"""
+            shift to transform global coordinates to local coordinates.
+        
+        """
+        pass
+
+    @property
+    def local_size():
+        r"""
+            Subdomain extents of the current rank.
+        
+        """
+        pass
+
+    @property
+    def local_to_global_shift():
+        r"""
+            shift to transform local coordinates to global coordinates.
+        
+        """
+        pass
+
 class MirState:
     r"""
         state of the simulation shared by all simulation objects.
     
     """
+    @property
+    def current_dt():
+        r"""
+            Current simulation step size dt.
+            Note: this property is accessible only while Mirheo::run() is running.
+        
+        """
+        pass
+
+    @property
+    def current_step():
+        r"""
+            Current simulation step.
+        
+        """
+        pass
+
+    @property
+    def current_time():
+        r"""
+            Current simulation time.
+        
+        """
+        pass
+
+    @property
+    def domain_info():
+        r"""
+            The :any:`DomainInfo` of the current rank.
+        
+        """
+        pass
+
 class Mirheo:
     r"""
         Main coordination class, should only be one instance at a time

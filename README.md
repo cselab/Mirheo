@@ -58,6 +58,8 @@ make install
   * wall force collector plugin: use csv format for output.
   * wall force collector plugin: add optional "detailed" dump.
   * Shape Bouncers: warnings are now optional, disabled by default.
+  * Add cupy-compatible bindings to per particle and per object channels.
+  * Add DomainInfo and time states to the bindings.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
 

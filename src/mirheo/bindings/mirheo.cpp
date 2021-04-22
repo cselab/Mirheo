@@ -144,7 +144,7 @@ void exportMirheo(py::module& m)
         state of the simulation shared by all simulation objects.
     )")
         .def_readonly("domain_info", &MirState::domain, R"(
-            The domain info of the current rank.
+            The :any:`DomainInfo` of the current rank.
         )", py::return_value_policy::reference_internal)
         .def_readonly("current_time", &MirState::currentTime, R"(
             Current simulation time.
