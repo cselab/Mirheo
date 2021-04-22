@@ -47,6 +47,11 @@
             "__type": "ParticleDumperPlugin",
             "name": "dump_particles",
             "path": "h5/pv-"
+        },
+        {
+            "__type": "RdfDump",
+            "name": "rdf",
+            "basename": "rdf-"
         }
     ],
     "SimulationPlugin": [
@@ -86,6 +91,14 @@
             "increaseIfLower": 1
         },
         {
+            "__type": "RdfPlugin",
+            "name": "rdf",
+            "pvName": "ov",
+            "maxDist": 2,
+            "nbins": 50,
+            "computeEvery": 1000
+        },
+        {
             "__type": "MembraneExtraForcePlugin",
             "name": "extraForce",
             "pvName": "ov"
@@ -108,7 +121,8 @@
             "plugins": [
                 "<PostprocessPlugin with name=stats>",
                 "<PostprocessPlugin with name=rbcs>",
-                "<PostprocessPlugin with name=dump_particles>"
+                "<PostprocessPlugin with name=dump_particles>",
+                "<PostprocessPlugin with name=rdf>"
             ]
         }
     ],
@@ -140,6 +154,7 @@
                 "<SimulationPlugin with name=force_saver>",
                 "<SimulationPlugin with name=dump_particles>",
                 "<SimulationPlugin with name=berendsen_thermostat>",
+                "<SimulationPlugin with name=rdf>",
                 "<SimulationPlugin with name=extraForce>",
                 "<SimulationPlugin with name=wallRepulsion>"
             ],

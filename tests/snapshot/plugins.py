@@ -25,8 +25,8 @@ if not args.load_from:
     u.registerPlugins(mir.Plugins.createDumpMesh('rbcs', ov, dump_every=15, path='ply'))
     u.registerPlugins(mir.Plugins.createForceSaver('force_saver', pv))
     u.registerPlugins(mir.Plugins.createDumpParticles('dump_particles', pv, 20, ['forces'], 'h5/pv-'))
-
     u.registerPlugins(mir.Plugins.createBerendsenThermostat('berendsen_thermostat', [pv], kBT=123, tau=10.0))
+    u.registerPlugins(mir.Plugins.createRdf('rdf', pv, max_dist=2.0, nbins=50, every=1000, basename='rdf-'))
 
     # Stores extraForce.dat. We do not check the content of the file, only that it is correctly reloaded.
     forces = [[0.01 * k, 0.02 * k, 0.03 * k] for k in range(6)]

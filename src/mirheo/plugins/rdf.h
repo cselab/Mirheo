@@ -36,6 +36,10 @@ public:
         \param [in] computeEvery The number of time steps between two RDF evaluations and dump.
     */
     RdfPlugin(const MirState *state, std::string name, std::string pvName, real maxDist, int nbins, int computeEvery);
+
+    /// Construct a simulation plugin object from its snapshot.
+    RdfPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
+
     ~RdfPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -44,6 +48,13 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
+
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
+protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string pvName_;
@@ -73,8 +84,18 @@ public:
     */
     RdfDump(std::string name, std::string basename);
 
+    /// Construct a postprocess plugin object from its snapshot.
+    RdfDump(Loader& loader, const ConfigObject& config);
+
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void deserialize() override;
+
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
+protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string basename_;
