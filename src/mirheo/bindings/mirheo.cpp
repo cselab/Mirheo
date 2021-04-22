@@ -129,6 +129,12 @@ void exportDomainInfo(py::module& m)
         )")
         .def_readonly("local_size", &DomainInfo::localSize, R"(
             Subdomain extents of the current rank.
+        )")
+        .def_property_readonly("local_to_global_shift", [](const DomainInfo& d) {return d.local2global(make_real3(0.0_r));}, R"(
+            shift to transform local coordinates to global coordinates.
+        )")
+        .def_property_readonly("global_to_local_shift", [](const DomainInfo& d) {return d.global2local(make_real3(0.0_r));}, R"(
+            shift to transform global coordinates to local coordinates.
         )");
 }
 

@@ -16,12 +16,12 @@ class TestGlobalSimulationInfo(unittest.TestCase):
         state = u.getState()
         self.assertEqual(state.current_time, 0)
 
-        dt = 1
+        dt = 0.1
         num_steps = 5
         u.run(num_steps, dt)
 
         self.assertEqual(state.current_step, num_steps)
-        self.assertEqual(state.current_time, num_steps * dt)
+        self.assertAlmostEqual(state.current_time, num_steps * dt)
 
         # 2. test domain info state
         domain_info = u.getState().domain_info
@@ -36,6 +36,12 @@ class TestGlobalSimulationInfo(unittest.TestCase):
 
         np.testing.assert_array_equal(tuple(domain_info.global_to_local(pos_center_global)),
                                       pos_center_local)
+
+        np.testing.assert_array_equal(tuple(domain_info.global_to_local_shift),
+                                      -domain / 2)
+
+        np.testing.assert_array_equal(tuple(domain_info.local_to_global_shift),
+                                      +domain / 2)
 
 
 
