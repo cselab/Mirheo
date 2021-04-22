@@ -6,20 +6,20 @@ Mirheo coordinator
 The coordinator class stitches together data containers, :ref:`user-pv`, and all the handlers,
 and provides functions to manipulate the system components.
 
-One and only one instance of this class should be created in the beginning of any simulation setup.
+A single instance of this class should be created in the beginning of any simulation setup.
 
 .. note::
-    Creating the coordinator will internally call MPI_Init() function, and its destruction
+    Creating the coordinator will internally call the MPI_Init() function, and its destruction
     will call MPI_Finalize().
     Therefore if using a mpi4py Python module, it should be imported in the following way:
-    
+
     .. code-block:: python
-        
-        import  mpi4py
+
+        import mpi4py
         mpi4py.rc(initialize=False, finalize=False)
         from mpi4py import MPI
 
-        
+
 .. autoclass:: _mirheo.Mirheo
    :members:
    :undoc-members:
@@ -55,3 +55,28 @@ However, users may use Mirheo in combination with the pint_ Python package, by d
 .. autofunction:: mirheo.set_unit_registry
 
 .. _pint: https://pint.readthedocs.io/
+
+
+Global Simulation State
+=======================
+
+Some information about the simulation is global to all Mirheo components.
+They are stored in the following binded objects:
+
+.. autoclass:: _mirheo.DomainInfo
+   :members:
+   :undoc-members:
+
+    .. rubric:: Methods
+
+    .. autoautosummary:: _mirheo.DomainInfo
+        :methods:
+
+.. autoclass:: _mirheo.MirState
+   :members:
+   :undoc-members:
+
+    .. rubric:: Methods
+
+    .. autoautosummary:: _mirheo.MirState
+        :methods:
