@@ -97,11 +97,60 @@ void exportUnitConversion(py::module& m)
             });
 }
 
+void exportDomainInfo(py::module& m)
+{
+    py::class_<DomainInfo>(m, "DomainInfo", R"(
+        Convert between local domain coordinates (specific to each rank) and global domain coordinates.
+    )")
+        .def("local_to_global", &DomainInfo::local2global, "x"_a, R"(
+            Convert local coordinates to global coordinates.
+
+            Args:
+                x: Position in local coordinates.
+        )")
+        .def("global_to_local", &DomainInfo::global2local, "x"_a, R"(
+            Convert from global coordinates to local coordinates.
+
+            Args:
+                x: Position in global coordinates.
+        )")
+        .def("is_in_subdomain", &DomainInfo::inSubDomain<real3>, "x"_a, R"(
+            Returns True if the given position (in global coordinates) is inside the subdomain of the current rank,
+            False otherwise.
+
+            Args:
+                x: Position in global coordinates.
+        )")
+        .def_readonly("global_size", &DomainInfo::globalSize, R"(
+            Size of the whole simulation domain.
+        )")
+        .def_readonly("global_start", &DomainInfo::globalStart, R"(
+            Subdomain lower corner position of the current rank, in global coordinates.
+        )")
+        .def_readonly("local_size", &DomainInfo::localSize, R"(
+            Subdomain extents of the current rank.
+        )");
+}
+
 void exportMirheo(py::module& m)
 {
     py::handlers_class<MirState>(m, "MirState", R"(
         state of the simulation shared by all simulation objects.
-    )");
+    )")
+        .def_readonly("domain_info", &MirState::domain, R"(
+            The domain info of the current rank.
+        )", py::return_value_policy::reference_internal)
+        .def_readonly("current_time", &MirState::currentTime, R"(
+            Current simulation time.
+        )")
+        .def_readonly("current_step", &MirState::currentStep, R"(
+            Current simulation step.
+        )")
+        .def_property_readonly("current_dt", &MirState::getDt, R"(
+            Current simulation step size dt.
+            Note: this property is accessible only while Mirheo::run() is running.
+        )");
+
 
     py::handlers_class<Mirheo>(m, "Mirheo", R"(
         Main coordination class, should only be one instance at a time
@@ -233,14 +282,14 @@ Args:
                     ov: :any:`ObjectVector` belonging to which the **checker** will check
         )")
 
-        .def("registerBouncer",  &Mirheo::registerBouncer,
+        .def("registerBouncer", &Mirheo::registerBouncer,
              "bouncer"_a, R"(
                Register Object Bouncer
 
                Args:
                    bouncer: the :any:`Bouncer` to register
         )")
-        .def("registerWall",     &Mirheo::registerWall,
+        .def("registerWall", &Mirheo::registerWall,
              "wall"_a, "check_every"_a=0, R"(
                Register a :any:`Wall`.
 
@@ -283,7 +332,7 @@ Args:
                     ov: the :any:`ObjectVector` to be bounced on
                     pv: the :any:`ParticleVector` to be bounced
         )")
-        .def("setWall",        &Mirheo::setWallBounce,
+        .def("setWall", &Mirheo::setWallBounce,
              "wall"_a, "pv"_a, "maximum_part_travel"_a=0.25_r, R"(
                 Assign a :any:`Wall` bouncer to a given :any:`ParticleVector`.
                 The current implementation does not support :any:`ObjectVector`.
@@ -294,9 +343,9 @@ Args:
                     maximum_part_travel: maximum distance that one particle travels in one time step.
                         this should be as small as possible for performance reasons but large enough for correctness
          )")
-        .def("getState",       &Mirheo::getMirState,    "Return mirheo state")
+        .def("getState", &Mirheo::getMirState, "Return mirheo state", py::return_value_policy::reference_internal)
 
-        .def("dumpWalls2XDMF",    &Mirheo::dumpWalls2XDMF,
+        .def("dumpWalls2XDMF", &Mirheo::dumpWalls2XDMF,
             "walls"_a, "h"_a, "filename"_a="xdmf/wall", R"(
                 Write Signed Distance Function for the intersection of the provided walls (negative values are the 'inside' of the simulation)
 
