@@ -15,6 +15,7 @@ class Interaction;
 class Mesh;
 class MirState;
 class Mirheo;
+class ObjectBelongingChecker;
 class ParticleVector;
 class PostprocessPlugin;
 class SimulationPlugin;
@@ -96,8 +97,11 @@ private:
     template <typename T, typename Factory>
     const std::shared_ptr<T>& _loadObject(Mirheo *mir, Factory factory);
 
+    // TODO: Is this separation of types even necessary, shouldn't an
+    // std::map<std::string, std::shared_ptr<MirObject>> be enough?
     std::tuple<
         std::map<std::string, std::shared_ptr<Mesh>>,
+        std::map<std::string, std::shared_ptr<ObjectBelongingChecker>>,
         std::map<std::string, std::shared_ptr<ParticleVector>>,
         std::map<std::string, std::shared_ptr<Interaction>>,
         std::map<std::string, std::shared_ptr<Integrator>>,

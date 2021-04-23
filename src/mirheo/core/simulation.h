@@ -16,6 +16,7 @@ namespace mirheo
 {
 
 class Saver;
+class SimulationLoaderHelper;  // See snapshot.cpp.
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -319,6 +320,10 @@ private:
 
 private:
     friend Saver;
+    friend SimulationLoaderHelper;
+
+    /// Add or import a setting regarding object belonging checker.
+    void _applyObjectBelongingChecker(BelongingCorrectionPrototype, SplitterPrototype);
 
     const int3 nranks3D_;
     const int3 rank3D_;

@@ -5,13 +5,15 @@
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/mesh/factory.h>
-#include <mirheo/core/walls/factory.h>
 #include <mirheo/core/mirheo.h>
+#include <mirheo/core/object_belonging/factory.h>
 #include <mirheo/core/pvs/factory.h>
+#include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/compile_options.h>
 #include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/strprintf.h>
+#include <mirheo/core/walls/factory.h>
 #include <mirheo/plugins/factory.h>
 
 #include <typeinfo>
@@ -160,6 +162,51 @@ static void checkCompilationOptions(const ConfigObject& options)
     }
 }
 
+/// Helper class for loading Simulation settings which are not importable
+/// through the public API. Note that we intentionally put all snapshot-related
+/// code here and not in simulation.cpp, to keep the latter file clean.
+struct SimulationLoaderHelper
+{
+    static void loadBelongingCorrectionAndSplitterPrototypes(
+            Mirheo *mir, LoaderContext& context, const ConfigObject& sim)
+    {
+        if (!mir->isComputeTask())
+            return;
+
+        const auto *bcpInfos = sim.get("belongingCorrectionPrototypes");
+        const auto *spInfos = sim.get("splitterPrototypes");
+        if ((bool)bcpInfos != (bool)spInfos)
+            die("belongingCorrectionPrototypes and splitterPrototypes should both be present or both absent");
+        const auto &bcpArray = bcpInfos->getArray();
+        const auto &spArray = spInfos->getArray();
+        if (bcpArray.size() != spArray.size())
+            die("belongingCorrectionPrototypes and splitterPrototypes should have the same length");
+        for (size_t i = 0; i < bcpArray.size(); ++i) {
+            const auto& bcp = bcpArray[i];
+            const auto& sp = spArray[i];
+
+            if ((const std::string&)bcp["checker"] != (const std::string&)sp["checker"] ||
+                    (const std::string&)bcp["pvIn"] != (const std::string&)sp["pvIn"] ||
+                    (const std::string&)bcp["pvOut"] != (const std::string&)sp["pvOut"]) {
+                die("unmatched checker or pv in belongingCorrectionPrototypes and splitterPrototypes");
+            }
+
+            const auto& checker = context.get<ObjectBelongingChecker>(sp["checker"]);
+            const auto& pvSrc = context.get<ParticleVector>(sp["pvSrc"]);
+            const auto& pvIn = context.get<ParticleVector>(sp["pvIn"]);
+            const auto& pvOut = context.get<ParticleVector>(sp["pvOut"]);
+            const int every = bcp["every"];
+
+            if (((pvIn == pvSrc) ^ (pvOut == pvSrc)) == 0)
+                die("exactly one of pvIn or pvOut must match pvSrc");
+
+            mir->getSimulation()->_applyObjectBelongingChecker(
+                    {checker.get(), pvIn.get(), pvOut.get(), every},
+                    {checker.get(), pvSrc.get(), pvIn.get(), pvOut.get()});
+        }
+    }
+};
+
 /// Load all objects that are defined only on compute ranks.
 static void loadComputeSpecificObjects(Mirheo *mir, Loader& loader, const ConfigObject& config)
 {
@@ -176,6 +223,20 @@ static void loadComputeSpecificObjects(Mirheo *mir, Loader& loader, const Config
             const auto &pv = loadObject<ParticleVector>(
                     mir, loader, info, particle_vector_factory::loadParticleVector);
             mir->registerParticleVector(pv, ic);
+        }
+    }
+
+    if (auto *infos = config.get("ObjectBelongingChecker")) {
+        for (const auto& info : infos->getArray()) {
+            const auto& checker = loadObject<ObjectBelongingChecker>(
+                    mir, loader, info, object_belonging_checker_factory::loadChecker);
+            // OV belongs only to the ObjectVectorBelongingChecker and not to
+            // the interface class ObjectBelongingChecker, but all non-abstract
+            // checkers are derived from ObjectVectorBelongingChecker, so
+            // assuming that they have 'ov' is safe.
+            mir->registerObjectBelongingChecker(
+                    checker,
+                    context.get<ObjectVector, ParticleVector>(info["ov"]).get());
         }
     }
 
@@ -200,6 +261,7 @@ static void loadComputeSpecificObjects(Mirheo *mir, Loader& loader, const Config
     }
 
     const ConfigObject& sim = config["Simulation"][0].getObject();
+    SimulationLoaderHelper::loadBelongingCorrectionAndSplitterPrototypes(mir, context, sim);
     if (auto *infos = sim.get("interactionPrototypes")) {
         for (const auto& info : infos->getArray()) {
             const auto& pv1 = context.get<ParticleVector>(info["pv1"]);

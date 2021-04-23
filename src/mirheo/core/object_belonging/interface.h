@@ -69,6 +69,13 @@ public:
 
     /// \brief Return the registered ObjectVector.
     virtual ObjectVector* getObjectVector() = 0;
+
+protected:
+    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
+        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
+        \param [in] typeName The name of the type being saved.
+      */
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 };
 
 } // namespace mirheo

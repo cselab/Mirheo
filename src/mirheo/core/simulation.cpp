@@ -547,9 +547,17 @@ void Simulation::applyObjectBelongingChecker(const std::string& checkerName, con
         registerParticleVector(pvOutside, noIC);
     }
 
-    splitterPrototypes_.push_back({checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
+    _applyObjectBelongingChecker(
+            {checker, getPVbyName(inside), getPVbyName(outside), checkEvery},
+            {checker, pvSource, getPVbyName(inside), getPVbyName(outside)});
+}
 
-    belongingCorrectionPrototypes_.push_back({checker, getPVbyName(inside), getPVbyName(outside), checkEvery});
+void Simulation::_applyObjectBelongingChecker(
+        BelongingCorrectionPrototype belongingCorrectionPrototype,
+        SplitterPrototype splitterPrototype)
+{
+    belongingCorrectionPrototypes_.push_back(belongingCorrectionPrototype);
+    splitterPrototypes_.push_back(splitterPrototype);
 }
 
 static void sortDescendingOrder(std::vector<real>& v)

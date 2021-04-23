@@ -39,6 +39,7 @@ set(sources_cpp
   mirheo.cpp
   mirheo_object.cpp
   mirheo_state.cpp
+  object_belonging/factory.cpp
   object_belonging/interface.cpp
   plugins.cpp
   postproc.cpp
