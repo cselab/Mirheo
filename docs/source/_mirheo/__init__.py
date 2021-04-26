@@ -202,7 +202,7 @@ class Mirheo:
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=3, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
+1. __init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=-1, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
 
 
 Create the Mirheo coordinator.
@@ -222,6 +222,9 @@ Create the Mirheo coordinator.
 
     Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
     Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+
+    The default debug level may be modified by setting the ``MIRHEO_DEBUG_LEVEL`` environment variable to the desired value.
+    This variable may be useful when Mirheo is linked as part of other codes, in which case the ``debug_level`` variable affects only parts of the execution.
 
 
 Args:
@@ -247,7 +250,7 @@ Args:
     units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
         
 
-2. __init__(nranks: int3, snapshot: str, log_filename: str='log', debug_level: int=3, cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
+2. __init__(nranks: int3, snapshot: str, log_filename: str='log', debug_level: int=-1, cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
 
 
 Create the Mirheo coordinator from a snapshot.

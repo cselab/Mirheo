@@ -17,12 +17,26 @@ namespace mirheo
 
 Logger logger;
 
+int getDefaultDebugLvl() {
+    const char *var = std::getenv("MIRHEO_DEBUG_LEVEL");
+    if (var != nullptr && var[0] != '\0') {
+        int lvl;
+        if (1 == sscanf(var, "%d", &lvl))
+            return lvl;
+        fprintf(stderr, "MIRHEO_DEBUG_LEVEL should be an integer, got \"%s\". Ignoring.", var);
+    }
+    return 3;  // The default value if no environment variable is set.
+}
+
 static void printStacktrace(FILE *fout)
 {
     std::ostringstream strace;
     stacktrace::getStacktrace(strace);
     fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
 }
+
+Logger::Logger() = default;
+Logger::~Logger() = default;
 
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
@@ -57,7 +71,9 @@ void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
 
 void Logger::setDebugLvl(int debugLvl)
 {
-    runtimeDebugLvl_ = std::max(std::min(debugLvl, COMPILE_DEBUG_LVL), 0);
+    if (debugLvl < 0)
+        debugLvl = getDefaultDebugLvl();
+    runtimeDebugLvl_ = std::min(debugLvl, COMPILE_DEBUG_LVL);
     if (runtimeDebugLvl_ >= 1) {
         log("INFO", __FILE__, __LINE__,
             "Compiled with maximum debug level %d", COMPILE_DEBUG_LVL);

@@ -19,6 +19,18 @@
 namespace mirheo
 {
 
+/** \brief Return the default logger debug level.
+
+    The function returns the value of the \c MIRHEO_DEBUG_LEVEL environment
+    variable if it set. Otherwise, it returns 3 as the default value.
+
+    The environment variable \c MIRHEO_DEBUG_LEVEL is useful in cases Mirheo is
+    linked in multiple different shared objects or executables, where multiple
+    \c logger global variables are created.
+*/
+int getDefaultDebugLvl();
+
+
 /** \brief logging functionality with MPI support.
 
     Each MPI process writes to its own file, prefixing messages with time stamps
@@ -42,22 +54,24 @@ namespace mirheo
 class Logger
 {
 public:
+    Logger();
+    ~Logger();
 
     /** \brief Setup the logger object
         \param [in] comm MPI communicator that contains all ranks that will use the logger
         \param [in] filename log files will be prefixed with \e filename: e.g. \e filename_<rank_with_leading_zeros>.log
-        \param [in] debugLvl debug level
+        \param [in] debugLvl debug level or -1 to use the default value
 
         Must be called before any logging method.
      */
-    void init(MPI_Comm comm, const std::string& filename, int debugLvl = 3);
+    void init(MPI_Comm comm, const std::string& filename, int debugLvl = -1);
 
     /** \brief Setup the logger object to write to a given file.
         \param [in] comm  MPI communicator that contains all ranks that will use the logger
         \param [in] fout file handler, must be open, typically \e stdout or \e stderr
-        \param [in] debugLvl debug level
+        \param [in] debugLvl debug leve or -1 to use the default value
      */
-    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = 3);
+    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = -1);
 
     /// return The current debug level
     int getDebugLvl() const noexcept
@@ -133,7 +147,8 @@ private:
     void _logImpl(const char *key, const char *filename, int line, const char *pattern, va_list) const;
 
 private:
-    int runtimeDebugLvl_ {0};  ///< debug level defined at runtime through setDebugLvl
+    /// debug level defined at runtime through setDebugLvl
+    int runtimeDebugLvl_ = getDefaultDebugLvl();
 
     static constexpr int flushThreshold_ = 8; ///< value of debug level starting with which every
                                              ///< message will be flushed to disk immediately

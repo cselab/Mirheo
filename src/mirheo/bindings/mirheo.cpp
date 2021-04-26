@@ -184,7 +184,7 @@ void exportMirheo(py::module& m)
                 }
             } ),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=3,
+             "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=-1,
              "checkpoint_mechanism"_a="Checkpoint", "checkpoint_every"_a=0,
              "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
              "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
@@ -205,6 +205,9 @@ Create the Mirheo coordinator.
 
     Debug levels above 4 or 5 may significanlty increase the runtime, they are only recommended to debug errors.
     Flushing increases the runtime yet more, but it is required in order not to lose any messages in case of abnormal program abort.
+
+    The default debug level may be modified by setting the ``MIRHEO_DEBUG_LEVEL`` environment variable to the desired value.
+    This variable may be useful when Mirheo is linked as part of other codes, in which case the ``debug_level`` variable affects only parts of the execution.
 
 
 Args:
@@ -243,7 +246,7 @@ Args:
                 }
             } ),
              py::return_value_policy::take_ownership,
-             "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=3,
+             "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=-1,
              "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
 Create the Mirheo coordinator from a snapshot.
 

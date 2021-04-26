@@ -60,6 +60,7 @@ make install
   * Shape Bouncers: warnings are now optional, disabled by default.
   * Add cupy-compatible bindings to per particle and per object channels.
   * Add DomainInfo and time states to the bindings.
+  * Add MIRHEO_DEBUG_LEVEL environment variable.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
 
