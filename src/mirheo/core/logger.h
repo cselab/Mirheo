@@ -54,6 +54,13 @@ int getDefaultDebugLvl();
 class Logger
 {
 public:
+    /** \brief Initialize the logger.
+
+        Experimental: logger can be automatically set to output to \e stdout by
+        settings the \c MIRHEO_LOGGER_AUTO_STDOUT environment variable to a
+        non-zero value. This is useful in multi-library contexts where multiple
+        loggers may be created.
+    */
     Logger();
     ~Logger();
 

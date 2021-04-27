@@ -17,7 +17,8 @@ namespace mirheo
 
 Logger logger;
 
-int getDefaultDebugLvl() {
+int getDefaultDebugLvl()
+{
     const char *var = std::getenv("MIRHEO_DEBUG_LEVEL");
     if (var != nullptr && var[0] != '\0') {
         int lvl;
@@ -35,7 +36,19 @@ static void printStacktrace(FILE *fout)
     fwrite(strace.str().c_str(), sizeof(char), strace.str().size(), fout);
 }
 
-Logger::Logger() = default;
+Logger::Logger()
+{
+    const char *var = std::getenv("MIRHEO_LOGGER_AUTO_STDOUT");
+    if (var != nullptr && var[0] != '\0') {
+        int flag;
+        if (1 == sscanf(var, "%d", &flag) && flag != 0) {
+            init(MPI_COMM_WORLD,
+                 FileWrapper{FileWrapper::SpecialStream::Cout, true},
+                 -1);
+        }
+    }
+}
+
 Logger::~Logger() = default;
 
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
@@ -95,8 +108,11 @@ void Logger::_logImpl(const char *key, const char *filename, int line, const cha
         int world_rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         printStacktrace(stderr);
-        fprintf(stderr, "\n\nLogger file is not set but tried to be used at %s:%d from rank %d"
-                " with the following message:\n", filename, line, world_rank);
+        fprintf(stderr,
+                "\n\nLogger not initialized but used at %s:%d from rank %d.\n"
+                "This may happen in case multiple `logger` global variables are created.\n"
+                "Try setting the environment variable MIRHEO_LOGGER_AUTO_STDOUT=1 or MIRHEO_DEBUG_LEVEL=0.\n\n"
+                "The message was:\n", filename, line, world_rank);
         vfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
         throw std::runtime_error("Logger used before initialization. Message was printed to stderr.");
@@ -142,7 +158,7 @@ void Logger::_die [[noreturn]](const char *filename, int line, const char *fmt, 
     va_end(args);
 
     printStacktrace(fout_.get());
-    fout_.close();
+    fflush(fout_.get());
 
     // http://stackoverflow.com/a/26221725  (modified)
     va_start(args, fmt);

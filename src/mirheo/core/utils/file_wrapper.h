@@ -28,6 +28,7 @@ public:
         This method will die if the file was not found
      */
     FileWrapper(const std::string& fname, const std::string& mode);
+    FileWrapper(SpecialStream stream, bool forceFlushOnClose);
     ~FileWrapper();
 
     FileWrapper           (const FileWrapper&) = delete;
