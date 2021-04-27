@@ -40,10 +40,9 @@ __global__ void getExitingObjects(DomainInfo domain, OVview view,
 
     // Object is marked for deletion if all its particles are marked. The easiest
     // way to check that is to check the COM (which is computed anyway).
-    // However, we must allow for some numerical error. Namely, with mark_val
-    // of -900.0, checking exactly prop.com.x == mark_val could break already
-    // for objects with 74k particles (in single precision).
-    const bool isMarked = std::fabs(prop.com.x - Real3_int::mark_val) < 1.0e-2_r;
+    // However, we must allow for some numerical error.
+    const bool isMarked = std::fabs(prop.com.x - Real3_int::mark_val)
+                        < 1.0e-5_r * std::fabs(Real3_int::mark_val);
     if (isMarked)
         return;  // 1 block == 1 object, all threads agree on the branch.
 

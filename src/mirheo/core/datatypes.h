@@ -65,7 +65,9 @@ struct __align__(16) Real3_int
         objects with all particles marked will be removed during object
         redistribution.
     */
-    static constexpr real mark_val = -900._r;
+    static constexpr real mark_val = -8.0e10_r;
+    static_assert((float)mark_val == (double)mark_val,
+                  "pick a value that is equal in single and double precision");
 
     /// copy constructor
     __HD__ inline Real3_int(const Real3_int& x)

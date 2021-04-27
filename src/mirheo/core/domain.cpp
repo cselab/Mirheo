@@ -19,6 +19,12 @@ DomainInfo createDomainInfo(MPI_Comm cartComm, real3 globalSize)
     domain.localSize = domain.globalSize / make_real3(nranks3D);
     domain.globalStart = domain.localSize * make_real3(rank3D);
 
+    const real maxSide = std::max(globalSize.x, std::max(globalSize.y, globalSize.z));
+    if (maxSide > std::fabs((real)Real3_int::mark_val)) {
+        die("domain size (%g %g %g) too large, side length must be smaller than %g",
+            globalSize.x, globalSize.y, globalSize.z, Real3_int::mark_val);
+    }
+
     return domain;
 }
 

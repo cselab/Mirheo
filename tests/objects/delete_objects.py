@@ -217,7 +217,7 @@ class TestDeleteObjects(unittest.TestCase):
 
 if __name__ == '__main__':
     import sys
-    out = unittest.main(argv=[sys.argv[0], '-q'], exit=False)
+    out = unittest.main(argv=[sys.argv[0], '-q', '-f'], exit=False)
     if out.result.errors or out.result.failures:
         print("Failed!", flush=True)
         sys.stderr.flush()
