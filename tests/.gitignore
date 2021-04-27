@@ -52,14 +52,14 @@ h5
 /ic/vel.ic.txt
 /log/env_var.log
 /md/log_0000?.log
-/md/temperature1.txt
-/md/temperature2.txt
 /md/snapshot/
 /md/stats.csv
+/md/temperature1.txt
+/md/temperature2.txt
 /mdpd/log_00000.log
 /mdpd/log_00001.log
-/mdpd/vcont.csv
 /mdpd/stats.csv
+/mdpd/vcont.csv
 /membrane/log_00000.log
 /membrane/log_00001.log
 /membrane/rbc_mesh.off
@@ -73,6 +73,7 @@ h5
 /object_belonging/log_00000.log
 /object_belonging/pos.inner.txt
 /object_belonging/rbc_mesh.off
+/objects/log_0000?.log
 /plugins/anchor/
 /plugins/force/
 /plugins/log_00000.log
@@ -130,10 +131,10 @@ h5
 /snapshot/log_00001.log
 /snapshot/log_00002.log
 /snapshot/log_00003.log
-/snapshot/stats.csv
 /snapshot/periodic_snapshots/
 /snapshot/snapshot1/
 /snapshot/snapshot2/
+/snapshot/stats.csv
 /stress/log_00000.log
 /stress/log_00001.log
 /stress/pressure.txt

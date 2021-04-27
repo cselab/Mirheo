@@ -214,6 +214,8 @@ void exportParticleVectors(py::module& m)
                 forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
         )");
 
+    pypv.attr("MARK_VALUE") = (real)Real3_int::mark_val;
+
     py::handlers_class<Mesh> pymesh(m, "Mesh", R"(
         Internally used class for describing a simple triangular mesh
     )");
