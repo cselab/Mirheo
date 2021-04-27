@@ -74,8 +74,8 @@ struct GetPartialArrayInterface
 // using primitive types only (numba doesn't seem to have such limitation).
 // Optional structured bindings could be added in the future, for example as
 // `pv.local[channel_name].structured`.
-MIR_NUMPY_PARTIAL_INFO(int, -1, sizeof(int), 'd');
-MIR_NUMPY_PARTIAL_INFO(int64_t, -1, sizeof(int64_t), 'd');
+MIR_NUMPY_PARTIAL_INFO(int, -1, sizeof(int), 'i');
+MIR_NUMPY_PARTIAL_INFO(int64_t, -1, sizeof(int64_t), 'i');
 MIR_NUMPY_PARTIAL_INFO(float, -1, sizeof(float), 'f');
 MIR_NUMPY_PARTIAL_INFO(float2, 2, sizeof(float), 'f');
 MIR_NUMPY_PARTIAL_INFO(float3, 3, sizeof(float), 'f');

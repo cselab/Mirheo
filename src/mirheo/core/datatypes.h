@@ -59,9 +59,12 @@ struct __align__(16) Real3_int
     real3 v;   ///< vector part
     integer i; ///< integer part
 
-    /// a special value used to mark particles;
-    /// useful e.g. to mark particles that must leave the domain
+    /** \brief A special value used to mark particles.
 
+        Marked particles will be deleted during cell list rebuild. For objects,
+        objects with all particles marked will be removed during object
+        redistribution.
+    */
     static constexpr real mark_val = -900._r;
 
     /// copy constructor

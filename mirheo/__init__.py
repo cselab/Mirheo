@@ -40,7 +40,7 @@ class PintUnitsConverter:
                 ureg(mirM).m_as('kg'))
 
     def __call__(self, value):
-        """Strip of all units using the Mirheo unit system as a reference.
+        """Strip off all units using the Mirheo unit system as a reference.
 
         All unrecognized data types will be returned as is.
         """
@@ -51,7 +51,8 @@ class PintUnitsConverter:
         if cls is ureg.Quantity:
             # The complicated (and quite expensive) procedure of changing an
             # arbitrary quantity to the given unit system... We cannot use
-            # .m_as() as we don't know the exact quantity of the value.
+            # .m_as() directly as we would need to know the corresponding unit
+            # in Mirheo's unit system.
             old = ureg.default_system
             try:
                 ureg.default_system = self.UNIT_SYSTEM_NAME
