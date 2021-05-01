@@ -26,10 +26,11 @@ struct getVarTypeVisitor
     {
         switch(ncomp)
         {
-        case 2:  return std::vector<float2>{}; break;
-        case 3:  return std::vector<float3>{}; break;
-        case 4:  return std::vector<float4>{}; break;
-        default: return std::vector<float>{}; break;
+        case 1: return std::vector<float>{};
+        case 2: return std::vector<float2>{};
+        case 3: return std::vector<float3>{};
+        case 4: return std::vector<float4>{};
+        default: die("unexpected ncomp %d", ncomp);
         }
     }
 
@@ -37,9 +38,11 @@ struct getVarTypeVisitor
     {
         switch(ncomp)
         {
-        case 3:  return std::vector<double3>{}; break;
-        case 4:  return std::vector<double4>{}; break;
-        default: return std::vector<double4>{}; break;
+        case 1: return std::vector<double>{};
+        case 2: return std::vector<double2>{};
+        case 3: return std::vector<double3>{};
+        case 4: return std::vector<double4>{};
+        default: die("unexpected ncomp %d", ncomp);
         }
     }
 };
