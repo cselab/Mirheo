@@ -38,16 +38,28 @@ public:
         \param [in] lscale Scaling length factor, applied to all parameters
     */
     TriangleWLCForce(ParametersType p, const Mesh *mesh, mReal lscale) :
-        lscale_(lscale)
+        lscale_(1.0_mr)
     {
         x0_   = p.x0;
-        ks_   = p.ks * lscale_ * lscale_;
+        ks_   = p.ks;
         mpow_ = p.mpow;
 
-        kd_ = p.kd * lscale_ * lscale_;
+        kd_ = p.kd;
 
-        area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
+        area0_   = p.totArea0 / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        lscale_ *= lscale;
+        ks_ *= lscale * lscale;
+        kd_ *= lscale * lscale;
+        area0_ *= lscale * lscale;
+        length0_ *= lscale;
     }
 
     /** \brief Get the reference triangle information

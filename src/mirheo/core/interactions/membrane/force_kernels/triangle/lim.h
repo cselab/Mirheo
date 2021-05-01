@@ -39,18 +39,30 @@ public:
         \param [in] lscale Scaling length factor, applied to all parameters
     */
     TriangleLimForce(ParametersType p, const Mesh *mesh, mReal lscale) :
-        lscale_(lscale)
+        lscale_(1.0_mr)
     {
         a3_ = p.a3;
         a4_ = p.a4;
         b1_ = p.b1;
         b2_ = p.b2;
 
-        ka_ = p.ka * lscale_ * lscale_;
-        mu_ = p.mu * lscale_ * lscale_;
+        ka_ = p.ka;
+        mu_ = p.mu;
 
-        area0_   = p.totArea0 * lscale_ * lscale_ / mesh->getNtriangles();
+        area0_   = p.totArea0 / mesh->getNtriangles();
         length0_ = math::sqrt(area0_ * 4.0 / math::sqrt(3.0));
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        lscale_ *= lscale;
+        ka_ *= lscale * lscale;
+        mu_ *= lscale * lscale;
+        area0_ *= lscale * lscale;
+        length0_ *= lscale;
     }
 
     /** \brief Get the reference triangle information

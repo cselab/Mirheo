@@ -26,11 +26,23 @@ public:
     DihedralJuelicher(ParametersType p, mReal lscale) :
         scurv_(0)
     {
-        kb_    = p.kb         * lscale*lscale;
-        kadPi_ = p.kad * M_PI * lscale*lscale;
+        kb_    = p.kb;
+        kadPi_ = p.kad * M_PI;
 
-        H0_  = p.C0 / (2*lscale);
-        DA0_ = p.DA0 / (lscale*lscale);
+        H0_  = p.C0 / 2;
+        DA0_ = p.DA0;
+
+        applyLengthScalingFactor(lscale);
+    }
+
+    /// Scale length-dependent parameters.
+    __HD__ void applyLengthScalingFactor(mReal lscale)
+    {
+        const mReal inv = 1 / lscale;
+        kb_ *= lscale * lscale;
+        kadPi_ *= lscale * lscale;
+        H0_ *= inv;
+        DA0_ *= inv * inv;
     }
 
     /** \brief Precompute internal values that are common to all vertices in the cell.
