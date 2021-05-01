@@ -184,12 +184,12 @@ if (MIR_DOUBLE_PRECISION)
 endif()
 
 if (MIR_MEMBRANE_DOUBLE)
-  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MIRHEO_MEMBRANE_FORCES_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_MEMBRANE_FORCES_DOUBLE)
   message("compiling with MIRHEO_MEMBRANE_DOUBLE ON")
 endif()
 
 if (MIR_ROD_DOUBLE)
-  target_compile_definitions(${LIB_MIR_CORE} PRIVATE MIRHEO_ROD_FORCES_DOUBLE)
+  target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_ROD_FORCES_DOUBLE)
   message("compiling with MIRHEO_ROD_DOUBLE ON")
 endif()
 
