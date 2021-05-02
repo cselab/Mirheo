@@ -26,6 +26,7 @@ if not args.load_from:
     u.registerPlugins(mir.Plugins.createForceSaver('force_saver', pv))
     u.registerPlugins(mir.Plugins.createDumpObjectStats('obj_stats', ov, 30, 'stats/'))
     u.registerPlugins(mir.Plugins.createDumpParticles('dump_particles', pv, 20, ['forces'], 'h5/pv-'))
+    u.registerPlugins(mir.Plugins.createDumpParticlesWithMesh('dump_particles_with_mesh', ov, 25, [], 'h5/ov-'))
     u.registerPlugins(mir.Plugins.createBerendsenThermostat('berendsen_thermostat', [pv], kBT=123, tau=10.0))
     u.registerPlugins(mir.Plugins.createRdf('rdf', pv, max_dist=2.0, nbins=50, every=1000, basename='rdf-'))
 

@@ -54,6 +54,11 @@
             "path": "h5/pv-"
         },
         {
+            "__type": "ParticleWithMeshDumperPlugin",
+            "name": "dump_particles_with_mesh",
+            "path": "h5/ov-"
+        },
+        {
             "__type": "RdfDump",
             "name": "rdf",
             "basename": "rdf-"
@@ -90,6 +95,13 @@
             "channelNames": [
                 "forces"
             ]
+        },
+        {
+            "__type": "ParticleWithMeshSenderPlugin",
+            "name": "dump_particles_with_mesh",
+            "pvName": "ov",
+            "dumpEvery": 25,
+            "channelNames": []
         },
         {
             "__type": "BerendsenThermostatPlugin",
@@ -134,6 +146,7 @@
                 "<PostprocessPlugin with name=rbcs>",
                 "<PostprocessPlugin with name=obj_stats>",
                 "<PostprocessPlugin with name=dump_particles>",
+                "<PostprocessPlugin with name=dump_particles_with_mesh>",
                 "<PostprocessPlugin with name=rdf>"
             ]
         }
@@ -166,6 +179,7 @@
                 "<SimulationPlugin with name=force_saver>",
                 "<SimulationPlugin with name=obj_stats>",
                 "<SimulationPlugin with name=dump_particles>",
+                "<SimulationPlugin with name=dump_particles_with_mesh>",
                 "<SimulationPlugin with name=berendsen_thermostat>",
                 "<SimulationPlugin with name=rdf>",
                 "<SimulationPlugin with name=extraForce>",

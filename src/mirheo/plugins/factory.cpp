@@ -468,6 +468,7 @@ PluginFactoryContainer::OptionalPluginPair loadPlugins(
     MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
     MIR_LOAD_PLUGIN_PAIR(ObjStatsPlugin, ObjStatsDumper);
     MIR_LOAD_PLUGIN_PAIR(ParticleSenderPlugin, ParticleDumperPlugin);
+    MIR_LOAD_PLUGIN_PAIR(ParticleWithMeshSenderPlugin, ParticleWithMeshDumperPlugin);
     MIR_LOAD_PLUGIN_PAIR(RdfPlugin, RdfDump);
     MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
     MIR_LOAD_SIM_PLUGIN(BerendsenThermostatPlugin);
