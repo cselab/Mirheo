@@ -44,6 +44,11 @@
             "path": "ply/"
         },
         {
+            "__type": "ObjStatsDumper",
+            "name": "obj_stats",
+            "path": "stats/"
+        },
+        {
             "__type": "ParticleDumperPlugin",
             "name": "dump_particles",
             "path": "h5/pv-"
@@ -70,6 +75,12 @@
             "__type": "ForceSaverPlugin",
             "name": "force_saver",
             "pvName": "ov"
+        },
+        {
+            "__type": "ObjStatsPlugin",
+            "name": "obj_stats",
+            "ovName": "ov",
+            "dumpEvery": 30
         },
         {
             "__type": "ParticleSenderPlugin",
@@ -121,6 +132,7 @@
             "plugins": [
                 "<PostprocessPlugin with name=stats>",
                 "<PostprocessPlugin with name=rbcs>",
+                "<PostprocessPlugin with name=obj_stats>",
                 "<PostprocessPlugin with name=dump_particles>",
                 "<PostprocessPlugin with name=rdf>"
             ]
@@ -152,6 +164,7 @@
                 "<SimulationPlugin with name=stats>",
                 "<SimulationPlugin with name=rbcs>",
                 "<SimulationPlugin with name=force_saver>",
+                "<SimulationPlugin with name=obj_stats>",
                 "<SimulationPlugin with name=dump_particles>",
                 "<SimulationPlugin with name=berendsen_thermostat>",
                 "<SimulationPlugin with name=rdf>",

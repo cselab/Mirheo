@@ -25,6 +25,11 @@ public:
      */
     ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
+    /// Construct a simulation plugin object from its snapshot.
+    ObjStatsPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
+
+    ~ObjStatsPlugin();
+
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
     void afterIntegration(cudaStream_t stream) override;
@@ -32,6 +37,13 @@ public:
     void handshake() override;
 
     bool needPostproc() override { return true; }
+
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
+protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string ovName_;
@@ -64,11 +76,22 @@ public:
         \param [in] path The csv file to dump. Must end with `.csv` or have no extension.
     */
     ObjStatsDumper(std::string name, std::string path);
+
+    /// Construct a postprocess plugin object from its snapshot.
+    ObjStatsDumper(Loader& loader, const ConfigObject& config);
+
     ~ObjStatsDumper();
 
     void deserialize() override;
     void setup(const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
+
+    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
+    void saveSnapshotAndRegister(Saver& saver) override;
+
+protected:
+    /// Implementation of snapshot saving. Reusable by potential derived classes.
+    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string path_;
