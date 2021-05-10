@@ -39,8 +39,6 @@ public:
         sint0kb_ *= lscale * lscale;
     }
 
-    }
-
     /// Precompute internal values that are common to all vertices in the cell.
     __D__ inline void computeInternalCommonQuantities(const ViewType& view, int rbcId)
     {}
