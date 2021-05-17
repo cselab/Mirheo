@@ -623,7 +623,7 @@ def createRdf():
     pass
 
 def createStats():
-    r"""createStats(state: MirState, name: str, filename: str='', every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createStats(state: MirState, name: str, every: int, pvs: List[ParticleVectors.ParticleVector]=[], filename: str='') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will report aggregate quantities of all the particles in the simulation:
@@ -635,8 +635,9 @@ def createStats():
 
         Args:
             name: Name of the plugin.
-            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
             every: Report to standard output every that many time-steps.
+            pvs: List of pvs to compute statistics from. If empty, will use all the pvs registered in the simulation.
+            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
     
 
     """

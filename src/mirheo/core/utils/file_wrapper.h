@@ -28,7 +28,16 @@ public:
         This method will die if the file was not found
      */
     FileWrapper(const std::string& fname, const std::string& mode);
+
+    /** \brief Construct a FileWrapper for console output.
+        \param stream The \c SpecialStream to dump to.
+        \param forceFlushOnClose If \c true, flushes to the stream when the object is closed.
+
+        \note See also open(SpecialStream, bool))
+     */
     FileWrapper(SpecialStream stream, bool forceFlushOnClose);
+
+
     ~FileWrapper();
 
     FileWrapper           (const FileWrapper&) = delete;
