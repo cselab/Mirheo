@@ -61,6 +61,7 @@ make install
   * Add cupy-compatible bindings to per particle and per object channels.
   * Add DomainInfo and time states to the bindings.
   * Add MIRHEO_DEBUG_LEVEL environment variable.
+  * `stats` plugin: reordered `filename` and `every` arguments. Add optional list of pvs to compute stats from.
 * **bug fixes**
   * RDF plugin: fixed a bug that occured when the max distance was more than a third of the subdomain.
 
