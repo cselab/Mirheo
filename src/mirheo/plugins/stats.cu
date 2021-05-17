@@ -52,12 +52,17 @@ __global__ void totalMomentumEnergy(PVview view, ReductionType *momentum, Reduct
 }
 } // namespace stats_plugin_kernels
 
-SimulationStats::SimulationStats(const MirState *state, std::string name, int fetchEvery) :
+SimulationStats::SimulationStats(const MirState *state, std::string name, int every, std::vector<std::string> pvNames) :
     SimulationPlugin(state, name),
-    fetchEvery_(fetchEvery)
+    every_(every),
+    pvNames_(std::move(pvNames))
 {}
-SimulationStats::SimulationStats(const MirState *state, Loader&, const ConfigObject& config)
-    : SimulationStats(state, config["name"], config["fetchEvery"])
+
+SimulationStats::SimulationStats(const MirState *state, Loader& loader, const ConfigObject& config) :
+    SimulationStats(state,
+                    config["name"],
+                    config["every"],
+                    loader.load<std::vector<std::string>>(config["pvNames"]))
 {}
 
 SimulationStats::~SimulationStats() = default;
@@ -65,13 +70,24 @@ SimulationStats::~SimulationStats() = default;
 void SimulationStats::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
-    pvs_ = simulation->getParticleVectors();
+
+    if (pvNames_.empty())
+    {
+        pvs_ = simulation->getParticleVectors();
+    }
+    else
+    {
+        for (const auto& pvName : pvNames_)
+            pvs_.push_back(simulation->getPVbyNameOrDie(pvName));
+    }
+
     timer_.start();
 }
 
 void SimulationStats::afterIntegration(cudaStream_t stream)
 {
-    if (!isTimeEvery(getState(), fetchEvery_)) return;
+    if (!isTimeEvery(getState(), every_))
+        return;
 
     momentum_.clear(stream);
     energy_  .clear(stream);
@@ -102,7 +118,7 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
 {
     if (needToDump_)
     {
-        const real tm = timer_.elapsedAndReset() / (getState()->currentStep < fetchEvery_ ? 1.0_r : fetchEvery_);
+        const real tm = timer_.elapsedAndReset() / (getState()->currentStep < every_ ? 1.0_r : every_);
         _waitPrevSend();
         SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime,
                                     getState()->currentStep, getState()->units,
@@ -120,7 +136,8 @@ void SimulationStats::saveSnapshotAndRegister(Saver& saver)
 ConfigObject SimulationStats::_saveSnapshot(Saver& saver, const std::string& typeName)
 {
     ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("fetchEvery", saver(fetchEvery_));
+    config.emplace("every", saver(every_));
+    config.emplace("pvNames", saver(pvNames_));
     return config;
 }
 

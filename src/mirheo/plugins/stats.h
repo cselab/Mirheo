@@ -7,6 +7,9 @@
 #include <mirheo/core/utils/file_wrapper.h>
 #include <mirheo/core/utils/timer.h>
 
+#include <string>
+#include <vector>
+
 namespace mirheo
 {
 
@@ -28,9 +31,10 @@ public:
     /** Create a SimulationPlugin object.
         \param [in] state The global state of the simulation.
         \param [in] name The name of the plugin.
-        \param [in] fetchEvery Send the statistics every this number of steps.
+        \param [in] every Compute the statistics every this number of steps.
+        \param [in] pvNames List of names of the pvs to compute statistics from. If empty, will take all the pvs in the simulation.
     */
-    SimulationStats(const MirState *state, std::string name, int fetchEvery);
+    SimulationStats(const MirState *state, std::string name, int every, std::vector<std::string> pvNames);
 
     /// Construct a simulation plugin object from its snapshot.
     SimulationStats(const MirState *state, Loader& loader, const ConfigObject& config);
@@ -52,7 +56,7 @@ protected:
     ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
-    int fetchEvery_;
+    int every_;
     bool needToDump_{false};
 
     stats_plugin::CountType nparticles_;
@@ -60,6 +64,11 @@ private:
     PinnedBuffer<real> maxvel_{1};
     std::vector<char> sendBuffer_;
 
+    /** used to setup pvs:
+        empty to get all pvs in the simulation,
+        otherwise get the pvs with the given names.
+     */
+    std::vector<std::string> pvNames_;
     std::vector<ParticleVector*> pvs_;
 
     mTimer timer_;

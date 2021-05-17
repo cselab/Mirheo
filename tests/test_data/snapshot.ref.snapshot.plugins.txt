@@ -68,7 +68,8 @@
         {
             "__type": "SimulationStats",
             "name": "stats",
-            "fetchEvery": 10
+            "every": 10,
+            "pvNames": []
         },
         {
             "__type": "MeshPlugin",

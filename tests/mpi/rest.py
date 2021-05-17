@@ -23,7 +23,7 @@ def run(niter, statsFname, comm_address):
     u.registerIntegrator(vv)
     u.setIntegrator(vv, pv)
 
-    u.registerPlugins(mir.Plugins.createStats('stats', statsFname, 1000))
+    u.registerPlugins(mir.Plugins.createStats('stats', every=1000, filename=statsFname))
 
     u.run(niter, dt=dt)
 

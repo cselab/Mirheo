@@ -117,7 +117,7 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real maxDist, int nbins, std::string basename, int every);
 
-PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, int every);
+PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);
 

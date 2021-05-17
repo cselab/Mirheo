@@ -369,9 +369,9 @@ PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string 
     return { simPl, postPl };
 }
 
-PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, std::string filename, int every)
+PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename)
 {
-    auto simPl  = computeTask ? std::make_shared<SimulationStats> (state, name, every) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<SimulationStats> (state, name, every, extractPVNames(pvs)) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<PostprocessStats> (name, filename);
 
     return { simPl, postPl };

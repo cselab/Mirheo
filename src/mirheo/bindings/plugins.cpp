@@ -502,7 +502,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createStats", &plugin_factory::createStatsPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "filename"_a="", "every"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "every"_a, "pvs"_a=std::vector<ParticleVector*>(), "filename"_a="", R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
         total number of particles in the simulation, average temperature and momentum, maximum velocity magnutide of a particle
         and also the mean real time per step in milliseconds.
@@ -512,8 +512,9 @@ void exportPlugins(py::module& m)
 
         Args:
             name: Name of the plugin.
-            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
             every: Report to standard output every that many time-steps.
+            pvs: List of pvs to compute statistics from. If empty, will use all the pvs registered in the simulation.
+            filename: The statistics are saved in this csv file. The name should either end with `.csv` or have no extension, in which case `.csv` is added.
     )");
 
     m.def("__createTemperaturize", &plugin_factory::createTemperaturizePlugin,

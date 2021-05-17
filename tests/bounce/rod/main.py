@@ -61,7 +61,7 @@ if args.vis:
     dump_every = int(0.1 / dt)
     u.registerPlugins(mir.Plugins.createDumpParticles('solvent_dump', pv_solvent, dump_every, [], 'h5/solvent-'))
     u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', pv_rod, dump_every, [], 'h5/rod-'))
-    u.registerPlugins(mir.Plugins.createStats('stats', "stats", dump_every))
+    u.registerPlugins(mir.Plugins.createStats('stats', every=dump_every, filename="stats.csv"))
 
 tend = int(5.0 / dt)
 
