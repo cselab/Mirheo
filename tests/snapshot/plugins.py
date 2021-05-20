@@ -41,7 +41,7 @@ else:
     u = mir.Mirheo(args.ranks, snapshot=args.load_from, debug_level=3, log_filename='log', no_splash=True)
     u.saveSnapshot(args.save_to)
 
-# cTEST: snapshot.plugins
+# TEST: snapshot.plugins
 # cd snapshot
 # rm -rf snapshot1/ snapshot2/
 # mir.run --runargs "-n 4" ./plugins.py --ranks 2 1 1 --save-to snapshot1/
