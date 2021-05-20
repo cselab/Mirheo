@@ -105,14 +105,31 @@ void Logger::log(const char *key, const char *filename, int line, const char *fm
 void Logger::_logImpl(const char *key, const char *filename, int line, const char *fmt, va_list args) const {
     if (!fout_.get())
     {
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+        int mpiInitialized;
+        int codeInitialized = MPI_Initialized(&mpiInitialized);
+        if (codeInitialized != 0)
+        {
+             fprintf(stderr, "MPI_Initialized error: %d\n", codeInitialized);
+        }
+
+        std::string rankInfoMsg;
+        if (mpiInitialized)
+        {
+            int worldRank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
+            rankInfoMsg = strprintf("from rank %d", worldRank);
+        }
+        else
+        {
+            rankInfoMsg = " with uninitialized MPI environment";
+        }
+
         printStacktrace(stderr);
         fprintf(stderr,
-                "\n\nLogger not initialized but used at %s:%d from rank %d.\n"
+                "\n\nLogger not initialized but used at %s:%d %s.\n"
                 "This may happen in case multiple `logger` global variables are created.\n"
                 "Try setting the environment variable MIRHEO_LOGGER_AUTO_STDOUT=1 or MIRHEO_DEBUG_LEVEL=0.\n\n"
-                "The message was:\n", filename, line, world_rank);
+                "The message was:\n", filename, line, rankInfoMsg.c_str());
         vfprintf(stderr, fmt, args);
         fprintf(stderr, "\n");
         throw std::runtime_error("Logger used before initialization. Message was printed to stderr.");
