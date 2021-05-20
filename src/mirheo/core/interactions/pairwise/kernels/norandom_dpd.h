@@ -43,11 +43,12 @@ public:
     {}
 
     /// evaluate the force
-    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __HD__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
-        if (rij2 > rc2_) return make_real3(0.0_r);
+        if (rij2 > rc2_ || rij2 < 1e-6_r)
+            return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);
         const real rij = rij2 * invrij;

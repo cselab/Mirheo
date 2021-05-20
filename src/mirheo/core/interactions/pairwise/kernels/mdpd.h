@@ -44,7 +44,7 @@ public:
         const real3 dr = dst.p.r - src.p.r;
         const real rij2 = dot(dr, dr);
 
-        if (rij2 > rc2_)
+        if (rij2 > rc2_ || rij2 < 1e-6_r)
             return make_real3(0.0_r);
 
         const real invrij = math::rsqrt(rij2);

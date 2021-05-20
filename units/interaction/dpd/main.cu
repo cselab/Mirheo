@@ -1,10 +1,10 @@
-#include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/celllist.h>
-#include <mirheo/core/logger.h>
 #include <mirheo/core/containers.h>
-#include <mirheo/core/interactions/pairwise/pairwise.h>
-#include <mirheo/core/interactions/pairwise/kernels/norandom_dpd.h>
 #include <mirheo/core/initial_conditions/uniform.h>
+#include <mirheo/core/interactions/pairwise/kernels/norandom_dpd.h>
+#include <mirheo/core/interactions/pairwise/pairwise.h>
+#include <mirheo/core/logger.h>
+#include <mirheo/core/pvs/particle_vector.h>
 
 #include <gtest/gtest.h>
 
@@ -15,10 +15,45 @@ using namespace mirheo;
 
 bool verbose = false;
 
-void makeCells(const real4 *inputPos, const real4 *inputVel,
-               real4 *outputPos, real4 *outputVel,
-               int *cellsStartSize, int *cellsSize,
-               int *order, int np, CellListInfo cinfo)
+TEST(Interactions_dpd, is_not_nan_at_zero_distance)
+{
+    const real rc = 1.0_r;
+    const real a = 10.0_r;
+    const real gamma = 20.0_r;
+    const real kBT = 0.4_r;
+    const real power = 0.25_r;
+
+    PairwiseNorandomDPD dpd(rc, a, gamma, kBT, power);
+
+    Particle p0, p1;
+    p0.setId(54321);
+    p1.setId(12345);
+
+    p0.r = make_real3(1, 2, 3);
+    p0.u = make_real3(3, -2, 3);
+
+    p1.r = p0.r;
+    p1.u = make_real3(2.0_r, 1.0_r, -4.0_r);
+
+    const auto dpdKernel = dpd.handler();
+
+    const real3 f10 = dpdKernel(p0, 0, p1, 1);
+    const real3 f01 = dpdKernel(p1, 1, p0, 0);
+
+    ASSERT_FALSE(std::isnan(f01.x));
+    ASSERT_FALSE(std::isnan(f01.y));
+    ASSERT_FALSE(std::isnan(f01.z));
+
+    ASSERT_EQ(f01.x, -f10.x);
+    ASSERT_EQ(f01.y, -f10.y);
+    ASSERT_EQ(f01.z, -f10.z);
+}
+
+
+static void makeCells(const real4 *inputPos, const real4 *inputVel,
+                      real4 *outputPos, real4 *outputVel,
+                      int *cellsStartSize, int *cellsSize,
+                      int *order, int np, CellListInfo cinfo)
 {
     for (int i = 0; i < cinfo.totcells+1; i++)
         cellsSize[i] = 0;
@@ -44,7 +79,7 @@ void makeCells(const real4 *inputPos, const real4 *inputVel,
         cellsStartSize[i] -= cellsSize[i];
 }
 
-void execute(MPI_Comm comm, real3 length)
+static void execute(MPI_Comm comm, real3 length)
 {
     DomainInfo domain{length, {0,0,0}, length};
     const real dt = 0.002;
@@ -290,13 +325,13 @@ void execute(MPI_Comm comm, real3 length)
     ASSERT_LE(l2,   0.002);
 }
 
-TEST(Interactions, smallDomain)
+TEST(Interactions, GPU_is_same_as_CPU_small_domain)
 {
     real3 length{3, 4, 5};
     execute(MPI_COMM_WORLD, length);
 }
 
-TEST(Interactions, largerDomain)
+TEST(Interactions, GPU_is_same_as_CPU_large_domain)
 {
     real3 length{80, 64, 29};
     execute(MPI_COMM_WORLD, length);
