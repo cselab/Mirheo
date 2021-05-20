@@ -65,7 +65,7 @@ public:
     ~Logger();
 
     /** \brief Setup the logger object
-        \param [in] comm MPI communicator that contains all ranks that will use the logger
+        \param [in] comm MPI communicator that contains all ranks that will use the logger. If set to MPI_COMM_NULL, the logger does not require MPI to be initialized.
         \param [in] filename log files will be prefixed with \e filename: e.g. \e filename_<rank_with_leading_zeros>.log
         \param [in] debugLvl debug level or -1 to use the default value
 
@@ -74,11 +74,11 @@ public:
     void init(MPI_Comm comm, const std::string& filename, int debugLvl = -1);
 
     /** \brief Setup the logger object to write to a given file.
-        \param [in] comm  MPI communicator that contains all ranks that will use the logger
+        \param [in] comm  MPI communicator that contains all ranks that will use the logger. If set to MPI_COMM_NULL, the logger does not require MPI to be initialized.
         \param [in] fout file handler, must be open, typically \e stdout or \e stderr
         \param [in] debugLvl debug leve or -1 to use the default value
      */
-    void init(MPI_Comm comm, FileWrapper&& fout, int debugLvl = -1);
+    void init(MPI_Comm comm, FileWrapper fout, int debugLvl = -1);
 
     /// return The current debug level
     int getDebugLvl() const noexcept

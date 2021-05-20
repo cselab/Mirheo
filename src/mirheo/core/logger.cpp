@@ -53,7 +53,11 @@ Logger::~Logger() = default;
 
 void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank_);
+    if (comm != MPI_COMM_NULL)
+        MPI_Comm_rank(comm, &rank_);
+    else
+        rank_ = 0;
+
     constexpr int zeroPadding = 5;
     const std::string rankStr = createStrZeroPadded(rank_, zeroPadding);
 
@@ -74,13 +78,18 @@ void Logger::init(MPI_Comm comm, const std::string& fname, int debugLvl)
     stacktrace::registerSignals();
 }
 
-void Logger::init(MPI_Comm comm, FileWrapper&& fout, int debugLvl)
+void Logger::init(MPI_Comm comm, FileWrapper fout, int debugLvl)
 {
-    MPI_Comm_rank(comm, &rank_);
-    this->fout_ = std::move(fout);
+    if (comm != MPI_COMM_NULL)
+        MPI_Comm_rank(comm, &rank_);
+    else
+        rank_ = 0;
+
+    fout_ = std::move(fout);
 
     setDebugLvl(debugLvl);
 }
+
 
 void Logger::setDebugLvl(int debugLvl)
 {
