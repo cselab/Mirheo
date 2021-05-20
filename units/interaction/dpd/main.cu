@@ -1,6 +1,3 @@
-#define protected public
-#define private public
-
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/logger.h>
