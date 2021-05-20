@@ -324,6 +324,7 @@ TEST (Integration_Rigid, constantTorquePrincipalAxis)
 
 int main(int argc, char **argv)
 {
+    logger.init(MPI_COMM_NULL, "integration_rigid.log", 0);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

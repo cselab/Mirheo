@@ -80,6 +80,7 @@ TEST (MARCHING_CUBES, Sphere)
 
 int main(int argc, char **argv)
 {
+    logger.init(MPI_COMM_NULL, "marching_cube.log", 0);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

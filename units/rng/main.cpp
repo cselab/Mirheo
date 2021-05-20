@@ -87,6 +87,7 @@ TEST (RNG, autoCorrelationGenFromMT)
 
 int main(int argc, char **argv)
 {
+    logger.init(MPI_COMM_NULL, "rng.log", 0);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

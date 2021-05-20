@@ -739,13 +739,7 @@ TEST (ROD, bendingForces_helix)
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
-
-    logger.init(MPI_COMM_WORLD, "rod_forces.log", 0);
-
+    logger.init(MPI_COMM_NULL, "rod_foces.log", 0);
     testing::InitGoogleTest(&argc, argv);
-    auto ret = RUN_ALL_TESTS();
-
-    MPI_Finalize();
-    return ret;
+    return RUN_ALL_TESTS();
 }

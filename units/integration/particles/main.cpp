@@ -168,13 +168,7 @@ TEST(Integration_particles, velocityVerletLargeMass)
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
-    logger.init(MPI_COMM_WORLD, "integration.log", 9);
-
+    logger.init(MPI_COMM_NULL, "integration_particles.log", 0);
     testing::InitGoogleTest(&argc, argv);
-
-    auto ret = RUN_ALL_TESTS();
-
-    MPI_Finalize();
-    return ret;
+    return RUN_ALL_TESTS();
 }
