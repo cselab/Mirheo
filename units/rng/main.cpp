@@ -32,57 +32,41 @@ using Real = long double;
 template<typename Gen>
 static Real computeAutoCorrelation(Gen gen, real dt, long n)
 {
-    auto samples = generateSamples(gen, dt, n);
+    const auto samples = generateSamples(gen, dt, n);
 
     Real sum = 0;
-    for (const auto& x : samples) sum += (Real) x;
+    for (const auto& x : samples)
+        sum += (Real) x;
 
-    Real mean = sum / n;
+    const Real mean = sum / n;
+    const Real mean_sq = mean*mean;
+
     Real covariance = 0;
-    Real mean_sq = mean*mean;
-
     for (int i = 1; i < n; ++i)
         covariance += samples[i] * samples[i-1] - mean_sq;
 
     return covariance / n;
 }
 
-class GenFromTime
-{
-public:
-    real generate(const MirState *state)
-    {
-        const real t = state->currentTime;
-        const real *pt = &t;
-        const int v = *reinterpret_cast<const int*>(pt);
-        std::mt19937 gen(v);
-        std::uniform_real_distribution<real> udistr(0.001, 1);
-        return udistr(gen);
-    }
-};
-
-TEST (RNG, autoCorrelationGenFromTime)
-{
-    GenFromTime gen;
-    real dt = 1e-3;
-
-    auto corr = computeAutoCorrelation(gen, dt, 10000);
-
-    printf("from time: %g\n", (double) corr);
-
-    ASSERT_LE(std::abs(corr), 1e-3);
-}
-
-TEST (RNG, autoCorrelationGenFromMT)
+TEST (StepRandomGen, auto_correlation_is_zero)
 {
     StepRandomGen gen(424242);
-    real dt = 1e-3;
-
-    auto corr = computeAutoCorrelation(gen, dt, 10000);
-
-    printf("from MT: %g\n", (double) corr);
-
+    const real dt = 1e-3;
+    const Real corr = computeAutoCorrelation(gen, dt, 10000);
     ASSERT_LE(std::abs(corr), 2e-3);
+}
+
+TEST (StepRandomGen, gives_same_value_at_same_time)
+{
+    StepRandomGen gen(424242);
+    const real dt = 1e-3;
+    MirState state(DomainInfo{}, dt, UnitConversion{});
+    state.currentTime = 1243234;
+
+    const auto x0 = gen.generate(&state);
+    const auto x1 = gen.generate(&state);
+
+    ASSERT_EQ(x0, x1);
 }
 
 int main(int argc, char **argv)
