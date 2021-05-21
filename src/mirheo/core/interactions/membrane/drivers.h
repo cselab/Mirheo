@@ -38,7 +38,7 @@ __device__ inline mReal3 _fconstrainArea(mReal3 v1, mReal3 v2, mReal3 v3, mReal 
     const mReal3 normal = cross(x21, x31);
 
     const mReal area = 0.5_mr * length(normal);
-    const mReal area_1 = 1.0_mr / area;
+    const mReal area_1 = 1.0_mr / max(area, 1e-6_mr);
 
     const mReal coef = -0.25_mr * parameters.ka0 * (totArea - parameters.totArea0) * area_1;
 
@@ -180,7 +180,7 @@ __device__ inline mReal3 _fvisc(ParticleMReal p1, ParticleMReal p2,
     const mReal3 du = p2.u - p1.u;
     const mReal3 dr = p1.r - p2.r;
 
-    return dr * (parameters.gammaC * dot(du, dr) / dot(dr, dr));
+    return dr * (parameters.gammaC * dot(du, dr) / max(dot(dr, dr), 1e-6_mr));
 }
 
 __device__ inline mReal3 _ffluct(mReal3 v1, mReal3 v2, int i1, int i2,

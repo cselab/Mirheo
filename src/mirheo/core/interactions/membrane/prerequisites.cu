@@ -64,7 +64,7 @@ __global__ void computeAreasAndCurvatures(OVviewWithJuelicherQuants view, Membra
         }
 
         view.vertexAreas          [offset + idv0] = area;
-        view.vertexMeanCurvatures [offset + idv0] = lenTheta / (4 * area);
+        view.vertexMeanCurvatures [offset + idv0] = lenTheta / max(4 * area, 1e-6_mr);
     }
 
     lenTheta = warpReduce( lenTheta, [] (mReal a, mReal b) { return a+b; } );

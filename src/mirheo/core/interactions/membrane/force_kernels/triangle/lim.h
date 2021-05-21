@@ -106,7 +106,7 @@ public:
 
         const mReal3 normalArea2 = cross(x12, x13);
         const mReal area = 0.5_mr * length(normalArea2);
-        const mReal area_inv = 1.0_mr / area;
+        const mReal area_inv = 1.0_mr / max(area, 1e-6_mr);
         const mReal area0_inv = 1.0_mr / eq.a;
 
         const mReal3 derArea  = (0.25_mr * area_inv) * cross(normalArea2, x32);
