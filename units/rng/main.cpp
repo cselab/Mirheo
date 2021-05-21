@@ -1,12 +1,10 @@
-#include <mirheo/core/logger.h>
-#include <mirheo/core/interactions/utils/step_random_gen.h>
 #include <mirheo/core/domain.h>
+#include <mirheo/core/interactions/utils/step_random_gen.h>
+#include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo_state.h>
+#include <mirheo/core/utils/cuda_rng.h>
 
-#include <cmath>
-#include <cstdio>
 #include <gtest/gtest.h>
-#include <random>
 
 using namespace mirheo;
 
@@ -68,6 +66,67 @@ TEST (StepRandomGen, gives_same_value_at_same_time)
 
     ASSERT_EQ(x0, x1);
 }
+
+
+
+TEST (Saru, uniform01_is_within_bounds)
+{
+    const int n = 10000;
+    const real seed = 0.138768175_r;
+
+    for (int i = 0; i < n; ++i)
+    {
+        const int j = -35 * i + i*i + 3;
+
+        const real x = Saru::uniform01(seed, i, j);
+
+        ASSERT_LE(0.0_r, x);
+        ASSERT_LE(x, 1.0_r);
+    }
+}
+
+TEST (Saru, mean0var1_has_zero_mean)
+{
+    const int n = 100000;
+    const real seed = 0.138768175_r;
+
+    real mean = 0;
+
+    for (int i = 0; i < n; ++i)
+    {
+        const int j = -35 * i + i*i + 3;
+        const real x = Saru::mean0var1(seed, i, j);
+
+        mean += x;
+    }
+
+    mean /= n;
+    ASSERT_NEAR(mean, 0.0_r, 2.0 / std::sqrt(n));
+}
+
+TEST (Saru, mean0var1_has_unit_variance)
+{
+    const int n = 100000;
+    const real seed = 0.138768175_r;
+
+    const real mean = 0;
+    real var = 0;
+
+    for (int i = 0; i < n; ++i)
+    {
+        const int j = -35 * i + i*i + 3;
+        const real x = Saru::mean0var1(seed, i, j);
+        const real dx = x - mean;
+        var += dx*dx;
+    }
+
+    var /= (n-1);
+    ASSERT_NEAR(var, 1.0_r, 2.0 / std::sqrt(n));
+}
+
+
+
+
 
 int main(int argc, char **argv)
 {
