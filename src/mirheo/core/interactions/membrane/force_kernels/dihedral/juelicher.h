@@ -83,6 +83,7 @@ private:
 
     __D__ inline mReal3 _forceTheta(VertexType v0, VertexType v1, VertexType v2, VertexType v3, mReal3 &f1) const
     {
+        constexpr mReal eps = 1e-6_mr;
         const mReal3 v20 = v0.r - v2.r;
         const mReal3 v21 = v1.r - v2.r;
         const mReal3 v23 = v3.r - v2.r;
@@ -90,8 +91,8 @@ private:
         const mReal3 n = cross(v21, v20);
         const mReal3 k = cross(v20, v23);
 
-        const mReal inv_lenn = math::rsqrt(dot(n,n));
-        const mReal inv_lenk = math::rsqrt(dot(k,k));
+        const mReal inv_lenn = math::rsqrt(math::max(dot(n,n), eps));
+        const mReal inv_lenk = math::rsqrt(math::max(dot(k,k), eps));
 
         const mReal cotangent2n = dot(v20, v21) * inv_lenn;
         const mReal cotangent2k = dot(v23, v20) * inv_lenk;
