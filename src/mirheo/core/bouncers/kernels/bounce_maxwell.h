@@ -38,6 +38,15 @@ public:
         seed2_ = dis(rng);
     }
 
+    /** Compute the velocity after bouncing the particle.
+        The velocity is chosen such that it is sampled by a Maxwelian
+        distribution and has a positive dot product with the wall surface normal.
+
+        \param [in] uOld The velocity of the particle at the previous time step.
+        \param [in] uWall The velocity of the wall surface at the collision point.
+        \param [in] n The wall surface normal at the collision point.
+        \param [in] mass The particle mass.
+     */
     __HD__ real3 newVelocity(real3 uOld, real3 uWall, real3 n, real mass) const
     {
         constexpr int maxTries = 50;
