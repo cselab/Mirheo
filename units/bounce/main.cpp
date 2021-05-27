@@ -25,6 +25,30 @@ TEST (BounceKernels, BounceMaxwell_returns_correct_velocity_orientation)
     }
 }
 
+TEST (BounceKernels, BounceBack_creates_correct_velocity)
+{
+    const real mass = 0.5_r;
+
+    const real3 nWall = normalize(make_real3(1.0_r, -2.0_r, 3.0_r));
+    const real3 uWall = make_real3(0.0_r, -1.0_r, 0.0_r);
+    const real3 uOld = make_real3(1.0_r, -2.0_r, 3.0_r);
+
+    std::mt19937 gen(0XC0FFEE);
+    BounceBack bouncer;
+
+    for (int i = 0; i < 200; ++i)
+    {
+        bouncer.update(gen);
+        const real3 uNew = bouncer.newVelocity(uOld, uWall, nWall, mass);
+
+        const real3 du = 0.5_r * (uNew + uOld) - uWall;
+        constexpr real tol = 1e-6_r;
+        ASSERT_NEAR(du.x, 0.0_r, tol);
+        ASSERT_NEAR(du.y, 0.0_r, tol);
+        ASSERT_NEAR(du.z, 0.0_r, tol);
+    }
+}
+
 
 
 
