@@ -38,12 +38,11 @@ public:
         seed2_ = dis(rng);
     }
 
-#ifdef __NVCC__
-    __device__ real3 newVelocity(__UNUSED real3 uOld, real3 uWall, real3 n, real mass) const
+    __HD__ real3 newVelocity(real3 uOld, real3 uWall, real3 n, real mass) const
     {
         constexpr int maxTries = 50;
-        const real2 rand1 = Saru::normal2(seed1_, threadIdx.x, blockIdx.x);
-        const real2 rand2 = Saru::normal2(seed2_, threadIdx.x, blockIdx.x);
+        real2 rand1 = Saru::normal2(seed1_, uOld.x, uOld.y);
+        real2 rand2 = Saru::normal2(seed2_, uOld.z, uWall.x);
 
         real3 v = make_real3(rand1.x, rand1.y, rand2.x);
 
@@ -51,15 +50,14 @@ public:
         {
             if (dot(v, n) > 0) break;
 
-            const real2 rand3 = Saru::normal2(rand2.y, threadIdx.x, blockIdx.x);
-            const real2 rand4 = Saru::normal2(rand3.y, threadIdx.x, blockIdx.x);
-            v = make_real3(rand3.x, rand3.y, rand4.x);
+            rand1 = Saru::normal2(rand2.x, rand2.y, uOld.x);
+            rand2 = Saru::normal2(rand1.x, rand1.x, uOld.y);
+            v = make_real3(rand1.x, rand1.y, rand2.x);
         }
         v = normalize(v) * math::sqrt(kBT_ / mass);
 
         return uWall + v;
     }
-#endif
 
 private:
 

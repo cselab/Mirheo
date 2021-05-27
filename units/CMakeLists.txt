@@ -21,6 +21,7 @@ function (add_test_executable dirName nodes)
            COMMAND mir.run --runargs "-n ${nodes}" ./${EXEC_NAME})
 endfunction()
 
+add_test_executable(bounce 1)
 add_test_executable(celllists 1)
 add_test_executable(file_wrapper 1)
 add_test_executable(id64 1)
