@@ -1,5 +1,5 @@
-sphinx>=2.0
+sphinx=1.8.4
 sphinx_rtd_theme
 sphinx_automodapi
 pygments
-breathe>=4.28.0
+breathe=4.11.1
