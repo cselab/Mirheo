@@ -47,11 +47,14 @@ make install
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.5.1
 
 * Add particle averager plugin
 * Add binding (spring) interaction between particle vectors
 * Add Shardlow integrator for membranes
+* Add pairwise Morse potential
 * Docs: Add ADE model and add the corresponding reference.
 * **interface changes**
   * remove `setSpecificPair` from pairwise interactions. The same effect can be obtained by creating more pairwise interactions instead.
