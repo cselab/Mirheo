@@ -17,10 +17,12 @@ template <class Awareness>
 class PairwiseMorse : public PairwiseKernel, public ParticleFetcher
 {
 public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using ViewType     = PVview;        ///< Compatible view type
     using ParticleType = Particle;      ///< Compatible particle type
-    using HandlerType  = PairwiseMorse; ///< Corresponding handler
+    using HandlerType  = PairwiseMorse<Awareness>; ///< Corresponding handler
     using ParamsType   = MorseParams;   ///< Corresponding parameters type
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Constructor
     PairwiseMorse(real rc, real De, real r0, real beta, Awareness awareness) :

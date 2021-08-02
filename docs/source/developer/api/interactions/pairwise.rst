@@ -55,7 +55,7 @@ The interface of the functor must follow the following requirements:
       using ParamsType = <struct that contains the parameters of this functor>
 
 #. A generic constructor from the ``ParamsType`` parameters:
-   
+
    .. code-block:: c++
 
       PairwiseKernelType(real rc, const ParamsType& p, real dt, long seed=42424242);
@@ -66,7 +66,7 @@ The interface of the functor must follow the following requirements:
    .. code-block:: c++
 
       void setup(LocalParticleVector* lpv1, LocalParticleVector* lpv2, CellList* cl1, CellList* cl2, const MirState *state);
-	
+
 #. Handler function (on Host, for manager only)
 
    .. code-block:: c++
@@ -76,7 +76,7 @@ The interface of the functor must follow the following requirements:
 #. Interaction function (output must match with accumulator, see below) (on GPU)
 
    .. code-block:: c++
-      
+
       __D__ <OutputType> operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const;
 
 #. :ref:`Accumulator <dev-interactions-pairwise-accumulators>` initializer (on GPU)
@@ -92,16 +92,16 @@ The interface of the functor must follow the following requirements:
 
       __D__ ParticleType read(const ViewType& view, int id) const;
       __D__ ParticleType readNoCache(const ViewType& view, int id) const;
-      
+
       __D__ void readCoordinates(ParticleType& p, const ViewType& view, int id) const;
       __D__ void readExtraData(ParticleType& p, const ViewType& view, int id) const;
-      
+
 #. Interacting checker to discard pairs not within cutoff:
 
    .. code-block:: c++
 
       __D__ bool withinCutoff(const ParticleType& src, const ParticleType& dst) const;
-	
+
 #. Position getter from generic particle type:
 
    .. code-block:: c++
@@ -140,6 +140,10 @@ Implemented kernels
    :members:
 
 .. doxygenclass:: mirheo::PairwiseLJ
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseMorse
    :project: mirheo
    :members:
 

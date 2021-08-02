@@ -404,6 +404,7 @@ class Pairwise(Interaction):
                 * **De**: :math:`D_e`
                 * **r0**: :math:`r_0`
                 * **beta**: :math:`\beta`
+                * **aware_mode**: See "RepulsiveLJ" kernel description.
 
 
             * **kind** = "Density"

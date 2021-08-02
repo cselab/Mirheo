@@ -24,7 +24,7 @@ public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using ViewType     = PVview;              ///< Compatible view type
     using ParticleType = Particle;            ///< Compatible particle type
-    using HandlerType  = PairwiseRepulsiveLJ; ///< Corresponding handler
+    using HandlerType  = PairwiseRepulsiveLJ<Awareness>; ///< Corresponding handler
     using ParamsType   = RepulsiveLJParams;   ///< Corresponding parameters type
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
