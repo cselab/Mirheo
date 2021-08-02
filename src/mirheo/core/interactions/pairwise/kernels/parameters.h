@@ -23,6 +23,8 @@ class PairwiseRepulsiveLJ;
 
 class PairwiseMDPD;
 
+class PairwiseMorse;
+
 class SimpleMDPDDensityKernel;
 class WendlandC2DensityKernel;
 
@@ -95,6 +97,7 @@ using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
                                             LJAwarenessParamsObject,
                                             LJAwarenessParamsRod>;
 
+
 /// Repulsive Lennard-Jones parameters
 struct RepulsiveLJParams
 {
@@ -104,6 +107,18 @@ struct RepulsiveLJParams
     VarLJAwarenessParams varLJAwarenessParams; ///< awareness
 };
 MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
+
+
+/// Morse parameters
+struct MorseParams
+{
+    using KernelType = PairwiseMorse; ///< the corresponding kernel
+    real De; ///< force coefficient
+    real r0; ///< zero force distance
+    real beta; ///< interaction range parameter
+};
+MIRHEO_MEMBER_VARS(MorseParams, De, r0, beta);
+
 
 /// Multi-body Dissipative Particle Dynamics parameters
 struct MDPDParams
@@ -182,6 +197,7 @@ MIRHEO_MEMBER_VARS(SDPDParams, viscosity, kBT, varEOSParams, varDensityKernelPar
 /// variant of all possible pairwise interactions
 using VarPairwiseParams = mpark::variant<DPDParams,
                                          LJParams,
+                                         MorseParams,
                                          RepulsiveLJParams,
                                          MDPDParams,
                                          DensityParams,

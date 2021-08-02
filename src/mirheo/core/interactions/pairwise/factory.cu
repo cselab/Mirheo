@@ -9,6 +9,7 @@
 #include "kernels/dpd.h"
 #include "kernels/lj.h"
 #include "kernels/mdpd.h"
+#include "kernels/morse.h"
 #include "kernels/pressure_EOS.h"
 #include "kernels/repulsive_lj.h"
 #include "kernels/sdpd.h"
@@ -145,9 +146,9 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
 {
     static_assert(std::is_same<
             VarPairwiseParams,
-            mpark::variant<DPDParams, LJParams, RepulsiveLJParams,
+            mpark::variant<DPDParams, LJParams, MorseParams, RepulsiveLJParams,
                            MDPDParams, DensityParams, SDPDParams>>::value,
-            "Load interactions must be updated if th VairPairwiseParams is changed.");
+            "Load interactions must be updated if the VairPairwiseParams is changed.");
 
     const std::string& typeName = config["__type"].getString();
     PairwiseFactoryVisitor visitor{state, loader, config, typeName, nullptr};
@@ -164,6 +165,10 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     // LJParams.
     tryLoadPairwiseStress  <LJParams::KernelType>(visitor);
     tryLoadPairwiseNoStress<LJParams::KernelType>(visitor);
+
+    // MorseParams.
+    tryLoadPairwiseStress  <MorseParams::KernelType>(visitor);
+    tryLoadPairwiseNoStress<MorseParams::KernelType>(visitor);
 
     // RepulsiveLJParams.
     variantForeach<VarLJAwarenessParams>([&visitor](auto type)

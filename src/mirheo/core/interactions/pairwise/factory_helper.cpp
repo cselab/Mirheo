@@ -62,6 +62,17 @@ template <> void readParams<RepulsiveLJParams>(RepulsiveLJParams& p, ParametersW
     if (maxForce != defaultReal) p.maxForce = maxForce;
 }
 
+template <> void readParams<MorseParams>(MorseParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    const auto De   = reader.read<real>(desc, "De");
+    const auto r0   = reader.read<real>(desc, "r0");
+    const auto beta = reader.read<real>(desc, "beta");
+
+    if (De   != defaultReal) p.De   = De;
+    if (r0   != defaultReal) p.r0   = r0;
+    if (beta != defaultReal) p.beta = beta;
+}
+
 template <> void readParams<MDPDParams>(MDPDParams& p, ParametersWrap& desc, ParamsReader reader)
 {
     const auto rd    = reader.read<real>(desc, "rd");
@@ -172,6 +183,13 @@ RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
     return p;
 }
 
+MorseParams readMorseParams(ParametersWrap& desc)
+{
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
+    MorseParams p;
+    readParams(p, desc, reader);
+    return p;
+}
 
 MDPDParams readMDPDParams(ParametersWrap& desc)
 {

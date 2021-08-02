@@ -61,6 +61,7 @@ template <class Params> void readParams(Params& p, ParametersWrap& desc, ParamsR
 DPDParams         readDPDParams        (ParametersWrap& desc);
 LJParams          readLJParams         (ParametersWrap& desc);
 RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc);
+MorseParams       readMorseParams      (ParametersWrap& desc);
 MDPDParams        readMDPDParams       (ParametersWrap& desc);
 DensityParams     readDensityParams    (ParametersWrap& desc);
 SDPDParams        readSDPDParams       (ParametersWrap& desc);

@@ -168,6 +168,15 @@ void exportInteractions(py::module& m)
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 
+        * **Morse**:
+            Pairwise interaction according to the classical `Morse potential <https://en.wikipedia.org/wiki/Morse_potential>`_
+
+            .. math::
+
+                \mathbf{F}_{ij} = 2 D_e \beta \left( e^{2 \beta (r_0-r)} - e^{\beta (r_0-r)} \right) \frac{\mathbf{r}}{r},
+
+            where :math:`r` is the distance between the particles.
+
         * **Density**:
             Compute density of particles with a given kernel.
 
@@ -247,6 +256,12 @@ void exportInteractions(py::module& m)
                 * **density_kernel**: the desired density kernel (see below)
 
 
+            * **kind** = "LJ"
+
+                * **epsilon**: :math:`\varepsilon`
+                * **sigma**: :math:`\sigma`
+
+
             * **kind** = "RepulsiveLJ"
 
                 * **epsilon**: :math:`\varepsilon`
@@ -258,6 +273,13 @@ void exportInteractions(py::module& m)
                       That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
                     * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
                       (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+
+
+            * **kind** = "Morse"
+
+                * **De**: :math:`D_e`
+                * **r0**: :math:`r_0`
+                * **beta**: :math:`\beta`
 
 
             * **kind** = "Density"
