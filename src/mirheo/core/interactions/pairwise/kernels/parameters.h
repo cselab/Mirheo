@@ -14,9 +14,9 @@ class PairwiseDPD;
 class PairwiseNoRandomDPD;
 class PairwiseLJ;
 
-struct LJAwarenessNone;
-struct LJAwarenessObject;
-struct LJAwarenessRod;
+struct AwarenessNone;
+struct AwarenessObject;
+struct AwarenessRod;
 
 template <class Awareness>
 class PairwiseRepulsiveLJ;
@@ -70,32 +70,32 @@ struct LJParams
 };
 MIRHEO_MEMBER_VARS(LJParams, epsilon, sigma);
 
-/// Parameters for no awareness in LJ interactions
-struct LJAwarenessParamsNone
+/// Parameters for no awareness in pairwise interactions
+struct AwarenessParamsNone
 {
-    using KernelType = LJAwarenessNone; ///< the corresponding kernel
+    using KernelType = AwarenessNone; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsNone);
+MIRHEO_MEMBER_VARS(AwarenessParamsNone);
 
-/// Parameters for object awareness in LJ interactions
-struct LJAwarenessParamsObject
+/// Parameters for object awareness in pairwise interactions
+struct AwarenessParamsObject
 {
-    using KernelType = LJAwarenessObject; ///< the corresponding kernel
+    using KernelType = AwarenessObject; ///< the corresponding kernel
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsObject);
+MIRHEO_MEMBER_VARS(AwarenessParamsObject);
 
-/// Parameters for rod awareness in LJ interactions
-struct LJAwarenessParamsRod
+/// Parameters for rod awareness in pairwise interactions
+struct AwarenessParamsRod
 {
-    using KernelType = LJAwarenessRod; ///< the corresponding kernel
+    using KernelType = AwarenessRod; ///< the corresponding kernel
     int minSegmentsDist; ///< number of segments away to ignore the self interaction
 };
-MIRHEO_MEMBER_VARS(LJAwarenessParamsRod, minSegmentsDist);
+MIRHEO_MEMBER_VARS(AwarenessParamsRod, minSegmentsDist);
 
 /// variant of all awareness modes
-using VarLJAwarenessParams = mpark::variant<LJAwarenessParamsNone,
-                                            LJAwarenessParamsObject,
-                                            LJAwarenessParamsRod>;
+using VarAwarenessParams = mpark::variant<AwarenessParamsNone,
+                                          AwarenessParamsObject,
+                                          AwarenessParamsRod>;
 
 
 /// Repulsive Lennard-Jones parameters
@@ -104,9 +104,9 @@ struct RepulsiveLJParams
     real epsilon;  ///< force coefficient
     real sigma;    ///< radius with zero energy in LJ potential
     real maxForce; ///< cap force
-    VarLJAwarenessParams varLJAwarenessParams; ///< awareness
+    VarAwarenessParams varAwarenessParams; ///< awareness
 };
-MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varLJAwarenessParams);
+MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varAwarenessParams);
 
 
 /// Morse parameters

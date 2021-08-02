@@ -66,7 +66,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
         using KernelType = PairwiseRepulsiveLJ<AwareType>;
 
         return createPairwiseFromKernel<KernelType>(state, name, rc, params, varStressParams);
-    }, params.varLJAwarenessParams);
+    }, params.varAwarenessParams);
 }
 
 static std::shared_ptr<BasePairwiseInteraction>
@@ -171,12 +171,12 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     tryLoadPairwiseNoStress<MorseParams::KernelType>(visitor);
 
     // RepulsiveLJParams.
-    variantForeach<VarLJAwarenessParams>([&visitor](auto type)
-            {
-                using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
-                tryLoadPairwiseStress  <T>(visitor);
-                tryLoadPairwiseNoStress<T>(visitor);
-            });
+    variantForeach<VarAwarenessParams>([&visitor](auto type)
+    {
+        using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
+        tryLoadPairwiseStress  <T>(visitor);
+        tryLoadPairwiseNoStress<T>(visitor);
+    });
 
     // MDPDParams.
     tryLoadPairwiseStress  <MDPDParams::KernelType>(visitor);

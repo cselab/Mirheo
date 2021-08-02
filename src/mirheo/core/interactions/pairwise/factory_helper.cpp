@@ -34,9 +34,9 @@ template <> void readParams<NoRandomDPDParams>(NoRandomDPDParams& p, ParametersW
     if (power != defaultReal) p.power = power;
 }
 
-template <> void readParams<LJAwarenessParamsNone  >(__UNUSED LJAwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-template <> void readParams<LJAwarenessParamsObject>(__UNUSED LJAwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
-template <> void readParams<LJAwarenessParamsRod>(LJAwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)
+template <> void readParams<AwarenessParamsNone  >(__UNUSED AwarenessParamsNone&   p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+template <> void readParams<AwarenessParamsObject>(__UNUSED AwarenessParamsObject& p, __UNUSED ParametersWrap& desc, __UNUSED ParamsReader reader) {}
+template <> void readParams<AwarenessParamsRod>(AwarenessParamsRod& p, ParametersWrap& desc, ParamsReader reader)
 {
     const auto minSegmentsDist = reader.read<real>(desc, "min_segments_distance");
     if (minSegmentsDist != defaultReal) p.minSegmentsDist = static_cast<int>(minSegmentsDist);
@@ -131,30 +131,30 @@ DPDParams readDPDParams(ParametersWrap& desc)
     return p;
 }
 
-static VarLJAwarenessParams readLJAwarenessParams(ParametersWrap& desc, ParamsReader reader)
+static VarAwarenessParams readAwarenessParams(ParametersWrap& desc, ParamsReader reader)
 {
     if (!desc.exists<std::string>("aware_mode"))
-        return LJAwarenessParamsNone {};
+        return AwarenessParamsNone {};
 
-    VarLJAwarenessParams varP;
+    VarAwarenessParams varP;
 
     const auto awareMode = desc.read<std::string>("aware_mode");
 
     if (awareMode == "None")
     {
-        LJAwarenessParamsNone p;
+        AwarenessParamsNone p;
         readParams(p, desc, reader);
         varP = p;
     }
     else if (awareMode == "Object")
     {
-        LJAwarenessParamsObject p;
+        AwarenessParamsObject p;
         readParams(p, desc, reader);
         varP = p;
     }
     else if (awareMode == "Rod")
     {
-        LJAwarenessParamsRod p;
+        AwarenessParamsRod p;
         readParams(p, desc, reader);
         varP = p;
     }
@@ -179,7 +179,7 @@ RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     RepulsiveLJParams p;
     readParams(p, desc, reader);
-    p.varLJAwarenessParams = readLJAwarenessParams(desc, reader);
+    p.varAwarenessParams = readAwarenessParams(desc, reader);
     return p;
 }
 
@@ -308,7 +308,7 @@ void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
     mpark::visit([&](auto& awareParams)
     {
         readParams(awareParams, desc, reader);
-    }, p.varLJAwarenessParams);
+    }, p.varAwarenessParams);
 }
 
 void readSpecificParams(DensityParams& p, ParametersWrap& desc)
