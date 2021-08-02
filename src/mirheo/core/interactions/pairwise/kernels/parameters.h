@@ -23,6 +23,7 @@ class PairwiseRepulsiveLJ;
 
 class PairwiseMDPD;
 
+template <class Awareness>
 class PairwiseMorse;
 
 class SimpleMDPDDensityKernel;
@@ -112,12 +113,12 @@ MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varAwarenessPara
 /// Morse parameters
 struct MorseParams
 {
-    using KernelType = PairwiseMorse; ///< the corresponding kernel
     real De; ///< force coefficient
     real r0; ///< zero force distance
     real beta; ///< interaction range parameter
+    VarAwarenessParams varAwarenessParams; ///< awareness
 };
-MIRHEO_MEMBER_VARS(MorseParams, De, r0, beta);
+MIRHEO_MEMBER_VARS(MorseParams, De, r0, beta, varAwarenessParams);
 
 
 /// Multi-body Dissipative Particle Dynamics parameters

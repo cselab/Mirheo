@@ -70,6 +70,18 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 }
 
 static std::shared_ptr<BasePairwiseInteraction>
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const MorseParams& params, const VarStressParams& varStressParams)
+{
+    return mpark::visit([&](auto& awareParams)
+    {
+        using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
+        using KernelType = PairwiseMorse<AwareType>;
+
+        return createPairwiseFromKernel<KernelType>(state, name, rc, params, varStressParams);
+    }, params.varAwarenessParams);
+}
+
+static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const DensityParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& densityKernelParams)
@@ -167,8 +179,12 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     tryLoadPairwiseNoStress<LJParams::KernelType>(visitor);
 
     // MorseParams.
-    tryLoadPairwiseStress  <MorseParams::KernelType>(visitor);
-    tryLoadPairwiseNoStress<MorseParams::KernelType>(visitor);
+    variantForeach<VarAwarenessParams>([&visitor](auto type)
+    {
+        using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
+        tryLoadPairwiseStress  <T>(visitor);
+        tryLoadPairwiseNoStress<T>(visitor);
+    });
 
     // RepulsiveLJParams.
     variantForeach<VarAwarenessParams>([&visitor](auto type)

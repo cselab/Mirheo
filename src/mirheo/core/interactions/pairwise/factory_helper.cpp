@@ -188,6 +188,7 @@ MorseParams readMorseParams(ParametersWrap& desc)
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     MorseParams p;
     readParams(p, desc, reader);
+    p.varAwarenessParams = readAwarenessParams(desc, reader);
     return p;
 }
 
@@ -300,6 +301,18 @@ VarStressParams readStressParams(ParametersWrap& desc)
 }
 
 void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
+{
+    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
+
+    readParams(p, desc, reader);
+
+    mpark::visit([&](auto& awareParams)
+    {
+        readParams(awareParams, desc, reader);
+    }, p.varAwarenessParams);
+}
+
+void readSpecificParams(MorseParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
 
