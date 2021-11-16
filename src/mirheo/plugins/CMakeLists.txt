@@ -24,6 +24,7 @@ set(sources_cu
   force_saver.cu
   impose_profile.cu
   impose_velocity.cu
+  magnetic_dipole_interactions.cu
   magnetic_orientation.cu
   membrane_extra_force.cu
   msd.cu
