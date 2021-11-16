@@ -64,9 +64,9 @@ __global__ void computeInteractions(const DomainInfo domain, ROVview view,
 
     for (int i = 0; i < numSources; ++i)
     {
-        const real4 rsrc4 = rigidPosQuat[2*gid];
+        const real4 rsrc4 = rigidPosQuat[2*i];
         const real3 rsrc = make_real3(rsrc4.x, rsrc4.y, rsrc4.z);
-        const auto qsrc = Quaternion<real>::createFromComponents(rigidPosQuat[2*gid+1]);
+        const auto qsrc = Quaternion<real>::createFromComponents(rigidPosQuat[2*i+1]);
         const auto msrc = qsrc.rotate(moment);
 
         const real3 dr = periodicDifference(rdst, rsrc, domain.globalSize);
@@ -74,6 +74,7 @@ __global__ void computeInteractions(const DomainInfo domain, ROVview view,
 
         if (r2 < 1e-6_r)
             continue;
+
 
         const real r = math::sqrt(r2);
         const real3 er = dr / r;
@@ -97,7 +98,6 @@ __global__ void computeInteractions(const DomainInfo domain, ROVview view,
     atomicAdd(&view.motions[gid].force.x, static_cast<RigidReal>(force.x));
     atomicAdd(&view.motions[gid].force.y, static_cast<RigidReal>(force.y));
     atomicAdd(&view.motions[gid].force.z, static_cast<RigidReal>(force.z));
-
 }
 } // namespace magnetic_dipole_interactions_plugin_kernels
 
@@ -147,21 +147,21 @@ void MagneticDipoleInteractionsPlugin::beforeCellLists(cudaStream_t stream)
     MPI_Wait(&reqNumObjects, MPI_STATUS_IGNORE);
 
     for (auto& v : recvCounts_)
-        v *= 8;
+        v *= 2 * sizeof(real4) / sizeof(real);
 
     recvDispls_[0] = 0;
     for (size_t i = 0; i < recvCounts_.size(); ++i)
         recvDispls_[i+1] = recvDispls_[i] + recvCounts_[i];
 
-    const int totNumObjects = recvDispls_[nranks_];
+    const int totNumObjects = recvDispls_[nranks_] / (2 * sizeof(real4) / sizeof(real));
 
-    recvRigidPosQuat_.resize_anew(totNumObjects);
+    recvRigidPosQuat_.resize_anew(2 * totNumObjects);
 
     // send the object data to all ranks
 
     const auto dataType = getMPIFloatType<real>();
 
-    MPI_Check(MPI_Iallgatherv(sendRigidPosQuat_.data(), sendRigidPosQuat_.size(), dataType,
+    MPI_Check(MPI_Iallgatherv(sendRigidPosQuat_.data(), sizeof(real4) / sizeof(real) * sendRigidPosQuat_.size(), dataType,
                               recvRigidPosQuat_.data(), recvCounts_.data(), recvDispls_.data(), dataType,
                               comm_, &reqObjInfo_));
 
