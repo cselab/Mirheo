@@ -6,6 +6,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--axes', dest='axes', type=float, nargs=3)
+parser.add_argument('--ranks', dest='ranks', type=int, nargs=3, default=[1,1,1])
 parser.add_argument('--coords', dest='coords', type=str)
 parser.add_argument('--withMesh', action='store_true')
 parser.add_argument('--omega', type=float, default=0)
@@ -15,7 +16,7 @@ args = parser.parse_args()
 dt   = 0.01
 axes = tuple(args.axes)
 
-ranks  = (1, 1, 1)
+ranks  = tuple(args.ranks)
 domain = (16, 16, 16)
 
 u = mir.Mirheo(ranks, domain, debug_level=3, log_filename='log', no_splash=True)
@@ -64,5 +65,14 @@ del(u)
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# mir.run --runargs "-n 2" ./magnetic_dipole_interactions.py --axes $ax $ay $az --coords $f --withMesh
+# mir.run --runargs "-n 2" ./magnetic_dipole_interactions.py --axes $ax $ay $az --coords $f
+# mir.post ../tools/dump_csv.py stats/ellipsoid.csv time vx comx > rigid.out.txt
+
+# nTEST: plugins.magnetic_dipole_interactions.mpi
+# cd plugins
+# rm -rf stats rigid.out.txt
+# f="pos.txt"
+# rho=8.0; ax=2.0; ay=1.0; az=1.0
+# cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
+# mir.run --runargs "-n 4" ./magnetic_dipole_interactions.py --axes $ax $ay $az --coords $f --ranks 2 1 1
 # mir.post ../tools/dump_csv.py stats/ellipsoid.csv time vx comx > rigid.out.txt
