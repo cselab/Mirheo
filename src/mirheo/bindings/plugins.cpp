@@ -356,6 +356,18 @@ void exportPlugins(py::module& m)
             magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
     )");
 
+    m.def("__createMagneticDipoleInteractions", &plugin_factory::createMagneticDipoleInteractionsPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "mu0"_a, R"(
+        This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
+        All rigid objects are assumed to be the same with a constant magnetic moment in their frame of reference.
+
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            mu0: magnetic permeability of the medium
+    )");
+
     m.def("__createMembraneExtraForce", &plugin_factory::createMembraneExtraForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "forces"_a, R"(
         This plugin adds a given external force to a given membrane.

@@ -20,6 +20,7 @@
 #include "force_saver.h"
 #include "impose_profile.h"
 #include "impose_velocity.h"
+#include "magnetic_dipole_interactions.h"
 #include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
 #include "msd.h"
@@ -252,6 +253,16 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
     auto simPl = computeTask ?
         std::make_shared<ImposeVelocityPlugin> (state, name, extractPVNames(pvs), low, high, velocity, every) :
         nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  RigidObjectVector *rov, real3 moment, real mu0)
+{
+    auto simPl = computeTask ?
+        std::make_shared<MagneticDipoleInteractionsPlugin>(state, name, rov->getName(), moment, mu0)
+        : nullptr;
 
     return { simPl, nullptr };
 }

@@ -80,6 +80,9 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
                                       std::vector<ParticleVector*> pvs, int every,
                                       real3 low, real3 high, real3 velocity);
 
+PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  RigidObjectVector *rov, real3 moment, real mu0);
+
 PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
                                            std::function<real3(real)> magneticFunction);
 
