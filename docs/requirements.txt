@@ -3,3 +3,4 @@ sphinx_rtd_theme
 sphinx_automodapi
 pygments
 breathe==4.11.1
+docutils==0.17.1
