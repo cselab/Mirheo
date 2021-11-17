@@ -324,6 +324,30 @@ def createExchangePVSFluxPlane():
     """
     pass
 
+def createExternalMagneticTorque():
+    r"""createExternalMagneticTorque(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, magneticFunction: Callable[[float], real3]) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
+        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
+
+        .. math::
+
+            \mathbf{T} = \mathbf{M} \times \mathbf{B}
+
+        The magnetic field is passed as a function from python.
+        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
+
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
+    
+
+    """
+    pass
+
 def createForceSaver():
     r"""createForceSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -377,25 +401,18 @@ def createImposeVelocity():
     """
     pass
 
-def createMagneticOrientation():
-    r"""createMagneticOrientation(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, magneticFunction: Callable[[float], real3]) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+def createMagneticDipoleInteractions():
+    r"""createMagneticDipoleInteractions(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, mu0: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
-        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
-        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
-
-        .. math::
-
-            \mathbf{T} = \mathbf{M} \times \mathbf{B}
-
-        The magnetic field is passed as a function from python.
-        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
+        This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
+        All rigid objects are assumed to be the same with a constant magnetic moment in their frame of reference.
 
         Args:
             name: name of the plugin
             rov: :class:`RigidObjectVector` with which the magnetic field will interact
             moment: magnetic moment per object
-            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
+            mu0: magnetic permeability of the medium
     
 
     """

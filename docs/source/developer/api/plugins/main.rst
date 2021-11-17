@@ -165,6 +165,10 @@ These plugins add more functionalities to the simulation.
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::ExternalMagneticTorquePlugin
+   :project: mirheo
+   :members:
+
 .. doxygenclass:: mirheo::PostprocessDensityControl
    :project: mirheo
    :members:
@@ -195,7 +199,7 @@ These plugins add more functionalities to the simulation.
    :members:
 
 
-.. doxygenclass:: mirheo::MagneticOrientationPlugin
+.. doxygenclass:: mirheo::MagneticDipoleInteractionsPlugin
    :project: mirheo
    :members:
 
