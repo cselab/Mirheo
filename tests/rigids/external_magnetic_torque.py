@@ -51,7 +51,7 @@ def magneticField(t):
     return (magn * np.cos(arg), magn * np.sin(arg), 0.)
 
 
-u.registerPlugins(mir.Plugins.createMagneticOrientation("externalB", pv_ell, moment=M, magneticFunction=magneticField))
+u.registerPlugins(mir.Plugins.createExternalMagneticTorque("externalB", pv_ell, moment=M, magneticFunction=magneticField))
 
 if args.withMesh:
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_ell, 1000, path="ply/"))
@@ -61,20 +61,20 @@ u.run(10000, dt=dt)
 del(u)
 
 
-# nTEST: rigids.magnetic_orientation.static
+# nTEST: rigids.external_magnetic_torque.static
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# mir.run --runargs "-n 2" ./magnetic_orientation.py --axes $ax $ay $az --coords $f --phi 0.7853981634
+# mir.run --runargs "-n 2" ./external_magnetic_torque.py --axes $ax $ay $az --coords $f --phi 0.7853981634
 # mir.post ../tools/dump_csv.py stats/ellipsoid.csv time vx comx > rigid.out.txt
 
-# nTEST: rigids.magnetic_orientation.time
+# nTEST: rigids.external_magnetic_torque.time
 # cd rigids
 # rm -rf stats rigid.out.txt
 # f="pos.txt"
 # rho=8.0; ax=2.0; ay=1.0; az=1.0
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
-# mir.run --runargs "-n 2" ./magnetic_orientation.py --axes $ax $ay $az --coords $f --omega 0.005
+# mir.run --runargs "-n 2" ./external_magnetic_torque.py --axes $ax $ay $az --coords $f --omega 0.005
 # mir.post ../tools/dump_csv.py stats/ellipsoid.csv time vx comx > rigid.out.txt

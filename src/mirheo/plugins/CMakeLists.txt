@@ -21,11 +21,11 @@ set(sources_cu
   dump_obj_stats.cu
   dump_particles.cu
   exchange_pvs_flux_plane.cu
+  external_magnetic_torque.cu
   force_saver.cu
   impose_profile.cu
   impose_velocity.cu
   magnetic_dipole_interactions.cu
-  magnetic_orientation.cu
   membrane_extra_force.cu
   msd.cu
   outlet.cu

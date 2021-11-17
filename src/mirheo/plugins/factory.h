@@ -49,27 +49,39 @@ PairPlugin createPlaneOutletPlugin(bool computeTask, const MirState *state, std:
 PairPlugin createRateOutletPlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
                                   real rate, std::function<real(real3)> region, real3 resolution);
 
-PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
-                                   int sampleEvery, int dumpEvery, real3 binSize, std::vector<std::string> channelNames, std::string path);
+PairPlugin createDumpAveragePlugin(bool computeTask, const MirState *state, std::string name,
+                                   std::vector<ParticleVector*> pvs, int sampleEvery, int dumpEvery,
+                                   real3 binSize, std::vector<std::string> channelNames, std::string path);
 
-PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name, std::vector<ParticleVector*> pvs,
+PairPlugin createDumpAverageRelativePlugin(bool computeTask, const MirState *state, std::string name,
+                                           std::vector<ParticleVector*> pvs,
                                            ObjectVector* relativeToOV, int relativeToId,
                                            int sampleEvery, int dumpEvery, real3 binSize,
                                            std::vector<std::string> channelNames, std::string path);
 
-PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path);
+PairPlugin createDumpMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                ObjectVector* ov, int dumpEvery, std::string path);
 
-PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery,
+PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, int dumpEvery,
                                      const std::vector<std::string>& channelNames, std::string path);
 
-PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
+PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                             ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path);
 
-PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, int dumpEvery, std::string path);
+PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name,
+                               ParticleVector *pv, int dumpEvery, std::string path);
 
-PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery, std::string path);
+PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name,
+                              ObjectVector *ov, int dumpEvery, std::string path);
 
-PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv1, ParticleVector *pv2, real4 plane);
+PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name,
+                                            ParticleVector *pv1, ParticleVector *pv2, real4 plane);
+
+PairPlugin createExternalMagneticTorquePlugin(bool computeTask, const MirState *state, std::string name,
+                                              RigidObjectVector *rov, real3 moment,
+                                              std::function<real3(real)> magneticFunction);
 
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv);
 
@@ -82,9 +94,6 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
 
 PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
                                                   RigidObjectVector *rov, real3 moment, real mu0);
-
-PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
-                                           std::function<real3(real)> magneticFunction);
 
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces);
 

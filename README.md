@@ -47,7 +47,11 @@ make install
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add magnetic dipole-dipole interactions plugin
+* **interface changes**
+  * Rename magneticOrientation plugin to externalMagneticTorque.
 
 ### v1.5.1
 

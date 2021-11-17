@@ -17,11 +17,11 @@
 #include "dump_particles_with_mesh.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
+#include "external_magnetic_torque.h"
 #include "force_saver.h"
 #include "impose_profile.h"
 #include "impose_velocity.h"
 #include "magnetic_dipole_interactions.h"
-#include "magnetic_orientation.h"
 #include "membrane_extra_force.h"
 #include "msd.h"
 #include "particle_channel_averager.h"
@@ -230,6 +230,17 @@ PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *st
     return { simPl, nullptr };
 }
 
+PairPlugin createExternalMagneticTorquePlugin(bool computeTask, const MirState *state, std::string name,
+                                              RigidObjectVector *rov, real3 moment,
+                                              std::function<real3(real)> magneticFunction)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ExternalMagneticTorquePlugin>(state, name, rov->getName(), moment, magneticFunction)
+        : nullptr;
+
+    return { simPl, nullptr };
+}
+
 PairPlugin createForceSaverPlugin(bool computeTask,  const MirState *state, std::string name, ParticleVector *pv)
 {
     auto simPl = computeTask ? std::make_shared<ForceSaverPlugin> (state, name, pv->getName()) : nullptr;
@@ -262,16 +273,6 @@ PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirSta
 {
     auto simPl = computeTask ?
         std::make_shared<MagneticDipoleInteractionsPlugin>(state, name, rov->getName(), moment, mu0)
-        : nullptr;
-
-    return { simPl, nullptr };
-}
-
-PairPlugin createMagneticOrientationPlugin(bool computeTask, const MirState *state, std::string name, RigidObjectVector *rov, real3 moment,
-                                           std::function<real3(real)> magneticFunction)
-{
-    auto simPl = computeTask ?
-        std::make_shared<MagneticOrientationPlugin>(state, name, rov->getName(), moment, magneticFunction)
         : nullptr;
 
     return { simPl, nullptr };

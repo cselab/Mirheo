@@ -299,6 +299,25 @@ void exportPlugins(py::module& m)
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 
+    m.def("__createExternalMagneticTorque", &plugin_factory::createExternalMagneticTorquePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
+        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
+        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
+
+        .. math::
+
+            \mathbf{T} = \mathbf{M} \times \mathbf{B}
+
+        The magnetic field is passed as a function from python.
+        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
+
+        Args:
+            name: name of the plugin
+            rov: :class:`RigidObjectVector` with which the magnetic field will interact
+            moment: magnetic moment per object
+            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
+    )");
+
     m.def("__createForceSaver", &plugin_factory::createForceSaverPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, R"(
         This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
@@ -335,25 +354,6 @@ void exportPlugins(py::module& m)
             low: the lower corner of the domain
             high: the higher corner of the domain
             velocity: target velocity
-    )");
-
-    m.def("__createMagneticOrientation", &plugin_factory::createMagneticOrientationPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
-        This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
-        It also models a uniform magnetic field :math:`\mathbf{B}` (varying in time) and adds the induced torque to the objects according to:
-
-        .. math::
-
-            \mathbf{T} = \mathbf{M} \times \mathbf{B}
-
-        The magnetic field is passed as a function from python.
-        The function must take a real (time) as input and output a tuple of three reals (magnetic field).
-
-        Args:
-            name: name of the plugin
-            rov: :class:`RigidObjectVector` with which the magnetic field will interact
-            moment: magnetic moment per object
-            magneticFunction: a function that depends on time and returns a uniform (real3) magnetic field
     )");
 
     m.def("__createMagneticDipoleInteractions", &plugin_factory::createMagneticDipoleInteractionsPlugin,
