@@ -322,7 +322,7 @@ class Pairwise(Interaction):
 
                 .. math::
 
-                    w_\rho(r) = \frac{21}{2\pi} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
+                    w_\rho(r) = \frac{21}{2\pi r_c^3} \left( 1 - \frac{r}{r_c} \right)^4 \left( 1 + 4 \frac{r}{r_c} \right)
 
 
         .. [Groot1997] Groot, R. D., & Warren, P. B. (1997).
