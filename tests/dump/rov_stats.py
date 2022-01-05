@@ -17,7 +17,7 @@ ov = mir.ParticleVectors.RigidEllipsoidVector('ellipsoid', mass=1, object_size=l
 ic = mir.InitialConditions.Rigid(com_q=com_q, coords=coords)
 u.registerParticleVector(ov, ic)
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov, dump_every=1, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov, dump_every=1, filename="stats/ellipsoid.csv"))
 
 u.run(2, dt=0)
 

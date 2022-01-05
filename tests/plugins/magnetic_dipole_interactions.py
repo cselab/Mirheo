@@ -45,7 +45,7 @@ u.registerParticleVector(pv_ell, ic_ell)
 u.registerIntegrator(vv_ell)
 u.setIntegrator(vv_ell, pv_ell)
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, filename="stats/ellipsoid.csv"))
 
 moment = (10, 0, 0)
 mu0 = 1

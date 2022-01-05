@@ -76,7 +76,7 @@ u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, dump_every
 u.registerPlugins(mir.Plugins.createParticleChannelSaver("density_saver_sol", pv_sol, "densities", "den"))
 u.registerPlugins(mir.Plugins.createDumpParticles('partDump_sol', pv_sol, dump_every, ["den"], 'h5/sol_particles-'))
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, filename="stats/ellipsoid.csv"))
 
 u.run(10000, dt=dt)
 

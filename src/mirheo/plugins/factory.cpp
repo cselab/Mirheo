@@ -214,10 +214,10 @@ PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::str
     return { simPl, postPl };
 }
 
-PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector* ov, int dumpEvery, std::string path)
+PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery, std::string filename)
 {
     auto simPl  = computeTask ? std::make_shared<ObjStatsPlugin> (state, name, ov->getName(), dumpEvery) : nullptr;
-    auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, path);
+    auto postPl = computeTask ? nullptr : std::make_shared<ObjStatsDumper> (name, filename);
 
     return { simPl, postPl };
 }

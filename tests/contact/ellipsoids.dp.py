@@ -62,7 +62,7 @@ if args.bounce_back:
     u.setBouncer(bb, pv_ell, pv_sol)
 
 #u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_ell, 500, [], "h5/ellbb"))
-u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=500, filename="stats/ellipsoid.csv"))
 
 u.run(10000, dt=dt)
 

@@ -220,7 +220,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createDumpObjectStats", &plugin_factory::createDumpObjStats,
-          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "path"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "ov"_a, "dump_every"_a, "filename"_a, R"(
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
         Instantaneous quantities (COM velocity, angular velocity, force, torque) are also written.
         If the objects are rigid bodies, also will be written the quaternion describing the rotation.
@@ -237,10 +237,10 @@ void exportPlugins(py::module& m)
             This plugin is inactive if postprocess is disabled
 
         Args:
-            name: name of the plugin
-            ov: :any:`ObjectVector` that we'll work with
-            dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>.csv
+            name: Name of the plugin.
+            ov: :any:`ObjectVector` that we'll work with.
+            dump_every: Write files every this many time-steps.
+            filename: The name of the resulting csv file.
     )");
 
     m.def("__createDumpParticles", &plugin_factory::createDumpParticlesPlugin,

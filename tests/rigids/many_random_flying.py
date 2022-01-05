@@ -34,7 +34,7 @@ u.registerParticleVector(pv_ell, ic_ell)
 u.registerIntegrator(vv_ell)
 u.setIntegrator(vv_ell, pv_ell)
 
-u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every=10, path="stats") )
+u.registerPlugins( mir.Plugins.createDumpObjectStats("objStats", pv_ell, dump_every=10, filename="stats/ellipsoid.csv") )
 u.run(1000, dt=dt)
 
 

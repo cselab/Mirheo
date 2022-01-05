@@ -65,7 +65,7 @@ if args.vis:
     u.registerPlugins(mir.Plugins.createDumpParticles('partDump', pv_sol, dump_every, [], 'h5/solvent-'))
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rig, dump_every, path="ply/"))
 
-u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov=pv_rig, dump_every=dump_every, path="stats"))
+u.registerPlugins(mir.Plugins.createDumpObjectStats("rigStats", ov=pv_rig, dump_every=dump_every, filename="stats/rigid.csv"))
 
 u.run(5000, dt=dt)
 

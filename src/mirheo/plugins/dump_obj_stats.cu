@@ -12,6 +12,7 @@
 #include <mirheo/core/utils/kernel_launch.h>
 
 #include <iomanip>
+#include <fstream>
 
 namespace mirheo
 {
@@ -85,7 +86,7 @@ void ObjStatsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const M
 
 void ObjStatsPlugin::handshake()
 {
-    SimpleSerializer::serialize(sendBuffer_, ovName_, isRov_, hasTypeIds_);
+    SimpleSerializer::serialize(sendBuffer_, isRov_, hasTypeIds_);
     _send(sendBuffer_);
 }
 
@@ -245,13 +246,15 @@ static void writeStats(MPI_Comm comm, DomainInfo domain, MPI_File& fout, real cu
 //=================================================================================
 
 
-ObjStatsDumper::ObjStatsDumper(std::string name, std::string path) :
+ObjStatsDumper::ObjStatsDumper(std::string name, std::string filename) :
     PostprocessPlugin(name),
-    path_(makePath(path))
-{}
+    filename_(std::move(filename))
+{
+    filename_ = setExtensionOrDie(filename_, "csv");
+}
 
 ObjStatsDumper::ObjStatsDumper(Loader&, const ConfigObject& config) :
-    ObjStatsDumper(config["name"].getString(), config["path"].getString())
+    ObjStatsDumper(config["name"].getString(), config["filename"].getString())
 {}
 
 ObjStatsDumper::~ObjStatsDumper()
@@ -263,7 +266,9 @@ ObjStatsDumper::~ObjStatsDumper()
 void ObjStatsDumper::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     PostprocessPlugin::setup(comm, interComm);
-    activated_ = createFoldersCollective(comm, path_);
+
+    const auto path = getParentPath(filename_);
+    activated_ = createFoldersCollective(comm, path);
 }
 
 void ObjStatsDumper::handshake()
@@ -272,19 +277,31 @@ void ObjStatsDumper::handshake()
     MPI_Check( MPI_Wait(&req, MPI_STATUS_IGNORE) );
     recv();
 
-    std::string ovName;
     bool isRov;
     bool hasTypeIds;
-    SimpleSerializer::deserialize(data_, ovName, isRov, hasTypeIds);
+    SimpleSerializer::deserialize(data_, isRov, hasTypeIds);
 
-    if (activated_ && fout_ == MPI_FILE_NULL)
+    if (activated_ && !restarted_ && fout_ == MPI_FILE_NULL)
     {
-        const std::string fname = joinPaths(path_, setExtensionOrDie(ovName, "csv"));
-        MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fout_) );
+        MPI_Check( MPI_File_open(comm_, filename_.c_str(),
+                                 MPI_MODE_CREATE | MPI_MODE_DELETE_ON_CLOSE | MPI_MODE_WRONLY,
+                                 MPI_INFO_NULL, &fout_) );
         MPI_Check( MPI_File_close(&fout_) );
-        MPI_Check( MPI_File_open(comm_, fname.c_str(), MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fout_) );
+
+        MPI_Check( MPI_File_open(comm_, filename_.c_str(),
+                                 MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                                 MPI_INFO_NULL, &fout_) );
         writeHeader(comm_, fout_, isRov, hasTypeIds);
     }
+    else if (activated_ && restarted_)
+    {
+        MPI_Check( MPI_File_open(comm_, filename_.c_str(),
+                                 MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                                 MPI_INFO_NULL, &fout_) );
+    }
+
+    if (!activated_)
+        filename_ = "";
 }
 
 
@@ -305,6 +322,54 @@ void ObjStatsDumper::deserialize()
         writeStats(comm_, domain, fout_, curTime, ids, coms, motions, isRov, hasTypeIds, typeIds);
 }
 
+void ObjStatsDumper::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    if (filename_ == "")
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin." + getName(), "csv", checkpointId);
+
+    // copy current file
+    if (rank == 0)
+    {
+        std::ifstream  src(filename_,          std::ios::binary);
+        std::ofstream  dst(checkpointFilename, std::ios::binary);
+        dst << src.rdbuf();
+    }
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    createCheckpointSymlink(comm, path, "plugin." + getName(), "csv", checkpointId);
+}
+
+void ObjStatsDumper::restart(MPI_Comm comm, const std::string& path)
+{
+    const auto folder = getParentPath(filename_);
+    activated_ = createFoldersCollective(comm, folder);
+
+    if (!activated_)
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    const auto checkpointFilename = createCheckpointName(path, "plugin." + getName(), "csv");
+
+    if (rank == 0)
+    {
+        std::ofstream  dst(filename_,          std::ios::binary);
+        std::ifstream  src(checkpointFilename, std::ios::binary);
+        dst << src.rdbuf();
+        dst.flush();
+    }
+
+    restarted_ = true;
+}
+
+
 void ObjStatsDumper::saveSnapshotAndRegister(Saver& saver)
 {
     saver.registerObject(this, _saveSnapshot(saver, "ObjStatsDumper"));
@@ -313,7 +378,7 @@ void ObjStatsDumper::saveSnapshotAndRegister(Saver& saver)
 ConfigObject ObjStatsDumper::_saveSnapshot(Saver& saver, const std::string &typeName)
 {
     ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("path", saver(path_));
+    config.emplace("filename", saver(filename_));
     return config;
 }
 

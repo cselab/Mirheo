@@ -222,7 +222,7 @@ def createDumpMesh():
     pass
 
 def createDumpObjectStats():
-    r"""createDumpObjectStats(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpObjectStats(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, filename: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
@@ -241,10 +241,10 @@ def createDumpObjectStats():
             This plugin is inactive if postprocess is disabled
 
         Args:
-            name: name of the plugin
-            ov: :any:`ObjectVector` that we'll work with
-            dump_every: write files every this many time-steps
-            path: the files will look like this: <path>/<ov_name>.csv
+            name: Name of the plugin.
+            ov: :any:`ObjectVector` that we'll work with.
+            dump_every: Write files every this many time-steps.
+            filename: The name of the resulting csv file.
     
 
     """

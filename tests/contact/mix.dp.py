@@ -47,7 +47,7 @@ u.registerParticleVector(pv_rbc, ic_rbc)
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.01, power=0.25)
 cnt = mir.Interactions.Pairwise('cnt', rc=1.0, kind="RepulsiveLJ", epsilon=0.28, sigma=0.8, max_force=400.0)
 
-prm_rbc = lina_parameters(1.0)    
+prm_rbc = lina_parameters(1.0)
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)
 
 coords = np.loadtxt(args.coords).tolist()
@@ -100,7 +100,7 @@ debug = 0
 if debug:
     dump_every=(int)(0.15/dt)
     u.registerPlugins(mir.Plugins.createDumpMesh("mesh_dump", pv_rbc, dump_every, "ply/"))
-    u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, path="stats"))
+    u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv_ell, dump_every=dump_every, filename="stats/rbc.csv"))
     u.registerPlugins(mir.Plugins.createDumpXYZ('xyz', pv_ell, dump_every, "xyz/"))
 
 nsteps = (int) (tend/dt)
@@ -119,4 +119,4 @@ if pv_rbc is not None:
 # cp ../../data/ellipsoid_coords_${rho}_${ax}_${ay}_${az}.txt $f
 # cp ../../data/rbc_mesh.off .
 # mir.run --runargs "-n 2" ./mix.dp.py --density $rho --axes $ax $ay $az --coords $f
-# mv pos.rbc.txt pos.rbc.out.txt 
+# mv pos.rbc.txt pos.rbc.out.txt

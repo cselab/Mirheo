@@ -46,7 +46,7 @@
         {
             "__type": "ObjStatsDumper",
             "name": "obj_stats",
-            "path": "stats/"
+            "filename": "stats/ov.csv"
         },
         {
             "__type": "ParticleDumperPlugin",

@@ -52,6 +52,9 @@ make install
 * Add magnetic dipole-dipole interactions plugin
 * **interface changes**
   * Rename magneticOrientation plugin to externalMagneticTorque.
+  * Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
+  * Object Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
+  * Object Stats plugin: takes a filename instead of the path. This allows to avoid to create a directory and is more flexible.
 
 ### v1.5.1
 

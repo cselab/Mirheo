@@ -74,7 +74,7 @@ PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::str
                                ParticleVector *pv, int dumpEvery, std::string path);
 
 PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::string name,
-                              ObjectVector *ov, int dumpEvery, std::string path);
+                              ObjectVector *ov, int dumpEvery, std::string filename);
 
 PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name,
                                             ParticleVector *pv1, ParticleVector *pv2, real4 plane);

@@ -46,7 +46,7 @@ u.registerIntegrator(vv)
 u.setIntegrator(vv, pv)
 
 if args.restart:
-    u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv, dump_every=5, path="stats"))
+    u.registerPlugins(mir.Plugins.createDumpObjectStats("objStats", ov=pv, dump_every=5, filename="stats/pv.csv"))
 
 u.run(7, dt=dt)
 
