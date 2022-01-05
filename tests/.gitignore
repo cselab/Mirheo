@@ -105,6 +105,7 @@ h5
 /restart/restart/
 /restart/restart2/
 /restart/stats/
+/restart/stats.csv
 /rigids/log_00000.log
 /rigids/log_00001.log
 /rigids/log_00002.log

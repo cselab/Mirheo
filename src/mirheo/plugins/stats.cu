@@ -13,6 +13,8 @@
 #include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/utils/path.h>
 
+#include <fstream>
+
 namespace mirheo
 {
 
@@ -154,6 +156,7 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
             die("Could not open file '%s'", filename_.c_str());
 
         fprintf(fdump_.get(), "time,kBT,vx,vy,vz,maxv,num_particles,simulation_time_per_step\n");
+        fflush(fdump_.get());
     }
 }
 
@@ -221,6 +224,58 @@ void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
 {
     saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessStats"));
 }
+
+void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    if (filename_ == "")
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin." + getName(), "csv", checkpointId);
+
+    // copy current file
+    if (rank == 0)
+    {
+        std::ifstream  src(filename_,          std::ios::binary);
+        std::ofstream  dst(checkpointFilename, std::ios::binary);
+        dst << src.rdbuf();
+    }
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    createCheckpointSymlink(comm, path, "plugin." + getName(), "csv", checkpointId);
+}
+
+void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
+{
+    if (filename_ == "")
+        return;
+
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    if (fdump_.get())
+        fdump_.close();
+
+    const auto checkpointFilename = createCheckpointName(path, "plugin." + getName(), "csv");
+
+    if (rank == 0)
+    {
+        std::ofstream  dst(filename_,          std::ios::binary);
+        std::ifstream  src(checkpointFilename, std::ios::binary);
+        dst << src.rdbuf();
+        dst.flush();
+    }
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    const auto status = fdump_.open(filename_, "a");
+    if (status != FileWrapper::Status::Success)
+        die("Could not open file '%s'", filename_.c_str());
+}
+
 
 ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)
 {
