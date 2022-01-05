@@ -13,8 +13,6 @@
 #include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/utils/path.h>
 
-#include <fstream>
-
 namespace mirheo
 {
 
@@ -237,11 +235,7 @@ void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int ch
 
     // copy current file
     if (rank == 0)
-    {
-        std::ifstream  src(filename_,          std::ios::binary);
-        std::ofstream  dst(checkpointFilename, std::ios::binary);
-        dst << src.rdbuf();
-    }
+        copyFile(filename_, checkpointFilename);
 
     MPI_Check( MPI_Barrier(comm) );
 
@@ -262,12 +256,7 @@ void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
     const auto checkpointFilename = createCheckpointName(path, "plugin." + getName(), "csv");
 
     if (rank == 0)
-    {
-        std::ofstream  dst(filename_,          std::ios::binary);
-        std::ifstream  src(checkpointFilename, std::ios::binary);
-        dst << src.rdbuf();
-        dst.flush();
-    }
+        copyFile(checkpointFilename, filename_);
 
     MPI_Check( MPI_Barrier(comm) );
 

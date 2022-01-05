@@ -7,12 +7,11 @@
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/simulation.h>
 #include <mirheo/core/utils/config.h>
-#include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
+#include <mirheo/core/utils/path.h>
 
 #include <iomanip>
-#include <fstream>
 
 namespace mirheo
 {
@@ -332,13 +331,8 @@ void ObjStatsDumper::checkpoint(MPI_Comm comm, const std::string& path, int chec
 
     const auto checkpointFilename = createCheckpointNameWithId(path, "plugin." + getName(), "csv", checkpointId);
 
-    // copy current file
     if (rank == 0)
-    {
-        std::ifstream  src(filename_,          std::ios::binary);
-        std::ofstream  dst(checkpointFilename, std::ios::binary);
-        dst << src.rdbuf();
-    }
+        copyFile(filename_, checkpointFilename);
 
     MPI_Check( MPI_Barrier(comm) );
 
@@ -359,12 +353,7 @@ void ObjStatsDumper::restart(MPI_Comm comm, const std::string& path)
     const auto checkpointFilename = createCheckpointName(path, "plugin." + getName(), "csv");
 
     if (rank == 0)
-    {
-        std::ofstream  dst(filename_,          std::ios::binary);
-        std::ifstream  src(checkpointFilename, std::ios::binary);
-        dst << src.rdbuf();
-        dst.flush();
-    }
+        copyFile(checkpointFilename, filename_);
 
     restarted_ = true;
 }

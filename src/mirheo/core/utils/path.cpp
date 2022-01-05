@@ -3,6 +3,7 @@
 
 #include <mirheo/core/logger.h>
 
+#include <fstream>
 #include <sstream>
 
 namespace mirheo
@@ -116,6 +117,18 @@ std::string setExtensionOrDie(std::string path, const std::string ext)
     }
 
     return joinPaths(parentPath, fname);
+}
+
+void copyFile(const std::string& srcFilename, const std::string& dstFilename)
+{
+    if (srcFilename == dstFilename)
+        return;
+
+    std::ofstream  dst(dstFilename, std::ios::binary);
+    std::ifstream  src(srcFilename, std::ios::binary);
+
+    dst << src.rdbuf();
+    dst.flush();
 }
 
 } // namespace mirheo
