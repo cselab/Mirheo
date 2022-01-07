@@ -231,7 +231,7 @@ void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int ch
     int rank {0};
     MPI_Check( MPI_Comm_rank(comm, &rank) );
 
-    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin." + getName(), "csv", checkpointId);
+    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin.post." + getName(), "csv", checkpointId);
 
     // copy current file
     if (rank == 0)
@@ -239,7 +239,7 @@ void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int ch
 
     MPI_Check( MPI_Barrier(comm) );
 
-    createCheckpointSymlink(comm, path, "plugin." + getName(), "csv", checkpointId);
+    createCheckpointSymlink(comm, path, "plugin.post." + getName(), "csv", checkpointId);
 }
 
 void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
@@ -253,7 +253,7 @@ void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
     if (fdump_.get())
         fdump_.close();
 
-    const auto checkpointFilename = createCheckpointName(path, "plugin." + getName(), "csv");
+    const auto checkpointFilename = createCheckpointName(path, "plugin.post." + getName(), "csv");
 
     if (rank == 0)
         copyFile(checkpointFilename, filename_);

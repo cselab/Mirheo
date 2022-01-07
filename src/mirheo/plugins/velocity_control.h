@@ -86,7 +86,11 @@ public:
 
     void deserialize() override;
 
+    void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
+    void restart   (MPI_Comm comm, const std::string& path) override;
+
 private:
+    std::string filename_;
     FileWrapper fdump_;
 };
 

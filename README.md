@@ -55,6 +55,7 @@ make install
   * Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
   * Object Stats plugin: restart now adds to the previously written stats instead of overwriting the file.
   * Object Stats plugin: takes a filename instead of the path. This allows to avoid to create a directory and is more flexible.
+  * Velocity control plugin: restart now adds to the previously written stats instead of overwriting the file.
 
 ### v1.5.1
 

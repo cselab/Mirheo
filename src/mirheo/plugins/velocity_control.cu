@@ -180,14 +180,18 @@ void SimulationVelocityControl::restart(__UNUSED MPI_Comm comm, const std::strin
 
 
 PostprocessVelocityControl::PostprocessVelocityControl(std::string name, std::string filename) :
-    PostprocessPlugin(name)
+    PostprocessPlugin(name),
+    filename_(filename)
 {
-    filename = setExtensionOrDie(filename, "csv");
-    auto status = fdump_.open(filename, "w");
+    filename_ = setExtensionOrDie(filename_, "csv");
+    auto status = fdump_.open(filename_, "w");
     if (status != FileWrapper::Status::Success)
-        die("Could not open file '%s'", filename.c_str());
+        die("Could not open file '%s'", filename_.c_str());
     fprintf(fdump_.get(), "time,time_step,vx,vy,vz,fx,fy,fz\n");
+    fflush(fdump_.get());
 }
+
+
 
 void PostprocessVelocityControl::deserialize()
 {
@@ -210,5 +214,45 @@ void PostprocessVelocityControl::deserialize()
         fflush(fdump_.get());
     }
 }
+
+
+void PostprocessVelocityControl::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    const auto checkpointFilename = createCheckpointNameWithId(path, "plugin.post." + getName(), "csv", checkpointId);
+
+    // copy current file
+    if (rank == 0)
+        copyFile(filename_, checkpointFilename);
+
+    MPI_Check( MPI_Barrier(comm) );
+
+    createCheckpointSymlink(comm, path, "plugin.post." + getName(), "csv", checkpointId);
+}
+
+
+void PostprocessVelocityControl::restart(MPI_Comm comm, const std::string& path)
+{
+    int rank {0};
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+
+    if (fdump_.get())
+        fdump_.close();
+
+    const auto checkpointFilename = createCheckpointName(path, "plugin.post." + getName(), "csv");
+
+    if (rank == 0)
+    {
+        copyFile(checkpointFilename, filename_);
+
+        const auto status = fdump_.open(filename_, "a");
+        if (status != FileWrapper::Status::Success)
+            die("Could not open file '%s'", filename_.c_str());
+    }
+}
+
+
 
 } // namespace mirheo
