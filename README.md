@@ -47,7 +47,9 @@ make install
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
+
+### v1.5.2
 
 * Add magnetic dipole-dipole interactions plugin
 * **interface changes**
