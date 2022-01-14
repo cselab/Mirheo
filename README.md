@@ -9,7 +9,7 @@ The code uses Dissipative Particle Dynamics method to describe the liquid and it
 
 For more information, please refer to the online documentation: http://mirheo.readthedocs.io/
 
-If you want to cite this repository, please use the reference of the corresponding paper [[ref:cpc2020]]:
+If you want to cite this repository, please use the reference of the corresponding paper [[1]](#1):
 
 	@article{alexeev2020a,
 	author = {Dmitry Alexeev and Lucas Amoudruz and Sergey Litvinov and Petros Koumoutsakos},
@@ -44,6 +44,7 @@ make install
 	“Hierarchical bayesian uncertainty quantification for a model of the red blood cell,"
 	Phys. Rev. Appl., vol. 15, iss. 3, 2021.
   [10.1103/physrevapplied.15.034062](http://dx.doi.org/10.1103/physrevapplied.15.034062)
+
 
 ## Changelog
 
