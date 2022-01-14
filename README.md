@@ -35,12 +35,14 @@ make install
 
 ## Publications
 
-1. D. Alexeev, L. Amoudruz, S. Litvinov, and P. Koumoutsakos,
+<a id="1">[1]</a>
+	D. Alexeev, L. Amoudruz, S. Litvinov, and P. Koumoutsakos,
 	“Mirheo: high-performance mesoscale simulations for microfluidics,"
 	Comput. Phys. Commun., p. 107298, 2020
   [10.1016/j.cpc.2020.107298](http://dx.doi.org/10.1016/j.cpc.2020.107298)
 
-2. A. Economides, G. Arampatzis, D. Alexeev, S. Litvinov, L. Amoudruz, L. Kulakova, C. Papadimitriou, and P. Koumoutsakos,
+<a id="2">[2]</a>
+	A. Economides, G. Arampatzis, D. Alexeev, S. Litvinov, L. Amoudruz, L. Kulakova, C. Papadimitriou, and P. Koumoutsakos,
 	“Hierarchical bayesian uncertainty quantification for a model of the red blood cell,"
 	Phys. Rev. Appl., vol. 15, iss. 3, 2021.
   [10.1103/physrevapplied.15.034062](http://dx.doi.org/10.1103/physrevapplied.15.034062)
