@@ -7,7 +7,7 @@
    :language: bash
 
 .. |mir| replace:: **Mirheo**
-   
+
 Tutorials
 ##########
 
@@ -74,7 +74,7 @@ The above script can be run as:
    which needs a **postprocess** rank additionally to the **simulation** rank in order to be active.
    The simulation is then launched with 2 ranks.
 
-   
+
 The execution should output the `stats.txt` file as well as information output in the console.
 Additionally, the particle positions and velocities are dumped in the ``h5`` folder.
 
@@ -118,7 +118,7 @@ This example demonstrates how to construct walls:
 #. **Create** the frozen particles with :py:meth:`_mirheo.Mirheo.makeFrozenWallParticles`
 #. **Set** walls to given PVs with :py:meth:`_mirheo.Mirheo.setWall`
 #. **Set** interactions with the frozen particles as normal PVs
-   
+
 The execution of :ref:`walls-py` should output the `stats.txt` file as well as information output in the console.
 Additionally, frozen and solvent particles, as well as the walls SDF are dumped in the ``h5`` folder.
 
@@ -147,13 +147,13 @@ The membrane is subjected to shear, bending, viscous and constraint forces and e
    Each model may require different parameters.
    Refer to :py:meth:`_mirheo.Interactions.MembraneForces` for more information on the models and their corresponding parameters.
 
-.. figure:: ../images/docs/membrane.gif
+.. figure:: ../images/docs/membrane.png
     :figclass: align-center
     :width: 25%
 
     Sequence data dumped by executing the :ref:`membrane-py` script.
 
-    
+
 Creating Cells with Different inner and outer liquids
 *****************************************************
 
@@ -174,7 +174,7 @@ Note that in this example, we also show that it is easy to add many different in
    A :any:`ParticleVector` returned by :any:`applyObjectBelongingChecker` is automatically registered in the coordinator.
    There is therefore no need to provide any :py:class:`InitialConditions` object.
 
-.. figure:: ../images/docs/membranes_solvent.gif
+.. figure:: ../images/docs/membranes_solvent.png
     :figclass: align-center
     :width: 50%
 
@@ -212,7 +212,7 @@ Let us build a suspension of spheres in a DPD solvent:
 .. note::
    We again used a :any:`BelongingChecker` in order to remove the solvent inside the rigid objects.
 
-.. figure:: ../images/docs/rigid.gif
+.. figure:: ../images/docs/rigid.png
     :figclass: align-center
     :width: 50%
 
@@ -225,4 +225,4 @@ Going further
 
 A set of maintained tests can be used as examples in the `tests/` folder.
 These tests use many features of |mir| and can serve as a baseline for building more complex simulations.
-See also the :ref:`user-testing` section of this documentation. 
+See also the :ref:`user-testing` section of this documentation.

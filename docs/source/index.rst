@@ -1,10 +1,7 @@
 Mirheo
 ########
 
-Mesoscale flow solver for biological and medical applications
-
-Introduction
-************
+Mesoscale flow solver for biological and medical applications.
 
 Mirheo [alexeev2020]_ is designed as a classical molecular dynamics code adapted for inclusion of large (consisting of thousands of particles) rigid bodies and cells.
 The main features of the code include:
