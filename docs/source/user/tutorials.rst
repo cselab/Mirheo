@@ -24,7 +24,7 @@ We start with a very minimal script running |mir|.
    :caption: `hello.py`
 
 The time step of the simulation and the domain size are common to all objects in the simulation,
-hence it has to be passed to the coordinator (see its :py:meth:`constructor <_mirheo.Mirheo.__init__>`).
+hence it has to be passed to the coordinator (see its :py:meth:`constructor <mmirheo.Mirheo.__init__>`).
 We do not add anything more before running the simulation (last line).
 
 .. note::
@@ -56,10 +56,10 @@ The initial conditions are :any:`Uniform` randomly placed particles in the domai
 
 This example demonstrates how to build a simulation:
 
-#. **Create** the :py:class:`coordinator <_mirheo.Mirheo>`
+#. **Create** the :py:class:`coordinator <mmirheo.Mirheo>`
 #. **Create** the simulation objects (particle vectors, initial conditions...)
-#. **Register** the above objects into the :py:class:`coordinator <_mirheo.Mirheo>` (see ``register*`` functions)
-#. **link** the registered objects together in the :py:class:`coordinator <_mirheo.Mirheo>` (see ``set*`` functions)
+#. **Register** the above objects into the :py:class:`coordinator <mmirheo.Mirheo>` (see ``register*`` functions)
+#. **link** the registered objects together in the :py:class:`coordinator <mmirheo.Mirheo>` (see ``set*`` functions)
 
 The above script can be run as:
 
@@ -69,8 +69,8 @@ The above script can be run as:
 
 
 .. note::
-   The :ref:`rest-py` script contains plugins of type :py:class:`Stats <_mirheo.Plugins.SimulationStats>`
-   and  :py:class:`ParticleDumper <_mirheo.Plugins. ParticleDumperPlugin>`,
+   The :ref:`rest-py` script contains plugins of type :py:class:`Stats <mmirheo.Plugins.SimulationStats>`
+   and  :py:class:`ParticleDumper <mmirheo.Plugins. ParticleDumperPlugin>`,
    which needs a **postprocess** rank additionally to the **simulation** rank in order to be active.
    The simulation is then launched with 2 ranks.
 
@@ -89,7 +89,7 @@ Additionally, the particle positions and velocities are dumped in the ``h5`` fol
 Adding Walls
 ************
 
-We extend the previous example by introducing :py:mod:`Walls <_mirheo.Walls>` in the simulation.
+We extend the previous example by introducing :py:mod:`Walls <mmirheo.Walls>` in the simulation.
 Two components are required to form walls:
 
 * a geometry representation of the wall surface.
@@ -113,10 +113,10 @@ Two components are required to form walls:
 
 This example demonstrates how to construct walls:
 
-#. **Create** :py:mod:`Walls <_mirheo.Walls>` representation
-#. **Create** :py:mod:`Interactions <_mirheo.Interactions>` and an :py:mod:`Integrator <_mirheo.Integrators>` to equilibrate frozen particles
-#. **Create** the frozen particles with :py:meth:`_mirheo.Mirheo.makeFrozenWallParticles`
-#. **Set** walls to given PVs with :py:meth:`_mirheo.Mirheo.setWall`
+#. **Create** :py:mod:`Walls <mmirheo.Walls>` representation
+#. **Create** :py:mod:`Interactions <mmirheo.Interactions>` and an :py:mod:`Integrator <mmirheo.Integrators>` to equilibrate frozen particles
+#. **Create** the frozen particles with :py:meth:`mmirheo.Mirheo.makeFrozenWallParticles`
+#. **Set** walls to given PVs with :py:meth:`mmirheo.Mirheo.setWall`
 #. **Set** interactions with the frozen particles as normal PVs
 
 The execution of :ref:`walls-py` should output the `stats.txt` file as well as information output in the console.
@@ -133,8 +133,8 @@ Additionally, frozen and solvent particles, as well as the walls SDF are dumped 
 Membranes
 *********
 
-:py:class:`Membranes <_mirheo.ParticleVectors.MembraneVector>` are a set of particles connected into a triangle mesh.
-They can interact as normal :py:class:`PVs <_mirheo.ParticleVectors.ParticleVector>` but have additional *internal* interactions, which we will use in this example.
+:py:class:`Membranes <mmirheo.ParticleVectors.MembraneVector>` are a set of particles connected into a triangle mesh.
+They can interact as normal :py:class:`PVs <mmirheo.ParticleVectors.ParticleVector>` but have additional *internal* interactions, which we will use in this example.
 Here we simulate one membrane with a given initial mesh "rbc_mesh.py" which can be taken from the ``data/`` folder of the repository.
 The membrane is subjected to shear, bending, viscous and constraint forces and evolves over time thanks to a :any:`VelocityVerlet` integrator.
 
@@ -145,7 +145,7 @@ The membrane is subjected to shear, bending, viscous and constraint forces and e
 .. note::
    The interactions handle different combinations of shear and bending models.
    Each model may require different parameters.
-   Refer to :py:meth:`_mirheo.Interactions.MembraneForces` for more information on the models and their corresponding parameters.
+   Refer to :py:meth:`mmirheo.Interactions.MembraneForces` for more information on the models and their corresponding parameters.
 
 .. figure:: ../images/docs/membrane.png
     :figclass: align-center
@@ -161,7 +161,7 @@ It is easy to extend the above simple examples into quite complicated simulation
 In this example we simulate a suspension of a few membranes inside a solvent.
 We also show here how to split inside from outside solvents into 2 :any:`ParticleVectors <ParticleVector>`.
 This is useful when the 2 solvents do not have the same properties (such as viscosity).
-The example also demonstrates how to avoid penetration of the solvents through the membranes thanks to :py:mod:`_mirheo.Bouncers`.
+The example also demonstrates how to avoid penetration of the solvents through the membranes thanks to :py:mod:`mmirheo.Bouncers`.
 
 Note that in this example, we also show that it is easy to add many different interactions between given particle vectors.
 

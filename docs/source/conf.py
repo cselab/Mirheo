@@ -1,6 +1,12 @@
-import sys, os, subprocess, glob
+import glob
+import os
 import sphinx.ext.autodoc
 import subprocess
+import sys
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
+import mmirheo
 
 # compile the xml source
 subprocess.run('(cd .. && doxygen)', shell=True)
@@ -30,6 +36,7 @@ project = 'Mirheo'
 copyright = 'ETH Zurich'
 author_list = ['Dmitry Alexeev', 'Lucas Amoudruz', 'Ivica Kicic']
 author = ' ,'.join(author_list)
+release = mmirheo.mir_version
 
 exclude_patterns = []
 pygments_style = 'sphinx'

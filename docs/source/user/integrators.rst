@@ -10,14 +10,12 @@ Integrators are used to advance particle coordinates and velocities in time acco
 
 Summary
 ========
-.. automodsumm:: _mirheo.Integrators
+.. automodsumm:: mmirheo.Integrators
 
 Details
 ========
-.. automodule:: _mirheo.Integrators
+.. automodule:: mmirheo.Integrators
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-      
- 

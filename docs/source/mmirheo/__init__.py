@@ -560,7 +560,7 @@ Register Plugins
             .. warning::
                 Experimental and only partially implemented!
                 The function will raise an exception if it encounters any plugin or other component which does not yet implement saving the snapshot.
-                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`_mirheo.Mirheo.run`.
+                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`mmirheo.Mirheo.run`.
 
             Args:
                 path: Target folder.
@@ -580,7 +580,7 @@ Register Plugins
                  current: if True, save the current non empty tasks; else, save all tasks that can exist in a simulation
 
              .. warning::
-                 if current is set to True, this must be called **after** :py:meth:`_mirheo.Mirheo.run`.
+                 if current is set to True, this must be called **after** :py:meth:`mmirheo.Mirheo.run`.
          
 
         """
@@ -846,3 +846,6 @@ Overloaded function.
         pass
 
 
+
+__all__ = ["tools", "version"]
+from .version import mir_version

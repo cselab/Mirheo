@@ -20,14 +20,14 @@ A single instance of this class should be created in the beginning of any simula
         from mpi4py import MPI
 
 
-.. autoclass:: _mirheo.Mirheo
+.. autoclass:: mmirheo.Mirheo
    :members:
    :undoc-members:
    :special-members: __init__
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _mirheo.Mirheo
+    .. autoautosummary:: mmirheo.Mirheo
         :methods:
 
 
@@ -63,20 +63,20 @@ Global Simulation State
 Some information about the simulation is global to all Mirheo components.
 They are stored in the following binded objects:
 
-.. autoclass:: _mirheo.DomainInfo
+.. autoclass:: mmirheo.DomainInfo
    :members:
    :undoc-members:
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _mirheo.DomainInfo
+    .. autoautosummary:: mmirheo.DomainInfo
         :methods:
 
-.. autoclass:: _mirheo.MirState
+.. autoclass:: mmirheo.MirState
    :members:
    :undoc-members:
 
     .. rubric:: Methods
 
-    .. autoautosummary:: _mirheo.MirState
+    .. autoautosummary:: mmirheo.MirState
         :methods:

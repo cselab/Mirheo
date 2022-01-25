@@ -16,7 +16,7 @@ in XDMF format (:any:`createDumpParticles`), see more details in the Developer d
 A common special case of a :any:`ParticleVector` is an :any:`ObjectVector` (or OV).
 The OV **is** a Particle Vector with the particles separated into groups (objects) of the same size.
 For example, if a single cell membrane is represented by say 500 particles, an object vector
-consisting of the membranes will contain all the particles of all the membranes, grouped by 
+consisting of the membranes will contain all the particles of all the membranes, grouped by
 membrane.
 Objects are assumed to be spatially localized, so they always fully reside within a single
 MPI process. OV can be used in most of the places where a regular PV can be used, and more
@@ -35,17 +35,15 @@ When a user provides a custom channel name, it needs to be different than these 
 
 Summary
 ========
-.. automodsumm:: _mirheo.ParticleVectors
+.. automodsumm:: mmirheo.ParticleVectors
 
-.. automod-diagram:: _mirheo.ParticleVectors
+.. automod-diagram:: mmirheo.ParticleVectors
     :skip: Mesh, MembraneMesh
 
 Details
 ========
-.. automodule:: _mirheo.ParticleVectors
+.. automodule:: mmirheo.ParticleVectors
    :members:
    :show-inheritance:
    :undoc-members:
    :special-members: __init__
-      
- 
