@@ -195,7 +195,8 @@ Microfluidics;%
 high performance computing;%
 Blood Flow},
 }
-'''
+''',
+    'printindex': '',
 }
 
 latex_documents = [
