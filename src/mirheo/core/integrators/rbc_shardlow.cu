@@ -11,6 +11,7 @@
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
+#include <algorithm>
 #include <memory>
 
 namespace mirheo
@@ -210,11 +211,16 @@ void IntegratorSubStepShardlowSweep::_viscousSweeps(MembraneVector *mv, cudaStre
 
     const auto edgeSets = pvToEdgeSets_[mv->getName()].get();
 
+    // loop over colors in a random order at every sweep
+    colorIds_.resize(edgeSets->numColors());
+    std::iota(colorIds_.begin(), colorIds_.end(), 0);
+    std::shuffle(colorIds_.begin(), colorIds_.end(), rnd_);
+
     for (int sweep = 0; sweep < nsweeps_; ++sweep)
     {
         std::uniform_real_distribution<real> u(0.0_r, 1.0_r);
 
-        for (int color = 0; color < edgeSets->numColors(); ++color)
+        for (int color : colorIds_)
         {
             const real seed = u(rnd_);
             const auto& edges = edgeSets->edgeSet(color);
