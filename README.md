@@ -50,7 +50,10 @@ make install
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add growing repulsive LJ pairwise interaction.
+* Shardlow integrator: randomize loop order. 
 
 ### v1.5.2
 
