@@ -14,46 +14,28 @@
 namespace mirheo
 {
 
-/** \brief Compute repulsive Lennard-Jones forces on the device
+
+
+
+/** \brief A GPU compatible functor to compute repulsive LJ interactions
     \tparam Awareness A functor that describes which particles pairs interact
  */
 template <class Awareness>
-class PairwiseRepulsiveLJ : public PairwiseKernel, public ParticleFetcher
+class PairwiseRepulsiveLJHandler : public ParticleFetcher
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
     using ViewType     = PVview;              ///< Compatible view type
     using ParticleType = Particle;            ///< Compatible particle type
-    using HandlerType  = PairwiseRepulsiveLJ<Awareness>; ///< Corresponding handler
-    using ParamsType   = RepulsiveLJParams;   ///< Corresponding parameters type
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Constructor
-    PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
+    PairwiseRepulsiveLJHandler(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
         ParticleFetcher(rc),
         sigma2_(sigma*sigma),
         maxForce_(maxForce),
         epsx24_sigma2_(24.0_r * epsilon / (sigma * sigma)),
         awareness_(awareness)
-    {
-        constexpr real sigmaFactor = 1.1224620483_r; // 2^(1/6)
-        const real rm = sigmaFactor * sigma; // F(rm) = 0
-
-        if (rm > rc)
-        {
-            const real maxSigma = rc / sigmaFactor;
-            die("RepulsiveLJ: rm = %g > rc = %g; sigma must be lower than %g or rc must be larger than %g",
-                rm, rc, maxSigma, rm);
-        }
-    }
-
-    /// Generic constructor
-    PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
-        PairwiseRepulsiveLJ{rc,
-                            p.epsilon,
-                            p.sigma,
-                            p.maxForce,
-                            mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
     {}
 
     /// Evaluate the force
@@ -82,16 +64,67 @@ public:
     /// initialize accumulator
     __D__ inline ForceAccumulator getZeroedAccumulator() const {return ForceAccumulator();}
 
+private:
+    real sigma2_;
+    real maxForce_;
+    real epsx24_sigma2_;
+    Awareness awareness_;
+};
+
+
+
+template <class Awareness>
+class PairwiseRepulsiveLJ : public PairwiseKernel
+{
+public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
+    using HandlerType  = PairwiseRepulsiveLJHandler<Awareness>; ///< Corresponding handler
+    using ParamsType   = RepulsiveLJParams;                     ///< Corresponding parameters type
+    using ViewType     = typename HandlerType::ViewType;
+    using ParticleType = typename HandlerType::ParticleType;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+    /// Constructor
+    PairwiseRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness) :
+        rc_(rc),
+        sigma_(sigma),
+        maxForce_(maxForce),
+        epsilon_(epsilon),
+        awareness_(awareness),
+        handler_(rc, epsilon, sigma, maxForce, awareness)
+    {
+        constexpr real sigmaFactor = 1.1224620483_r; // 2^(1/6)
+        const real rm = sigmaFactor * sigma; // F(rm) = 0
+
+        if (rm > rc)
+        {
+            const real maxSigma = rc / sigmaFactor;
+            die("RepulsiveLJ: rm = %g > rc = %g; sigma must be lower than %g or rc must be larger than %g",
+                rm, rc, maxSigma, rm);
+        }
+    }
+
+    /// Generic constructor
+    PairwiseRepulsiveLJ(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
+        PairwiseRepulsiveLJ{rc,
+                            p.epsilon,
+                            p.sigma,
+                            p.maxForce,
+                            mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
+    {}
+
+
     /// get the handler that can be used on device
     const HandlerType& handler() const
     {
-        return (const HandlerType&) (*this);
+        return handler_;
     }
 
     void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2,
                __UNUSED CellList *cl1, __UNUSED CellList *cl2, __UNUSED const MirState *state) override
     {
         awareness_.setup(lpv1, lpv2);
+        handler_ = HandlerType(rc_, epsilon_, sigma_, maxForce_, awareness_);
     }
 
     /// \return type name string
@@ -101,10 +134,13 @@ public:
     }
 
 private:
-    real sigma2_, maxForce_;
-    real epsx24_sigma2_;
-
+    real rc_;
+    real sigma_;
+    real maxForce_;
+    real epsilon_;
     Awareness awareness_;
+
+    HandlerType handler_;
 };
 
 } // namespace mirheo
