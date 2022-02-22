@@ -70,6 +70,20 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 }
 
 static std::shared_ptr<BasePairwiseInteraction>
+createPairwiseFromParams(const MirState *state, const std::string& name, real rc,
+                         const GrowingRepulsiveLJParams& params,
+                         const VarStressParams& varStressParams)
+{
+    return mpark::visit([&](auto& awareParams)
+    {
+        using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
+        using KernelType = PairwiseGrowingRepulsiveLJ<AwareType>;
+
+        return createPairwiseFromKernel<KernelType>(state, name, rc, params, varStressParams);
+    }, params.varAwarenessParams);
+}
+
+static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const MorseParams& params, const VarStressParams& varStressParams)
 {
     return mpark::visit([&](auto& awareParams)
@@ -159,7 +173,8 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     static_assert(std::is_same<
             VarPairwiseParams,
             mpark::variant<DPDParams, LJParams, MorseParams, RepulsiveLJParams,
-                           MDPDParams, DensityParams, SDPDParams>>::value,
+                           GrowingRepulsiveLJParams, MDPDParams, DensityParams,
+                           SDPDParams>>::value,
             "Load interactions must be updated if the VairPairwiseParams is changed.");
 
     const std::string& typeName = config["__type"].getString();
@@ -181,7 +196,7 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     // MorseParams.
     variantForeach<VarAwarenessParams>([&visitor](auto type)
     {
-        using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
+        using T = PairwiseMorse<typename decltype(type)::type::KernelType>;
         tryLoadPairwiseStress  <T>(visitor);
         tryLoadPairwiseNoStress<T>(visitor);
     });
@@ -190,6 +205,14 @@ loadInteractionPairwise(const MirState *state, Loader& loader, const ConfigObjec
     variantForeach<VarAwarenessParams>([&visitor](auto type)
     {
         using T = PairwiseRepulsiveLJ<typename decltype(type)::type::KernelType>;
+        tryLoadPairwiseStress  <T>(visitor);
+        tryLoadPairwiseNoStress<T>(visitor);
+    });
+
+    // GrowingRepulsiveLJParams.
+    variantForeach<VarAwarenessParams>([&visitor](auto type)
+    {
+        using T = PairwiseGrowingRepulsiveLJ<typename decltype(type)::type::KernelType>;
         tryLoadPairwiseStress  <T>(visitor);
         tryLoadPairwiseNoStress<T>(visitor);
     });

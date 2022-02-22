@@ -72,7 +72,7 @@ private:
 };
 
 
-
+/// Kernel for repulsive LJ forces.
 template <class Awareness>
 class PairwiseRepulsiveLJ : public PairwiseKernel
 {
@@ -113,6 +113,7 @@ public:
                             mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
     {}
 
+    virtual ~PairwiseRepulsiveLJ() = default;
 
     /// get the handler that can be used on device
     const HandlerType& handler() const
@@ -133,14 +134,97 @@ public:
         return constructTypeName<Awareness>("PairwiseRepulsiveLJ");
     }
 
-private:
-    real rc_;
-    real sigma_;
-    real maxForce_;
-    real epsilon_;
-    Awareness awareness_;
+protected:
+    real rc_;               ///< cutoff radius
+    real sigma_;            ///< sigma parameter of the LJ potential
+    real maxForce_;         ///< cutoff radius
+    real epsilon_;          ///< energy coefficient
+    Awareness awareness_;   ///< filtering of the force
 
-    HandlerType handler_;
+    HandlerType handler_;   ///< GPU-compatible functor
+};
+
+
+/// Kernel for growing repulsive LJ forces.
+template <class Awareness>
+class PairwiseGrowingRepulsiveLJ : public PairwiseRepulsiveLJ<Awareness>
+{
+public:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
+    using HandlerType  = PairwiseRepulsiveLJHandler<Awareness>; ///< Corresponding handler
+    using ParamsType   = GrowingRepulsiveLJParams;              ///< Corresponding parameters type
+    using ViewType     = typename HandlerType::ViewType;
+    using ParticleType = typename HandlerType::ParticleType;
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
+    /// Constructor
+    PairwiseGrowingRepulsiveLJ(real rc, real epsilon, real sigma, real maxForce, Awareness awareness,
+                               real initialLengthFraction, real growUntil) :
+        PairwiseRepulsiveLJ<Awareness>(rc, epsilon, sigma, maxForce, std::move(awareness)),
+        initLengthFraction_(initialLengthFraction),
+        growUntil_(growUntil)
+    {
+        if (initialLengthFraction < 0 || initialLengthFraction > 1)
+        {
+            die("Wrong value of 'initialLengthFraction'. Must be in [0,1], got %g.", initialLengthFraction);
+        }
+    }
+
+    /// Generic constructor
+    PairwiseGrowingRepulsiveLJ(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
+        PairwiseGrowingRepulsiveLJ{rc,
+                                   p.epsilon,
+                                   p.sigma,
+                                   p.maxForce,
+                                   mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams),
+                                   p.initialLengthFraction,
+                                   p.growUntil}
+    {}
+
+
+    /// get the handler that can be used on device
+    const HandlerType& handler() const
+    {
+        return this->handler_;
+    }
+
+    void setup(LocalParticleVector *lpv1, LocalParticleVector *lpv2,
+               __UNUSED CellList *cl1, __UNUSED CellList *cl2, __UNUSED const MirState *state) override
+    {
+        const real l = _scaleFromTime(state->currentTime);
+        this->awareness_.setup(lpv1, lpv2);
+        this->handler_ = HandlerType(this->rc_,
+                                     this->epsilon_ * l*l,
+                                     this->sigma_ * l,
+                                     this->maxForce_ * l,
+                                     this->awareness_);
+    }
+
+    /// \return type name string
+    static std::string getTypeName()
+    {
+        return constructTypeName<Awareness>("PairwiseGrowingRepulsiveLJ");
+    }
+
+private:
+
+    /** Get a scaling factor for transforming the length scale of all the parameters
+        (see also rescaleParameters())
+        \param [in] t The simulation time (must be positive)
+        \return scaling factor for length
+
+        Will grow linearly from initLengthFraction_ to 1 during the first growUntil_ time interval.
+        Otherwise this returns 1.
+    */
+    real _scaleFromTime(real t) const
+    {
+        return math::min(1.0_r, initLengthFraction_ + (1.0_r - initLengthFraction_) * (t / growUntil_));
+    }
+
+
+protected:
+    real initLengthFraction_; ///< initial length scaling factor
+    real growUntil_;          ///< time of initial growth
 };
 
 } // namespace mirheo

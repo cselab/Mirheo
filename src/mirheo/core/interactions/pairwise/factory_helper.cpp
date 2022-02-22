@@ -62,6 +62,21 @@ template <> void readParams<RepulsiveLJParams>(RepulsiveLJParams& p, ParametersW
     if (maxForce != defaultReal) p.maxForce = maxForce;
 }
 
+template <> void readParams<GrowingRepulsiveLJParams>(GrowingRepulsiveLJParams& p, ParametersWrap& desc, ParamsReader reader)
+{
+    const auto epsilon               = reader.read<real>(desc, "epsilon");
+    const auto sigma                 = reader.read<real>(desc, "sigma");
+    const auto maxForce              = reader.read<real>(desc, "max_force");
+    const auto initialLengthFraction = reader.read<real>(desc, "init_length_fraction");
+    const auto growUntil             = reader.read<real>(desc, "grow_until");
+
+    if (epsilon               != defaultReal) p.epsilon               = epsilon;
+    if (sigma                 != defaultReal) p.sigma                 = sigma;
+    if (maxForce              != defaultReal) p.maxForce              = maxForce;
+    if (initialLengthFraction != defaultReal) p.initialLengthFraction = initialLengthFraction;
+    if (growUntil             != defaultReal) p.growUntil             = growUntil;
+}
+
 template <> void readParams<MorseParams>(MorseParams& p, ParametersWrap& desc, ParamsReader reader)
 {
     const auto De   = reader.read<real>(desc, "De");
@@ -178,6 +193,15 @@ RepulsiveLJParams readRepulsiveLJParams(ParametersWrap& desc)
 {
     const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
     RepulsiveLJParams p;
+    readParams(p, desc, reader);
+    p.varAwarenessParams = readAwarenessParams(desc, reader);
+    return p;
+}
+
+GrowingRepulsiveLJParams readGrowingRepulsiveLJParams(ParametersWrap& desc)
+{
+    const ParamsReader reader {ParamsReader::Mode::FailIfNotFound};
+    GrowingRepulsiveLJParams p;
     readParams(p, desc, reader);
     p.varAwarenessParams = readAwarenessParams(desc, reader);
     return p;
@@ -301,6 +325,18 @@ VarStressParams readStressParams(ParametersWrap& desc)
 }
 
 void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
+{
+    const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
+
+    readParams(p, desc, reader);
+
+    mpark::visit([&](auto& awareParams)
+    {
+        readParams(awareParams, desc, reader);
+    }, p.varAwarenessParams);
+}
+
+void readSpecificParams(GrowingRepulsiveLJParams& p, ParametersWrap& desc)
 {
     const ParamsReader reader{ParamsReader::Mode::DefaultIfNotFound};
 

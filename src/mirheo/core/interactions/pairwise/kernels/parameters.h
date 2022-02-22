@@ -21,6 +21,9 @@ struct AwarenessRod;
 template <class Awareness>
 class PairwiseRepulsiveLJ;
 
+template <class Awareness>
+class PairwiseGrowingRepulsiveLJ;
+
 class PairwiseMDPD;
 
 template <class Awareness>
@@ -108,6 +111,18 @@ struct RepulsiveLJParams
     VarAwarenessParams varAwarenessParams; ///< awareness
 };
 MIRHEO_MEMBER_VARS(RepulsiveLJParams, epsilon, sigma, maxForce, varAwarenessParams);
+
+/// Growing Repulsive Lennard-Jones parameters
+struct GrowingRepulsiveLJParams
+{
+    real epsilon;  ///< force coefficient
+    real sigma;    ///< radius with zero energy in LJ potential
+    real maxForce; ///< cap force
+    VarAwarenessParams varAwarenessParams; ///< awareness
+    real initialLengthFraction; ///< initial factor for the length scale
+    real growUntil; ///< time after which the length factor is one
+};
+MIRHEO_MEMBER_VARS(GrowingRepulsiveLJParams, epsilon, sigma, maxForce, varAwarenessParams, initialLengthFraction, growUntil);
 
 
 /// Morse parameters
@@ -200,6 +215,7 @@ using VarPairwiseParams = mpark::variant<DPDParams,
                                          LJParams,
                                          MorseParams,
                                          RepulsiveLJParams,
+                                         GrowingRepulsiveLJParams,
                                          MDPDParams,
                                          DensityParams,
                                          SDPDParams>;

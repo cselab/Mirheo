@@ -168,6 +168,10 @@ void exportInteractions(py::module& m)
 
             Note that in the implementation, the force is bounded for stability at larger time steps.
 
+        * **GrowingRepulsiveLJ**:
+            Same as **RepulsiveLJ**, but the length scale is growing linearly in time until a prespecified time, from a specified fraction to 1. This is useful when growing membranes while avoiding overlaps.
+
+
         * **Morse**:
             Pairwise interaction according to the classical `Morse potential <https://en.wikipedia.org/wiki/Morse_potential>`_
 
@@ -273,6 +277,21 @@ void exportInteractions(py::module& m)
                       That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
                     * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
                       (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+
+            * **kind** = "GrowingRepulsiveLJ"
+
+                * **epsilon**: :math:`\varepsilon`
+                * **sigma**: :math:`\sigma`
+                * **max_force**: force magnitude will be capped to not exceed **max_force**
+                * **aware_mode**:
+                    * if "None", all particles interact with each other.
+                    * if "Object", the particles belonging to the same object in an object vector do not interact with each other.
+                      That restriction only applies if both Particle Vectors in the interactions are the same and is actually an Object Vector.
+                    * if "Rod", the particles interact with all other particles except with the ones which are below a given a distance
+                      (in number of segment) of the same rod vector. The distance is specified by the kwargs parameter **min_segments_distance**.
+                * **init_length_fraction**: tnitial length factor. Must be in [0, 1].
+                * **grow_until**: time after which the length quantities are scaled by one.
+
 
 
             * **kind** = "Morse"
