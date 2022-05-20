@@ -2,6 +2,7 @@
 #include "initial_conditions.h"
 #include "class_wrapper.h"
 
+#include <mirheo/core/initial_conditions/chain.h>
 #include <mirheo/core/initial_conditions/from_array.h>
 #include <mirheo/core/initial_conditions/interface.h>
 #include <mirheo/core/initial_conditions/membrane.h>
@@ -27,6 +28,17 @@ void exportInitialConditions(py::module& m)
             Base class for initial conditions
         )");
 
+
+    py::handlers_class<ChainIC>(m, "Chain", pyic, R"(
+        Creates chains of particles of the same orientations and lengths at prescribed positions.
+    )")
+        .def(py::init<std::vector<real3>, std::vector<real3>, real>(),
+             "positions"_a, "orientations"_a, "length"_a, R"(
+            Args:
+                positions: center of mass of each chain
+                orientations: array of unit vectors indicating the orientation of the chains
+                length: length of the chains.
+        )");
 
     py::handlers_class<FromArrayIC>(m, "FromArray", pyic, R"(
         Set particles according to given position and velocity arrays.

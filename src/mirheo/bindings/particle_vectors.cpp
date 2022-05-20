@@ -5,6 +5,7 @@
 
 #include <mirheo/core/mesh/membrane.h>
 #include <mirheo/core/mesh/mesh.h>
+#include <mirheo/core/pvs/chain_vector.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
@@ -299,6 +300,17 @@ void exportParticleVectors(py::module& m)
         )", py::return_value_policy::reference_internal);
 
 
+
+    py::handlers_class<ChainVector> (m, "ChainVector", pyov, R"(
+        Object Vector representing chain of particles.
+    )")
+        .def(py::init<const MirState*, std::string, real, int>(),
+             "state"_a, "name"_a, "mass"_a, "chain_length"_a, R"(
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                chain_length: number of particles per chain
+        )");
 
     py::handlers_class<MembraneVector> (m, "MembraneVector", pyov, R"(
         Membrane is an Object Vector representing cell membranes.
