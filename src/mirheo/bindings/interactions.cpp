@@ -4,6 +4,7 @@
 #include "class_wrapper.h"
 #include "variant_cast.h"
 
+#include <mirheo/core/interactions/chain/chain.h>
 #include <mirheo/core/interactions/factory.h>
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/interactions/membrane/base_membrane.h>
@@ -562,6 +563,20 @@ void exportInteractions(py::module& m)
              The interaction can support multiple polymorphic states if **kappa0**, **tau0** and **E0** are lists of equal size.
              In this case, the **E0** parameter is required.
              Only lists of 1, 2 and 11 states are supported.
+    )");
+
+
+    py::handlers_class<ChainInteraction> pyChainFENE(m, "ChainFENE", pyInt, R"(
+        FENE forces between beads of a :any:`ChainVector`.
+    )");
+
+    pyChainFENE.def(py::init(&interaction_factory::createInteractionChainFENE),
+                    "state"_a, "name"_a, "ks"_a, "rmax"_a, R"(
+            Args:
+                name: name of the interaction
+                ks: the spring constant
+                rmax: maximal extension of the springs
+
     )");
 }
 

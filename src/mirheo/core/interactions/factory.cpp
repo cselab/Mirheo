@@ -1,6 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "factory.h"
 
+#include "chain/chain.h"
 #include "membrane/base_membrane.h"
 #include "membrane/factory.h"
 #include "obj_binding.h"
@@ -13,8 +14,8 @@
 
 #include <mirheo/core/logger.h>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace interaction_factory {
 
 static CommonMembraneParameters readCommonParameters(ParametersWrap& desc)
 {
@@ -93,10 +94,10 @@ static FilterKeepByTypeId readFilterKeepByTypeId(ParametersWrap& desc)
 }
 
 std::shared_ptr<BaseMembraneInteraction>
-interaction_factory::createInteractionMembrane(const MirState *state, std::string name,
-                                              std::string shearDesc, std::string bendingDesc,
-                                              std::string filterDesc, const MapParams& parameters,
-                                              bool stressFree)
+createInteractionMembrane(const MirState *state, std::string name,
+                          std::string shearDesc, std::string bendingDesc,
+                          std::string filterDesc, const MapParams& parameters,
+                          bool stressFree)
 {
     VarBendingParams varBendingParams;
     VarShearParams varShearParams;
@@ -129,9 +130,16 @@ interaction_factory::createInteractionMembrane(const MirState *state, std::strin
 
     desc.checkAllRead();
     return createInteractionMembrane(
-        state, name, commonPrms, varBendingParams, varShearParams, stressFree,
-        initLengthFraction, growUntil, varFilter);
+                                     state, name, commonPrms, varBendingParams, varShearParams, stressFree,
+                                     initLengthFraction, growUntil, varFilter);
 }
+
+std::shared_ptr<ChainInteraction>
+createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax)
+{
+    return std::make_shared<ChainInteraction>(state, name, ks, rmax);
+}
+
 
 static RodParameters readRodParameters(ParametersWrap& desc)
 {
@@ -195,8 +203,8 @@ static StatesSpinParameters readStatesSpinRodParameters(ParametersWrap& desc)
 
 
 std::shared_ptr<BaseRodInteraction>
-interaction_factory::createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
-                                         bool saveEnergies, const MapParams& parameters)
+createInteractionRod(const MirState *state, std::string name, std::string stateUpdate,
+                     bool saveEnergies, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     auto params = readRodParameters(desc);
@@ -217,7 +225,7 @@ interaction_factory::createInteractionRod(const MirState *state, std::string nam
 }
 
 std::shared_ptr<BasePairwiseInteraction>
-interaction_factory::createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
+createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
     VarPairwiseParams varParams;
@@ -248,18 +256,19 @@ interaction_factory::createPairwiseInteraction(const MirState *state, std::strin
 }
 
 std::shared_ptr<ObjectBindingInteraction>
-interaction_factory::createInteractionObjBinding(const MirState *state, std::string name,
-                                                 real kBound, std::vector<int2> pairs)
+createInteractionObjBinding(const MirState *state, std::string name,
+                            real kBound, std::vector<int2> pairs)
 {
     return std::make_shared<ObjectBindingInteraction>(state, std::move(name), kBound, std::move(pairs));
 }
 
 
 std::shared_ptr<ObjectRodBindingInteraction>
-interaction_factory::createInteractionObjRodBinding(const MirState *state, std::string name,
-                                                   real torque, real3 relAnchor, real kBound)
+createInteractionObjRodBinding(const MirState *state, std::string name,
+                               real torque, real3 relAnchor, real kBound)
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, std::move(name), torque, relAnchor, kBound);
 }
 
+} // namespace interaction_factory
 } // namespace mirheo

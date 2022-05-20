@@ -21,6 +21,7 @@ set(sources_cpp
   initial_conditions/uniform_sphere.cpp
   integrators/interface.cpp
   integrators/sub_step.cpp
+  interactions/chain/chain.cu
   interactions/factory.cpp
   interactions/interface.cpp
   interactions/pairwise/base_pairwise.cpp

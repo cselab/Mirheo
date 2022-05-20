@@ -15,6 +15,7 @@ class Interaction;
 class BaseMembraneInteraction;
 class BaseRodInteraction;
 class BasePairwiseInteraction;
+class ChainInteraction;
 class ObjectBindingInteraction;
 class ObjectRodBindingInteraction;
 
@@ -26,6 +27,8 @@ using MapParams = ParametersWrap::MapParams;
 std::shared_ptr<BasePairwiseInteraction>
 createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters);
 
+std::shared_ptr<ChainInteraction>
+createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax);
 
 std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,
