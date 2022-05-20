@@ -56,8 +56,11 @@ Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
 
 ## Changelog
 
-### unreleased
+<!-- ### unreleased -->
 
+### v1.6.0
+
+* remove support for config/snapshot. Use checkpoint/restart instead.
 * Add growing repulsive LJ pairwise interaction.
 * Shardlow integrator: randomize loop order. 
 
