@@ -5,7 +5,6 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/rigid/utils.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/quaternion.h>
 
@@ -181,11 +180,6 @@ void MeshBelongingChecker::_tagInner(ParticleVector *pv, CellList *cl, cudaStrea
 
     computeTags(ParticleVectorLocality::Local);
     computeTags(ParticleVectorLocality::Halo);
-}
-
-void MeshBelongingChecker::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "MeshBelongingChecker"));
 }
 
 } // namespace mirheo

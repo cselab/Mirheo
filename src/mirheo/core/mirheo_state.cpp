@@ -3,39 +3,18 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/restart_helpers.h>
-#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
 
 static const std::string fname = "state.mirheo";
 
-ConfigValue TypeLoadSave<UnitConversion>::save(Saver& saver, const UnitConversion& units)
-{
-    return ConfigValue::Object{
-        {"toMeters",    saver(units.toMeters_)},
-        {"toSeconds",   saver(units.toSeconds_)},
-        {"toKilograms", saver(units.toKilograms_)},
-    };
-}
-
-UnitConversion TypeLoadSave<UnitConversion>::parse(const ConfigValue& config) {
-    return UnitConversion{config["toMeters"], config["toSeconds"], config["toKilograms"]};
-}
-
-MirState::MirState(DomainInfo domain_, real dt, UnitConversion units_,
-                   const ConfigValue *state) :
+MirState::MirState(DomainInfo domain_, real dt) :
     domain(domain_),
     currentTime(0),
     currentStep(0),
-    units(units_),
     dt_(dt)
-{
-    if (state) {
-        currentTime = (*state)["currentTime"];
-        currentStep = (*state)["currentStep"];
-    }
-}
+{}
 
 static bool isMasterRank(MPI_Comm comm)
 {
@@ -83,20 +62,6 @@ void MirState::restart(MPI_Comm comm, std::string folder)
 
 void MirState::_dieInvalidDt [[noreturn]]() const {
     die("Time step dt not available. Using dt is valid only during Mirheo::run().");
-}
-
-ConfigValue TypeLoadSave<MirState>::save(Saver& saver, MirState& state)
-{
-    return ConfigValue::Object{
-        {"__category",        saver("MirState")},
-        {"__type",            saver("MirState")},
-        {"domainGlobalStart", saver(state.domain.globalStart)},
-        {"domainGlobalSize",  saver(state.domain.globalSize)},
-        {"dt",                saver(state.dt_)},
-        {"currentTime",       saver(state.currentTime)},
-        {"currentStep",       saver(state.currentStep)},
-        {"units",             saver(state.units)},
-    };
 }
 
 } // namespace mirheo

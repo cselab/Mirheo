@@ -11,7 +11,6 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/strprintf.h>
 #include <mirheo/core/walls/interface.h>
 
@@ -32,69 +31,6 @@ static CheckpointIdAdvanceMode getCheckpointMode(const std::string& mode)
 
     die("Unknown checkpoint mode '%s'\n", mode.c_str());
     return CheckpointIdAdvanceMode::PingPong;
-}
-
-static CheckpointMechanism getCheckpointMechanism(const std::string& mechanism)
-{
-    if (mechanism == "Checkpoint")
-        return CheckpointMechanism::Checkpoint;
-    if (mechanism == "Snapshot")
-        return CheckpointMechanism::Snapshot;
-
-    die("Unknown checkpoint mechanism '%s'\n", mechanism.c_str());
-    return CheckpointMechanism::Checkpoint;
-}
-
-void exportConfigValue(py::module& m)
-{
-    py::class_<ConfigValue>(m, "ConfigValue", R"(
-        A JSON-like object representing an integer, floating point number,
-        string, array of ConfigValues or a dictionary mapping strings to
-        ConfigValues.
-
-        Currently only integers, floating point numbers and strings are supported.
-
-        Special conversions for a ``ConfigValue`` value ``v``:
-
-        - ``int(v)`` convert to an integer. Aborts if ``v`` is not an integer.
-        - ``float(v)`` converts to a float. Aborts if ``v`` is not a float nor an integer.
-        - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
-            Otherwise, a potentially approximate representation of the value is returned
-        - ``repr(v)`` converts to a JSON string.
-    )")
-        .def(py::init<ConfigValue::Int>())
-        .def(py::init<ConfigValue::Float>())
-        .def(py::init<ConfigValue::String>())
-        .def("__int__", &ConfigValue::getInt)
-        .def("__float__", &ConfigValue::getFloat)
-        .def("__str__", &ConfigValue::toString)
-        .def("__repr__", &ConfigValue::toJSONString);
-    py::implicitly_convertible<ConfigValue::Int, ConfigValue>();
-    py::implicitly_convertible<ConfigValue::Float, ConfigValue>();
-    py::implicitly_convertible<ConfigValue::String, ConfigValue>();
-}
-
-void exportUnitConversion(py::module& m)
-{
-    py::class_<UnitConversion>(m, "UnitConversion", R"(
-        Factors for unit conversion between Mirheo and SI units.
-    )")
-        .def(py::init<>(), "Default constructor. Conversion factors not known.")
-        .def(py::init<real, real, real>(), "toMeters"_a, "toSeconds"_a, "toKilograms"_a, R"(
-            Construct from conversion factors from Mirheo units to SI units.
-
-            Args:
-                toMeters: value in meters of 1 Mirheo length unit
-                toSeconds: value in seconds of 1 Mirheo time (duration) unit
-                toKilograms: value in kilograms of 1 Mirheo mass unit
-        )")
-        .def("__repr__", [](UnitConversion u) -> std::string
-            {
-                if (!u.isSet())
-                    return "UnitConversion()";
-                return strprintf("UnitConversion(%g, %g, %g)",
-                                 u.toMeters(1), u.toSeconds(1), u.toKilograms(1));
-            });
 }
 
 void exportDomainInfo(py::module& m)
@@ -163,31 +99,28 @@ void exportMirheo(py::module& m)
     )")
         .def(py::init( [] (int3 nranks, real3 domain,
                            std::string log, int debuglvl,
-                           std::string checkpointMechanismStr, int checkpointEvery,
-                           std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long commPtr, UnitConversion units)
+                           int checkpointEvery, std::string checkpointFolder, std::string checkpointModeStr,
+                           bool cudaMPI, bool noSplash, long commPtr)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
                 CheckpointInfo checkpointInfo(
                         checkpointEvery, checkpointFolder,
-                        getCheckpointMode(checkpointModeStr),
-                        getCheckpointMechanism(checkpointMechanismStr));
+                        getCheckpointMode(checkpointModeStr));
 
                 if (commPtr == 0) {
                     return std::make_unique<Mirheo> (      nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI, units);
+                                                           checkpointInfo, cudaMPI);
                 } else {
                     // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
                     MPI_Comm comm = *(MPI_Comm *)commPtr;
                     return std::make_unique<Mirheo> (comm, nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI, units);
+                                                           checkpointInfo, cudaMPI);
                 }
             } ),
              py::return_value_policy::take_ownership,
              "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=-1,
-             "checkpoint_mechanism"_a="Checkpoint", "checkpoint_every"_a=0,
-             "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
-             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, "units"_a=UnitConversion{}, R"(
+             "checkpoint_every"_a=0, "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
+             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
 Create the Mirheo coordinator.
 
 .. warning::
@@ -223,38 +156,9 @@ Args:
         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however,
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
-    checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
     checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
-    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
-    no_splash: don't display the splash screen when at the start-up.
-    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
-    units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
-        )")
-        .def(py::init( [] (int3 nranks, const std::string& snapshotPath, std::string log, int debuglvl,
-                           bool cudaMPI, bool noSplash, long commPtr)
-            {
-                LogInfo logInfo(log, debuglvl, noSplash);
-
-                if (commPtr == 0) {
-                    return std::make_unique<Mirheo> (      nranks, snapshotPath, logInfo, cudaMPI);
-                } else {
-                    // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
-                    MPI_Comm comm = *(MPI_Comm *)commPtr;
-                    return std::make_unique<Mirheo> (comm, nranks, snapshotPath, logInfo, cudaMPI);
-                }
-            } ),
-             py::return_value_policy::take_ownership,
-             "nranks"_a, "snapshot"_a, "log_filename"_a="log", "debug_level"_a=-1,
-             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
-Create the Mirheo coordinator from a snapshot.
-
-Args:
-    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-    snapshot: path to the snapshot folder.
-    log_filename: prefix of the log files that will be created.
-    debug_level: Debug level from 0 to 8, see above.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -480,18 +384,6 @@ Args:
         .def("log_compile_options", &Mirheo::logCompileOptions,
              R"(
              output compile times options in the log
-        )")
-        .def("saveSnapshot", &Mirheo::saveSnapshot,
-            "path"_a, R"(
-            Save a snapshot of the simulation setup and state to the given folder.
-
-            .. warning::
-                Experimental and only partially implemented!
-                The function will raise an exception if it encounters any plugin or other component which does not yet implement saving the snapshot.
-                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`mmirheo.Mirheo.run`.
-
-            Args:
-                path: Target folder.
         )");
 }
 

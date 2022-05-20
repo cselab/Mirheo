@@ -154,12 +154,6 @@ public:
         return text_IO::readFromStream(fin, stepGen_);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return constructTypeName<PressureEOS, DensityKernel>("PairwiseSDPD");
-    }
-
 private:
     static real computeFRfact(real viscosity, real kBT, real dt)
     {

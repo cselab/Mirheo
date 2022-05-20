@@ -20,17 +20,7 @@ public:
     */
     IntegratorMinimize(const MirState *state, const std::string& name, real maxDisplacement);
 
-    /// Load the integrator from a snapshot.
-    IntegratorMinimize(const MirState *state, Loader& loader, const ConfigObject& object);
-
     void execute(ParticleVector *pv, cudaStream_t stream) override;
-
-    /// \brief Create a ConfigObject describing the integrator state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver);
-
-protected:
-    ///  Implementation of the snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     real maxDisplacement_; ///< Maximum displacement per time step.

@@ -21,23 +21,10 @@ public:
     */
     BasePairwiseInteraction(const MirState *state, const std::string& name, real rc);
 
-    /** \brief Construct the interaction from a snapshot.
-        \param [in] state The global state of the system.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    BasePairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BasePairwiseInteraction();
 
     /// \return the cut-off radius of the pairwise interaction.
     real getCutoffRadius() const override;
-
-protected:
-    /** \brief Snapshot saving for base pairwise interactions. Stores the cutoff value.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-    */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 protected:
     real rc_; ///< cut-off radius of the interaction

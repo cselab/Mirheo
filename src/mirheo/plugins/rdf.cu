@@ -9,7 +9,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/file_wrapper.h>
 #include <mirheo/core/utils/kernel_launch.h>
@@ -105,11 +104,6 @@ RdfPlugin::RdfPlugin(const MirState *state, std::string name, std::string pvName
     countsPerBin_.resize_anew(nbins);
 }
 
-RdfPlugin::RdfPlugin(const MirState *state, Loader&, const ConfigObject& config)
-    : RdfPlugin(state, config["name"], config["pvName"], config["maxDist"],
-                config["nbins"], config["computeEvery"])
-{}
-
 RdfPlugin::~RdfPlugin() = default;
 
 void RdfPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -160,30 +154,11 @@ void RdfPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     }
 }
 
-void RdfPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<RdfPlugin>(this, _saveSnapshot(saver, "RdfPlugin"));
-}
-
-ConfigObject RdfPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvName", saver(pvName_));
-    config.emplace("maxDist", saver(maxDist_));
-    config.emplace("nbins", saver(nbins_));
-    config.emplace("computeEvery", saver(computeEvery_));
-    return config;
-}
-
 
 
 RdfDump::RdfDump(std::string name, std::string basename) :
     PostprocessPlugin(name),
     basename_(std::move(basename))
-{}
-
-RdfDump::RdfDump(Loader&, const ConfigObject& config)
-    : RdfDump(config["name"], config["basename"])
 {}
 
 void RdfDump::setup(const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -231,18 +206,6 @@ void RdfDump::deserialize()
             fprintf(f.get(), "%g,%g\n", r, g);
         }
     }
-}
-
-void RdfDump::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<RdfDump>(this, _saveSnapshot(saver, "RdfDump"));
-}
-
-ConfigObject RdfDump::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("basename", saver(basename_));
-    return config;
 }
 
 } // namespace mirheo

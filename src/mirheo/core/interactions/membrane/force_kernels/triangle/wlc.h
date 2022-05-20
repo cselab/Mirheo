@@ -5,7 +5,6 @@
 
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/helper_math.h>
-#include <mirheo/core/utils/reflection.h>
 #include <mirheo/core/mesh/membrane.h>
 
 #include <cmath>
@@ -145,10 +144,5 @@ private:
     mReal length0_, area0_; ///< only useful when StressFree is false
     mReal lscale_;
 };
-
-/// set type name
-MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Active>, "TriangleWCLForce<Active>");
-/// set type name
-MIRHEO_TYPE_NAME(TriangleWLCForce<StressFreeState::Inactive>, "TriangleWCLForce<Inactive>");
 
 } // namespace mirheo

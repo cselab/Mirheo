@@ -63,12 +63,6 @@ public:
         return (const HandlerType&) (*this);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return constructTypeName<DensityKernel>("PairwiseDensity");
-    }
-
 protected:
     real invrc_; ///< 1 / rc
     DensityKernel densityKernel_; ///< the underlying density kernel

@@ -67,7 +67,7 @@ def createAnchorParticles():
     pass
 
 def createBerendsenThermostat():
-    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, T: float=0, kBT: float=0, increaseIfLower: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, kBT: float, increaseIfLower: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Berendsen thermostat.
@@ -87,11 +87,8 @@ def createBerendsenThermostat():
             name: name of the plugin
             pvs: list of :any:`ParticleVector` objects to apply the thermostat to
             tau: relaxation time :math:`\tau`
-            T: target temperature :math:`T_0`. Can be used only if unit conversion factors are known (see :any:`set_unit_registry`). (*)
-            kBT: target thermal energy :math:`k_B T_0` (*)
+            kBT: target thermal energy :math:`k_B T_0`
             increaseIfLower: whether to increase the temperature if it's lower than the target temperature
-
-        (*) Exactly one of ``kBT`` and ``T`` must be set.
     
 
     """

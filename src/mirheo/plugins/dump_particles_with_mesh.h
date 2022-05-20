@@ -23,14 +23,8 @@ public:
     ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                  const std::vector<std::string>& channelNames);
 
-    /// Load a snapshot of the plugin.
-    ParticleWithMeshSenderPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
-
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void handshake() override;
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
 };
 
 
@@ -46,16 +40,10 @@ public:
     */
     ParticleWithMeshDumperPlugin(std::string name, std::string path);
 
-    /// Load a snapshot of the plugin.
-    ParticleWithMeshDumperPlugin(Loader& loader, const ConfigObject& config);
-
     ~ParticleWithMeshDumperPlugin();
 
     void handshake() override;
     void deserialize() override;
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
 
 private:
     void _prepareConnectivity(int totNVertices);

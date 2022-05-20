@@ -5,7 +5,6 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/mirheo_state.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 
 #include <memory>
 #include <mpi.h>
@@ -28,7 +27,6 @@ class Bouncer;
 class Wall;
 class SimulationPlugin;
 class PostprocessPlugin;
-class LoaderContext;
 
 /// A tuple that contains the Simulation and Postprocess plugins parts
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
@@ -57,43 +55,21 @@ public:
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
-        \param units conversion factors from Mirheo to SI units
         \note MPI will be initialized internally.
               If this constructor is used, the destructor will also finalize MPI.
 
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
     Mirheo(int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion());
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
     /** \brief Construct a \c Mirheo object using a given communicator.
         \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false,
-           UnitConversion units = UnitConversion());
+           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
 
-    /** \brief Construct a \c Mirheo object from a snapshot using MPI_COMM_WORLD.
-        \param nranks3D Number of ranks along each cartesian direction.
-        \param snapshotPath The folder path containing the snapshot
-        \param logInfo Information about logging
-        \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
-        \note MPI will be initialized internally.
-              If this constructor is used, the destructor will also finalize MPI.
-
-        The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
-     */
-    Mirheo(int3 nranks3D, const std::string& snapshotPath,
-           LogInfo logInfo, bool gpuAwareMPI=false);
-
-    /** \brief Construct a \c Mirheo object from snapshot using a given communicator.
-        \note MPI will be NOT be initialized.
-              If this constructor is used, the destructor will NOT finalize MPI.
-     */
-    Mirheo(MPI_Comm comm, int3 nranks3D, const std::string& snapshotPath,
-           LogInfo logInfo, bool gpuAwareMPI=false);
 
     ~Mirheo();
 
@@ -293,11 +269,6 @@ public:
     /// print the list of all compile options and their current value in the logs
     void logCompileOptions() const;
 
-    /** \brief Save snapshot of the Mirheo simulation to the given folder.
-        \param [in] path The target folder path.
-      */
-    void saveSnapshot(const std::string& path);
-
 private:
     std::unique_ptr<Simulation> sim_;
     std::unique_ptr<Postprocess> post_;
@@ -318,10 +289,7 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI,
-              UnitConversion units, LoaderContext *context = nullptr);
-    void initFromSnapshot(int3 nranks3D, const std::string& snapshotPath,
-                          LogInfo logInfo, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();

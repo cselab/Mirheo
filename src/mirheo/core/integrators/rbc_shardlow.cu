@@ -6,7 +6,6 @@
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>

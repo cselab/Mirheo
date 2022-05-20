@@ -7,11 +7,8 @@
 
 #include <memory>
 
-namespace mirheo
-{
-
-namespace particle_vector_factory
-{
+namespace mirheo {
+namespace particle_vector_factory {
 
 inline std::shared_ptr<RigidShapedObjectVector<Capsule>>
 createCapsuleROV(const MirState *state, const std::string& name, real mass, int objSize, real R, real L)
@@ -65,14 +62,5 @@ createEllipsoidROVWithMesh(const MirState *state, const std::string& name, real 
         (state, name, mass, objSize, ell, std::move(mesh));
 }
 
-/** \brief Particle vector factory. Instantiate the correct vector type depending on the snapshot parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The parameters of the particle vector.
- */
-std::shared_ptr<ParticleVector> loadParticleVector(
-        const MirState *state, Loader& loader, const ConfigObject& config);
-
 } // namespace particle_vector_factory
-
 } // namespace mirheo

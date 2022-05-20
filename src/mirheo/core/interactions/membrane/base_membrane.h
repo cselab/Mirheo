@@ -23,12 +23,6 @@ public:
     */
     BaseMembraneInteraction(const MirState *state, const std::string& name);
 
-    /** \brief Construct the object from a snapshot
-        \param [in] state The global state of the system
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-    */
-    BaseMembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
     ~BaseMembraneInteraction();
 
     /** \brief Set the required channels to the concerned ParticleVector that will participate in the interactions.

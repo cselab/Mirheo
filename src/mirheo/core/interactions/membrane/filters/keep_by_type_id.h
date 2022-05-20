@@ -3,7 +3,6 @@
 
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
-#include <mirheo/core/utils/reflection.h>
 
 namespace mirheo
 {
@@ -56,10 +55,6 @@ public:
 private:
     int whiteListTypeId_; ///< The type id of the membranes that will be kept
     const int *typeIds_ {nullptr}; ///< Points to the MembraneVector object channel containing type ids
-
-    friend MemberVars<FilterKeepByTypeId>;
 };
-
-MIRHEO_MEMBER_VARS(FilterKeepByTypeId, whiteListTypeId_);
 
 } // namespace mirheo

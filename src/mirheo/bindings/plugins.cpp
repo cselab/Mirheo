@@ -63,7 +63,7 @@ void exportPlugins(py::module& m)
 
     m.def("__createBerendsenThermostat", &plugin_factory::createBerendsenThermostatPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pvs"_a,
-          "tau"_a, "T"_a=0, "kBT"_a=0, "increaseIfLower"_a=true, R"(
+          "tau"_a, "kBT"_a, "increaseIfLower"_a=true, R"(
         Berendsen thermostat.
 
         On each time step the velocities of all particles in given particle vectors are multiplied by the following factor:
@@ -81,11 +81,8 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pvs: list of :any:`ParticleVector` objects to apply the thermostat to
             tau: relaxation time :math:`\tau`
-            T: target temperature :math:`T_0`. Can be used only if unit conversion factors are known (see :any:`set_unit_registry`). (*)
-            kBT: target thermal energy :math:`k_B T_0` (*)
+            kBT: target thermal energy :math:`k_B T_0`
             increaseIfLower: whether to increase the temperature if it's lower than the target temperature
-
-        (*) Exactly one of ``kBT`` and ``T`` must be set.
     )");
 
     m.def("__createDensityControl", &plugin_factory::createDensityControlPlugin,

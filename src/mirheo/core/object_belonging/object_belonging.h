@@ -42,12 +42,6 @@ protected:
      */
     virtual void _tagInner(ParticleVector *pv, CellList *cl, cudaStream_t stream) = 0;
 
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
 protected:
     ObjectVector *ov_; ///< The registered ObjectVector.
 

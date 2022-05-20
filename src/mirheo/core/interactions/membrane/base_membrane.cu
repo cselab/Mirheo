@@ -43,10 +43,6 @@ BaseMembraneInteraction::BaseMembraneInteraction(const MirState *state, const st
     Interaction(state, name)
 {}
 
-BaseMembraneInteraction::BaseMembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-    Interaction(state, loader, config)
-{}
-
 BaseMembraneInteraction::~BaseMembraneInteraction() = default;
 
 

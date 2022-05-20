@@ -5,7 +5,6 @@
 
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/kernel_launch.h>
@@ -56,12 +55,6 @@ ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, std::string na
 {
     channelData_.resize(channelNames_.size());
 }
-
-ParticleSenderPlugin::ParticleSenderPlugin(const MirState *state, Loader& loader, const ConfigObject& config) :
-    ParticleSenderPlugin(state, config["name"], config["pvName"], config["dumpEvery"],
-                         loader.load<std::vector<std::string>>(config["channelNames"]))
-{}
-
 ParticleSenderPlugin::~ParticleSenderPlugin() = default;
 
 void ParticleSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -242,30 +235,12 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     _send(sendBuffer_);
 }
 
-void ParticleSenderPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleSenderPlugin"));
-}
-
-ConfigObject ParticleSenderPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvName",       saver(pvName_));
-    config.emplace("dumpEvery",    saver(dumpEvery_));
-    config.emplace("channelNames", saver(channelNames_));
-    return config;
-}
-
 
 
 ParticleDumperPlugin::ParticleDumperPlugin(std::string name, std::string path) :
     PostprocessPlugin(name),
     path_(path),
     positions_(std::make_shared<std::vector<real3>>())
-{}
-
-ParticleDumperPlugin::ParticleDumperPlugin(Loader&, const ConfigObject& config) :
-    ParticleDumperPlugin(config["name"], config["path"])
 {}
 
 ParticleDumperPlugin::~ParticleDumperPlugin() = default;
@@ -359,18 +334,6 @@ void ParticleDumperPlugin::deserialize()
 
     XDMF::VertexGrid grid(positions_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);
-}
-
-void ParticleDumperPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleDumperPlugin"));
-}
-
-ConfigObject ParticleDumperPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("path", saver(path_));
-    return config;
 }
 
 } // namespace mirheo

@@ -31,13 +31,6 @@ public:
     ParticleSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                          const std::vector<std::string>& channelNames);
 
-    /** Load a snapshot of the plugin.
-        \param [in] state The global state of the simulation.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    ParticleSenderPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
-
     ~ParticleSenderPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -47,12 +40,6 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     std::string pvName_; ///< name of the ParticleVector to dump.
     ParticleVector *pv_; ///< pointer to the ParticleVector to dump.
@@ -81,23 +68,12 @@ public:
     */
     ParticleDumperPlugin(std::string name, std::string path);
 
-    /** Load a snapshot of the plugin.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    ParticleDumperPlugin(Loader& loader, const ConfigObject& config);
-
     ~ParticleDumperPlugin();
 
     void deserialize() override;
     void handshake() override;
 
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
 protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     /** Receive and unpack the data from The simulation side.
         \param [out] time The current time.

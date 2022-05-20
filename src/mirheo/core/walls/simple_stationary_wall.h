@@ -26,9 +26,6 @@ public:
      */
     SimpleStationaryWall(const MirState *state, const std::string& name, InsideWallChecker&& insideWallChecker);
 
-    /// Load a wall from a given snapshot.
-    SimpleStationaryWall(const MirState *state, Loader& loader, const ConfigObject& config);
-
     ~SimpleStationaryWall();
 
     void setup(MPI_Comm& comm) override;
@@ -53,14 +50,6 @@ public:
 
     PinnedBuffer<double3>* getCurrentBounceForce() override;
 
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
-
 private:
     ParticleVector *frozen_ {nullptr}; ///< frozen particles attached to the wall
     PinnedBuffer<int> nInside_{1};     ///< number of particles inside (work space)
@@ -74,14 +63,5 @@ protected:
     std::vector<DeviceBuffer<int>> boundaryCells_; ///< ids of all cells adjacent to the wall surface
     PinnedBuffer<double3> bounceForce_{1};         ///< total force exerced on the walls via particles bounce
 };
-
-/** \brief Load from a snapshot a SimpleStationaryWall with appropriate template parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The parameters of the interaction.
-    \return A Wall instance.
- */
-std::shared_ptr<Wall>
-loadSimpleStationaryWall(const MirState *state, Loader& loader, const ConfigObject& config);
 
 } // namespace mirheo

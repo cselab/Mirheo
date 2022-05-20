@@ -3,7 +3,6 @@
 
 #include <mirheo/core/logger.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/macros.h>
 
 namespace mirheo
@@ -13,9 +12,6 @@ Interaction::Interaction(const MirState *state, std::string name) :
     MirSimulationObject(state, name)
 {}
 
-Interaction::Interaction(const MirState *state, Loader& loader, const ConfigObject& config) :
-    MirSimulationObject(state, loader, config)
-{}
 
 Interaction::~Interaction() = default;
 
@@ -47,9 +43,5 @@ real Interaction::getCutoffRadius() const
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};
 
-ConfigObject Interaction::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    return MirSimulationObject::_saveSnapshot(saver, "Interaction", typeName);
-}
 
 } // namespace mirheo

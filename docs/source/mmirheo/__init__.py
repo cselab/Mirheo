@@ -22,36 +22,6 @@ Overloaded function.
         """
         pass
 
-class ConfigValue:
-    r"""
-        A JSON-like object representing an integer, floating point number,
-        string, array of ConfigValues or a dictionary mapping strings to
-        ConfigValues.
-
-        Currently only integers, floating point numbers and strings are supported.
-
-        Special conversions for a ``ConfigValue`` value ``v``:
-
-        - ``int(v)`` convert to an integer. Aborts if ``v`` is not an integer.
-        - ``float(v)`` converts to a float. Aborts if ``v`` is not a float nor an integer.
-        - ``str(v)`` converts to a string. If a stored value is a string already, returns as is.
-            Otherwise, a potentially approximate representation of the value is returned
-        - ``repr(v)`` converts to a JSON string.
-    
-    """
-    def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(arg0: int) -> None
-
-2. __init__(arg0: float) -> None
-
-3. __init__(arg0: str) -> None
-
-        """
-        pass
-
 class CudaArrayInterface:
     r"""
         Cupy and numba-compatible view for an internal CUDA buffer.
@@ -199,10 +169,7 @@ class Mirheo:
     
     """
     def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=-1, checkpoint_mechanism: str='Checkpoint', checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0, units: UnitConversion=UnitConversion()) -> None
+        r"""__init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=-1, checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
 
 
 Create the Mirheo coordinator.
@@ -240,26 +207,9 @@ Args:
         If this parameter is set to 'stdout' or 'stderr' standard output or standard error streams will be used instead of the file, however,
         there is no guarantee that messages from different ranks are synchronized.
     debug_level: Debug level from 0 to 8, see above.
-    checkpoint_mechanism: set to "Checkpoint" to use checkpoint mechanism (setup is not stored), "Snapshot" to dump both data and setup.
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
     checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
-    cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
-    no_splash: don't display the splash screen when at the start-up.
-    comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
-    units: Mirheo to SI unit conversion factors. Automatically set if :any:`set_unit_registry` was used.
-        
-
-2. __init__(nranks: int3, snapshot: str, log_filename: str='log', debug_level: int=-1, cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
-
-
-Create the Mirheo coordinator from a snapshot.
-
-Args:
-    nranks: number of MPI simulation tasks per axis: x,y,z. If postprocess is enabled, the same number of the postprocess tasks will be running
-    snapshot: path to the snapshot folder.
-    log_filename: prefix of the log files that will be created.
-    debug_level: Debug level from 0 to 8, see above.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used
@@ -551,24 +501,6 @@ Register Plugins
         """
         pass
 
-    def saveSnapshot():
-        r"""saveSnapshot(path: str) -> None
-
-
-            Save a snapshot of the simulation setup and state to the given folder.
-
-            .. warning::
-                Experimental and only partially implemented!
-                The function will raise an exception if it encounters any plugin or other component which does not yet implement saving the snapshot.
-                If intended to be used as a restart or continue mechanism, test ``SaveFunction`` before executing :py:meth:`mmirheo.Mirheo.run`.
-
-            Args:
-                path: Target folder.
-        
-
-        """
-        pass
-
     def save_dependency_graph_graphml():
         r"""save_dependency_graph_graphml(fname: str, current: bool=True) -> None
 
@@ -660,33 +592,6 @@ Tells nvprof to start recording timeline
         r"""stop_profiler(self: Mirheo) -> None
 
 Tells nvprof to stop recording timeline
-
-        """
-        pass
-
-class UnitConversion:
-    r"""
-        Factors for unit conversion between Mirheo and SI units.
-    
-    """
-    def __init__():
-        r"""__init__(*args, **kwargs)
-Overloaded function.
-
-1. __init__(self: UnitConversion) -> None
-
-Default constructor. Conversion factors not known.
-
-2. __init__(toMeters: float, toSeconds: float, toKilograms: float) -> None
-
-
-            Construct from conversion factors from Mirheo units to SI units.
-
-            Args:
-                toMeters: value in meters of 1 Mirheo length unit
-                toSeconds: value in seconds of 1 Mirheo time (duration) unit
-                toKilograms: value in kilograms of 1 Mirheo mass unit
-        
 
         """
         pass

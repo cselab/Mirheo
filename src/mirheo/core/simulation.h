@@ -15,8 +15,6 @@
 namespace mirheo
 {
 
-class Saver;
-class SimulationLoaderHelper;  // See snapshot.cpp.
 class MirState;
 class ParticleVector;
 class ObjectVector;
@@ -62,17 +60,6 @@ public:
     /// Dump the whole simulation state to the checkpoint folder and advance the checkpoint ID.
     void checkpoint();
 
-    /** \brief Dump the whole simulation state and setup, and advance the checkpoint ID.
-
-        Target path is automatically determined from the checkpoint folder and ID.
-        Wrapper for `snaphot(const std::string&)`.
-      */
-    void snapshot();
-
-    /** \brief Dump the whole simulation setup and data at the given path.
-        \param path Target folder.
-      */
-    void snapshot(const std::string& path);
 
     /** \brief register a ParticleVector and initialize it with the gien InitialConditions.
         \param pv The ParticleVector to register
@@ -240,13 +227,6 @@ public:
      */
     void dumpDependencyGraphToGraphML(const std::string& fname, bool current) const;
 
-protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
 private:
     std::vector<std::string> _getExtraDataToExchange(ObjectVector *ov) const;
     std::vector<std::string> _getDataToSendBack(const std::vector<std::string>& extraOut, ObjectVector *ov) const;
@@ -319,8 +299,6 @@ private:
     };
 
 private:
-    friend Saver;
-    friend SimulationLoaderHelper;
 
     /// Add or import a setting regarding object belonging checker.
     void _applyObjectBelongingChecker(BelongingCorrectionPrototype, SplitterPrototype);

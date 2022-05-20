@@ -2,8 +2,6 @@
 #include "mesh.h"
 
 #include <mirheo/core/mesh/off.h>
-#include <mirheo/core/snapshot.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/path.h>
@@ -24,10 +22,6 @@ Mesh::Mesh(const std::string& fileName) :
 
 Mesh::Mesh(const std::tuple<std::vector<real3>, std::vector<int3>>& mesh) :
     Mesh(std::get<0>(mesh), std::get<1>(mesh))
-{}
-
-Mesh::Mesh(Loader& loader, const ConfigObject& config) :
-    Mesh(joinPaths(loader.getContext().getPath(), config["name"] + ".off"))
 {}
 
 Mesh::Mesh(const std::vector<real3>& vertices, const std::vector<int3>& faces) :
@@ -87,37 +81,6 @@ const PinnedBuffer<int3>& Mesh::getFaces() const
     return faces_;
 }
 
-void Mesh::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<Mesh>(this, _saveSnapshot(saver, "Mesh"));
-}
-
-ConfigObject Mesh::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    // Increment the "mesh" context counter and the old value as an ID.
-    int id = saver.getContext().counters["mesh"]++;
-    std::string name = "mesh_" + std::to_string(id);
-
-    if (saver.getContext().isGroupMasterTask()) {
-        // Dump the mesh to a file.
-        std::string fileName = joinPaths(saver.getContext().path, name + ".off");
-        std::vector<int3> tmpTriangles(faces_.begin(), faces_.end());
-        std::vector<real3> tmpVertices(vertices_.size());
-        for (size_t i = 0; i < tmpVertices.size(); ++i) {
-            tmpVertices[i].x = vertices_[i].x;
-            tmpVertices[i].y = vertices_[i].y;
-            tmpVertices[i].z = vertices_[i].z;
-        }
-        writeOff(tmpVertices, tmpTriangles, fileName);
-    }
-
-    // Note: The mesh file name can be constructed from the object name.
-    return ConfigObject{
-        {"__category", saver("Mesh")},
-        {"__type",     saver(typeName)},
-        {"name",       saver(name)},
-    };
-}
 
 void Mesh::_computeMaxDegree()
 {

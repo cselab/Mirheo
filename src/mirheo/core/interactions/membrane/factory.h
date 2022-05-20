@@ -39,13 +39,4 @@ createInteractionMembrane(const MirState *state, const std::string& name,
                           VarBendingParams varBendingParams, VarShearParams varShearParams,
                           bool stressFree, real initLengthFraction, real growUntil, VarMembraneFilter varFilter);
 
-/** \brief Construct a MembraneInteraction from a snapshot
-    \param [in] state The global state of the system
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The parameters of the interaction.
-    \return A MembraneInteraction with template parameters corresponding to the parameters in the snapshot.
-*/
-std::shared_ptr<BaseMembraneInteraction>
-loadInteractionMembrane(const MirState *state, Loader& loader, const ConfigObject& config);
-
 } // namespace mirheo

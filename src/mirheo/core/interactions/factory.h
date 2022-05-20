@@ -45,14 +45,6 @@ std::shared_ptr<ObjectRodBindingInteraction>
 createInteractionObjRodBinding(const MirState *state, std::string name,
                                real torque, real3 relAnchor, real kBound);
 
-/** \brief Interaction factory. Instantiate the correct interaction object depending on the snapshot parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The interaction parameters.
- */
-std::shared_ptr<Interaction>
-loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config);
-
 } // namespace interaction_factory
 
 } // namespace mirheo

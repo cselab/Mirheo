@@ -5,7 +5,6 @@
 #include "views/rov.h"
 
 #include <mirheo/core/rigid/operations.h>
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/mpi_types.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/xdmf/type_map.h>
@@ -197,24 +196,6 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
     debug("Checkpoint for rigid object vector '%s' successfully written", getCName());
 }
 
-void RigidObjectVector::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<RigidObjectVector>(this, _saveSnapshot(saver, "RigidObjectVector"));
-}
-
-ConfigObject RigidObjectVector::_saveSnapshot(Saver &saver, const std::string& typeName)
-{
-    die("RigitObjectVector::_saveSnapshot not tested.");
-    // The filename does not include the extension.
-    std::string xdmfFilename = joinPaths(saver.getContext().path, getName() + "." + RestartROVIdentifier);
-    std::string ipFilename   = joinPaths(saver.getContext().path, getName() + "." + RestartIPIdentifier);
-    _snapshotObjectData(saver.getContext().groupComm, xdmfFilename, ipFilename);
-
-    ConfigObject config = ObjectVector::_saveSnapshot(saver, typeName);
-    config.emplace("J", saver(J_));
-    // `initialPositions` is stored in `_snapshotObjectData`.
-    return config;
-}
 
 void RigidObjectVector::_checkpointObjectData(MPI_Comm comm, const std::string& path, int checkpointId)
 {

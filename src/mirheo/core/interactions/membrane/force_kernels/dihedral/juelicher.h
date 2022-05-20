@@ -137,7 +137,4 @@ private:
     mReal scurv_; ///< helper quantity
 };
 
-/// create name for that type
-MIRHEO_TYPE_NAME_AUTO(DihedralJuelicher);
-
 } // namespace mirheo

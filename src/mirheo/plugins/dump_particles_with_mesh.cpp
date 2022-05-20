@@ -3,7 +3,6 @@
 #include "utils/simple_serializer.h"
 
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/path.h>
 
 namespace mirheo
@@ -12,11 +11,6 @@ namespace mirheo
 ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(const MirState *state, std::string name, std::string pvName, int dumpEvery,
                                                            const std::vector<std::string>& channelNames) :
     ParticleSenderPlugin(state, name, pvName, dumpEvery, channelNames)
-{}
-
-ParticleWithMeshSenderPlugin::ParticleWithMeshSenderPlugin(
-        const MirState *state, Loader& loader, const ConfigObject& config) :
-    ParticleSenderPlugin(state, loader, config)
 {}
 
 void ParticleWithMeshSenderPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -40,21 +34,12 @@ void ParticleWithMeshSenderPlugin::handshake()
     _send(sendBuffer_);
 }
 
-void ParticleWithMeshSenderPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleWithMeshSenderPlugin"));
-}
-
 
 
 
 ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(std::string name, std::string path) :
     ParticleDumperPlugin(name, path),
     allTriangles_(std::make_shared<std::vector<int3>>())
-{}
-
-ParticleWithMeshDumperPlugin::ParticleWithMeshDumperPlugin(Loader& loader, const ConfigObject& config) :
-    ParticleDumperPlugin(loader, config)
 {}
 
 ParticleWithMeshDumperPlugin::~ParticleWithMeshDumperPlugin() = default;
@@ -116,11 +101,6 @@ void ParticleWithMeshDumperPlugin::deserialize()
 
     const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm_);
     XDMF::write(fname, &grid, channels_, time, comm_);
-}
-
-void ParticleWithMeshDumperPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ParticleWithMeshDumperPlugin"));
 }
 
 } // namespace mirheo

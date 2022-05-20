@@ -13,9 +13,7 @@
 #include <mirheo/core/plugins.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/task_scheduler.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/path.h>
 #include <mirheo/core/utils/restart_helpers.h>
 #include <mirheo/core/walls/interface.h>
@@ -148,8 +146,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     rank_(getRank(cartComm)),
     gpuAwareMPI_(gpuAwareMPI)
 {
-    // Snapshot mechanism creates its own folders (one per snapshot).
-    if (checkpointInfo_.needDump() && checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
+    if (checkpointInfo_.needDump())
         createFoldersCollective(cartComm_, checkpointInfo_.folder);
 
     const auto &domain = state_->domain;
@@ -896,10 +893,7 @@ void Simulation::_createTasks()
     {
         scheduler.addTask(tasks.checkpoint, [this](__UNUSED cudaStream_t stream)
         {
-            if (checkpointInfo_.mechanism == CheckpointMechanism::Checkpoint)
-                this->checkpoint();
-            else
-                this->snapshot();
+            this->checkpoint();
         },
        checkpointInfo_.every);
     }
@@ -1442,77 +1436,6 @@ void Simulation::checkpoint()
     notifyPostProcess(checkpointTag, checkpointId_);
 
     CUDA_Check( cudaDeviceSynchronize() );
-}
-
-void Simulation::snapshot()
-{
-    advanceCheckpointId(checkpointId_, checkpointInfo_.mode);
-    notifyPostProcess(checkpointTag, checkpointId_);
-    snapshot(createSnapshotPath(checkpointInfo_.folder, checkpointId_));
-}
-
-MIRHEO_MEMBER_VARS(Simulation::IntegratorPrototype, pv, integrator);
-MIRHEO_MEMBER_VARS(Simulation::InteractionPrototype, rc, pv1, pv2, interaction);
-MIRHEO_MEMBER_VARS(Simulation::WallPrototype, wall, pv, maximumPartTravel);
-MIRHEO_MEMBER_VARS(Simulation::CheckWallPrototype, wall, every);
-MIRHEO_MEMBER_VARS(Simulation::BouncerPrototype, bouncer, pv);
-MIRHEO_MEMBER_VARS(Simulation::BelongingCorrectionPrototype, checker, pvIn, pvOut, every);
-MIRHEO_MEMBER_VARS(Simulation::SplitterPrototype, checker, pvSrc, pvIn, pvOut);
-
-void Simulation::snapshot(const std::string& path)
-{
-    // Prepare context and the saver.
-    SaverContext context;
-    context.path = path;
-    context.groupComm = cartComm_;
-    Saver saver{&context};
-
-    // Create the snapshot folder before saving.
-    if (!createFoldersCollective(cartComm_, path))
-        die("Error creating snapshot folder \"%s\", aborting.", path.c_str());
-    MPI_Barrier(interComm_);
-
-    saver.registerObject<Simulation>(this, _saveSnapshot(saver, "Simulation"));
-    saver.registerObject<MirState>(state_, saver(*state_));
-
-    int rank;
-    MPI_Comm_rank(cartComm_, &rank);
-    if (rank == 0) {
-        std::string simJson = ConfigValue{std::move(saver).getConfig()}.toJSONString();
-        int size = (int)simJson.size();
-        MPI_Check( MPI_Send(&size, 1, MPI_INT, 0, snapshotTag, interComm_) );
-        MPI_Check( MPI_Send(simJson.c_str(), size, MPI_CHAR, 0, snapshotTag, interComm_) );
-    }
-
-    CUDA_Check( cudaDeviceSynchronize() );
-}
-
-ConfigObject Simulation::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = MirObject::_saveSnapshot(saver, "Simulation", typeName);
-    config.emplace("checkpointId",        saver(checkpointId_));
-    config.emplace("checkpointInfo",      saver(checkpointInfo_));
-
-    config.emplace("particleVectors",     saver(particleVectors_));
-
-    config.emplace("bouncerMap",          saver(bouncerMap_));
-    config.emplace("integratorMap",       saver(integratorMap_));
-    config.emplace("interactionMap",      saver(interactionMap_));
-    config.emplace("wallMap",             saver(wallMap_));
-    config.emplace("belongingCheckerMap", saver(belongingCheckerMap_));
-
-    config.emplace("plugins",             saver(plugins));
-
-    config.emplace("integratorPrototypes",          saver(integratorPrototypes_));
-    config.emplace("interactionPrototypes",         saver(interactionPrototypes_));
-    config.emplace("wallPrototypes",                saver(wallPrototypes_));
-    config.emplace("checkWallPrototypes",           saver(checkWallPrototypes_));
-    config.emplace("bouncerPrototypes",             saver(bouncerPrototypes_));
-    config.emplace("belongingCorrectionPrototypes", saver(belongingCorrectionPrototypes_));
-    config.emplace("splitterPrototypes",            saver(splitterPrototypes_));
-
-    config.emplace("pvsIntegratorMap",    saver(pvsIntegratorMap_));
-    return config;
 }
 
 void Simulation::dumpDependencyGraphToGraphML(const std::string& fname, bool current) const

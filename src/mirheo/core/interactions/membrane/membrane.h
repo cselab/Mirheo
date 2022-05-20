@@ -10,7 +10,6 @@
 #include <mirheo/core/interactions/utils/step_random_gen.h>
 #include <mirheo/core/pvs/membrane_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/restart_helpers.h>
@@ -104,24 +103,6 @@ public:
         stepGen_(seed)
     {}
 
-    /** \brief Construct the interaction object from a snapshot.
-        \param [in] state The global state of the system.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-    */
-    MembraneInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-        BaseMembraneInteraction(state, loader, config),
-        initLengthFraction_{config["initLengthFraction"]},
-        growUntil_{config["growUntil"]},
-        parameters_{loader.load<CommonMembraneParameters>(config["parameters"])},
-        dihedralParams_{loader.load<typename DihedralInteraction::ParametersType>(config["dihedralParams"])},
-        triangleParams_{loader.load<typename TriangleInteraction::ParametersType>(config["triangleParams"])},
-        filter_{loader.load<Filter>(config["filter"])},
-        stepGen_(42424242)
-    {
-        warn("stepGen save/load not imported, resetting the seed!");
-    }
-
     ~MembraneInteraction() = default;
 
     void local(ParticleVector *pv1,
@@ -210,36 +191,6 @@ public:
         const auto fname = createCheckpointName(path, "MembraneInt", "txt");
         const bool good = text_IO::read(fname, stepGen_);
         if (!good) die("failed to read '%s'\n", fname.c_str());
-    }
-
-    /// get the name of the type
-    static std::string getTypeName()
-    {
-        return constructTypeName<TriangleInteraction, DihedralInteraction, Filter>(
-                "MembraneInteraction");
-    }
-
-    void saveSnapshotAndRegister(Saver& saver) override
-    {
-        saver.registerObject<MembraneInteraction>(this, _saveSnapshot(saver, getTypeName()));
-    }
-
-protected:
-    /** \brief Implementation of snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-    */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
-    {
-        ConfigObject config = BaseMembraneInteraction::_saveSnapshot(saver, typeName);
-        config.emplace("initLengthFraction",       saver(initLengthFraction_));
-        config.emplace("growUntil",      saver(growUntil_));
-        config.emplace("parameters",     saver(parameters_));
-        config.emplace("dihedralParams", saver(dihedralParams_));
-        config.emplace("triangleParams", saver(triangleParams_));
-        config.emplace("filter",         saver(filter_));
-        config.emplace("stepGen",        saver("<<not implemented>>"));
-        return config;
     }
 
 private:

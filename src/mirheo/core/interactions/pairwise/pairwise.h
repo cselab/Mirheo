@@ -9,8 +9,6 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
-#include <mirheo/core/snapshot.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 
@@ -46,16 +44,6 @@ public:
         BasePairwiseInteraction(state, name, rc),
         pair_{rc, pairParams, seed},
         pairParams_(pairParams)
-    {}
-
-    /** \brief Constructs a PairwiseInteraction object from a snapshot.
-        \param [in] state The global state of the system
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    PairwiseInteraction(const MirState *state, Loader& loader, const ConfigObject& config) :
-        PairwiseInteraction(state, config["name"], config["rc"],
-                            loader.load<KernelParams>(config["pairParams"]))
     {}
 
     ~PairwiseInteraction() = default;
@@ -172,23 +160,7 @@ public:
         return constructTypeName("PairwiseInteraction", 1, PairwiseKernel::getTypeName().c_str());
     }
 
-    void saveSnapshotAndRegister(Saver& saver) override
-    {
-        saver.registerObject<PairwiseInteraction>(
-                this, _saveSnapshot(saver, getTypeName()));
-    }
-
 protected:
-    /** \brief Serialize raw parameters of all kernels.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-    */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName)
-    {
-        ConfigObject config = BasePairwiseInteraction::_saveSnapshot(saver, typeName);
-        config.emplace("pairParams", saver(pairParams_));
-        return config;
-    }
 
 private:
 

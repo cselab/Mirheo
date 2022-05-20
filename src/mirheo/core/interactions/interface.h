@@ -52,13 +52,6 @@ public:
      */
     Interaction(const MirState *state, std::string name);
 
-    /** \brief Constructs a \c Interaction object from a snapshot.
-        \param [in] state The global state of the system
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The parameters of the interaction.
-     */
-    Interaction(const MirState *state, Loader& loader, const ConfigObject& config);
-
     virtual ~Interaction();
 
     /** \brief Add needed properties to the given ParticleVectors for future interactions.
@@ -126,10 +119,6 @@ public:
 
     /// a predicate that always returns true.
     static const ActivePredicate alwaysActive;
-
-protected:
-    /// Base snapshot function for interactions, sets the category to "Interaction".
-    ConfigObject _saveSnapshot(Saver& saver, const std::string &typeName);
 };
 
 } // namespace mirheo

@@ -12,7 +12,6 @@
 #include "rod/factory.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/config.h>
 
 namespace mirheo
 {
@@ -261,22 +260,6 @@ interaction_factory::createInteractionObjRodBinding(const MirState *state, std::
                                                    real torque, real3 relAnchor, real kBound)
 {
     return std::make_shared<ObjectRodBindingInteraction>(state, std::move(name), torque, relAnchor, kBound);
-}
-
-static bool startsWith(const std::string &text, const char *tmp)
-{
-    return text.compare(0, strlen(tmp), tmp) == 0;
-}
-
-std::shared_ptr<Interaction>
-interaction_factory::loadInteraction(const MirState *state, Loader& loader, const ConfigObject& config)
-{
-    const std::string& type = config["__type"];
-    if (startsWith(type, "PairwiseInteraction<"))
-        return loadInteractionPairwise(state, loader, config);
-    if (startsWith(type, "MembraneInteraction<"))
-        return loadInteractionMembrane(state, loader, config);
-    die("Unrecognized or unimplemented interaction type \"%s\".", type.c_str());
 }
 
 } // namespace mirheo

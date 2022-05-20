@@ -86,7 +86,4 @@ private:
     mReal sint0kb_; ///< kb * sin(theta_0)
 };
 
-/// create name for that type
-MIRHEO_TYPE_NAME_AUTO(DihedralKantor);
-
 } // namespace mirheo

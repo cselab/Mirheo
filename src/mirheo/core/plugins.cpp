@@ -2,7 +2,6 @@
 #include "plugins.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/config.h>
 
 #include <cassert>
 
@@ -104,11 +103,6 @@ void SimulationPlugin::_send(const void *data, size_t sizeInBytes)
     MPI_Check( MPI_Issend(data, static_cast<int>(sizeInBytes), MPI_BYTE, rank_, _dataTag(), interComm_, &dataReq_) );
 }
 
-ConfigObject SimulationPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    return MirSimulationObject::_saveSnapshot(saver, "SimulationPlugin", typeName);
-}
-
 // PostprocessPlugin
 
 PostprocessPlugin::PostprocessPlugin(const std::string& name) :
@@ -147,10 +141,5 @@ MPI_Request PostprocessPlugin::waitData()
 }
 
 void PostprocessPlugin::deserialize() {}
-
-ConfigObject PostprocessPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    return MirObject::_saveSnapshot(saver, "PostprocessPlugin", typeName);
-}
 
 } // namespace mirheo

@@ -2,7 +2,6 @@
 #include "common.h"
 
 #include <mirheo/core/logger.h>
-#include <mirheo/core/utils/config.h>
 
 #include <algorithm>
 #include <cassert>
@@ -81,35 +80,15 @@ const std::string torque     = "torques";
 } // namespace channel_names
 
 CheckpointInfo::CheckpointInfo(int every_, const std::string& folder_,
-                               CheckpointIdAdvanceMode mode_,
-                               CheckpointMechanism mechanism_) :
+                               CheckpointIdAdvanceMode mode_) :
     every(every_),
     folder(folder_),
-    mode(mode_),
-    mechanism(mechanism_)
+    mode(mode_)
 {}
 
 bool CheckpointInfo::needDump() const
 {
     return every != 0;
-}
-
-ConfigValue TypeLoadSave<CheckpointInfo>::save(Saver& saver, const CheckpointInfo& info)
-{
-    return ConfigValue::Object{
-        {"__type",    saver("CheckpointInfo")},
-        {"every",     saver(info.every)},
-        {"folder",    saver(info.folder)},
-        {"mode",      saver(info.mode)},
-        {"mechanism", saver(info.mechanism)},
-    };
-}
-
-CheckpointInfo TypeLoadSave<CheckpointInfo>::load(Loader&, const ConfigValue& config)
-{
-    assert(config["__type"] == "CheckpointInfo");
-    return CheckpointInfo{config["every"], config["folder"], config["mode"],
-                          config["mechanism"]};
 }
 
 } // namespace mirheo

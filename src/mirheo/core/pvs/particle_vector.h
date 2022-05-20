@@ -107,13 +107,6 @@ public:
     */
     ParticleVector(const MirState *state, const std::string& name, real mass, int n = 0);
 
-    /** \brief Load a particle vector form a snapshot.
-        \param [in] state The simulation state.
-        \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-        \param [in] config The PV parameters.
-     */
-    ParticleVector(const MirState *state, Loader& loader, const ConfigObject& config);
-
     ~ParticleVector() override;
 
     /// get the local LocalParticleVector
@@ -137,12 +130,6 @@ public:
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
 
-    /** \brief Dump the PV h5 files, create a ConfigObject with PV metadata and register it in the saver.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-
-        Checks that the object type is exactly ParticleVector.
-      */
-    void saveSnapshotAndRegister(Saver& saver) override;
 
     /** Python getters / setters
         Use default blocking stream
@@ -181,12 +168,6 @@ protected:
     ParticleVector(const MirState *state, const std::string& name, real mass,
                    std::unique_ptr<LocalParticleVector>&& local,
                    std::unique_ptr<LocalParticleVector>&& halo );
-
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
     /// Exchange map used when reading a file in MPI
     using ExchMap = std::vector<int>;

@@ -60,18 +60,6 @@ public:
      */
     void checkpoint(int checkpointId);
 
-    /** \brief Save snapshot of the simulation setup and data.
-        \param path Target folder.
-      */
-    void snapshot(const std::string& path);
-
-protected:
-    /** \brief Implementation of the snapshot saving. Reusable by potential derived classes.
-        \param [in,out] saver The \c Saver object. Provides save context and serialization functions.
-        \param [in] typeName The name of the type being saved.
-      */
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
-
 private:
     MPI_Request _listenSimulation(int tag, int *msg) const;
 
@@ -79,7 +67,6 @@ private:
     using MirObject::checkpoint;
 
 private:
-    friend Saver;
 
     MPI_Comm comm_;
     MPI_Comm interComm_;
@@ -87,7 +74,6 @@ private:
     std::vector< std::shared_ptr<PostprocessPlugin> > plugins_;
 
     std::string checkpointFolder_;
-    CheckpointMechanism checkpointMechanism_;
 };
 
 } // namespace mirheo

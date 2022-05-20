@@ -18,7 +18,6 @@ set(sources_cpp
   initial_conditions/uniform.cpp
   initial_conditions/uniform_filtered.cpp
   initial_conditions/uniform_sphere.cpp
-  integrators/factory.cpp
   integrators/interface.cpp
   integrators/sub_step.cpp
   interactions/factory.cpp
@@ -32,20 +31,17 @@ set(sources_cpp
   managers/interactions.cpp
   marching_cubes.cpp
   mesh/edge_colors.cpp
-  mesh/factory.cpp
   mesh/membrane.cpp
   mesh/mesh.cpp
   mesh/off.cpp
   mirheo.cpp
   mirheo_object.cpp
   mirheo_state.cpp
-  object_belonging/factory.cpp
   object_belonging/interface.cpp
   plugins.cpp
   postproc.cpp
   pvs/checkpoint/helpers.cpp
   pvs/data_manager.cpp
-  pvs/factory.cpp
   pvs/membrane_vector.cpp
   pvs/object_vector.cpp
   pvs/packers/generic_packer.cpp
@@ -62,17 +58,14 @@ set(sources_cpp
   pvs/views/rov.cpp
   pvs/views/rv.cpp
   simulation.cpp
-  snapshot.cpp
   task_scheduler.cpp
   types/str.cpp
   types/variant_type_wrapper.cpp
   utils/common.cpp
   utils/compile_options.cpp
-  utils/config.cpp
   utils/file_wrapper.cpp
   utils/nvtx.cpp
   utils/path.cpp
-  utils/reflection.cpp
   utils/stacktrace_explicit.cpp
   utils/strprintf.cpp
   utils/unique_mpi_comm.cpp
@@ -119,7 +112,6 @@ set(sources_cu
   object_belonging/shape_belonging.cu
   pvs/utils/compute_com_extents.cu
   rigid/operations.cu
-  walls/factory.cpp
   walls/simple_stationary_wall.cu
   walls/wall_helpers.cu
   walls/wall_with_velocity.cu

@@ -6,8 +6,6 @@
 namespace mirheo {
 namespace py = pybind11;
 
-void exportConfigValue(py::module& m);
-void exportUnitConversion(py::module& m);
 void exportDomainInfo(py::module& m);
 void exportMirheo(py::module& m);
 

@@ -6,7 +6,6 @@
 #include <mirheo/core/pvs/rigid_object_vector.h>
 #include <mirheo/core/pvs/views/ov.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/path.h>
@@ -66,10 +65,6 @@ ObjStatsPlugin::ObjStatsPlugin(const MirState *state, std::string name, std::str
     SimulationPlugin(state, name),
     ovName_(ovName),
     dumpEvery_(dumpEvery)
-{}
-
-ObjStatsPlugin::ObjStatsPlugin(const MirState *state, Loader&, const ConfigObject& config) :
-    ObjStatsPlugin(state, config["name"], config["ovName"], config["dumpEvery"])
 {}
 
 ObjStatsPlugin::~ObjStatsPlugin() = default;
@@ -138,19 +133,6 @@ void ObjStatsPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     _send(sendBuffer_);
 
     needToSend_=false;
-}
-
-void ObjStatsPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ObjStatsPlugin"));
-}
-
-ConfigObject ObjStatsPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("ovName", saver(ovName_));
-    config.emplace("dumpEvery", saver(dumpEvery_));
-    return config;
 }
 
 //=================================================================================
@@ -252,10 +234,6 @@ ObjStatsDumper::ObjStatsDumper(std::string name, std::string filename) :
     filename_ = setExtensionOrDie(filename_, "csv");
 }
 
-ObjStatsDumper::ObjStatsDumper(Loader&, const ConfigObject& config) :
-    ObjStatsDumper(config["name"].getString(), config["filename"].getString())
-{}
-
 ObjStatsDumper::~ObjStatsDumper()
 {
     if (fout_ != MPI_FILE_NULL)
@@ -356,19 +334,6 @@ void ObjStatsDumper::restart(MPI_Comm comm, const std::string& path)
         copyFile(checkpointFilename, filename_);
 
     restarted_ = true;
-}
-
-
-void ObjStatsDumper::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "ObjStatsDumper"));
-}
-
-ConfigObject ObjStatsDumper::_saveSnapshot(Saver& saver, const std::string &typeName)
-{
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("filename", saver(filename_));
-    return config;
 }
 
 } // namespace mirheo

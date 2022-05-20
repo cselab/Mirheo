@@ -4,7 +4,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
@@ -61,13 +60,6 @@ BerendsenThermostatPlugin::BerendsenThermostatPlugin(
     tau_(tau),
     increaseIfLower_(increaseIfLower),
     stats_(pvNames_.size())
-{}
-
-BerendsenThermostatPlugin::BerendsenThermostatPlugin(
-        const MirState *state, Loader& loader, const ConfigObject& config) :
-    BerendsenThermostatPlugin{
-        state, config["name"], loader.load<std::vector<std::string>>(config["pvNames"]),
-        config["kBT"], config["tau"], config["increaseIfLower"]}
 {}
 
 void BerendsenThermostatPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -133,22 +125,6 @@ void BerendsenThermostatPlugin::afterIntegration(cudaStream_t stream)
                            getNblocks(view.size, nthreads), nthreads, 0, stream,
                            view, avgVel, lambda);
     }
-}
-
-void BerendsenThermostatPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<BerendsenThermostatPlugin>(
-            this, _saveSnapshot(saver, "BerendsenThermostatPlugin"));
-}
-
-ConfigObject BerendsenThermostatPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvNames",         saver(pvNames_));
-    config.emplace("kBT",             saver(kBT_));
-    config.emplace("tau",             saver(tau_));
-    config.emplace("increaseIfLower", saver(increaseIfLower_));
-    return config;
 }
 
 } // namespace mirheo

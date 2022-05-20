@@ -115,14 +115,6 @@ createOscillatingPlaneWall(const MirState *state, const std::string& name, real3
     return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>> (state, name, std::move(plane), std::move(osc));
 }
 
-/** \brief Wall factory. Instantiate the correct interaction object depending on the snapshot parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The interaction parameters.
- */
-std::shared_ptr<Wall>
-loadWall(const MirState *state, Loader& loader, const ConfigObject& config);
-
 } // namespace wall_factory
 
 } // namespace mirheo

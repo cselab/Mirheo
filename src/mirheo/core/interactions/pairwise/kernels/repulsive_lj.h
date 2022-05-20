@@ -128,12 +128,6 @@ public:
         handler_ = HandlerType(rc_, epsilon_, sigma_, maxForce_, awareness_);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return constructTypeName<Awareness>("PairwiseRepulsiveLJ");
-    }
-
 protected:
     real rc_;               ///< cutoff radius
     real sigma_;            ///< sigma parameter of the LJ potential
@@ -198,12 +192,6 @@ public:
                                      this->sigma_ * l,
                                      this->maxForce_ * l,
                                      this->awareness_);
-    }
-
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return constructTypeName<Awareness>("PairwiseGrowingRepulsiveLJ");
     }
 
 private:

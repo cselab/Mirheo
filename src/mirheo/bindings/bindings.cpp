@@ -30,8 +30,6 @@ PYBIND11_MODULE(libmirheo, m)
 
     exportCudaArrayInterface(m);
     exportVectorTypes(m);
-    exportConfigValue(m);
-    exportUnitConversion(m);
     exportDomainInfo(m);
 
     exportMirheo(m);

@@ -25,9 +25,6 @@ public:
      */
     ObjStatsPlugin(const MirState *state, std::string name, std::string ovName, int dumpEvery);
 
-    /// Construct a simulation plugin object from its snapshot.
-    ObjStatsPlugin(const MirState *state, Loader& loader, const ConfigObject& config);
-
     ~ObjStatsPlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -37,13 +34,6 @@ public:
     void handshake() override;
 
     bool needPostproc() override { return true; }
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string ovName_;
@@ -77,9 +67,6 @@ public:
     */
     ObjStatsDumper(std::string name, std::string filename);
 
-    /// Construct a postprocess plugin object from its snapshot.
-    ObjStatsDumper(Loader& loader, const ConfigObject& config);
-
     ~ObjStatsDumper();
 
     void deserialize() override;
@@ -88,13 +75,6 @@ public:
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     std::string filename_;

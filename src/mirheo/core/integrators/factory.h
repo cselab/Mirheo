@@ -94,14 +94,6 @@ createSubStep(const MirState *state, const std::string& name, int substeps,
     return std::make_shared<IntegratorSubStep> (state, name, substeps, fastForces);
 }
 
-/** \brief Integrator factory. Instantiate the correct integrator depending on the snapshot parameters.
-    \param [in] state The global state of the system.
-    \param [in] loader The \c Loader object. Provides load context and unserialization functions.
-    \param [in] config The integrator parameters.
- */
-std::shared_ptr<Integrator>
-loadIntegrator(const MirState *state, Loader& loader, const ConfigObject& config);
-
 } // namespace integrator_factory
 
 } // namespace mirheo

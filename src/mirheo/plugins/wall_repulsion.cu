@@ -4,7 +4,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/kernel_launch.h>
@@ -47,12 +46,6 @@ WallRepulsionPlugin::WallRepulsionPlugin(const MirState *state, std::string name
     maxForce_(maxForce)
 {}
 
-WallRepulsionPlugin::WallRepulsionPlugin(
-        const MirState *state, Loader&, const ConfigObject& config) :
-    WallRepulsionPlugin(state, config["name"], config["pvName"], config["wallName"],
-                        config["C"], config["h"], config["maxForce"])
-{}
-
 void WallRepulsionPlugin::setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
     SimulationPlugin::setup(simulation, comm, interComm);
@@ -87,22 +80,6 @@ void WallRepulsionPlugin::beforeIntegration(cudaStream_t stream)
          wall_repulsion_plugin_kernels::forceFromSDF,
          getNblocks(view.size, nthreads), nthreads, 0, stream,
          view, sdfs->devPtr(), gradients->devPtr(), C_, h_, maxForce_ );
-}
-
-void WallRepulsionPlugin::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject(this, _saveSnapshot(saver, "WallRepulsionPlugin"));
-}
-
-ConfigObject WallRepulsionPlugin::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("pvName",   saver(pvName_));
-    config.emplace("wallName", saver(wallName_));
-    config.emplace("C",        saver(C_));
-    config.emplace("h",        saver(h_));
-    config.emplace("maxForce", saver(maxForce_));
-    return config;
 }
 
 } // namespace mirheo

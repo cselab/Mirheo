@@ -27,8 +27,6 @@ public:
     /// \return \c true if particles with ids \p srcId and \p dstId should interact, \c false otherwise
     __D__ inline bool interact(__UNUSED int srcId, __UNUSED int dstId) const {return true;}
 };
-/// set type name
-MIRHEO_TYPE_NAME(AwarenessNone, "AwarenessNone");
 
 
 /** A GPU compatible functor that describes a filter for pairwise interactions.
@@ -75,8 +73,6 @@ private:
     bool self_ {false};
     int objSize_ {0};
 };
-/// set type name
-MIRHEO_TYPE_NAME(AwarenessObject, "AwarenessObject");
 
 /** A GPU compatible functor that describes a filter for pairwise interactions.
     This particular class allows interactions only between particles of a different rod
@@ -137,9 +133,6 @@ private:
     int objSize_ {0};
     int minSegmentsDist_{0};
 };
-
-/// set type name
-MIRHEO_TYPE_NAME(AwarenessRod, "AwarenessRod");
 
 
 } // namespace mirheo

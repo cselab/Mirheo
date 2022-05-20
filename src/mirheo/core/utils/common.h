@@ -7,16 +7,6 @@
 namespace mirheo
 {
 
-/// Config/snapshot-related classes.
-using ConfigRefString = std::string;
-struct AutoObjectSnapshotTag { };
-class Saver;
-class Loader;
-class ConfigValue;
-class ConfigObject;
-template <typename T, typename Enable = void>
-struct TypeLoadSave;
-
 /** Special channel names used in data managers
  */
 namespace channel_names
@@ -95,39 +85,20 @@ enum class CheckpointIdAdvanceMode
     Incremental ///< 0,1,2,... Save all checkpoint files (more memory requirements, but safer)
 };
 
-/// Whether to use checkpoint or snapshot mechanism.
-enum class CheckpointMechanism
-{
-    Checkpoint, ///< Old checkpoint mechanism, no simulation setup stored.
-    Snapshot    ///< Full state of the solver, data + setup.
-};
 
 /// Stores the information required to dump checkpoint data
 struct CheckpointInfo
 {
     /// Constructor
     CheckpointInfo(int every = 0, const std::string& folder = "restart/",
-                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong,
-                   CheckpointMechanism mechanism = CheckpointMechanism::Checkpoint);
+                   CheckpointIdAdvanceMode mode = CheckpointIdAdvanceMode::PingPong);
 
     /// \return \c true if there will be at least one dump
     bool needDump() const;
 
     int every; ///< The checkpoint data will be dumped every this many time steps
-    std::string folder; ///< target directory (for checkpoints), or pattern (for snapshots)
+    std::string folder; ///< target directory (for checkpoints)
     CheckpointIdAdvanceMode mode; ///< The mehod to increment the checkpoint index
-    CheckpointMechanism mechanism; ///< What kind of storing mechanism to use.
-};
-
-/// support for CheckpointInfo snapshot
-template <>
-struct TypeLoadSave<CheckpointInfo>
-{
-     ///< save to snapshot
-    static ConfigValue save(Saver&, const CheckpointInfo&);
-    static CheckpointInfo parse(const ConfigValue&) = delete; // Context-free not supported
-     ///< load from snapshot
-    static CheckpointInfo load(Loader&, const ConfigValue&);
 };
 
 
@@ -135,6 +106,5 @@ constexpr int stoppingTag = 424242; ///< tag to notify the postprocess ranks to 
 constexpr int stoppingMsg = -1;     ///< stopping value
 
 constexpr int checkpointTag = 434343; ///< tag to notify the postprocess ranks to perform checkpoint
-constexpr int snapshotTag = 434344;   ///< tag to use for snapshot data exchange
 
 } // namespace mirheo

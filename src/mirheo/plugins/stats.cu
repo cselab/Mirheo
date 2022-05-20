@@ -7,7 +7,6 @@
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/simulation.h>
-#include <mirheo/core/utils/config.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/kernel_launch.h>
 #include <mirheo/core/utils/mpi_types.h>
@@ -56,13 +55,6 @@ SimulationStats::SimulationStats(const MirState *state, std::string name, int ev
     SimulationPlugin(state, name),
     every_(every),
     pvNames_(std::move(pvNames))
-{}
-
-SimulationStats::SimulationStats(const MirState *state, Loader& loader, const ConfigObject& config) :
-    SimulationStats(state,
-                    config["name"],
-                    config["every"],
-                    loader.load<std::vector<std::string>>(config["pvNames"]))
 {}
 
 SimulationStats::~SimulationStats() = default;
@@ -121,24 +113,11 @@ void SimulationStats::serializeAndSend(__UNUSED cudaStream_t stream)
         const real tm = timer_.elapsedAndReset() / (getState()->currentStep < every_ ? 1.0_r : every_);
         _waitPrevSend();
         SimpleSerializer::serialize(sendBuffer_, tm, getState()->currentTime,
-                                    getState()->currentStep, getState()->units,
+                                    getState()->currentStep,
                                     nparticles_, momentum_, energy_, maxvel_);
         _send(sendBuffer_);
         needToDump_ = false;
     }
-}
-
-void SimulationStats::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<SimulationStats>(this, _saveSnapshot(saver, "SimulationStats"));
-}
-
-ConfigObject SimulationStats::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = SimulationPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("every", saver(every_));
-    config.emplace("pvNames", saver(pvNames_));
-    return config;
 }
 
 PostprocessStats::PostprocessStats(std::string name, std::string filename) :
@@ -158,23 +137,18 @@ PostprocessStats::PostprocessStats(std::string name, std::string filename) :
     }
 }
 
-PostprocessStats::PostprocessStats(Loader&, const ConfigObject& config) :
-    PostprocessStats(config["name"].getString(), config["filename"].getString())
-{}
-
 void PostprocessStats::deserialize()
 {
     MirState::TimeType currentTime;
     MirState::StepType currentTimeStep;
     real realTime;
     stats_plugin::CountType nparticles, maxNparticles, minNparticles;
-    UnitConversion units;
 
     std::vector<stats_plugin::ReductionType> momentum, energy;
     std::vector<real> maxvel;
 
     SimpleSerializer::deserialize(data_, realTime, currentTime, currentTimeStep,
-                                  units, nparticles, momentum, energy, maxvel);
+                                  nparticles, momentum, energy, maxvel);
 
     MPI_Check( MPI_Reduce(&nparticles, &minNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MIN, 0, comm_) );
     MPI_Check( MPI_Reduce(&nparticles, &maxNparticles, 1, getMPIIntType<stats_plugin::CountType>(), MPI_MAX, 0, comm_) );
@@ -200,12 +174,7 @@ void PostprocessStats::deserialize()
         printf("\tNumber of particles (total, min/proc, max/proc): %llu,  %llu,  %llu\n", nparticles, minNparticles, maxNparticles);
         printf("\tAverage momentum: [%e %e %e]\n", momentum[0], momentum[1], momentum[2]);
         printf("\tMax velocity magnitude: %f\n", maxvel[0]);
-        if (units.isSet()) {
-            real kB = units.joulesToMirheo(1.380649e-23_r);
-            printf("\tTemperature: %.4f (%.2f K)\n\n", kBT, kBT / kB);
-        } else {
-            printf("\tTemperature: %.4f\n\n", kBT);
-        }
+        printf("\tTemperature: %.4f\n\n", kBT);
 
 
         if (fdump_.get())
@@ -216,11 +185,6 @@ void PostprocessStats::deserialize()
             fflush(fdump_.get());
         }
     }
-}
-
-void PostprocessStats::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<PostprocessStats>(this, _saveSnapshot(saver, "PostprocessStats"));
 }
 
 void PostprocessStats::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
@@ -263,14 +227,6 @@ void PostprocessStats::restart(MPI_Comm comm, const std::string& path)
     const auto status = fdump_.open(filename_, "a");
     if (status != FileWrapper::Status::Success)
         die("Could not open file '%s'", filename_.c_str());
-}
-
-
-ConfigObject PostprocessStats::_saveSnapshot(Saver& saver, const std::string &typeName)
-{
-    ConfigObject config = PostprocessPlugin::_saveSnapshot(saver, typeName);
-    config.emplace("filename", saver(filename_));
-    return config;
 }
 
 } // namespace mirheo

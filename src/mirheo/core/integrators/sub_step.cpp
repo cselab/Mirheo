@@ -7,9 +7,7 @@
 #include <mirheo/core/interactions/interface.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
-#include <mirheo/core/snapshot.h>
 #include <mirheo/core/utils/common.h>
-#include <mirheo/core/utils/config.h>
 
 #include <memory>
 
@@ -43,41 +41,7 @@ IntegratorSubStep::IntegratorSubStep(const MirState *state, const std::string& n
     subIntegrator_->setState(&subState_);
 }
 
-static std::vector<Interaction*> configToFastForces(Loader& loader, const ConfigArray& array)
-{
-    std::vector<Interaction*> v(array.size(), nullptr);
-    for (size_t i = 0; i < array.size(); ++i) {
-        v[i] = loader.getContext().get<Interaction>(array[i]).get();
-        assert(v[i] != nullptr);
-    }
-    return v;
-}
-
-IntegratorSubStep::IntegratorSubStep(const MirState *state, Loader& loader, const ConfigObject& config) :
-    IntegratorSubStep{state,
-                      config["name"],
-                      config["substeps"],
-                      configToFastForces(loader, config["fastForces"].getArray())}
-{}
-
 IntegratorSubStep::~IntegratorSubStep() = default;
-
-void IntegratorSubStep::saveSnapshotAndRegister(Saver& saver)
-{
-    saver.registerObject<IntegratorSubStep>(this, _saveSnapshot(saver, "IntegratorSubStep"));
-}
-
-ConfigObject IntegratorSubStep::_saveSnapshot(Saver& saver, const std::string& typeName)
-{
-    ConfigObject config = Integrator::_saveSnapshot(saver, typeName);
-    config.emplace("fastForces",    saver(fastForces_));
-    // IntegratorVV<Forcing_None> is hardcoded and stateless. We cannot easily
-    // treat it as a MirObject here because the LoaderContext will construct it
-    // as an std::shared_ptr, and here we have an std::unique_ptr.
-    // config.emplace("subIntegrator", "IntegratorVV<Forcing_None>");
-    config.emplace("substeps",      saver(substeps_));
-    return config;
-}
 
 void IntegratorSubStep::execute(ParticleVector *pv, cudaStream_t stream)
 {

@@ -36,9 +36,6 @@ public:
     */
     SimulationStats(const MirState *state, std::string name, int every, std::vector<std::string> pvNames);
 
-    /// Construct a simulation plugin object from its snapshot.
-    SimulationStats(const MirState *state, Loader& loader, const ConfigObject& config);
-
     ~SimulationStats();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -47,13 +44,6 @@ public:
     void serializeAndSend(cudaStream_t stream) override;
 
     bool needPostproc() override { return true; }
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     int every_;
@@ -86,20 +76,10 @@ public:
       */
     PostprocessStats(std::string name, std::string filename = std::string());
 
-    /// Construct a postprocess plugin object from its snapshot.
-    PostprocessStats(Loader& loader, const ConfigObject& config);
-
     void deserialize() override;
 
     void checkpoint(MPI_Comm comm, const std::string& path, int checkpointId) override;
     void restart   (MPI_Comm comm, const std::string& path) override;
-
-    /// Create a \c ConfigObject describing the plugin state and register it in the saver.
-    void saveSnapshotAndRegister(Saver& saver) override;
-
-protected:
-    /// Implementation of snapshot saving. Reusable by potential derived classes.
-    ConfigObject _saveSnapshot(Saver& saver, const std::string& typeName);
 
 private:
     FileWrapper fdump_;

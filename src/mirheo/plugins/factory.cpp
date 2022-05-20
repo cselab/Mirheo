@@ -86,17 +86,8 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createBerendsenThermostatPlugin(
         bool computeTask, const MirState *state, std::string name,
-        const std::vector<ParticleVector *> &pvs, real tau, real T, real kBT, bool increaseIfLower)
+        const std::vector<ParticleVector *> &pvs, real tau, real kBT, bool increaseIfLower)
 {
-    if (kBT == 0 && T == 0)
-        throw std::invalid_argument("At least one of `kBT` and `T` must be set.");
-    if (kBT != 0 && T != 0)
-        throw std::invalid_argument("Cannot set both `kBT` and `T`.");
-    if (computeTask && T != 0) {
-        if (!state->units.isSet())
-            throw std::invalid_argument("Cannot use `T` without unit conversion factors.");
-        kBT = T * state->units.joulesToMirheo(1.380649e-23_r); // kB
-    }
     return {
         computeTask ? std::make_shared<BerendsenThermostatPlugin>(
                 state, name, extractPVNames(pvs), kBT, tau, increaseIfLower) : nullptr,
@@ -449,61 +440,6 @@ PairPlugin createWallForceCollectorPlugin(bool computeTask, const MirState *stat
     return { simPl, postPl };
 }
 
-PluginFactoryContainer::OptionalPluginPair loadPlugins(
-        bool computeTask, const MirState *state, Loader& loader,
-        const ConfigObject *sim, const ConfigObject* post)
-{
-    std::string simType  = sim  ? sim->at("__type").getString()  : std::string();
-    std::string postType = post ? post->at("__type").getString() : std::string();
-
-    // Create a pair of sim and post plugins if the type names match.
-#define MIR_LOAD_PLUGIN_PAIR(A, B) do {                                           \
-        if (simType == #A && postType == #B) {                                    \
-            if (computeTask)                                                      \
-                return {true, std::make_shared<A>(state, loader, *sim), nullptr}; \
-            else                                                                  \
-                return {true, nullptr, std::make_shared<B>(loader, *post)};       \
-        }                                                                         \
-    } while (0)
-
-    // Create a simulation-only plugin, if the type names match.
-#define MIR_LOAD_SIM_PLUGIN(A) do {                                            \
-        if (simType == #A && postType.empty()) {                               \
-            return {true,                                                      \
-                    computeTask ? std::make_shared<A>(state, loader, *sim)     \
-                                : nullptr,                                     \
-                    nullptr};                                                  \
-        }                                                                      \
-    } while (0)
-
-    // List all supported plugins.
-    MIR_LOAD_PLUGIN_PAIR(MeshPlugin, MeshDumper);
-    MIR_LOAD_PLUGIN_PAIR(ObjStatsPlugin, ObjStatsDumper);
-    MIR_LOAD_PLUGIN_PAIR(ParticleSenderPlugin, ParticleDumperPlugin);
-    MIR_LOAD_PLUGIN_PAIR(ParticleWithMeshSenderPlugin, ParticleWithMeshDumperPlugin);
-    MIR_LOAD_PLUGIN_PAIR(RdfPlugin, RdfDump);
-    MIR_LOAD_PLUGIN_PAIR(SimulationStats, PostprocessStats);
-    MIR_LOAD_SIM_PLUGIN(BerendsenThermostatPlugin);
-    MIR_LOAD_SIM_PLUGIN(ForceSaverPlugin);
-    MIR_LOAD_SIM_PLUGIN(MembraneExtraForcePlugin);
-    MIR_LOAD_SIM_PLUGIN(WallRepulsionPlugin);
-
-#undef MIR_LOAD_SIM_PLUGIN
-#undef MIR_LOAD_PLUGIN_PAIR
-
-    return {false, nullptr, nullptr};
-}
-
-static bool pluginsRegistered_ = false;
-static PluginRegistrant registrant_;
-
-PluginRegistrant::PluginRegistrant()
-{
-    if (!pluginsRegistered_) {
-        PluginFactoryContainer::get().registerPluginFactory(loadPlugins);
-        pluginsRegistered_ = true;
-    }
-}
 
 } // namespace plugin_factory
 } // namespace mirheo
