@@ -37,8 +37,7 @@ public:
 
     /// generic constructor
     PairwiseDensity(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
-        PairwiseDensity{rc,
-                        mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams)}
+        PairwiseDensity{rc, std::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams)}
     {}
 
     /// evaluate the number density contribution of this pair

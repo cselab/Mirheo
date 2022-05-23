@@ -27,9 +27,9 @@ void ParticleChannelSaverPlugin::beforeIntegration(cudaStream_t stream)
     const auto& srcDesc = dataManager.getChannelDescOrDie(channelName_);
     const auto& dstDesc = dataManager.getChannelDescOrDie(savedName_);
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
-        auto dstBufferPtr = mpark::get<decltype(srcBufferPtr)>(dstDesc.varDataPtr);
+        auto dstBufferPtr = std::get<decltype(srcBufferPtr)>(dstDesc.varDataPtr);
         dstBufferPtr->copyDeviceOnly(*srcBufferPtr, stream);
     }, srcDesc.varDataPtr);
 }
@@ -47,7 +47,7 @@ void ParticleChannelSaverPlugin::setup(Simulation *simulation, const MPI_Comm& c
 
     const auto& desc = pv_->local()->dataPerParticle.getChannelDescOrDie(channelName_);
 
-    mpark::visit([&](auto pinnedBufferPtr)
+    std::visit([&](auto pinnedBufferPtr)
     {
         using T = typename std::remove_reference< decltype(*pinnedBufferPtr->hostPtr()) >::type;
         pv_->requireDataPerParticle<T>(savedName_, DataManager::PersistenceMode::Active);

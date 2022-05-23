@@ -151,7 +151,7 @@ endif()
 
 # set compilation flags
 
-target_compile_features(${LIB_MIR_CORE} PUBLIC cxx_std_14)
+target_compile_features(${LIB_MIR_CORE} PUBLIC cxx_std_17)
 
 target_compile_options(${LIB_MIR_CORE} PRIVATE
   $<$<COMPILE_LANGUAGE:CXX>:${cxx_private_flags}>

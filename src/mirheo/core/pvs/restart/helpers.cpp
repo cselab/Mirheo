@@ -59,9 +59,9 @@ ListData readData(const std::string& filename, MPI_Comm comm, int chunkSize)
     {
         const bool needShift = desc.needShift == XDMF::Channel::NeedShift::True;
         const int ncomp      = XDMF::dataFormToNcomponents(desc.dataForm);
-        auto varVec = mpark::visit(details::getVarTypeVisitor{ncomp}, desc.type);
+        auto varVec = std::visit(details::getVarTypeVisitor{ncomp}, desc.type);
 
-        mpark::visit([&](auto& dstVec)
+        std::visit([&](auto& dstVec)
         {
             using T = typename std::remove_reference<decltype(dstVec)>::type::value_type;
             auto srcData = reinterpret_cast<const T*>(desc.data);
@@ -207,7 +207,7 @@ void exchangeListData(MPI_Comm comm, const ExchMap& map, ListData& listData, int
     for (auto& entry : listData)
     {
         debug2("exchange channel '%s'", entry.name.c_str());
-        mpark::visit([&](auto& data)
+        std::visit([&](auto& data)
         {
             exchangeData(comm, map, data, chunkSize);
         }, entry.data);
@@ -220,7 +220,7 @@ void requireExtraDataPerParticle(const ListData& listData, ParticleVector *pv)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
 
@@ -235,7 +235,7 @@ void requireExtraDataPerObject(const ListData& listData, ObjectVector *ov)
     {
         auto shiftMode = entry.needShift ? DataManager::ShiftMode::Active : DataManager::ShiftMode::None;
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
 
@@ -252,7 +252,7 @@ void copyAndShiftListData(const DomainInfo domain,
     {
         auto channelDesc = &dataManager.getChannelDescOrDie(entry.name);
 
-        mpark::visit([&](const auto& srcData)
+        std::visit([&](const auto& srcData)
         {
             using T = typename std::remove_reference<decltype(srcData)>::type::value_type;
             auto& dstData = *dataManager.getData<T>(entry.name);

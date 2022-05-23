@@ -122,8 +122,8 @@ public:
     /// Generic constructor
     PairwiseSDPD(real rc, const ParamsType& p, long seed = 42424242) :
         PairwiseSDPD{rc,
-                     mpark::get<typename PressureEOS::ParamsType>(p.varEOSParams),
-                     mpark::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
+                     std::get<typename PressureEOS::ParamsType>(p.varEOSParams),
+                     std::get<typename DensityKernel::ParamsType>(p.varDensityKernelParams),
                      p.viscosity,
                      p.kBT,
                      seed}

@@ -12,7 +12,7 @@ instantiateImpl(const MirState *state, const std::string& name, RodParameters pa
 {
     std::shared_ptr<BaseRodInteraction> impl;
 
-    mpark::visit([&](auto spinParams)
+    std::visit([&](auto spinParams)
     {
         using SpinParamsType = decltype(spinParams);
 
@@ -31,13 +31,13 @@ createInteractionRod(const MirState *state, const std::string& name,
     std::shared_ptr<BaseRodInteraction> impl;
     const int nstates = params.kappaEq.size();
 
-    if (mpark::holds_alternative<StatesParametersNone>(spinParams))
+    if (std::holds_alternative<StatesParametersNone>(spinParams))
     {
         if (nstates != 1)
             die("only one state supported for state_update = 'none' (while creating %s)", name.c_str());
 
         impl = std::make_shared<RodInteraction<1, StatesParametersNone>>
-            (state, name, params, mpark::get<StatesParametersNone>(spinParams), saveEnergies);
+            (state, name, params, std::get<StatesParametersNone>(spinParams), saveEnergies);
     }
     else
     {

@@ -138,7 +138,7 @@ void ObjectRedistributor::prepareSizes(size_t id, cudaStream_t stream)
         const int nthreads = 256;
         const int nblocks  = ovView.nObjects;
 
-        mpark::visit([&](auto packerHandler)
+        std::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 objec_redistributor_kernels::getExitingObjects<PackMode::Query>,
@@ -188,7 +188,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     const int nthreads = 256;
     const int nblocks  = ovView.nObjects;
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             objec_redistributor_kernels::getExitingObjects<PackMode::Pack>,
@@ -200,7 +200,7 @@ void ObjectRedistributor::prepareData(size_t id, cudaStream_t stream)
     lov->resize_anew(nObjsBulk * ov->getObjectSize());
     packer->update(lov, stream);
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
              objec_redistributor_kernels::unpackObjects,
@@ -237,7 +237,7 @@ void ObjectRedistributor::combineAndUploadData(size_t id, cudaStream_t stream)
 
         const int nthreads = 256;
 
-        mpark::visit([&](auto packerHandler)
+        std::visit([&](auto packerHandler)
         {
             SAFE_KERNEL_LAUNCH(
                 objec_redistributor_kernels::unpackObjects,

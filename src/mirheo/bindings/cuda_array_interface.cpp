@@ -125,7 +125,7 @@ MIRHEO_TYPE_TABLE(MIR_WRAPPER)
 
 CudaArrayInterface getVariantCudaArrayInterface(VarPinnedBufferPtr& bufferVariant)
 {
-    return mpark::visit([](auto *pinnedBuffer) -> CudaArrayInterface
+    return std::visit([](auto *pinnedBuffer) -> CudaArrayInterface
     {
         return getBufferCudaArrayInterface(*pinnedBuffer);
     }, bufferVariant);

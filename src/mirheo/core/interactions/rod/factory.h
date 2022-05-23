@@ -3,17 +3,17 @@
 
 #include "kernels/parameters.h"
 #include <mirheo/core/mirheo_state.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace mirheo
 {
 /// variant that contains all possible parameters for the polymorphic states transition models
-using VarSpinParams = mpark::variant<StatesParametersNone,
-                                     StatesSmoothingParameters,
-                                     StatesSpinParameters>;
+using VarSpinParams = std::variant<StatesParametersNone,
+                                   StatesSmoothingParameters,
+                                   StatesSpinParameters>;
 
 class BaseRodInteraction;
 

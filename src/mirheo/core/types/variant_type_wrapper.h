@@ -3,9 +3,8 @@
 
 #include "type_list.h"
 
-#include <mirheo/core/utils/variant.h>
-
 #include <string>
+#include <variant>
 
 namespace mirheo
 {
@@ -24,7 +23,7 @@ struct DataTypeWrapper
 
 /// a variant of the type list available in data channels.
 /// See also DataTypeWrapper.
-using TypeDescriptor = mpark::variant<
+using TypeDescriptor = std::variant<
 #define MAKE_WRAPPER(a) DataTypeWrapper<a>
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER

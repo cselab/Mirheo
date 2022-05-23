@@ -20,10 +20,10 @@ struct D2 { static constexpr int value = 2000; };
 TEST(Variant, VariantForeach)
 {
     std::vector<std::array<int, 4>> v;
-    variantForeach<mpark::variant<A1, A2, A3>,
-                   mpark::variant<B1, B2>,
-                   mpark::variant<C1, C2>,
-                   mpark::variant<D1, D2>>(
+    variantForeach<std::variant<A1, A2, A3>,
+                   std::variant<B1, B2>,
+                   std::variant<C1, C2>,
+                   std::variant<D1, D2>>(
             [&v](auto a, auto b, auto c, auto d)
             {
                 v.push_back({

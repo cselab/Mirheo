@@ -1,7 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-#include <mirheo/core/utils/variant.h>
+#include <variant>
 
 namespace mirheo
 {
@@ -29,7 +29,7 @@ struct VariantForeachHelper<>
 };
 
 template <typename... Args, typename... Variants>
-struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
+struct VariantForeachHelper<std::variant<Args...>, Variants...>
 {
     template <typename Visitor, typename ...OtherArgs>
     static void eval(Visitor &vis)
@@ -71,9 +71,9 @@ struct VariantForeachHelper<mpark::variant<Args...>, Variants...>
             //      2 10 200
             //      2 20 100
             //      2 20 200
-            variantForeach<mpark::variant<A1, A2>,
-                           mpark::variant<B1, B2>,
-                           mpark::variant<C1, C2>>(
+            variantForeach<std::variant<A1, A2>,
+                           std::variant<B1, B2>,
+                           std::variant<C1, C2>>(
                 []()(auto a, auto b, auto c)
                 {
                     printf("A=%d B=%d C=%d\n",

@@ -143,7 +143,7 @@ void BounceFromMesh::exec(ParticleVector *pv, CellList *cl, ParticleVectorLocali
             fineTable_.nCollisions[0], maxFineCollisions, getCName());
 
     // Step 3, resolve the collisions
-    mpark::visit([&](auto& bounceKernel)
+    std::visit([&](auto& bounceKernel)
     {
         bounceKernel.update(rng_);
 

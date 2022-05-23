@@ -87,7 +87,7 @@ std::vector<XDMF::Channel> extractShiftPersistentData(const DomainInfo& domain,
         if (blackList.find(channelName) != blackList.end())
             continue;
 
-        mpark::visit([&](auto bufferPtr)
+        std::visit([&](auto bufferPtr)
         {
             using T = typename std::remove_pointer<decltype(bufferPtr)>::type::value_type;
             bufferPtr->downloadFromDevice(defaultStream, ContainersSynch::Synch);

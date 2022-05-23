@@ -184,7 +184,7 @@ void CellList::_updateExtraDataChannels(__UNUSED cudaStream_t stream)
         const auto& desc = namedChannel.second;
         if (desc->persistence != DataManager::PersistenceMode::Active) continue;
 
-        mpark::visit([&](auto pinnedBuffPtr)
+        std::visit([&](auto pinnedBuffPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBuffPtr)>::type::value_type;
 
@@ -250,9 +250,9 @@ void CellList::_reorderExtraDataEntry(const std::string& channelName,
 
     debug2("%s: reordering extra data '%s'", _makeName().c_str(), channelName.c_str());
 
-    mpark::visit([&](auto srcPinnedBuff)
+    std::visit([&](auto srcPinnedBuff)
     {
-        auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(dstDesc.varDataPtr);
+        auto dstPinnedBuff = std::get<decltype(srcPinnedBuff)>(dstDesc.varDataPtr);
 
         constexpr int nthreads = 128;
 
@@ -342,9 +342,9 @@ void CellList::_accumulateExtraData(const std::string& channelName, cudaStream_t
     const auto& pvDesc   = pvManager  .getChannelDescOrDie(channelName);
     const auto& contDesc = contManager.getChannelDescOrDie(channelName);
 
-    mpark::visit([&](auto srcPinnedBuff)
+    std::visit([&](auto srcPinnedBuff)
     {
-        auto dstPinnedBuff = mpark::get<decltype(srcPinnedBuff)>(pvDesc.varDataPtr);
+        auto dstPinnedBuff = std::get<decltype(srcPinnedBuff)>(pvDesc.varDataPtr);
         accumulateIfHasAddOperator(srcPinnedBuff, dstPinnedBuff, n, this->cellInfo(), stream);
     }, contDesc.varDataPtr);
 }
@@ -473,9 +473,9 @@ void PrimaryCellList::_swapPersistentExtraData()
 
         const auto& descCont = containerManager.getChannelDescOrDie(name);
 
-        mpark::visit([&](auto pinnedBufferPv)
+        std::visit([&](auto pinnedBufferPv)
         {
-            auto pinnedBufferCont = mpark::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
+            auto pinnedBufferCont = std::get<decltype(pinnedBufferPv)>(descCont.varDataPtr);
             std::swap(*pinnedBufferPv, *pinnedBufferCont);
         }, desc->varDataPtr);
     }

@@ -20,7 +20,7 @@ namespace restart_helpers
 constexpr int InvalidProc = -1;
 constexpr int tag = 4243;
 
-using VarVector = mpark::variant<
+using VarVector = std::variant<
 #define MAKE_WRAPPER(a) std::vector<a>
     MIRHEO_TYPE_TABLE_COMMA(MAKE_WRAPPER)
 #undef MAKE_WRAPPER
@@ -48,15 +48,15 @@ std::vector<T> extractChannel(const std::string& name, ListData& channels)
     {
         if (it->name != name) continue;
 
-        if (mpark::holds_alternative<VecType>(it->data))
+        if (std::holds_alternative<VecType>(it->data))
         {
-            VecType v {std::move(mpark::get<VecType>(it->data))};
+            VecType v {std::move(std::get<VecType>(it->data))};
             channels.erase(it);
             return v;
         }
         else
         {
-            mpark::visit([&](const auto& vec)
+            std::visit([&](const auto& vec)
             {
                 using VectorType = typename std::remove_reference<decltype(vec)>::type::value_type;
                 die ("could not retrieve channel '%s' with given type: got %s instead of %s",

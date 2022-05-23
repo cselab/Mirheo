@@ -105,9 +105,9 @@ void ParticleChannelAveragerPlugin::beforeIntegration(cudaStream_t stream)
     const auto& srcDesc = dataManager.getChannelDescOrDie(channelName_);
     const auto& sumDesc = dataManager.getChannelDescOrDie(sumName_);
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
-        auto *sumBufferPtr = mpark::get<decltype(srcBufferPtr)>(sumDesc.varDataPtr);
+        auto *sumBufferPtr = std::get<decltype(srcBufferPtr)>(sumDesc.varDataPtr);
 
         const int n = srcBufferPtr->size();
         constexpr int nthreads = 128;
@@ -129,9 +129,9 @@ void ParticleChannelAveragerPlugin::beforeIntegration(cudaStream_t stream)
         const auto& averageDesc = dataManager.getChannelDescOrDie(averageName_);
         const real scale = 1.0_r / nSamples_;
 
-        mpark::visit([&](auto sumBufferPtr)
+        std::visit([&](auto sumBufferPtr)
         {
-            auto *averageBufferPtr = mpark::get<decltype(sumBufferPtr)>(averageDesc.varDataPtr);
+            auto *averageBufferPtr = std::get<decltype(sumBufferPtr)>(averageDesc.varDataPtr);
 
             const int n = sumBufferPtr->size();
             constexpr int nthreads = 128;
@@ -162,7 +162,7 @@ void ParticleChannelAveragerPlugin::setup(Simulation *simulation, const MPI_Comm
 
     const auto& desc = pv_->local()->dataPerParticle.getChannelDescOrDie(channelName_);
 
-    mpark::visit([&](auto pinnedBufferPtr)
+    std::visit([&](auto pinnedBufferPtr)
     {
         using T = typename std::remove_reference< decltype(*pinnedBufferPtr->hostPtr()) >::type;
         pv_->requireDataPerParticle<T>(averageName_, DataManager::PersistenceMode::Active);

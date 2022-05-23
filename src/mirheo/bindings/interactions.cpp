@@ -2,7 +2,6 @@
 
 #include "interactions.h"
 #include "class_wrapper.h"
-#include "variant_cast.h"
 
 #include <mirheo/core/interactions/chain/chain.h>
 #include <mirheo/core/interactions/factory.h>
@@ -13,6 +12,8 @@
 #include <mirheo/core/interactions/pairwise/base_pairwise.h>
 #include <mirheo/core/interactions/rod/base_rod.h>
 #include <mirheo/core/pvs/particle_vector.h>
+
+#include <pybind11/stl.h>
 
 namespace mirheo
 {

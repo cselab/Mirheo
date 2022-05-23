@@ -78,7 +78,7 @@ static Average3D::ChannelType getChannelType(Stress) {return Average3D::ChannelT
 
 static Average3D::ChannelType getChannelTypeFromChannelDesc(const std::string& name, const DataManager::ChannelDescription& desc)
 {
-    auto type = mpark::visit([](auto *pinnedBufferPtr)
+    auto type = std::visit([](auto *pinnedBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
         return average_3D_details::getChannelType(T());

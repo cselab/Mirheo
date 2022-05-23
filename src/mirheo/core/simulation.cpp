@@ -26,6 +26,8 @@
 namespace mirheo
 {
 
+constexpr real defaultRc = 1.0_r;
+
 #define TASK_LIST(_)                                                    \
     _( checkpoint                          , "Checkpoint")              \
     _( cellLists                           , "Build cell-lists")        \
@@ -611,7 +613,6 @@ void Simulation::_prepareCellLists()
         auto pvptr = pv.get();
         if (run_->cellListMap[pvptr].empty())
         {
-            const real defaultRc = 1._r;
             bool primary = true;
 
             // Don't use primary cell-lists with ObjectVectors

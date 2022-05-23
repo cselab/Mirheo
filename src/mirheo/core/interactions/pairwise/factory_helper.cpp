@@ -330,7 +330,7 @@ void readSpecificParams(RepulsiveLJParams& p, ParametersWrap& desc)
 
     readParams(p, desc, reader);
 
-    mpark::visit([&](auto& awareParams)
+    std::visit([&](auto& awareParams)
     {
         readParams(awareParams, desc, reader);
     }, p.varAwarenessParams);
@@ -342,7 +342,7 @@ void readSpecificParams(GrowingRepulsiveLJParams& p, ParametersWrap& desc)
 
     readParams(p, desc, reader);
 
-    mpark::visit([&](auto& awareParams)
+    std::visit([&](auto& awareParams)
     {
         readParams(awareParams, desc, reader);
     }, p.varAwarenessParams);
@@ -354,7 +354,7 @@ void readSpecificParams(MorseParams& p, ParametersWrap& desc)
 
     readParams(p, desc, reader);
 
-    mpark::visit([&](auto& awareParams)
+    std::visit([&](auto& awareParams)
     {
         readParams(awareParams, desc, reader);
     }, p.varAwarenessParams);
@@ -366,7 +366,7 @@ void readSpecificParams(DensityParams& p, ParametersWrap& desc)
 
     readParams(p, desc, reader);
 
-    mpark::visit([&](auto& densityParams)
+    std::visit([&](auto& densityParams)
     {
         readParams(densityParams, desc, reader);
     }, p.varDensityKernelParams);
@@ -378,12 +378,12 @@ void readSpecificParams(SDPDParams& p, ParametersWrap& desc)
 
     readParams(p, desc, reader);
 
-    mpark::visit([&](auto& eosParams)
+    std::visit([&](auto& eosParams)
     {
         readParams(eosParams, desc, reader);
     }, p.varEOSParams);
 
-    mpark::visit([&](auto& densityParams)
+    std::visit([&](auto& densityParams)
     {
         readParams(densityParams, desc, reader);
     }, p.varDensityKernelParams);

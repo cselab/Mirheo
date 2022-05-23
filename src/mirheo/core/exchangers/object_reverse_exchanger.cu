@@ -149,7 +149,7 @@ void ObjectReverseExchanger::prepareData(size_t id, cudaStream_t stream)
 
     const size_t shMemSize = offsets.size() * sizeof(offsets[0]);
 
-    mpark::visit([&](auto packerHandler)
+    std::visit([&](auto packerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             object_reverse_exchanger_kernels::reversePack,
@@ -176,7 +176,7 @@ void ObjectReverseExchanger::combineAndUploadData(size_t id, cudaStream_t stream
 
     const int nthreads = 256;
 
-    mpark::visit([&](auto unpackerHandler)
+    std::visit([&](auto unpackerHandler)
     {
         SAFE_KERNEL_LAUNCH(
             object_reverse_exchanger_kernels::reverseUnpackAndAdd,

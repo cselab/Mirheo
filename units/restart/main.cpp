@@ -61,11 +61,11 @@ inline void compare(const std::string& name,
     ASSERT_EQ(a.persistence, b.persistence);
     ASSERT_EQ(a.shift, b.shift);
 
-    mpark::visit([&](auto aPtr)
+    std::visit([&](auto aPtr)
     {
         using T = typename std::remove_pointer<decltype(aPtr)>::type::value_type;
-        ASSERT_TRUE(mpark::holds_alternative<PinnedBuffer<T>*>(b.varDataPtr)) << "channel " << name << ": containers have different types";
-        compare(name, *aPtr, *mpark::get<PinnedBuffer<T>*>(b.varDataPtr));
+        ASSERT_TRUE(std::holds_alternative<PinnedBuffer<T>*>(b.varDataPtr)) << "channel " << name << ": containers have different types";
+        compare(name, *aPtr, *std::get<PinnedBuffer<T>*>(b.varDataPtr));
     }, a.varDataPtr);
 }
 

@@ -2,13 +2,14 @@
 #pragma once
 
 #include <mirheo/core/pvs/packers/rods.h>
-#include <mirheo/core/utils/variant.h>
+
+#include <variant>
 
 namespace mirheo
 {
 
 /// generic object packer
-using VarPackHandler = mpark::variant<ObjectPackerHandler, RodPackerHandler>;
+using VarPackHandler = std::variant<ObjectPackerHandler, RodPackerHandler>;
 
 namespace exchangers_common
 {

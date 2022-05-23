@@ -74,7 +74,7 @@ void ParticleSenderPlugin::handshake()
 
     auto pushChannelInfos = [&dataForms, &numberTypes, &typeDescriptorsStr](const DataManager::ChannelDescription& desc)
     {
-        mpark::visit([&dataForms, &numberTypes, &typeDescriptorsStr](auto pinnedBufferPtr)
+        std::visit([&dataForms, &numberTypes, &typeDescriptorsStr](auto pinnedBufferPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedBufferPtr)>::type::value_type;
             dataForms         .push_back(XDMF::getDataForm  <T>());
@@ -130,7 +130,7 @@ static inline void copyData(ObjectVector *ov, const std::string& channelName, Ho
     const int objSize  = lov->getObjectSize();
     const int nObjects = lov->getNumObjects();
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
 
@@ -160,7 +160,7 @@ static inline void copyData(RodVector *rv, const std::string& channelName, HostB
     const int nObjects = lrv->getNumObjects();
     const int numBiSegmentsPerObject = lrv->getNumSegmentsPerRod() - 1;
 
-    mpark::visit([&](auto srcBufferPtr)
+    std::visit([&](auto srcBufferPtr)
     {
         using T = typename std::remove_pointer<decltype(srcBufferPtr)>::type::value_type;
 

@@ -2,7 +2,8 @@
 #pragma once
 
 #include <mirheo/core/datatypes.h>
-#include <mirheo/core/utils/variant.h>
+
+#include <variant>
 
 namespace mirheo
 {
@@ -90,9 +91,9 @@ struct AwarenessParamsRod
 };
 
 /// variant of all awareness modes
-using VarAwarenessParams = mpark::variant<AwarenessParamsNone,
-                                          AwarenessParamsObject,
-                                          AwarenessParamsRod>;
+using VarAwarenessParams = std::variant<AwarenessParamsNone,
+                                        AwarenessParamsObject,
+                                        AwarenessParamsRod>;
 
 
 /// Repulsive Lennard-Jones parameters
@@ -151,8 +152,8 @@ struct WendlandC2DensityKernelParams
 };
 
 /// variant of all density types
-using VarDensityKernelParams = mpark::variant<SimpleMDPDDensityKernelParams,
-                                              WendlandC2DensityKernelParams>;
+using VarDensityKernelParams = std::variant<SimpleMDPDDensityKernelParams,
+                                            WendlandC2DensityKernelParams>;
 
 /// Density parameters
 struct DensityParams
@@ -178,11 +179,11 @@ struct QuasiIncompressiblePressureEOSParams
 };
 
 /// variant of all equation of states parameters
-using VarEOSParams = mpark::variant<LinearPressureEOSParams,
+using VarEOSParams = std::variant<LinearPressureEOSParams,
                                     QuasiIncompressiblePressureEOSParams>;
 
 /// variant of all density kernels compatible with SDPD
-using VarSDPDDensityKernelParams = mpark::variant<WendlandC2DensityKernelParams>;
+using VarSDPDDensityKernelParams = std::variant<WendlandC2DensityKernelParams>;
 
 /// Smoothed Dissipative Particle Dynamics parameters
 struct SDPDParams
@@ -194,14 +195,14 @@ struct SDPDParams
 };
 
 /// variant of all possible pairwise interactions
-using VarPairwiseParams = mpark::variant<DPDParams,
-                                         LJParams,
-                                         MorseParams,
-                                         RepulsiveLJParams,
-                                         GrowingRepulsiveLJParams,
-                                         MDPDParams,
-                                         DensityParams,
-                                         SDPDParams>;
+using VarPairwiseParams = std::variant<DPDParams,
+                                       LJParams,
+                                       MorseParams,
+                                       RepulsiveLJParams,
+                                       GrowingRepulsiveLJParams,
+                                       MDPDParams,
+                                       DensityParams,
+                                       SDPDParams>;
 
 
 /// parameters when the stress is not active
@@ -214,6 +215,6 @@ struct StressActiveParams
 };
 
 /// active/non active stress parameters
-using VarStressParams = mpark::variant<StressNoneParams, StressActiveParams>;
+using VarStressParams = std::variant<StressNoneParams, StressActiveParams>;
 
 } // namespace mirheo

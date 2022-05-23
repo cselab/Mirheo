@@ -4,13 +4,13 @@
 #include "bounce_back.h"
 #include "bounce_maxwell.h"
 
-#include <mirheo/core/utils/variant.h>
+#include <variant>
 
 namespace mirheo
 {
 
 /// a variant that contains one of the bounce kernels
-using VarBounceKernel = mpark::variant<BounceBack,
-                                       BounceMaxwell>;
+using VarBounceKernel = std::variant<BounceBack,
+                                     BounceMaxwell>;
 
 } // namespace mirheo

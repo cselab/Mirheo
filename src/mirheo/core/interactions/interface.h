@@ -102,16 +102,16 @@ public:
      */
     virtual bool isSelfObjectInteraction() const;
 
-    /// returns the Stage corresponding of this interaction.
+    /// returns the Stage corresponding to this interaction.
     virtual Stage getStage() const {return Stage::Final;}
 
     /** Returns which channels are required as input.
-        We consider that positions and velocities are always available;
+        Positions and velocities are always required and are not listed here;
         Only other channels must be specified here.
      */
     virtual std::vector<InteractionChannel> getInputChannels() const;
 
-    /// Returns which channels are output by the interactions.
+    /// Returns which channels are those output by the interactions.
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
     /// \return the cut-off radius of the interaction

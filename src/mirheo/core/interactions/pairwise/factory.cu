@@ -25,9 +25,9 @@ static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromKernel(const MirState *state, const std::string& name, real rc,
                          const typename KernelType::ParamsType& params, const VarStressParams& varStressParams)
 {
-    if (mpark::holds_alternative<StressActiveParams>(varStressParams))
+    if (std::holds_alternative<StressActiveParams>(varStressParams))
     {
-        const auto stressParams = mpark::get<StressActiveParams>(varStressParams);
+        const auto stressParams = std::get<StressActiveParams>(varStressParams);
         return std::make_shared<PairwiseInteractionWithStress<KernelType>>(state, name, rc, stressParams.period, params);
     }
     else
@@ -41,7 +41,7 @@ static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromKernelNoStress(const MirState *state, const std::string& name, real rc,
                                  const typename KernelType::ParamsType& params, const VarStressParams& varStressParams)
 {
-    if (mpark::holds_alternative<StressActiveParams>(varStressParams))
+    if (std::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
 
     return std::make_shared<PairwiseInteraction<KernelType>>(state, name, rc, params);
@@ -60,7 +60,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const RepulsiveLJParams& params, const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](auto& awareParams)
+    return std::visit([&](auto& awareParams)
     {
         using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
         using KernelType = PairwiseRepulsiveLJ<AwareType>;
@@ -74,7 +74,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
                          const GrowingRepulsiveLJParams& params,
                          const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](auto& awareParams)
+    return std::visit([&](auto& awareParams)
     {
         using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
         using KernelType = PairwiseGrowingRepulsiveLJ<AwareType>;
@@ -86,7 +86,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const MorseParams& params, const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](auto& awareParams)
+    return std::visit([&](auto& awareParams)
     {
         using AwareType = typename std::remove_reference<decltype(awareParams)>::type::KernelType;
         using KernelType = PairwiseMorse<AwareType>;
@@ -98,7 +98,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const DensityParams& params, const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](auto& densityKernelParams)
+    return std::visit([&](auto& densityKernelParams)
     {
         using DensityKernelType = typename std::remove_reference<decltype(densityKernelParams)>::type::KernelType;
         using KernelType = PairwiseDensity<DensityKernelType>;;
@@ -110,7 +110,7 @@ createPairwiseFromParams(const MirState *state, const std::string& name, real rc
 static std::shared_ptr<BasePairwiseInteraction>
 createPairwiseFromParams(const MirState *state, const std::string& name, real rc, const SDPDParams& params, const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](auto& densityKernelParams, auto& EOSParams)
+    return std::visit([&](auto& densityKernelParams, auto& EOSParams)
     {
         using DensityKernelType = typename std::remove_reference<decltype(densityKernelParams)>::type::KernelType;
         using EOSKernelType     = typename std::remove_reference<decltype(EOSParams          )>::type::KernelType;
@@ -125,7 +125,7 @@ std::shared_ptr<BasePairwiseInteraction>
 createInteractionPairwise(const MirState *state, const std::string& name, real rc,
                           const VarPairwiseParams& varParams, const VarStressParams& varStressParams)
 {
-    return mpark::visit([&](const auto& params)
+    return std::visit([&](const auto& params)
     {
         return createPairwiseFromParams(state, name, rc, params, varStressParams);
     }, varParams);

@@ -72,7 +72,7 @@ void BounceFromRigidShape<Shape>::exec(ParticleVector *pv, CellList *cl, Particl
     RSOVviewWithOldMotion<Shape> ovView(rsov, lrsov);
     PVviewWithOldParticles pvView(pv, pv->local());
 
-    mpark::visit([&](auto& bounceKernel)
+    std::visit([&](auto& bounceKernel)
     {
         constexpr int nthreads = 256;
         const int nblocks = ovView.nObjects;

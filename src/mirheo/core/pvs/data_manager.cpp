@@ -17,7 +17,7 @@ DataManager::DataManager(const DataManager& b)
         myDesc.persistence = desc.persistence;
         myDesc.shift       = desc.shift;
 
-        mpark::visit([&](auto pinnedPtr)
+        std::visit([&](auto pinnedPtr)
         {
             using T = typename std::remove_pointer<decltype(pinnedPtr)>::type::value_type;
             auto ptr = std::make_unique<PinnedBuffer<T>>(*pinnedPtr);
@@ -55,14 +55,14 @@ void DataManager::copyChannelMap(const DataManager &other)
     for (const auto &pair : other.channelMap_)
     {
         auto it = channelMap_.find(pair.first);
-        mpark::visit([&pair, it, this](const auto *pinnedBuffer)
+        std::visit([&pair, it, this](const auto *pinnedBuffer)
         {
             using Buffer = std::decay_t<decltype(*pinnedBuffer)>;
             using T = typename Buffer::value_type;
 
             if (it == channelMap_.end()) {
                 this->createData<T>(pair.first);
-            } else if (!mpark::holds_alternative<Buffer*>(it->second.varDataPtr)) {
+            } else if (!std::holds_alternative<Buffer*>(it->second.varDataPtr)) {
                 this->_deleteChannel(pair.first);
                 this->createData<T>(pair.first);
             }
@@ -93,7 +93,7 @@ void swap(DataManager& a, DataManager& b)
 CudaVarPtr getDevPtr(VarPinnedBufferPtr varPinnedBuf)
 {
     CudaVarPtr ptr;
-    mpark::visit([&](auto pinnedPtr)
+    std::visit([&](auto pinnedPtr)
     {
         ptr = pinnedPtr->devPtr();
     }, varPinnedBuf);

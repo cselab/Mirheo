@@ -22,7 +22,7 @@ createInteractionMembrane(const MirState *state, const std::string& name,
 {
     std::shared_ptr<BaseMembraneInteraction> impl;
 
-    mpark::visit([&](auto bendingParams, auto shearParams, auto filter)
+    std::visit([&](auto bendingParams, auto shearParams, auto filter)
     {
         using DihedralForce = typename decltype(bendingParams)::DihedralForce;
 

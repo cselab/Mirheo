@@ -37,7 +37,7 @@ public:
     PairwiseMorse(real rc, const ParamsType& p, __UNUSED long seed) :
         PairwiseMorse{rc,
                       p.De, p.r0, p.beta,
-                      mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
+                      std::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
     {}
 
     /// Evaluate the force

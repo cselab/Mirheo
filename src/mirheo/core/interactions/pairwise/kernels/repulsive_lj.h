@@ -110,7 +110,7 @@ public:
                             p.epsilon,
                             p.sigma,
                             p.maxForce,
-                            mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
+                            std::get<typename Awareness::ParamsType>(p.varAwarenessParams)}
     {}
 
     virtual ~PairwiseRepulsiveLJ() = default;
@@ -170,7 +170,7 @@ public:
                                    p.epsilon,
                                    p.sigma,
                                    p.maxForce,
-                                   mpark::get<typename Awareness::ParamsType>(p.varAwarenessParams),
+                                   std::get<typename Awareness::ParamsType>(p.varAwarenessParams),
                                    p.initialLengthFraction,
                                    p.growUntil}
     {}

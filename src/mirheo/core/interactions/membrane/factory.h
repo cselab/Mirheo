@@ -5,10 +5,10 @@
 #include "force_kernels/parameters.h"
 
 #include <mirheo/core/mirheo_state.h>
-#include <mirheo/core/utils/variant.h>
 
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace mirheo
 {
@@ -16,10 +16,10 @@ namespace mirheo
 class BaseMembraneInteraction;
 
 /// variant that contains all bending energy parameters
-using VarBendingParams = mpark::variant<KantorBendingParameters, JuelicherBendingParameters>;
+using VarBendingParams = std::variant<KantorBendingParameters, JuelicherBendingParameters>;
 
 /// variant that contains all shear energy parameters
-using VarShearParams   = mpark::variant<WLCParameters, LimParameters>;
+using VarShearParams   = std::variant<WLCParameters, LimParameters>;
 
 /** \brief Construct a MembraneInteraction from parameters
     \param [in] state The global state of the system
