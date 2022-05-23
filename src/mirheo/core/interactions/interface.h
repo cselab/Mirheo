@@ -28,7 +28,7 @@ public:
 
         If a channel is inactive, the Interaction object can
         tell the simulation via this function object that the
-        conserned channel does not need to be exchanged.
+        concerned channel does not need to be exchanged.
 
         Typically, this can store the simulation state and be
         active only at given time intervals. The most common
@@ -36,7 +36,7 @@ public:
      */
     using ActivePredicate = std::function<bool()>;
 
-    /// \brief A simple structure used to describe which  channels are active.
+    /// \brief A simple structure used to describe which channels are active.
     struct InteractionChannel
     {
         std::string name; ///< the name of the channel

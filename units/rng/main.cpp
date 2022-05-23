@@ -13,7 +13,7 @@ static std::vector<real> generateSamples(Gen gen, real dt, long n)
 {
     DomainInfo domain;
     std::vector<real> samples (n);
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     state.currentTime = 0;
 
     for (state.currentStep = 0; state.currentStep < n; ++state.currentStep)
@@ -58,7 +58,7 @@ TEST (StepRandomGen, gives_same_value_at_same_time)
 {
     StepRandomGen gen(424242);
     const real dt = 1e-3;
-    MirState state(DomainInfo{}, dt, UnitConversion{});
+    MirState state(DomainInfo{}, dt);
     state.currentTime = 1243234;
 
     const auto x0 = gen.generate(&state);

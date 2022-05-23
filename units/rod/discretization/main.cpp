@@ -133,7 +133,7 @@ static Real checkCurvature(const MPI_Comm& comm, CenterLineFunc centerLine, int 
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1._r;
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
@@ -180,7 +180,7 @@ static Real checkTorsion(const MPI_Comm& comm, CenterLineFunc centerLine, Torsio
     domain.globalStart = {0._r, 0._r, 0._r};
     domain.localSize   = {L, L, L};
     real mass = 1.f;
-    MirState state(domain, dt, UnitConversion{});
+    MirState state(domain, dt);
     RodVector rv(&state, "rod", mass, nSegments);
 
     ComQ comq = {{L/2, L/2, L/2}, {1.0_r, 0.0_r, 0.0_r, 0.0_r}};
