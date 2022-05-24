@@ -82,7 +82,7 @@ if rv is not None:
 
 del u
 
-# nTEST: rod.polymorphic_states.0.4
+# snTEST: rod.polymorphic_states.0.4
 # cd rod
 # rm -rf h5
 # mir.run --runargs "-n 2" ./polymorphic_states.py --fraction 0.4
