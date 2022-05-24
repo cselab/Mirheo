@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <mpi.h>
+#include <optional>
 #include <vector>
 
 namespace mirheo
@@ -114,8 +115,8 @@ public:
     /// Returns which channels are those output by the interactions.
     virtual std::vector<InteractionChannel> getOutputChannels() const;
 
-    /// \return the cut-off radius of the interaction
-    virtual real getCutoffRadius() const;
+    /// \return the cut-off radius of the interaction; std::nullopt if there is no cutoff.
+    virtual std::optional<real> getCutoffRadius() const;
 
     /// a predicate that always returns true.
     static const ActivePredicate alwaysActive;

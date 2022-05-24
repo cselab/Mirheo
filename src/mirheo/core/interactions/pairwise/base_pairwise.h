@@ -24,7 +24,7 @@ public:
     ~BasePairwiseInteraction();
 
     /// \return the cut-off radius of the pairwise interaction.
-    real getCutoffRadius() const override;
+    std::optional<real> getCutoffRadius() const override;
 
 protected:
     real rc_; ///< cut-off radius of the interaction

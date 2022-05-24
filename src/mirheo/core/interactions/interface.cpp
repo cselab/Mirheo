@@ -36,9 +36,9 @@ bool Interaction::isSelfObjectInteraction() const
     return false;
 }
 
-real Interaction::getCutoffRadius() const
+std::optional<real> Interaction::getCutoffRadius() const
 {
-    return 1.0_r;
+    return std::nullopt;
 }
 
 const Interaction::ActivePredicate Interaction::alwaysActive = [](){return true;};

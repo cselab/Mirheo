@@ -11,9 +11,9 @@ BasePairwiseInteraction::BasePairwiseInteraction(const MirState *state, const st
 
 BasePairwiseInteraction::~BasePairwiseInteraction() = default;
 
-real BasePairwiseInteraction::getCutoffRadius() const
+std::optional<real> BasePairwiseInteraction::getCutoffRadius() const
 {
-    return rc_;
+    return {rc_};
 }
 
 } // namespace mirheo

@@ -455,7 +455,8 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
         die("No such interaction: %s", interactionName.c_str());
     auto interaction = interactionMap_[interactionName].get();
 
-    const real rc = interaction->getCutoffRadius();
+    const auto oRc = interaction->getCutoffRadius();
+    const real rc = oRc ? *oRc : defaultRc;
     interactionPrototypes_.push_back({rc, pv1, pv2, interaction});
 }
 
