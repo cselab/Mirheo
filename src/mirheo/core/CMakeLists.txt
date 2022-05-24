@@ -135,7 +135,6 @@ endif()
 
 target_link_libraries(${LIB_MIR_CORE} PUBLIC MPI::MPI_CXX)
 target_link_libraries(${LIB_MIR_CORE} PUBLIC ${CUDA_LIBRARIES})
-target_link_libraries(${LIB_MIR_CORE} PUBLIC mpark_variant)
 target_link_libraries(${LIB_MIR_CORE} PRIVATE pugixml-static) # don t use the alias here because we need to set a property later
 
 if (${HDF5_FOUND})

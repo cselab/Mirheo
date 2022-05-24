@@ -11,11 +11,6 @@ if (MIR_BUILD_PYTHON_MODULE)
   endif()
 endif()
 
-# Add mpark/variant
-if (NOT TARGET mpark_variant)
-    add_subdirectory(extern/variant)
-endif()
-
 # Add pugixml
 if (NOT TARGET pugixml)
     add_subdirectory(extern/pugixml)
