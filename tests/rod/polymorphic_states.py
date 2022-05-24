@@ -73,7 +73,7 @@ u.registerPlugins(mir.Plugins.createParticleDrag('rod_drag', rv, drag))
 
 dump_every = int (t_dump_every/dt)
 u.registerPlugins(mir.Plugins.createDumpParticles('rod_dump', rv, dump_every, ["states"], 'h5/rod_particles-'))
-u.registerPlugins(mir.Plugins.createStats('stats', every=1000, filename="stats.csv"))
+#u.registerPlugins(mir.Plugins.createStats('stats', every=1000, filename="stats.csv"))
 u.run(int(t_end / dt), dt=dt)
 
 if rv is not None:
