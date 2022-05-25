@@ -581,7 +581,7 @@ void Simulation::_prepareCellLists()
     // Deal with the cell-lists and interactions
     for (auto prototype : interactionPrototypes_)
     {
-        real rc = prototype.rc;
+        const real rc = prototype.rc;
         cutOffMap[prototype.pv1].push_back(rc);
         cutOffMap[prototype.pv2].push_back(rc);
     }
@@ -811,13 +811,11 @@ void Simulation::_prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        CellList *clInt = run_->interactionsIntermediate.getLargestCellList(pvPtr);
-        CellList *clOut = run_->interactionsFinal       .getLargestCellList(pvPtr);
-
         auto extraInt = run_->interactionsIntermediate.getOutputChannels(pvPtr);
         auto extraOut = run_->interactionsFinal       .getOutputChannels(pvPtr);
 
-        auto cl = cellListVec[0].get();
+
+        auto largestCellList = cellListVec[0].get();
 
         if (auto ov = dynamic_cast<ObjectVector*>(pvPtr))
         {
@@ -826,7 +824,8 @@ void Simulation::_prepareEngines()
             auto extraToExchange = _getExtraDataToExchange(ov);
             auto reverseExchange = _getDataToSendBack(extraInt, ov);
 
-            objHaloFinalImp->attach(ov, cl->rc, extraToExchange); // always active because of bounce back; TODO: check if bounce back is active
+             // always active because of bounce back; TODO: check if bounce back is active
+            objHaloFinalImp->attach(ov, largestCellList->rc, extraToExchange);
             objHaloReverseFinalImp->attach(ov, extraOut);
 
             objHaloIntermediateImp->attach(ov, extraInt);
@@ -834,7 +833,10 @@ void Simulation::_prepareEngines()
         }
         else
         {
-            partRedistImp->attach(pvPtr, cl);
+            CellList *clInt = run_->interactionsIntermediate.getLargestCellList(pvPtr);
+            CellList *clOut = run_->interactionsFinal       .getLargestCellList(pvPtr);
+
+            partRedistImp->attach(pvPtr, largestCellList);
 
             if (clInt != nullptr)
                 partHaloIntermediateImp->attach(pvPtr, clInt, {});
@@ -849,13 +851,17 @@ void Simulation::_prepareEngines()
     // If we're on one node, use a singleNode engine
     // otherwise use MPI
     if (nranks3D_.x * nranks3D_.y * nranks3D_.z == 1)
+    {
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<SingleNodeExchangeEngine> (std::move(exch));
         };
+    }
     else
+    {
         makeEngine = [this] (std::unique_ptr<Exchanger> exch) {
             return std::make_unique<MPIExchangeEngine> (std::move(exch), cartComm_, gpuAwareMPI_);
         };
+    }
 
     run_->partRedistributor          = makeEngine(std::move(partRedistImp));
     run_->partHaloFinal              = makeEngine(std::move(partHaloFinalImp));
