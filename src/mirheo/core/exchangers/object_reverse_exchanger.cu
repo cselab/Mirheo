@@ -47,7 +47,6 @@ template <class PackerHandler>
 __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
                                     BufferOffsetsSizesWrap dataWrap)
 {
-    constexpr real eps = 1e-6_r;
     const int objId       = blockIdx.x;
 
     const MapEntry mapEntry = map[objId];
@@ -58,7 +57,7 @@ __global__ void reverseUnpackAndAdd(PackerHandler packer, const MapEntry *map,
 
     auto buffer = dataWrap.getBuffer(bufId);
 
-    packer.blockUnpackAddNonZero(numElements, buffer, srcObjId, dstObjId, eps);
+    packer.blockUnpackAddNonZero(numElements, buffer, srcObjId, dstObjId);
 }
 
 } // namespace object_reverse_exchanger_kernels
@@ -75,8 +74,6 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
     const size_t id = objects_.size();
     objects_.push_back(ov);
 
-    auto rv = dynamic_cast<RodVector*>(ov);
-
     PackPredicate predicate = [channelNames](const DataManager::NamedChannelDesc& namedDesc)
     {
         return std::find(channelNames.begin(),
@@ -87,15 +84,15 @@ void ObjectReverseExchanger::attach(ObjectVector *ov, std::vector<std::string> c
 
     std::unique_ptr<ObjectPacker> packer, unpacker;
 
-    if (rv == nullptr)
-    {
-        packer   = std::make_unique<ObjectPacker>(predicate);
-        unpacker = std::make_unique<ObjectPacker>(predicate);
-    }
-    else
+    if (dynamic_cast<RodVector*>(ov) != nullptr)
     {
         packer   = std::make_unique<RodPacker>(predicate);
         unpacker = std::make_unique<RodPacker>(predicate);
+    }
+    else
+    {
+        packer   = std::make_unique<ObjectPacker>(predicate);
+        unpacker = std::make_unique<ObjectPacker>(predicate);
     }
 
     auto helper = std::make_unique<ExchangeEntity>(ov->getName(), id, packer.get());

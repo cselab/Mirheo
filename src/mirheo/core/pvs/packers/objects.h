@@ -76,15 +76,14 @@ struct ObjectPackerHandler : public ParticlePackerHandler
         \param [out] buffer Buffer that holds the packed object
         \param [in] srcObjId The index of the object to fetch from the buffer
         \param [in] dstObjId The index of the object to store into the registered channels
-        \param [in] eps Threshold under which the data will not be added
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
 
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
-                                            int srcObjId, int dstObjId, real eps) const
+                                            int srcObjId, int dstObjId) const
     {
-         return _blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
+        return _blockApply<UnpackAddOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
     /** \brief Unpack a full object from the buffer, shift it and store it into the registered channels.
@@ -178,13 +177,12 @@ protected:
     /// Functor to unpack and add data atomically
     struct UnpackAddOp
     {
-        real eps; ///< tolerance to add data. Data won't be added if is smaller than this.
         /// apply the operation
         __device__ auto operator()(const GenericPackerHandler& gpacker,
                                    int srcId, int dstId, const char *buffer,
                                    int numElements)
         {
-            return gpacker.unpackAtomicAddNonZero(srcId, dstId, buffer, numElements, eps);
+            return gpacker.unpackAtomicAddNonZero(srcId, dstId, buffer, numElements);
         }
     };
 

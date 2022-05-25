@@ -75,15 +75,14 @@ struct RodPackerHandler : public ObjectPackerHandler
         \param [out] buffer Buffer that holds the packed rod
         \param [in] srcObjId The index of the rod to fetch from the buffer
         \param [in] dstObjId The index of the rod to store into the registered channels
-        \param [in] eps Threshold under which the data will not be added
         \return The size (in bytes) taken by the packed data (numElements objects). Only relevant for thread with Id 0.
 
         This method must be called by one CUDA block per object.
      */
     __device__ size_t blockUnpackAddNonZero(int numElements, const char *buffer,
-                                            int srcObjId, int dstObjId, real eps) const
+                                            int srcObjId, int dstObjId) const
     {
-         return _blockApply<UnpackAddOp>({eps}, numElements, buffer, srcObjId, dstObjId);
+         return _blockApply<UnpackAddOp>({}, numElements, buffer, srcObjId, dstObjId);
     }
 
 protected:
