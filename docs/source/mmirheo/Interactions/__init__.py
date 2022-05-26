@@ -6,6 +6,25 @@ class Interaction:
         """
         pass
 
+class ChainFENE(Interaction):
+    r"""
+        FENE forces between beads of a :any:`ChainVector`.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, ks: float, rmax: float) -> None
+
+
+            Args:
+                name: name of the interaction
+                ks: the spring constant
+                rmax: maximal extension of the springs
+
+    
+
+        """
+        pass
+
 class MembraneForces(Interaction):
     r"""
         Abstract class for membrane interactions.

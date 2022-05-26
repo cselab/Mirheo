@@ -8,6 +8,24 @@ class InitialConditions:
         """
         pass
 
+class Chain(InitialConditions):
+    r"""
+        Creates chains of particles of the same orientations and lengths at prescribed positions.
+    
+    """
+    def __init__():
+        r"""__init__(positions: List[real3], orientations: List[real3], length: float) -> None
+
+
+            Args:
+                positions: center of mass of each chain
+                orientations: array of unit vectors indicating the orientation of the chains
+                length: length of the chains.
+        
+
+        """
+        pass
+
 class FromArray(InitialConditions):
     r"""
         Set particles according to given position and velocity arrays.

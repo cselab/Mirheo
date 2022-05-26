@@ -397,6 +397,117 @@ class ObjectVector(ParticleVector):
         """
         pass
 
+class ChainVector(ObjectVector):
+    r"""
+        Object Vector representing chain of particles.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, mass: float, chain_length: int) -> None
+
+
+            Args:
+                name: name of the created PV
+                mass: mass of a single particle
+                chain_length: number of particles per chain
+        
+
+        """
+        pass
+
+    def getCoordinates():
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns:
+                A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def getForces():
+        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns:
+                A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def getVelocities():
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+
+
+            Returns:
+                A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    def get_indices():
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+
+
+            Returns:
+                A list of unique integer particle identifiers
+        
+
+        """
+        pass
+
+    def setCoordinates():
+        r"""setCoordinates(coordinates: List[real3]) -> None
+
+
+            Args:
+                coordinates: A list of :math:`N \times 3` reals: 3 components of coordinate for every of the N particles
+        
+
+        """
+        pass
+
+    def setForces():
+        r"""setForces(forces: List[real3]) -> None
+
+
+            Args:
+                forces: A list of :math:`N \times 3` reals: 3 components of force for every of the N particles
+        
+
+        """
+        pass
+
+    def setVelocities():
+        r"""setVelocities(velocities: List[real3]) -> None
+
+
+            Args:
+                velocities: A list of :math:`N \times 3` reals: 3 components of velocity for every of the N particles
+        
+
+        """
+        pass
+
+    @property
+    def halo():
+        r"""
+            The halo LocalObjectVector instance, the storage of halo objects.
+        
+        """
+        pass
+
+    @property
+    def local():
+        r"""
+            The local LocalObjectVector instance, the storage of local objects.
+        
+        """
+        pass
+
 class MembraneVector(ObjectVector):
     r"""
         Membrane is an Object Vector representing cell membranes.

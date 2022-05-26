@@ -233,7 +233,7 @@ private:
 
     /** \brief Compute halo forces
 
-        Note: for ObjectVector objects, the forces will be computed even for halos.
+        Note: for ObjectVector objects, the forces will be computed even for halos, except when it's the same ObjectVector.
         For pure ParticleVector objects, the halo forces are computed only locally (we rely on the pairwise force
         symetry for the neighbouring ranks). This avoids extra communications.
      */
