@@ -815,7 +815,7 @@ void Simulation::_prepareEngines()
         if (cellListVec.size() == 0) continue;
 
         auto extraInt = run_->interactionsIntermediate.getOutputChannels(pvPtr);
-        auto extraOut = run_->interactionsFinal       .getOutputChannels(pvPtr);
+        auto extraFin = run_->interactionsFinal       .getOutputChannels(pvPtr);
 
 
         auto largestCellList = cellListVec[0].get();
@@ -829,7 +829,7 @@ void Simulation::_prepareEngines()
 
              // always active because of bounce back; TODO: check if bounce back is active
             objHaloFinalImp->attach(ov, largestCellList->rc, extraToExchange);
-            objHaloReverseFinalImp->attach(ov, extraOut);
+            objHaloReverseFinalImp->attach(ov, extraFin);
 
             objHaloIntermediateImp->attach(ov, extraInt);
             objHaloReverseIntermediateImp->attach(ov, reverseExchange);
@@ -837,15 +837,15 @@ void Simulation::_prepareEngines()
         else
         {
             CellList *clInt = run_->interactionsIntermediate.getLargestCellList(pvPtr);
-            CellList *clOut = run_->interactionsFinal       .getLargestCellList(pvPtr);
+            CellList *clFin = run_->interactionsFinal       .getLargestCellList(pvPtr);
 
             partRedistImp->attach(pvPtr, largestCellList);
 
             if (clInt != nullptr)
                 partHaloIntermediateImp->attach(pvPtr, clInt, {});
 
-            if (clOut != nullptr)
-                partHaloFinalImp->attach(pvPtr, clOut, extraInt);
+            if (clFin != nullptr)
+                partHaloFinalImp->attach(pvPtr, clFin, extraInt);
         }
     }
 
@@ -910,16 +910,22 @@ void Simulation::_createTasks()
     }
 
     for (auto& clVec : run_->cellListMap)
+    {
         for (auto& cl : clVec.second)
         {
             auto clPtr = cl.get();
             scheduler.addTask(tasks.cellLists, [clPtr] (cudaStream_t stream) { clPtr->build(stream); } );
         }
+    }
 
     // Only particle forces, not object ones here
     for (auto& pv : particleVectors_)
     {
         auto pvPtr = pv.get();
+
+        if (dynamic_cast<ObjectVector*>(pvPtr))
+            continue;
+
         scheduler.addTask(tasks.partClearIntermediate,
                          [this, pvPtr] (cudaStream_t stream)
         {
@@ -1065,7 +1071,7 @@ void Simulation::_createTasks()
             run_->interactionsFinal.clearOutput(ov, stream);
             lov->getMeshForces(stream)->clear(stream);
 
-            // force clear forces in case there is no interactions but bounce back
+            // clear forces in case there is no interactions but bounce back
             if (run_->interactionsFinal.empty())
                 lov->forces().clearDevice(stream);
 
@@ -1079,7 +1085,7 @@ void Simulation::_createTasks()
             run_->interactionsFinal.clearOutputLocalPV(ov, lov, stream);
             lov->getMeshForces(stream)->clear(stream);
 
-            // force clear forces in case there is no interactions but bounce back
+            // clear forces in case there is no interactions but bounce back
             if (run_->interactionsFinal.empty())
                 lov->forces().clearDevice(stream);
 
