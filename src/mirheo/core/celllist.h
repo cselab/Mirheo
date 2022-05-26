@@ -225,6 +225,9 @@ public:
     /// \return The LocalParticleVector that contains the data in the cell-list
     LocalParticleVector* getLocalParticleVector();
 
+    /// \return the name of the cell-list.
+    std::string getName() const;
+
 protected:
     /// initialize internal buffers; used in the constructor
     void _initialize();

@@ -383,6 +383,11 @@ void CellList::clearChannels(const std::vector<std::string>& channelNames, cudaS
 
 LocalParticleVector* CellList::getLocalParticleVector() {return localPV_;}
 
+std::string CellList::getName() const
+{
+    return _makeName();
+}
+
 std::string CellList::_makeName() const
 {
     return "Cell List '" + pv_->getName() + "' (rc " + std::to_string(rc) + ")";

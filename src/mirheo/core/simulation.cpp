@@ -455,7 +455,7 @@ void Simulation::setInteraction(const std::string& interactionName, const std::s
         die("No such interaction: %s", interactionName.c_str());
     auto interaction = interactionMap_[interactionName].get();
 
-    const auto oRc = interaction->getCutoffRadius();
+    const std::optional<real> oRc = interaction->getCutoffRadius();
     const real rc = oRc ? *oRc : defaultRc;
     interactionPrototypes_.push_back({rc, pv1, pv2, interaction});
 }
@@ -653,23 +653,26 @@ void Simulation::_prepareInteractions()
         auto  rc = prototype.rc;
         auto pv1 = prototype.pv1;
         auto pv2 = prototype.pv2;
+        auto inter = prototype.interaction;
 
         auto& clVec1 = run_->cellListMap[pv1];
         auto& clVec2 = run_->cellListMap[pv2];
 
-        CellList *cl1, *cl2;
+        CellList *cl1 = selectBestClist(clVec1, rc, rcTolerance_);
+        CellList *cl2 = selectBestClist(clVec2, rc, rcTolerance_);
 
-        cl1 = selectBestClist(clVec1, rc, rcTolerance_);
-        cl2 = selectBestClist(clVec2, rc, rcTolerance_);
+        debug2("Selected cell list '%s' for interaction '%s'",
+               cl1->getName().c_str(), inter->getCName());
 
-        auto inter = prototype.interaction;
+        debug2("Selected cell list '%s' for interaction '%s'",
+               cl2->getName().c_str(), inter->getCName());
 
         inter->setPrerequisites(pv1, pv2, cl1, cl2);
 
         if (inter->getStage() == Interaction::Stage::Intermediate)
             run_->interactionsIntermediate.add(inter, pv1, pv2, cl1, cl2);
         else
-            run_->interactionsFinal      .add(inter, pv1, pv2, cl1, cl2);
+            run_->interactionsFinal.add(inter, pv1, pv2, cl1, cl2);
     }
 }
 
