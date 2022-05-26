@@ -918,7 +918,8 @@ void Simulation::_createTasks()
         }
     }
 
-    // Only particle forces, not object ones here
+    // Only particle forces, not object ones here,
+    // to allow bounce back momentum to be transfered to the next iteration.
     for (auto& pv : particleVectors_)
     {
         auto pvPtr = pv.get();

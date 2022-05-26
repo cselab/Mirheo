@@ -74,6 +74,7 @@ h5
 /object_belonging/pos.inner.txt
 /object_belonging/rbc_mesh.off
 /objects/log_0000?.log
+/objects/stats/
 /plugins/anchor/
 /plugins/force/
 /plugins/log_00000.log

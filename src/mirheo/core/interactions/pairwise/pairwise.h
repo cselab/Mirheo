@@ -71,20 +71,20 @@ public:
 
     void halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream) override
     {
-        const bool isov1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
-        const bool isov2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
+        const bool isOV1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
+        const bool isOV2 = dynamic_cast<ObjectVector *>(pv2) != nullptr;
 
-        if (isov1 && isov2)
+        if (isOV1 && isOV2)
         {
              // Two object vectors. Compute just one interaction, doesn't matter which
             _computeHalo(pv1, pv2, cl1, cl2, stream);
         }
-        else if (isov1)
+        else if (isOV1)
         {
             // One object vector. Compute just one interaction, with OV as the first argument
             _computeHalo(pv1, pv2, cl1, cl2, stream);
         }
-        else if (isov2)
+        else if (isOV2)
         {
             // One object vector. Compute just one interaction, with OV as the first argument
             _computeHalo(pv2, pv1, cl2, cl1, stream);
@@ -222,7 +222,12 @@ private:
 
             const int nth = 128;
             if (np1 > 0 && np2 > 0)
-                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::RowWise, pair_.handler());
+            {
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput,
+                                InteractionOutMode::NeedOutput,
+                                InteractionFetchMode::RowWise,
+                                pair_.handler());
+            }
         }
     }
 
@@ -240,17 +245,40 @@ private:
 
         const int np1 = pv1->halo()->size();  // note halo here
         const int np2 = pv2->local()->size();
-        debug("Computing halo forces for %s(halo) - %s (%d - %d particles) with rc = %g", pv1->getCName(), pv2->getCName(), np1, np2, cl2->rc);
+        debug("Computing halo forces for %s(halo) - %s (%d - %d particles) with rc = %g",
+              pv1->getCName(), pv2->getCName(), np1, np2, cl2->rc);
 
         ViewType dstView(pv1, pv1->halo());
         auto srcView = cl2->getView<ViewType>();
 
+        const bool isOV1 = dynamic_cast<ObjectVector *>(pv1) != nullptr;
+
         const int nth = 128;
+
         if (np1 > 0 && np2 > 0)
-            if (dynamic_cast<ObjectVector*>(pv1) == nullptr) // don't need forces for pure particle halo
-                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,   InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair_.handler() );
+        {
+            if (!isOV1) // don't need forces for pure particle halo
+            {
+                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,
+                                InteractionOutMode::NeedOutput,
+                                InteractionFetchMode::Dilute,
+                                pair_.handler() );
+            }
+            else if (isOV1 && pv1 == pv2) // need to compute the forces only once when an object vector interacts with itself.
+            {
+                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,
+                                InteractionOutMode::NeedOutput,
+                                InteractionFetchMode::Dilute,
+                                pair_.handler() );
+            }
             else
-                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput, InteractionOutMode::NeedOutput, InteractionFetchMode::Dilute, pair_.handler() );
+            {
+                CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput,
+                                InteractionOutMode::NeedOutput,
+                                InteractionFetchMode::Dilute,
+                                pair_.handler() );
+            }
+        }
     }
 
 private:
