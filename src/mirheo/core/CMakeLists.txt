@@ -8,7 +8,7 @@ set(sources_cpp
   exchangers/interface.cpp
   field/from_function.cpp
   field/interface.cpp
-  initial_conditions/chain.cpp
+  initial_conditions/straight_chains.cpp
   initial_conditions/from_array.cpp
   initial_conditions/helpers.cpp
   initial_conditions/membrane.cpp

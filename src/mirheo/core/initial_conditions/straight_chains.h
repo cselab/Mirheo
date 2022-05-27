@@ -18,7 +18,7 @@ class ParticleVector;
 
     Initialize chain objects from center of mass positions and unit vector orientations.
 */
-class ChainIC : public InitialConditions
+class StraightChainsIC : public InitialConditions
 {
 public:
     /** \brief Construct a ChainIC object
@@ -27,8 +27,8 @@ public:
         \param [in] orientations List of orientations of each object. Must have the same length as `positions`.
         \param [in] length Length of a single chain.
     */
-    ChainIC(std::vector<real3> positions, std::vector<real3> orientations, real length);
-    ~ChainIC();
+    StraightChainsIC(std::vector<real3> positions, std::vector<real3> orientations, real length);
+    ~StraightChainsIC();
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 

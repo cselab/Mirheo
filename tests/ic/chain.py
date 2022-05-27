@@ -22,7 +22,7 @@ orientations = [[ 1., 0., 0.],
 num_parts_per_chain = 4
 
 cv = mir.ParticleVectors.ChainVector('chains', mass=1, chain_length=num_parts_per_chain)
-ic = mir.InitialConditions.Chain(positions=com, orientations=orientations, length=1.0)
+ic = mir.InitialConditions.StraightChains(positions=com, orientations=orientations, length=1.0)
 u.registerParticleVector(cv, ic)
 
 dump_every = 1

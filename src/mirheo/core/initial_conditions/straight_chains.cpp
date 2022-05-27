@@ -1,5 +1,5 @@
 // Copyright 2022 ETH Zurich. All Rights Reserved.
-#include "chain.h"
+#include "straight_chains.h"
 
 #include <mirheo/core/pvs/chain_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
@@ -8,7 +8,9 @@
 namespace mirheo
 {
 
-ChainIC::ChainIC(std::vector<real3> positions, std::vector<real3> orientations, real length) :
+StraightChainsIC::StraightChainsIC(std::vector<real3> positions,
+                                   std::vector<real3> orientations,
+                                   real length) :
     positions_(std::move(positions)),
     orientations_(std::move(orientations)),
     length_(length)
@@ -17,7 +19,7 @@ ChainIC::ChainIC(std::vector<real3> positions, std::vector<real3> orientations, 
         die("ChainIC: Positions and orientations must have the same number of elements.");
 }
 
-ChainIC::~ChainIC() = default;
+StraightChainsIC::~StraightChainsIC() = default;
 
 
 static std::vector<int> getIdsLocalChains(const std::vector<real3>& positions,
@@ -33,7 +35,7 @@ static std::vector<int> getIdsLocalChains(const std::vector<real3>& positions,
     return ids;
 }
 
-void ChainIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
+void StraightChainsIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
 {
     auto ov = dynamic_cast<ChainVector*>(pv);
     const auto domain = pv->getState()->domain;
