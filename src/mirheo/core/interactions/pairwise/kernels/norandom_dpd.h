@@ -18,7 +18,7 @@ class CellList;
 
 /// a GPU compatible functor that computes DPD interactions without fluctuations.
 /// Used in unit tests
-class PairwiseNorandomDPD : public PairwiseKernel, public ParticleFetcherWithVelocity
+class PairwiseNorandomDPD : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
@@ -29,7 +29,7 @@ public:
 
     /// constructor
     PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real power) :
-        ParticleFetcherWithVelocity(rc),
+        ParticleFetcher(rc),
         a_(a),
         gamma_(gamma),
         kBT_(kBT),

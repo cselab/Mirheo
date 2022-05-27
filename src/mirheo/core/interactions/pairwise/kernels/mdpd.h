@@ -20,7 +20,7 @@ class CellList;
 class LocalParticleVector;
 
 /// a GPU compatible functor that computes MDPD interactions
-class PairwiseMDPDHandler : public ParticleFetcherWithVelocityAndDensity
+class PairwiseMDPDHandler : public ParticleFetcherWithDensity
 {
 public:
 
@@ -29,7 +29,7 @@ public:
 
     /// constructor
     PairwiseMDPDHandler(real rc, real rd, real a, real b, real gamma, real power) :
-        ParticleFetcherWithVelocityAndDensity(rc),
+        ParticleFetcherWithDensity(rc),
         a_(a), b_(b),
         gamma_(gamma),
         power_(power),

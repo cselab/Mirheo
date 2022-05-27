@@ -25,7 +25,7 @@ class LocalParticleVector;
     \tparam DensityJKernel The kernel used to compute the density
  */
 template <typename PressureEOS, typename DensityKernel>
-class PairwiseSDPDHandler : public ParticleFetcherWithVelocityDensityAndMass
+class PairwiseSDPDHandler : public ParticleFetcherWithDensityAndMass
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // warnings in breathe
@@ -35,7 +35,7 @@ public:
 
     /// Constructor
     PairwiseSDPDHandler(real rc, PressureEOS pressure, DensityKernel densityKernel, real viscosity) :
-        ParticleFetcherWithVelocityDensityAndMass(rc),
+        ParticleFetcherWithDensityAndMass(rc),
         invrc_(1.0 / rc),
         pressure_(pressure),
         densityKernel_(densityKernel),
