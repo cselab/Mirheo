@@ -16,7 +16,7 @@ __device__ inline real3 fspringFENE(real3 r0, real3 r1, real ks, real rmax2)
     auto dr = r1 - r0;
     auto r2 = dot(dr, dr);
 
-    auto fmagn = ks * rmax2 / (rmax2 - r2);
+    auto fmagn = ks * rmax2 / math::max(rmax2 - r2, 1e-4_r);
 
     return fmagn * dr;
 }
