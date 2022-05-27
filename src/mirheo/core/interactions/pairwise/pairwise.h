@@ -266,10 +266,10 @@ private:
             }
             else if (isOV1 && pv1 == pv2) // need to compute the forces only once when an object vector interacts with itself.
             {
-                CHOOSE_EXTERNAL(InteractionOutMode::NoOutput,
-                                InteractionOutMode::NeedOutput,
-                                InteractionFetchMode::Dilute,
-                                pair_.handler() );
+                SAFE_KERNEL_LAUNCH(
+                     computeExternalInteractionsSkipPairs_1tpp,
+                     getNblocks(dstView.size, nth), nth, 0, stream,
+                     dstView, cl2->cellInfo(), srcView, pair_.handler());
             }
             else
             {

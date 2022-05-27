@@ -387,4 +387,94 @@ __global__ void computeExternalInteractions_27tpp(
         accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
 }
 
+
+
+
+
+
+
+template<typename Interaction, typename Accumulator>
+__device__ inline void computeCellSkipPairs(
+        int pstart, int pend,
+        typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView,
+        const Interaction& interaction, Accumulator& accumulator)
+{
+    const auto dstGid = interaction.getId(dstP);
+
+    for (int srcId = pstart; srcId < pend; srcId++)
+    {
+        auto srcP = interaction.read(srcView, srcId);
+
+        bool interacting = interaction.withinCutoff(srcP, dstP);
+
+        if (interaction.getId(srcP) <= dstGid)
+            interacting = false;
+
+        if (interacting)
+        {
+            interaction.readExtraData(srcP, srcView, srcId);
+
+            const auto val = interaction(dstP, dstId, srcP, srcId);
+
+            accumulator.add(val);
+            accumulator.atomicAddToSrc(val, srcView, srcId);
+        }
+    }
+}
+
+
+/** \brief Compute the interactions between particles of a ParticleVector and its halo.
+    Pairs are chosen such that each pair is computed only once in total when considering
+    the halo of the neighboring ranks.
+    The forces are accumulated to the halo particles, to be reversed-exchanged.
+    This kernel is suitable for interactions between objects from the same ObjectVector.
+    \tparam Interaction The pairwise interaction kernel
+
+    \param [in,out] dstView Destination particles data
+    \param [in] srcCinfo Cell-lists info of the source particles
+    \param [in,out] srcView Source particles data
+    \param [in] interaction Instance of the pairwise kernel functor
+
+    Mapping is one thread per destination particle.
+    The thread will traverse all of the neighbouring cells and compute the interactions between
+    the destination particle and all the particles of the \p srcView in those cells.
+ */
+template<typename Interaction>
+__launch_bounds__(128, 16)
+__global__ void computeExternalInteractionsSkipPairs_1tpp(
+        typename Interaction::ViewType dstView, CellListInfo srcCinfo,
+        typename Interaction::ViewType srcView, Interaction interaction)
+{
+    const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
+    if (dstId >= dstView.size) return;
+
+    const auto dstP = interaction.readNoCache(dstView, dstId);
+
+    auto accumulator = interaction.getZeroedAccumulator();
+
+    const int3 cell0 = srcCinfo.getCellIdAlongAxes<CellListsProjection::Clamp>(interaction.getPosition(dstP));
+
+    for (int cellZ = cell0.z-1; cellZ <= cell0.z+1; cellZ++)
+    {
+        for (int cellY = cell0.y-1; cellY <= cell0.y+1; cellY++)
+        {
+            if ( !(cellY >= 0 && cellY < srcCinfo.ncells.y &&
+                   cellZ >= 0 && cellZ < srcCinfo.ncells.z) )
+                continue;
+
+            for (int cellX = math::max(cell0.x-1, 0); cellX <= math::min(cell0.x+1, srcCinfo.ncells.x-1); cellX++)
+            {
+                const int cid = srcCinfo.encode(cellX, cellY, cellZ);
+                const int pstart = srcCinfo.cellStarts[cid];
+                const int pend   = srcCinfo.cellStarts[cid+1];
+
+                computeCellSkipPairs(pstart, pend,
+                                     dstP, dstId, srcView,
+                                     interaction, accumulator);
+            }
+        }
+    }
+    accumulator.atomicAddToDst(accumulator.get(), dstView, dstId);
+}
+
 } // namespace mirheo

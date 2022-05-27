@@ -56,6 +56,9 @@ public:
     /// Generic converter from the ParticleType type to the common \c real3 coordinates
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.r;}
 
+    ///  \return Global id of the particle
+    __D__ inline int64_t getId(const ParticleType& p) const {return p.getId();}
+
 protected:
     real rc_;  ///< cut-off radius
     real rc2_; ///< rc^2
@@ -115,6 +118,9 @@ public:
 
     /// fetch position from the generic particle structure
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
+
+    ///  \return Global id of the particle
+    __D__ inline int64_t getId(const ParticleType& p) const {return p.p.getId();}
 };
 
 /// fetch that reads positions, velocities, number densities and mass
@@ -173,6 +179,10 @@ public:
 
     /// fetch position from the generic particle structure
     __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
+
+    ///  \return Global id of the particle
+    __D__ inline int64_t getId(const ParticleType& p) const {return p.p.getId();}
+
 };
 
 } // namespace mirheo
