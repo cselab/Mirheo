@@ -57,7 +57,7 @@ template<InteractionOutMode NeedDstOutput, InteractionOutMode NeedSrcOutput, Int
 __device__ inline void computeCell(
         int pstart, int pend,
         typename Interaction::ParticleType dstP, int dstId, typename Interaction::ViewType srcView,
-        Interaction& interaction, Accumulator& accumulator)
+        const Interaction& interaction, Accumulator& accumulator)
 {
     for (int srcId = pstart; srcId < pend; srcId++)
     {
