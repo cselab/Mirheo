@@ -54,6 +54,7 @@ public:
         \param globalDomainSize The full domain dimensions in length units. Must be positive.
         \param logInfo Information about logging
         \param checkpointInfo Information about checkpoint
+        \param maxObjHalfLength Half of the maximum length of all objects.
         \param gpuAwareMPI \c true to use RDMA (must be compile with a MPI version that supports it)
         \note MPI will be initialized internally.
               If this constructor is used, the destructor will also finalize MPI.
@@ -61,14 +62,16 @@ public:
         The product of \p nranks3D must be equal to the number of available ranks (or hals if postprocess is used)
      */
     Mirheo(int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+           LogInfo logInfo, CheckpointInfo checkpointInfo,
+           real maxObjHalfLength, bool gpuAwareMPI=false);
 
     /** \brief Construct a \c Mirheo object using a given communicator.
         \note MPI will be NOT be initialized.
               If this constructor is used, the destructor will NOT finalize MPI.
      */
     Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
-           LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI=false);
+           LogInfo logInfo, CheckpointInfo checkpointInfo,
+           real maxObjHalfLength, bool gpuAwareMPI=false);
 
 
     ~Mirheo();
@@ -289,7 +292,8 @@ private:
     MPI_Comm interComm_ {MPI_COMM_NULL}; ///< intercommunicator between postprocess and simulation
 
     void init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
-              CheckpointInfo checkpointInfo, bool gpuAwareMPI);
+              CheckpointInfo checkpointInfo, real maxObjHalfLength,
+              bool gpuAwareMPI);
     void initLogger(MPI_Comm comm, LogInfo logInfo);
     void sayHello();
     void setup();

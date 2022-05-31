@@ -100,27 +100,30 @@ void exportMirheo(py::module& m)
         .def(py::init( [] (int3 nranks, real3 domain,
                            std::string log, int debuglvl,
                            int checkpointEvery, std::string checkpointFolder, std::string checkpointModeStr,
-                           bool cudaMPI, bool noSplash, long commPtr)
+                           real maxObjHalfLength, bool cudaMPI, bool noSplash, long commPtr)
             {
                 LogInfo logInfo(log, debuglvl, noSplash);
                 CheckpointInfo checkpointInfo(
                         checkpointEvery, checkpointFolder,
                         getCheckpointMode(checkpointModeStr));
 
-                if (commPtr == 0) {
-                    return std::make_unique<Mirheo> (      nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI);
-                } else {
+                if (commPtr == 0)
+                {
+                    return std::make_unique<Mirheo> (nranks, domain, logInfo,
+                                                     checkpointInfo, maxObjHalfLength, cudaMPI);
+                }
+                else
+                {
                     // https://stackoverflow.com/questions/49259704/pybind11-possible-to-use-mpi4py
                     MPI_Comm comm = *(MPI_Comm *)commPtr;
                     return std::make_unique<Mirheo> (comm, nranks, domain, logInfo,
-                                                           checkpointInfo, cudaMPI);
+                                                     checkpointInfo, maxObjHalfLength, cudaMPI);
                 }
             } ),
              py::return_value_policy::take_ownership,
              "nranks"_a, "domain"_a, "log_filename"_a="log", "debug_level"_a=-1,
              "checkpoint_every"_a=0, "checkpoint_folder"_a="restart/", "checkpoint_mode"_a="PingPong",
-             "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
+             "max_obj_half_length"_a=0.0_r, "cuda_aware_mpi"_a=false, "no_splash"_a=false, "comm_ptr"_a=0, R"(
 Create the Mirheo coordinator.
 
 .. warning::
@@ -159,6 +162,7 @@ Args:
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
     checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
+    max_obj_half_length: Half of the maximum size of all objects. Needs to be set when objects are self interacting with pairwise interactions.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used

@@ -137,7 +137,7 @@ static int getRank(const MPI_Comm& comm)
 }
 
 Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-                       CheckpointInfo checkpointInfo, bool gpuAwareMPI) :
+                       CheckpointInfo checkpointInfo, real maxObjHalfLength, bool gpuAwareMPI) :
     MirObject("simulation"),
     nranks3D_(getRank3DInfos(cartComm).nranks3D),
     rank3D_  (getRank3DInfos(cartComm).rank3D  ),
@@ -146,7 +146,8 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
     state_(state),
     checkpointInfo_(checkpointInfo),
     rank_(getRank(cartComm)),
-    gpuAwareMPI_(gpuAwareMPI)
+    gpuAwareMPI_(gpuAwareMPI),
+    maxObjHalfLength_(maxObjHalfLength)
 {
     if (checkpointInfo_.needDump())
         createFoldersCollective(cartComm_, checkpointInfo_.folder);
@@ -156,6 +157,7 @@ Simulation::Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirS
         die("Invalid domain size: [%f %f %f]",
             domain.globalSize.x, domain.globalSize.y, domain.globalSize.z);
     }
+
     info("Simulation initialized, subdomain size is [%f %f %f], subdomain starts "
          "at [%f %f %f]",
          domain.localSize.x, domain.localSize.y, domain.localSize.z,
@@ -827,8 +829,20 @@ void Simulation::_prepareEngines()
             auto extraToExchange = _getExtraDataToExchange(ov);
             auto reverseExchange = _getDataToSendBack(extraInt, ov);
 
+            real rc = largestCellList->rc;
+
+            if (_hasPairwiseSelfInteractions(ov))
+                rc += maxObjHalfLength_;
+
+            if (rc >= state_->domain.globalSize.x/2 ||
+                rc >= state_->domain.globalSize.y/2 ||
+                rc >= state_->domain.globalSize.z/2)
+            {
+                die("Invalid domain size: Expect at least %g along each dimension.", 2*rc);
+            }
+
              // always active because of bounce back; TODO: check if bounce back is active
-            objHaloFinalImp->attach(ov, largestCellList->rc, extraToExchange);
+            objHaloFinalImp->attach(ov, rc, extraToExchange);
             objHaloReverseFinalImp->attach(ov, extraFin);
 
             objHaloIntermediateImp->attach(ov, extraInt);
@@ -1376,6 +1390,18 @@ void Simulation::_checkpointState()
 
     createCheckpointSymlink(cartComm_, checkpointInfo_.folder, "state", "txt", checkpointId_);
 }
+
+
+bool Simulation::_hasPairwiseSelfInteractions(ObjectVector *ov) const
+{
+    for (const InteractionPrototype& p : interactionPrototypes_)
+    {
+        if (ov == p.pv1 && ov == p.pv2 && !p.interaction->isSelfObjectInteraction())
+            return true;
+    }
+    return false;
+}
+
 
 static void advanceCheckpointId(int& checkpointId, CheckpointIdAdvanceMode mode)
 {

@@ -73,7 +73,7 @@ static void selectIntraNodeGPU(const MPI_Comm& source)
 }
 
 void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
-                  CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+                  CheckpointInfo checkpointInfo, real maxObjHalfLength, bool gpuAwareMPI)
 {
     int nranks;
 
@@ -102,7 +102,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
                                              (real)MirState::InvalidDt);
         sim_ = std::make_unique<Simulation> (cartComm_, MPI_COMM_NULL, getState(),
-                                            checkpointInfo, gpuAwareMPI);
+                                             checkpointInfo, maxObjHalfLength, gpuAwareMPI);
         computeTask_ = 0;
         return;
     }
@@ -131,7 +131,7 @@ void Mirheo::init(int3 nranks3D, real3 globalDomainSize, LogInfo logInfo,
         state_ = std::make_shared<MirState> (createDomainInfo(cartComm_, globalDomainSize),
                                              (real)MirState::InvalidDt);
         sim_ = std::make_unique<Simulation> (cartComm_, interComm_, getState(),
-                                            checkpointInfo, gpuAwareMPI);
+                                             checkpointInfo, maxObjHalfLength, gpuAwareMPI);
     }
     else
     {
@@ -165,22 +165,26 @@ void Mirheo::initLogger(MPI_Comm comm, LogInfo logInfo)
 }
 
 Mirheo::Mirheo(int3 nranks3D, real3 globalDomainSize,
-               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+               LogInfo logInfo, CheckpointInfo checkpointInfo,
+               real maxObjHalfLength, bool gpuAwareMPI)
 {
     MPI_Init(nullptr, nullptr);
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_);
     initializedMpi_ = true;
 
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, logInfo, checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, logInfo,
+         checkpointInfo, maxObjHalfLength, gpuAwareMPI);
 }
 
 Mirheo::Mirheo(MPI_Comm comm, int3 nranks3D, real3 globalDomainSize,
-               LogInfo logInfo, CheckpointInfo checkpointInfo, bool gpuAwareMPI)
+               LogInfo logInfo, CheckpointInfo checkpointInfo,
+               real maxObjHalfLength, bool gpuAwareMPI)
 {
     MPI_Comm_dup(comm, &comm_);
     initLogger(comm_, logInfo);
-    init(nranks3D, globalDomainSize, logInfo, checkpointInfo, gpuAwareMPI);
+    init(nranks3D, globalDomainSize, logInfo,
+         checkpointInfo, maxObjHalfLength, gpuAwareMPI);
 }
 
 static void safeCommFree(MPI_Comm *comm)
@@ -431,7 +435,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenWallParticles(
     MirState stateCpy = *getState();
     getState()->setDt(dt);
 
-    Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
+    Simulation wallsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{}, 0.0_r);
 
     auto pv = std::make_shared<ParticleVector>(getState(), pvName, mass);
     auto ic = std::make_shared<UniformIC>(numDensity);
@@ -499,7 +503,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(
     getState()->setDt(dt);
 
     {
-        Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
+        Simulation eqsim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{}, 0.0_r);
 
         eqsim.registerParticleVector(pv, ic);
 
@@ -515,7 +519,7 @@ std::shared_ptr<ParticleVector> Mirheo::makeFrozenRigidParticles(
         eqsim.run(nsteps);
     }
 
-    Simulation freezesim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{});
+    Simulation freezesim(sim_->getCartComm(), MPI_COMM_NULL, getState(), CheckpointInfo{}, 0.0_r);
 
     freezesim.registerParticleVector(pv, nullptr);
     freezesim.registerParticleVector(shape, icShape);

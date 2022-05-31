@@ -47,10 +47,11 @@ public:
         \param interComm An inter communicator to communicate with the \c Postprocess ranks.
         \param [in,out] state The global state of the simulation. Does not pass ownership.
         \param checkpointInfo Configuration of checkpoint
+        \param maxObjHalfLength Half of the maximum length of all objects.
         \param gpuAwareMPI Performance parameter that controls if communication can be performed through RDMA.
      */
     Simulation(const MPI_Comm &cartComm, const MPI_Comm &interComm, MirState *state,
-               CheckpointInfo checkpointInfo, bool gpuAwareMPI = false);
+               CheckpointInfo checkpointInfo, real maxObjHalfLength, bool gpuAwareMPI = false);
 
     ~Simulation();
 
@@ -249,6 +250,11 @@ private:
     void _restartState(const std::string& folder);
     void _checkpointState();
 
+    /**
+       \return true if the given ObjectVector interacts with itself through a pairwise interaction.
+     */
+    bool _hasPairwiseSelfInteractions(ObjectVector *ov) const;
+
 private:
     template <class T>
     using MapShared = std::map< std::string, std::shared_ptr<T> >;
@@ -322,6 +328,7 @@ private:
 
     const bool gpuAwareMPI_;
 
+    real maxObjHalfLength_;
 
     std::map<std::string, int> pvIdMap_;
     std::vector< std::shared_ptr<ParticleVector> > particleVectors_;

@@ -22,7 +22,7 @@ domain = (16, 8, 8)
 nsteps = 5000
 
 u = mir.Mirheo(args.ranks, domain, debug_level=3, log_filename='log', no_splash=True,
-               checkpoint_every = (0 if args.restart else nsteps))
+               checkpoint_every = (0 if args.restart else nsteps), max_obj_half_length=np.max(axes))
 
 pv_sol = mir.ParticleVectors.ParticleVector('solvent', mass = 1)
 ic_sol = mir.InitialConditions.Uniform(density)
