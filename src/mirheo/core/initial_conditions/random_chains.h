@@ -16,25 +16,24 @@ class ParticleVector;
 
 /** \brief Initialize ChainVector objects
 
-    Initialize chain objects from center of mass positions and unit vector orientations.
+    Initialize chain objects from center of mass positions.
+    Each chain is generated from a random walk in 3D.
 */
-class StraightChainsIC : public InitialConditions
+class RandomChainsIC : public InitialConditions
 {
 public:
-    /** \brief Construct a StraightChainsIC object
+    /** \brief Construct a RandomChainsIC object
         \param [in] positions List of center of mass of each chain.
         The size of the list is the number of chains that will be initialized.
-        \param [in] orientations List of orientations of each object. Must have the same length as `positions`.
         \param [in] length Length of a single chain.
     */
-    StraightChainsIC(std::vector<real3> positions, std::vector<real3> orientations, real length);
-    ~StraightChainsIC();
+    RandomChainsIC(std::vector<real3> positions, real length);
+    ~RandomChainsIC();
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
     std::vector<real3> positions_;
-    std::vector<real3> orientations_;
     real length_;
 };
 
