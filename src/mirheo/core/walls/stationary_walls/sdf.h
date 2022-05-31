@@ -16,8 +16,9 @@ public:
         \param [in] state Simulation state
         \param [in] sdfFileName The input file name
         \param [in] sdfH The grid spacing
+        \param [in] margin Additional margin to store in each rank; useful to bounce-back local particles.
      */
-    StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH);
+    StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH, real3 margin);
     /// Move ctor.
     StationaryWallSDF(StationaryWallSDF&&);
 

@@ -6,8 +6,9 @@
 namespace mirheo
 {
 
-FieldFromFunction::FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h) :
-    Field(state, name, h),
+FieldFromFunction::FieldFromFunction(const MirState *state, std::string name,
+                                     FieldFunction func, real3 h, real3 margin) :
+    Field(state, name, h, margin),
     func_(func)
 {}
 

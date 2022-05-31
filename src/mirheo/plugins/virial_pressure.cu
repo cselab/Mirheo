@@ -16,6 +16,8 @@
 namespace mirheo
 {
 
+constexpr real3 defaultMargin {1.0_r, 1.0_r, 1.0_r};
+
 namespace virial_pressure_kernels
 {
 __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, virial_pressure_plugin::ReductionType *pressure)
@@ -45,7 +47,7 @@ VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string na
     SimulationPlugin(state, name),
     pvName_(pvName),
     dumpEvery_(dumpEvery),
-    region_(state, "field_"+name, func, h)
+    region_(state, "field_"+name, func, h, defaultMargin)
 {}
 
 VirialPressurePlugin::~VirialPressurePlugin() = default;

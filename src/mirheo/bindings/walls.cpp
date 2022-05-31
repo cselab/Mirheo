@@ -83,13 +83,16 @@ void exportWalls(py::module& m)
         The boundary is defined by the zero-level isosurface.
     )")
         .def(py::init(&wall_factory::createSDFWall),
-            "state"_a, "name"_a, "sdfFilename"_a, "h"_a = real3{0.25, 0.25, 0.25}, R"(
+             "state"_a, "name"_a, "sdfFilename"_a, "h"_a=real3{0.25, 0.25, 0.25},
+             "margin"_a=real3{5.0_r, 5.0_r, 5.0_r}, R"(
             Args:
                 name: name of the wall
                 sdfFilename: name of the ``.sdf`` file
                 h: resolution of the resampled SDF.
                    In order to have a more accurate SDF representation, the initial function is resampled on a finer grid.
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
+                margin: Additional margin to store on each rank.
+                        This is used to e.g. bounce-back particles that are on the local rank but outside the local domain.
         )");
 
     py::handlers_class< WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate> >(m, "RotatingCylinder", pywall, R"(

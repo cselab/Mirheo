@@ -14,6 +14,7 @@ public:
         \param [in] name The name of the field object
         \param [in] fieldFileName The input file name
         \param [in] h the grid size
+        \param [in] margin Additional margin to store in each rank
 
         The format of the file is custom.
         It is a single file that contains a header followed by the data grid data in binary format.
@@ -23,7 +24,8 @@ public:
 
         The data is an array that contains all grid values (x is the fast running index).
     */
-    FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, real3 h);
+    FieldFromFile(const MirState *state, std::string name,
+                  std::string fieldFileName, real3 h, real3 margin);
     ~FieldFromFile();
 
     /// move constructor

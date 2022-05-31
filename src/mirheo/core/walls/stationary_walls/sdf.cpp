@@ -4,8 +4,8 @@
 namespace mirheo
 {
 
-StationaryWallSDF::StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH) :
-    impl_(std::make_unique<FieldFromFile>(state, "field_"+sdfFileName, sdfFileName, sdfH))
+StationaryWallSDF::StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH, real3 margin) :
+    impl_(std::make_unique<FieldFromFile>(state, "field_"+sdfFileName, sdfFileName, sdfH, margin))
 {}
 
 StationaryWallSDF::StationaryWallSDF(StationaryWallSDF&&) = default;

@@ -100,6 +100,8 @@ __global__ void applyForces(PVview view, FieldDeviceHandler field, DensityContro
 
 } // namespace density_control_plugin_kernels
 
+constexpr real3 defaultMargin {5.0_r, 5.0_r, 5.0_r};
+
 DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string name,
                                            std::vector<std::string> pvNames, real targetDensity,
                                            RegionFunc region, real3 resolution,
@@ -110,7 +112,8 @@ DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string na
     pvNames_(pvNames),
     targetDensity_(targetDensity),
     spaceDecompositionField_(std::make_unique<FieldFromFunction>
-                            (state, name + "_decomposition", region, resolution)),
+                            (state, name + "_decomposition", region,
+                             resolution, defaultMargin)),
     levelBounds_({levelLo, levelHi, levelSpace}),
     Kp_(Kp), Ki_(Ki), Kd_(Kd),
     tuneEvery_(tuneEvery),

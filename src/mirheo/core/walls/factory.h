@@ -59,9 +59,9 @@ createPlaneWall(const MirState *state, const std::string& name, real3 normal, re
 }
 
 inline std::shared_ptr<SimpleStationaryWall<StationaryWallSDF>>
-createSDFWall(const MirState *state, const std::string& name, const std::string& sdfFilename, real3 h)
+createSDFWall(const MirState *state, const std::string& name, const std::string& sdfFilename, real3 h, real3 margin)
 {
-    StationaryWallSDF sdf(state, sdfFilename, h);
+    StationaryWallSDF sdf(state, sdfFilename, h, margin);
     return std::make_shared<SimpleStationaryWall<StationaryWallSDF>> (state, name, std::move(sdf));
 }
 

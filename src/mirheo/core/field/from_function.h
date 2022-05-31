@@ -19,12 +19,14 @@ public:
         \param [in] name The name of the field object
         \param [in] func The scalar field function
         \param [in] h the grid size
+        \param [in] margin Additional margin to store in each rank
 
         The scalar values will be discretized and stored on the grid.
         This can be useful as one can have a general scalar field configured
         on the host (e.g. from python) but usable on the device.
     */
-    FieldFromFunction(const MirState *state, std::string name, FieldFunction func, real3 h);
+    FieldFromFunction(const MirState *state, std::string name,
+                      FieldFunction func, real3 h, real3 margin);
     ~FieldFromFunction();
 
     /// move constructor

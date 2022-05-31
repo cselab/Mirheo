@@ -271,9 +271,10 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
     return sdfPiece;
 }
 
-FieldFromFile::FieldFromFile(const MirState *state, std::string name, std::string fieldFileName, real3 h) :
-    Field(state, name, h),
-    fieldFileName_(fieldFileName)
+FieldFromFile::FieldFromFile(const MirState *state, std::string name,
+                             std::string fieldFileName, real3 h, real3 margin) :
+    Field(state, name, h, margin),
+    fieldFileName_(std::move(fieldFileName))
 {}
 
 FieldFromFile::~FieldFromFile() = default;

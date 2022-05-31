@@ -95,8 +95,9 @@ public:
         \param [in] state The global state of the system
         \param [in] name The name of the field object
         \param [in] h the grid size
+        \param [in] margin Additional margin to store in each rank
      */
-    Field(const MirState *state, std::string name, real3 h);
+    Field(const MirState *state, std::string name, real3 h, real3 margin);
     virtual ~Field();
 
     /// move constructor
@@ -117,7 +118,7 @@ protected:
 
     /// Additional distance along each direction in which to store the field data around the local subdomain.
     /// This is used e.g. to avoid communicating "ghost walls" when ObjectVector objects interact with the walls.
-    const real3 margin3_{5, 5, 5};
+    const real3 margin3_;
 
     /** \brief copy the given grid data to the internal buffer and create the associated texture object
         \param [in] fieldDevPtr The scalar values at each grid point (x is the fast index)

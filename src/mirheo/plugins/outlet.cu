@@ -149,11 +149,13 @@ __global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int 
 
 } // namespace region_outlet_plugin_kernels
 
+constexpr real3 defaultMargin {5.0_r, 5.0_r, 5.0_r};
 
 RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                        RegionFunc region, real3 resolution) :
     OutletPlugin(state, name, std::move(pvNames)),
-    outletRegion_(std::make_unique<FieldFromFunction>(state, name + "_region", region, resolution)),
+    outletRegion_(std::make_unique<FieldFromFunction>(state, name + "_region", region,
+                                                      resolution, defaultMargin)),
     volume_(0)
 {}
 

@@ -7,9 +7,10 @@
 namespace mirheo
 {
 
-Field::Field(const MirState *state, std::string name, real3 hField) :
+Field::Field(const MirState *state, std::string name, real3 hField, real3 margin) :
     MirSimulationObject(state, name),
-    fieldArray_(nullptr)
+    fieldArray_(nullptr),
+    margin3_(margin)
 {
     // We'll make sdf a bit bigger, so that particles that flew away
     // would also be correctly bounced back
