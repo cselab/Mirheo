@@ -25,6 +25,16 @@ void exportPlugins(py::module& m)
     )");
 
 
+    m.def("__createAddFourRollMillForce", &plugin_factory::createAddFourRollMillForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "intensity"_a, R"(
+        This plugin will add a force :math:`\mathbf{f} = (A \sin x \cos y, A \cos x \sin y, 0)` to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            intensity: The intensity of the force
+    )");
+
     m.def("__createAddForce", &plugin_factory::createAddForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.

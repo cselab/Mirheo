@@ -21,6 +21,8 @@ namespace plugin_factory
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
 
+PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *state,
+                                            std::string name, ParticleVector *pv, real intensity);
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 

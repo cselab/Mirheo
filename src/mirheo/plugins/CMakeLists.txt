@@ -23,6 +23,7 @@ set(sources_cu
   exchange_pvs_flux_plane.cu
   external_magnetic_torque.cu
   force_saver.cu
+  four_roll_mill.cu
   impose_profile.cu
   impose_velocity.cu
   magnetic_dipole_interactions.cu

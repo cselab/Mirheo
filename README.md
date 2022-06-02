@@ -60,6 +60,7 @@ Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
 
 * Add ChainObjectVector to model polymers
 * Add FENE interactions for ChainObjectVector
+* Add Four-roll mill force plugin
 * **bug fixes**
   * No duplicate ObjectVector interactions when interacting with itself through pairwise interactions 
 

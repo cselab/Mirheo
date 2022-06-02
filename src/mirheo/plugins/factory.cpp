@@ -8,7 +8,6 @@
 #include "average_relative_flow.h"
 #include "berendsen_thermostat.h"
 #include "channel_dumper.h"
-#include "outlet.h"
 #include "density_control.h"
 #include "displacement.h"
 #include "dump_mesh.h"
@@ -19,11 +18,13 @@
 #include "exchange_pvs_flux_plane.h"
 #include "external_magnetic_torque.h"
 #include "force_saver.h"
+#include "four_roll_mill.h"
 #include "impose_profile.h"
 #include "impose_velocity.h"
 #include "magnetic_dipole_interactions.h"
 #include "membrane_extra_force.h"
 #include "msd.h"
+#include "outlet.h"
 #include "particle_channel_averager.h"
 #include "particle_channel_saver.h"
 #include "particle_checker.h"
@@ -52,6 +53,13 @@ static std::vector<std::string> extractPVNames(const std::vector<ParticleVector*
     for (auto &pv : pvs)
         pvNames.push_back(pv->getName());
     return pvNames;
+}
+
+PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *state,
+                                            std::string name, ParticleVector *pv, real intensity)
+{
+    auto simPl = computeTask ? std::make_shared<AddFourRollMillForcePlugin> (state, name, pv->getName(), intensity) : nullptr;
+    return { simPl, nullptr };
 }
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
