@@ -56,7 +56,12 @@ Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add ChainObjectVector to model polymers
+* Add FENE interactions for ChainObjectVector
+* **bug fixes**
+  * No duplicate ObjectVector interactions when interacting with itself through pairwise interactions 
 
 ### v1.6.0
 
