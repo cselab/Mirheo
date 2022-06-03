@@ -214,13 +214,13 @@ void ParticleVector::_snapshotParticleData(MPI_Comm comm, const std::string& fil
                                                                   blackList);
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::velocity, velocities.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          XDMF::getNumberType<real>(),
                                          DataTypeWrapper<real>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::ids, ids.data(),
-                                         XDMF::Channel::DataForm::Scalar,
+                                         XDMF::Channel::Scalar{},
                                          XDMF::Channel::NumberType::Int64,
                                          DataTypeWrapper<int64_t>(),
                                          XDMF::Channel::NeedShift::False});

@@ -165,27 +165,27 @@ void RigidObjectVector::_snapshotObjectData(MPI_Comm comm, const std::string& xd
                                                                    blackList);
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::quaternion, quaternion .data(),
-                                         XDMF::Channel::DataForm::Quaternion,
+                                         XDMF::Channel::Quaternion{},
                                          rigidType, DataTypeWrapper<RigidReal4>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::velocity,   vel.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::omega,      omega.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::force,      force.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
 
     channels.push_back(XDMF::Channel{channel_names::XDMF::motions::torque,     torque.data(),
-                                         XDMF::Channel::DataForm::Vector,
+                                         XDMF::Channel::Vector{},
                                          rigidType, DataTypeWrapper<RigidReal3>(),
                                          XDMF::Channel::NeedShift::False});
 

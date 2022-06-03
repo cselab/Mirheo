@@ -98,7 +98,7 @@ static Channel readDataSet(pugi::xml_node node)
     int precision = dataNode.attribute("Precision").as_int();
     auto numberType = infoToNumberType(channelNumberType, precision);
 
-    if (dataForm == Channel::DataForm::Other)
+    if (std::holds_alternative<Channel::Other>(dataForm))
         die("Unrecognised form %s", formDescription.c_str());
 
     return Channel {name, nullptr, dataForm, numberType, dataType, needShift};

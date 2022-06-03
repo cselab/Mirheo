@@ -17,22 +17,22 @@ namespace XDMF
 template <typename T> Channel::DataForm inline getDataForm()
 {
     error("DataForm not implemented");
-    return Channel::DataForm::Other;
+    return Channel::Other{};
 }
 
 
 #define IMPLEMENT_DATAFORM(type)                                        \
-    template <> Channel::DataForm inline getDataForm<type>      () {return Channel::DataForm::Scalar;} \
-    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::DataForm::Vector;} \
-    template <> Channel::DataForm inline getDataForm<type ## 4> () {return Channel::DataForm::Vector4;}
+    template <> Channel::DataForm inline getDataForm<type>      () {return Channel::Scalar{};} \
+    template <> Channel::DataForm inline getDataForm<type ## 3> () {return Channel::Vector{};} \
+    template <> Channel::DataForm inline getDataForm<type ## 4> () {return Channel::Vector4{};}
 
 IMPLEMENT_DATAFORM(int)
 IMPLEMENT_DATAFORM(float)
 IMPLEMENT_DATAFORM(double)
 
-template <> Channel::DataForm inline getDataForm<int64_t> () {return Channel::DataForm::Scalar;}
-template <> Channel::DataForm inline getDataForm<RigidMotion> () {return Channel::DataForm::RigidMotion;}
-template <> Channel::DataForm inline getDataForm<Stress> () {return Channel::DataForm::Tensor6;}
+template <> Channel::DataForm inline getDataForm<int64_t> () {return Channel::Scalar{};}
+template <> Channel::DataForm inline getDataForm<RigidMotion> () {return Channel::RigidMotion{};}
+template <> Channel::DataForm inline getDataForm<Stress> () {return Channel::Tensor6{};}
 
 #undef IMPLEMENT_DATAFORM
 

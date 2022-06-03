@@ -268,8 +268,8 @@ void ParticleDumperPlugin::handshake()
     // Velocity and id are special channels which are always present
     std::string allNames = "'velocity', 'id'";
     channels_.clear();
-    channels_.push_back(initChannel("velocity", XDMF::Channel::DataForm::Vector, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
-    channels_.push_back(initChannel("id",       XDMF::Channel::DataForm::Scalar, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
+    channels_.push_back(initChannel("velocity", XDMF::Channel::Vector{}, XDMF::getNumberType<real>(), DataTypeWrapper<real>()));
+    channels_.push_back(initChannel("id",       XDMF::Channel::Scalar{}, XDMF::Channel::NumberType::Int64, DataTypeWrapper<int64_t>()));
 
     for (size_t i = 0; i < names.size(); ++i)
     {

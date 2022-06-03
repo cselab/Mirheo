@@ -5,6 +5,7 @@
 
 #include <hdf5.h>
 #include <string>
+#include <variant>
 
 namespace mirheo
 {
@@ -16,9 +17,20 @@ namespace XDMF
 struct Channel
 {
     /// The "topology" of one element
-    enum class DataForm { Scalar, Vector, Tensor6, Tensor9, Quaternion, Triangle, Vector4, RigidMotion, Other };
+    class Scalar{};
+    class Vector{};
+    class Tensor6{};
+    class Tensor9{};
+    class Quaternion{};
+    class Triangle{};
+    class Vector4{};
+    class RigidMotion{};
+    class Other{};
+    using DataForm = std::variant<Scalar,Vector,Tensor6,Tensor9,Quaternion,Triangle,Vector4,RigidMotion,Other>;
+
     /// The type of the data contained in one element
     enum class NumberType { Float, Double, Int, Int64 };
+
     /// If the data depends on the coordinates
     enum class NeedShift { True, False };
 

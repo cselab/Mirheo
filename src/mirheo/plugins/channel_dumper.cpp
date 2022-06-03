@@ -47,16 +47,16 @@ void UniformCartesianDumper::handshake()
     // Density is a special channel which is always present
     std::string allNames = numberDensityChannelName;
     channels_.clear();
-    channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar, numberDensityChannelName));
+    channels_.push_back(init_channel(XDMF::Channel::Scalar{}, numberDensityChannelName));
 
     for (size_t i = 0; i < sizes.size(); ++i)
     {
         allNames += ", " + names[i];
         switch (sizes[i])
         {
-            case 1: channels_.push_back(init_channel(XDMF::Channel::DataForm::Scalar,  names[i])); break;
-            case 3: channels_.push_back(init_channel(XDMF::Channel::DataForm::Vector,  names[i])); break;
-            case 6: channels_.push_back(init_channel(XDMF::Channel::DataForm::Tensor6, names[i])); break;
+            case 1: channels_.push_back(init_channel(XDMF::Channel::Scalar{},  names[i])); break;
+            case 3: channels_.push_back(init_channel(XDMF::Channel::Vector{},  names[i])); break;
+            case 6: channels_.push_back(init_channel(XDMF::Channel::Tensor6{}, names[i])); break;
 
             default:
                 die("Plugin '%s' got %d as a channel '%s' size, expected 1, 3 or 6", getCName(), sizes[i], names[i].c_str());

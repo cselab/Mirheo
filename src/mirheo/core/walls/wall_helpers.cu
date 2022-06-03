@@ -197,7 +197,7 @@ void wall_helpers::dumpWalls2XDMF(std::vector<SDFBasedWall*> walls, real3 gridH,
 
     XDMF::UniformGrid grid(gridInfo.ncells, gridInfo.h, cartComm);
     XDMF::Channel sdfCh {"sdf", sdfs_merged.hostPtr(),
-                         XDMF::Channel::DataForm::Scalar,
+                         XDMF::Channel::Scalar{},
                          XDMF::getNumberType<real>(),
                          DataTypeWrapper<real>(),
                          XDMF::Channel::NeedShift::False};

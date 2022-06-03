@@ -19,73 +19,76 @@ int Channel::precision() const
     return numberTypeToPrecision(numberType);
 }
 
+namespace details {
+std::string dataFormToXDMFAttribute(Channel::Scalar)     { return "Scalar";}
+std::string dataFormToXDMFAttribute(Channel::Vector)     { return "Vector";}
+std::string dataFormToXDMFAttribute(Channel::Tensor6)    { return "Tensor6";}
+std::string dataFormToXDMFAttribute(Channel::Tensor9)    { return "Tensor";}
+std::string dataFormToXDMFAttribute(Channel::Quaternion) { return "Matrix";}
+std::string dataFormToXDMFAttribute(Channel::Triangle)   { return "Matrix";}
+std::string dataFormToXDMFAttribute(Channel::Vector4)    { return "Matrix";}
+std::string dataFormToXDMFAttribute(Channel::RigidMotion){ return "Matrix";}
+std::string dataFormToXDMFAttribute(Channel::Other)      { return "Scalar";}
+} // namespace details
+
 std::string dataFormToXDMFAttribute(Channel::DataForm dataForm)
 {
-    switch (dataForm)
-    {
-    case Channel::DataForm::Scalar:      return "Scalar";
-    case Channel::DataForm::Vector:      return "Vector";
-    case Channel::DataForm::Tensor6:     return "Tensor6";
-    case Channel::DataForm::Tensor9:     return "Tensor";
-    case Channel::DataForm::Quaternion:  return "Matrix";
-    case Channel::DataForm::Triangle:    return "Matrix";
-    case Channel::DataForm::Vector4:     return "Matrix";
-    case Channel::DataForm::RigidMotion: return "Matrix";
-    case Channel::DataForm::Other:       return "Scalar";
-    }
-    return "Scalar";
+    return std::visit([](auto &&val) {return details::dataFormToXDMFAttribute(val);}, dataForm);
 }
 
-int dataFormToNcomponents(Channel::DataForm dataForm)
+
+namespace details {
+int dataFormToNcomponents(Channel::Scalar)     { return 1;}
+int dataFormToNcomponents(Channel::Vector)     { return 3;}
+int dataFormToNcomponents(Channel::Tensor6)    { return 6;}
+int dataFormToNcomponents(Channel::Tensor9)    { return 9;}
+int dataFormToNcomponents(Channel::Quaternion) { return 4;}
+int dataFormToNcomponents(Channel::Triangle)   { return 3;}
+int dataFormToNcomponents(Channel::Vector4)    { return 4;}
+int dataFormToNcomponents(Channel::RigidMotion)
 {
     constexpr auto szRM = sizeof(RigidMotion);
     constexpr auto szRMx = sizeof(RigidMotion::r.x);
     static_assert(szRM % szRMx == 0, "RigidMotion components must be of same type");
-
-    switch (dataForm)
-    {
-    case Channel::DataForm::Scalar:      return 1;
-    case Channel::DataForm::Vector:      return 3;
-    case Channel::DataForm::Tensor6:     return 6;
-    case Channel::DataForm::Tensor9:     return 9;
-    case Channel::DataForm::Quaternion:  return 4;
-    case Channel::DataForm::Triangle:    return 3;
-    case Channel::DataForm::Vector4:     return 4;
-    case Channel::DataForm::RigidMotion: return szRM / szRMx;
-    case Channel::DataForm::Other:       return 1;
-    }
-    return 1;
+    return szRM / szRMx ;
 }
+int dataFormToNcomponents(Channel::Other)      { return 1;}
+} // namespace details
+
+int dataFormToNcomponents(Channel::DataForm dataForm)
+{
+    return std::visit([](auto&& val){return details::dataFormToNcomponents(val);}, dataForm);
+}
+
+namespace details {
+std::string dataFormToDescription(Channel::Scalar)     { return "Scalar";}
+std::string dataFormToDescription(Channel::Vector)     { return "Vector";}
+std::string dataFormToDescription(Channel::Tensor6)    { return "Tensor6";}
+std::string dataFormToDescription(Channel::Tensor9)    { return "Tensor";}
+std::string dataFormToDescription(Channel::Quaternion) { return "Quaternion";}
+std::string dataFormToDescription(Channel::Triangle)   { return "Triangle";}
+std::string dataFormToDescription(Channel::Vector4)    { return "Vector4";}
+std::string dataFormToDescription(Channel::RigidMotion){ return "RigidMotion";}
+std::string dataFormToDescription(Channel::Other)      { return "Other";}
+} // namespace details
 
 std::string dataFormToDescription(Channel::DataForm dataForm)
 {
-    switch (dataForm)
-    {
-    case Channel::DataForm::Scalar:      return "Scalar";
-    case Channel::DataForm::Vector:      return "Vector";
-    case Channel::DataForm::Tensor6:     return "Tensor6";
-    case Channel::DataForm::Tensor9:     return "Tensor";
-    case Channel::DataForm::Quaternion:  return "Quaternion";
-    case Channel::DataForm::Triangle:    return "Triangle";
-    case Channel::DataForm::Vector4:     return "Vector4";
-    case Channel::DataForm::RigidMotion: return "RigidMotion";
-    case Channel::DataForm::Other:       return "Other";
-    }
-    return "Other";
+    return std::visit([](auto&& val){return details::dataFormToDescription(val);}, dataForm);
 }
 
 Channel::DataForm descriptionToDataForm(const std::string& str)
 {
-    if (str == "Scalar")      return Channel::DataForm::Scalar;
-    if (str == "Vector")      return Channel::DataForm::Vector;
-    if (str == "Tensor6")     return Channel::DataForm::Tensor6;
-    if (str == "Tensor")      return Channel::DataForm::Tensor9;
-    if (str == "Quaternion")  return Channel::DataForm::Quaternion;
-    if (str == "Trianle")     return Channel::DataForm::Triangle;
-    if (str == "Vector4")     return Channel::DataForm::Vector4;
-    if (str == "RigidMotion") return Channel::DataForm::RigidMotion;
+    if (str == "Scalar")      return Channel::Scalar{};
+    if (str == "Vector")      return Channel::Vector{};
+    if (str == "Tensor6")     return Channel::Tensor6{};
+    if (str == "Tensor")      return Channel::Tensor9{};
+    if (str == "Quaternion")  return Channel::Quaternion{};
+    if (str == "Trianle")     return Channel::Triangle{};
+    if (str == "Vector4")     return Channel::Vector4{};
+    if (str == "RigidMotion") return Channel::RigidMotion{};
     warn("Unrecognised format '%s'", str.c_str());
-    return Channel::DataForm::Other;
+    return Channel::Other{};
 }
 
 decltype (H5T_NATIVE_FLOAT) numberTypeToHDF5type(Channel::NumberType nt)
