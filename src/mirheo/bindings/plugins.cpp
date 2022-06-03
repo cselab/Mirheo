@@ -279,6 +279,22 @@ void exportPlugins(py::module& m)
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     )");
 
+    m.def("__createDumpParticlesWithPolylines", &plugin_factory::createDumpParticlesWithPolylinesPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "cv"_a, "dump_every"_a,
+          "channel_names"_a, "path"_a, R"(
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified
+        ChainVector, as well as connectivity information representing polylines.
+        The data is dumped into hdf5 format.
+        An additional xdfm file is dumped to describe the data and make it readable by visualization tools.
+
+        Args:
+            name: name of the plugin.
+            cv: :any:`ChainVector` to be dumped.
+            dump_every: write files every this many time-steps.
+            channel_names: list of channel names to be dumped.
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+    )");
+
     m.def("__createDumpXYZ", &plugin_factory::createDumpXYZPlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "dump_every"_a, "path"_a, R"(
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.

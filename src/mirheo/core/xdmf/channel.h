@@ -17,16 +17,17 @@ namespace XDMF
 struct Channel
 {
     /// The "topology" of one element
-    class Scalar{};
-    class Vector{};
-    class Tensor6{};
-    class Tensor9{};
-    class Quaternion{};
-    class Triangle{};
-    class Vector4{};
-    class RigidMotion{};
-    class Other{};
-    using DataForm = std::variant<Scalar,Vector,Tensor6,Tensor9,Quaternion,Triangle,Vector4,RigidMotion,Other>;
+    struct Scalar{};
+    struct Vector{};
+    struct Tensor6{};
+    struct Tensor9{};
+    struct Quaternion{};
+    struct Triangle{};
+    struct Vector4{};
+    struct RigidMotion{};
+    struct Polyline{int numVertices;};
+    struct Other{};
+    using DataForm = std::variant<Scalar,Vector,Tensor6,Tensor9,Quaternion,Triangle,Vector4,RigidMotion,Polyline,Other>;
 
     /// The type of the data contained in one element
     enum class NumberType { Float, Double, Int, Int64 };

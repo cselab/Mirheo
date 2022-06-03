@@ -2,6 +2,7 @@ set(sources_cpp
   channel_dumper.cpp
   dump_mesh.cpp
   dump_particles_with_mesh.cpp
+  dump_polylines.cpp
   dump_xyz.cpp
   factory.cpp
   particle_channel_saver.cpp

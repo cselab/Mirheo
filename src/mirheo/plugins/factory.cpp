@@ -14,6 +14,7 @@
 #include "dump_obj_stats.h"
 #include "dump_particles.h"
 #include "dump_particles_with_mesh.h"
+#include "dump_polylines.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
 #include "external_magnetic_torque.h"
@@ -196,14 +197,28 @@ PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, st
     return { simPl, postPl };
 }
 
-PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name, ObjectVector *ov, int dumpEvery,
+PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name,
+                                             ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path)
 {
-    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->getName(), dumpEvery, channelNames) : nullptr;
+    auto simPl  = computeTask ? std::make_shared<ParticleWithMeshSenderPlugin> (state, name, ov->getName(),
+                                                                                dumpEvery, channelNames) : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithMeshDumperPlugin> (name, path);
 
     return { simPl, postPl };
 }
+
+PairPlugin createDumpParticlesWithPolylinesPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  ChainVector *cv, int dumpEvery,
+                                                  const std::vector<std::string>& channelNames, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<ParticleWithPolylinesSenderPlugin> (state, name, cv->getName(),
+                                                                                     dumpEvery, channelNames) : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<ParticleWithPolylinesDumperPlugin> (name, path);
+
+    return { simPl, postPl };
+}
+
 
 PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, int dumpEvery, std::string path)
 {

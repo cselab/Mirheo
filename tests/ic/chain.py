@@ -26,7 +26,7 @@ ic = mir.InitialConditions.StraightChains(positions=com, orientations=orientatio
 u.registerParticleVector(cv, ic)
 
 dump_every = 1
-u.registerPlugins(mir.Plugins.createDumpParticles('parts_dump', cv, dump_every, [], 'h5/chain_particles-'))
+u.registerPlugins(mir.Plugins.createDumpParticlesWithPolylines('parts_dump', cv, dump_every, [], 'h5/chain_particles-'))
 
 u.run(2, dt=0)
 

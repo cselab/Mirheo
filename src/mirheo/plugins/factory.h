@@ -2,6 +2,7 @@
 #pragma once
 
 #include <mirheo/core/plugins.h>
+#include <mirheo/core/pvs/chain_vector.h>
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/particle_vector.h>
 #include <mirheo/core/pvs/rigid_object_vector.h>
@@ -36,7 +37,8 @@ PairPlugin createAnchorParticlesPlugin(bool computeTask, const MirState *state, 
 PairPlugin createBerendsenThermostatPlugin(bool computeTask, const MirState *state, std::string name,
                                            const std::vector<ParticleVector *> &pv, real tau, real kBT, bool increaseIfLower);
 
-PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name, std::string fname, std::vector<ParticleVector*> pvs,
+PairPlugin createDensityControlPlugin(bool computeTask, const MirState *state, std::string name,
+                                      std::string fname, std::vector<ParticleVector*> pvs,
                                       real targetDensity, std::function<real(real3)> region, real3 resolution,
                                       real levelLo, real levelHi, real levelSpace, real Kp, real Ki, real Kd,
                                       int tuneEvery, int dumpEvery, int sampleEvery);
@@ -70,6 +72,10 @@ PairPlugin createDumpParticlesPlugin(bool computeTask, const MirState *state, st
 PairPlugin createDumpParticlesWithMeshPlugin(bool computeTask, const MirState *state, std::string name,
                                              ObjectVector *ov, int dumpEvery,
                                              const std::vector<std::string>& channelNames, std::string path);
+
+PairPlugin createDumpParticlesWithPolylinesPlugin(bool computeTask, const MirState *state, std::string name,
+                                                  ChainVector *ov, int dumpEvery,
+                                                  const std::vector<std::string>& channelNames, std::string path);
 
 PairPlugin createDumpXYZPlugin(bool computeTask, const MirState *state, std::string name,
                                ParticleVector *pv, int dumpEvery, std::string path);

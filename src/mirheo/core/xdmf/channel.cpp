@@ -28,6 +28,7 @@ std::string dataFormToXDMFAttribute(Channel::Quaternion) { return "Matrix";}
 std::string dataFormToXDMFAttribute(Channel::Triangle)   { return "Matrix";}
 std::string dataFormToXDMFAttribute(Channel::Vector4)    { return "Matrix";}
 std::string dataFormToXDMFAttribute(Channel::RigidMotion){ return "Matrix";}
+std::string dataFormToXDMFAttribute(Channel::Polyline)   { return "Matrix";}
 std::string dataFormToXDMFAttribute(Channel::Other)      { return "Scalar";}
 } // namespace details
 
@@ -44,6 +45,7 @@ int dataFormToNcomponents(Channel::Tensor6)    { return 6;}
 int dataFormToNcomponents(Channel::Tensor9)    { return 9;}
 int dataFormToNcomponents(Channel::Quaternion) { return 4;}
 int dataFormToNcomponents(Channel::Triangle)   { return 3;}
+int dataFormToNcomponents(Channel::Polyline p) { return p.numVertices;}
 int dataFormToNcomponents(Channel::Vector4)    { return 4;}
 int dataFormToNcomponents(Channel::RigidMotion)
 {
@@ -69,6 +71,7 @@ std::string dataFormToDescription(Channel::Quaternion) { return "Quaternion";}
 std::string dataFormToDescription(Channel::Triangle)   { return "Triangle";}
 std::string dataFormToDescription(Channel::Vector4)    { return "Vector4";}
 std::string dataFormToDescription(Channel::RigidMotion){ return "RigidMotion";}
+std::string dataFormToDescription(Channel::Polyline p) { return "Polyline" + std::to_string(p.numVertices);}
 std::string dataFormToDescription(Channel::Other)      { return "Other";}
 } // namespace details
 
@@ -87,6 +90,13 @@ Channel::DataForm descriptionToDataForm(const std::string& str)
     if (str == "Trianle")     return Channel::Triangle{};
     if (str == "Vector4")     return Channel::Vector4{};
     if (str == "RigidMotion") return Channel::RigidMotion{};
+
+    {
+        int numVertices {0};
+        if (1 == sscanf(str.c_str(), "Polyline%d", &numVertices))
+            return Channel::Polyline{numVertices};
+    }
+
     warn("Unrecognised format '%s'", str.c_str());
     return Channel::Other{};
 }
