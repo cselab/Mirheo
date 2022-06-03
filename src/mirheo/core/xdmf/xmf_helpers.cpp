@@ -52,9 +52,11 @@ static bool isMasterRank(MPI_Comm comm)
     return (rank == 0);
 }
 
-void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm, const Grid *grid, const std::vector<Channel>& channels, MirState::TimeType time)
+void write(const std::string& filename, const std::string& h5filename, MPI_Comm comm,
+           const Grid *grid, const std::vector<Channel>& channels)
 {
-    if (isMasterRank(comm)) {
+    if (isMasterRank(comm))
+    {
         pugi::xml_document doc;
         auto root = doc.append_child("Xdmf");
         root.append_attribute("Version") = "3.0";
@@ -62,7 +64,6 @@ void write(const std::string& filename, const std::string& h5filename, MPI_Comm 
 
         auto gridNode = grid->writeToXMF(domain, h5filename);
 
-        if (time > -1e-6) gridNode.append_child("Time").append_attribute("Value") = std::to_string(time).c_str();
         writeData(gridNode, h5filename, grid, channels);
 
         doc.save_file(filename.c_str());

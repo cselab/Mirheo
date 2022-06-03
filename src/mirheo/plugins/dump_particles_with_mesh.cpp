@@ -89,9 +89,8 @@ void ParticleWithMeshDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", getCName());
 
-    MirState::TimeType time;
     MirState::StepType timeStamp;
-    _recvAndUnpack(time, timeStamp);
+    _recvAndUnpack(timeStamp);
 
     const int totNVertices = static_cast<int>(positions_->size());
 
@@ -100,7 +99,7 @@ void ParticleWithMeshDumperPlugin::deserialize()
     const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
 
     const XDMF::TriangleMeshGrid grid(positions_, allTriangles_, comm_);
-    XDMF::write(fname, &grid, channels_, time, comm_);
+    XDMF::write(fname, &grid, channels_, comm_);
 }
 
 } // namespace mirheo

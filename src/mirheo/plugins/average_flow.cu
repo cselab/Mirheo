@@ -262,7 +262,7 @@ void Average3D::serializeAndSend(cudaStream_t stream)
 
     debug2("Plugin '%s' is now packing the data", getCName());
     _waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, getState()->currentTime, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, accumulatedNumberDensity_, accumulatedAverage_);
     _send(sendBuffer_);
 }
 
@@ -273,7 +273,8 @@ void Average3D::handshake()
     for (auto t : channelsInfo_.types)
         sizes.push_back(getNcomponents(t));
 
-    SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes, channelsInfo_.names, numberDensityChannelName_);
+    SimpleSerializer::serialize(sendBuffer_, nranks3D_, rank3D_, resolution_, binSize_, sizes,
+                                channelsInfo_.names, numberDensityChannelName_);
     _send(sendBuffer_);
 }
 

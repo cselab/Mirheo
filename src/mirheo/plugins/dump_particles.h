@@ -76,10 +76,9 @@ public:
 protected:
 
     /** Receive and unpack the data from The simulation side.
-        \param [out] time The current time.
         \param [out] timeStamp The dump id.
      */
-    void _recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp);
+    void _recvAndUnpack(MirState::StepType& timeStamp);
 
 protected:
     static constexpr int zeroPadding_ = 5; ///< number of zero padding for the file names.

@@ -88,9 +88,8 @@ void ParticleWithPolylinesDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", getCName());
 
-    MirState::TimeType time;
     MirState::StepType timeStamp;
-    _recvAndUnpack(time, timeStamp);
+    _recvAndUnpack(timeStamp);
 
     const int totNVertices = static_cast<int>(positions_->size());
 
@@ -99,7 +98,7 @@ void ParticleWithPolylinesDumperPlugin::deserialize()
     const std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
 
     const XDMF::PolylineMeshGrid grid(positions_, allPolylines_, chainSize_, comm_);
-    XDMF::write(fname, &grid, channels_, time, comm_);
+    XDMF::write(fname, &grid, channels_, comm_);
 }
 
 } // namespace mirheo

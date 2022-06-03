@@ -231,7 +231,7 @@ void ParticleSenderPlugin::serializeAndSend(__UNUSED cudaStream_t stream)
     debug2("Plugin %s is packing now data consisting of %zu particles",
            getCName(), positions_.size());
     _waitPrevSend();
-    SimpleSerializer::serialize(sendBuffer_, timeStamp, getState()->currentTime, positions_, velocities_, channelData_);
+    SimpleSerializer::serialize(sendBuffer_, timeStamp, positions_, velocities_, channelData_);
     _send(sendBuffer_);
 }
 
@@ -308,10 +308,10 @@ static void unpackParticles(const std::vector<real4> &pos4, const std::vector<re
     }
 }
 
-void ParticleDumperPlugin::_recvAndUnpack(MirState::TimeType &time, MirState::StepType& timeStamp)
+void ParticleDumperPlugin::_recvAndUnpack(MirState::StepType& timeStamp)
 {
     int c = 0;
-    SimpleSerializer::deserialize(data_, timeStamp, time, pos4_, vel4_, channelData_);
+    SimpleSerializer::deserialize(data_, timeStamp, pos4_, vel4_, channelData_);
 
     unpackParticles(pos4_, vel4_, *positions_, velocities_, ids_);
 
@@ -326,14 +326,13 @@ void ParticleDumperPlugin::deserialize()
 {
     debug2("Plugin '%s' will dump right now", getCName());
 
-    MirState::TimeType time;
     MirState::StepType timeStamp;
-    _recvAndUnpack(time, timeStamp);
+    _recvAndUnpack(timeStamp);
 
     std::string fname = path_ + createStrZeroPadded(timeStamp, zeroPadding_);
 
     XDMF::VertexGrid grid(positions_, comm_);
-    XDMF::write(fname, &grid, channels_, time, comm_);
+    XDMF::write(fname, &grid, channels_, comm_);
 }
 
 } // namespace mirheo
