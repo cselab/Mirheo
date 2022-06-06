@@ -194,15 +194,11 @@ Fetchers are used to load the correct data needed by the pairwise kernels (e.g. 
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocity
+.. doxygenclass:: mirheo::ParticleFetcherWithDensity
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocityAndDensity
-   :project: mirheo
-   :members:
-
-.. doxygenclass:: mirheo::ParticleFetcherWithVelocityDensityAndMass
+.. doxygenclass:: mirheo::ParticleFetcherWithDensityAndMass
    :project: mirheo
    :members:
 

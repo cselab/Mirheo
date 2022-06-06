@@ -32,6 +32,21 @@ def createAddForce():
     """
     pass
 
+def createAddFourRollMillForce():
+    r"""createAddFourRollMillForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, intensity: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin will add a force :math:`\mathbf{f} = (A \sin x \cos y, A \cos x \sin y, 0)` to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            intensity: The intensity of the force
+    
+
+    """
+    pass
+
 def createAddTorque():
     r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -277,6 +292,26 @@ def createDumpParticlesWithMesh():
             name: name of the plugin
             ov: :any:`ObjectVector` that we'll work with
             dump_every: write files every this many time-steps
+            channel_names: list of channel names to be dumped.
+            path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
+    
+
+    """
+    pass
+
+def createDumpParticlesWithPolylines():
+    r"""createDumpParticlesWithPolylines(state: MirState, name: str, cv: ParticleVectors.ChainVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin will dump positions, velocities and optional attached data of all the particles of the specified
+        ChainVector, as well as connectivity information representing polylines.
+        The data is dumped into hdf5 format.
+        An additional xdfm file is dumped to describe the data and make it readable by visualization tools.
+
+        Args:
+            name: name of the plugin.
+            cv: :any:`ChainVector` to be dumped.
+            dump_every: write files every this many time-steps.
             channel_names: list of channel names to be dumped.
             path: Path and filename prefix for the dumps. For every dump two files will be created: <path>_NNNNN.xmf and <path>_NNNNN.h5
     

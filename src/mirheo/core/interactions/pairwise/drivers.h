@@ -393,6 +393,22 @@ __global__ void computeExternalInteractions_27tpp(
 
 
 
+
+/**  Compute interactions between one destination particle and
+     all source particles in a given cell, defined by range of ids [pstart, pend).
+     The pairs are skipped based on the global Ids of the particles so that each pair is computed exactly once.
+
+     \tparam Interaction The pairwise kernel.
+     \tparam Accumulator Used to accumulate the output of the kernel.
+
+     \param [in] pstart lower bound of id range of the particles to be worked on (inclusive)
+     \param [in] pend  upper bound of id range (exclusive)
+     \param [in] dstP destination particle
+     \param [in] dstId destination particle local index
+     \param [in,out] srcView The view of the src particle vector
+     \param [in] interaction The pairwise interaction kernel
+     \param [in,out] accumulator Manages the accumulated output on the dst particle
+ */
 template<typename Interaction, typename Accumulator>
 __device__ inline void computeCellSkipPairs(
         int pstart, int pend,

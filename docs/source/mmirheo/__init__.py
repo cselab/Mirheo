@@ -169,7 +169,7 @@ class Mirheo:
     
     """
     def __init__():
-        r"""__init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=-1, checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
+        r"""__init__(nranks: int3, domain: real3, log_filename: str='log', debug_level: int=-1, checkpoint_every: int=0, checkpoint_folder: str='restart/', checkpoint_mode: str='PingPong', max_obj_half_length: float=0.0, cuda_aware_mpi: bool=False, no_splash: bool=False, comm_ptr: int=0) -> None
 
 
 Create the Mirheo coordinator.
@@ -210,6 +210,7 @@ Args:
     checkpoint_every: save state of the simulation components (particle vectors and handlers like integrators, plugins, etc.)
     checkpoint_folder: folder where the checkpoint files will reside (for Checkpoint mechanism), or folder prefix (for Snapshot mechanism)
     checkpoint_mode: set to "PingPong" to keep only the last 2 checkpoint states; set to "Incremental" to keep all checkpoint states.
+    max_obj_half_length: Half of the maximum size of all objects. Needs to be set when objects are self interacting with pairwise interactions.
     cuda_aware_mpi: enable CUDA Aware MPI. The MPI library must support that feature, otherwise it may fail.
     no_splash: don't display the splash screen when at the start-up.
     comm_ptr: pointer to communicator. By default MPI_COMM_WORLD will be used

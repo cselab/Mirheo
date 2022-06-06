@@ -16,7 +16,6 @@ namespace XDMF
  */
 struct Channel
 {
-    /// The "topology" of one element
     struct Scalar{};
     struct Vector{};
     struct Tensor6{};
@@ -25,8 +24,15 @@ struct Channel
     struct Triangle{};
     struct Vector4{};
     struct RigidMotion{};
-    struct Polyline{int numVertices;};
+
+    /// Sequence of positions on a chain
+    struct Polyline
+    {
+        int numVertices; ///< Number of vertices fora each polyline.
+    };
     struct Other{};
+
+    /// The topology of one element in the channel
     using DataForm = std::variant<Scalar,Vector,Tensor6,Tensor9,Quaternion,Triangle,Vector4,RigidMotion,Polyline,Other>;
 
     /// The type of the data contained in one element

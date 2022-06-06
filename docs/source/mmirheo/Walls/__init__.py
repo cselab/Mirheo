@@ -223,7 +223,7 @@ class SDF(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, sdfFilename: str, h: real3=real3(0.25, 0.25, 0.25)) -> None
+        r"""__init__(name: str, sdfFilename: str, h: real3=real3(0.25, 0.25, 0.25), margin: real3=real3(5.0, 5.0, 5.0)) -> None
 
 
             Args:
@@ -232,6 +232,8 @@ class SDF(Wall):
                 h: resolution of the resampled SDF.
                    In order to have a more accurate SDF representation, the initial function is resampled on a finer grid.
                    The lower this value is, the more accurate the wall will be represented, however, the  more memory it will consume and the slower the execution will be.
+                margin: Additional margin to store on each rank.
+                        This is used to e.g. bounce-back particles that are on the local rank but outside the local domain.
         
 
         """
