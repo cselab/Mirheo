@@ -572,11 +572,12 @@ void exportInteractions(py::module& m)
     )");
 
     pyChainFENE.def(py::init(&interaction_factory::createInteractionChainFENE),
-                    "state"_a, "name"_a, "ks"_a, "rmax"_a, R"(
+                    "state"_a, "name"_a, "ks"_a, "rmax"_a, "stress_period"_a=std::nullopt, R"(
             Args:
                 name: name of the interaction
                 ks: the spring constant
                 rmax: maximal extension of the springs
+                stress_period: if set, compute the stresses on particles at this given period, in simulation time.
 
     )");
 }

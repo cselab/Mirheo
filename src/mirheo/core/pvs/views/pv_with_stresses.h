@@ -14,6 +14,11 @@ namespace mirheo
 template <typename BasicView>
 struct PVviewWithStresses : public BasicView
 {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+    using PVType = typename BasicView::PVType;  ///< Particle Vector compatible type
+    using LPVType = typename BasicView::LPVType;  ///< Local Particle Vector compatible type
+#endif // DOXYGEN_SHOULD_SKIP_THIS
+
     /** \brief Construct a PVviewWithStresses
         \param [in] pv The ParticleVector that the view represents
         \param [in] lpv The LocalParticleVector that the view represents
@@ -23,10 +28,10 @@ struct PVviewWithStresses : public BasicView
             The pv must hold a stress per particle channel.
         \endrst
      */
-    PVviewWithStresses(ParticleVector *pv, LocalParticleVector *lpv) :
+    PVviewWithStresses(PVType *pv, LPVType *lpv) :
         BasicView(pv, lpv)
     {
-        stresses = lpv->dataPerParticle.getData<Stress>(channel_names::stresses)->devPtr();
+        this->stresses = lpv->dataPerParticle.template getData<Stress>(channel_names::stresses)->devPtr();
     }
 
     Stress *stresses {nullptr}; ///< stresses per particle

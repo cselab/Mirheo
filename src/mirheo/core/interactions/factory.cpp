@@ -135,9 +135,9 @@ createInteractionMembrane(const MirState *state, std::string name,
 }
 
 std::shared_ptr<ChainInteraction>
-createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax)
+createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax, std::optional<real> stressPeriod)
 {
-    return std::make_shared<ChainInteraction>(state, name, ks, rmax);
+    return std::make_shared<ChainInteraction>(state, name, ks, rmax, std::move(stressPeriod));
 }
 
 

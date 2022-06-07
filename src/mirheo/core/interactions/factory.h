@@ -28,7 +28,7 @@ std::shared_ptr<BasePairwiseInteraction>
 createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters);
 
 std::shared_ptr<ChainInteraction>
-createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax);
+createInteractionChainFENE(const MirState *state, std::string name, real ks, real rmax, std::optional<real> stressPeriod);
 
 std::shared_ptr<BaseMembraneInteraction>
 createInteractionMembrane(const MirState *state, std::string name,

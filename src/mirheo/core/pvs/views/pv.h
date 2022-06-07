@@ -16,6 +16,9 @@ class LocalParticleVector;
  */
 struct PVview
 {
+    using PVType = ParticleVector; ///< Particle Vector compatible type
+    using LPVType = LocalParticleVector; ///< Local Particle Vector compatible type
+
     /** \brief Construct a \c PVview
         \param [in] pv The ParticleVector that the view represents
         \param [in] lpv The LocalParticleVector that the view represents

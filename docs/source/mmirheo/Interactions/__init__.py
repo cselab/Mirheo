@@ -12,13 +12,14 @@ class ChainFENE(Interaction):
     
     """
     def __init__():
-        r"""__init__(name: str, ks: float, rmax: float) -> None
+        r"""__init__(name: str, ks: float, rmax: float, stress_period: Optional[float]=None) -> None
 
 
             Args:
                 name: name of the interaction
                 ks: the spring constant
                 rmax: maximal extension of the springs
+                stress_period: if set, compute the stresses on particles at this given period, in simulation time.
 
     
 

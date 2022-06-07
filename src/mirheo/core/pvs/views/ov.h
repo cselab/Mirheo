@@ -15,6 +15,9 @@ class LocalObjectVector;
  */
 struct OVview : public PVview
 {
+    using PVType = ObjectVector;  ///< Particle Vector compatible type
+    using LPVType = LocalObjectVector;  ///< Local Particle Vector compatible type
+
     /** \brief Construct a \c OVview
         \param [in] ov The ObjectVector that the view represents
         \param [in] lov The LocalObjectVector that the view represents
