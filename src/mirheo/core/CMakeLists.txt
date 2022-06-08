@@ -161,8 +161,8 @@ target_compile_options(${LIB_MIR_CORE} PRIVATE
 target_compile_options(${LIB_MIR_CORE} PUBLIC
   $<$<COMPILE_LANGUAGE:CXX>:${cxx_flags}>
   $<$<COMPILE_LANGUAGE:CUDA>:${cuda_flags}
-                             $<$<CONFIG:DEBUG>:-O0;-g;-G>
-			     $<$<CONFIG:RELEASE>:-g;-DNDEBUG;--use_fast_math;-lineinfo>
+                             $<$<CONFIG:DEBUG>:-O0;-g;-G;--std=c++17>
+			     $<$<CONFIG:RELEASE>:-g;-DNDEBUG;--use_fast_math;-lineinfo;--std=c++17>
 			     >
   )
 
