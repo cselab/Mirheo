@@ -59,7 +59,8 @@ __global__ void packRemainingParticles(PVview view, ParticlePackerHandler packer
     }
 }
 
-__global__ void unpackRemainingParticles(const char *inputBuffer, ParticlePackerHandler packer, int nRemaining, int maxNumParticles)
+__global__ void unpackRemainingParticles(const char *inputBuffer, ParticlePackerHandler packer,
+                                         int nRemaining, int maxNumParticles)
 {
     const int srcPid = blockIdx.x * blockDim.x + threadIdx.x;
     if (srcPid >= nRemaining) return;
@@ -69,7 +70,9 @@ __global__ void unpackRemainingParticles(const char *inputBuffer, ParticlePacker
 }
 
 template<typename InsideWallChecker>
-__global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer, char *output, int *nRemaining, InsideWallChecker checker, int maxNumObj)
+__global__ void packRemainingObjects(OVview view, ObjectPackerHandler packer,
+                                     char *output, int *nRemaining,
+                                     InsideWallChecker checker, int maxNumObj)
 {
     const real tolerance = 1e-6_r;
 
@@ -126,8 +129,11 @@ __global__ void unpackRemainingObjects(const char *from, OVview view, ObjectPack
         offsetObjData = packer.particles.unpack(srcId, dstId, from, maxNumObj * view.objSize);
     }
 
-    if (tid == 0) packer.objects.unpack(objId, objId, from + offsetObjData, maxNumObj);
+    if (tid == 0)
+        packer.objects.unpack(objId, objId, from + offsetObjData, maxNumObj);
 }
+
+
 //===============================================================================================
 // Boundary cells kernels
 //===============================================================================================
@@ -138,7 +144,9 @@ __device__ inline bool isCellOnBoundary(const real maximumTravel, real3 cornerCo
     int pos = 0, neg = 0;
 
     for (int i = 0; i < 2; ++i)
+    {
         for (int j = 0; j < 2; ++j)
+        {
             for (int k = 0; k < 2; ++k)
             {
                 // Value in the cell corner
@@ -148,23 +156,26 @@ __device__ inline bool isCellOnBoundary(const real maximumTravel, real3 cornerCo
                 if (s >  maximumTravel) pos++;
                 if (s < -maximumTravel) neg++;
             }
+        }
+    }
 
     return (pos != 8 && neg != 8);
 }
 
 template<QueryMode queryMode, typename InsideWallChecker>
-__global__ void getBoundaryCells(real maximumTravel, CellListInfo cinfo, int *nBoundaryCells, int *boundaryCells, InsideWallChecker checker)
+__global__ void getBoundaryCells(real maximumTravel, CellListInfo cinfo,
+                                 int *nBoundaryCells, int *boundaryCells,
+                                 InsideWallChecker checker)
 {
     const int cid = blockIdx.x * blockDim.x + threadIdx.x;
     if (cid >= cinfo.totcells) return;
 
-    int3 ind;
-    cinfo.decode(cid, ind.x, ind.y, ind.z);
-    real3 cornerCoo = -0.5_r * cinfo.localDomainSize + make_real3(ind)*cinfo.h;
+    const int3 ind = cinfo.decode(cid);
+    const real3 cornerCoo = -0.5_r * cinfo.localDomainSize + make_real3(ind)*cinfo.h;
 
     if (isCellOnBoundary(maximumTravel, cornerCoo, cinfo.h, checker))
     {
-        int id = atomicAggInc(nBoundaryCells);
+        const int id = atomicAggInc(nBoundaryCells);
         if (queryMode == QueryMode::Collect)
             boundaryCells[id] = cid;
     }
@@ -182,11 +193,12 @@ __global__ void checkInside(PVview view, int *nInside, const InsideWallChecker c
     const int pid = blockIdx.x * blockDim.x + threadIdx.x;
     if (pid >= view.size) return;
 
-    Real3_int coo(view.readPosition(pid));
+    const Real3_int coo(view.readPosition(pid));
 
-    real v = checker(coo.v);
+    const real v = checker(coo.v);
 
-    if (v > checkTolerance) atomicAggInc(nInside);
+    if (v > checkTolerance)
+        atomicAggInc(nInside);
 }
 
 //===============================================================================================
@@ -194,7 +206,9 @@ __global__ void checkInside(PVview view, int *nInside, const InsideWallChecker c
 //===============================================================================================
 
 template<typename InsideWallChecker>
-__global__ void computeSdfPerParticle(PVview view, real gradientThreshold, real *sdfs, real3 *gradients, InsideWallChecker checker)
+__global__ void computeSdfPerParticle(PVview view, real gradientThreshold,
+                                      real *sdfs, real3 *gradients,
+                                      InsideWallChecker checker)
 {
     constexpr real h = 0.25_r;
     constexpr real zeroTolerance = 1e-6_r;
