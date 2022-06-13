@@ -482,11 +482,12 @@ void Simulation::setWallBounce(const std::string& wallName, const std::string& p
 
     if (wallMap_.find(wallName) == wallMap_.end())
         die("No such wall: %s", wallName.c_str());
+
     auto wall = wallMap_[wallName].get();
 
-    if (auto ov = dynamic_cast<ObjectVector*>(pv))
-        die("Object Vectors can not be bounced from walls in the current implementaion. "
-            "Invalid combination: wall '%s' and OV '%s'", wall->getCName(), ov->getCName());
+    if (auto rv = dynamic_cast<RigidObjectVector*>(pv))
+        die("Rigid Object Vectors can not be bounced from walls in the current implementaion. "
+            "Invalid combination: wall '%s' and ROV '%s'", wall->getCName(), rv->getCName());
 
     wall->setPrerequisites(pv);
     wallPrototypes_.push_back( {wall, pv, maximumPartTravel} );

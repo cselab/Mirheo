@@ -317,40 +317,47 @@ void SimpleStationaryWall<InsideWallChecker>::attach(ParticleVector *pv, CellLis
         return;
     }
 
-    if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
-        die("PVs should only be attached to walls with the primary cell-lists! "
-            "Invalid combination: wall %s, pv %s", getCName(), pv->getCName());
-
     CUDA_Check( cudaDeviceSynchronize() );
     particleVectors_.push_back(pv);
     cellLists_.push_back(cl);
 
-    const int nthreads = 128;
-    const int nblocks = getNblocks(cl->totcells, nthreads);
+    if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
+    {
+        debug("wall %s, pv %s: cannot use primary cell-list, will use the bounce kernel without cell-lists optimization.",
+              getCName(), pv->getCName());
 
-    PinnedBuffer<int> nBoundaryCells(1);
-    nBoundaryCells.clear(defaultStream);
+        // dummy pinned buffer
+        boundaryCells_.push_back(DeviceBuffer<int>{0});
+    }
+    else
+    {
+        const int nthreads = 128;
+        const int nblocks = getNblocks(cl->totcells, nthreads);
 
-    SAFE_KERNEL_LAUNCH(
-        stationary_walls_kernels::getBoundaryCells<QueryMode::Query>,
-        nblocks, nthreads, 0, defaultStream,
-        maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
-        nullptr, insideWallChecker_.handler() );
+        PinnedBuffer<int> nBoundaryCells(1);
+        nBoundaryCells.clear(defaultStream);
 
-    nBoundaryCells.downloadFromDevice(defaultStream);
+        SAFE_KERNEL_LAUNCH(
+            stationary_walls_kernels::getBoundaryCells<QueryMode::Query>,
+            nblocks, nthreads, 0, defaultStream,
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            nullptr, insideWallChecker_.handler() );
 
-    debug("Found %d boundary cells", nBoundaryCells[0]);
-    DeviceBuffer<int> bc(nBoundaryCells[0]);
+        nBoundaryCells.downloadFromDevice(defaultStream);
 
-    nBoundaryCells.clear(defaultStream);
-    SAFE_KERNEL_LAUNCH(
-        stationary_walls_kernels::getBoundaryCells<QueryMode::Collect>,
-        nblocks, nthreads, 0, defaultStream,
-        maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
-        bc.devPtr(), insideWallChecker_.handler() );
+        debug("Found %d boundary cells", nBoundaryCells[0]);
+        DeviceBuffer<int> bc(nBoundaryCells[0]);
 
-    boundaryCells_.push_back(std::move(bc));
-    CUDA_Check( cudaDeviceSynchronize() );
+        nBoundaryCells.clear(defaultStream);
+        SAFE_KERNEL_LAUNCH(
+            stationary_walls_kernels::getBoundaryCells<QueryMode::Collect>,
+            nblocks, nthreads, 0, defaultStream,
+            maximumPartTravel, cl->cellInfo(), nBoundaryCells.devPtr(),
+            bc.devPtr(), insideWallChecker_.handler() );
+
+        boundaryCells_.push_back(std::move(bc));
+        CUDA_Check( cudaDeviceSynchronize() );
+    }
 }
 
 template<class InsideWallChecker>
@@ -481,20 +488,37 @@ void SimpleStationaryWall<InsideWallChecker>::bounce(cudaStream_t stream)
         auto  pv = particleVectors_[i];
         auto  cl = cellLists_[i];
         auto& bc = boundaryCells_[i];
-        auto  view = cl->getView<PVviewWithOldParticles>();
 
-        debug2("Bouncing %d %s particles, %zu boundary cells",
-               pv->local()->size(), pv->getCName(), bc.size());
+        if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
+        {
+            const PVviewWithOldParticles view(pv, pv->local());
 
-        const int nthreads = 64;
-        SAFE_KERNEL_LAUNCH(
-                bounce_kernels::sdfBounce,
-                getNblocks(bc.size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(),
-                bc.devPtr(), bc.size(), dt,
-                insideWallChecker_.handler(),
-                VelocityFieldNone{},
-                bounceForce_.devPtr());
+            debug2("Bouncing %d %s particles", pv->local()->size(), pv->getCName());
+
+            const int nthreads = 128;
+            SAFE_KERNEL_LAUNCH(
+                    bounce_kernels::sdfBounce,
+                    getNblocks(view.size, nthreads), nthreads, 0, stream,
+                    view, dt, insideWallChecker_.handler(),
+                    VelocityFieldNone{}, bounceForce_.devPtr());
+        }
+        else
+        {
+            auto  view = cl->getView<PVviewWithOldParticles>();
+
+            debug2("Bouncing %d %s particles, %zu boundary cells",
+                   pv->local()->size(), pv->getCName(), bc.size());
+
+            const int nthreads = 64;
+            SAFE_KERNEL_LAUNCH(
+                    bounce_kernels::sdfBounce,
+                    getNblocks(bc.size(), nthreads), nthreads, 0, stream,
+                    view, cl->cellInfo(),
+                    bc.devPtr(), bc.size(), dt,
+                    insideWallChecker_.handler(),
+                    VelocityFieldNone{},
+                    bounceForce_.devPtr());
+        }
 
         CUDA_Check( cudaPeekAtLastError() );
     }

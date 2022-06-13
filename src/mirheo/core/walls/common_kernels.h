@@ -8,11 +8,8 @@
 #include <mirheo/core/utils/helper_math.h>
 #include <mirheo/core/utils/root_finder.h>
 
-namespace mirheo
-{
-
-namespace bounce_kernels
-{
+namespace mirheo {
+namespace bounce_kernels {
 
 template <typename InsideWallChecker>
 __device__ inline real3 rescue(real3 candidate, real dt, real tol, int seed, const InsideWallChecker& checker)
@@ -91,6 +88,52 @@ __global__ void sdfBounce(PVviewWithOldParticles view, CellListInfo cinfo,
 
 }
 
-} // namespace bounce_kernels
+template <typename InsideWallChecker, typename VelocityField>
+__global__ void sdfBounce(PVviewWithOldParticles view, const real dt,
+                          const InsideWallChecker checker,
+                          const VelocityField velField,
+                          double3 *totalForce)
+{
+    const real insideTolerance = 2e-6_r;
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
+    real3 localForce{0._r, 0._r, 0._r};
+
+    if (i < view.size)
+    {
+        Particle p(view.readParticle(i));
+        if (checker(p.r) > -insideTolerance)
+        {
+            const auto rOld = view.readOldPosition(i);
+            const real3 dr = p.r - rOld;
+
+            constexpr root_finder::Bounds limits {0._r, 1._r};
+            const real alpha = root_finder::linearSearch([=] (real lambda)
+            {
+                return checker(rOld + dr*lambda) + insideTolerance;
+            }, limits);
+
+            real3 candidate = (alpha >= limits.lo) ? rOld + alpha * dr : rOld;
+            candidate = rescue(candidate, dt, insideTolerance, p.i1, checker);
+
+            const real3 uWall = velField(p.r);
+            const real3 unew = 2.0_r * uWall - p.u;
+
+            localForce += (p.u - unew) * (view.mass / dt); // force exerted by the particle on the wall
+
+            p.r = candidate;
+            p.u = unew;
+
+            view.writeParticle(i, p);
+        }
+    }
+
+    localForce = warpReduce(localForce, [](real a, real b){return a+b;});
+
+    if ((laneId() == 0) && (length(localForce) > 1e-8_r))
+        atomicAdd(totalForce, make_double3(localForce));
+
+}
+
+} // namespace bounce_kernels
 } // namespace mirheo

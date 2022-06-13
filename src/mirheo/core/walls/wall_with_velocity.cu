@@ -85,8 +85,8 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::attachFrozen(ParticleVe
 template<class InsideWallChecker, class VelocityField>
 void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t stream)
 {
-    real t  = this->getState()->currentTime;
-    real dt = this->getState()->getDt();
+    const real t  = this->getState()->currentTime;
+    const real dt = this->getState()->getDt();
 
     velField_.setup(t, this->getState()->domain);
     this->bounceForce_.clear(stream);
@@ -96,19 +96,34 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
         auto  pv = this->particleVectors_[i];
         auto  cl = this->cellLists_[i];
         auto& bc = this->boundaryCells_[i];
-        auto view = cl->CellList::getView<PVviewWithOldParticles>();
 
-        debug2("Bouncing %d %s particles with wall velocity, %zu boundary cells",
-               pv->local()->size(), pv->getCName(), bc.size());
+        if (dynamic_cast<PrimaryCellList*>(cl) == nullptr)
+        {
+            const PVviewWithOldParticles view(pv, pv->local());
 
-        const int nthreads = 64;
-        SAFE_KERNEL_LAUNCH(
-                bounce_kernels::sdfBounce,
-                getNblocks(bc.size(), nthreads), nthreads, 0, stream,
-                view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
-                this->insideWallChecker_.handler(),
-                velField_.handler(),
-                this->bounceForce_.devPtr());
+            const int nthreads = 128;
+            SAFE_KERNEL_LAUNCH(
+                    bounce_kernels::sdfBounce,
+                    getNblocks(view.size, nthreads), nthreads, 0, stream,
+                    view, dt, this->insideWallChecker_.handler(),
+                    velField_.handler(), this->bounceForce_.devPtr());
+        }
+        else
+        {
+            auto view = cl->CellList::getView<PVviewWithOldParticles>();
+
+            debug2("Bouncing %d %s particles with wall velocity, %zu boundary cells",
+                   pv->local()->size(), pv->getCName(), bc.size());
+
+            const int nthreads = 64;
+            SAFE_KERNEL_LAUNCH(
+                    bounce_kernels::sdfBounce,
+                    getNblocks(bc.size(), nthreads), nthreads, 0, stream,
+                    view, cl->cellInfo(), bc.devPtr(), bc.size(), dt,
+                    this->insideWallChecker_.handler(),
+                    velField_.handler(),
+                    this->bounceForce_.devPtr());
+        }
 
         CUDA_Check( cudaPeekAtLastError() );
     }
