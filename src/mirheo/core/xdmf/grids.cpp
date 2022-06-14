@@ -98,9 +98,11 @@ pugi::xml_node UniformGrid::writeToXMF(pugi::xml_node node, __UNUSED std::string
     setup3Fnode(origNode, "Origin");
     origNode.text() = "0.0 0.0 0.0";
 
+    auto spacing = spacing_;
+    std::reverse(spacing.begin(), spacing.end());
     auto spaceNode = geomNode.append_child("DataItem");
     setup3Fnode(spaceNode, "Spacing");
-    spaceNode.text() = to_string(spacing_).c_str();
+    spaceNode.text() = to_string(spacing).c_str();
 
     return gridNode;
 }
