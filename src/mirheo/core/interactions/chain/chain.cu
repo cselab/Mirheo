@@ -85,8 +85,11 @@ void ChainInteraction::setPrerequisites(ParticleVector *pv1,
                                         CellList *cl1,
                                         __UNUSED CellList *cl2)
 {
-    pv1->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
-    cl1->requireExtraDataPerParticle <Stress> (channel_names::stresses);
+    if (stressPeriod_)
+    {
+        pv1->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
+        cl1->requireExtraDataPerParticle <Stress> (channel_names::stresses);
+    }
 }
 
 void ChainInteraction::halo(ParticleVector *pv1,
