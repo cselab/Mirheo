@@ -101,39 +101,40 @@ public:
         \param pv The ParticleVector to register
         \param ic The InitialConditions that will be applied to \p pv when registered
     */
-    void registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic);
+    void registerParticleVector(std::shared_ptr<ParticleVector> pv,
+                                std::shared_ptr<InitialConditions> ic);
 
     /** \brief register an \c Interaction
         \param interaction the \c Interaction to register.
         \see setInteraction().
      */
-    void registerInteraction(const std::shared_ptr<Interaction>& interaction);
+    void registerInteraction(std::shared_ptr<Interaction> interaction);
 
     /** \brief register an \c Integrator
         \param integrator the \c Integrator to register.
         \see setIntegrator().
     */
-    void registerIntegrator(const std::shared_ptr<Integrator>& integrator);
+    void registerIntegrator(std::shared_ptr<Integrator> integrator);
 
     /** \brief register a \c Wall
         \param wall The \c Wall to register
         \param checkEvery The particles that will bounce against this wall will be checked (inside/outside log info)
                every this number of time steps. 0 means no check.
     */
-    void registerWall(const std::shared_ptr<Wall>& wall, int checkEvery=0);
+    void registerWall(std::shared_ptr<Wall> wall, int checkEvery=0);
 
     /** \brief register a \c Bouncer
         \param bouncer the \c Bouncer to register.
         \see setBouncer().
     */
-    void registerBouncer(const std::shared_ptr<Bouncer>& bouncer);
+    void registerBouncer(std::shared_ptr<Bouncer> bouncer);
 
     /** \brief register a SimulationPlugin
         \param simPlugin the SimulationPlugin to register (only relevant if the current rank is a compute task).
         \param postPlugin the PostprocessPlugin to register (only relevant if the current rank is a postprocess task).
     */
-    void registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin,
-                         const std::shared_ptr<PostprocessPlugin>& postPlugin);
+    void registerPlugins(std::shared_ptr<SimulationPlugin> simPlugin,
+                         std::shared_ptr<PostprocessPlugin> postPlugin);
 
     /// More generic version of registerPlugins()
     void registerPlugins(const PairPlugin &plugins);
@@ -143,7 +144,7 @@ public:
         \param ov the associated ObjectVector (must be registered).
         \see applyObjectBelongingChecker()
     */
-    void registerObjectBelongingChecker(const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector *ov);
+    void registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector *ov);
 
     /** \brief deregister an \c Integrator
         \param integrator the \c Integrator to deregister.

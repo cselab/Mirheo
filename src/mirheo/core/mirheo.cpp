@@ -210,68 +210,70 @@ Mirheo::~Mirheo()
         MPI_Finalize();
 }
 
-void Mirheo::registerParticleVector(const std::shared_ptr<ParticleVector>& pv, const std::shared_ptr<InitialConditions>& ic)
+void Mirheo::registerParticleVector(std::shared_ptr<ParticleVector> pv,
+                                    std::shared_ptr<InitialConditions> ic)
 {
     ensureNotInitialized();
 
     if (isComputeTask())
-        sim_->registerParticleVector(pv, ic);
+        sim_->registerParticleVector(std::move(pv), std::move(ic));
 }
 
-void Mirheo::registerIntegrator(const std::shared_ptr<Integrator>& integrator)
+void Mirheo::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
     if (isComputeTask())
-        sim_->registerIntegrator(integrator);
+        sim_->registerIntegrator(std::move(integrator));
 }
 
-void Mirheo::registerInteraction(const std::shared_ptr<Interaction>& interaction)
-{
-    ensureNotInitialized();
-
-    if (isComputeTask())
-        sim_->registerInteraction(interaction);
-}
-
-void Mirheo::registerWall(const std::shared_ptr<Wall>& wall, int checkEvery)
+void Mirheo::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
     ensureNotInitialized();
 
     if (isComputeTask())
-        sim_->registerWall(wall, checkEvery);
+        sim_->registerInteraction(std::move(interaction));
 }
 
-void Mirheo::registerBouncer(const std::shared_ptr<Bouncer>& bouncer)
+void Mirheo::registerWall(std::shared_ptr<Wall> wall, int checkEvery)
 {
     ensureNotInitialized();
 
     if (isComputeTask())
-        sim_->registerBouncer(bouncer);
+        sim_->registerWall(std::move(wall), checkEvery);
 }
 
-void Mirheo::registerObjectBelongingChecker (const std::shared_ptr<ObjectBelongingChecker>& checker, ObjectVector* ov)
+void Mirheo::registerBouncer(std::shared_ptr<Bouncer> bouncer)
+{
+    ensureNotInitialized();
+
+    if (isComputeTask())
+        sim_->registerBouncer(std::move(bouncer));
+}
+
+void Mirheo::registerObjectBelongingChecker(std::shared_ptr<ObjectBelongingChecker> checker, ObjectVector* ov)
 {
     ensureNotInitialized();
 
     if (isComputeTask())
     {
-        sim_->registerObjectBelongingChecker(checker);
-        sim_->setObjectBelongingChecker(checker->getName(), ov->getName());
+        const std::string checkerName = checker->getName();
+        sim_->registerObjectBelongingChecker(std::move(checker));
+        sim_->setObjectBelongingChecker(checkerName, ov->getName());
     }
 }
 
-void Mirheo::registerPlugins(const std::shared_ptr<SimulationPlugin>& simPlugin, const std::shared_ptr<PostprocessPlugin>& postPlugin)
+void Mirheo::registerPlugins(std::shared_ptr<SimulationPlugin> simPlugin, std::shared_ptr<PostprocessPlugin> postPlugin)
 {
     const int tag = pluginsTag_++;
 
     if (isComputeTask())
     {
-        if ( simPlugin != nullptr && !(simPlugin->needPostproc() && noPostprocess_) )
-            sim_->registerPlugin(simPlugin, tag);
+        if ( simPlugin && !(simPlugin->needPostproc() && noPostprocess_) )
+            sim_->registerPlugin(std::move(simPlugin), tag);
     }
     else
     {
-        if ( postPlugin != nullptr && !noPostprocess_ )
-            post_->registerPlugin(postPlugin, tag);
+        if ( postPlugin && !noPostprocess_ )
+            post_->registerPlugin(std::move(postPlugin), tag);
     }
 }
 

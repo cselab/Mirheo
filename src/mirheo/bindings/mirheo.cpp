@@ -215,8 +215,8 @@ Args:
                    check_every: if positive, check every this many time steps if particles penetrate the walls
         )")
         .def("registerPlugins",
-             (void(Mirheo::*)(const std::shared_ptr<SimulationPlugin> &,
-                              const std::shared_ptr<PostprocessPlugin> &))&Mirheo::registerPlugins,
+             (void(Mirheo::*)(std::shared_ptr<SimulationPlugin>,
+                              std::shared_ptr<PostprocessPlugin>))&Mirheo::registerPlugins,
              "Register Plugins")
 
         .def("deregisterIntegrator", &Mirheo::deregisterIntegrator, "integrator"_a, "Deregister a integrator.")

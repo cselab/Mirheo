@@ -336,7 +336,7 @@ void Simulation::registerWall(std::shared_ptr<Wall> wall, int every)
 
 void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 {
-    const std::string& name = interaction->getName();
+    const std::string name = interaction->getName();
 
     if (interactionMap_.find(name) != interactionMap_.end())
         die("More than one interaction is called %s", name.c_str());
@@ -346,7 +346,7 @@ void Simulation::registerInteraction(std::shared_ptr<Interaction> interaction)
 
 void Simulation::registerIntegrator(std::shared_ptr<Integrator> integrator)
 {
-    const std::string& name = integrator->getName();
+    const std::string name = integrator->getName();
 
     if (integratorMap_.find(name) != integratorMap_.end())
         die("More than one integrator is called %s", name.c_str());
@@ -433,8 +433,8 @@ void Simulation::setIntegrator(const std::string& integratorName, const std::str
 {
     if (integratorMap_.find(integratorName) == integratorMap_.end())
         die("No such integrator: %s", integratorName.c_str());
-    auto integrator = integratorMap_[integratorName].get();
 
+    auto integrator = integratorMap_[integratorName].get();
     auto pv = getPVbyNameOrDie(pvName);
 
     if (pvsIntegratorMap_.find(pvName) != pvsIntegratorMap_.end())
@@ -442,9 +442,7 @@ void Simulation::setIntegrator(const std::string& integratorName, const std::str
             pvName.c_str(), pvsIntegratorMap_[pvName].c_str());
 
     pvsIntegratorMap_[pvName] = integratorName;
-
     integrator->setPrerequisites(pv);
-
     integratorPrototypes_.push_back({pv, integrator});
 }
 
