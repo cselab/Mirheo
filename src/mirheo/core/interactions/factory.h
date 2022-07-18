@@ -8,8 +8,7 @@
 #include <memory>
 #include <string>
 
-namespace mirheo
-{
+namespace mirheo {
 
 class Interaction;
 class BaseMembraneInteraction;
@@ -19,8 +18,8 @@ class ChainInteraction;
 class ObjectBindingInteraction;
 class ObjectRodBindingInteraction;
 
-namespace interaction_factory
-{
+namespace interaction_factory {
+
 using VarParam = ParametersWrap::VarParam;
 using MapParams = ParametersWrap::MapParams;
 
@@ -49,5 +48,4 @@ createInteractionObjRodBinding(const MirState *state, std::string name,
                                real torque, real3 relAnchor, real kBound);
 
 } // namespace interaction_factory
-
 } // namespace mirheo

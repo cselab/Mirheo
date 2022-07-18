@@ -190,7 +190,7 @@ private:
         computeSelfInteractions() or computeExternalInteractions_1tpp()
         (or other variants of external interaction kernels).
     */
-    void _computeLocal(ParticleVector* pv1, ParticleVector* pv2, CellList* cl1, CellList* cl2, cudaStream_t stream)
+    void _computeLocal(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
     {
         using ViewType = typename PairwiseKernel::ViewType;
 

@@ -67,8 +67,10 @@ __device__ inline void computeCell(
         bool interacting = interaction.withinCutoff(srcP, dstP);
 
         if (InteractWith == InteractionWith::Self)
+        {
             if (dstId <= srcId)
                 interacting = false;
+        }
 
         if (interacting)
         {
@@ -101,7 +103,7 @@ __launch_bounds__(128, 16)
 __global__ void computeSelfInteractions(
         CellListInfo cinfo, typename Interaction::ViewType view, Interaction interaction)
 {
-    const int dstId = blockIdx.x*blockDim.x + threadIdx.x;
+    const int dstId = blockIdx.x * blockDim.x + threadIdx.x;
     if (dstId >= view.size) return;
 
     const auto dstP = interaction.read(view, dstId);
