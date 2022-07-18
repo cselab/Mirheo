@@ -1,8 +1,8 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "factory.h"
 
-#include "pairwise.h"
-#include "pairwise_with_stress.h"
+#include "symmetric_pairwise.h"
+#include "symmetric_pairwise_with_stress.h"
 
 #include "kernels/density.h"
 #include "kernels/density_kernels.h"
@@ -28,11 +28,11 @@ createPairwiseFromKernel(const MirState *state, const std::string& name, real rc
     if (std::holds_alternative<StressActiveParams>(varStressParams))
     {
         const auto stressParams = std::get<StressActiveParams>(varStressParams);
-        return std::make_shared<PairwiseInteractionWithStress<KernelType>>(state, name, rc, stressParams.period, params);
+        return std::make_shared<SymmetricPairwiseInteractionWithStress<KernelType>>(state, name, rc, stressParams.period, params);
     }
     else
     {
-        return std::make_shared<PairwiseInteraction<KernelType>>(state, name, rc, params);
+        return std::make_shared<SymmetricPairwiseInteraction<KernelType>>(state, name, rc, params);
     }
 }
 
@@ -44,7 +44,7 @@ createPairwiseFromKernelNoStress(const MirState *state, const std::string& name,
     if (std::holds_alternative<StressActiveParams>(varStressParams))
         die("Incompatible interaction output: '%s' can not output stresses.", name.c_str());
 
-    return std::make_shared<PairwiseInteraction<KernelType>>(state, name, rc, params);
+    return std::make_shared<SymmetricPairwiseInteraction<KernelType>>(state, name, rc, params);
 }
 
 

@@ -1,7 +1,7 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #pragma once
 
-#include "pairwise.h"
+#include "symmetric_pairwise.h"
 #include "kernels/stress_wrapper.h"
 
 #include <mirheo/core/datatypes.h>
@@ -21,7 +21,7 @@ namespace mirheo
     for post processing; thus the stresses may not need to be computed at every time step.
  */
 template<class PairwiseKernel>
-class PairwiseInteractionWithStress : public BasePairwiseInteraction
+class SymmetricPairwiseInteractionWithStress : public BasePairwiseInteraction
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // bug in breathe
@@ -29,7 +29,7 @@ public:
     using KernelParams = typename PairwiseKernel::ParamsType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
-    /** \brief Construct a PairwiseInteractionWithStress object
+    /** \brief Construct a SymmetricPairwiseInteractionWithStress object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
         \param [in] rc The cut-off radius of the interaction
@@ -37,15 +37,15 @@ public:
         \param [in] pairParams The parameters used to construct the interaction kernel
         \param [in] seed used to initialize random number generator (needed to construct some interaction kernels).
      */
-    PairwiseInteractionWithStress(const MirState *state, const std::string& name, real rc, real stressPeriod,
-                                  KernelParams pairParams, long seed = 42424242) :
+    SymmetricPairwiseInteractionWithStress(const MirState *state, const std::string& name, real rc, real stressPeriod,
+                                           KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         stressPeriod_(stressPeriod),
         interactionWithoutStress_(state, name, rc, pairParams, seed),
         interactionWithStress_(state, name + "_withStress", rc, pairParams, seed)
     {}
 
-    ~PairwiseInteractionWithStress() = default;
+    ~SymmetricPairwiseInteractionWithStress() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
@@ -135,8 +135,8 @@ private:
     real stressPeriod_; ///< The stress will be computed every this amount of time
     real lastStressTime_ {-1e6}; ///< to keep track of the last time stress was computed
 
-    PairwiseInteraction<PairwiseKernel> interactionWithoutStress_; ///< The interaction without stress wrapper
-    PairwiseInteraction<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress_; ///< The interaction with stress wrapper
+    SymmetricPairwiseInteraction<PairwiseKernel> interactionWithoutStress_; ///< The interaction without stress wrapper
+    SymmetricPairwiseInteraction<PairwiseStressWrapper<PairwiseKernel>> interactionWithStress_; ///< The interaction with stress wrapper
 };
 
 } // namespace mirheo

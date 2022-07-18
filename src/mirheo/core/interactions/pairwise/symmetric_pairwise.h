@@ -24,7 +24,7 @@ namespace mirheo
     See the pairwise interaction entry of the developer documentation for the interface requirements of the kernel.
  */
 template <class PairwiseKernel>
-class PairwiseInteraction : public BasePairwiseInteraction
+class SymmetricPairwiseInteraction : public BasePairwiseInteraction
 {
 public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // bug in breathe
@@ -32,21 +32,21 @@ public:
     using KernelParams = typename PairwiseKernel::ParamsType;
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
-    /** \brief Construct a PairwiseInteraction object
+    /** \brief Construct a SymmetricPairwiseInteraction object
         \param [in] state The global state of the system
         \param [in] name The name of the interaction
         \param [in] rc The cut-off radius of the interaction
         \param [in] pairParams The parameters used to construct the interaction kernel
         \param [in] seed used to initialize random number generator (needed to construct some interaction kernels).
      */
-    PairwiseInteraction(const MirState *state, const std::string& name, real rc,
-                        KernelParams pairParams, long seed = 42424242) :
+    SymmetricPairwiseInteraction(const MirState *state, const std::string& name, real rc,
+                                 KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
         pair_{rc, pairParams, seed},
         pairParams_(pairParams)
     {}
 
-    ~PairwiseInteraction() = default;
+    ~SymmetricPairwiseInteraction() = default;
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override
     {
