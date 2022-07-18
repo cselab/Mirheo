@@ -42,8 +42,7 @@ public:
     SymmetricPairwiseInteraction(const MirState *state, const std::string& name, real rc,
                                  KernelParams pairParams, long seed = 42424242) :
         BasePairwiseInteraction(state, name, rc),
-        pair_{rc, pairParams, seed},
-        pairParams_(pairParams)
+        pair_{rc, pairParams, seed}
     {}
 
     ~SymmetricPairwiseInteraction() = default;
@@ -283,7 +282,6 @@ private:
 
 private:
     PairwiseKernel pair_;
-    KernelParams pairParams_; // this is stored because of config, we need this to serialize the object.
 };
 
 } // namespace mirheo

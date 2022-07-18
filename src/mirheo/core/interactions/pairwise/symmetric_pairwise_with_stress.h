@@ -7,8 +7,6 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/interactions/interface.h>
 
-#include <map>
-
 namespace mirheo
 {
 
