@@ -136,6 +136,9 @@ PairPlugin createVelocityControlPlugin(bool computeTask, const MirState *state, 
 
 PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real maxDist, int nbins, std::string basename, int every);
 
+PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::string name, ChainVector *cv,
+                             MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
+
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);

@@ -33,6 +33,7 @@
 #include "pin_object.h"
 #include "pin_rod_extremity.h"
 #include "rdf.h"
+#include "rmacf.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "vacf.h"
@@ -42,10 +43,8 @@
 #include "wall_force_collector.h"
 #include "wall_repulsion.h"
 
-namespace mirheo
-{
-namespace plugin_factory
-{
+namespace mirheo {
+namespace plugin_factory {
 
 static std::vector<std::string> extractPVNames(const std::vector<ParticleVector*>& pvs)
 {
@@ -394,6 +393,16 @@ PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string 
 
     return { simPl, postPl };
 }
+
+PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::string name, ChainVector *cv,
+                             MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path)
+{
+    auto simPl  = computeTask ? std::make_shared<RmacfPlugin> (state, name, cv->getName(), startTime, endTime, dumpEvery)
+        : nullptr;
+    auto postPl = computeTask ? nullptr : std::make_shared<RmacfDumper> (name, path);
+    return { simPl, postPl };
+}
+
 
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename)
 {

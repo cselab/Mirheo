@@ -536,6 +536,20 @@ void exportPlugins(py::module& m)
             every: Computes and dump the RDF every this amount of timesteps.
     )");
 
+    m.def("__createRmacf", &plugin_factory::createRmacfPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "cv"_a, "start_time"_a, "end_time"_a, "dump_every"_a, "path"_a, R"(
+        This plugin computes the mean Rouse mode autocorrelation over time from a given :any:`ChainVector`.
+        The reference modes are that of the :any:`ChainVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            cv: Concerned :class:`ChainVector`.
+            start_time: Simulation time of the reference velocities.
+            end_time: End time until which to compute the RMACF.
+            dump_every: Report the RMACF every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    )");
+
     m.def("__createStats", &plugin_factory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "every"_a, "pvs"_a=std::vector<ParticleVector*>(), "filename"_a="", R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
