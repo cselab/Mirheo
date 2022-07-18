@@ -128,12 +128,6 @@ public:
         return text_IO::readFromStream(fin, stepGen_);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseMDPD";
-    }
-
 private:
     static real computeSigma(real gamma, real kBT, real dt)
     {

@@ -84,13 +84,6 @@ public:
         sigma_ = math::sqrt(2 * gamma_ * kBT_ / state->getDt());
     }
 
-
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseNorandomDPD";
-    }
-
 protected:
     real a_; ///< conservative force magnitude
     real gamma_; ///< viscous force coefficient

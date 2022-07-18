@@ -60,12 +60,6 @@ public:
         return (const HandlerType&) (*this);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseLJ";
-    }
-
 private:
     real sigma2_;
     real epsx24_sigma2_;

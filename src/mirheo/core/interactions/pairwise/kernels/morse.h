@@ -75,12 +75,6 @@ public:
         awareness_.setup(lpv1, lpv2);
     }
 
-    /// \return type name string
-    static std::string getTypeName()
-    {
-        return "PairwiseMorse";
-    }
-
 private:
     real twoDeBeta_; ///< 2 * De * beta
     real r0_;
