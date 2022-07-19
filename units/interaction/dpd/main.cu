@@ -1,8 +1,8 @@
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/containers.h>
 #include <mirheo/core/initial_conditions/uniform.h>
+#include <mirheo/core/interactions/pairwise/norandom_dpd.h>
 #include <mirheo/core/interactions/pairwise/kernels/norandom_dpd.h>
-#include <mirheo/core/interactions/pairwise/pairwise.h>
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
@@ -23,7 +23,7 @@ TEST(Interactions_dpd, is_not_nan_at_zero_distance)
     const real kBT = 0.4_r;
     const real power = 0.25_r;
 
-    PairwiseNorandomDPD dpd(rc, a, gamma, kBT, power);
+    PairwiseNoRandomDPD dpd(rc, a, gamma, kBT, power);
 
     Particle p0, p1;
     p0.setId(54321);
@@ -152,7 +152,7 @@ static void execute(MPI_Comm comm, real3 length)
     const real adpd = 50;
 
     NoRandomDPDParams dpdParams {adpd, gammadpd, kbT, k};
-    std::unique_ptr<Interaction> inter = std::make_unique<PairwiseInteraction<PairwiseNorandomDPD>>(&state, "dpd", rc, dpdParams);
+    std::unique_ptr<Interaction> inter = std::make_unique<PairwiseNoRandomDPDInteraction>(&state, "dpd", rc, dpdParams);
 
     PinnedBuffer<int> counter(1);
 
