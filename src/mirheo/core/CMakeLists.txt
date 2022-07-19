@@ -110,6 +110,7 @@ set(sources_cu
   interactions/obj_rod_binding.cu
   interactions/pairwise/density.cu
   interactions/pairwise/dpd.cu
+  interactions/pairwise/growing_repulsive_lj.cu
   interactions/pairwise/lj.cu
   interactions/pairwise/mdpd.cu
   interactions/pairwise/morse.cu
