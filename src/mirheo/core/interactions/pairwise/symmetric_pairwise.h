@@ -153,14 +153,6 @@ public:
         check( pair_.readState(fin) );
     }
 
-    /// \return A string that describes the type of this object
-    static std::string getTypeName()
-    {
-        return constructTypeName("PairwiseInteraction", 1, PairwiseKernel::getTypeName().c_str());
-    }
-
-protected:
-
 private:
 
     /** \brief  Convenience macro wrapper

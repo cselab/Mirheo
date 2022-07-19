@@ -7,8 +7,7 @@
 #include "interface.h"
 #include "parameters.h"
 
-namespace mirheo
-{
+namespace mirheo {
 
 /** \brief Compute Morse forces on the device.
     \tparam Awareness A functor that describes which particles pairs interact.
@@ -34,7 +33,7 @@ public:
     {}
 
     /// Generic constructor
-    PairwiseMorse(real rc, const ParamsType& p, __UNUSED long seed) :
+    PairwiseMorse(real rc, const ParamsType& p, __UNUSED long seed = 42424242) :
         PairwiseMorse{rc,
                       p.De, p.r0, p.beta,
                       std::get<typename Awareness::ParamsType>(p.varAwarenessParams)}

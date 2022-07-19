@@ -180,7 +180,7 @@ struct QuasiIncompressiblePressureEOSParams
 
 /// variant of all equation of states parameters
 using VarEOSParams = std::variant<LinearPressureEOSParams,
-                                    QuasiIncompressiblePressureEOSParams>;
+                                  QuasiIncompressiblePressureEOSParams>;
 
 /// variant of all density kernels compatible with SDPD
 using VarSDPDDensityKernelParams = std::variant<WendlandC2DensityKernelParams>;

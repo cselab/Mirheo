@@ -108,6 +108,14 @@ set(sources_cu
   interactions/membrane/prerequisites.cu
   interactions/obj_binding.cu
   interactions/obj_rod_binding.cu
+  interactions/pairwise/density.cu
+  interactions/pairwise/dpd.cu
+  interactions/pairwise/lj.cu
+  interactions/pairwise/mdpd.cu
+  interactions/pairwise/morse.cu
+  interactions/pairwise/norandom_dpd.cu
+  interactions/pairwise/repulsive_lj.cu
+  interactions/pairwise/sdpd.cu
   interactions/pairwise/factory.cu
   interactions/rod/factory.cu
   object_belonging/mesh_belonging.cu

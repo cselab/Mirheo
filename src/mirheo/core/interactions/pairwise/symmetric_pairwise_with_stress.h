@@ -122,13 +122,6 @@ public:
         interactionWithStress_   .restart(comm, path);
     }
 
-    /// \return A string that describes the type of this object
-    static std::string getTypeName()
-    {
-        return constructTypeName("PairwiseInteractionWithStress", 1,
-                                 PairwiseKernel::getTypeName().c_str());
-    }
-
 private:
     real stressPeriod_; ///< The stress will be computed every this amount of time
     real lastStressTime_ {-1e6}; ///< to keep track of the last time stress was computed

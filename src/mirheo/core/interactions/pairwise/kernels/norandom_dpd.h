@@ -18,17 +18,17 @@ class CellList;
 
 /// a GPU compatible functor that computes DPD interactions without fluctuations.
 /// Used in unit tests
-class PairwiseNorandomDPD : public PairwiseKernel, public ParticleFetcher
+class PairwiseNoRandomDPD : public PairwiseKernel, public ParticleFetcher
 {
 public:
 
     using ViewType     = PVview;   ///< compatible view type
     using ParticleType = Particle; ///< compatible particle type
-    using HandlerType  = PairwiseNorandomDPD;  ///< handler type corresponding to this object
+    using HandlerType  = PairwiseNoRandomDPD;  ///< handler type corresponding to this object
     using ParamsType   = NoRandomDPDParams; ///< parameters that are used to create this object
 
     /// constructor
-    PairwiseNorandomDPD(real rc, real a, real gamma, real kBT, real power) :
+    PairwiseNoRandomDPD(real rc, real a, real gamma, real kBT, real power) :
         ParticleFetcher(rc),
         a_(a),
         gamma_(gamma),
@@ -38,12 +38,12 @@ public:
     {}
 
     /// Generic constructor
-    PairwiseNorandomDPD(real rc, const ParamsType& p, long seed=42424242) :
-        PairwiseNorandomDPD(rc, p.a, p.gamma, p.kBT, p.power)
+    PairwiseNoRandomDPD(real rc, const ParamsType& p, __UNUSED long seed=42424242) :
+        PairwiseNoRandomDPD(rc, p.a, p.gamma, p.kBT, p.power)
     {}
 
     /// evaluate the force
-    __HD__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __HD__ inline real3 operator()(const ParticleType dst, __UNUSED int dstId, const ParticleType src, __UNUSED int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);

@@ -11,10 +11,7 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/rod_vector.h>
 
-namespace mirheo
-{
-
-
+namespace mirheo {
 
 
 /** \brief A GPU compatible functor to compute repulsive LJ interactions

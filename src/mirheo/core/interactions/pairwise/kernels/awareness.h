@@ -6,8 +6,9 @@
 #include <mirheo/core/pvs/object_vector.h>
 #include <mirheo/core/pvs/rod_vector.h>
 
-namespace mirheo
-{
+#include <variant>
+
+namespace mirheo {
 
 /** A GPU compatible functor that describes a filter for pairwise interactions.
     This particular class allows interactions between all particles.
@@ -134,5 +135,9 @@ private:
     int minSegmentsDist_{0};
 };
 
+
+using VarAwareness = std::variant<AwarenessNone,
+                                  AwarenessObject,
+                                  AwarenessRod>;
 
 } // namespace mirheo
