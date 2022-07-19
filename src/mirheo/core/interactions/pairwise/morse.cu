@@ -88,13 +88,14 @@ std::vector<Interaction::InteractionChannel> PairwiseMorseInteraction<Awareness>
 
 
 std::unique_ptr<BasePairwiseInteraction>
-makePairwiseMorseInteraction(const MirState *state, const std::string& name, real rc, MorseParams params)
+makePairwiseMorseInteraction(const MirState *state, const std::string& name, real rc,
+                             MorseParams params, std::optional<real> stressPeriod)
 {
     return std::visit([=](auto awarenessParams) -> std::unique_ptr<BasePairwiseInteraction>
     {
         using AwarenessParamsType = decltype(awarenessParams);
         using Awareness = typename AwarenessParamsType::KernelType;
-        return std::make_unique<PairwiseMorseInteraction<Awareness>>(state, name, rc, params);
+        return std::make_unique<PairwiseMorseInteraction<Awareness>>(state, name, rc, params, stressPeriod);
     }, params.varAwarenessParams);
 }
 

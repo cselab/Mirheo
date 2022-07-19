@@ -26,12 +26,12 @@ namespace mirheo
 
 #ifndef __NVCC__
 /// fused multiply - add, single precision
-float __fmaf_rz(float x, float y, float z)
+inline float __fmaf_rz(float x, float y, float z)
 {
     return x*y + z;
 }
 /// fused multiply - add, double precision
-double __fma_rz(double x, double y, double z)
+inline double __fma_rz(double x, double y, double z)
 {
     return x*y + z;
 }
@@ -111,7 +111,10 @@ inline __D__ real uniform01( real seed, int i, int j )
 
 inline __D__ real mean0var1( real seed, int u, int v )
 {
-    const real p = rem( ( ( u & 0x3FF ) * gold ) + u * bronze + ( ( v & 0x3FF ) * silver ) + v * tin ); // safe for large u or v
+    const real p = rem( ( real( u & 0x3FF ) * gold ) +
+                        real(u) * bronze +
+                        ( real( v & 0x3FF ) * silver ) +
+                        real(v) * tin ); // safe for large u or v
     const real q = rem( seed );
     const real l = __logistic_core<N>( q - p );
     return l * sqrt2;
@@ -120,7 +123,10 @@ inline __D__ real mean0var1( real seed, int u, int v )
 inline __D__ real mean0var1( real seed, uint u, uint v )
 {
     // 7 FLOPS
-    const real p = rem( ( ( u & 0x3FFU ) * gold ) + u * bronze + ( ( v & 0x3FFU ) * silver ) + v * tin ); // safe for large u or v
+    const real p = rem( ( real( u & 0x3FFU ) * gold ) +
+                        real(u) * bronze +
+                        ( real( v & 0x3FFU ) * silver ) +
+                        real(v) * tin ); // safe for large u or v
     const real q = rem( seed );
 
     // 45+1 FLOPS
@@ -177,7 +183,7 @@ __HD__ inline real saru( unsigned int seed1, unsigned int seed2, unsigned int se
     const unsigned int v = ( state ^ ( state >> 26 ) ) + wstate;
     const unsigned int r = ( v ^ ( v >> 20 ) ) * 0x6957f5a7;
 
-    const real res = r / ( 4294967295.0_r );
+    const real res = real(r) / ( 4294967295.0_r );
     return res;
 }
 

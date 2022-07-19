@@ -198,7 +198,7 @@ void StressManager::computeLocalInteractions(const MirState *state,
                                              CellList *cl1, CellList *cl2,
                                              cudaStream_t stream)
 {
-    const auto t = state->currentTime;
+    const auto t = static_cast<real>(state->currentTime);
 
     if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
     {
@@ -219,7 +219,7 @@ void StressManager::computeHaloInteractions(const MirState *state,
                                             CellList *cl1, CellList *cl2,
                                             cudaStream_t stream)
 {
-    const auto t = state->currentTime;
+    const auto t = static_cast<real>(state->currentTime);
 
     if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
     {

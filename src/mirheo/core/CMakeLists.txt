@@ -26,6 +26,7 @@ set(sources_cpp
   interactions/factory.cpp
   interactions/interface.cpp
   interactions/pairwise/base_pairwise.cpp
+  interactions/pairwise/factory.cpp
   interactions/pairwise/factory_helper.cpp
   interactions/rod/base_rod.cpp
   interactions/utils/parameters_wrap.cpp
@@ -117,7 +118,6 @@ set(sources_cu
   interactions/pairwise/norandom_dpd.cu
   interactions/pairwise/repulsive_lj.cu
   interactions/pairwise/sdpd.cu
-  interactions/pairwise/factory.cu
   interactions/rod/factory.cu
   object_belonging/mesh_belonging.cu
   object_belonging/object_belonging.cu

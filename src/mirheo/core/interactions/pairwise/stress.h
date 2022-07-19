@@ -34,7 +34,7 @@ public:
     {
         auto activePredicateStress = [state,this]()
         {
-            const real t = state->currentTime;
+            const real t = static_cast<real>(state->currentTime);
             return (lastStressTime_+stressPeriod_ <= t) || (lastStressTime_ == t);
         };
 

@@ -38,6 +38,7 @@ private:
 
 /// Factory helper to instantiate all combinations of PressureEOS and DensityKernel.
 std::unique_ptr<BasePairwiseInteraction>
-makePairwiseSDPDInteraction(const MirState *state, const std::string& name, real rc, SDPDParams params);
+makePairwiseSDPDInteraction(const MirState *state, const std::string& name, real rc,
+                            SDPDParams params, std::optional<real> stressPeriod);
 
 } // namespace mirheo

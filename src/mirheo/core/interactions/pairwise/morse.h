@@ -38,6 +38,7 @@ private:
 
 /// Factory helper to instantiate all combinations of Awareness.
 std::unique_ptr<BasePairwiseInteraction>
-makePairwiseMorseInteraction(const MirState *state, const std::string& name, real rc, MorseParams params);
+makePairwiseMorseInteraction(const MirState *state, const std::string& name, real rc,
+                             MorseParams params, std::optional<real> stressPeriod);
 
 } // namespace mirheo

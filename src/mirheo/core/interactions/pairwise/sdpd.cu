@@ -106,7 +106,8 @@ getOutputChannels() const
 
 
 std::unique_ptr<BasePairwiseInteraction>
-makePairwiseSDPDInteraction(const MirState *state, const std::string& name, real rc, SDPDParams params)
+makePairwiseSDPDInteraction(const MirState *state, const std::string& name, real rc,
+                            SDPDParams params, std::optional<real> stressPeriod)
 {
     return std::visit([=](auto eosParams, auto densityKernelParams)
                       -> std::unique_ptr<BasePairwiseInteraction>
@@ -115,7 +116,7 @@ makePairwiseSDPDInteraction(const MirState *state, const std::string& name, real
         using DensityParamsType = decltype(densityKernelParams);
         using PressureEOS = typename EOSParamsType::KernelType;
         using DensityKernel = typename DensityParamsType::KernelType;
-        return std::make_unique<PairwiseSDPDInteraction<PressureEOS,DensityKernel>>(state, name, rc, params);
+        return std::make_unique<PairwiseSDPDInteraction<PressureEOS,DensityKernel>>(state, name, rc, params, stressPeriod);
     }, params.varEOSParams, params.varDensityKernelParams);
 }
 

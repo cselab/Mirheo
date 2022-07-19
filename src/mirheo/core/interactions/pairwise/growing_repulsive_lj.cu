@@ -89,13 +89,14 @@ PairwiseGrowingRepulsiveLJInteraction<Awareness>::getOutputChannels() const
 std::unique_ptr<BasePairwiseInteraction>
 makePairwiseGrowingRepulsiveLJInteraction(const MirState *state,
                                           const std::string& name,
-                                          real rc, GrowingRepulsiveLJParams params)
+                                          real rc, GrowingRepulsiveLJParams params,
+                                          std::optional<real> stressPeriod)
 {
     return std::visit([=](auto awarenessParams) -> std::unique_ptr<BasePairwiseInteraction>
     {
         using AwarenessParamsType = decltype(awarenessParams);
         using Awareness = typename AwarenessParamsType::KernelType;
-        return std::make_unique<PairwiseGrowingRepulsiveLJInteraction<Awareness>>(state, name, rc, params);
+        return std::make_unique<PairwiseGrowingRepulsiveLJInteraction<Awareness>>(state, name, rc, params, stressPeriod);
     }, params.varAwarenessParams);
 }
 

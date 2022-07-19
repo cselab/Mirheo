@@ -189,5 +189,24 @@ VarStressParams readStressParams(ParametersWrap& desc)
     }
 }
 
+std::optional<real> readStressPeriod(ParametersWrap& desc)
+{
+    bool stress {false};
+
+    if (desc.exists<bool>("stress"))
+        stress = desc.read<bool>("stress");
+
+    if (stress)
+    {
+        const auto period = desc.read<real>("stress_period");
+        return {period};
+    }
+    else
+    {
+        return std::nullopt;
+    }
+
+}
+
 } // namespace factory_helper
 } // namespace mirheo

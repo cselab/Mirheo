@@ -5,8 +5,6 @@
 
 #include <mirheo/core/interactions/utils/parameters_wrap.h>
 
-#include <limits>
-
 namespace mirheo {
 namespace factory_helper {
 
@@ -20,7 +18,7 @@ DensityParams            readDensityParams            (ParametersWrap& desc);
 SDPDParams               readSDPDParams               (ParametersWrap& desc);
 
 VarStressParams          readStressParams             (ParametersWrap& desc);
-
+std::optional<real>      readStressPeriod             (ParametersWrap& desc);
 
 } // factory_helper
 } // namespace mirheo

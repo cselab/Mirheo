@@ -33,11 +33,11 @@ public:
         a_(a),
         gamma_(gamma),
         power_(power),
-        invrc_(1.0 / rc)
+        invrc_(1.0_r / rc)
     {}
 
     /// evaluate the force
-    __D__ inline real3 operator()(const ParticleType dst, int dstId, const ParticleType src, int srcId) const
+    __D__ inline real3 operator()(const ParticleType dst, __UNUSED int dstId, const ParticleType src, __UNUSED int srcId) const
     {
         const real3 dr = dst.r - src.r;
         const real rij2 = dot(dr, dr);
@@ -125,7 +125,7 @@ public:
 private:
     static real computeSigma(real gamma, real kBT, real dt)
     {
-        return math::sqrt(2.0 * gamma * kBT / dt);
+        return math::sqrt(2.0_r * gamma * kBT / dt);
     }
 
     StepRandomGen stepGen_;

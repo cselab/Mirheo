@@ -27,7 +27,7 @@ public:
         return normalization_ * rm * rm * invrc;
     }
 private:
-    static constexpr real normalization_ = 15.0 / (2.0 * M_PI);
+    static constexpr real normalization_ = static_cast<real>(15.0 / (2.0 * M_PI));
 };
 
 /// Density kernel from Wendland C2 function
@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    static constexpr real normalization_ = 21.0 / (2.0 * M_PI);
+    static constexpr real normalization_ = static_cast<real>(21.0 / (2.0 * M_PI));
 };
 
 

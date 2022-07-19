@@ -293,7 +293,7 @@ __device__ inline double atomicAdd(double *address, double val)
     } while (assumed != old);
     return __longlong_as_double(old);
 }
-#endif
+#endif //!defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 
 __device__ inline float2 atomicAdd(float2* addr, float2 v)
 {
@@ -531,7 +531,7 @@ __device__ inline int atomicAggInc(int *ptr)
     return prev;
 }
 
-#endif
+#endif // __CUDA_ARCH__ < 700
 
 #else
 
@@ -547,7 +547,24 @@ inline double4 readNoCache(const double4 *addr)
     return *addr;
 }
 
-#endif
+template <class T>
+T atomicAdd(T *dst, T val)
+{
+    const auto old = *dst;
+    *dst = old + val;
+    return old;
+}
+
+inline real4 atomicAdd(real4 *dst, real3 val)
+{
+    real4 old = *dst;
+    dst->x += val.x;
+    dst->y += val.y;
+    dst->z += val.z;
+    return old;
+}
+
+#endif // __CUDACC__
 
 /** \brief Compute |x|**k
     \param x The value to take the power to

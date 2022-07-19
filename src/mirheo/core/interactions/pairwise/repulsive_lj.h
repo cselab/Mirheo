@@ -38,6 +38,7 @@ private:
 
 /// Factory helper to instantiate all combinations of Awareness.
 std::unique_ptr<BasePairwiseInteraction>
-makePairwiseRepulsiveLJInteraction(const MirState *state, const std::string& name, real rc, RepulsiveLJParams params);
+makePairwiseRepulsiveLJInteraction(const MirState *state, const std::string& name, real rc,
+                                   RepulsiveLJParams params, std::optional<real> stressPeriod);
 
 } // namespace mirheo

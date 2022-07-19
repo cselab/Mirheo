@@ -228,31 +228,7 @@ std::shared_ptr<BasePairwiseInteraction>
 createPairwiseInteraction(const MirState *state, std::string name, real rc, const std::string type, const MapParams& parameters)
 {
     ParametersWrap desc {parameters};
-    VarPairwiseParams varParams;
-
-    if (type == "DPD")
-        varParams = factory_helper::readDPDParams(desc);
-    else if (type == "MDPD")
-        varParams = factory_helper::readMDPDParams(desc);
-    else if (type == "SDPD")
-        varParams = factory_helper::readSDPDParams(desc);
-    else if (type == "LJ")
-        varParams = factory_helper::readLJParams(desc);
-    else if (type == "Morse")
-        varParams = factory_helper::readMorseParams(desc);
-    else if (type == "RepulsiveLJ")
-        varParams = factory_helper::readRepulsiveLJParams(desc);
-    else if (type == "GrowingRepulsiveLJ")
-        varParams = factory_helper::readGrowingRepulsiveLJParams(desc);
-    else if (type == "Density")
-        varParams = factory_helper::readDensityParams(desc);
-    else
-        die("Unrecognized pairwise interaction type '%s'", type.c_str());
-
-    const auto varStressParams = factory_helper::readStressParams(desc);
-
-    desc.checkAllRead();
-    return createInteractionPairwise(state, name, rc, varParams, varStressParams);
+    return createInteractionPairwise(state, name, rc, type, desc);
 }
 
 std::shared_ptr<ObjectBindingInteraction>
