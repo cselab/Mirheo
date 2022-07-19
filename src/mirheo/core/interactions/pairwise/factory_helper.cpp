@@ -171,24 +171,6 @@ SDPDParams readSDPDParams(ParametersWrap& desc)
 }
 
 
-VarStressParams readStressParams(ParametersWrap& desc)
-{
-    bool stress {false};
-
-    if (desc.exists<bool>("stress"))
-        stress = desc.read<bool>("stress");
-
-    if (stress)
-    {
-        const auto period = desc.read<real>("stress_period");
-        return StressActiveParams {period};
-    }
-    else
-    {
-        return StressNoneParams {};
-    }
-}
-
 std::optional<real> readStressPeriod(ParametersWrap& desc)
 {
     bool stress {false};
@@ -205,7 +187,6 @@ std::optional<real> readStressPeriod(ParametersWrap& desc)
     {
         return std::nullopt;
     }
-
 }
 
 } // namespace factory_helper

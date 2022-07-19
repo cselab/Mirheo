@@ -17,7 +17,6 @@ MDPDParams               readMDPDParams               (ParametersWrap& desc);
 DensityParams            readDensityParams            (ParametersWrap& desc);
 SDPDParams               readSDPDParams               (ParametersWrap& desc);
 
-VarStressParams          readStressParams             (ParametersWrap& desc);
 std::optional<real>      readStressPeriod             (ParametersWrap& desc);
 
 } // factory_helper

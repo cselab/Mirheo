@@ -194,27 +194,5 @@ struct SDPDParams
     VarSDPDDensityKernelParams varDensityKernelParams; ///< density kernel
 };
 
-/// variant of all possible pairwise interactions
-using VarPairwiseParams = std::variant<DPDParams,
-                                       LJParams,
-                                       MorseParams,
-                                       RepulsiveLJParams,
-                                       GrowingRepulsiveLJParams,
-                                       MDPDParams,
-                                       DensityParams,
-                                       SDPDParams>;
-
-
-/// parameters when the stress is not active
-struct StressNoneParams {};
-
-/// parameters when the stress is active
-struct StressActiveParams
-{
-    real period; ///< compute stresses every this time in time units
-};
-
-/// active/non active stress parameters
-using VarStressParams = std::variant<StressNoneParams, StressActiveParams>;
 
 } // namespace mirheo
