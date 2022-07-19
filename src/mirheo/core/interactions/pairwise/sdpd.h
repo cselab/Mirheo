@@ -3,8 +3,10 @@
 
 #include "base_pairwise.h"
 #include "kernels/sdpd.h"
+#include "stress.h"
 
 #include <memory>
+#include <optional>
 
 namespace mirheo {
 
@@ -12,7 +14,9 @@ template<class PressureEOS, class DensityKernel>
 class PairwiseSDPDInteraction: public BasePairwiseInteraction
 {
 public:
-    PairwiseSDPDInteraction(const MirState *state, const std::string& name, real rc, SDPDParams params);
+    PairwiseSDPDInteraction(const MirState *state, const std::string& name,
+                            real rc, SDPDParams params,
+                            std::optional<real> stressPeriod=std::nullopt);
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
@@ -23,9 +27,12 @@ public:
               CellList *cl2, cudaStream_t stream) override;
 
     std::vector<InteractionChannel> getInputChannels() const override;
+    std::vector<InteractionChannel> getOutputChannels() const override;
 
 private:
     PairwiseSDPD<PressureEOS, DensityKernel> pair_;
+    std::optional<PairwiseStressWrapper<PairwiseSDPD<PressureEOS, DensityKernel>>> pairWithStress_;
+    std::optional<StressManager> stressManager_;
 };
 
 

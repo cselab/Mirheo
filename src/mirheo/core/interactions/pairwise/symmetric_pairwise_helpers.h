@@ -2,7 +2,7 @@
 #pragma once
 
 #include "drivers.h"
-#include "kernels/stress_wrapper.h"
+#include "stress.h"
 
 #include <mirheo/core/celllist.h>
 #include <mirheo/core/pvs/object_vector.h>
@@ -44,9 +44,13 @@ do{ debug2("Dispatched to "#TPP" thread(s) per particle variant");              
     (or other variants of external interaction kernels).
 */
 template<class PairwiseKernel>
-void computeLocal(const PairwiseKernel& pair, ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2, cudaStream_t stream)
+void computeLocal(const MirState *state, PairwiseKernel& pair,
+                  ParticleVector *pv1, ParticleVector *pv2,
+                  CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
     using ViewType = typename PairwiseKernel::ViewType;
+
+    pair.setup(pv1->local(), pv2->local(), cl1, cl2, state);
 
     /*  Self interaction */
     if (pv1 == pv2)
@@ -90,12 +94,14 @@ void computeLocal(const PairwiseKernel& pair, ParticleVector *pv1, ParticleVecto
     symetry for the neighbouring ranks). This avoids extra communications.
 */
 template<class PairwiseKernel>
-void computeHalo(const PairwiseKernel& pair,
+void computeHalo(const MirState *state, PairwiseKernel& pair,
                  ParticleVector *pv1, ParticleVector *pv2,
-                 __UNUSED CellList *cl1, CellList *cl2,
+                 CellList *cl1, CellList *cl2,
                  cudaStream_t stream)
 {
     using ViewType = typename PairwiseKernel::ViewType;
+
+    pair.setup(pv1->halo(), pv2->local(), cl1, cl2, state);
 
     const int np1 = pv1->halo()->size();  // note halo here
     const int np2 = pv2->local()->size();
@@ -138,16 +144,16 @@ void computeHalo(const PairwiseKernel& pair,
 } // namespace details
 
 template<class PairwiseKernel>
-void computeLocalInteractions(const PairwiseKernel& pair,
+void computeLocalInteractions(const MirState *state, PairwiseKernel& pair,
                               ParticleVector *pv1, ParticleVector *pv2,
                               CellList *cl1, CellList *cl2,
                               cudaStream_t stream)
 {
-    details::computeLocal(pair, pv1, pv2, cl1, cl2, stream);
+    details::computeLocal(state, pair, pv1, pv2, cl1, cl2, stream);
 }
 
 template<class PairwiseKernel>
-void computeHaloInteractions(const PairwiseKernel& pair,
+void computeHaloInteractions(const MirState *state, PairwiseKernel& pair,
                              ParticleVector *pv1, ParticleVector *pv2,
                              CellList *cl1, CellList *cl2,
                              cudaStream_t stream)
@@ -158,80 +164,73 @@ void computeHaloInteractions(const PairwiseKernel& pair,
     if (isOV1 && isOV2)
     {
         // Two object vectors. Compute just one interaction, doesn't matter which
-        details::computeHalo(pair, pv1, pv2, cl1, cl2, stream);
+        details::computeHalo(state, pair, pv1, pv2, cl1, cl2, stream);
     }
     else if (isOV1)
     {
         // One object vector. Compute just one interaction, with OV as the first argument
-        details::computeHalo(pair, pv1, pv2, cl1, cl2, stream);
+        details::computeHalo(state, pair, pv1, pv2, cl1, cl2, stream);
     }
     else if (isOV2)
     {
         // One object vector. Compute just one interaction, with OV as the first argument
-        details::computeHalo(pair, pv2, pv1, cl2, cl1, stream);
+        details::computeHalo(state, pair, pv2, pv1, cl2, cl1, stream);
     }
     else
     {
         // Both are particle vectors. Compute one interaction if pv1 == pv2 and two otherwise
-        details::computeHalo(pair, pv1, pv2, cl1, cl2, stream);
+        details::computeHalo(state, pair, pv1, pv2, cl1, cl2, stream);
 
         if (pv1 != pv2)
-            details::computeHalo(pair, pv2, pv1, cl2, cl1, stream);
+            details::computeHalo(state, pair, pv2, pv1, cl2, cl1, stream);
+    }
+}
+
+} // namespace symmetric_pairwise_helpers
+
+
+
+template<class PairwiseKernel>
+void StressManager::computeLocalInteractions(const MirState *state,
+                                             PairwiseKernel& pair,
+                                             PairwiseStressWrapper<PairwiseKernel>& pairWithStress,
+                                             ParticleVector *pv1, ParticleVector *pv2,
+                                             CellList *cl1, CellList *cl2,
+                                             cudaStream_t stream)
+{
+    const auto t = state->currentTime;
+
+    if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
+    {
+        symmetric_pairwise_helpers::computeLocalInteractions(state, pairWithStress, pv1, pv2, cl1, cl2, stream);
+        lastStressTime_ = t;
+    }
+    else
+    {
+        symmetric_pairwise_helpers::computeLocalInteractions(state, pair, pv1, pv2, cl1, cl2, stream);
+    }
+}
+
+template<class PairwiseKernel>
+void StressManager::computeHaloInteractions(const MirState *state,
+                                            PairwiseKernel& pair,
+                                            PairwiseStressWrapper<PairwiseKernel>& pairWithStress,
+                                            ParticleVector *pv1, ParticleVector *pv2,
+                                            CellList *cl1, CellList *cl2,
+                                            cudaStream_t stream)
+{
+    const auto t = state->currentTime;
+
+    if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
+    {
+        symmetric_pairwise_helpers::computeHaloInteractions(state, pairWithStress, pv1, pv2, cl1, cl2, stream);
+        lastStressTime_ = t;
+    }
+    else
+    {
+        symmetric_pairwise_helpers::computeHaloInteractions(state, pair, pv1, pv2, cl1, cl2, stream);
     }
 }
 
 
-
-class StressManager
-{
-public:
-    StressManager(real stressPeriod)
-        : stressPeriod_(stressPeriod)
-    {}
-
-    template<class PairwiseKernel>
-    void computeLocalInteractions(real t,
-                                  const PairwiseKernel& pair,
-                                  const PairwiseStressWrapper<PairwiseKernel>& pairWithStress,
-                                  ParticleVector *pv1, ParticleVector *pv2,
-                                  CellList *cl1, CellList *cl2,
-                                  cudaStream_t stream)
-    {
-        if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
-        {
-            computeLocalInteractions(pairWithStress, pv1, pv2, cl1, cl2, stream);
-            lastStressTime_ = t;
-        }
-        else
-        {
-            computeLocalInteractions(pair, pv1, pv2, cl1, cl2, stream);
-        }
-    }
-
-    template<class PairwiseKernel>
-    void computeHaloInteractions(real t,
-                                 const PairwiseKernel& pair,
-                                 const PairwiseStressWrapper<PairwiseKernel>& pairWithStress,
-                                 ParticleVector *pv1, ParticleVector *pv2,
-                                 CellList *cl1, CellList *cl2,
-                                 cudaStream_t stream)
-    {
-        if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
-        {
-            computeHaloInteractions(pairWithStress, pv1, pv2, cl1, cl2, stream);
-            lastStressTime_ = t;
-        }
-        else
-        {
-            computeHaloInteractions(pair, pv1, pv2, cl1, cl2, stream);
-        }
-    }
-
-private:
-    real stressPeriod_;          ///< The stress will be computed every this amount of time
-    real lastStressTime_ {-1e6}; ///< to keep track of the last time stress was computed
-};
-
-
-} // namespace symmetric_pairwise_helpers
 } // namespace mirheo

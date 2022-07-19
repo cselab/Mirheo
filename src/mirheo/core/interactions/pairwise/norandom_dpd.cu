@@ -16,15 +16,13 @@ PairwiseNoRandomDPDInteraction::PairwiseNoRandomDPDInteraction(const MirState *s
 void PairwiseNoRandomDPDInteraction::local(ParticleVector *pv1, ParticleVector *pv2,
                                            CellList *cl1, CellList *cl2, cudaStream_t stream)
 {
-    pair_.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
-    symmetric_pairwise_helpers::computeLocalInteractions(pair_, pv1, pv2, cl1, cl2, stream);
+    symmetric_pairwise_helpers::computeLocalInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
 }
 
 void PairwiseNoRandomDPDInteraction::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
                                           CellList *cl2, cudaStream_t stream)
 {
-    pair_.setup(pv1->local(), pv2->local(), cl1, cl2, getState());
-    symmetric_pairwise_helpers::computeHaloInteractions(pair_, pv1, pv2, cl1, cl2, stream);
+    symmetric_pairwise_helpers::computeHaloInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
 }
 
 } // namespace mirheo
