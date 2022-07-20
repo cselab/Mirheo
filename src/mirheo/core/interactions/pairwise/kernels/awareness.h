@@ -135,7 +135,7 @@ private:
     int minSegmentsDist_{0};
 };
 
-
+/// variant of Awareness types.
 using VarAwareness = std::variant<AwarenessNone,
                                   AwarenessObject,
                                   AwarenessRod>;

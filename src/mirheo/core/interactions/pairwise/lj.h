@@ -9,9 +9,20 @@
 
 namespace mirheo {
 
+/** \brief Interaction to compute Lennard-Jones (LJ) forces.
+ */
 class PairwiseLJInteraction: public BasePairwiseInteraction
 {
 public:
+    /** Create a PairwiseLJInteraction object.
+        \param [in] state The global state of the system.
+        \param [in] name The name of the interaction.
+        \param [in] rc The cutoff radius of the interaction.
+                       Must be positive and smaller than the sub-domain size.
+        \param [in] params The parameters of the LJ forces.
+        \param [in] stressPeriod The simulation time between two stress computations.
+                       If set to `std::nullopt`, disables stress computation.
+     */
     PairwiseLJInteraction(const MirState *state, const std::string& name,
                           real rc, LJParams params,
                           std::optional<real> stressPeriod=std::nullopt);

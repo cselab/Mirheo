@@ -671,6 +671,25 @@ def createRdf():
     """
     pass
 
+def createRmacf():
+    r"""createRmacf(state: MirState, name: str, cv: ParticleVectors.ChainVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin computes the mean Rouse mode autocorrelation over time from a given :any:`ChainVector`.
+        The reference modes are that of the :any:`ChainVector` at the given start time.
+
+        Args:
+            name: Name of the plugin.
+            cv: Concerned :class:`ChainVector`.
+            start_time: Simulation time of the reference velocities.
+            end_time: End time until which to compute the RMACF.
+            dump_every: Report the RMACF every this many time-steps.
+            path: The folder name in which the file will be dumped.
+    
+
+    """
+    pass
+
 def createStats():
     r"""createStats(state: MirState, name: str, every: int, pvs: List[ParticleVectors.ParticleVector]=[], filename: str='') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 

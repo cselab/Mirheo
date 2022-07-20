@@ -10,10 +10,23 @@
 
 namespace mirheo {
 
+/** \brief Interaction to compute the repulsive Lennard-Jones (LJ) forces between particles.
+    \tparam Awareness To control which particles interact with which particle
+                      (e.g. avoiding interactions between particles of the same object).
+ */
 template<class Awareness>
 class PairwiseGrowingRepulsiveLJInteraction: public BasePairwiseInteraction
 {
 public:
+    /** Create a PairwiseGrowingRepulsiveLJInteraction object.
+        \param [in] state The global state of the system.
+        \param [in] name The name of the interaction.
+        \param [in] rc The cutoff radius of the interaction.
+                       Must be positive and smaller than the sub-domain size.
+        \param [in] params The parameters of the forces.
+        \param [in] stressPeriod The simulation time between two stress computations.
+                       If set to `std::nullopt`, disables stress computation.
+     */
     PairwiseGrowingRepulsiveLJInteraction(const MirState *state, const std::string& name,
                                           real rc, GrowingRepulsiveLJParams params,
                                           std::optional<real> stressPeriod=std::nullopt);

@@ -12,19 +12,61 @@ This is the visible class that is output of the factory function.
    :project: mirheo
    :members:
 
-Implementation
---------------
 
-The factory instantiates one of this templated class.
-See below for the requirements on the kernels.
+Interactions
+------------
 
-.. doxygenclass:: mirheo::PairwiseInteraction
+Here are listed the current available pairwise interactions.
+
+.. doxygenclass:: mirheo::PairwiseDPDInteraction
    :project: mirheo
    :members:
 
-A specific class can be used to compute addtionally the stresses of a given interaction.
+.. doxygenclass:: mirheo::PairwiseMDPDInteraction
+   :project: mirheo
+   :members:
 
-.. doxygenclass:: mirheo::PairwiseInteractionWithStress
+.. doxygenclass:: mirheo::PairwiseSDPDInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseDensityInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseRepulsiveLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseGrowingRepulsiveLJInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseMorseInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseNoRandomDPDInteraction
+   :project: mirheo
+   :members:
+
+
+
+
+Implementation
+--------------
+
+A generic pairwise CUDA kernel computes interactions between two :any:`ParticleVector`.
+The kernel is templated and requires a functor describing the interaction forces (see :ref:`dev-interactions-pairwise-kernels`)
+
+Stress computation is optional with compatible interactions.
+A helper class is provided:
+
+.. doxygenclass:: mirheo::StressManager
    :project: mirheo
    :members:
 
@@ -37,8 +79,8 @@ Kernels
 Interface
 ^^^^^^^^^
 
-The :any:`mirheo::PairwiseInteraction` takes a functor that describes a pairwise interaction.
-This functor may be splitted into two parts:
+The kernel functor describes a pairwise interaction.
+It is splitted into two parts:
 
 - a handler, that must be usable on the device.
 - a manager, that may store extra information on the host. For simple interactions, this can be the same as the handler class.
@@ -113,7 +155,6 @@ The interface of the functor must follow the following requirements:
    To implement a new kernel, the following must be done:
    - satisfy the above interface
    - add a corresponding parameter in parameters.h
-   - add it to the variant in parameters.h
    - if necessary, add type traits specialization in type_traits.h
 
 
@@ -155,7 +196,7 @@ Implemented kernels
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::PairwiseNorandomDPD
+.. doxygenclass:: mirheo::PairwiseNoRandomDPD
    :project: mirheo
    :members:
 

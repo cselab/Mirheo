@@ -73,4 +73,29 @@ std::vector<Interaction::InteractionChannel> PairwiseDPDInteraction::getOutputCh
     return channels;
 }
 
+void PairwiseDPDInteraction::checkpoint(MPI_Comm comm, const std::string& path, int checkpointId)
+{
+    auto fname = createCheckpointNameWithId(path, "ParirwiseInt", "txt", checkpointId);
+    {
+        std::ofstream fout(fname);
+        pair_.writeState(fout);
+    }
+    createCheckpointSymlink(comm, path, "ParirwiseInt", "txt", checkpointId);
+}
+
+void PairwiseDPDInteraction::restart(__UNUSED MPI_Comm comm, const std::string& path)
+{
+    auto fname = createCheckpointName(path, "ParirwiseInt", "txt");
+    std::ifstream fin(fname);
+
+    auto check = [&](bool good) {
+        if (!good)
+            die("failed to read '%s'\n", fname.c_str());
+    };
+
+    check(fin.good());
+
+    check(pair_.readState(fin));
+}
+
 } // namespace mirheo

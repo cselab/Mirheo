@@ -10,9 +10,22 @@
 
 namespace mirheo {
 
+/** \brief Interaction to compute multi-body dissipative particle dynamics (MDPD) forces.
+
+    This interaction needs the particles positions, velocities and densities.
+ */
 class PairwiseMDPDInteraction: public BasePairwiseInteraction
 {
 public:
+    /** Create a PairwiseMDPDInteraction object.
+        \param [in] state The global state of the system.
+        \param [in] name The name of the interaction.
+        \param [in] rc The cutoff radius of the interaction.
+                       Must be positive and smaller than the sub-domain size.
+        \param [in] params The parameters of the MDPD forces.
+        \param [in] stressPeriod The simulation time between two stress computations.
+                       If set to `std::nullopt`, disables stress computation.
+     */
     PairwiseMDPDInteraction(const MirState *state, const std::string& name,
                             real rc, MDPDParams params,
                             std::optional<real> stressPeriod=std::nullopt);
