@@ -60,6 +60,7 @@ set(sources_cpp
   pvs/rod_vector.cpp
   pvs/views/ov.cpp
   pvs/views/pv.cpp
+  pvs/views/pv_with_pol_chain.cpp
   pvs/views/rov.cpp
   pvs/views/rv.cpp
   simulation.cpp

@@ -4,8 +4,7 @@
 #include <mirheo/core/utils/common.h>
 #include <mirheo/core/utils/cuda_common.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
 class ParticleVector;
 class LocalParticleVector;
