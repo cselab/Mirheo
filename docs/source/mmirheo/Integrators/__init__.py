@@ -179,6 +179,23 @@ class VelocityVerlet(Integrator):
         """
         pass
 
+class VelocityVerletPolChain(Integrator):
+    r"""
+            Same as regular :any:`VelocityVerlet` with evolution of polymeric chain vector.
+        
+    """
+    def __init__():
+        r"""__init__(name: str) -> None
+
+
+
+                Args:
+                    name: name of the integrator
+            
+
+        """
+        pass
+
 class VelocityVerlet_withConstForce(Integrator):
     r"""
             Same as regular :any:`VelocityVerlet`, but the forces on all the particles are modified with the constant pressure term:

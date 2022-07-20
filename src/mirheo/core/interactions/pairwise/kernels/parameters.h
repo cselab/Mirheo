@@ -12,6 +12,7 @@ namespace mirheo
 
 class PairwiseDPD;
 class PairwiseNoRandomDPD;
+class PairwiseViscoElasticDPD;
 class PairwiseLJ;
 
 struct AwarenessNone;
@@ -62,6 +63,22 @@ struct NoRandomDPDParams
     real kBT;   ///< temperature in energy units
     real power; ///< exponent of the envelope of the viscous kernel
 };
+
+
+/// Extended Dissipative Particle Dynamics parameters (see Bosch 1999)
+struct ViscoElasticDPDParams
+{
+    using KernelType = PairwiseViscoElasticDPD; ///< the corresponding kernel
+    real a;     ///< conservative force coefficient
+    real gamma; ///< dissipative force conservative
+    real kBT;   ///< temperature in energy units
+    real power; ///< exponent of the envelope of the viscous kernel
+    real H;     ///< Elastic modulus
+    real zeta;  ///< friction coefficient for the chains
+    real kBTC;  ///< Chain temperature
+    real n0;    ///< number density of the fluid, used to normalize kernels.
+};
+
 
 /// Lennard-Jones parameters
 struct LJParams

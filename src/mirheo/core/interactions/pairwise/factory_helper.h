@@ -9,6 +9,7 @@ namespace mirheo {
 namespace factory_helper {
 
 DPDParams                readDPDParams                (ParametersWrap& desc);
+ViscoElasticDPDParams    readViscoElasticDPDParams    (ParametersWrap& desc);
 LJParams                 readLJParams                 (ParametersWrap& desc);
 RepulsiveLJParams        readRepulsiveLJParams        (ParametersWrap& desc);
 GrowingRepulsiveLJParams readGrowingRepulsiveLJParams (ParametersWrap& desc);

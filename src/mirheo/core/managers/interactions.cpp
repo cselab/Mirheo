@@ -201,39 +201,6 @@ void InteractionManager::executeHalo (cudaStream_t stream)
         p.interaction->halo(p.pv1, p.pv2, p.cl1, p.cl2, stream);
 }
 
-
-static std::set<std::string> getAllChannelsNames(const std::map<CellList*, std::vector<Interaction::InteractionChannel>>& cellChannels)
-{
-    std::set<std::string> channels;
-    for (const auto& cellMap : cellChannels)
-        for (const auto& entry : cellMap.second)
-            channels.insert(entry.name);
-    return channels;
-}
-
-static std::string concatenate(const std::vector<std::string>& strings)
-{
-    std::string allNames;
-    for (const auto& str : strings)
-        allNames += " " + str;
-    return allNames;
-}
-
-void InteractionManager::checkCompatibleWith(const InteractionManager& next) const
-{
-    const auto outputs = getAllChannelsNames(this->outputChannels_);
-    const auto inputs  = getAllChannelsNames(next.inputChannels_);
-    std::vector<std::string> difference;
-
-    std::set_difference(inputs.begin(), inputs.end(),
-                        outputs.begin(), outputs.end(),
-                        std::inserter(difference, difference.begin()));
-
-    if (!difference.empty())
-        die("The following channels are required but not computed by interactions: %s", concatenate(difference).c_str());
-}
-
-
 std::vector<std::string> InteractionManager::_getExtraChannels(ParticleVector *pv, const std::map<CellList*, ChannelList>& allChannels) const
 {
     std::set<std::string> extraChannels;

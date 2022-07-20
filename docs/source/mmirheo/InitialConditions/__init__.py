@@ -263,6 +263,23 @@ class UniformSphere(InitialConditions):
         """
         pass
 
+class UniformWithPolChain(InitialConditions):
+    r"""
+        The particles will be generated with the desired number density uniformly at random in all the domain.
+        In addition, will provide an additional channel (set to zero) containing polymeric chain end to end vectors.
+    
+    """
+    def __init__():
+        r"""__init__(number_density: float) -> None
+
+
+            Args:
+                number_density: target number density
+        
+
+        """
+        pass
+
 class MembraneWithTypeId(Membrane):
     r"""
         Same as :class:`~InitialConditions.Membrane` with an additional `type id` field which distinguish membranes with different properties.

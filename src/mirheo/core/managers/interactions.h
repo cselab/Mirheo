@@ -45,12 +45,6 @@ public:
     void executeLocal(cudaStream_t stream); ///< execute the local interactions
     void executeHalo (cudaStream_t stream); ///< execute the halo interactions
 
-    /** \brief check if the output of this stage is compatible with the input of the next
-
-        This function will die if there is a missing output.
-     */
-    void checkCompatibleWith(const InteractionManager& next) const;
-
 private:
     using Channel = Interaction::InteractionChannel;
 

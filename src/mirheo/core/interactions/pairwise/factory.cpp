@@ -4,6 +4,7 @@
 
 #include "density.h"
 #include "dpd.h"
+#include "dpd_visco_elastic.h"
 #include "growing_repulsive_lj.h"
 #include "lj.h"
 #include "mdpd.h"
@@ -37,6 +38,11 @@ createInteractionPairwise(const MirState *state, const std::string& name, real r
         const auto params = factory_helper::readSDPDParams(desc);
         const auto stressPeriod = factory_helper::readStressPeriod(desc);
         interaction = makePairwiseSDPDInteraction(state, name, rc, params, stressPeriod);
+    }
+    else if (type == "ViscoElasticDPD")
+    {
+        const auto params = factory_helper::readViscoElasticDPDParams(desc);
+        interaction = std::make_unique<PairwiseViscoElasticDPDInteraction>(state, name, rc, params);
     }
     else if (type == "LJ")
     {

@@ -101,6 +101,8 @@ void exportInteractions(py::module& m)
 
                 w(r) = \begin{cases} (1-r)^{p}, & r < 1 \\ 0, & r \geqslant 1 \end{cases}
 
+        * **ViscoElasticDPD**:
+            Extension of the DPD method to include visco-elasticity. See [Bosch1999]_.
 
         * **MDPD**:
             Compute MDPD interaction as described in [Warren2003].
@@ -213,6 +215,10 @@ void exportInteractions(py::module& m)
             Dissipative particle dynamics: Bridging the gap between atomistic and mesoscopic simulations.
             J. Chem. Phys., 107(11), 4423-4435. `doi <https://doi.org/10.1063/1.474784>`
 
+        .. [Bosch1999] Ten Bosch, B. I. M.
+           "On an extension of Dissipative Particle Dynamics for viscoelastic flow modelling."
+           Journal of non-newtonian fluid mechanics 83.3 (1999): 231-248.
+
         .. [Warren2003] Warren, P. B.
             "Vapor-liquid coexistence in many-body dissipative particle dynamics."
             Physical Review E 68.6 (2003): 066702.
@@ -243,6 +249,17 @@ void exportInteractions(py::module& m)
                 * **gamma**: :math:`\gamma`
                 * **kBT**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
+
+            * **kind** = "ViscoElasticDPD"
+
+                * **a**: :math:`a`
+                * **gamma**: :math:`\gamma`
+                * **kBT**: :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+                * **H**: :math:`H` in the elastic modulus
+                * **friction**: :math:`\zeta` the polymer friction coefficient
+                * **kBTC**: :math:`k_B T_C` the chain temperature
+                * **n0**: :math:`n_0` the number density of the fluid
 
             * **kind** = "MDPD"
 

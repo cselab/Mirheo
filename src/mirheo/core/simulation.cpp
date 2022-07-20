@@ -1303,8 +1303,6 @@ void Simulation::init()
     _prepareBouncers();
     _prepareWalls();
 
-    run_->interactionsIntermediate.checkCompatibleWith(run_->interactionsFinal);
-
     CUDA_Check( cudaDeviceSynchronize() );
 
     _preparePlugins();

@@ -106,6 +106,7 @@ set(sources_cu
   integrators/rigid_vv.cu
   integrators/translate.cu
   integrators/vv.cu
+  integrators/vv_pol_chain.cu
   interactions/membrane/base_membrane.cu
   interactions/membrane/factory.cu
   interactions/membrane/prerequisites.cu
@@ -113,6 +114,7 @@ set(sources_cu
   interactions/obj_rod_binding.cu
   interactions/pairwise/density.cu
   interactions/pairwise/dpd.cu
+  interactions/pairwise/dpd_visco_elastic.cu
   interactions/pairwise/growing_repulsive_lj.cu
   interactions/pairwise/lj.cu
   interactions/pairwise/mdpd.cu

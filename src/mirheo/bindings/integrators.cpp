@@ -8,8 +8,7 @@
 
 #include <pybind11/stl.h>
 
-namespace mirheo
-{
+namespace mirheo {
 using namespace pybind11::literals;
 
 void exportIntegrators(py::module& m)
@@ -111,6 +110,17 @@ void exportIntegrators(py::module& m)
                 Args:
                     name: name of the integrator
                     force: :math:`\mathbf{F}_{extra}`
+            )");
+
+    py::handlers_class<IntegratorVVPolChain>
+        (m, "VelocityVerletPolChain", pyint, R"(
+            Same as regular :any:`VelocityVerlet` with evolution of polymeric chain vector.
+        )")
+        .def(py::init(&integrator_factory::createVVPolChain),
+             "state"_a, "name"_a, R"(
+
+                Args:
+                    name: name of the integrator
             )");
 
     py::handlers_class<IntegratorVV<ForcingTermPeriodicPoiseuille>>

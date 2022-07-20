@@ -3,8 +3,7 @@
 
 #include <mirheo/core/logger.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
 /// \return \c true if the given 1D cuda block is non empty
 inline bool isValid_nBlocks(int blocks)
@@ -12,14 +11,14 @@ inline bool isValid_nBlocks(int blocks)
     return blocks > 0;
 }
 
-/// \return \c true if the given 1D cuda block is non empty
+/// \return \c true if the given 3D cuda block is non empty
 inline bool isValid_nBlocks(dim3 blocks)
 {
     return blocks.x > 0 && blocks.y > 0 && blocks.z > 0;
 }
 
 /** can be used inside MIRHEO_SAFE_KERNEL_LAUNCH,
-    e.g. if the kernel has tmplate arguments; example:
+    e.g. if the kernel has template arguments; example:
 
     \code{.cpp}
     MIRHEO_SAFE_KERNEL_LAUNCH(

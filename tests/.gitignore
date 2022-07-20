@@ -143,6 +143,9 @@ h5
 /stress/log_00001.log
 /stress/pressure.txt
 /stress/pressure/
+/vedpd/log_00000.log
+/vedpd/log_00001.log
+/vedpd/stats.csv
 /walls/analytic/log_00000.log
 /walls/analytic/log_00001.log
 /walls/analytic/vcont.csv

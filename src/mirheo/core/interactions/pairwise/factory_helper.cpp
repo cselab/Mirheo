@@ -15,6 +15,20 @@ DPDParams readDPDParams(ParametersWrap& desc)
     return p;
 }
 
+ViscoElasticDPDParams readViscoElasticDPDParams(ParametersWrap& desc)
+{
+    ViscoElasticDPDParams p;
+    p.a     = desc.read<real>("a");
+    p.gamma = desc.read<real>("gamma");
+    p.kBT   = desc.read<real>("kBT");
+    p.power = desc.read<real>("power");
+    p.H     = desc.read<real>("H");
+    p.zeta  = desc.read<real>("friction");
+    p.kBTC  = desc.read<real>("kBTC");
+    p.n0     = desc.read<real>("n0");
+    return p;
+}
+
 static VarAwarenessParams readAwarenessParams(ParametersWrap& desc)
 {
     if (!desc.exists<std::string>("aware_mode"))

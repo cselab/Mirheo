@@ -12,6 +12,7 @@
 #include "sub_step.h"
 #include "translate.h"
 #include "vv.h"
+#include "vv_pol_chain.h"
 
 #include <vector_types.h>
 
@@ -55,6 +56,13 @@ createVV_PeriodicPoiseuille(const MirState *state, const std::string& name, real
     ForcingTermPeriodicPoiseuille forcing(force, dir);
     return std::make_shared<IntegratorVV<ForcingTermPeriodicPoiseuille>> (state, name, forcing);
 }
+
+inline std::shared_ptr<IntegratorVVPolChain>
+createVVPolChain(const MirState *state, const std::string& name)
+{
+    return std::make_shared<IntegratorVVPolChain> (state, name);
+}
+
 
 inline std::shared_ptr<IntegratorConstOmega>
 createConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega)
