@@ -20,6 +20,7 @@ set(sources_cpp
   initial_conditions/uniform.cpp
   initial_conditions/uniform_filtered.cpp
   initial_conditions/uniform_sphere.cpp
+  initial_conditions/uniform_with_pol_chains.cpp
   integrators/interface.cpp
   integrators/sub_step.cpp
   interactions/chain/chain.cu

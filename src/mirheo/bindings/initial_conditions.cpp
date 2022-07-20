@@ -14,6 +14,7 @@
 #include <mirheo/core/initial_conditions/uniform.h>
 #include <mirheo/core/initial_conditions/uniform_filtered.h>
 #include <mirheo/core/initial_conditions/uniform_sphere.h>
+#include <mirheo/core/initial_conditions/uniform_with_pol_chains.h>
 
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
@@ -206,6 +207,14 @@ void exportInitialConditions(py::module& m)
                 inside: whether the particles should be inside or outside the sphere
         )");
 
+    py::handlers_class<UniformWithPolChainIC>(m, "UniformWithPolChain", pyic, R"(
+        The particles will be generated with the desired number density uniformly at random in all the domain.
+        In addition, will provide an additional channel (set to zero) containing polymeric chain end to end vectors.
+    )")
+        .def(py::init<real>(), "number_density"_a, R"(
+            Args:
+                number_density: target number density
+        )");
 
 
     py::handlers_class<RandomChainsIC>(m, "RandomChains", pyic, R"(
