@@ -22,7 +22,7 @@ public:
         \param [out] view The destination container
         \param [in] id destination index in \p view
      */
-    __D__ void atomicAddToDst(real3 f, PVview& view, int id) const
+    static __D__ void atomicAddToDst(real3 f, PVview& view, int id)
     {
         atomicAdd(view.forces + id, f);
     }
@@ -32,7 +32,7 @@ public:
         \param [out] view The destination container
         \param [in] id destination index in \p view
      */
-    __D__ void atomicAddToSrc(real3 f, PVview& view, int id) const
+    static __D__ void atomicAddToSrc(real3 f, PVview& view, int id)
     {
         atomicAdd(view.forces + id, -f);
     }
@@ -46,5 +46,7 @@ public:
 private:
     real3 frc_;  ///< internal accumulated force
 };
+
+inline __D__ real3 getForce(real3 f) {return f;}
 
 } // namespace mirheo

@@ -36,11 +36,18 @@ __global__ void chainFluctuationRelaxation(PVviewWithPolChainVector view, real s
 PairwiseViscoElasticDPDInteraction::PairwiseViscoElasticDPDInteraction(const MirState *state,
                                                                        const std::string& name,
                                                                        real rc,
-                                                                       ViscoElasticDPDParams params)
+                                                                       ViscoElasticDPDParams params,
+                                                                       std::optional<real> stressPeriod)
     : BasePairwiseInteraction(state, name, rc)
     , params_(params)
     , pair_(rc, params)
-{}
+{
+    if (stressPeriod)
+    {
+        pairWithStress_ = PairwiseStressWrapper<PairwiseViscoElasticDPD>(rc, params);
+        stressManager_ = StressManager(*stressPeriod);
+    }
+}
 
 void PairwiseViscoElasticDPDInteraction::setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2)
 {
@@ -55,6 +62,15 @@ void PairwiseViscoElasticDPDInteraction::setPrerequisites(ParticleVector *pv1, P
 
     cl1->requireExtraDataPerParticle <real3> (channel_names::derChainVectors);
     cl2->requireExtraDataPerParticle <real3> (channel_names::derChainVectors);
+
+    if (stressManager_)
+    {
+        pv1->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
+        pv2->requireDataPerParticle <Stress> (channel_names::stresses, DataManager::PersistenceMode::None);
+
+        cl1->requireExtraDataPerParticle <Stress> (channel_names::stresses);
+        cl2->requireExtraDataPerParticle <Stress> (channel_names::stresses);
+    }
 }
 
 void PairwiseViscoElasticDPDInteraction::local(ParticleVector *pv1, ParticleVector *pv2,
@@ -82,13 +98,31 @@ void PairwiseViscoElasticDPDInteraction::local(ParticleVector *pv1, ParticleVect
             view, sigma, k, seed);
     }
 
-    symmetric_pairwise_helpers::computeLocalInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
+    if (stressManager_)
+    {
+        stressManager_->computeLocalInteractions(getState(),
+                                                 pair_, *pairWithStress_,
+                                                 pv1, pv2, cl1, cl2, stream);
+    }
+    else
+    {
+        symmetric_pairwise_helpers::computeLocalInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
+    }
 }
 
 void PairwiseViscoElasticDPDInteraction::halo(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1,
                                               CellList *cl2, cudaStream_t stream)
 {
-    symmetric_pairwise_helpers::computeHaloInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
+    if (stressManager_)
+    {
+        stressManager_->computeHaloInteractions(getState(),
+                                                pair_, *pairWithStress_,
+                                                pv1, pv2, cl1, cl2, stream);
+    }
+    else
+    {
+        symmetric_pairwise_helpers::computeHaloInteractions(getState(), pair_, pv1, pv2, cl1, cl2, stream);
+    }
 }
 
 std::vector<Interaction::InteractionChannel> PairwiseViscoElasticDPDInteraction::getInputChannels() const
@@ -98,8 +132,15 @@ std::vector<Interaction::InteractionChannel> PairwiseViscoElasticDPDInteraction:
 
 std::vector<Interaction::InteractionChannel> PairwiseViscoElasticDPDInteraction::getOutputChannels() const
 {
-    return {{channel_names::forces, alwaysActive},
-            {channel_names::derChainVectors, alwaysActive}};
+    std::vector<InteractionChannel> channels = {{channel_names::forces, alwaysActive},
+                                                {channel_names::derChainVectors, alwaysActive}};
+
+    if (stressManager_)
+    {
+        channels.push_back(stressManager_->getStressPredicate(getState()));
+    }
+
+    return channels;
 }
 
 

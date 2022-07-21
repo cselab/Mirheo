@@ -42,7 +42,8 @@ createInteractionPairwise(const MirState *state, const std::string& name, real r
     else if (type == "ViscoElasticDPD")
     {
         const auto params = factory_helper::readViscoElasticDPDParams(desc);
-        interaction = std::make_unique<PairwiseViscoElasticDPDInteraction>(state, name, rc, params);
+        const auto stressPeriod = factory_helper::readStressPeriod(desc);
+        interaction = std::make_unique<PairwiseViscoElasticDPDInteraction>(state, name, rc, params, stressPeriod);
     }
     else if (type == "LJ")
     {

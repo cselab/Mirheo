@@ -27,9 +27,12 @@ public:
         \param [in] rc The cutoff radius of the interaction.
                        Must be positive and smaller than the sub-domain size.
         \param [in] params The parameters of the DPD forces.
+        \param [in] stressPeriod The simulation time between two stress computations.
+                       If set to `std::nullopt`, disables stress computation.
      */
     PairwiseViscoElasticDPDInteraction(const MirState *state, const std::string& name,
-                                       real rc, ViscoElasticDPDParams params);
+                                       real rc, ViscoElasticDPDParams params,
+                                       std::optional<real> stressPeriod=std::nullopt);
 
     void setPrerequisites(ParticleVector *pv1, ParticleVector *pv2, CellList *cl1, CellList *cl2) override;
 
@@ -45,6 +48,9 @@ public:
 private:
     ViscoElasticDPDParams params_;
     PairwiseViscoElasticDPD pair_;
+    std::optional<PairwiseStressWrapper<PairwiseViscoElasticDPD>> pairWithStress_;
+    std::optional<StressManager> stressManager_;
+
 
     StepRandomGen stepGen_{42424242L};
 };

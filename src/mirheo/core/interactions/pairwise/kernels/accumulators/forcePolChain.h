@@ -17,7 +17,18 @@ struct ForceDerPolChain
     real3 force; ///< force valu
     real3 dQdst_dt; ///< time derivative of Q at dst particle
     real3 dQsrc_dt; ///< time derivative of Q at src particle
+
+    __D__ inline ForceDerPolChain& operator+=(const ForceDerPolChain& f)
+    {
+        this->force += f.force;
+        this->dQdst_dt += f.dQdst_dt;
+        this->dQsrc_dt += f.dQsrc_dt;
+        return *this;
+    }
 };
+
+
+
 
 /** \brief Accumulate ForceDerPolChain structure on device
  */
@@ -36,7 +47,7 @@ public:
         \param [out] view The destination container
         \param [in] id destination index in \p view
      */
-    __D__ void atomicAddToDst(const ForceDerPolChain& fq, PVviewWithPolChainVector& view, int id) const
+    static __D__ void atomicAddToDst(const ForceDerPolChain& fq, PVviewWithPolChainVector& view, int id)
     {
         atomicAdd(view.forces+ id, fq.force );
         atomicAdd(view.dQdt  + id, fq.dQdst_dt);
@@ -47,7 +58,7 @@ public:
         \param [out] view The destination container
         \param [in] id destination index in \p view
      */
-    __D__ void atomicAddToSrc(const ForceDerPolChain& fq, PVviewWithPolChainVector& view, int id) const
+    static __D__ void atomicAddToSrc(const ForceDerPolChain& fq, PVviewWithPolChainVector& view, int id)
     {
         atomicAdd(view.forces + id, -fq.force);
         atomicAdd(view.dQdt   + id,  fq.dQsrc_dt);
@@ -66,5 +77,7 @@ public:
 private:
     ForceDerPolChain val_; ///< internal accumulated force and polymeric chain vector derivatives
 };
+
+inline __D__ real3 getForce(ForceDerPolChain f) {return f.force;}
 
 } // namespace mirheo
