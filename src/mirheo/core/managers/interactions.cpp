@@ -106,6 +106,18 @@ real InteractionManager::getLargestCutoff() const
     return rc;
 }
 
+static std::vector<std::string> filterOutPermanentChannels(const ParticleVector *pv,
+                                                           const std::vector<std::string>& channels)
+{
+    std::vector<std::string> ch;
+    for (auto channel : channels)
+    {
+        if (!pv->local()->dataPerParticle.checkPersistence(channel))
+            ch.push_back(channel);
+    }
+    return ch;
+}
+
 std::vector<std::string> InteractionManager::getInputChannels(ParticleVector *pv) const
 {
     return _getExtraChannels(pv, inputChannels_);
@@ -127,9 +139,11 @@ void InteractionManager::clearInput(ParticleVector *pv, cudaStream_t stream)
     {
         auto it = inputChannels_.find(cl);
 
-        if (it != inputChannels_.end()) {
+        if (it != inputChannels_.end())
+        {
             const auto activeChannels = _getActiveChannels(it->second);
-            cl->clearChannels(activeChannels, stream);
+            const auto channelsToClear = filterOutPermanentChannels(pv, activeChannels);
+            cl->clearChannels(channelsToClear, stream);
         }
     }
 }
