@@ -21,9 +21,9 @@ __global__ void chainFluctuationRelaxation(PVviewWithPolChainVector view, real s
 
     const real3 Q = view.Q[i];
 
-    const real xix = Saru::mean0var1(seed, Q.x, Q.y);
-    const real xiy = Saru::mean0var1(seed, Q.z, xix);
-    const real xiz = Saru::mean0var1(seed, Q.x, xiy);
+    const real xix = Saru::mean0var1(seed, 45*i+47, 96*i-65789);
+    const real xiy = Saru::mean0var1(xix, 47*i+43, 16*i-6578);
+    const real xiz = Saru::mean0var1(xiy, 49*i+41, 196*i+657);
 
     real3 dQdt = sigma * real3{xix, xiy, xiz};
     dQdt -= k * Q;
@@ -66,7 +66,7 @@ void PairwiseViscoElasticDPDInteraction::local(ParticleVector *pv1, ParticleVect
     {
         const real dt = getState()->getDt();
 
-        const real sigma = std::sqrt(4.0_r * params_.kBTC * dt / params_.zeta);
+        const real sigma = std::sqrt(4.0_r * params_.kBTC / (dt * params_.zeta));
         const real k = 2.0_r * params_.H / params_.zeta;
 
         const auto seed = stepGen_.generate(getState());
