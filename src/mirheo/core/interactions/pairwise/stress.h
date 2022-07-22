@@ -24,6 +24,7 @@ public:
         : stressPeriod_(stressPeriod)
     {}
 
+    /// \return True if one should compute stresses
     bool isStressTime(const MirState *state) const
     {
         const auto t = static_cast<real>(state->currentTime);

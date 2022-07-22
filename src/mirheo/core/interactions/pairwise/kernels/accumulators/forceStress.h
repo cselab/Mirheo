@@ -23,11 +23,13 @@ struct ForceStress
 
 /** \brief Accumulate ForceStress structure on device
     \tparam BaseView The view type without stress, to enforce the use of the stress view wrapper
+    \tparam BaseAccumulator The accumulator used to accumulate the force of the base interaction
  */
 template <class BaseView, class BaseAccumulator>
 class ForceStressAccumulator
 {
 public:
+    /// The base force type (without stress)
     using BaseForceType = decltype(BaseAccumulator{}.get());
 
     /// \brief Initialize the ForceStressAccumulator

@@ -47,6 +47,9 @@ private:
     real3 frc_;  ///< internal accumulated force
 };
 
+/** Get the force from a generalized force.
+    \return force vector
+ */
 inline __D__ real3 getForce(real3 f) {return f;}
 
 } // namespace mirheo

@@ -18,6 +18,10 @@ struct ForceDerPolChain
     real3 dQdst_dt; ///< time derivative of Q at dst particle
     real3 dQsrc_dt; ///< time derivative of Q at src particle
 
+    /** overloaded operator to add a generalized force.
+        \param f the value to add
+        \return The old value of the object
+     */
     __D__ inline ForceDerPolChain& operator+=(const ForceDerPolChain& f)
     {
         this->force += f.force;
@@ -78,6 +82,9 @@ private:
     ForceDerPolChain val_; ///< internal accumulated force and polymeric chain vector derivatives
 };
 
+/** Get the force from a generalized force.
+    \return force vector
+ */
 inline __D__ real3 getForce(ForceDerPolChain f) {return f.force;}
 
 } // namespace mirheo
