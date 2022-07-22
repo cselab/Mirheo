@@ -31,6 +31,34 @@ __global__ void chainFluctuationRelaxation(PVviewWithPolChainVector view, real s
     atomicAdd(view.dQdt + i, dQdt);
 }
 
+__global__ void chainFluctuationRelaxation(PVviewWithStresses<PVviewWithPolChainVector> view,
+                                           real sigma, real k, real H, real seed)
+{
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i >= view.size)
+        return;
+
+    const real3 Q = view.Q[i];
+
+    const real xix = Saru::mean0var1(seed, 45*i+47, 96*i-65789);
+    const real xiy = Saru::mean0var1(xix, 47*i+43, 16*i-6578);
+    const real xiz = Saru::mean0var1(xiy, 49*i+41, 196*i+657);
+
+    real3 dQdt = sigma * real3{xix, xiy, xiz};
+    dQdt -= k * Q;
+
+    const real3 fQ = -H * Q;
+    atomicAdd(&view.stresses[i].xx, Q.x * fQ.x);
+    atomicAdd(&view.stresses[i].xy, Q.x * fQ.y);
+    atomicAdd(&view.stresses[i].xz, Q.x * fQ.z);
+    atomicAdd(&view.stresses[i].yy, Q.y * fQ.y);
+    atomicAdd(&view.stresses[i].yz, Q.y * fQ.z);
+    atomicAdd(&view.stresses[i].zz, Q.z * fQ.z);
+
+    atomicAdd(view.dQdt + i, dQdt);
+}
+
 } // namespace visco_elastic_dpd_kernels
 
 PairwiseViscoElasticDPDInteraction::PairwiseViscoElasticDPDInteraction(const MirState *state,
@@ -82,20 +110,36 @@ void PairwiseViscoElasticDPDInteraction::local(ParticleVector *pv1, ParticleVect
     {
         const real dt = getState()->getDt();
 
+        const real H = params_.H;
         const real sigma = std::sqrt(4.0_r * params_.kBTC / (dt * params_.zeta));
-        const real k = 2.0_r * params_.H / params_.zeta;
+        const real k = 2.0_r * H / params_.zeta;
 
         const auto seed = stepGen_.generate(getState());
 
-        PVviewWithPolChainVector view(pv1, pv1->local());
+        if (stressManager_ && stressManager_->isStressTime(getState()))
+        {
+            PVviewWithStresses<PVviewWithPolChainVector> view(pv1, pv1->local());
 
-        constexpr int nthreads = 128;
-        const int nblocks = getNblocks(view.size, nthreads);
+            constexpr int nthreads = 128;
+            const int nblocks = getNblocks(view.size, nthreads);
 
-        SAFE_KERNEL_LAUNCH(
-            visco_elastic_dpd_kernels::chainFluctuationRelaxation,
-            nblocks, nthreads, 0, stream,
-            view, sigma, k, seed);
+            SAFE_KERNEL_LAUNCH(
+                visco_elastic_dpd_kernels::chainFluctuationRelaxation,
+                nblocks, nthreads, 0, stream,
+                view, sigma, k, H, seed);
+        }
+        else
+        {
+            PVviewWithPolChainVector view(pv1, pv1->local());
+
+            constexpr int nthreads = 128;
+            const int nblocks = getNblocks(view.size, nthreads);
+
+            SAFE_KERNEL_LAUNCH(
+                visco_elastic_dpd_kernels::chainFluctuationRelaxation,
+                nblocks, nthreads, 0, stream,
+                view, sigma, k, seed);
+        }
     }
 
     if (stressManager_)

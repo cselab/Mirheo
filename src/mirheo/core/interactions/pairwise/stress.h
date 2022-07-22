@@ -24,6 +24,12 @@ public:
         : stressPeriod_(stressPeriod)
     {}
 
+    bool isStressTime(const MirState *state) const
+    {
+        const auto t = static_cast<real>(state->currentTime);
+        return (lastStressTime_+stressPeriod_ <= t) || (lastStressTime_ == t);
+    }
+
     /** Compute local interactions between two ParticleVector. The stresses are computed only when needed.
         \tparam PairwiseKernel The symmetric pairwise kernel of the interaction.
         \param state The global state of the simulation.
@@ -69,8 +75,7 @@ public:
     {
         auto activePredicateStress = [state,this]()
         {
-            const real t = static_cast<real>(state->currentTime);
-            return (lastStressTime_+stressPeriod_ <= t) || (lastStressTime_ == t);
+            return this->isStressTime(state);
         };
 
         return {channel_names::stresses, activePredicateStress};

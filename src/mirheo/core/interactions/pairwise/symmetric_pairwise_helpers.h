@@ -200,7 +200,7 @@ void StressManager::computeLocalInteractions(const MirState *state,
 {
     const auto t = static_cast<real>(state->currentTime);
 
-    if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
+    if (this->isStressTime(state))
     {
         symmetric_pairwise_helpers::computeLocalInteractions(state, pairWithStress, pv1, pv2, cl1, cl2, stream);
         lastStressTime_ = t;
@@ -221,7 +221,7 @@ void StressManager::computeHaloInteractions(const MirState *state,
 {
     const auto t = static_cast<real>(state->currentTime);
 
-    if (lastStressTime_+stressPeriod_ <= t || lastStressTime_ == t)
+    if (this->isStressTime(state))
     {
         symmetric_pairwise_helpers::computeHaloInteractions(state, pairWithStress, pv1, pv2, cl1, cl2, stream);
         lastStressTime_ = t;
