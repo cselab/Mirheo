@@ -8,8 +8,7 @@
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/helper_math.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
 /** Holds generalized force and stress together
     \tparam ForceType The type of the generalized force.
@@ -48,7 +47,6 @@ public:
     __D__ void atomicAddToDst(const ForceStress<BaseForceType>& fs, PVviewWithStresses<BaseView>& view, int id) const
     {
         BaseAccumulator::atomicAddToDst(fs.force, view, id);
-        // atomicAdd(      view.forces   + id, fs.force );
         atomicAddStress(view.stresses + id, fs.stress);
     }
 
@@ -60,7 +58,6 @@ public:
     __D__ void atomicAddToSrc(const ForceStress<BaseForceType>& fs, PVviewWithStresses<BaseView>& view, int id) const
     {
         BaseAccumulator::atomicAddToSrc(fs.force, view, id);
-        // atomicAdd(      view.forces   + id, -fs.force );
         atomicAddStress(view.stresses + id,  fs.stress);
     }
 
