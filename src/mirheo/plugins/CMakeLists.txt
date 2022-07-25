@@ -6,8 +6,6 @@ set(sources_cpp
   dump_xyz.cpp
   factory.cpp
   particle_channel_saver.cpp
-  utils/time_stamp.cpp
-  utils/xyz.cpp
   )
 
 set(sources_cu
@@ -49,6 +47,8 @@ set(sources_cu
   )
 
 add_library(${LIB_MIR_CORE_AND_PLUGINS} STATIC ${sources_cpp} ${sources_cu})
+
+add_subdirectory(utils)
 
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MIR_BASE_INCLUDE_DIR} )
 target_include_directories(${LIB_MIR_CORE_AND_PLUGINS} PUBLIC ${MPI_CXX_INCLUDE_DIRS})
