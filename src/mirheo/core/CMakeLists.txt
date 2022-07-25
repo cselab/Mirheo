@@ -1,140 +1,36 @@
-set(sources_cpp
-  analytical_shapes/api.cpp
-  bouncers/interface.cpp
+set(sources
+  celllist.cu
   domain.cpp
-  exchangers/engines/interface.cpp
-  exchangers/engines/mpi.cpp
-  exchangers/engines/single_node.cpp
-  exchangers/interface.cpp
-  field/from_function.cpp
-  field/interface.cpp
-  initial_conditions/from_array.cpp
-  initial_conditions/helpers.cpp
-  initial_conditions/membrane.cpp
-  initial_conditions/membrane_with_type_ids.cpp
-  initial_conditions/restart.cpp
-  initial_conditions/rigid.cpp
-  initial_conditions/rod.cpp
-  initial_conditions/random_chains.cpp
-  initial_conditions/straight_chains.cpp
-  initial_conditions/uniform.cpp
-  initial_conditions/uniform_filtered.cpp
-  initial_conditions/uniform_sphere.cpp
-  initial_conditions/uniform_with_pol_chains.cpp
-  integrators/interface.cpp
-  integrators/sub_step.cpp
-  interactions/chain/chain.cu
-  interactions/factory.cpp
-  interactions/interface.cpp
-  interactions/pairwise/base_pairwise.cpp
-  interactions/pairwise/factory.cpp
-  interactions/pairwise/factory_helper.cpp
-  interactions/rod/base_rod.cpp
-  interactions/utils/parameters_wrap.cpp
-  interactions/utils/step_random_gen.cpp
   logger.cpp
-  managers/interactions.cpp
   marching_cubes.cpp
-  mesh/edge_colors.cpp
-  mesh/membrane.cpp
-  mesh/mesh.cpp
-  mesh/off.cpp
   mirheo.cpp
   mirheo_object.cpp
   mirheo_state.cpp
-  object_belonging/interface.cpp
   plugins.cpp
   postproc.cpp
-  pvs/chain_vector.cpp
-  pvs/checkpoint/helpers.cpp
-  pvs/data_manager.cpp
-  pvs/membrane_vector.cpp
-  pvs/object_vector.cpp
-  pvs/packers/generic_packer.cpp
-  pvs/packers/objects.cpp
-  pvs/packers/particles.cpp
-  pvs/packers/rods.cpp
-  pvs/particle_vector.cpp
-  pvs/restart/helpers.cpp
-  pvs/rigid_ashape_object_vector.cpp
-  pvs/rigid_object_vector.cpp
-  pvs/rod_vector.cpp
-  pvs/views/ov.cpp
-  pvs/views/pv.cpp
-  pvs/views/pv_with_pol_chain.cpp
-  pvs/views/rov.cpp
-  pvs/views/rv.cpp
   simulation.cpp
   task_scheduler.cpp
-  types/str.cpp
-  types/variant_type_wrapper.cpp
-  utils/common.cpp
-  utils/compile_options.cpp
-  utils/file_wrapper.cpp
-  utils/nvtx.cpp
-  utils/path.cpp
-  utils/stacktrace_explicit.cpp
-  utils/strprintf.cpp
-  utils/unique_mpi_comm.cpp
   version.cpp
-  walls/interface.cpp
-  walls/stationary_walls/sdf.cpp
-  xdmf/channel.cpp
-  xdmf/grids.cpp
-  xdmf/hdf5_helpers.cpp
-  xdmf/xdmf.cpp
-  xdmf/xmf_helpers.cpp
-  )
+)
 
-set(sources_cu
-  bouncers/from_mesh.cu
-  bouncers/from_rod.cu
-  bouncers/from_shape.cu
-  celllist.cu
-  exchangers/exchange_entity.cu
-  exchangers/object_halo_exchanger.cu
-  exchangers/object_halo_extra_exchanger.cu
-  exchangers/object_redistributor.cu
-  exchangers/object_reverse_exchanger.cu
-  exchangers/particle_halo_exchanger.cu
-  exchangers/particle_redistributor.cu
-  field/from_file.cu
-  integrators/const_omega.cu
-  integrators/minimize.cu
-  integrators/oscillate.cu
-  integrators/rbc_shardlow.cu
-  integrators/rigid_vv.cu
-  integrators/translate.cu
-  integrators/vv.cu
-  integrators/vv_pol_chain.cu
-  interactions/membrane/base_membrane.cu
-  interactions/membrane/factory.cu
-  interactions/membrane/prerequisites.cu
-  interactions/obj_binding.cu
-  interactions/obj_rod_binding.cu
-  interactions/pairwise/density.cu
-  interactions/pairwise/dpd.cu
-  interactions/pairwise/dpd_visco_elastic.cu
-  interactions/pairwise/growing_repulsive_lj.cu
-  interactions/pairwise/lj.cu
-  interactions/pairwise/mdpd.cu
-  interactions/pairwise/morse.cu
-  interactions/pairwise/norandom_dpd.cu
-  interactions/pairwise/repulsive_lj.cu
-  interactions/pairwise/sdpd.cu
-  interactions/rod/factory.cu
-  object_belonging/mesh_belonging.cu
-  object_belonging/object_belonging.cu
-  object_belonging/rod_belonging.cu
-  object_belonging/shape_belonging.cu
-  pvs/utils/compute_com_extents.cu
-  rigid/operations.cu
-  walls/simple_stationary_wall.cu
-  walls/wall_helpers.cu
-  walls/wall_with_velocity.cu
-  )
+add_library(${LIB_MIR_CORE} STATIC ${sources})
 
-add_library(${LIB_MIR_CORE} STATIC ${sources_cu} ${sources_cpp})
+add_subdirectory(analytical_shapes)
+add_subdirectory(bouncers)
+add_subdirectory(exchangers)
+add_subdirectory(field)
+add_subdirectory(initial_conditions)
+add_subdirectory(integrators)
+add_subdirectory(interactions)
+add_subdirectory(managers)
+add_subdirectory(mesh)
+add_subdirectory(object_belonging)
+add_subdirectory(pvs)
+add_subdirectory(rigid)
+add_subdirectory(types)
+add_subdirectory(utils)
+add_subdirectory(walls)
+add_subdirectory(xdmf)
 
 
 target_include_directories(${LIB_MIR_CORE} PUBLIC ${MIR_BASE_INCLUDE_DIR} )

@@ -31,7 +31,7 @@ public:
 #ifndef DOXYGEN_SHOULD_SKIP_THIS // skip breathe warnings
     /// The base force type (without stress)
     using BaseForceType = decltype(BaseAccumulator{}.get());
-#endif DOXYGEN_SHOULD_SKIP_THIS
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// \brief Initialize the ForceStressAccumulator
     __D__ ForceStressAccumulator() :
