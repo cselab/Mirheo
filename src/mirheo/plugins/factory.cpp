@@ -2,6 +2,7 @@
 #include "factory.h"
 
 #include "add_force.h"
+#include "add_reverse_poiseuille_force.h"
 #include "add_torque.h"
 #include "anchor_particle.h"
 #include "average_flow.h"
@@ -67,6 +68,13 @@ PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::st
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
     return { simPl, nullptr };
 }
+
+PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force, char flipDirection)
+{
+    auto simPl = computeTask ? std::make_shared<AddReversePoiseuilleForcePlugin> (state, name, pv->getName(), force, flipDirection) : nullptr;
+    return { simPl, nullptr };
+}
+
 
 PairPlugin createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque)
 {

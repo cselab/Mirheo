@@ -46,6 +46,18 @@ void exportPlugins(py::module& m)
             force: extra force
     )");
 
+    m.def("__createAddReversePoiseuilleForce", &plugin_factory::createAddReversePoiseuilleForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, "flip_direction"_a, R"(
+        This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is flipped if the position is in the upper half along the flip_direction.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force: extra force
+            flip_direction: either x, y or z. The direction along with the sign of the force changes.
+    )");
+
     m.def("__createAddTorque", &plugin_factory::createAddTorquePlugin,
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "torque"_a, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.

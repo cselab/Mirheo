@@ -10,6 +10,7 @@ set(sources_cpp
 
 set(sources_cu
   add_force.cu
+  add_reverse_poiseuille_force.cu
   add_torque.cu
   anchor_particle.cu
   average_flow.cu
