@@ -47,7 +47,7 @@ AddReversePoiseuilleForcePlugin::AddReversePoiseuilleForcePlugin(const MirState 
 
 void AddReversePoiseuilleForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
 {
-    AddReversePoiseuilleForcePlugin::setup(simulation, comm, interComm);
+    SimulationPlugin::setup(simulation, comm, interComm);
 
     pv_ = simulation->getPVbyNameOrDie(pvName_);
 }
