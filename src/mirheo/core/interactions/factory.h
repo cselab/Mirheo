@@ -6,6 +6,7 @@
 #include <mirheo/core/mirheo_state.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace mirheo {

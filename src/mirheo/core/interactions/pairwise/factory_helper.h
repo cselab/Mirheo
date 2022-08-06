@@ -5,6 +5,8 @@
 
 #include <mirheo/core/interactions/utils/parameters_wrap.h>
 
+#include <optional>
+
 namespace mirheo {
 namespace factory_helper {
 
