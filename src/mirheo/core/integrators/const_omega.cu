@@ -5,8 +5,7 @@
 #include <mirheo/core/logger.h>
 #include <mirheo/core/pvs/particle_vector.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
 IntegratorConstOmega::IntegratorConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega) :
     Integrator(state, name),

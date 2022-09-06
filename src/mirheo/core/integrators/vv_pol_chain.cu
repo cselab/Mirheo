@@ -7,7 +7,6 @@
 #include <mirheo/core/utils/kernel_launch.h>
 
 namespace mirheo {
-
 namespace integrator_vv_pol_chain_kernels {
 
 __global__ void integrate(PVviewWithPolChainVector view, const real4 *oldPositions, const real dt)

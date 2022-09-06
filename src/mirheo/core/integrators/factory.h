@@ -9,6 +9,8 @@
 #include "oscillate.h"
 #include "rbc_shardlow.h"
 #include "rigid_vv.h"
+#include "shear.h"
+#include "shear_pol_chain.h"
 #include "sub_step.h"
 #include "translate.h"
 #include "vv.h"
@@ -18,11 +20,8 @@
 
 #include <memory>
 
-namespace mirheo
-{
-
-namespace integrator_factory
-{
+namespace mirheo {
+namespace integrator_factory {
 
 inline std::shared_ptr<IntegratorMinimize>
 createMinimize(const MirState *state, const std::string& name, real maxDisplacement)
@@ -68,6 +67,18 @@ inline std::shared_ptr<IntegratorConstOmega>
 createConstOmega(const MirState *state, const std::string& name, real3 center, real3 omega)
 {
     return std::make_shared<IntegratorConstOmega> (state, name, center, omega);
+}
+
+inline std::shared_ptr<IntegratorShear>
+createShear(const MirState *state, const std::string& name, std::array<real,9> shear, real3 origin)
+{
+    return std::make_shared<IntegratorShear> (state, name, shear, origin);
+}
+
+inline std::shared_ptr<IntegratorShearPolChain>
+createShearPolChain(const MirState *state, const std::string& name, std::array<real,9> shear, real3 origin)
+{
+    return std::make_shared<IntegratorShearPolChain> (state, name, shear, origin);
 }
 
 inline std::shared_ptr<IntegratorTranslate>
