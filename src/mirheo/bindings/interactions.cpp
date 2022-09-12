@@ -104,6 +104,10 @@ void exportInteractions(py::module& m)
         * **ViscoElasticDPD**:
             Extension of the DPD method to include visco-elasticity. See [Bosch1999]_.
 
+        * **ViscoElasticSmoothVelDPD**:
+            Same as ViscoElasticDPD but uses a smoothed velocity for the shear contributions to Q.
+            The smoothed channel must be computed by a plugin, see e.g. :any:`createExpMovingAverage`.
+
         * **MDPD**:
             Compute MDPD interaction as described in [Warren2003].
             Must be used together with "Density" interaction with kernel "MDPD".
@@ -250,6 +254,7 @@ void exportInteractions(py::module& m)
                 * **kBT**: :math:`k_B T`
                 * **power**: :math:`p` in the weight function
 
+
             * **kind** = "ViscoElasticDPD"
 
                 * **a**: :math:`a`
@@ -260,6 +265,19 @@ void exportInteractions(py::module& m)
                 * **friction**: :math:`\zeta` the polymer friction coefficient
                 * **kBTC**: :math:`k_B T_C` the chain temperature
                 * **n0**: :math:`n_0` the number density of the fluid
+
+
+            * **kind** = "ViscoElasticSmoothVelDPD"
+
+                * **a**: :math:`a`
+                * **gamma**: :math:`\gamma`
+                * **kBT**: :math:`k_B T`
+                * **power**: :math:`p` in the weight function
+                * **H**: :math:`H` in the elastic modulus
+                * **friction**: :math:`\zeta` the polymer friction coefficient
+                * **kBTC**: :math:`k_B T_C` the chain temperature
+                * **n0**: :math:`n_0` the number density of the fluid
+
 
             * **kind** = "MDPD"
 

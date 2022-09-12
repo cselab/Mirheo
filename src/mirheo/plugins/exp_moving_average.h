@@ -17,7 +17,8 @@ public:
         \param [in] name The name of the plugin.
         \param [in] pvName The name of the ParticleVector.
         \param [in] alpha Coefficient in [0,1] to perform the EMA.
-        \param [in] channelName The name of the channel to save at every time step. Will fail if it does not exist.
+        \param [in] srcChannelName The name of the channel to average. Will fail if it does not exist.
+        \param [in] emaChannelName The name of the channel containing the EMA.
      */
     ExponentialMovingAveragePlugin(const MirState *state, std::string name, std::string pvName,
                                    real alpha, std::string srcChannelName, std::string emaChannelName);

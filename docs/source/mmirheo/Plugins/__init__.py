@@ -47,6 +47,23 @@ def createAddFourRollMillForce():
     """
     pass
 
+def createAddReversePoiseuilleForce():
+    r"""createAddReversePoiseuilleForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: real3, flip_direction: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is flipped if the position is in the upper half along the flip_direction.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force: extra force
+            flip_direction: either x, y or z. The direction along with the sign of the force changes.
+    
+
+    """
+    pass
+
 def createAddTorque():
     r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -351,6 +368,23 @@ def createExchangePVSFluxPlane():
             pv1: :class:`ParticleVector` source
             pv2: :class:`ParticleVector` destination
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
+    
+
+    """
+    pass
+
+def createExpMovingAverage():
+    r"""createExpMovingAverage(state: MirState, name: str, pv: ParticleVectors.ParticleVector, alpha: float, src_channel_name: str, ema_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        Compute the exponential moving average (EMA) of the given channel of a :class:`ParticleVector` and stores it in the new channel "ema_channel_name".
+
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` source
+            alpha: EMA coefficient. must be in [0, 1].
+            src_channel_name: The name of the source channel.
+            ema_channel_name: The name of the new EMA channel.
     
 
     """

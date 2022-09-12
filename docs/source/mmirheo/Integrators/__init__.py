@@ -85,6 +85,43 @@ class Rotate(Integrator):
         """
         pass
 
+class Shear(Integrator):
+    r"""
+        Set the particles velocity to a linear shear velocity :math:`\mathbf{u} = E \mathbf{r}`.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, shear: List[float[9]], origin: real3) -> None
+
+
+                Args:
+                    name: name of the integrator
+                    shear: shear rate tensor (9 components)
+                    origin: point of zero velocity
+            
+
+        """
+        pass
+
+class ShearPolChain(Integrator):
+    r"""
+        Set the particles velocity to a linear shear velocity :math:`\mathbf{u} = E \mathbf{r}`.
+        Also advance the polymeric chain vectors of the particles with forwards Euler.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, shear: List[float[9]], origin: real3) -> None
+
+
+                Args:
+                    name: name of the integrator
+                    shear: shear rate tensor (9 components)
+                    origin: point of zero velocity
+            
+
+        """
+        pass
+
 class SubStep(Integrator):
     r"""
             Takes advantage of separation of time scales between "fast" internal forces and other "slow" forces on an object vector.

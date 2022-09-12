@@ -22,7 +22,11 @@ Here are listed the current available pairwise interactions.
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::PairwiseMDPDInteraction
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPDInteraction
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPDInteraction
    :project: mirheo
    :members:
 
@@ -212,6 +216,23 @@ Implemented kernels
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticDPD
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPDHandler
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::PairwiseViscoElasticSmoothVelDPD
+   :project: mirheo
+   :members:
+
+
 
 The above kernels that output a force can be wrapped by the stress wrapper:
 
@@ -240,6 +261,14 @@ Fetchers are used to load the correct data needed by the pairwise kernels (e.g. 
    :members:
 
 .. doxygenclass:: mirheo::ParticleFetcherWithDensityAndMass
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithPolChainVectors
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ParticleFetcherWithPolChainVectorsAndSmoothVel
    :project: mirheo
    :members:
 
@@ -287,6 +316,10 @@ The following accumulators are currently implemented:
    :members:
 
 .. doxygenclass:: mirheo::ForceAccumulator
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::ForceDerPolChainAccumulator
    :project: mirheo
    :members:
 

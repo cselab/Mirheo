@@ -68,6 +68,11 @@ Their output is generally much lighter than dump plugins.
 The prefered format is csv, to allow clean postprocessing from e.g. python.
 
 
+.. doxygenclass:: mirheo::ExponentialMovingAveragePlugin
+   :project: mirheo
+   :members:
+
+
 .. doxygenclass:: mirheo::MsdPlugin
    :project: mirheo
    :members:

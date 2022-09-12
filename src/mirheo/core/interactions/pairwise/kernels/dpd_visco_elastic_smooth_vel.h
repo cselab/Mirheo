@@ -18,7 +18,7 @@ namespace mirheo {
 class CellList;
 class LocalParticleVector;
 
-/// a GPU compatible functor that computes DPD interactions
+/// a GPU compatible functor that computes DPD + visco-elastic interactions
 class PairwiseViscoElasticSmoothVelDPDHandler : public ParticleFetcherWithPolChainVectorsAndSmoothVel
 {
 public:
