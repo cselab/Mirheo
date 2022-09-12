@@ -56,7 +56,12 @@ Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
 
 ## Changelog
 
-<!-- ### unreleased -->
+### unreleased
+
+* Add extended DPD interactions for visco-elastic fluids (see Ten Bosh 99)
+* Add EMA plugin
+* Add smooth-velocity-based visco-elastic DPD interactions
+
 
 ### v1.6.1
 
