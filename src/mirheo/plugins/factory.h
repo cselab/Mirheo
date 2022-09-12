@@ -88,6 +88,9 @@ PairPlugin createDumpObjStats(bool computeTask, const MirState *state, std::stri
 PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *state, std::string name,
                                             ParticleVector *pv1, ParticleVector *pv2, real4 plane);
 
+PairPlugin createExpMovingAveragePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                        real alpha, std::string srcChannelName, std::string emaChannelName);
+
 PairPlugin createExternalMagneticTorquePlugin(bool computeTask, const MirState *state, std::string name,
                                               RigidObjectVector *rov, real3 moment,
                                               std::function<real3(real)> magneticFunction);

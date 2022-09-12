@@ -21,6 +21,7 @@ set(sources_cu
   dump_obj_stats.cu
   dump_particles.cu
   exchange_pvs_flux_plane.cu
+  exp_moving_average.cu
   external_magnetic_torque.cu
   force_saver.cu
   four_roll_mill.cu

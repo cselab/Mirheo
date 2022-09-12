@@ -334,6 +334,18 @@ void exportPlugins(py::module& m)
             plane: 4 coefficients for the plane equation ax + by + cz + d >= 0
     )");
 
+    m.def("__createExpMovingAverage", &plugin_factory::createExpMovingAveragePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "alpha"_a, "src_channel_name"_a, "ema_channel_name"_a, R"(
+        Compute the exponential moving average (EMA) of the given channel of a :class:`ParticleVector` and stores it in the new channel "ema_channel_name".
+
+        Args:
+            name: name of the plugin
+            pv: :class:`ParticleVector` source
+            alpha: EMA coefficient. must be in [0, 1].
+            src_channel_name: The name of the source channel.
+            ema_channel_name: The name of the new EMA channel.
+    )");
+
     m.def("__createExternalMagneticTorque", &plugin_factory::createExternalMagneticTorquePlugin,
           "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "magneticFunction"_a, R"(
         This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.

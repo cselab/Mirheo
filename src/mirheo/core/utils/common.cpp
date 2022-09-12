@@ -12,17 +12,18 @@ namespace mirheo
 namespace channel_names
 {
 
-const std::string globalIds       = "ids";
+const std::string globalIds        = "ids";
 
-const std::string positions       = "positions";
-const std::string velocities      = "velocities";
-const std::string forces          = "__forces"; // forces are special, as they are not available directly for dump
+const std::string positions        = "positions";
+const std::string velocities       = "velocities";
+const std::string forces           = "__forces"; // forces are special, as they are not available directly for dump
 
-const std::string stresses        = "stresses";
-const std::string densities       = "densities";
-const std::string oldPositions    = "old_positions";
-const std::string polChainVectors = "Q";
-const std::string derChainVectors = "dQdt";
+const std::string stresses         = "stresses";
+const std::string densities        = "densities";
+const std::string oldPositions     = "old_positions";
+const std::string polChainVectors  = "Q";
+const std::string derChainVectors  = "dQdt";
+const std::string smoothVelocities = "smoothVelocities";
 
 const std::string motions     = "motions";
 const std::string oldMotions  = "old_motions";

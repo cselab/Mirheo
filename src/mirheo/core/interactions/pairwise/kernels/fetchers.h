@@ -4,13 +4,13 @@
 #include <mirheo/core/datatypes.h>
 #include <mirheo/core/pvs/views/pv.h>
 #include <mirheo/core/pvs/views/pv_with_pol_chain.h>
+#include <mirheo/core/pvs/views/pv_with_pol_chain_smooth_velocity.h>
 #include <mirheo/core/utils/cpu_gpu_defines.h>
 #include <mirheo/core/utils/cuda_common.h>
 #include <mirheo/core/utils/cuda_rng.h>
 #include <mirheo/core/utils/helper_math.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
 /// fetch position, velocity and global id
 class ParticleFetcher
@@ -123,6 +123,7 @@ public:
     ///  \return Global id of the particle
     __D__ inline int64_t getId(const ParticleType& p) const {return p.p.getId();}
 };
+
 
 /// fetch that reads positions, velocities, number densities and mass
 class ParticleFetcherWithDensityAndMass : public ParticleFetcherWithDensity
@@ -247,4 +248,70 @@ public:
     ///  \return Global id of the particle
     __D__ inline int64_t getId(const ParticleType& p) const {return p.p.getId();}
 };
+
+
+/// fetch positions, velocities, polymeric chain vectors and smooth velocities
+class ParticleFetcherWithPolChainVectorsAndSmoothVel : public ParticleFetcher
+{
+public:
+    /// contains position, global index, velocity and polymeric chain vector of a particle
+    struct ParticleWithPolChainVectorAndSmoothVel
+    {
+        Particle p;      ///< positions, global id, velocity
+        real3 Q;         ///< chain vector
+        real3 smoothVel; ///< smooth velocity
+    };
+
+    using ViewType     = PVviewWithPolChainVectorAndSmoothVelocity; ///< compatible view type
+    using ParticleType = ParticleWithPolChainVectorAndSmoothVel; ///< compatible particle type
+
+    /// \param rc cut-off radius
+    ParticleFetcherWithPolChainVectorsAndSmoothVel(real rc) :
+        ParticleFetcher(rc)
+    {}
+
+    /// read full particle information
+    __D__ inline ParticleType read(const ViewType& view, int id) const
+    {
+        const Real3_int sv(view.smoothVel[id]);
+        return {ParticleFetcher::read(view, id), view.Q[id], sv.v};
+    }
+
+    /// read full particle information through global memory
+    __D__ inline ParticleType readNoCache(const ViewType& view, int id) const
+    {
+        const Real3_int sv(view.smoothVel[id]);
+        return {ParticleFetcher::readNoCache(view, id), view.Q[id], sv.v};
+    }
+
+    /// read particle coordinates only
+    __D__ inline void readCoordinates(ParticleType& p, const ViewType& view, int id) const
+    {
+        ParticleFetcher::readCoordinates(p.p, view, id);
+    }
+
+    /// read velocity and number density of the particle
+    __D__ inline void readExtraData(ParticleType& p, const ViewType& view, int id) const
+    {
+        ParticleFetcher::readExtraData(p.p, view, id);
+        p.Q = view.Q[id];
+
+        const Real3_int sv(view.smoothVel[id]);
+        p.smoothVel = sv.v;
+    }
+
+    /// \return \c true if \p src and \p dst are within a cut-off radius distance; \c false otherwise
+    __D__ inline bool withinCutoff(const ParticleType& src, const ParticleType& dst) const
+    {
+        return ParticleFetcher::withinCutoff(src.p, dst.p);
+    }
+
+    /// fetch position from the generic particle structure
+    __D__ inline real3 getPosition(const ParticleType& p) const {return p.p.r;}
+
+    ///  \return Global id of the particle
+    __D__ inline int64_t getId(const ParticleType& p) const {return p.p.getId();}
+};
+
+
 } // namespace mirheo

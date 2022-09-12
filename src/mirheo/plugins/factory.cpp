@@ -18,6 +18,7 @@
 #include "dump_polylines.h"
 #include "dump_xyz.h"
 #include "exchange_pvs_flux_plane.h"
+#include "exp_moving_average.h"
 #include "external_magnetic_torque.h"
 #include "force_saver.h"
 #include "four_roll_mill.h"
@@ -247,6 +248,15 @@ PairPlugin createExchangePVSFluxPlanePlugin(bool computeTask, const MirState *st
 {
     auto simPl = computeTask ?
         std::make_shared<ExchangePVSFluxPlanePlugin> (state, name, pv1->getName(), pv2->getName(), plane) : nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createExpMovingAveragePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                        real alpha, std::string srcChannelName, std::string emaChannelName)
+{
+    auto simPl = computeTask ?
+        std::make_shared<ExponentialMovingAveragePlugin> (state, name, pv->getName(), alpha, srcChannelName, emaChannelName) : nullptr;
 
     return { simPl, nullptr };
 }

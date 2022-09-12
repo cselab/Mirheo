@@ -16,14 +16,15 @@ namespace channel_names
 extern const std::string globalIds; ///< unique indices
 
 // per particle fields
-extern const std::string positions;       ///< coordinates
-extern const std::string velocities;      ///< velociries
-extern const std::string forces;          ///< forces
-extern const std::string stresses;        ///< stresses
-extern const std::string densities;       ///< number densities (computed from pairwise density kernels)
-extern const std::string oldPositions;    ///< positions at previous time step
-extern const std::string polChainVectors; ///< polymeric chain end-to-end vector (see extended DPD interactions)
-extern const std::string derChainVectors; ///< time derivative of polymeric chain end-to-end vector
+extern const std::string positions;        ///< coordinates
+extern const std::string velocities;       ///< velociries
+extern const std::string forces;           ///< forces
+extern const std::string stresses;         ///< stresses
+extern const std::string densities;        ///< number densities (computed from pairwise density kernels)
+extern const std::string oldPositions;     ///< positions at previous time step
+extern const std::string polChainVectors;  ///< polymeric chain end-to-end vector (see extended DPD interactions)
+extern const std::string derChainVectors;  ///< time derivative of polymeric chain end-to-end vector
+extern const std::string smoothVelocities; ///< time averaged velocities
 
 // per object fields
 extern const std::string motions;     ///< rigid object states
