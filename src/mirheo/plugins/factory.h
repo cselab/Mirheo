@@ -9,16 +9,15 @@
 #include <mirheo/core/pvs/rod_vector.h>
 #include <mirheo/core/walls/interface.h>
 
+#include <array>
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace plugin_factory {
 
-namespace plugin_factory
-{
 using PairPlugin = std::pair<std::shared_ptr<SimulationPlugin>,
                              std::shared_ptr<PostprocessPlugin>>;
 
@@ -143,6 +142,9 @@ PairPlugin createRdfPlugin(bool computeTask, const MirState *state, std::string 
 
 PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::string name, ChainVector *cv,
                              MirState::TimeType startTime, MirState::TimeType endTime, int dumpEvery, std::string path);
+
+PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                  std::array<real,9> shear, real3 origin, std::string sfChannelName);
 
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
 

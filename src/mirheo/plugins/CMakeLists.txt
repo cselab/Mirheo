@@ -38,6 +38,7 @@ set(sources_cu
   pin_rod_extremity.cu
   rdf.cu
   rmacf.cu
+  shear_field.cu
   stats.cu
   temperaturize.cu
   vacf.cu

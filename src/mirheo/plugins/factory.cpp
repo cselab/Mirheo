@@ -36,6 +36,7 @@
 #include "pin_rod_extremity.h"
 #include "rdf.h"
 #include "rmacf.h"
+#include "shear_field.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "vacf.h"
@@ -419,6 +420,16 @@ PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::strin
         : nullptr;
     auto postPl = computeTask ? nullptr : std::make_shared<RmacfDumper> (name, path);
     return { simPl, postPl };
+}
+
+PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                  std::array<real,9> shear, real3 origin, std::string sfChannelName)
+{
+    auto simPl = computeTask
+        ? std::make_shared<ShearFieldPlugin> (state, name, pv->getName(), shear, origin, sfChannelName)
+        : nullptr;
+
+    return { simPl, nullptr };
 }
 
 

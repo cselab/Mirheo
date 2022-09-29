@@ -574,6 +574,18 @@ void exportPlugins(py::module& m)
             path: The folder name in which the file will be dumped.
     )");
 
+    m.def("__createShearField", &plugin_factory::createShearFieldPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "shear"_a, "origin"_a, "sf_channel_name"_a, R"(
+        This plugin computes the shear velocity field at every particle's position and stores it in a channel vector.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            shear: Shear tensor.
+            origin: Point in space with zero velocity.
+            sf_channel_name: Name of the channel that will contain the shear field.
+    )");
+
     m.def("__createStats", &plugin_factory::createStatsPlugin,
           "compute_task"_a, "state"_a, "name"_a, "every"_a, "pvs"_a=std::vector<ParticleVector*>(), "filename"_a="", R"(
         This plugin will report aggregate quantities of all the particles in the simulation:
