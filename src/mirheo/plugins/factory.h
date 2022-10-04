@@ -26,7 +26,11 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 
-PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force, char flipDirection);
+PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                                 real3 force, char flipDirection);
+
+PairPlugin createAddSinusoidalForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                          real magnitude, int waveNumber);
 
 PairPlugin createAddTorquePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 torque);
 

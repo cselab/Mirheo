@@ -3,6 +3,7 @@
 
 #include "add_force.h"
 #include "add_reverse_poiseuille_force.h"
+#include "add_sinusoidal_force.h"
 #include "add_torque.h"
 #include "anchor_particle.h"
 #include "average_flow.h"
@@ -71,9 +72,21 @@ PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::st
     return { simPl, nullptr };
 }
 
-PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force, char flipDirection)
+PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                                 real3 force, char flipDirection)
 {
-    auto simPl = computeTask ? std::make_shared<AddReversePoiseuilleForcePlugin> (state, name, pv->getName(), force, flipDirection) : nullptr;
+    auto simPl = computeTask
+        ? std::make_shared<AddReversePoiseuilleForcePlugin> (state, name, pv->getName(), force, flipDirection)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddSinusoidalForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                          real magnitude, int waveNumber)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddSinusoidalForcePlugin> (state, name, pv->getName(), magnitude, waveNumber)
+        : nullptr;
     return { simPl, nullptr };
 }
 

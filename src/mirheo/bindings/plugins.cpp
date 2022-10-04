@@ -58,6 +58,17 @@ void exportPlugins(py::module& m)
             flip_direction: either x, y or z. The direction along with the sign of the force changes.
     )");
 
+    m.def("__createAddSinusoidalForce", &plugin_factory::createAddSinusoidalForcePlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "magnitude"_a, "wave_number"_a, R"(
+        This plugin will add sinusoidal force :math:`\mathbf{F}(\mathbf{r}) = A \sin\left( 2\pi k r_y / L_y\right)` to each particle of a specific PV every time-step, where :math:`L_y` is the dimension of the domain along :math`y`.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            magnitude: coefficient :math:`A`
+            wave_number: mode :math:`k` (integer)
+    )");
+
     m.def("__createAddTorque", &plugin_factory::createAddTorquePlugin,
           "compute_task"_a, "state"_a, "name"_a, "ov"_a, "torque"_a, R"(
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
