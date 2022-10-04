@@ -146,6 +146,18 @@ These plugins add more functionalities to the simulation.
    :project: mirheo
    :members:
 
+.. doxygenclass:: mirheo::AddFourRollMillForcePlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::AddReversePoiseuilleForcePlugin
+   :project: mirheo
+   :members:
+
+.. doxygenclass:: mirheo::AddSinusoidalForcePlugin
+   :project: mirheo
+   :members:
+
 
 .. doxygenclass:: mirheo::AddTorquePlugin
    :project: mirheo
@@ -164,7 +176,6 @@ These plugins add more functionalities to the simulation.
 .. doxygenclass:: mirheo::BerendsenThermostatPlugin
    :project: mirheo
    :members:
-
 
 .. doxygenclass:: mirheo::DensityControlPlugin
    :project: mirheo

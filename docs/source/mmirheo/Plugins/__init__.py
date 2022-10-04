@@ -64,6 +64,22 @@ def createAddReversePoiseuilleForce():
     """
     pass
 
+def createAddSinusoidalForce():
+    r"""createAddSinusoidalForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin will add sinusoidal force :math:`\mathbf{F}(\mathbf{r}) = A \sin\left( 2\pi k r_y / L_y\right)` to each particle of a specific PV every time-step, where :math:`L_y` is the dimension of the domain along :math`y`.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            magnitude: coefficient :math:`A`
+            wave_number: mode :math:`k` (integer)
+    
+
+    """
+    pass
+
 def createAddTorque():
     r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
@@ -719,6 +735,23 @@ def createRmacf():
             end_time: End time until which to compute the RMACF.
             dump_every: Report the RMACF every this many time-steps.
             path: The folder name in which the file will be dumped.
+    
+
+    """
+    pass
+
+def createShearField():
+    r"""createShearField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, shear: List[float[9]], origin: real3, sf_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin computes the shear velocity field at every particle's position and stores it in a channel vector.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            shear: Shear tensor.
+            origin: Point in space with zero velocity.
+            sf_channel_name: Name of the channel that will contain the shear field.
     
 
     """
