@@ -7,8 +7,7 @@
 #include <algorithm>
 #include <set>
 
-namespace mirheo
-{
+namespace mirheo {
 
 static inline Interaction::ActivePredicate predicateOr(Interaction::ActivePredicate p1, Interaction::ActivePredicate p2)
 {

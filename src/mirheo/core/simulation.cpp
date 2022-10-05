@@ -796,6 +796,15 @@ std::vector<std::string> Simulation::_getDataToSendBack(const std::vector<std::s
     return {channels.begin(), channels.end()};
 }
 
+static std::vector<std::string> merge(std::vector<std::string> a,
+                                      std::vector<std::string> b)
+{
+    std::set<std::string> all;
+    all.insert(a.begin(), a.end());
+    all.insert(b.begin(), b.end());
+    return {all.begin(), all.end()};
+}
+
 void Simulation::_prepareEngines()
 {
     auto partRedistImp                  = std::make_unique<ParticleRedistributor>();
@@ -815,8 +824,9 @@ void Simulation::_prepareEngines()
 
         if (cellListVec.size() == 0) continue;
 
-        auto extraInt = run_->interactionsIntermediate.getOutputChannels(pvPtr);
-        auto extraFin = run_->interactionsFinal       .getOutputChannels(pvPtr);
+        auto extraInt = merge(run_->interactionsIntermediate.getOutputChannels(pvPtr),
+                              run_->interactionsFinal.getInputChannels(pvPtr));
+        auto extraFin  = run_->interactionsFinal.getOutputChannels(pvPtr);
 
 
         auto largestCellList = cellListVec[0].get();
