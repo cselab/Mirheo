@@ -598,15 +598,15 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createSinusoidalField", &plugin_factory::createSinusoidalFieldPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "magnitude"_a, "waveNumber"_a, "sf_channel_name"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "magnitude"_a, "wave_number"_a, "sf_channel_name"_a, R"(
         This plugin computes a sinusoidal velocity field at every particle's position and stores it in a channel vector.
 
         Args:
             name: Name of the plugin.
             pv: Concerned :class:`ParticleVector`.
             magnitude: Maximum velocity along x.
-            waveNumber: Number of periods along y.
-            sf_channel_name: Name of the channel that will contain the shear field.
+            wave_number: Number of periods along y.
+            sf_channel_name: Name of the channel that will contain the sinusoidal field.
     )");
 
     m.def("__createStats", &plugin_factory::createStatsPlugin,

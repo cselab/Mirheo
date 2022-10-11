@@ -19,13 +19,15 @@ public:
 
     /** \brief Construct a UniformWithPolChainIC object
         \param [in] numDensity Number density of the particles to initialize
+        \param [in] q0 Initial average length of the chains
      */
-    UniformWithPolChainIC(real numDensity);
+    UniformWithPolChainIC(real numDensity, real q0);
 
     void exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream) override;
 
 private:
     real numDensity_;
+    real q0_;
 };
 
 

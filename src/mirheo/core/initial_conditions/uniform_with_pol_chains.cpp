@@ -4,10 +4,13 @@
 
 #include <mirheo/core/pvs/particle_vector.h>
 
+#include <random>
+
 namespace mirheo {
 
-UniformWithPolChainIC::UniformWithPolChainIC(real numDensity) :
-    numDensity_(numDensity)
+UniformWithPolChainIC::UniformWithPolChainIC(real numDensity, real q0) :
+    numDensity_(numDensity),
+    q0_(q0)
 {}
 
 void UniformWithPolChainIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaStream_t stream)
@@ -19,9 +22,17 @@ void UniformWithPolChainIC::exec(const MPI_Comm& comm, ParticleVector *pv, cudaS
 
     PinnedBuffer<real3>& Qs = *pv->local()->dataPerParticle.getData<real3>(channel_names::polChainVectors);
 
+    int rank = 0;
+    MPI_Check( MPI_Comm_rank(comm, &rank) );
+    const long seed = 1097 + 1265 * rank;
+    std::normal_distribution<real> qdistr(0.0_r, q0_);
+    std::mt19937 gen(seed);
+
     for (auto& Q : Qs)
     {
-        Q.x = Q.y = Q.z = 0.0_r;
+        Q.x = qdistr(gen);
+        Q.y = qdistr(gen);
+        Q.z = qdistr(gen);
     }
 
     Qs.uploadToDevice(stream);

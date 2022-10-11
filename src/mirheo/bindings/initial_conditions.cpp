@@ -209,11 +209,12 @@ void exportInitialConditions(py::module& m)
 
     py::handlers_class<UniformWithPolChainIC>(m, "UniformWithPolChain", pyic, R"(
         The particles will be generated with the desired number density uniformly at random in all the domain.
-        In addition, will provide an additional channel (set to zero) containing polymeric chain end to end vectors.
+        In addition, will provide an additional channel containing polymeric chain end to end vectors.
     )")
-        .def(py::init<real>(), "number_density"_a, R"(
+        .def(py::init<real, real>(), "number_density"_a, "q0"_a=0.0_r, R"(
             Args:
                 number_density: target number density
+                q0: average length of the q vector
         )");
 
 
