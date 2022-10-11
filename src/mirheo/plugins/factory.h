@@ -150,6 +150,9 @@ PairPlugin createRmacfPlugin(bool computeTask, const MirState *state, std::strin
 PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                   std::array<real,9> shear, real3 origin, std::string sfChannelName);
 
+PairPlugin createSinusoidalFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                       real magnitude, int waveNumber, std::string sfChannelName);
+
 PairPlugin createStatsPlugin(bool computeTask, const MirState *state, std::string name, int every, const std::vector<ParticleVector*>& pvs, std::string filename);
 
 PairPlugin createTemperaturizePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector* pv, real kBT, bool keepVelocity);

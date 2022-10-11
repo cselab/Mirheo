@@ -38,6 +38,7 @@
 #include "rdf.h"
 #include "rmacf.h"
 #include "shear_field.h"
+#include "sinusoidal_field.h"
 #include "stats.h"
 #include "temperaturize.h"
 #include "vacf.h"
@@ -440,6 +441,16 @@ PairPlugin createShearFieldPlugin(bool computeTask, const MirState *state, std::
 {
     auto simPl = computeTask
         ? std::make_shared<ShearFieldPlugin> (state, name, pv->getName(), shear, origin, sfChannelName)
+        : nullptr;
+
+    return { simPl, nullptr };
+}
+
+PairPlugin createSinusoidalFieldPlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
+                                       real magnitude, int waveNumber, std::string sfChannelName)
+{
+    auto simPl = computeTask
+        ? std::make_shared<SinusoidalFieldPlugin> (state, name, pv->getName(), magnitude, waveNumber, sfChannelName)
         : nullptr;
 
     return { simPl, nullptr };

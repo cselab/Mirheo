@@ -40,6 +40,7 @@ set(sources_cu
   rdf.cu
   rmacf.cu
   shear_field.cu
+  sinusoidal_field.cu
   stats.cu
   temperaturize.cu
   vacf.cu
