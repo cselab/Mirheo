@@ -11,11 +11,9 @@
 
 #include <mpi.h>
 
-namespace mirheo
-{
+namespace mirheo {
+namespace magnetic_dipole_interactions_plugin_kernels {
 
-namespace magnetic_dipole_interactions_plugin_kernels
-{
 __global__ void collectRigidInfo(const DomainInfo domain, const ROVview view, real4 *rigidPosQuat)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,11 +32,12 @@ __global__ void collectRigidInfo(const DomainInfo domain, const ROVview view, re
  */
 __device__ inline real3 difference(real3 a, real3 b, real3 L, bool periodic)
 {
-    const real3 h = 0.5_r * L;
     real3 d = a - b;
 
     if (periodic)
     {
+        const real3 h = 0.5_r * L;
+
         if (d.x < -h.x) d.x += L.x;
         if (d.x >  h.x) d.x -= L.x;
 
