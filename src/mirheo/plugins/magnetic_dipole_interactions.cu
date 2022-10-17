@@ -29,27 +29,32 @@ __global__ void collectRigidInfo(const DomainInfo domain, const ROVview view, re
     rigidPosQuat[2*gid + 1] = make_real4(m.q.w, m.q.x, m.q.y, m.q.z);
 }
 
-/** Compute the smallest difference between two points in a periodic domain.
+/** Compute the difference between two points.
+    If periodic, returns the smallest difference between two points in the periodic domain.
  */
-__device__ real3 periodicDifference(real3 a, real3 b, real3 L)
+__device__ inline real3 difference(real3 a, real3 b, real3 L, bool periodic)
 {
     const real3 h = 0.5_r * L;
     real3 d = a - b;
-    if (d.x < -h.x) d.x += L.x;
-    if (d.x >  h.x) d.x -= L.x;
 
-    if (d.y < -h.y) d.y += L.y;
-    if (d.y >  h.y) d.y -= L.y;
+    if (periodic)
+    {
+        if (d.x < -h.x) d.x += L.x;
+        if (d.x >  h.x) d.x -= L.x;
 
-    if (d.z < -h.z) d.z += L.z;
-    if (d.z >  h.z) d.z -= L.z;
+        if (d.y < -h.y) d.y += L.y;
+        if (d.y >  h.y) d.y -= L.y;
+
+        if (d.z < -h.z) d.z += L.z;
+        if (d.z >  h.z) d.z -= L.z;
+    }
 
     return d;
 }
 
 __global__ void computeInteractions(const DomainInfo domain, ROVview view,
                                     int numSources,  const real4 *rigidPosQuat,
-                                    real mu0_4pi, real3 moment)
+                                    real mu0_4pi, real3 moment, bool periodic)
 {
     const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     if (gid >= view.nObjects) return;
@@ -69,7 +74,7 @@ __global__ void computeInteractions(const DomainInfo domain, ROVview view,
         const auto qsrc = Quaternion<real>::createFromComponents(rigidPosQuat[2*i+1]);
         const auto msrc = qsrc.rotate(moment);
 
-        const real3 dr = periodicDifference(rdst, rsrc, domain.globalSize);
+        const real3 dr = difference(rdst, rsrc, domain.globalSize, periodic);
         const real r2 = dot(dr, dr);
 
         if (r2 < 1e-6_r)
@@ -102,11 +107,13 @@ __global__ void computeInteractions(const DomainInfo domain, ROVview view,
 } // namespace magnetic_dipole_interactions_plugin_kernels
 
 MagneticDipoleInteractionsPlugin::MagneticDipoleInteractionsPlugin(const MirState *state, std::string name,
-                                                                   std::string rovName, real3 moment, real mu0) :
+                                                                   std::string rovName,
+                                                                   real3 moment, real mu0, bool periodic) :
     SimulationPlugin(state, name),
     rovName_(rovName),
     moment_(moment),
-    mu0_(mu0)
+    mu0_(mu0),
+    periodic_(periodic)
 {}
 
 void MagneticDipoleInteractionsPlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)
@@ -182,7 +189,9 @@ void MagneticDipoleInteractionsPlugin::beforeForces(cudaStream_t stream)
     SAFE_KERNEL_LAUNCH(
             magnetic_dipole_interactions_plugin_kernels::computeInteractions,
             getNblocks(view.nObjects, nthreads), nthreads, 0, stream,
-            domain, view, totNumObjects, recvRigidPosQuat_.devPtr(), mu0_ / (4 * M_PI), moment_);
+            domain, view, totNumObjects, recvRigidPosQuat_.devPtr(),
+            mu0_ / (4 * M_PI), moment_,
+            periodic_);
 }
 
 } // namespace mirheo

@@ -25,9 +25,11 @@ public:
         \param [in] rovName The name of the RigidObjectVector interacting.
         \param [in] moment The constant magnetic moment of one object, in its frame of reference.
         \param [in] mu0 The magnetic permeability of the medium.
+        \param [in] periodic If true, computes interactions with the closest periodic image of the objects
      */
      MagneticDipoleInteractionsPlugin(const MirState *state, std::string name,
-                                      std::string rovName, real3 moment, real mu0);
+                                      std::string rovName,
+                                      real3 moment, real mu0, bool periodic);
 
     void setup(Simulation* simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
 
@@ -41,6 +43,7 @@ private:
     RigidObjectVector *rov_;
     real3 moment_;
     real mu0_;
+    bool periodic_;
 
     PinnedBuffer<real4> sendRigidPosQuat_;
     PinnedBuffer<real4> recvRigidPosQuat_;

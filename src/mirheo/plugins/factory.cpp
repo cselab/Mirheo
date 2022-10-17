@@ -315,10 +315,10 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
 }
 
 PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
-                                                  RigidObjectVector *rov, real3 moment, real mu0)
+                                                  RigidObjectVector *rov, real3 moment, real mu0, bool periodic)
 {
     auto simPl = computeTask ?
-        std::make_shared<MagneticDipoleInteractionsPlugin>(state, name, rov->getName(), moment, mu0)
+        std::make_shared<MagneticDipoleInteractionsPlugin>(state, name, rov->getName(), moment, mu0, periodic)
         : nullptr;
 
     return { simPl, nullptr };

@@ -415,7 +415,7 @@ void exportPlugins(py::module& m)
     )");
 
     m.def("__createMagneticDipoleInteractions", &plugin_factory::createMagneticDipoleInteractionsPlugin,
-          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "mu0"_a, R"(
+          "compute_task"_a, "state"_a, "name"_a, "rov"_a, "moment"_a, "mu0"_a, "periodic"_a=true, R"(
         This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
         All rigid objects are assumed to be the same with a constant magnetic moment in their frame of reference.
 
@@ -424,6 +424,7 @@ void exportPlugins(py::module& m)
             rov: :class:`RigidObjectVector` with which the magnetic field will interact
             moment: magnetic moment per object
             mu0: magnetic permeability of the medium
+            periodic: if True, compute the interactions from the closest periodic image of each object.
     )");
 
     m.def("__createMembraneExtraForce", &plugin_factory::createMembraneExtraForcePlugin,

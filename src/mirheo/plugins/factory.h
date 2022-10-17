@@ -108,7 +108,7 @@ PairPlugin createImposeVelocityPlugin(bool computeTask,  const MirState *state, 
                                       real3 low, real3 high, real3 velocity);
 
 PairPlugin createMagneticDipoleInteractionsPlugin(bool computeTask, const MirState *state, std::string name,
-                                                  RigidObjectVector *rov, real3 moment, real mu0);
+                                                  RigidObjectVector *rov, real3 moment, real mu0, bool periodic);
 
 PairPlugin createMembraneExtraForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, const std::vector<real3>& forces);
 
