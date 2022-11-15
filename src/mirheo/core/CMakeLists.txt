@@ -103,6 +103,13 @@ if (MIR_USE_NVTX)
   message("compiling with MIRHEO_USE_NVTX ON")
 endif()
 
+if (MIR_ENABLE_STACKTRACE)
+  target_compile_definitions(${LIB_MIR_CORE} PUBLIC MIRHEO_ENABLE_STACKTRACE)
+  message("compiling with MIR_ENABLE_STACKTRACE ON")
+else()
+  message("compiling with MIR_ENABLE_STACKTRACE OFF")
+endif()
+
 # Alias
 
 add_library(mirheo::core ALIAS ${LIB_MIR_CORE})

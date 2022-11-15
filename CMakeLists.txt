@@ -30,6 +30,9 @@ option(MIR_BUILD_TESTS         "Build mirheo unit tests"           OFF)
 option(MIR_ENABLE_LTO          "enable link time optimization"     OFF)
 option(MIR_ENABLE_SANITIZER    "enable ub sanitizer"               OFF)
 option(MIR_PROFILE_COMPILATION "print compilation profiling info"  OFF)
+option(MIR_ENABLE_STACKTRACE   "print a stacktrace when failing"   ON )
+
+set(mir_definitions "")
 
 include(options)
 include(version)

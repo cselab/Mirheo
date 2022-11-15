@@ -61,6 +61,8 @@ Single ABF in a blood suspension | Swarm of ABFs in a blood bifurcation
 * Add extended DPD interactions for visco-elastic fluids (see Ten Bosh 99)
 * Add EMA plugin
 * Add smooth-velocity-based visco-elastic DPD interactions
+* Add compilation option to disable stacktrace (when lib-bfd is not available)
+* Add sinusoid forcing term (for kolmogorov forcing)
 
 
 ### v1.6.1
