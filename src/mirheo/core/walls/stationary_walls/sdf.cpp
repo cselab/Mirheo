@@ -5,12 +5,12 @@ namespace mirheo
 {
 
 StationaryWallSDF::StationaryWallSDF(const MirState *state, std::string sdfFileName, real3 sdfH, real3 margin) :
-    impl_(std::make_unique<FieldFromFile>(state, "field_"+sdfFileName, sdfFileName, sdfH, margin))
+    impl_(std::make_unique<ScalarFieldFromFile>(state, "field_"+sdfFileName, sdfFileName, sdfH, margin))
 {}
 
 StationaryWallSDF::StationaryWallSDF(StationaryWallSDF&&) = default;
 
-const FieldDeviceHandler& StationaryWallSDF::handler() const
+const ScalarFieldDeviceHandler& StationaryWallSDF::handler() const
 {
     return impl_->handler();
 }

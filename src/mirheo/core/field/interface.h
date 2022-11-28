@@ -25,7 +25,7 @@ T tex3D(__UNUSED cudaTextureObject_t t,
 
 /** \brief a device-compatible structure that represents a scalar field
  */
-class FieldDeviceHandler
+class ScalarFieldDeviceHandler
 {
 public:
     /** \brief Evaluate the field at a given position
@@ -88,23 +88,23 @@ protected:
 
 /** \brief Driver class used to create a FieldDeviceHandler.
  */
-class Field : public FieldDeviceHandler, public MirSimulationObject
+class ScalarField : public ScalarFieldDeviceHandler, public MirSimulationObject
 {
 public:
-    /** \brief Construct a \c Field object
+    /** \brief Construct a \c ScalarField object
         \param [in] state The global state of the system
         \param [in] name The name of the field object
         \param [in] h the grid size
         \param [in] margin Additional margin to store in each rank
      */
-    Field(const MirState *state, std::string name, real3 h, real3 margin);
-    virtual ~Field();
+    ScalarField(const MirState *state, std::string name, real3 h, real3 margin);
+    virtual ~ScalarField();
 
     /// move constructor
-    Field(Field&&);
+    ScalarField(ScalarField&&);
 
     /// \return The handler that can be used on the device
-    const FieldDeviceHandler& handler() const;
+    const ScalarFieldDeviceHandler& handler() const;
 
     /** Prepare the internal state of the \c Field.
         Must be called before handler().

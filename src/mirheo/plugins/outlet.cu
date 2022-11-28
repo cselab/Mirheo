@@ -98,13 +98,15 @@ void PlaneOutletPlugin::beforeCellLists(cudaStream_t stream)
 namespace region_outlet_plugin_kernels
 {
 
-static __device__ inline bool isInsideRegion(const FieldDeviceHandler& field, const real3& r)
+static __device__ inline bool isInsideRegion(const ScalarFieldDeviceHandler& field, const real3& r)
 {
     return field(r) < 0._r;
 }
 
 /// Monte-Carlo estimate of the region volume.
-static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo domain, FieldDeviceHandler field, real seed, AccumulatedIntType *nInside)
+static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo domain,
+                                         ScalarFieldDeviceHandler field, real seed,
+                                         AccumulatedIntType *nInside)
 {
     AccumulatedIntType tid = threadIdx.x + blockIdx.x * blockDim.x;
     int countInside = 0;
@@ -127,7 +129,7 @@ static __global__ void countInsideRegion(AccumulatedIntType nSamples, DomainInfo
         atomicAdd(nInside, (AccumulatedIntType) countInside);
 }
 
-__global__ void countParticlesInside(PVview view, FieldDeviceHandler field, int *nInside)
+__global__ void countParticlesInside(PVview view, ScalarFieldDeviceHandler field, int *nInside)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int countInside = 0;
@@ -154,8 +156,8 @@ constexpr real3 defaultMargin {5.0_r, 5.0_r, 5.0_r};
 RegionOutletPlugin::RegionOutletPlugin(const MirState *state, std::string name, std::vector<std::string> pvNames,
                                        RegionFunc region, real3 resolution) :
     OutletPlugin(state, name, std::move(pvNames)),
-    outletRegion_(std::make_unique<FieldFromFunction>(state, name + "_region", region,
-                                                      resolution, defaultMargin)),
+    outletRegion_(std::make_unique<ScalarFieldFromFunction>(state, name + "_region", region,
+                                                            resolution, defaultMargin)),
     volume_(0)
 {}
 

@@ -23,7 +23,7 @@ namespace density_control_plugin_kernels
 
 enum {INVALID_LEVEL=-1};
 
-__device__ int getLevelId(const FieldDeviceHandler& field, const real3& r,
+__device__ int getLevelId(const ScalarFieldDeviceHandler& field, const real3& r,
                            const DensityControlPlugin::LevelBounds& lb)
 {
     real l = field(r);
@@ -32,7 +32,8 @@ __device__ int getLevelId(const FieldDeviceHandler& field, const real3& r,
         INVALID_LEVEL;
 }
 
-__global__ void countInsideRegions(int nSamples, DomainInfo domain, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb,
+__global__ void countInsideRegions(int nSamples, DomainInfo domain, ScalarFieldDeviceHandler field,
+                                   DensityControlPlugin::LevelBounds lb,
                                    real seed, unsigned long long int *nInsides)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -60,7 +61,9 @@ __global__ void computeVolumes(int nLevels, int nSamples, const unsigned long lo
     volumes[i] = v;
 }
 
-__global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, unsigned long long int *nInsides)
+__global__ void collectSamples(PVview view, ScalarFieldDeviceHandler field,
+                               DensityControlPlugin::LevelBounds lb,
+                               unsigned long long int *nInsides)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     if (i >= view.size) return;
@@ -73,7 +76,9 @@ __global__ void collectSamples(PVview view, FieldDeviceHandler field, DensityCon
         atomicAdd(&nInsides[levelId], 1);
 }
 
-__global__ void applyForces(PVview view, FieldDeviceHandler field, DensityControlPlugin::LevelBounds lb, const real *forces)
+__global__ void applyForces(PVview view, ScalarFieldDeviceHandler field,
+                            DensityControlPlugin::LevelBounds lb,
+                            const real *forces)
 {
     const real h = 0.25_r;
     const real zeroTolerance = 1e-10_r;
@@ -111,7 +116,7 @@ DensityControlPlugin::DensityControlPlugin(const MirState *state, std::string na
     SimulationPlugin(state, name),
     pvNames_(pvNames),
     targetDensity_(targetDensity),
-    spaceDecompositionField_(std::make_unique<FieldFromFunction>
+    spaceDecompositionField_(std::make_unique<ScalarFieldFromFunction>
                             (state, name + "_decomposition", region,
                              resolution, defaultMargin)),
     levelBounds_({levelLo, levelHi, levelSpace}),

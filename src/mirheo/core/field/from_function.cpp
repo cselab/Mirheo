@@ -3,18 +3,17 @@
 
 #include <mirheo/core/utils/cuda_common.h>
 
-namespace mirheo
-{
+namespace mirheo {
 
-FieldFromFunction::FieldFromFunction(const MirState *state, std::string name,
-                                     FieldFunction func, real3 h, real3 margin) :
-    Field(state, name, h, margin),
+ScalarFieldFromFunction::ScalarFieldFromFunction(const MirState *state, std::string name,
+                                                 ScalarFieldFunction func, real3 h, real3 margin) :
+    ScalarField(state, name, h, margin),
     func_(func)
 {}
 
-FieldFromFunction::~FieldFromFunction() = default;
+ScalarFieldFromFunction::~ScalarFieldFromFunction() = default;
 
-FieldFromFunction::FieldFromFunction(FieldFromFunction&&) = default;
+ScalarFieldFromFunction::ScalarFieldFromFunction(ScalarFieldFromFunction&&) = default;
 
 
 inline real make_perioidc(real x, real L)
@@ -31,7 +30,7 @@ inline real3 make_periodic(real3 r, real3 L)
             make_perioidc(r.z, L.z)};
 }
 
-void FieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
+void ScalarFieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
 {
     info("Setting up field '%s'", getCName());
 

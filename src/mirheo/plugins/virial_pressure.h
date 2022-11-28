@@ -32,7 +32,7 @@ public:
         \param [in] dumpEvery Will compute and send the pressure every this number of steps.
     */
     VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
-                         FieldFunction func, real3 h, int dumpEvery);
+                         ScalarFieldFunction func, real3 h, int dumpEvery);
     ~VirialPressurePlugin();
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
@@ -48,7 +48,7 @@ private:
     int dumpEvery_;
     bool needToSend_ = false;
 
-    FieldFromFunction region_;
+    ScalarFieldFromFunction region_;
 
     PinnedBuffer<virial_pressure_plugin::ReductionType> localVirialPressure_ {1};
     MirState::TimeType savedTime_ = 0;

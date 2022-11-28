@@ -7,7 +7,7 @@
 namespace mirheo
 {
 
-Field::Field(const MirState *state, std::string name, real3 hField, real3 margin) :
+ScalarField::ScalarField(const MirState *state, std::string name, real3 hField, real3 margin) :
     MirSimulationObject(state, name),
     fieldArray_(nullptr),
     margin3_(margin)
@@ -20,7 +20,7 @@ Field::Field(const MirState *state, std::string name, real3 hField, real3 margin
     invh_               = 1.0_r / h_;
 }
 
-Field::~Field()
+ScalarField::~ScalarField()
 {
     if (fieldArray_) {
         CUDA_Check( cudaFreeArray(fieldArray_) );
@@ -28,14 +28,14 @@ Field::~Field()
     }
 }
 
-Field::Field(Field&&) = default;
+ScalarField::ScalarField(ScalarField&&) = default;
 
-const FieldDeviceHandler& Field::handler() const
+const ScalarFieldDeviceHandler& ScalarField::handler() const
 {
-    return *(FieldDeviceHandler*)this;
+    return *(ScalarFieldDeviceHandler*)this;
 }
 
-void Field::_setupArrayTexture(const float *fieldDevPtr)
+void ScalarField::_setupArrayTexture(const float *fieldDevPtr)
 {
     debug("setting up cuda array and texture object for field '%s'", getCName());
 

@@ -29,10 +29,10 @@ public:
     void setup(MPI_Comm& comm, DomainInfo domain);
 
     /// Get a handler of the shape representation usable on the device
-    const FieldDeviceHandler& handler() const;
+    const ScalarFieldDeviceHandler& handler() const;
 
 private:
-    std::unique_ptr<FieldFromFile> impl_;
+    std::unique_ptr<ScalarFieldFromFile> impl_;
 };
 
 } // namespace mirheo

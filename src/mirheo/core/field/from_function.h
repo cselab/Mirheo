@@ -3,18 +3,17 @@
 
 #include <functional>
 
-namespace mirheo
-{
+namespace mirheo {
 
 /// A function that describes a scala field
-using FieldFunction = std::function<real(real3)>;
+using ScalarFieldFunction = std::function<real(real3)>;
 
-/** \brief a \c Field that can be initialized from FieldFunction
+/** \brief a \c ScalarField that can be initialized from FieldFunction
  */
-class FieldFromFunction : public Field
+class ScalarFieldFromFunction : public ScalarField
 {
 public:
-    /** \brief Construct a FieldFromFunction object
+    /** \brief Construct a ScalarFieldFromFunction object
         \param [in] state The global state of the system
         \param [in] name The name of the field object
         \param [in] func The scalar field function
@@ -25,17 +24,17 @@ public:
         This can be useful as one can have a general scalar field configured
         on the host (e.g. from python) but usable on the device.
     */
-    FieldFromFunction(const MirState *state, std::string name,
-                      FieldFunction func, real3 h, real3 margin);
-    ~FieldFromFunction();
+    ScalarFieldFromFunction(const MirState *state, std::string name,
+                            ScalarFieldFunction func, real3 h, real3 margin);
+    ~ScalarFieldFromFunction();
 
     /// move constructor
-    FieldFromFunction(FieldFromFunction&&);
+    ScalarFieldFromFunction(ScalarFieldFromFunction&&);
 
     void setup(const MPI_Comm& comm) override;
 
 private:
-    FieldFunction func_; ///< The scalar field
+    ScalarFieldFunction func_; ///< The scalar field
 };
 
 } // namespace mirheo

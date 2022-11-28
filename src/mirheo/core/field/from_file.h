@@ -1,14 +1,14 @@
 // Copyright 2020 ETH Zurich. All Rights Reserved.
 #include "interface.h"
 
-namespace mirheo
-{
-/** \brief a \c Field that can be initialized from a file
+namespace mirheo {
+
+/** \brief a \c ScalarField that can be initialized from a file
  */
-class FieldFromFile : public Field
+class ScalarFieldFromFile : public ScalarField
 {
 public:
-    /** \brief Construct a FieldFromFile object
+    /** \brief Construct a ScalarFieldFromFile object
 
         \param [in] state The global state of the system
         \param [in] name The name of the field object
@@ -24,12 +24,12 @@ public:
 
         The data is an array that contains all grid values (x is the fast running index).
     */
-    FieldFromFile(const MirState *state, std::string name,
+    ScalarFieldFromFile(const MirState *state, std::string name,
                   std::string fieldFileName, real3 h, real3 margin);
-    ~FieldFromFile();
+    ~ScalarFieldFromFile();
 
     /// move constructor
-    FieldFromFile(FieldFromFile&&);
+    ScalarFieldFromFile(ScalarFieldFromFile&&);
 
     void setup(const MPI_Comm& comm) override;
 

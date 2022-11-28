@@ -271,22 +271,22 @@ static LocalSdfPiece prepareRelevantSdfPiece(const std::vector<float>& fullSdfDa
     return sdfPiece;
 }
 
-FieldFromFile::FieldFromFile(const MirState *state, std::string name,
-                             std::string fieldFileName, real3 h, real3 margin) :
-    Field(state, name, h, margin),
+ScalarFieldFromFile::ScalarFieldFromFile(const MirState *state, std::string name,
+                                         std::string fieldFileName, real3 h, real3 margin) :
+    ScalarField(state, name, h, margin),
     fieldFileName_(std::move(fieldFileName))
 {}
 
-FieldFromFile::~FieldFromFile() = default;
+ScalarFieldFromFile::~ScalarFieldFromFile() = default;
 
-FieldFromFile::FieldFromFile(FieldFromFile&&) = default;
+ScalarFieldFromFile::ScalarFieldFromFile(ScalarFieldFromFile&&) = default;
 
 inline bool componentsAreEqual(float3 v, float eps = 1e-5f)
 {
     return math::abs(v.x - v.y) < eps && math::abs(v.x - v.z) < eps;
 }
 
-void FieldFromFile::setup(const MPI_Comm& comm)
+void ScalarFieldFromFile::setup(const MPI_Comm& comm)
 {
     info("Setting up field from %s", fieldFileName_.c_str());
 

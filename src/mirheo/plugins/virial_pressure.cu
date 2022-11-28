@@ -20,7 +20,8 @@ constexpr real3 defaultMargin {1.0_r, 1.0_r, 1.0_r};
 
 namespace virial_pressure_kernels
 {
-__global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHandler region, virial_pressure_plugin::ReductionType *pressure)
+__global__ void totalPressure(PVview view, const Stress *stress, ScalarFieldDeviceHandler region,
+                              virial_pressure_plugin::ReductionType *pressure)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -43,7 +44,7 @@ __global__ void totalPressure(PVview view, const Stress *stress, FieldDeviceHand
 } // namespace virial_pressure_kernels
 
 VirialPressurePlugin::VirialPressurePlugin(const MirState *state, std::string name, std::string pvName,
-                                           FieldFunction func, real3 h, int dumpEvery) :
+                                           ScalarFieldFunction func, real3 h, int dumpEvery) :
     SimulationPlugin(state, name),
     pvName_(pvName),
     dumpEvery_(dumpEvery),
