@@ -34,7 +34,7 @@ ic_rbc   = mir.InitialConditions.Membrane(ic_pos_rot)
 u.registerParticleVector(pv_rbc, ic_rbc)
 
 dpd = mir.Interactions.Pairwise('dpd', rc=1.0, kind="DPD", a=10.0, gamma=10.0, kBT=0.001, power=0.5)
-cnt = mir.Interactions.Pairwise('cnt', rc=1.0, kind="Morse", De=4, r0=0.6, beta=2, aware_mode='Object')
+cnt = mir.Interactions.Pairwise('cnt', rc=1.0, kind="Morse", De=4, r0=0.6, beta=2, max_force=1e4, aware_mode='Object')
 
 prm_rbc = lina_parameters(1.0)
 int_rbc = mir.Interactions.MembraneForces("int_rbc", "wlc", "Kantor", **prm_rbc, stress_free=True)

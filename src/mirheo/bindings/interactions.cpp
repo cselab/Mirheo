@@ -188,6 +188,7 @@ void exportInteractions(py::module& m)
                 \mathbf{F}_{ij} = 2 D_e \beta \left( e^{2 \beta (r_0-r)} - e^{\beta (r_0-r)} \right) \frac{\mathbf{r}}{r},
 
             where :math:`r` is the distance between the particles.
+            The force magnitude can be capped to a maximal value max_force.
 
         * **Density**:
             Compute density of particles with a given kernel.
@@ -336,6 +337,7 @@ void exportInteractions(py::module& m)
                 * **De**: :math:`D_e`
                 * **r0**: :math:`r_0`
                 * **beta**: :math:`\beta`
+                * **max_force**: maximal force magnitude
                 * **aware_mode**: See "RepulsiveLJ" kernel description.
 
 

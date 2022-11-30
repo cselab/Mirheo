@@ -140,6 +140,7 @@ struct MorseParams
     real De; ///< force coefficient
     real r0; ///< zero force distance
     real beta; ///< interaction range parameter
+    real maxForce; ///< cap force
     VarAwarenessParams varAwarenessParams; ///< awareness
 };
 

@@ -93,9 +93,10 @@ GrowingRepulsiveLJParams readGrowingRepulsiveLJParams(ParametersWrap& desc)
 MorseParams readMorseParams(ParametersWrap& desc)
 {
     MorseParams p;
-    p.De   = desc.read<real>("De");
-    p.r0   = desc.read<real>("r0");
-    p.beta = desc.read<real>("beta");
+    p.De       = desc.read<real>("De");
+    p.r0       = desc.read<real>("r0");
+    p.beta     = desc.read<real>("beta");
+    p.maxForce = desc.read<real>("max_force");
     p.varAwarenessParams = readAwarenessParams(desc);
     return p;
 }
