@@ -6,11 +6,11 @@ Field
 Interface
 ---------
 
-.. doxygenclass:: mirheo::FieldDeviceHandler
+.. doxygenclass:: mirheo::ScalarFieldDeviceHandler
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::Field
+.. doxygenclass:: mirheo::ScalarField
    :project: mirheo
    :members:
 
@@ -18,11 +18,11 @@ Interface
 Derived classes
 ---------------
 
-.. doxygenclass:: mirheo::FieldFromFile
+.. doxygenclass:: mirheo::ScalarFieldFromFile
    :project: mirheo
    :members:
 
-.. doxygenclass:: mirheo::FieldFromFunction
+.. doxygenclass:: mirheo::ScalarFieldFromFunction
    :project: mirheo
    :members:
 
@@ -31,4 +31,3 @@ Utilities
 
 .. doxygenfunction:: mirheo::computeGradient
    :project: mirheo
-

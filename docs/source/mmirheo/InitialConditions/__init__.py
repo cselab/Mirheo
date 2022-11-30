@@ -266,15 +266,16 @@ class UniformSphere(InitialConditions):
 class UniformWithPolChain(InitialConditions):
     r"""
         The particles will be generated with the desired number density uniformly at random in all the domain.
-        In addition, will provide an additional channel (set to zero) containing polymeric chain end to end vectors.
+        In addition, will provide an additional channel containing polymeric chain end to end vectors.
     
     """
     def __init__():
-        r"""__init__(number_density: float) -> None
+        r"""__init__(number_density: float, q0: float=0.0) -> None
 
 
             Args:
                 number_density: target number density
+                q0: average length of the q vector
         
 
         """

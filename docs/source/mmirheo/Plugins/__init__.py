@@ -484,7 +484,7 @@ def createImposeVelocity():
     pass
 
 def createMagneticDipoleInteractions():
-    r"""createMagneticDipoleInteractions(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, mu0: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createMagneticDipoleInteractions(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, mu0: float, periodic: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
@@ -495,6 +495,7 @@ def createMagneticDipoleInteractions():
             rov: :class:`RigidObjectVector` with which the magnetic field will interact
             moment: magnetic moment per object
             mu0: magnetic permeability of the medium
+            periodic: if True, compute the interactions from the closest periodic image of each object.
     
 
     """
@@ -752,6 +753,23 @@ def createShearField():
             shear: Shear tensor.
             origin: Point in space with zero velocity.
             sf_channel_name: Name of the channel that will contain the shear field.
+    
+
+    """
+    pass
+
+def createSinusoidalField():
+    r"""createSinusoidalField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int, sf_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        This plugin computes a sinusoidal velocity field at every particle's position and stores it in a channel vector.
+
+        Args:
+            name: Name of the plugin.
+            pv: Concerned :class:`ParticleVector`.
+            magnitude: Maximum velocity along x.
+            wave_number: Number of periods along y.
+            sf_channel_name: Name of the channel that will contain the sinusoidal field.
     
 
     """
