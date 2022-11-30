@@ -12,26 +12,26 @@ class ParticleVector;
 class ScalarField;
 
 /** Add a force to every particle of a given ParticleVector at every time step.
-    The force is the derivative of a provided scalar field at the particle's position.
+    The force is the negative gradient of a provided scalar field at the particle's position.
     The force is added at the beforeForce() stage.
  */
-class AddPressureGradientPlugin : public SimulationPlugin
+class AddPotentialForcePlugin : public SimulationPlugin
 {
 public:
     /// functor that describes a pressure field on the CPU.
-    using PressureField = std::function<real(real3)>;
+    using PotentialField = std::function<real(real3)>;
 
-    /** Create a AddPressureGradientPlugin object.
+    /** Create a AddPotentialForcePlugin object.
         \param [in] state The global state of the simulation.
         \param [in] name The name of the plugin.
         \param [in] pvName The name of the ParticleVector to which the force should be applied.
-        \param [in] pressureField The pressure scalar field.
-        \param [in] gridSpacing The grid spacing used to discretize \p pressureField.
+        \param [in] potentialField The potential scalar field.
+        \param [in] gridSpacing The grid spacing used to discretize \p potentialField.
      */
-    AddPressureGradientPlugin(const MirState *state, const std::string& name,
-                              const std::string& pvName,
-                              PressureField pressureField,
-                              real3 gridSpacing);
+    AddPotentialForcePlugin(const MirState *state, const std::string& name,
+                            const std::string& pvName,
+                            PotentialField potentialField,
+                            real3 gridSpacing);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;
     void beforeForces(cudaStream_t stream) override;
@@ -41,7 +41,7 @@ public:
 private:
     std::string pvName_;
     ParticleVector *pv_ {nullptr};
-    std::unique_ptr<ScalarField> pressureField_; /// the pressure field
+    std::unique_ptr<ScalarField> potentialField_; /// the potential field
 };
 
 } // namespace mirheo

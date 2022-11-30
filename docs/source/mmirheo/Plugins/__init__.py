@@ -47,18 +47,18 @@ def createAddFourRollMillForce():
     """
     pass
 
-def createAddPressureGradient():
-    r"""createAddPressureGradient(state: MirState, name: str, pv: ParticleVectors.ParticleVector, pressure_field: Callable[[real3], float], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+def createAddPotentialForce():
+    r"""createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field: Callable[[real3], float], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
-        The force is the negative pressure gradient at the particle position, where the pressure is a provided field.
+        The force is the negative gradient of a potential field at the particle position.
 
         Args:
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
-            pressure_field: pressure field
-            h: grid spacing used to discretize the pressure gradient
+            potential_field: potential field
+            h: grid spacing used to discretize the potential field
     
 
     """

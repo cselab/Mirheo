@@ -10,7 +10,7 @@ set(sources_cpp
 
 set(sources_cu
   add_force.cu
-  add_pressure_gradient.cu
+  add_potential_force.cu
   add_reverse_poiseuille_force.cu
   add_sinusoidal_force.cu
   add_torque.cu
