@@ -2,6 +2,7 @@
 #include "factory.h"
 
 #include "add_force.h"
+#include "add_pressure_gradient.h"
 #include "add_reverse_poiseuille_force.h"
 #include "add_sinusoidal_force.h"
 #include "add_torque.h"
@@ -72,6 +73,16 @@ PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::st
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
     return { simPl, nullptr };
 }
+
+PairPlugin createAddPressureGradientPlugin(bool computeTask, const MirState *state, std::string name,
+                                           ParticleVector *pv, std::function<real(real3)> pressureField, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddPressureGradientPlugin> (state, name, pv->getName(), std::move(pressureField), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
 
 PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                                  real3 force, char flipDirection)

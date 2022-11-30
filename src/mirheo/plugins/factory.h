@@ -26,6 +26,9 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 
+PairPlugin createAddPressureGradientPlugin(bool computeTask, const MirState *state, std::string name,
+                                           ParticleVector *pv, std::function<real(real3)> pressureField, real3 gridSpacing);
+
 PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                                  real3 force, char flipDirection);
 

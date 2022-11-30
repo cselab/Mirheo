@@ -46,6 +46,18 @@ void exportPlugins(py::module& m)
             force: extra force
     )");
 
+    m.def("__createAddPressureGradient", &plugin_factory::createAddPressureGradientPlugin,
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "pressure_field"_a, "h"_a, R"(
+        Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is the negative pressure gradient at the particle position, where the pressure is a provided field.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            pressure_field: pressure field
+            h: grid spacing used to discretize the pressure gradient
+    )");
+
     m.def("__createAddReversePoiseuilleForce", &plugin_factory::createAddReversePoiseuilleForcePlugin,
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "force"_a, "flip_direction"_a, R"(
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
