@@ -72,12 +72,13 @@ void exportWalls(py::module& m)
         )");
 
     py::handlers_class< SimpleStationaryWall<StationaryWallSDF> >(m, "SDF", pywall, R"(
-        This wall is based on an arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
-        The wall reads the SDF data from a custom format ``.sdf`` file, that has a special structure.
+        Arbitrary Signed Distance Function (SDF) defined in the simulation domain on a regular Cartesian grid.
+        Requires the SDF data from a custom format ``.sdf`` file, that has the following structure:
 
-        First two lines define the header: three real number separated by spaces govern the size of the domain where the SDF is defined,
+        The first two lines (header) contain the meta-data: three real numbers separated by spaces govern the size of the domain where the SDF is defined,
         and next three integer numbers (:math:`Nx\,\,Ny\,\,Nz`) define the resolution.
-        Next the :math:`Nx \times Ny \times Nz` single precision realing point values are written (in binary representation).
+        Next the :math:`Nx \times Ny \times Nz` single precision real point values are written (in binary representation).
+        The elements are ordered following the C convention (the x axis is the fast running index).
 
         Negative SDF values correspond to the domain, and positive -- to the inside of the wall.
         The boundary is defined by the zero-level isosurface.
