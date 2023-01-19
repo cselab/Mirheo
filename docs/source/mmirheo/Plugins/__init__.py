@@ -48,7 +48,10 @@ def createAddFourRollMillForce():
     pass
 
 def createAddPotentialForce():
-    r"""createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field: Callable[[real3], float], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddPotentialForce(*args, **kwargs)
+Overloaded function.
+
+1. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field: Callable[[real3], float], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -58,6 +61,19 @@ def createAddPotentialForce():
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             potential_field: potential field
+            h: grid spacing used to discretize the potential field
+    
+
+2. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field_filename: str, h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is the negative gradient of a potential field at the particle position.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            potential_field_filename: file that contains the potential field on a cartesian grid. Same format as Sdf for walls.
             h: grid spacing used to discretize the potential field
     
 
