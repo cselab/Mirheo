@@ -29,6 +29,9 @@ PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::st
 PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
                                          ParticleVector *pv, std::function<real(real3)> potentialField, real3 gridSpacing);
 
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::string potentialField, real3 gridSpacing);
+
 PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                                  real3 force, char flipDirection);
 

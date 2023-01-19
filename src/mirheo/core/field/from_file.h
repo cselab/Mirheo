@@ -25,7 +25,7 @@ public:
         The data is an array that contains all grid values (x is the fast running index).
     */
     ScalarFieldFromFile(const MirState *state, std::string name,
-                  std::string fieldFileName, real3 h, real3 margin);
+                        std::string fieldFileName, real3 h, real3 margin);
     ~ScalarFieldFromFile();
 
     /// move constructor

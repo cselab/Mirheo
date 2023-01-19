@@ -83,6 +83,15 @@ PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state
     return { simPl, nullptr };
 }
 
+PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
+                                         ParticleVector *pv, std::string potentialFieldFilename, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddPotentialForcePlugin> (state, name, pv->getName(), std::move(potentialFieldFilename), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
 
 PairPlugin createAddReversePoiseuilleForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv,
                                                  real3 force, char flipDirection)

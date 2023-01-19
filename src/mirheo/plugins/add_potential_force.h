@@ -21,7 +21,7 @@ public:
     /// functor that describes a pressure field on the CPU.
     using PotentialField = std::function<real(real3)>;
 
-    /** Create a AddPotentialForcePlugin object.
+    /** Create a AddPotentialForcePlugin object from a functor.
         \param [in] state The global state of the simulation.
         \param [in] name The name of the plugin.
         \param [in] pvName The name of the ParticleVector to which the force should be applied.
@@ -31,6 +31,19 @@ public:
     AddPotentialForcePlugin(const MirState *state, const std::string& name,
                             const std::string& pvName,
                             PotentialField potentialField,
+                            real3 gridSpacing);
+
+    /** Create a AddPotentialForcePlugin object from a file.
+        \param [in] state The global state of the simulation.
+        \param [in] name The name of the plugin.
+        \param [in] pvName The name of the ParticleVector to which the force should be applied.
+        \param [in] potentialFieldFilename The file containing the potential scalar field on a cartesian grid. See ScalarFieldFromFile.
+        \param [in] gridSpacing The grid spacing used to discretize \p potentialField.
+     */
+    AddPotentialForcePlugin(const MirState *state,
+                            const std::string& name,
+                            const std::string& pvName,
+                            std::string potentialFieldFilename,
                             real3 gridSpacing);
 
     void setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm) override;

@@ -1,6 +1,7 @@
 // Copyright 2022 ETH Zurich. All Rights Reserved.
 #include "add_potential_force.h"
 
+#include <mirheo/core/field/from_file.h>
 #include <mirheo/core/field/from_function.h>
 #include <mirheo/core/field/utils.h>
 #include <mirheo/core/pvs/particle_vector.h>
@@ -40,6 +41,18 @@ AddPotentialForcePlugin::AddPotentialForcePlugin(const MirState *state,
     , pvName_(pvName)
     , potentialField_(std::make_unique<ScalarFieldFromFunction>
                       (state, name+"_field", potentialField, gridSpacing, defaultMargin))
+{}
+
+AddPotentialForcePlugin::AddPotentialForcePlugin(const MirState *state,
+                                                 const std::string& name,
+                                                 const std::string& pvName,
+                                                 std::string potentialFieldFilename,
+                                                 real3 gridSpacing)
+    : SimulationPlugin(state, name)
+    , pvName_(pvName)
+    , potentialField_(std::make_unique<ScalarFieldFromFile>
+                      (state, name+"_field", std::move(potentialFieldFilename),
+                       gridSpacing, defaultMargin))
 {}
 
 void AddPotentialForcePlugin::setup(Simulation *simulation, const MPI_Comm& comm, const MPI_Comm& interComm)

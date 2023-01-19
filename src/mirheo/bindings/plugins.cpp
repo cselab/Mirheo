@@ -46,7 +46,9 @@ void exportPlugins(py::module& m)
             force: extra force
     )");
 
-    m.def("__createAddPotentialForce", &plugin_factory::createAddPotentialForcePlugin,
+    m.def("__createAddPotentialForce",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::function<real(real3)>,real3>
+          (&plugin_factory::createAddPotentialForcePlugin),
           "compute_task"_a, "state"_a, "name"_a, "pv"_a, "potential_field"_a, "h"_a, R"(
         Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
         The force is the negative gradient of a potential field at the particle position.
@@ -55,6 +57,20 @@ void exportPlugins(py::module& m)
             name: name of the plugin
             pv: :any:`ParticleVector` that we'll work with
             potential_field: potential field
+            h: grid spacing used to discretize the potential field
+    )");
+
+    m.def("__createAddPotentialForce",
+          py::overload_cast<bool,const MirState*,std::string,ParticleVector*,std::string,real3>
+          (&plugin_factory::createAddPotentialForcePlugin),
+          "compute_task"_a, "state"_a, "name"_a, "pv"_a, "potential_field_filename"_a, "h"_a, R"(
+        Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
+        The force is the negative gradient of a potential field at the particle position.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            potential_field_filename: file that contains the potential field on a cartesian grid. Same format as Sdf for walls.
             h: grid spacing used to discretize the potential field
     )");
 
