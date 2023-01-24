@@ -2,6 +2,7 @@
 #include "factory.h"
 
 #include "add_force.h"
+#include "add_force_field.h"
 #include "add_potential_force.h"
 #include "add_reverse_poiseuille_force.h"
 #include "add_sinusoidal_force.h"
@@ -71,6 +72,24 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force)
 {
     auto simPl = computeTask ? std::make_shared<AddForcePlugin> (state, name, pv->getName(), force) : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::function<real3(real3)> forceField, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddForceFieldPlugin> (state, name, pv->getName(), std::move(forceField), gridSpacing)
+        : nullptr;
+    return { simPl, nullptr };
+}
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::string forceFieldFilename, real3 gridSpacing)
+{
+    auto simPl = computeTask
+        ? std::make_shared<AddForceFieldPlugin> (state, name, pv->getName(), std::move(forceFieldFilename), gridSpacing)
+        : nullptr;
     return { simPl, nullptr };
 }
 

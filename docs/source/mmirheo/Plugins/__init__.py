@@ -32,6 +32,37 @@ def createAddForce():
     """
     pass
 
+def createAddForceField():
+    r"""createAddForceField(*args, **kwargs)
+Overloaded function.
+
+1. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field: Callable[[real3], real3], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        Add a force to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force_field: force field
+            h: grid spacing used to discretize the force field
+    
+
+2. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field_filename: str, h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+
+
+        Add a force to each particle of a specific PV every time-step.
+
+        Args:
+            name: name of the plugin
+            pv: :any:`ParticleVector` that we'll work with
+            force_field_filename: file that contains the force field on a cartesian grid. Same format as Sdf for walls but with 4 components per grid point (only the first three are used).
+            h: grid spacing used to discretize the force field
+    
+
+    """
+    pass
+
 def createAddFourRollMillForce():
     r"""createAddFourRollMillForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, intensity: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 

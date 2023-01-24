@@ -26,6 +26,12 @@ PairPlugin createAddFourRollMillForcePlugin(bool computeTask, const MirState *st
 
 PairPlugin createAddForcePlugin(bool computeTask, const MirState *state, std::string name, ParticleVector *pv, real3 force);
 
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::function<real3(real3)> forceField, real3 gridSpacing);
+
+PairPlugin createAddForceFieldPlugin(bool computeTask, const MirState *state, std::string name,
+                                     ParticleVector *pv, std::string forceField, real3 gridSpacing);
+
 PairPlugin createAddPotentialForcePlugin(bool computeTask, const MirState *state, std::string name,
                                          ParticleVector *pv, std::function<real(real3)> potentialField, real3 gridSpacing);
 
