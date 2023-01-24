@@ -62,4 +62,50 @@ void ScalarFieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
     _setupArrayTexture(fieldRawData.devPtr());
 }
 
+
+
+
+VectorFieldFromFunction::VectorFieldFromFunction(const MirState *state, std::string name,
+                                                 VectorFieldFunction func, real3 h, real3 margin) :
+    VectorField(state, name, h, margin),
+    func_(func)
+{}
+
+VectorFieldFromFunction::~VectorFieldFromFunction() = default;
+
+VectorFieldFromFunction::VectorFieldFromFunction(VectorFieldFromFunction&&) = default;
+
+void VectorFieldFromFunction::setup(__UNUSED const MPI_Comm& comm)
+{
+    info("Setting up field '%s'", getCName());
+
+    const auto domain = getState()->domain;
+
+    CUDA_Check( cudaDeviceSynchronize() );
+
+    PinnedBuffer<float4> fieldRawData (resolution_.x * resolution_.y * resolution_.z);
+
+    int3 i;
+    int id = 0;
+    for (i.z = 0; i.z < resolution_.z; ++i.z) {
+        for (i.y = 0; i.y < resolution_.y; ++i.y) {
+            for (i.x = 0; i.x < resolution_.x; ++i.x) {
+                real3 r {static_cast<real>(i.x) * h_.x,
+                         static_cast<real>(i.y) * h_.y,
+                         static_cast<real>(i.z) * h_.z};
+                r -= extendedDomainSize_ * 0.5_r;
+                r  = domain.local2global(r);
+                r  = make_periodic(r, domain.globalSize);
+
+                const real3 val = func_(r);
+                fieldRawData[id++] = make_float4(val.x, val.y, val.z, 0.0f);
+            }
+        }
+    }
+
+    fieldRawData.uploadToDevice(defaultStream);
+
+    _setupArrayTexture(fieldRawData.devPtr());
+}
+
 } // namespace mirheo
