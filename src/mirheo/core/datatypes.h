@@ -24,7 +24,7 @@ using integer = int32_t; ///< represents an integer number
 
 using real2 = vec_traits::Vec<real, 2>::Type; ///< a pair of real numbers
 using real3 = vec_traits::Vec<real, 3>::Type; ///< three real numbers
-using real4 = vec_traits::Vec<real, 4>::Type; ///< faour real numbers
+using real4 = vec_traits::Vec<real, 4>::Type; ///< four real numbers
 
 inline namespace unit_literals
 {

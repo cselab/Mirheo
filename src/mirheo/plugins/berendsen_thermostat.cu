@@ -32,7 +32,12 @@ __global__ void reduceVelocityAndEnergy(PVview view, real4 *stats)
     warpStats = warpReduce(threadStats, [](real a, real b) { return a + b; });
 
     if (laneId() == 0)
-        atomicAdd(stats, warpStats);
+    {
+        atomicAdd(&stats->x, warpStats.x);
+        atomicAdd(&stats->y, warpStats.y);
+        atomicAdd(&stats->z, warpStats.z);
+        atomicAdd(&stats->w, warpStats.w);
+    }
 }
 
 /// Update velocities v[i] := avgv + lambda * (v[i] - avgv).
