@@ -124,13 +124,16 @@ void computeHalo(const MirState *state, PairwiseKernel& pair,
                             InteractionFetchMode::Dilute,
                             pair.handler() );
         }
-        else if (isOV1 && pv1 == pv2) // need to compute the forces only once when an object vector interacts with itself.
-        {
-            SAFE_KERNEL_LAUNCH(
-                               computeExternalInteractionsSkipPairs_1tpp,
-                               getNblocks(dstView.size, nth), nth, 0, stream,
-                               dstView, cl2->cellInfo(), srcView, pair.handler());
-        }
+        // commented out to avoid extra communication with objects.
+        // this should be uncommented when using small objects like polymer chains,
+        // but we assume it is not problematic when using RBCs or solids since repulsion forces are artificial anyways
+        // else if (isOV1 && pv1 == pv2) // need to compute the forces only once when an object vector interacts with itself.
+        // {
+        //     SAFE_KERNEL_LAUNCH(
+        //                        computeExternalInteractionsSkipPairs_1tpp,
+        //                        getNblocks(dstView.size, nth), nth, 0, stream,
+        //                        dstView, cl2->cellInfo(), srcView, pair.handler());
+        // }
         else
         {
             CHOOSE_EXTERNAL(InteractionOutMode::NeedOutput,
