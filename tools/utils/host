@@ -3,8 +3,8 @@
 usage() {
     cat <<EOF
 wrapper for hostname shell command
-this is used to choose configuration in other 
-tools such as the `load` tool 
+this is used to choose configuration in other
+tools such as the `load` tool
 
 usage:
 host
@@ -14,7 +14,7 @@ EOF
 
 if test $# -ne 0; then usage; fi
 
-case `hostname` in
+case $(hostname) in
     falcon*)
         echo falcon
 	;;
@@ -27,7 +27,10 @@ case `hostname` in
     daint*)
 	echo daint
 	;;
+    hal.* |  glados.*)
+        echo harvard.servers
+        ;;
     *)
 	echo __default
-	;;	
+	;;
 esac
