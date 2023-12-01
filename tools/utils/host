@@ -3,8 +3,8 @@
 usage() {
     cat <<EOF
 wrapper for hostname shell command
-this is used to choose configuration in other 
-tools such as the `load` tool 
+this is used to choose configuration in other
+tools such as the `load` tool
 
 usage:
 host
@@ -27,7 +27,10 @@ case `hostname` in
     daint*)
 	echo daint
 	;;
+    *rc.fas.harvard.edu)
+        echo cannon
+        ;;
     *)
 	echo __default
-	;;	
+	;;
 esac
