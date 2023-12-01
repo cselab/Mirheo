@@ -30,6 +30,9 @@ case $(hostname) in
     hal.* |  glados.*)
         echo harvard.servers
         ;;
+    *rc.fas.harvard.edu)
+        echo cannon
+        ;;
     *)
 	echo __default
 	;;
