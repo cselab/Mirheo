@@ -33,6 +33,9 @@ case $(hostname) in
     *rc.fas.harvard.edu)
         echo cannon
         ;;
+    holygpu7c1101 | holygpu7c1102)
+        echo grace
+        ;;
     *)
 	echo __default
 	;;
