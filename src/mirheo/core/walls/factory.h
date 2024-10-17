@@ -9,6 +9,7 @@
 #include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
+#include "velocity_field/lambda.h"
 #include "velocity_field/oscillate.h"
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
@@ -105,6 +106,15 @@ createMovingPlaneWall(const MirState *state, const std::string& name, real3 norm
     StationaryWallPlane plane(normalize(normal), pointThrough);
     VelocityFieldTranslate translate(velocity);
     return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldTranslate>> (state, name, std::move(plane), std::move(translate));
+}
+
+inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldLambda>>
+createLambdaMovingPlaneWall(const MirState *state, const std::string& name, real3 normal, real3 pointThrough,
+                            std::function<real3(real)> velocity)
+{
+    StationaryWallPlane plane(normalize(normal), pointThrough);
+    VelocityFieldLambda translate(velocity);
+    return std::make_shared<WallWithVelocity<StationaryWallPlane, VelocityFieldLambda>> (state, name, std::move(plane), std::move(translate));
 }
 
 inline std::shared_ptr<WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate>>

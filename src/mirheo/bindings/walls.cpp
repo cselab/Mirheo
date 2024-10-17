@@ -124,6 +124,18 @@ void exportWalls(py::module& m)
                 velocity: wall velocity, should be orthogonal to the normal
         )");
 
+    py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityFieldLambda> >(m, "LambdaMovingPlane", pywall, R"(
+        Planar wall with uniform velocity changing over time.
+    )")
+        .def(py::init(&wall_factory::createLambdaMovingPlaneWall),
+            "state"_a, "name"_a, "normal"_a, "pointThrough"_a, "velocity"_a, R"(
+            Args:
+                name: name of the wall
+                normal: wall normal, pointing *inside* the wall
+                pointThrough: point that belongs to the plane
+                velocity: wall velocity, function of time, should be orthogonal to the normal
+        )");
+
     py::handlers_class< WallWithVelocity<StationaryWallPlane, VelocityFieldOscillate> >(m, "OscillatingPlane", pywall, R"(
         Planar wall that is moving along itself with periodically changing velocity:
 

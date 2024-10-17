@@ -7,6 +7,7 @@
 #include "stationary_walls/plane.h"
 #include "stationary_walls/sdf.h"
 #include "stationary_walls/sphere.h"
+#include "velocity_field/lambda.h"
 #include "velocity_field/oscillate.h"
 #include "velocity_field/rotate.h"
 #include "velocity_field/translate.h"
@@ -132,6 +133,7 @@ void WallWithVelocity<InsideWallChecker, VelocityField>::bounce(cudaStream_t str
 
 template class WallWithVelocity<StationaryWallSphere,   VelocityFieldRotate>;
 template class WallWithVelocity<StationaryWallCylinder, VelocityFieldRotate>;
+template class WallWithVelocity<StationaryWallPlane,    VelocityFieldLambda>;
 template class WallWithVelocity<StationaryWallPlane,    VelocityFieldTranslate>;
 template class WallWithVelocity<StationaryWallPlane,    VelocityFieldOscillate>;
 
