@@ -9,6 +9,7 @@ target_sources(${LIB_MIR_CORE} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/shear_pol_chain.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/sub_step.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/translate.cu
+  ${CMAKE_CURRENT_SOURCE_DIR}/translate_lambda.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/vv.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/vv_pol_chain.cu
   )

@@ -100,6 +100,16 @@ void exportIntegrators(py::module& m)
                     velocity: translational velocity :math:`\mathbf{\Omega}`
             )");
 
+    py::handlers_class<IntegratorTranslateLambda>(m, "TranslateLambda", pyint, R"(
+        Translate particles with a uniform velocity :math:`\mathbf{u}` depending on time.
+    )")
+        .def(py::init(&integrator_factory::createTranslateLambda),
+             "state"_a, "name"_a, "velocity"_a, R"(
+                Args:
+                    name: name of the integrator
+                    velocity: translational velocity :math:`\mathbf{\Omega}(t)`
+            )");
+
     py::handlers_class<IntegratorVV<ForcingTermNone>>
         (m, "VelocityVerlet", pyint, R"(
             Classical Velocity-Verlet integrator with fused steps for coordinates and velocities.

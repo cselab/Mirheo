@@ -13,6 +13,7 @@
 #include "shear_pol_chain.h"
 #include "sub_step.h"
 #include "translate.h"
+#include "translate_lambda.h"
 #include "vv.h"
 #include "vv_pol_chain.h"
 
@@ -85,6 +86,12 @@ inline std::shared_ptr<IntegratorTranslate>
 createTranslate(const MirState *state, const std::string& name, real3 velocity)
 {
     return std::make_shared<IntegratorTranslate> (state, name, velocity);
+}
+
+inline std::shared_ptr<IntegratorTranslateLambda>
+createTranslateLambda(const MirState *state, const std::string& name, std::function<real3(real)> velocity)
+{
+    return std::make_shared<IntegratorTranslateLambda> (state, name, std::move(velocity));
 }
 
 inline std::shared_ptr<IntegratorOscillate>
