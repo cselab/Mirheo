@@ -14,7 +14,7 @@ class FromArray(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(pos: List[real3], vel: List[real3]) -> None
+        r"""__init__(pos: list[real3], vel: list[real3]) -> None
 
 
             Args:
@@ -32,7 +32,7 @@ class Membrane(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], global_scale: float=1.0) -> None
+        r"""__init__(com_q: list[ComQ], global_scale: float = 1.0) -> None
 
 
             Args:
@@ -57,7 +57,7 @@ class RandomChains(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(positions: List[real3], length: float) -> None
+        r"""__init__(positions: list[real3], length: float) -> None
 
 
             Args:
@@ -74,7 +74,7 @@ class Restart(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(path: str='restart/') -> None
+        r"""__init__(path: str = 'restart/') -> None
 
 
 
@@ -96,7 +96,7 @@ class Rigid(InitialConditions):
         r"""__init__(*args, **kwargs)
 Overloaded function.
 
-1. __init__(com_q: List[ComQ], xyz_filename: str) -> None
+1. __init__(com_q: list[ComQ], xyz_filename: str) -> None
 
 
             Args:
@@ -114,7 +114,7 @@ Overloaded function.
                     in the corresponding PV
         
 
-2. __init__(com_q: List[ComQ], coords: List[real3]) -> None
+2. __init__(com_q: list[ComQ], coords: list[real3]) -> None
 
 
             Args:
@@ -131,7 +131,7 @@ Overloaded function.
                     in the corresponding PV
         
 
-3. __init__(com_q: List[ComQ], coords: List[real3], init_vels: List[real3]) -> None
+3. __init__(com_q: list[ComQ], coords: list[real3], init_vels: list[real3]) -> None
 
 
             Args:
@@ -163,7 +163,7 @@ class Rod(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], center_line: Callable[[float], real3], torsion: Callable[[float], float], a: float, initial_frame: real3=real3(inf, inf, inf)) -> None
+        r"""__init__(com_q: list[ComQ], center_line: Callable[[float], real3], torsion: Callable[[float], float], a: float, initial_frame: real3 = real3(inf, inf, inf)) -> None
 
 
             Args:
@@ -194,7 +194,7 @@ class StraightChains(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(positions: List[real3], orientations: List[real3], length: float) -> None
+        r"""__init__(positions: list[real3], orientations: list[real3], length: float) -> None
 
 
             Args:
@@ -270,7 +270,7 @@ class UniformWithPolChain(InitialConditions):
     
     """
     def __init__():
-        r"""__init__(number_density: float, q0: float=0.0) -> None
+        r"""__init__(number_density: float, q0: float = 0.0) -> None
 
 
             Args:
@@ -288,7 +288,7 @@ class MembraneWithTypeId(Membrane):
     
     """
     def __init__():
-        r"""__init__(com_q: List[ComQ], type_ids: List[int], global_scale: float=1.0) -> None
+        r"""__init__(com_q: list[ComQ], type_ids: list[int], global_scale: float = 1.0) -> None
 
 
             Args:

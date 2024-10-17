@@ -2,7 +2,7 @@
 # Functions
 
 def get_all_compile_options():
-    r"""get_all_compile_options() -> Dict[str, str]
+    r"""get_all_compile_options() -> dict[str, str]
 
 
     Return all compile time options used in the current installation in the form of a dictionary.

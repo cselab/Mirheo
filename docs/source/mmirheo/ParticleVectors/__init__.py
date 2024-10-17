@@ -44,7 +44,7 @@ Overloaded function.
             off_filename: path of the OFF file
     
 
-2. __init__(vertices: List[real3], faces: List[int3]) -> None
+2. __init__(vertices: list[real3], faces: list[int3]) -> None
 
 
         Create a mesh by giving coordinates and connectivity
@@ -59,7 +59,7 @@ Overloaded function.
         pass
 
     def getFaces():
-        r"""getFaces(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+        r"""getFaces(self: ParticleVectors.Mesh) -> list[Annotated[list[int], FixedSize(3)]]
 
 
         returns the vertex indices for each triangle of the mesh.
@@ -69,7 +69,7 @@ Overloaded function.
         pass
 
     def getVertices():
-        r"""getVertices(self: ParticleVectors.Mesh) -> List[List[float[3]]]
+        r"""getVertices(self: ParticleVectors.Mesh) -> list[Annotated[list[float], FixedSize(3)]]
 
 
         returns the vertex coordinates of the mesh.
@@ -96,7 +96,7 @@ class ParticleVector:
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -107,7 +107,7 @@ class ParticleVector:
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -118,7 +118,7 @@ class ParticleVector:
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -129,7 +129,7 @@ class ParticleVector:
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -140,7 +140,7 @@ class ParticleVector:
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -151,7 +151,7 @@ class ParticleVector:
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -162,7 +162,7 @@ class ParticleVector:
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -245,7 +245,7 @@ Overloaded function.
                 off_stress_free_mesh: path of the OFF file : stress-free mesh)
         
 
-3. __init__(vertices: List[real3], faces: List[int3]) -> None
+3. __init__(vertices: list[real3], faces: list[int3]) -> None
 
 
             Create a mesh by giving coordinates and connectivity
@@ -255,7 +255,7 @@ Overloaded function.
                 faces:    connectivity: one triangle per entry, each integer corresponding to the vertex indices
         
 
-4. __init__(vertices: List[real3], stress_free_vertices: List[real3], faces: List[int3]) -> None
+4. __init__(vertices: list[real3], stress_free_vertices: list[real3], faces: list[int3]) -> None
 
 
             Create a mesh by giving coordinates and connectivity, with a different stress-free shape.
@@ -270,7 +270,7 @@ Overloaded function.
         pass
 
     def getFaces():
-        r"""getFaces(self: ParticleVectors.Mesh) -> List[List[int[3]]]
+        r"""getFaces(self: ParticleVectors.Mesh) -> list[Annotated[list[int], FixedSize(3)]]
 
 
         returns the vertex indices for each triangle of the mesh.
@@ -280,7 +280,7 @@ Overloaded function.
         pass
 
     def getVertices():
-        r"""getVertices(self: ParticleVectors.Mesh) -> List[List[float[3]]]
+        r"""getVertices(self: ParticleVectors.Mesh) -> list[Annotated[list[float], FixedSize(3)]]
 
 
         returns the vertex coordinates of the mesh.
@@ -305,7 +305,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -316,7 +316,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -327,7 +327,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -338,7 +338,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -349,7 +349,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -360,7 +360,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -371,7 +371,7 @@ class ObjectVector(ParticleVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -416,7 +416,7 @@ class ChainVector(ObjectVector):
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -427,7 +427,7 @@ class ChainVector(ObjectVector):
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -438,7 +438,7 @@ class ChainVector(ObjectVector):
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -449,7 +449,7 @@ class ChainVector(ObjectVector):
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -460,7 +460,7 @@ class ChainVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -471,7 +471,7 @@ class ChainVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -482,7 +482,7 @@ class ChainVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -528,7 +528,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -539,7 +539,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -550,7 +550,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -561,7 +561,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -572,7 +572,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -583,7 +583,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -594,7 +594,7 @@ class MembraneVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -643,7 +643,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -654,7 +654,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -665,7 +665,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -676,7 +676,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -687,7 +687,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -698,7 +698,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -709,7 +709,7 @@ class RigidObjectVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -755,7 +755,7 @@ class RodVector(ObjectVector):
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -766,7 +766,7 @@ class RodVector(ObjectVector):
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -777,7 +777,7 @@ class RodVector(ObjectVector):
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -788,7 +788,7 @@ class RodVector(ObjectVector):
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -799,7 +799,7 @@ class RodVector(ObjectVector):
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -810,7 +810,7 @@ class RodVector(ObjectVector):
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -821,7 +821,7 @@ class RodVector(ObjectVector):
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -887,7 +887,7 @@ Overloaded function.
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -898,7 +898,7 @@ Overloaded function.
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -909,7 +909,7 @@ Overloaded function.
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -920,7 +920,7 @@ Overloaded function.
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -931,7 +931,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -942,7 +942,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -953,7 +953,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -1017,7 +1017,7 @@ Overloaded function.
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1028,7 +1028,7 @@ Overloaded function.
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1039,7 +1039,7 @@ Overloaded function.
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1050,7 +1050,7 @@ Overloaded function.
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -1061,7 +1061,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -1072,7 +1072,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -1083,7 +1083,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -1148,7 +1148,7 @@ Overloaded function.
         pass
 
     def getCoordinates():
-        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getCoordinates(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1159,7 +1159,7 @@ Overloaded function.
         pass
 
     def getForces():
-        r"""getForces(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getForces(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1170,7 +1170,7 @@ Overloaded function.
         pass
 
     def getVelocities():
-        r"""getVelocities(self: ParticleVectors.ParticleVector) -> List[List[float[3]]]
+        r"""getVelocities(self: ParticleVectors.ParticleVector) -> list[Annotated[list[float], FixedSize(3)]]
 
 
             Returns:
@@ -1181,7 +1181,7 @@ Overloaded function.
         pass
 
     def get_indices():
-        r"""get_indices(self: ParticleVectors.ParticleVector) -> List[int]
+        r"""get_indices(self: ParticleVectors.ParticleVector) -> list[int]
 
 
             Returns:
@@ -1192,7 +1192,7 @@ Overloaded function.
         pass
 
     def setCoordinates():
-        r"""setCoordinates(coordinates: List[real3]) -> None
+        r"""setCoordinates(coordinates: list[real3]) -> None
 
 
             Args:
@@ -1203,7 +1203,7 @@ Overloaded function.
         pass
 
     def setForces():
-        r"""setForces(forces: List[real3]) -> None
+        r"""setForces(forces: list[real3]) -> None
 
 
             Args:
@@ -1214,7 +1214,7 @@ Overloaded function.
         pass
 
     def setVelocities():
-        r"""setVelocities(velocities: List[real3]) -> None
+        r"""setVelocities(velocities: list[real3]) -> None
 
 
             Args:
@@ -1244,7 +1244,7 @@ Overloaded function.
 # Functions
 
 def getReservedBisegmentChannels():
-    r"""getReservedBisegmentChannels() -> List[str]
+    r"""getReservedBisegmentChannels() -> list[str]
 
 Return the list of reserved channel names per bisegment fields
 
@@ -1252,7 +1252,7 @@ Return the list of reserved channel names per bisegment fields
     pass
 
 def getReservedObjectChannels():
-    r"""getReservedObjectChannels() -> List[str]
+    r"""getReservedObjectChannels() -> list[str]
 
 Return the list of reserved channel names for object fields
 
@@ -1260,7 +1260,7 @@ Return the list of reserved channel names for object fields
     pass
 
 def getReservedParticleChannels():
-    r"""getReservedParticleChannels() -> List[str]
+    r"""getReservedParticleChannels() -> list[str]
 
 Return the list of reserved channel names for particle fields
 

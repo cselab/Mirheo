@@ -91,7 +91,7 @@ class Shear(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, shear: List[float[9]], origin: real3) -> None
+        r"""__init__(name: str, shear: Annotated[list[float], FixedSize(9)], origin: real3) -> None
 
 
                 Args:
@@ -110,7 +110,7 @@ class ShearPolChain(Integrator):
     
     """
     def __init__():
-        r"""__init__(name: str, shear: List[float[9]], origin: real3) -> None
+        r"""__init__(name: str, shear: Annotated[list[float], FixedSize(9)], origin: real3) -> None
 
 
                 Args:
@@ -131,7 +131,7 @@ class SubStep(Integrator):
         
     """
     def __init__():
-        r"""__init__(name: str, substeps: int, fastForces: List[Interactions.Interaction]) -> None
+        r"""__init__(name: str, substeps: int, fastForces: list[Interactions.Interaction]) -> None
 
 
                 Args:
@@ -186,6 +186,23 @@ class Translate(Integrator):
                 Args:
                     name: name of the integrator
                     velocity: translational velocity :math:`\mathbf{\Omega}`
+            
+
+        """
+        pass
+
+class TranslateLambda(Integrator):
+    r"""
+        Translate particles with a uniform velocity :math:`\mathbf{u}` depending on time.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, velocity: std::function<float3 (float)>) -> None
+
+
+                Args:
+                    name: name of the integrator
+                    velocity: translational velocity :math:`\mathbf{\Omega}(t)`
             
 
         """

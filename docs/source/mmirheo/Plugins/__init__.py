@@ -17,7 +17,7 @@ class PinObject(SimulationPlugin):
 # Functions
 
 def createAddForce():
-    r"""createAddForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -36,7 +36,7 @@ def createAddForceField():
     r"""createAddForceField(*args, **kwargs)
 Overloaded function.
 
-1. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field: Callable[[real3], real3], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+1. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field: Callable[[real3], real3], h: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force to each particle of a specific PV every time-step.
@@ -48,7 +48,7 @@ Overloaded function.
             h: grid spacing used to discretize the force field
     
 
-2. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field_filename: str, h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+2. createAddForceField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force_field_filename: str, h: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force to each particle of a specific PV every time-step.
@@ -64,7 +64,7 @@ Overloaded function.
     pass
 
 def createAddFourRollMillForce():
-    r"""createAddFourRollMillForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, intensity: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddFourRollMillForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, intensity: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add a force :math:`\mathbf{f} = (A \sin x \cos y, A \cos x \sin y, 0)` to each particle of a specific PV every time-step.
@@ -82,7 +82,7 @@ def createAddPotentialForce():
     r"""createAddPotentialForce(*args, **kwargs)
 Overloaded function.
 
-1. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field: Callable[[real3], float], h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+1. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field: Callable[[real3], float], h: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -95,7 +95,7 @@ Overloaded function.
             h: grid spacing used to discretize the potential field
     
 
-2. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field_filename: str, h: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+2. createAddPotentialForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, potential_field_filename: str, h: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Add a force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -112,7 +112,7 @@ Overloaded function.
     pass
 
 def createAddReversePoiseuilleForce():
-    r"""createAddReversePoiseuilleForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: real3, flip_direction: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddReversePoiseuilleForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, force: real3, flip_direction: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add constant force :math:`\mathbf{F}_{extra}` to each particle of a specific PV every time-step.
@@ -129,7 +129,7 @@ def createAddReversePoiseuilleForce():
     pass
 
 def createAddSinusoidalForce():
-    r"""createAddSinusoidalForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddSinusoidalForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add sinusoidal force :math:`\mathbf{F}(\mathbf{r}) = A \sin\left( 2\pi k r_y / L_y\right)` to each particle of a specific PV every time-step, where :math:`L_y` is the dimension of the domain along :math`y`.
@@ -145,7 +145,7 @@ def createAddSinusoidalForce():
     pass
 
 def createAddTorque():
-    r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAddTorque(state: MirState, name: str, ov: ParticleVectors.ParticleVector, torque: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add constant torque :math:`\mathbf{T}_{extra}` to each *object* of a specific OV every time-step.
@@ -160,7 +160,7 @@ def createAddTorque():
     pass
 
 def createAnchorParticles():
-    r"""createAnchorParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, positions: Callable[[float], List[real3]], velocities: Callable[[float], List[real3]], pids: List[int], report_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createAnchorParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, positions: Callable[[float], list[real3]], velocities: Callable[[float], list[real3]], pids: list[int], report_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will set a given particle at a given position and velocity.
@@ -179,7 +179,7 @@ def createAnchorParticles():
     pass
 
 def createBerendsenThermostat():
-    r"""createBerendsenThermostat(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], tau: float, kBT: float, increaseIfLower: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createBerendsenThermostat(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], tau: float, kBT: float, increaseIfLower: bool = True) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Berendsen thermostat.
@@ -207,7 +207,7 @@ def createBerendsenThermostat():
     pass
 
 def createDensityControl():
-    r"""createDensityControl(state: MirState, name: str, file_name: str, pvs: List[ParticleVectors.ParticleVector], target_density: float, region: Callable[[real3], float], resolution: real3, level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDensityControl(state: MirState, name: str, file_name: str, pvs: list[ParticleVectors.ParticleVector], target_density: float, region: Callable[[real3], float], resolution: real3, level_lo: float, level_hi: float, level_space: float, Kp: float, Ki: float, Kd: float, tune_every: int, dump_every: int, sample_every: int) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin applies forces to a set of particle vectors in order to get a constant density.
@@ -233,7 +233,7 @@ def createDensityControl():
     pass
 
 def createDensityOutlet():
-    r"""createDensityOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], number_density: float, region: Callable[[real3], float], resolution: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDensityOutlet(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], number_density: float, region: Callable[[real3], float], resolution: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin removes particles from a set of :any:`ParticleVector` in a given region if the number density is larger than a given target.
@@ -251,7 +251,7 @@ def createDensityOutlet():
     pass
 
 def createDumpAverage():
-    r"""createDumpAverage(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: real3=real3(1.0, 1.0, 1.0), channels: List[str], path: str='xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpAverage(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], sample_every: int, dump_every: int, bin_size: real3 = real3(1.0, 1.0, 1.0), channels: list[str], path: str = 'xdmf/') -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will project certain quantities of the particle vectors on the grid (by simple binning),
@@ -280,7 +280,7 @@ def createDumpAverage():
     pass
 
 def createDumpAverageRelative():
-    r"""createDumpAverageRelative(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: real3=real3(1.0, 1.0, 1.0), channels: List[str], path: str='xdmf/') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpAverageRelative(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], relative_to_ov: ParticleVectors.ObjectVector, relative_to_id: int, sample_every: int, dump_every: int, bin_size: real3 = real3(1.0, 1.0, 1.0), channels: list[str], path: str = 'xdmf/') -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin acts just like the regular flow dumper, with one difference.
@@ -312,7 +312,7 @@ def createDumpAverageRelative():
     pass
 
 def createDumpMesh():
-    r"""createDumpMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will write the meshes of all the object of the specified Object Vector in a `PLY format <https://en.wikipedia.org/wiki/PLY_(file_format)>`_.
@@ -331,7 +331,7 @@ def createDumpMesh():
     pass
 
 def createDumpObjectStats():
-    r"""createDumpObjectStats(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, filename: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpObjectStats(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, filename: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will write the coordinates of the centers of mass of the objects of the specified Object Vector.
@@ -360,7 +360,7 @@ def createDumpObjectStats():
     pass
 
 def createDumpParticles():
-    r"""createDumpParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpParticles(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, channel_names: list[str], path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Particle Vector.
@@ -379,7 +379,7 @@ def createDumpParticles():
     pass
 
 def createDumpParticlesWithMesh():
-    r"""createDumpParticlesWithMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpParticlesWithMesh(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, channel_names: list[str], path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified Object Vector, as well as connectivity information.
@@ -397,7 +397,7 @@ def createDumpParticlesWithMesh():
     pass
 
 def createDumpParticlesWithPolylines():
-    r"""createDumpParticlesWithPolylines(state: MirState, name: str, cv: ParticleVectors.ChainVector, dump_every: int, channel_names: List[str], path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpParticlesWithPolylines(state: MirState, name: str, cv: ParticleVectors.ChainVector, dump_every: int, channel_names: list[str], path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will dump positions, velocities and optional attached data of all the particles of the specified
@@ -417,7 +417,7 @@ def createDumpParticlesWithPolylines():
     pass
 
 def createDumpXYZ():
-    r"""createDumpXYZ(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createDumpXYZ(state: MirState, name: str, pv: ParticleVectors.ParticleVector, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will dump positions of all the particles of the specified Particle Vector in the XYZ format.
@@ -436,7 +436,7 @@ def createDumpXYZ():
     pass
 
 def createExchangePVSFluxPlane():
-    r"""createExchangePVSFluxPlane(state: MirState, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: real4) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createExchangePVSFluxPlane(state: MirState, name: str, pv1: ParticleVectors.ParticleVector, pv2: ParticleVectors.ParticleVector, plane: real4) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin exchanges particles from a particle vector crossing a given plane to another particle vector.
@@ -454,7 +454,7 @@ def createExchangePVSFluxPlane():
     pass
 
 def createExpMovingAverage():
-    r"""createExpMovingAverage(state: MirState, name: str, pv: ParticleVectors.ParticleVector, alpha: float, src_channel_name: str, ema_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createExpMovingAverage(state: MirState, name: str, pv: ParticleVectors.ParticleVector, alpha: float, src_channel_name: str, ema_channel_name: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Compute the exponential moving average (EMA) of the given channel of a :class:`ParticleVector` and stores it in the new channel "ema_channel_name".
@@ -471,7 +471,7 @@ def createExpMovingAverage():
     pass
 
 def createExternalMagneticTorque():
-    r"""createExternalMagneticTorque(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, magneticFunction: Callable[[float], real3]) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createExternalMagneticTorque(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, magneticFunction: Callable[[float], real3]) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin gives a magnetic moment :math:`\mathbf{M}` to every rigid objects in a given :any:`RigidObjectVector`.
@@ -495,7 +495,7 @@ def createExternalMagneticTorque():
     pass
 
 def createForceSaver():
-    r"""createForceSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createForceSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin creates an extra channel per particle inside the given particle vector named 'forces'.
@@ -511,7 +511,7 @@ def createForceSaver():
     pass
 
 def createImposeProfile():
-    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: real3, high: real3, velocity: real3, kBT: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createImposeProfile(state: MirState, name: str, pv: ParticleVectors.ParticleVector, low: real3, high: real3, velocity: real3, kBT: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will set the velocity of each particle inside a given domain to a target velocity with an additive term
@@ -530,7 +530,7 @@ def createImposeProfile():
     pass
 
 def createImposeVelocity():
-    r"""createImposeVelocity(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], every: int, low: real3, high: real3, velocity: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createImposeVelocity(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], every: int, low: real3, high: real3, velocity: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add velocity to all the particles of the target PV in the specified area (rectangle) such that the average velocity equals to desired.
@@ -548,7 +548,7 @@ def createImposeVelocity():
     pass
 
 def createMagneticDipoleInteractions():
-    r"""createMagneticDipoleInteractions(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, mu0: float, periodic: bool=True) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createMagneticDipoleInteractions(state: MirState, name: str, rov: ParticleVectors.RigidObjectVector, moment: real3, mu0: float, periodic: bool = True) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the forces and torques resulting from pairwise dipole-dipole interactions between rigid objects.
@@ -566,7 +566,7 @@ def createMagneticDipoleInteractions():
     pass
 
 def createMembraneExtraForce():
-    r"""createMembraneExtraForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, forces: List[real3]) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createMembraneExtraForce(state: MirState, name: str, pv: ParticleVectors.ParticleVector, forces: list[real3]) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin adds a given external force to a given membrane.
@@ -583,7 +583,7 @@ def createMembraneExtraForce():
     pass
 
 def createMsd():
-    r"""createMsd(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createMsd(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the mean square displacement of th particles of a given :any:`ParticleVector`.
@@ -602,7 +602,7 @@ def createMsd():
     pass
 
 def createParticleChannelAverager():
-    r"""createParticleChannelAverager(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, averageName: str, updateEvery: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createParticleChannelAverager(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, averageName: str, updateEvery: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin averages a channel (per particle data) inside the given particle vector and saves it to a new channel.
@@ -620,7 +620,7 @@ def createParticleChannelAverager():
     pass
 
 def createParticleChannelSaver():
-    r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createParticleChannelSaver(state: MirState, name: str, pv: ParticleVectors.ParticleVector, channelName: str, savedName: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin creates an extra channel per particle inside the given particle vector with a given name.
@@ -637,7 +637,7 @@ def createParticleChannelSaver():
     pass
 
 def createParticleChecker():
-    r"""createParticleChecker(state: MirState, name: str, check_every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createParticleChecker(state: MirState, name: str, check_every: int) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will check the positions and velocities of all particles in the simulation every given time steps.
@@ -652,7 +652,7 @@ def createParticleChecker():
     pass
 
 def createParticleDisplacement():
-    r"""createParticleDisplacement(state: MirState, name: str, pv: ParticleVectors.ParticleVector, update_every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createParticleDisplacement(state: MirState, name: str, pv: ParticleVectors.ParticleVector, update_every: int) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes and save the displacement of the particles within a given particle vector.
@@ -668,7 +668,7 @@ def createParticleDisplacement():
     pass
 
 def createParticleDrag():
-    r"""createParticleDrag(state: MirState, name: str, pv: ParticleVectors.ParticleVector, drag: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createParticleDrag(state: MirState, name: str, pv: ParticleVectors.ParticleVector, drag: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add drag force :math:`\mathbf{f} = - C_d \mathbf{u}` to each particle of a specific PV every time-step.
@@ -683,7 +683,7 @@ def createParticleDrag():
     pass
 
 def createPinObject():
-    r"""createPinObject(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: real3, angular_velocity: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createPinObject(state: MirState, name: str, ov: ParticleVectors.ObjectVector, dump_every: int, path: str, velocity: real3, angular_velocity: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will impose given velocity as the center of mass velocity (by axis) of all the objects of the specified Object Vector.
@@ -710,7 +710,7 @@ def createPinObject():
     pass
 
 def createPinRodExtremity():
-    r"""createPinRodExtremity(state: MirState, name: str, rv: ParticleVectors.RodVector, segment_id: int, f_magn: float, target_direction: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createPinRodExtremity(state: MirState, name: str, rv: ParticleVectors.RodVector, segment_id: int, f_magn: float, target_direction: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin adds a force on a given segment of all the rods in a :any:`RodVector`.
@@ -735,7 +735,7 @@ def createPinRodExtremity():
     pass
 
 def createPlaneOutlet():
-    r"""createPlaneOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], plane: real4) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createPlaneOutlet(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], plane: real4) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin removes all particles from a set of :any:`ParticleVector` that are on the non-negative side of a given plane.
@@ -750,7 +750,7 @@ def createPlaneOutlet():
     pass
 
 def createRateOutlet():
-    r"""createRateOutlet(state: MirState, name: str, pvs: List[ParticleVectors.ParticleVector], mass_rate: float, region: Callable[[real3], float], resolution: real3) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createRateOutlet(state: MirState, name: str, pvs: list[ParticleVectors.ParticleVector], mass_rate: float, region: Callable[[real3], float], resolution: real3) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin removes particles from a set of :any:`ParticleVector` in a given region at a given mass rate.
@@ -768,7 +768,7 @@ def createRateOutlet():
     pass
 
 def createRdf():
-    r"""createRdf(state: MirState, name: str, pv: ParticleVectors.ParticleVector, max_dist: float, nbins: int, basename: str, every: int) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createRdf(state: MirState, name: str, pv: ParticleVectors.ParticleVector, max_dist: float, nbins: int, basename: str, every: int) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         Compute the radial distribution function (RDF) of a given :any:`ParticleVector`.
@@ -787,7 +787,7 @@ def createRdf():
     pass
 
 def createRmacf():
-    r"""createRmacf(state: MirState, name: str, cv: ParticleVectors.ChainVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createRmacf(state: MirState, name: str, cv: ParticleVectors.ChainVector, start_time: float, end_time: float, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the mean Rouse mode autocorrelation over time from a given :any:`ChainVector`.
@@ -806,7 +806,7 @@ def createRmacf():
     pass
 
 def createShearField():
-    r"""createShearField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, shear: List[float[9]], origin: real3, sf_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createShearField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, shear: Annotated[list[float], FixedSize(9)], origin: real3, sf_channel_name: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the shear velocity field at every particle's position and stores it in a channel vector.
@@ -823,7 +823,7 @@ def createShearField():
     pass
 
 def createSinusoidalField():
-    r"""createSinusoidalField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int, sf_channel_name: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createSinusoidalField(state: MirState, name: str, pv: ParticleVectors.ParticleVector, magnitude: float, wave_number: int, sf_channel_name: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes a sinusoidal velocity field at every particle's position and stores it in a channel vector.
@@ -840,7 +840,7 @@ def createSinusoidalField():
     pass
 
 def createStats():
-    r"""createStats(state: MirState, name: str, every: int, pvs: List[ParticleVectors.ParticleVector]=[], filename: str='') -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createStats(state: MirState, name: str, every: int, pvs: list[ParticleVectors.ParticleVector] = [], filename: str = '') -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will report aggregate quantities of all the particles in the simulation:
@@ -861,7 +861,7 @@ def createStats():
     pass
 
 def createTemperaturize():
-    r"""createTemperaturize(state: MirState, name: str, pv: ParticleVectors.ParticleVector, kBT: float, keepVelocity: bool) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createTemperaturize(state: MirState, name: str, pv: ParticleVectors.ParticleVector, kBT: float, keepVelocity: bool) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin changes the velocity of each particles from a given :any:`ParticleVector`.
@@ -879,7 +879,7 @@ def createTemperaturize():
     pass
 
 def createVacf():
-    r"""createVacf(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createVacf(state: MirState, name: str, pv: ParticleVectors.ParticleVector, start_time: float, end_time: float, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the mean velocity autocorrelation over time from a given :any:`ParticleVector`.
@@ -898,7 +898,7 @@ def createVacf():
     pass
 
 def createVelocityControl():
-    r"""createVelocityControl(state: MirState, name: str, filename: str, pvs: List[ParticleVectors.ParticleVector], low: real3, high: real3, sample_every: int, tune_every: int, dump_every: int, target_vel: real3, Kp: float, Ki: float, Kd: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createVelocityControl(state: MirState, name: str, filename: str, pvs: list[ParticleVectors.ParticleVector], low: real3, high: real3, sample_every: int, tune_every: int, dump_every: int, target_vel: real3, Kp: float, Ki: float, Kd: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin applies a uniform force to all the particles of the target PVS in the specified area (rectangle).
@@ -920,7 +920,7 @@ def createVelocityControl():
     pass
 
 def createVelocityInlet():
-    r"""createVelocityInlet(state: MirState, name: str, pv: ParticleVectors.ParticleVector, implicit_surface_func: Callable[[real3], float], velocity_field: Callable[[real3], real3], resolution: real3, number_density: float, kBT: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createVelocityInlet(state: MirState, name: str, pv: ParticleVectors.ParticleVector, implicit_surface_func: Callable[[real3], float], velocity_field: Callable[[real3], real3], resolution: real3, number_density: float, kBT: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin inserts particles in a given :any:`ParticleVector`.
@@ -941,7 +941,7 @@ def createVelocityInlet():
     pass
 
 def createVirialPressurePlugin():
-    r"""createVirialPressurePlugin(state: MirState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[real3], float], h: real3, dump_every: int, path: str) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createVirialPressurePlugin(state: MirState, name: str, pv: ParticleVectors.ParticleVector, regionFunc: Callable[[real3], float], h: real3, dump_every: int, path: str) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin computes the virial pressure from a given :any:`ParticleVector`.
@@ -962,7 +962,7 @@ def createVirialPressurePlugin():
     pass
 
 def createWallForceCollector():
-    r"""createWallForceCollector(state: MirState, name: str, wall: Walls.Wall, pvFrozen: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, filename: str, detailed_dump: bool=False) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createWallForceCollector(state: MirState, name: str, wall: Walls.Wall, pvFrozen: ParticleVectors.ParticleVector, sample_every: int, dump_every: int, filename: str, detailed_dump: bool = False) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin collects and averages the total force exerted on a given wall.
@@ -985,7 +985,7 @@ def createWallForceCollector():
     pass
 
 def createWallRepulsion():
-    r"""createWallRepulsion(state: MirState, name: str, pv: ParticleVectors.ParticleVector, wall: Walls.Wall, C: float, h: float, max_force: float) -> Tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
+    r"""createWallRepulsion(state: MirState, name: str, pv: ParticleVectors.ParticleVector, wall: Walls.Wall, C: float, h: float, max_force: float) -> tuple[Plugins.SimulationPlugin, Plugins.PostprocessPlugin]
 
 
         This plugin will add force on all the particles that are nearby a specified wall. The motivation of this plugin is as follows.

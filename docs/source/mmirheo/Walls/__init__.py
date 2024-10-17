@@ -26,7 +26,7 @@ class Box(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, low: real3, high: real3, inside: bool=False) -> None
+        r"""__init__(name: str, low: real3, high: real3, inside: bool = False) -> None
 
 
             Args:
@@ -56,7 +56,7 @@ class Cylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: real2, radius: float, axis: str, inside: bool=False) -> None
+        r"""__init__(name: str, center: real2, radius: float, axis: str, inside: bool = False) -> None
 
 
             Args:
@@ -65,6 +65,36 @@ class Cylinder(Wall):
                 radius: cylinder radius
                 axis: direction of cylinder axis, valid values are "x", "y" or "z"
                 inside: whether the domain is inside the cylinder or outside of it
+        
+
+        """
+        pass
+
+    def attachFrozenParticles():
+        r"""attachFrozenParticles(arg0: ParticleVectors.ParticleVector) -> None
+
+
+        Let the wall know that the following :any:`ParticleVector` should be treated as frozen.
+        As a result, its particles will not be removed from the inside of the wall.
+    
+
+        """
+        pass
+
+class LambdaMovingPlane(Wall):
+    r"""
+        Planar wall with uniform velocity changing over time.
+    
+    """
+    def __init__():
+        r"""__init__(name: str, normal: real3, pointThrough: real3, velocity: std::function<float3 (float)>) -> None
+
+
+            Args:
+                name: name of the wall
+                normal: wall normal, pointing *inside* the wall
+                pointThrough: point that belongs to the plane
+                velocity: wall velocity, function of time, should be orthogonal to the normal
         
 
         """
@@ -183,7 +213,7 @@ class RotatingCylinder(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: real2, radius: float, axis: str, omega: float, inside: bool=False) -> None
+        r"""__init__(name: str, center: real2, radius: float, axis: str, omega: float, inside: bool = False) -> None
 
 
             Args:
@@ -224,7 +254,7 @@ class SDF(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, sdfFilename: str, h: real3=real3(0.25, 0.25, 0.25), margin: real3=real3(5.0, 5.0, 5.0)) -> None
+        r"""__init__(name: str, sdfFilename: str, h: real3 = real3(0.25, 0.25, 0.25), margin: real3 = real3(5.0, 5.0, 5.0)) -> None
 
 
             Args:
@@ -258,7 +288,7 @@ class Sphere(Wall):
     
     """
     def __init__():
-        r"""__init__(name: str, center: real3, radius: float, inside: bool=False) -> None
+        r"""__init__(name: str, center: real3, radius: float, inside: bool = False) -> None
 
 
             Args:

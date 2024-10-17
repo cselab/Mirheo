@@ -39,7 +39,7 @@ class Capsule(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int = 0, **kwargs) -> None
 
 
             Args:
@@ -60,7 +60,7 @@ class Cylinder(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int = 0, **kwargs) -> None
 
 
             Args:
@@ -81,7 +81,7 @@ class Ellipsoid(Bouncer):
     
     """
     def __init__():
-        r"""__init__(name: str, kernel: str, verbosity: int=0, **kwargs) -> None
+        r"""__init__(name: str, kernel: str, verbosity: int = 0, **kwargs) -> None
 
 
             Args:
