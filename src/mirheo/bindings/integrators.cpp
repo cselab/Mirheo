@@ -7,6 +7,8 @@
 #include <mirheo/core/interactions/membrane/base_membrane.h>
 
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
+#include <pybind11/functional.h>
 
 namespace mirheo {
 using namespace pybind11::literals;
