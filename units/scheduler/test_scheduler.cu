@@ -142,7 +142,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "ERROR: The MPI library does not have full thread support\n");
         MPI_Abort(MPI_COMM_WORLD, 1);
     }
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     logger.init(MPI_COMM_WORLD, "scheduler.log", 9);
 
     testing::InitGoogleTest(&argc, argv);
