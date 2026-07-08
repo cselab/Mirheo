@@ -52,8 +52,7 @@ class PintUnitsConverter:
             old = ureg.default_system
             try:
                 ureg.default_system = self.UNIT_SYSTEM_NAME
-                out = value.to_base_units().magnitude
-                return out
+                return value.to_base_units().magnitude
             finally:
                 ureg.default_system = old
         if cls is tuple:

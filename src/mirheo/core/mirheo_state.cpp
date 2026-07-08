@@ -8,7 +8,6 @@ namespace mirheo
 {
 
 static const std::string fname = "state.mirheo";
-constexpr real MirState::InvalidDt;
 
 MirState::MirState(DomainInfo domain_, real dt) :
     domain(domain_),
